@@ -20,7 +20,7 @@ node spans through its `#endif` with the `#else` hanging off it as `alternative`
 over the node's own extent reports the else-branch function as present when the symbol is SET —
 the exact inverse, stated at full confidence. Every assertion here is therefore two-sided.
 
-@brief Integration control for gate coverage on a function dossier.
+@brief Integration control for gate coverage on a function function_dossier.
 @version 1
 """
 
@@ -31,7 +31,7 @@ from pathlib import Path
 import pytest
 
 from clew.cli import build_index
-from clew.query import dossier
+from clew.query import function_dossier
 from clew.vocabulary import (
     GATE_ORIGIN_DECLARED,
     GATE_ORIGIN_UNDECLARED,
@@ -42,7 +42,7 @@ from clew.vocabulary import (
 pytestmark = pytest.mark.integration
 
 ## The gated pair and an ungated control, each documented so doxygen emits a memberdef for it —
-## the dossier resolves through `memberdef`, so an undocumented function would make this test
+## the function_dossier resolves through `memberdef`, so an undocumented function would make this test
 ## fail for a reason that has nothing to do with gates.
 SOURCE = """/** @file
  *  @brief Gate-coverage fixture: one symbol, both branches, and a function outside both.
@@ -77,21 +77,21 @@ DOXYFILE = (
 )
 
 
-## @brief The (macro, form) pairs a dossier reports as this function's preconditions.
+## @brief The (macro, form) pairs a function_dossier reports as this function's preconditions.
 ## @param db Built index.
 ## @param name Function to look up.
 ## @return Set of (macro, form) pairs, and the unplaceable-gate count.
 ## @version 1
 def _gated_by(db: Path, name: str) -> tuple[set[tuple[str, str]], int]:
     """Read through the SHIPPED query entry point, not by querying `kconfig_gates` directly. A
-    SQL assertion here would pass while the dossier dropped the field, which is precisely the
+    SQL assertion here would pass while the function_dossier dropped the field, which is precisely the
     layer boundary this test exists to cross.
 
-    @brief Read one function's gate set from its dossier.
+    @brief Read one function's gate set from its function_dossier.
     @return The (macro, form) pairs and the unplaceable count.
     @version 1
     """
-    doss = dossier(db, name)
+    doss = function_dossier(db, name)
     assert doss is not None, f"{name} is not in the index — the fixture never built"
     return {(g.macro, g.form) for g in doss.gated_by}, doss.gates_unplaceable
 
@@ -203,7 +203,7 @@ def test_a_gate_says_whether_this_build_satisfied_it(tmp_path: Path) -> None:
         options={"predefined": ["FIXTURE_DECLARED"]},
     )
 
-    doss = dossier(db, "fixture_two_flags")
+    doss = function_dossier(db, "fixture_two_flags")
     assert doss is not None, (
         "the function must be INDEXED even though the build does not satisfy its gates — that is "
         "gh#11's recovery, and it is what makes 'index the union, label the branches' possible "
@@ -226,7 +226,7 @@ DRIFT_SOURCE = """/** @file
  *  @brief Body-anchor fixture: two functions, one of which will move.
  */
 
-/** @brief The subject of the dossier.
+/** @brief The subject of the function_dossier.
  *  @version 1
  */
 int drift_subject(void)
@@ -247,7 +247,7 @@ int drift_neighbour(void)
 def test_a_body_read_after_the_file_moved_is_disclosed_not_returned_silently(
     tmp_path: Path,
 ) -> None:
-    """THE DEFECT THIS REPRODUCES WAS FOUND BY USING THE TOOL, not by reading the code. A dossier
+    """THE DEFECT THIS REPRODUCES WAS FOUND BY USING THE TOOL, not by reading the code. A function_dossier
     reported `line_start: 896` and returned 55 lines of a DIFFERENT function; `line_start`,
     `line_end` and `total_lines` were all self-consistent, so nothing in the payload contradicted
     it, and the reader went and read the file instead — a miss the tool caused and then concealed.
@@ -277,7 +277,7 @@ def test_a_body_read_after_the_file_moved_is_disclosed_not_returned_silently(
 
     build_index(output=db, repo_root=root, doxyfile=doxyfile)
 
-    fresh = dossier(db, "drift_subject", repo_root=root)
+    fresh = function_dossier(db, "drift_subject", repo_root=root)
     assert fresh is not None and fresh.body is not None, "the fixture must produce a body"
     assert fresh.body.anchor_mismatch is False, (
         f"the tree is untouched, so the excerpt is the function's own — a mismatch here means the "
@@ -292,7 +292,7 @@ def test_a_body_read_after_the_file_moved_is_disclosed_not_returned_silently(
     source.write_text("/* nine\n * added\n * lines\n * of\n * new\n * leading\n * comment\n"
                       " * text\n */\n" + DRIFT_SOURCE, encoding="utf-8")  # fmt: skip
 
-    moved = dossier(db, "drift_subject", repo_root=root)
+    moved = function_dossier(db, "drift_subject", repo_root=root)
     assert moved is not None and moved.body is not None
     assert moved.body.anchor_mismatch is True, (
         f"the recorded span no longer holds this function, and saying nothing is what sent a "

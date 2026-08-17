@@ -376,7 +376,7 @@ def _macro_collision(macros: list[MacroDef], line_start: int | None) -> str:
 ## @req REQ-DDB-QUERY-004
 ## @req REQ-DDB-QUERY-009
 ## @req REQ-DDB-QUERY-010
-def dossier(
+def function_dossier(
     db: DbSource,
     fn: str,
     qualified: str | None = None,
@@ -602,7 +602,7 @@ MAX_BATCH_SYMBOLS = 8
 ## @version 1
 ## @req REQ-DDB-QUERY-004
 ## @req REQ-DDB-QUERY-009
-def dossiers(
+def function_dossiers(
     db: DbSource,
     fns: list[str],
     repo_root: Path | str | None = None,

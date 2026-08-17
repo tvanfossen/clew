@@ -48,7 +48,7 @@ def test_the_dossier_carries_the_function_body_it_describes(rich_db: Path, repo_
     plausible-looking list of strings. The line span must also describe exactly what
     arrived, because a reader given `start_line` will use it to quote the code.
     """
-    d = q.dossier(rich_db, SETTER, repo_root=repo_root)
+    d = q.function_dossier(rich_db, SETTER, repo_root=repo_root)
     assert d is not None
     assert d.body is not None, "the one-shot body panel is missing"
     assert d.body.file == d.file, "the body must come from the file the identity names"
@@ -71,7 +71,7 @@ def test_a_clipped_body_says_so_and_still_reports_its_full_extent(
 
     Two lines rather than a boundary value, so the clip is unmistakable.
     """
-    d = q.dossier(rich_db, SETTER, repo_root=repo_root, max_body_lines=2)
+    d = q.function_dossier(rich_db, SETTER, repo_root=repo_root, max_body_lines=2)
     assert d is not None and d.body is not None
     assert len(d.body.lines) == 2
     assert d.body.truncated is True
@@ -88,7 +88,7 @@ def test_the_body_clip_does_not_hide_calls_below_the_cut(rich_db: Path, repo_roo
     nothing saying so. `pthread_mutex_unlock` sits several lines below a 2-line cut and
     must still be named.
     """
-    clipped = q.dossier(rich_db, SETTER, repo_root=repo_root, max_body_lines=2)
+    clipped = q.function_dossier(rich_db, SETTER, repo_root=repo_root, max_body_lines=2)
     assert clipped is not None
     assert {e.name for e in clipped.external_callees} == _expected_externals()
 
@@ -107,7 +107,7 @@ def test_the_dossier_names_the_callees_the_index_cannot_resolve(
       * `callees` still carries the call that DID resolve, so the panel is additive
         rather than a replacement.
     """
-    d = q.dossier(rich_db, SETTER, repo_root=repo_root)
+    d = q.function_dossier(rich_db, SETTER, repo_root=repo_root)
     assert d is not None
     named = {e.name for e in d.external_callees}
     assert named == _expected_externals()
@@ -148,7 +148,7 @@ def test_an_external_callee_is_never_promoted_to_a_call_edge(
     finally:
         conn.close()
 
-    d = q.dossier(rich_db, SETTER, repo_root=repo_root)
+    d = q.function_dossier(rich_db, SETTER, repo_root=repo_root)
     assert d is not None and d.external_callees
 
     conn = sqlite3.connect(f"file:{rich_db}?mode=ro", uri=True)
@@ -172,7 +172,7 @@ def test_the_lock_panels_agree_with_the_tools_they_replace(
     (`critical_section_calls.callee_rowid`) — and a single function that satisfied both
     would let one field be wired to the other's query undetected.
     """
-    setter = q.dossier(rich_db, SETTER, repo_root=repo_root)
+    setter = q.function_dossier(rich_db, SETTER, repo_root=repo_root)
     assert setter is not None
     assert setter.sections == q.sections_in(rich_db, SETTER)
     assert setter.sections, "the fixture's setter opens a critical section"
@@ -184,7 +184,7 @@ def test_the_lock_panels_agree_with_the_tools_they_replace(
     ## the identity-scoped panel are asking the same question and equality is a real
     ## claim rather than an artefact of both being empty.
     db = _identity_db(tmp_path)
-    inner = q.dossier(db, "solo", repo_root=tmp_path)
+    inner = q.function_dossier(db, "solo", repo_root=tmp_path)
     assert inner is not None
     assert inner.locks_held == q.locks_held_when(db, "solo")
     assert [s.lock for s in inner.locks_held] == ["a_mutex"]
@@ -199,12 +199,12 @@ def test_a_dossier_without_a_working_tree_keeps_every_index_panel(rich_db: Path)
     field by field against the full payload rather than spot-checked, so a panel that
     silently depended on the working tree fails here.
     """
-    without = q.dossier(rich_db, SETTER)
+    without = q.function_dossier(rich_db, SETTER)
     assert without is not None
     assert without.body is None
     assert without.external_callees == []
     assert without.sections, "the lock panels come from the index, not the working tree"
-    assert without.callers == q.dossier(rich_db, SETTER).callers
+    assert without.callers == q.function_dossier(rich_db, SETTER).callers
 
 
 ## @brief Two same-named C functions in different files, each holding its own lock.
@@ -307,7 +307,7 @@ def test_the_one_shot_panels_key_on_the_resolved_identity_not_the_name(tmp_path:
     payload must not inherit.
     """
     db = _identity_db(tmp_path)
-    d = q.dossier(db, "flush", repo_root=tmp_path)
+    d = q.function_dossier(db, "flush", repo_root=tmp_path)
     assert d is not None
     assert d.file == "a.c", "the definition-preferring pick is the a.c helper"
 
@@ -325,7 +325,7 @@ def test_the_one_shot_panels_key_on_the_resolved_identity_not_the_name(tmp_path:
     ## The OTHER lock panel, whose join runs the other way. `drain` exists once per
     ## module and each is called inside its own module's section, so the name-scoped
     ## tool reports two mutexes and the identity-scoped panel must report one.
-    held = q.dossier(db, "drain", repo_root=tmp_path)
+    held = q.function_dossier(db, "drain", repo_root=tmp_path)
     assert held is not None and held.file == "a.c"
     assert [s.lock for s in held.locks_held] == ["a_mutex"]
     assert {s.lock for s in q.locks_held_when(db, "drain")} == {"a_mutex", "b_mutex"}
@@ -345,7 +345,7 @@ def test_the_panels_survive_a_database_that_predates_the_lock_layer(tmp_path: Pa
     conn.commit()
     conn.close()
 
-    d = q.dossier(db, "flush", repo_root=tmp_path)
+    d = q.function_dossier(db, "flush", repo_root=tmp_path)
     assert d is not None
     assert d.sections == []
     assert d.locks_held == []
@@ -360,7 +360,7 @@ def test_an_unreadable_working_tree_loses_the_body_and_not_the_dossier(
     requirements and the call graph are all still true — and because a raise here would
     make the composite payload fail where the narrow `source` tool merely returns None.
     """
-    d = q.dossier(rich_db, SETTER, repo_root=tmp_path / "no_such_checkout")
+    d = q.function_dossier(rich_db, SETTER, repo_root=tmp_path / "no_such_checkout")
     assert d is not None
     assert d.body is None
     assert d.external_callees == []
@@ -438,13 +438,13 @@ def test_the_external_panel_reports_signal_and_not_every_token_that_is_unindexed
     """
     db = _noise_db(tmp_path)
 
-    py = q.dossier(db, "compute", repo_root=tmp_path)
+    py = q.function_dossier(db, "compute", repo_root=tmp_path)
     assert py is not None
     assert {e.name for e in py.external_callees} == {"helper"}, (
         "the Python panel must keep the one unindexed project call and drop the rest"
     )
 
-    c = q.dossier(db, "scale", repo_root=tmp_path)
+    c = q.function_dossier(db, "scale", repo_root=tmp_path)
     assert c is not None
     assert {e.name for e in c.external_callees} == {"pow"}
 
@@ -456,7 +456,7 @@ def test_call_lines_are_reported_in_source_order(rich_db: Path, repo_root: Path)
     then keep a function's LAST few call sites and drop the first, which is backwards
     for a panel whose value is "what does this thing do".
     """
-    d = q.dossier(rich_db, SETTER, repo_root=repo_root)
+    d = q.function_dossier(rich_db, SETTER, repo_root=repo_root)
     assert d is not None and d.external_callees
     for edge in d.external_callees:
         assert list(edge.call_lines) == sorted(edge.call_lines), (
@@ -512,7 +512,7 @@ def test_the_dossier_returns_detail_prose_and_caps_it_loudly(tmp_path: Path) -> 
     conn.commit()
     conn.close()
 
-    found = q.dossier(db, "step")
+    found = q.function_dossier(db, "step")
     assert found is not None
     assert found.brief == "Brief only."
     assert "MBEDTLS_ALLOW_PRIVATE_ACCESS" in found.detail, (

@@ -36,7 +36,7 @@ from clew.ast_symbols import (
 )
 from clew.coverage import measure_index_coverage
 from clew.harvest import try_import_tree_sitter
-from clew.query import dossier, resolve_symbol, search, source
+from clew.query import function_dossier, resolve_symbol, search, source
 from clew.vocabulary import (
     SYMBOL_SOURCE_AST,
     SYMBOL_SOURCE_COLUMN,
@@ -544,14 +544,14 @@ def test_a_documented_declaration_keeps_its_brief_when_its_body_is_recovered(
     barren_index: tuple[Path, Path],
 ) -> None:
     """THE DOCUMENTATION REGRESSION THE FIRST CUT SHIPPED. `function_candidates`
-    orders body rows first, so after recovery the dossier's chosen row is the
+    orders body rows first, so after recovery the function_dossier's chosen row is the
     parser's — which has no brief. Reading the brief from that row alone reported a
     documented function as undocumented, i.e. a change whose purpose is to ADD
     information destroyed some."""
     db, repo = barren_index
     recover_ast_symbols(db, repo, None)
 
-    d = dossier(db, "split_api")
+    d = function_dossier(db, "split_api")
     assert d is not None
     assert d.brief == "Doubles a value.", "the header's brief must survive"
     assert d.version == "4", "and so must its @version"
@@ -578,8 +578,8 @@ def test_a_parsed_row_is_distinguishable_from_a_doxygen_row_at_every_surface(
     assert resolve_symbol(db, parsed).provenance == SYMBOL_SOURCE_AST
     assert resolve_symbol(db, documented).provenance is None
 
-    assert dossier(db, parsed).provenance == SYMBOL_SOURCE_AST
-    assert dossier(db, documented).provenance is None
+    assert function_dossier(db, parsed).provenance == SYMBOL_SOURCE_AST
+    assert function_dossier(db, documented).provenance is None
 
     hits = {h.name: h for h in search(db, parsed)}
     assert hits[parsed].provenance == SYMBOL_SOURCE_AST
@@ -609,7 +609,7 @@ def test_a_parsed_row_carries_no_brief_and_nothing_pretends_otherwise(
         conn.close()
     assert row == (None, None, None), "a recovered row must carry no description at all"
 
-    d = dossier(db, "mutex_lock_pthread")
+    d = function_dossier(db, "mutex_lock_pthread")
     assert d.brief == ""
     assert d.version == ""
     assert d.requirements == [], "and no @req tags, since those live in the prose"
@@ -1079,7 +1079,7 @@ def test_the_harvester_ITSELF_returns_python_functions_not_an_empty_payload() ->
 
 def test_a_guarded_typedef_is_recovered_as_a_typedef_row() -> None:
     """gh#395, and it is gh#11 one kind over. THE MEASURED GAP:
-    `dossier("mbedtls_threading_mutex_t")` returned the alt-dummy
+    `function_dossier("mbedtls_threading_mutex_t")` returned the alt-dummy
     `struct { int dummy; }` at `tests/include/alt-dummy/threading_alt.h`, while the real
     pthread-backed type at `include/mbedtls/threading.h:29` produced NO ROW IN ANY TABLE —
     it sits behind `MBEDTLS_THREADING_PTHREAD`. Exactly one `compounddef` row existed for

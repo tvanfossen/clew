@@ -220,7 +220,7 @@ def test_an_unmatched_selector_returns_nothing_rather_than_the_union(
     "friendlier"."""
     bogus = "pkg.nowhere.NotAClass.harvest"
     assert q.resolve_symbol(shared_name_db, "harvest", bogus) is None
-    assert q.dossier(shared_name_db, "harvest", bogus) is None
+    assert q.function_dossier(shared_name_db, "harvest", bogus) is None
     assert q.callers(shared_name_db, "harvest", bogus) == []
     assert q.callees(shared_name_db, "harvest", bogus) == []
     assert q.overrides_of(shared_name_db, "harvest", bogus) == []

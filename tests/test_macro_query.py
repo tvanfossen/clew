@@ -33,7 +33,7 @@ from pathlib import Path
 
 import pytest
 
-from clew.query import dossier, macro_definitions, search, token_hit_counts
+from clew.query import function_dossier, macro_definitions, search, token_hit_counts
 
 ## The doxygen `kind` a `#define` carries. Spelled literally here rather than
 ## imported from `query.macros`: a test that imports the production constant cannot
@@ -216,7 +216,7 @@ def test_a_macro_only_name_gets_a_dossier(macro_db: Path) -> None:
     """@brief `dossier` on a macro-only name returns the macro, not None.
     @version 1
     """
-    doss = dossier(macro_db, "ALLOW")
+    doss = function_dossier(macro_db, "ALLOW")
     assert doss is not None
     assert doss.kind == MACRO_KIND
     assert [m.file for m in doss.macros] == ["library/common.h", "programs/app.c"]
@@ -233,7 +233,7 @@ def test_a_macro_panel_rides_a_function_dossier_of_the_same_name(macro_db: Path)
     @brief A colliding function name does not hide the macro.
     @version 1
     """
-    doss = dossier(macro_db, "WRAP")
+    doss = function_dossier(macro_db, "WRAP")
     assert doss is not None
     assert doss.kind == "function", "the fixture's collision must still resolve to the function"
     assert [m.expansion for m in doss.macros] == ["hidden_##member"]
@@ -250,7 +250,7 @@ def test_a_bodiless_colliding_identity_discloses_the_macro_collision(macro_db: P
     @brief The collision note fires on a bodiless row whose name is a macro.
     @version 1
     """
-    doss = dossier(macro_db, "WRAP")
+    doss = function_dossier(macro_db, "WRAP")
     assert doss is not None
     assert doss.line_start is None, "the fixture's collision row must have no body extent"
     assert "#define" in doss.macro_collision
@@ -272,7 +272,7 @@ def test_a_defined_function_sharing_a_macro_name_is_not_flagged(macro_db: Path) 
     @brief A defined function's dossier carries no collision note.
     @version 1
     """
-    doss = dossier(macro_db, "DUAL")
+    doss = function_dossier(macro_db, "DUAL")
     assert doss is not None
     assert doss.kind == "function"
     assert doss.line_start == 210, "the definition-preferring pick must be the body row"
@@ -299,7 +299,7 @@ def test_a_declared_undefined_function_is_disclosed_and_still_described(macro_db
     @brief A legitimate bodiless declaration keeps its own payload beside the note.
     @version 1
     """
-    doss = dossier(macro_db, "PLATFORM_CALL")
+    doss = function_dossier(macro_db, "PLATFORM_CALL")
     assert doss is not None
     assert doss.macro_collision, "the shape is ambiguous and the payload must say so"
     assert doss.kind == "function", "the note must not change which subject is described"
@@ -317,7 +317,7 @@ def test_an_unmatched_selector_is_not_answered_with_a_macro(macro_db: Path) -> N
     @brief A failed disambiguation returns None even when a macro shares the name.
     @version 1
     """
-    assert dossier(macro_db, "WRAP", qualified="nothing::like::this") is None
+    assert function_dossier(macro_db, "WRAP", qualified="nothing::like::this") is None
 
 
 ## @brief `search` finds a macro by name.
@@ -401,14 +401,14 @@ def test_an_explicit_macro_kind_selects_the_macro_not_the_field_row(macro_db: Pa
     @brief kind="macro" builds the macro dossier.
     @version 1
     """
-    from clew.query import subject_dossier
+    from clew.query import dossier
 
     ## BOTH SPELLINGS, and the aliased one is what the benchmark cell actually sent: it read
     ## `kind: "macro definition"` off a search row and passed it straight back. Testing only the
     ## canonical `"macro"` would leave the alias mapped but unwired — the exact state
     ## `_BUILDERS["macro"]` was in.
     for spelling in ("macro", MACRO_KIND):
-        built = subject_dossier(macro_db, "WRAP", kind=spelling)
+        built = dossier(macro_db, "WRAP", kind=spelling)
         assert built is not None, f"kind={spelling!r} must resolve — the name defines a macro"
         assert built.kind == "macro", (
             f"kind={spelling!r} must land on the canonical subject kind: {built.kind!r}"
@@ -432,9 +432,9 @@ def test_an_explicit_function_kind_still_returns_the_function(macro_db: Path) ->
     @brief The other kind is unaffected.
     @version 1
     """
-    from clew.query import subject_dossier
+    from clew.query import dossier
 
-    built = subject_dossier(macro_db, "WRAP", kind="function")
+    built = dossier(macro_db, "WRAP", kind="function")
     assert built is not None and built.kind == "function"
     payload = built.function
     assert payload is not None
@@ -457,7 +457,7 @@ def test_a_bare_lookup_is_unchanged_by_the_macro_kind_fix(macro_db: Path) -> Non
     @brief The bare-name path did not move.
     @version 1
     """
-    doss = dossier(macro_db, "WRAP")
+    doss = function_dossier(macro_db, "WRAP")
     assert doss is not None
     assert doss.kind == "function", "a BARE lookup must still resolve to the function"
     assert "#define" in doss.macro_collision, "and must still disclose the collision"

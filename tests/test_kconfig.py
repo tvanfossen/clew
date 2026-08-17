@@ -52,7 +52,7 @@ from clew.kconfig_gates import (
     ensure_kconfig_gates_table,
     import_kconfig_gates,
 )
-from clew.query import resolve_subject, search, subject_dossier
+from clew.query import resolve_subject, search, dossier
 from clew.query.symbols import CONFIG_SYMBOL_KIND
 from clew.prose import ingest_supplementary_docs
 from clew.query import kconfig_space, search_prose
@@ -586,7 +586,7 @@ def test_a_gated_on_symbol_is_a_dossier_subject(tmp_path: Path) -> None:
     import_kconfig_gates(db, root)
 
     assert "config" in resolve_subject(db, "PROJ_THREADING_PTHREAD")
-    subject = subject_dossier(db, "PROJ_THREADING_PTHREAD")
+    subject = dossier(db, "PROJ_THREADING_PTHREAD")
     assert subject is not None
     assert subject.kind == "config"
     assert subject.config is not None

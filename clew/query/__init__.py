@@ -31,7 +31,7 @@ from .corpus import (
     search_prose,
     search_prose_graded,
 )
-from .dossier import MAX_BATCH_SYMBOLS, dossier, dossiers
+from .dossier import MAX_BATCH_SYMBOLS, function_dossier, function_dossiers
 from .graph import graph_stats
 from .kconfig import kconfig_space
 from .locks import (
@@ -93,7 +93,7 @@ from .models import (
     ThreadInventory,
 )
 from .source import DECLARATION_MAX_LINES, DEFAULT_BODY_LINES, declaration_excerpt, source
-from .subject import MAX_SUBJECT_DEPTH, resolve_subject, subject_dossier, subject_dossiers
+from .subject import MAX_SUBJECT_DEPTH, dossier, dossiers, resolve_subject
 from .symbols import (
     MAX_DIAGNOSED_TOKENS,
     SEARCHED_MEMBERDEF_KINDS,
@@ -174,8 +174,9 @@ __all__ = [
     "VariableSubject",
     "MAX_SUBJECT_DEPTH",
     "resolve_subject",
-    "subject_dossier",
-    "subject_dossiers",
+    ## Returns None for any subject that is not a function; `dossier` takes any kind.
+    "function_dossier",
+    "function_dossiers",
     ## The declaration-site excerpt a VARIABLE needs, beside the body excerpt a function
     ## needs. Exported together because a consumer choosing between them is choosing on
     ## the subject's kind, which this module also publishes.
