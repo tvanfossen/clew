@@ -120,6 +120,92 @@ def one(db: Path, name: str) -> None:
 
 
 ##
+# @brief Print the exact MCP tool reply for one subject.
+# @param db Path to a built index.
+# @param name Symbol to describe.
+# @param repo Working tree the index was built from.
+# @return None.
+# @version 1
+def wire(db: Path, name: str, repo: Path) -> None:
+    """THE SERVED PAYLOAD, not the library return value. `QueryTools.dossier` is what the MCP
+    tool call resolves to, so its dict is byte-for-byte what a client receives once serialized —
+    including the `target` stamp and any staleness block. Calling it here avoids needing the
+    long-running server to have the target registered.
+
+    @brief Emit the exact dossier tool reply.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server.tools_query import QueryTools
+
+    tools = QueryTools(lambda: db, lambda: repo, lambda: [])
+    print(json.dumps(tools.dossier(name), indent=2, default=str))
+
+
+##
+# @brief Print the exact MCP search reply for one corpus.
+# @param db Path to a built index.
+# @param corpus Corpus to enumerate.
+# @param repo Working tree the index was built from.
+# @return None.
+# @version 1
+def wiresearch(db: Path, corpus: str, repo: Path) -> None:
+    """@brief Emit the exact search tool reply for a corpus.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server.tools_query import QueryTools
+
+    tools = QueryTools(lambda: db, lambda: repo, lambda: [])
+    print(json.dumps(tools.search(corpus=corpus), indent=2, default=str))
+
+
+##
+# @brief Inject a full tool reply into the brief, HTML-escaped.
+# @param db Path to a built index.
+# @param name Symbol to describe.
+# @param repo Working tree the index was built from.
+# @param page The HTML file carrying the FULL_DOSSIER_HERE marker.
+# @return None.
+# @version 1
+def inject(db: Path, name: str, repo: Path, page: Path) -> None:
+    """Escaped, and by script rather than by hand: a 600-line payload pasted through an editor
+    is a payload nobody re-derives, and any `<` in it would silently become markup.
+
+    @brief Replace the page's marker with the escaped reply.
+    @return None.
+    @version 1
+    """
+    import html
+
+    from clew.mcp_server.tools_query import QueryTools
+
+    tools = QueryTools(lambda: db, lambda: repo, lambda: [])
+    payload = json.dumps(tools.dossier(name), indent=2, default=str)
+
+    ## RENDER FROM A TEMPLATE, NEVER IN PLACE. Substituting into the output file consumes its
+    ## own markers, so the second run has nothing to substitute and silently emits the first
+    ## run's page — which is exactly what happened, and it looked like the edit had not landed.
+    template = page.parent / "brief.tmpl.html"
+    source = template if template.is_file() else page
+    text = source.read_text(encoding="utf-8")
+
+    maze = page.parent / "maze.html"
+    if maze.is_file():
+        text = text.replace("MAZE_HERE", maze.read_text(encoding="utf-8"))
+    text = text.replace("FULL_DOSSIER_HERE", html.escape(payload))
+
+    for marker in ("MAZE_HERE", "FULL_DOSSIER_HERE"):
+        if marker in text:
+            print(f"WARNING: {marker} still unsubstituted")
+
+    page.write_text(text, encoding="utf-8")
+    print(
+        f"rendered {source.name} -> {page.name}: maze + {len(payload.splitlines())} dossier lines"
+    )
+
+
+##
 # @brief Entry point.
 # @return Process exit status.
 # @version 1
@@ -129,13 +215,23 @@ def main() -> int:
     @version 1
     """
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("command", choices=("inventory", "threads", "locks", "one"))
+    ap.add_argument(
+        "command", choices=("inventory", "threads", "locks", "one", "wire", "wiresearch", "inject")
+    )
     ap.add_argument("--db", required=True, type=Path)
     ap.add_argument("--name", default="")
+    ap.add_argument("--repo", default=Path("."), type=Path)
+    ap.add_argument("--page", default=Path(".claude/tmp/clew-brief.html"), type=Path)
     args = ap.parse_args()
 
     if args.command == "one":
         one(args.db, args.name)
+    elif args.command == "wire":
+        wire(args.db, args.name, args.repo)
+    elif args.command == "wiresearch":
+        wiresearch(args.db, args.name, args.repo)
+    elif args.command == "inject":
+        inject(args.db, args.name, args.repo, args.page)
     else:
         {"inventory": inventory, "threads": threads, "locks": locks}[args.command](args.db)
     return 0

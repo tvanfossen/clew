@@ -808,3 +808,62 @@ def test_an_undeclared_configuration_decides_nothing() -> None:
     cfg = PreprocessorConfig()
     assert cfg.declared is False
     assert cfg.defined_names == frozenset()
+
+
+## @brief An explicit macro list overrides the macros WITHOUT discarding the declared header.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_an_explicit_list_keeps_the_declared_config_header(tmp_path: Path) -> None:
+    """THE ACCEPTANCE BUILD DISCARDED ITS OWN DECLARED HEADER ON EVERY RUN. `resolve_preprocessor`
+    returned on `if explicit:` before reading the declaration at all, so a `config_header:` stated
+    in the SAME section as `predefined:` was silently dropped the moment a macro list was passed —
+    and `clew/cli.py` promotes a declared `predefined:` to exactly that argument. An
+    accepted-but-unread key is this project's most repeated defect; this was an instance.
+
+    WHAT THE FLAG LEGITIMATELY OVERRIDES IS THE MACRO LIST, and that is still asserted below: the
+    override wins, `source` stays `flag`, and the header is not merged into `macros`. Where the
+    repository states its own defaults is a fact ABOUT THE REPOSITORY and does not become untrue
+    because the operator indexed a different variant.
+
+    THAT IS WHAT MAKES `stated_only` COMPUTABLE, which is the payoff: the overridden names the
+    header does NOT define are exactly the ones that ship OFF, and that is the sentence two graded
+    marks ask for.
+
+    @brief An explicit list overrides macros and keeps the declared header and split.
+    @return None.
+    @version 1
+    """
+    root = tmp_path / "repo"
+    (root / "include").mkdir(parents=True)
+    (root / "include" / "config.h").write_text(
+        "#define SHIPPED_ON 1\n//#define SHIPPED_OFF\n", encoding="utf-8"
+    )
+    declaration = {
+        SECTION_PREPROCESSOR: {
+            "predefined": ["SHIPPED_OFF"],
+            "config_header": "include/config.h",
+        }
+    }
+
+    config = resolve_preprocessor(root, declaration, explicit=["SHIPPED_OFF"])
+
+    assert config.source == SOURCE_FLAG, "an explicit list still wins outright"
+    assert config.macros == ('"SHIPPED_OFF"',), (
+        f"the override must replace the macro list, not merge the header into it; got "
+        f"{config.macros}"
+    )
+    assert config.config_header == "include/config.h", (
+        "the declared header was discarded by the explicit branch — the defect this test exists "
+        "for. It is a fact about the repository and survives an override of the macro list."
+    )
+    assert config.stated_only == ("SHIPPED_OFF",), (
+        f"`stated_only` must name the overridden macros the header does not define, which is what "
+        f"lets the reply say they ship OFF; got {config.stated_only}"
+    )
+    ## THE NEGATIVE HALF: a macro the header DOES define must not be reported as shipping off.
+    both = resolve_preprocessor(root, declaration, explicit=["SHIPPED_OFF", "SHIPPED_ON"])
+    assert both.stated_only == ("SHIPPED_OFF",), (
+        f"SHIPPED_ON is defined in the header, so it must not be listed as operator-only; got "
+        f"{both.stated_only}"
+    )

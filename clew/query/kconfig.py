@@ -77,7 +77,7 @@ _PREPROCESSOR_STATED_ONLY = "preprocessor.stated_only"
 ## @param header `preprocessor.config_header`, repo-relative, or "" when unknown.
 ## @param stated_only Names the operator supplied that the repo's own header does not define.
 ## @return A sentence for the reply, or "" when no configuration was recorded at all.
-## @version 2
+## @version 3
 ## @req REQ-DDB-QUERY-006
 def macros_meaning(macros: str, source: str, header: str, stated_only: str = "") -> str:
     """ROUTE, DO NOT DISCLAIM — this repo's standing pattern, and the reason it is needed here
@@ -99,7 +99,7 @@ def macros_meaning(macros: str, source: str, header: str, stated_only: str = "")
 
     @brief Explain what the configured macro list is and is not evidence of.
     @return The sentence, or "" when nothing was recorded.
-    @version 1
+    @version 3
     """
     if not macros and not source:
         return ""
@@ -120,7 +120,20 @@ def macros_meaning(macros: str, source: str, header: str, stated_only: str = "")
     ## repository's own header. That inverts the disclosure in the opposite direction: it
     ## invites a reader to discount the whole list as an artifact of the build. A correction
     ## that is wrong the other way is not a correction.
-    if source == "declared":
+    ## THE OVERRIDE CASE, AND IT IS THE ACCEPTANCE BUILD'S CASE. `source` is `flag` whenever a
+    ## macro list was passed as an argument — which `clew/cli.py` does with a declared
+    ## `predefined:` — so this is the branch mbedtls actually takes. When the declaration ALSO
+    ## named a config header, the split is computable and this states the answer rather than
+    ## warning that an answer exists. Before, this branch could only ever disclaim.
+    if source in ("flag", "declared") and stated_only:
+        listed = stated_only if isinstance(stated_only, str) else ", ".join(stated_only)
+        parts.append(
+            f"These macros were STATED FOR THIS BUILD, so they are evidence about the build and "
+            f"not about the repository. AND THE REPOSITORY'S OWN HEADER DOES NOT DEFINE: {listed} "
+            f"— those ship OFF and are ON here only because this build declared them. Every other "
+            f"macro in the list was read from that header and IS on by default."
+        )
+    elif source in ("flag", "declared"):
         parts.append(
             "These macros were STATED BY THE OPERATOR for this build — typically so the "
             "preprocessor could reach code behind an `#if` — so they are evidence about the "
@@ -136,9 +149,16 @@ def macros_meaning(macros: str, source: str, header: str, stated_only: str = "")
         ## This is the difference between a caveat and an answer. The previous wording said the
         ## field "does not say which came from which" and pointed at the config file; two graded
         ## marks asked which, and the agent went to the shell. Naming the set costs a clause.
+        ## ALREADY JOINED, so do NOT join it again. `PreprocessorConfig.as_meta` writes this row as
+        ## `", ".join(self.stated_only)` (clew/preprocessor.py:404), so what arrives is a string.
+        ## `', '.join()` over a string iterates CHARACTERS, and the one sentence that answers the
+        ## question rendered as "M, B, E, D, T, L, S, _, T, H, R, E, A, D, I, N, G, _, C, ,, …".
+        ## Normalised rather than assumed: a caller holding the tuple form gets the same output
+        ## instead of "('A', 'B')".
+        listed = stated_only if isinstance(stated_only, str) else ", ".join(stated_only)
         parts.append(
             f"This list COMBINES the repository's own configuration header with macros stated for "
-            f"this build. THE STATED ONES ARE: {', '.join(stated_only)} — these are OFF in the "
+            f"this build. THE STATED ONES ARE: {listed} — these are OFF in the "
             f"repository's own configuration and are ON here only because this build declared "
             f"them. Every OTHER macro in the list was read from that header and IS on by default."
         )
@@ -170,7 +190,7 @@ def macros_meaning(macros: str, source: str, header: str, stated_only: str = "")
 ## @brief Every `kconfig.*` / preprocessor row a build stamped, as a mapping.
 ## @param conn Open connection.
 ## @return Unprefixed kconfig keys plus the raw preprocessor macro list, source and header.
-## @version 2
+## @version 3
 ## @dg_internal
 def _meta(conn: sqlite3.Connection) -> dict[str, str]:
     """Degrades to {} when `build_meta` is absent, matching the query layer's standing
@@ -179,13 +199,26 @@ def _meta(conn: sqlite3.Connection) -> dict[str, str]:
 
     @brief Read the kconfig and preprocessor build_meta rows.
     @return Key -> value, kconfig keys with the prefix stripped.
-    @version 2
+    @version 3
     """
     if not table_exists(conn, "build_meta"):
         return {}
     rows = conn.execute("SELECT key, value FROM build_meta").fetchall()
     meta = {k[len(_META_PREFIX) :]: v for k, v in rows if str(k).startswith(_META_PREFIX)}
-    for key in (_PREPROCESSOR_MACROS, _PREPROCESSOR_SOURCE, _PREPROCESSOR_HEADER):
+    ## EVERY PREPROCESSOR KEY A CONSUMER READS, and `_PREPROCESSOR_STATED_ONLY` is here because it
+    ## was NOT. It was defined, documented, and passed to `macros_meaning` at the call site — but
+    ## never fetched, so it resolved to "" on every build and the answer branch that reads it was
+    ## unreachable code. The reply fell through to "this build did not record which came from
+    ## which" while the split was sitting in `build_meta`.
+    ##
+    ## The suite could not see it: the existing test calls `macros_meaning` DIRECTLY and never
+    ## through `kconfig_space`, so it pinned the wording of a branch nothing could reach.
+    for key in (
+        _PREPROCESSOR_MACROS,
+        _PREPROCESSOR_SOURCE,
+        _PREPROCESSOR_HEADER,
+        _PREPROCESSOR_STATED_ONLY,
+    ):
         meta[key] = next((v for k, v in rows if k == key), "")
     return meta
 
