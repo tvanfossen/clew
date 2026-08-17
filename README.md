@@ -102,24 +102,32 @@ template and the runbook.
 
 ## Install
 
-As a Claude Code plugin:
+The package is always required — the server itself is the `clew-mcp` command it installs:
+
+```bash
+pip install clew-trace           # installs the `clew` and `clew-mcp` commands
+sudo apt install doxygen         # REQUIRED, and not pip-installable
+```
+
+Then register the server, EITHER as a Claude Code plugin:
 
 ```
 /plugin marketplace add tvanfossen/clew
 /plugin install clew@clew
 ```
 
-Or directly:
+or by hand, which also doctors the environment and reports what is missing:
 
 ```bash
-pip install clew-trace           # installs the `clew` and `clew-mcp` commands
-clew init                        # register the MCP server in ./.mcp.json
-sudo apt install doxygen         # REQUIRED, and not pip-installable
+clew init                        # writes ./.mcp.json  (--scope global for user-level)
 ```
 
-`doxygen` is a C++ binary, so it cannot be a Python dependency — `init` checks for
-it and tells you if it is missing. Everything else, including the MCP SDK, comes
-with the package.
+Pick one. Both register a server named `clew`, so doing both leaves two sources for one
+entry — if you have run `clew init` already, `claude mcp remove clew` before installing the
+plugin.
+
+`doxygen` is a C++ binary, so it cannot be a Python dependency — `clew init` checks for it and
+tells you if it is missing. Everything else, including the MCP SDK, comes with the package.
 
 ### Working on clew itself
 
