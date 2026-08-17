@@ -188,3 +188,46 @@ def test_marketplace_catalog_agrees_with_the_plugin_manifest() -> None:
         "version is already declared in plugin.json; declaring it in both pins the plugin from "
         "two places and makes one of them silently authoritative"
     )
+
+
+## @brief Field TYPES in both manifests must match what the plugin installer validates.
+## @return None.
+## @version 1
+def test_manifest_field_types_match_the_published_schema() -> None:
+    """THE INSTALLER REJECTED A MANIFEST THIS FILE HAD ALREADY PASSED. `author` was the string
+    "tvanfossen"; the schema requires an object with a `name`. `/plugin install` refused with
+    "author: Invalid input: expected object, received string", and the two tests above were green
+    throughout because they check the version and the server command and nothing else.
+
+    So the gap was never the fields we edited — it was the ones we did not. Types are asserted
+    here for every field either manifest actually sets, which is the set an installer will parse.
+
+    @brief Manifest field types match the schema the installer enforces.
+    @return None.
+    @version 1
+    """
+    manifest = _manifest()
+    catalog = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text())
+
+    for label, doc in (("plugin.json", manifest), ("marketplace.json", catalog)):
+        assert isinstance(doc.get("name"), str), f"{label}: name must be a string"
+
+    ## `author` and `owner` are OBJECTS with a required `name`, in both files. The string form
+    ## parses as JSON and fails validation, which is why valid-JSON is not the check that matters.
+    for label, doc, field in (
+        ("plugin.json", manifest, "author"),
+        ("marketplace.json", catalog, "owner"),
+    ):
+        value = doc.get(field)
+        assert isinstance(value, dict), (
+            f"{label}: {field} must be an OBJECT, not {type(value).__name__} — the installer "
+            f"rejects the string form outright"
+        )
+        assert isinstance(value.get("name"), str), f"{label}: {field}.name is required"
+
+    for entry in catalog["plugins"]:
+        author = entry.get("author")
+        if author is not None:
+            assert isinstance(author, dict) and isinstance(author.get("name"), str), (
+                "marketplace.json: a plugin entry's author has the same object shape"
+            )
