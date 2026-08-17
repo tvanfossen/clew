@@ -63,12 +63,30 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Mapping
 from datetime import datetime
 from pathlib import Path
 
 from clew.mcp_server.descriptions import load_descriptions
 
-MCP_SERVER = "clew"  # RENAMED: the server registers under the package name
+MCP_SERVER = "clew"  # the server registers under the package name
+
+## EVERY SERVER NAME A COMMITTED TRANSCRIPT WAS RECORDED UNDER, newest first. A transcript
+## stamps the tool names in force when it ran, so renaming the server retires no artifact —
+## it only changes what the artifact's names look like.
+##
+## THIS IS NOT HOUSEKEEPING; ITS ABSENCE VOIDED EVERY COMMITTED MEASUREMENT. `MCP_SERVER`
+## became "clew" while all 102 tracked transcripts hold `mcp__doxyguard-db__`, so
+## `MCP_TOOL_PREFIX` matched nothing in any of them: `db_tool_outcomes` returned (0, 0) for a
+## cell that made eleven index calls, and `result_bytes(db_only=True)` returned 0 — the
+## RETRIEVAL measure, the one figure this project requires be reported beside `total_tokens`
+## because the two have disagreed in sign. The published numbers were computed before the
+## rename and are unaffected; what broke is the ability to RE-DERIVE them, which is the whole
+## reason the transcripts are committed rather than summarised.
+##
+## The failure is silent in the direction that reads as a result: zero index calls is a
+## legitimate value for a source-arm cell, so nothing looked wrong.
+MCP_SERVER_ALIASES: tuple[str, ...] = (MCP_SERVER, "doxyguard-db", "doxyguard_db")
 
 ## Tier-0 lifecycle tools plus every tier-1 query tool, DERIVED from the same JSON
 ## directory the server registers from, so the deny list cannot disagree with the surface
@@ -90,7 +108,15 @@ MCP_TOOLS: tuple[str, ...] = tuple(
 )
 
 MCP_TOOL_NAMES: tuple[str, ...] = tuple(f"mcp__{MCP_SERVER}__{t}" for t in MCP_TOOLS)
+
+## THE PREFIX FOR A RUN BEING LAUNCHED — one server, the current name. Permission flags and
+## the deny list must name the server that is about to be registered and no other.
 MCP_TOOL_PREFIX = f"mcp__{MCP_SERVER}__"
+
+## THE PREFIXES FOR READING A TRANSCRIPT, which is a different question and needs a different
+## answer: an artifact on disk may predate the rename. Anything that MEASURES a recorded run
+## matches against these; anything that CONFIGURES a new run uses `MCP_TOOL_PREFIX`.
+MCP_READ_PREFIXES: tuple[str, ...] = tuple(f"mcp__{alias}__" for alias in MCP_SERVER_ALIASES)
 
 ## THE ONLY DENIAL LEFT, and it is not about arm purity (gh#354). The open internet is a
 ## THIRD information source that measures neither arm: a cell answering an entropic question
@@ -307,7 +333,7 @@ def db_tool_outcomes(path: Path) -> tuple[int, int]:
             if not isinstance(block, dict):
                 continue
             if block.get("type") == "tool_use" and str(block.get("name", "")).startswith(
-                MCP_TOOL_PREFIX
+                MCP_READ_PREFIXES
             ):
                 attempted.add(str(block.get("id", "")))
             elif block.get("type") == "tool_result" and block.get("is_error"):
@@ -321,21 +347,65 @@ def db_tool_outcomes(path: Path) -> tuple[int, int]:
 ## bringup missed pays for the discovery, and charging that to the first QUESTION instead of
 ## to bringup is exactly the folding the owner ruled out.
 ##
-## BY SUFFIX, matched against the qualified MCP tool name, so a server rename cannot silently
-## empty the set the way an exact-name list would.
-BRINGUP_TOOLS: tuple[str, ...] = ("build_or_refresh", "propose_declaration")
+## AN ENTRY IS (tool, actions) AND THE SECOND HALF IS WHY THIS SHAPE EXISTS. Building is no
+## longer a tool of its own: `build_or_refresh` was folded into `index(action='refresh')`, so
+## the tool NAME `index` covers `status`, `targets` and `cull` as well — none of which is
+## bringup, and `status` is the DEFAULT action. Matching on the name alone would charge every
+## routine status call to build time.
+##
+## `actions=None` means the name alone settles it, which is correct for `propose_declaration`
+## and for the historical `build_or_refresh` that committed transcripts still hold.
+##
+## A CALL WHOSE `action` IS ABSENT IS NOT COUNTED, deliberately fail-closed: absent resolves to
+## `status` at the server, so treating it as a build would invent build time out of a read.
+##
+## The previous version of this comment claimed matching "by suffix … so a server rename cannot
+## silently empty the set". The suffix was the right instinct against the wrong rename: the
+## server kept its shape and the TOOL was renamed, which emptied the set exactly as described.
+BUILD_TOOLS: tuple[tuple[str, frozenset[str] | None], ...] = (
+    ("index", frozenset({"refresh"})),
+    ("build_or_refresh", None),
+)
 
-## The build alone, kept as its own figure because it is the one an operator waits on and
-## the one task #363 is about.
-BUILD_TOOLS: tuple[str, ...] = ("build_or_refresh",)
+## The tools whose wall time IS bringup: making the index exist, and working out what this
+## repository needs stated before it can answer. `propose_declaration` belongs here because
+## it is the correction surface (gh#360) — an agent that discovers at question one what
+## bringup missed pays for the discovery, and charging that to the first QUESTION instead of
+## to bringup is exactly the folding the owner ruled out.
+BRINGUP_TOOLS: tuple[tuple[str, frozenset[str] | None], ...] = BUILD_TOOLS + (
+    ("propose_declaration", None),
+)
+
+
+## @brief Does one `tool_use` block belong to a named (tool, actions) set?
+## @param block A transcript `tool_use` content block.
+## @param tools The (tool, actions) entries to test against.
+## @return True when the block's tool and action are both covered.
+## @version 1
+def _is_one_of(block: dict, tools: tuple[tuple[str, frozenset[str] | None], ...]) -> bool:
+    """Suffix on the tool name so any server alias matches, then the ACTION when the entry
+    constrains one. The action is read from the call's own `input`, which is what a transcript
+    records; a block with no `input` cannot be a constrained match and says so by failing.
+
+    @brief Test a tool_use block against a (tool, actions) set.
+    @return True when covered.
+    @version 1
+    """
+    name = str(block.get("name", ""))
+    payload = block.get("input")
+    action = payload.get("action") if isinstance(payload, Mapping) else None
+    return any(
+        name.endswith(f"__{tool}") and (actions is None or action in actions)
+        for tool, actions in tools
+    )
 
 
 ## @brief Wall-clock ms a cell spent inside a named set of MCP tools, or None when it called none.
 ## @param path Transcript jsonl path.
-## @param tools Unqualified tool names whose calls should be summed.
+## @param tools (tool, actions) entries whose calls should be summed.
 ## @return Summed elapsed milliseconds, or None when the cell called none of them.
-## @version 1
-def tool_wall_ms(path: Path, tools: tuple[str, ...]) -> int | None:
+## @version 2
+def tool_wall_ms(path: Path, tools: tuple[tuple[str, frozenset[str] | None], ...]) -> int | None:
     """MEASURED FROM THE TRANSCRIPT, by pairing each `tool_use` with the `tool_result`
     carrying its id and differencing the two events' timestamps. It is the only place the
     figure exists: the work happens inside the cell's own MCP server process, and the runner
@@ -348,16 +418,15 @@ def tool_wall_ms(path: Path, tools: tuple[str, ...]) -> int | None:
 
     @brief Sum the wall time a cell spent inside one set of tools.
     @return Elapsed milliseconds, or None.
-    @version 1
+    @version 2
     """
     started: dict[str, float] = {}
     total = 0.0
-    wanted = tuple(f"__{name}" for name in tools)
     for event in _events(path):
         stamp = _stamp(event.get("timestamp"))
         for block in _blocks_of(event):
             kind = block.get("type")
-            if kind == "tool_use" and str(block.get("name", "")).endswith(wanted):
+            if kind == "tool_use" and _is_one_of(block, tools):
                 started[str(block.get("id", ""))] = stamp
             elif kind == "tool_result" and str(block.get("tool_use_id", "")) in started:
                 total += max(0.0, stamp - started.pop(str(block.get("tool_use_id", ""))))
@@ -533,7 +602,7 @@ def classify_tool(arm: str, name: str) -> str | None:
         label = f"spawn:{name}"
     elif _matches(name, denied):
         label = f"tool:{name}"
-    elif name.startswith(_ANY_MCP_PREFIX) and not name.startswith(MCP_TOOL_PREFIX):
+    elif name.startswith(_ANY_MCP_PREFIX) and not name.startswith(MCP_READ_PREFIXES):
         label = f"foreign_mcp:{name}"
     elif not _matches(name, allowed):
         label = f"unlisted:{name}"
@@ -564,7 +633,7 @@ def _text_violation(arm: str, name: str, payload: str) -> str | None:
     @return Finding label or None.
     @version 2
     """
-    if arm != "mcp" or name.startswith(MCP_TOOL_PREFIX):
+    if arm != "mcp" or name.startswith(MCP_READ_PREFIXES):
         return None
     hit = _DB_DIRECT_ACCESS.search(payload)
     return f"db_direct:{name}:{hit.group(1)}" if hit else None
@@ -678,7 +747,7 @@ def audit(arm: str, calls: list[tuple[str, str]]) -> dict:
     @return Audit summary dict.
     @version 5
     """
-    used_db = sum(1 for name, _ in calls if name.startswith(MCP_TOOL_PREFIX))
+    used_db = sum(1 for name, _ in calls if name.startswith(MCP_READ_PREFIXES))
     violations: list[str] = []
     review: list[str] = []
     unlisted: set[str] = set()
@@ -821,7 +890,7 @@ def result_bytes(path: Path | None, db_only: bool = False) -> int:
             if not isinstance(block, dict):
                 continue
             if block.get("type") == "tool_use":
-                if str(block.get("name", "")).startswith(MCP_TOOL_PREFIX):
+                if str(block.get("name", "")).startswith(MCP_READ_PREFIXES):
                     wanted.add(str(block.get("id", "")))
             elif block.get("type") == "tool_result":
                 if db_only and str(block.get("tool_use_id", "")) not in wanted:

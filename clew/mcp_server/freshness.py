@@ -161,25 +161,38 @@ def source_fingerprint(root: Path | None = None) -> str:
 PROCESS_SOURCE_FINGERPRINT = source_fingerprint()
 
 
+## The DISTRIBUTION name, which is not the import name: the package imports as `clew` and
+## ships as `clew-trace`. Deriving it instead — `packages_distributions()["clew"]` — resolves
+## to None under an editable install, so the derivation fails in exactly the environment every
+## developer runs. A literal bound by a test is the version that works in both.
+_DISTRIBUTION = "clew-trace"
+
+
 ## @brief The package version this process is running.
 ## @return Version string, or "unknown" when the metadata cannot be read.
-## @version 2
+## @version 3
 ## @dg_internal
 def package_version() -> str:
-    """Read from installed metadata rather than a hardcoded literal, so it cannot drift
-    from `pyproject.toml`. "unknown" rather than a raise: this is called on the way out
-    of replies that already succeeded.
+    """Read from installed metadata, so the version cannot drift from `pyproject.toml`.
+    "unknown" rather than a raise: this is called on the way out of replies that already
+    succeeded.
+
+    THE DISTRIBUTION NAME IS THE PART THAT DRIFTED. This asked for `version("clew")` — the
+    import name — and every `index(action='status')` reply since the rename reported
+    `package_version: "unknown"`, which is the first field a consumer pastes into a bug
+    report. Nothing caught it because the fallback is silent by design: the failure of a
+    version lookup renders as a plausible-looking value, not as an error.
 
     @brief Read the installed package version.
     @return Version string or "unknown".
-    @version 2
+    @version 3
     """
     try:
         from importlib.metadata import (
             version,
         )
 
-        return version("clew")
+        return version(_DISTRIBUTION)
     except Exception:
         return "unknown"
 

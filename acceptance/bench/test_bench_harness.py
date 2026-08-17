@@ -2445,3 +2445,128 @@ def test_the_rubric_template_parses() -> None:
         "no template mark may ship veto_safe: a copier who leaves it set feeds a PLACEHOLDER to "
         "the falsity veto as an established fact, and a false fact inverts the veto"
     )
+
+
+## The committed transcripts, which are the only artifacts that can prove the metrics still
+## read a real recording. A synthetic fixture proves the opposite of what is needed here: the
+## defect below was a mismatch between the harness and REALITY, and a fixture built from the
+## harness's own constants matches whatever the constants say.
+_TRACKED_TRANSCRIPTS = sorted(
+    (Path(__file__).resolve().parent.parent / "targets").rglob("*_mcp_r1.transcript.jsonl")
+)
+
+
+## @brief Every bringup tool must name a tool the server actually serves.
+## @return None.
+## @version 1
+def test_bringup_tool_names_exist_on_the_served_surface() -> None:
+    """A CONTRADICTION INSIDE ONE MODULE, and it shipped. `BUILD_TOOLS` named
+    `build_or_refresh` while `MCP_TOOLS` — derived from the description directory the server
+    registers from — was `('dossier', 'index', 'propose_declaration', 'search')`. The tool had
+    been folded into `index(action='refresh')`, so `build_ms` and `bringup_ms` could never
+    match anything again.
+
+    `MCP_TOOLS` IS DERIVED AND THAT IS WHAT MAKES THIS CHECKABLE. Both halves being
+    hand-written would agree with each other and disagree with the server.
+
+    Historical names are allowed BY DECLARATION, not by silence: a retired tool stays matchable
+    so committed transcripts remain re-derivable, but it must be listed here to be exempt. An
+    unlisted stranger is a typo or a rename nobody propagated.
+
+    @brief Bringup tool names are served, or declared historical.
+    @return None.
+    @version 1
+    """
+    historical = {"build_or_refresh"}
+    named = {tool for tool, _ in bench_arms.BRINGUP_TOOLS}
+    unknown = named - set(bench_arms.MCP_TOOLS) - historical
+    assert not unknown, (
+        f"these bringup tools are neither served nor declared historical: {sorted(unknown)}. "
+        f"The server serves {list(bench_arms.MCP_TOOLS)} — a name outside both sets matches no "
+        f"call ever, so its metric is silently unmeasurable."
+    )
+
+
+## @brief A constrained bringup entry must not match the tool's other actions.
+## @return None.
+## @version 1
+def test_a_status_call_is_not_charged_to_build_time() -> None:
+    """THE OTHER HALF, and the half a name-only fix would have broken. `index` covers `status`,
+    `targets` and `cull` as well as `refresh`, and `status` is the DEFAULT action — so matching
+    the tool name alone would charge every routine status call to build time and inflate the
+    one figure an operator waits on.
+
+    The absent-action case is asserted too: absent resolves to `status` at the server, so it
+    must not count. Fail closed.
+
+    @brief Only `action='refresh'` counts as a build.
+    @return None.
+    @version 1
+    """
+    name = bench_arms.MCP_TOOL_PREFIX + "index"
+    counts = {
+        action: bench_arms._is_one_of(
+            {"name": name, **({"input": {"action": action}} if action else {})},
+            bench_arms.BUILD_TOOLS,
+        )
+        for action in ("refresh", "status", "targets", "cull", None)
+    }
+    assert counts == {
+        "refresh": True,
+        "status": False,
+        "targets": False,
+        "cull": False,
+        None: False,
+    }, f"only a refresh is a build; got {counts}"
+
+
+## @brief The committed transcripts must still be readable by the metrics that grade them.
+## @return None.
+## @version 1
+def test_committed_transcripts_still_yield_index_calls() -> None:
+    """THE LOAD-BEARING CHECK, and the one whose absence voided every committed measurement.
+
+    `MCP_SERVER` became "clew" while all 102 tracked transcripts hold `mcp__doxyguard-db__`, so
+    the prefix matched nothing in any of them. `db_tool_outcomes` returned (0, 0) for a cell
+    that made ELEVEN index calls, and `result_bytes(db_only=True)` returned 0 — the retrieval
+    measure this project requires be reported beside `total_tokens` precisely because the two
+    have disagreed in sign. The published numbers predate the rename and are unaffected; what
+    broke is the ability to RE-DERIVE them from the evidence, which is the entire reason the
+    transcripts are committed instead of summarised.
+
+    NOTHING NOTICED BECAUSE ZERO IS A LEGITIMATE VALUE. A source-arm cell genuinely makes no
+    index calls, so "0 index calls" reads as data rather than as a broken detector — this
+    repository's standing lesson, arrived at from the other direction: not "no rows means the
+    detector is blind" but "the detector went blind and its silence looked like rows".
+
+    STRUCTURAL, AND IT ASSERTS ON REAL ARTIFACTS. The precondition is the point: a version of
+    this test that iterated an empty glob would pass on a repository with no evidence in it at
+    all, which is the vacuous-gate shape that has shipped here more than once.
+
+    @brief Every committed mcp-arm transcript still yields index calls and retrieved bytes.
+    @return None.
+    @version 1
+    """
+    assert _TRACKED_TRANSCRIPTS, (
+        "no *_mcp_r1.transcript.jsonl found under acceptance/targets — this check would pass "
+        "by having nothing to read, which is the failure mode it exists to catch"
+    )
+
+    silent = []
+    for path in _TRACKED_TRANSCRIPTS:
+        raw = path.read_text(encoding="utf-8", errors="replace")
+        ## Only cells that DID call the server can be expected to show calls. Reading the raw
+        ## text for any `mcp__` occurrence is deliberately independent of the constants under
+        ## test — deriving the expectation from `MCP_READ_PREFIXES` would make the two agree
+        ## by construction and prove nothing.
+        if "mcp__" not in raw:
+            continue
+        attempted, _ = bench_arms.db_tool_outcomes(path)
+        if attempted == 0:
+            silent.append(path.name)
+
+    assert not silent, (
+        f"{len(silent)} committed transcript(s) record MCP calls that the metrics no longer "
+        f"see, so every index-arm figure derived from them is 0: {silent[:5]}. A server or "
+        f"tool rename must be added to bench_arms.MCP_SERVER_ALIASES."
+    )
