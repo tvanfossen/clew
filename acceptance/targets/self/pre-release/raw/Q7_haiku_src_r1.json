@@ -1,0 +1,68 @@
+{
+  "is_error": false,
+  "duration_api_ms": 82340,
+  "num_turns": 22,
+  "stop_reason": "end_turn",
+  "session_id": "c15984bf-f5f4-45c1-a2c8-47fe3c35dac1",
+  "total_cost_usd": 0.3442523999999999,
+  "usage": {
+    "input_tokens": 177,
+    "cache_creation_input_tokens": 83696,
+    "cache_read_input_tokens": 1466064,
+    "output_tokens": 5730,
+    "output_tokens_details": {
+      "thinking_tokens": 1339
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 83696,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 8,
+        "output_tokens": 2335,
+        "cache_read_input_tokens": 85908,
+        "cache_creation_input_tokens": 1207,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1207
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1504,
+      "outputTokens": 5750,
+      "cacheReadInputTokens": 1466064,
+      "cacheCreationInputTokens": 83696,
+      "webSearchRequests": 0,
+      "costUSD": 0.3442523999999999,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## ANSWER\n\nRe-running on barely-changed repositories avoids repeating work through **three-tier caching**: doxygen tree-hash skip, per-file AST extraction caching, and uncached cross-file graph computation.\n\n---\n\n### How Incremental Execution is Achieved\n\n**Doxygen Stage (Tree-Hash Skip):** `cli.py:1210-1261` \u2014 doxygen has no incremental mode, so the pipeline hashes every file in the indexed tree plus the exact Doxyfile text and runs doxygen only when the tree hash changes. The cached doxygen SQLite output is reused when that hash matches.\n\n**Per-File AST Extraction (10 Stages):** `harvest.py:1-38` \u2014 ten stages walk every indexed C/C++/Python file's AST (kconfig gates, recovered symbols, call edges, callbacks, locks, dispatch, threads, shared keys, MQTT, Python guards). Each stage's `harvest()` method previously drove its own full-tree parse pass, redundantly re-parsing each file ten times. `gh#358` unified this: one shared parse produces `(content_sha, stage, stage_version, extra_key)` cache rows that each stage reads back. `cli.py:1346-1359` documents the single `warm_harvest_plan` that parses each file once and warms every stage's cache row before the stages run.\n\n---\n\n### Where State is Kept and Why\n\n**Location:** A sidecar SQLite database at `<output>.idxcache` (derived from `--index-cache` or `--output` path). `indexcache.py:1-34` documents it as independent from `docs.db` because `docs.db` is rebuilt from scratch on every run \u2014 incrementality state cannot live inside it.\n\n**Three Tables:**\n\n1. `source_files` \u2014 repo-relative path \u2192 (size_bytes, mtime_ns, content_sha). `mtime+size` is a prefilter; `content_sha` is the authority. `indexcache.py:194-200` loads the previous scan; `indexcache.py:220-250` classifies the current scan into unchanged/modified/added/removed.\n\n2. `extract_cache` \u2014 `(content_sha, stage, stage_version, extra_key)` \u2192 payload. Payloads are rowid-FREE (recording source line numbers + identifier text, not doxygen rowids, which are unstable across runs). `harvest.py:279-289` documents this as the base class contract.\n\n3. `doxygen_cache` \u2014 `tree_sha` \u2192 `(db_path, output_sha, created_at)`. Stores the HASH of the doxygen output, not just the path, because multiple configurations can point at the same output file and overwrite it. `indexcache.py:381-435` details the false-hit fix (#399) \u2014 comparing the recorded digest against the file's current digest.\n\n---\n\n### What Makes Previously Done Work No Longer Usable\n\n**1. `DOXYGUARD_DB_BUILD_VERSION` Bump** (currently 50, `signature.py:368-465`) \u2014 Any version bump wipes the entire cache: `indexcache.py:161-188` deletes all three tables. Examples from the 300+ comments in `signature.py`:\n- Version 29\u201334: index scope changes (INPUT roots, EXCLUDE, FILE_PATTERNS, external-tree detection)\n- Version 31: C++ RAII lock-pattern matching rule tightened; old indices carry fabricated lock rows\n- Version 32\u201333: nested git trees now indexed instead of excluded\n\n**2. Per-Stage `stage_version` Bump** \u2014 Each stage (e.g., `call_edges.stage_version = 4`, `threads.stage_version = 4`, `kconfig_gates.stage_version = 4`) carries its own version. Bumping one stage invalidates only that stage's cache entries, not all ten. `harvest.py:15-23` explains why the key is NOT merged: a combined key would be all-or-nothing (every edit forces a full re-parse) or lossy (a changed component the combine omitted would serve stale logic).\n\n**3. File Content Changes** \u2014 `indexcache.py:206-218` re-hashes files when the prefilter (size+mtime) misses. Content SHA decides; mtime alone cannot catch `git checkout` or `touch` without edits. `indexcache.py:224-250` buckets the scan into changed/unchanged/added/removed; modified files are re-parsed.\n\n**4. File Additions/Removals** \u2014 `indexcache.py:232-246` detects added files (not in previous scan). `indexcache.py:247-249` detects removed files (in previous scan but not in current files dict). `indexcache.py:517-525` replaces `source_files` on commit, so removed files stop hitting the cache.\n\n**5. Manifest Changes** \u2014 Each stage that reads a manifest (thread-patterns, shared-key-patterns, dispatch, mqtt-dispatch, data-model) folds the manifest's content hash into `extra_key`. `treescan.py:112-131` \u2014 `manifest_key` hashes the manifest's CONTENT (whether it arrives as a file or as a `.doxyguard-db.yaml` section). A changed declaration changes the key, invalidating that stage's cache entries. `harvest.py:276-277` \u2014 each `Harvester` instance carries the `extra_key`.\n\n**6. Doxygen Output Verification** \u2014 `indexcache.py:414-434` \u2014 `doxygen_get` looks up the cached output by tree hash, then **verifies it by content hash**. If another configuration has overwritten the output file, the recorded SHA no longer matches the file's current SHA, and the lookup returns `None` (cache MISS). This prevents false hits when multiple `tree_sha` keys point at the same overwritten file.\n\n**7. Output Failure to Hash** \u2014 `indexcache.py:451-459` \u2014 if the doxygen output cannot be hashed (unreadable file), it is not cached. On the next run, a later unreadable read would compare `\"\" == \"\"` and HIT \u2014 a false hit. The empty string is explicitly rejected.\n\n**8. Cache Path Mismatch** \u2014 `cli.py:319-321` documents that the sidecar is keyed to the cache/output directory. Two builds sharing a cache must share the same `--index-cache`/`--output` path; different cache directories lose the skip. `--rebuild` disables reads of prior entries but still refreshes the cache `indexcache.py:94-100`, so the next build is incremental again.\n\n---\n\n### What is NOT Made Incremental\n\n**Doxygen Run Itself** \u2014 `cli.py:1210` states \"doxygen has no incremental mode.\" Only the SKIP is incremental (tree-hash reuse), not the run.\n\n**All Cross-File Stages** \u2014 `cli.py:1282-1284` explicitly documents: \"every CROSS-FILE stage below \u2014 reachability, thread membership, boundary annotation, requirements \u2014 is always recomputed, because they depend on the whole assembled graph.\" These are:\n- `mark_reachability` `cli.py:1617` \u2014 BFS from entry-point seeds, depends on the entire call-edge graph\n- `extract_threads` `cli.py:1501` \u2014 thread membership, depends on all member and call edges\n- `annotate_thread_boundaries` `cli.py:1576` \u2014 crosses_thread / to_thread_id annotation on shared-key edges\n- `ingest_requirements_yaml` `cli.py:1599` \u2014 requirement ingestion and tracing\n- `import_req_edges` \u2014 @req tag traceability\n- `import_req_test_edges` \u2014 test function coverage tracing\n\n**Downstream Per-File Stages that Feed Cross-File Computation** \u2014 `cli.py:1280-1284` notes that `cache` makes \"per-file AST stages incremental.\" But a per-file stage whose output feeds a cross-file stage (e.g., call edges feed reachability, thread extraction feeds membership) still runs its per-file extraction; it is only the storage/lookup that is cached.\n\n**Non-AST Pipeline Stages** \u2014 These are always recomputed:\n- `copy_database` `cli.py:1315` \u2014 temp copy of doxygen output\n- `sanitize_doxygen_text` `cli.py:1319` \u2014 UTF-8 repair\n- `enrich_database` `cli.py:1327` \u2014 optional enrichment\n- `fix_doxygen_paths` `cli.py:1330` \u2014 STRIP_FROM_PATH undo\n- `repair_attribute_named_functions` `cli.py:1332` \u2014 attribute function merges/renames\n- `ingest_supplementary_docs` `cli.py:1334` \u2014 README + docs/*.md ingestion\n- `import_kconfig` `cli.py:1344` \u2014 Kconfig variant space ingestion\n\n`cli.py:1336-1339` notes that `ingest_supplementary_docs` DROPs and recreates the `supplementary_docs` table on every build; running kconfig ingestion above it would insert chunks that get deleted, with no error.\n\n---\n\n## Gaps\n\nNone identified. The code clearly documents the cache mechanism, invalidation rules, and cross-file stage exclusion from incrementality. The manifest-key mechanism for stage-specific invalidation on declaration changes is fully traceable from `cli.py:1363-1375` through `treescan.manifest_key` and each stage's `extra_key` field.",
+  "ttft_ms": 2350,
+  "ttft_stream_ms": 1085,
+  "time_to_request_ms": 275,
+  "type": "result",
+  "duration_ms": 81988,
+  "uuid": "4d28615d-3aa3-4562-8b5f-ca6a096c2332"
+}

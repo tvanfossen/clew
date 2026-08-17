@@ -1,0 +1,8 @@
+{
+  "tool": "propose_declaration",
+  "tier": 0,
+  "priority": 50,
+  "description": [
+    "CALL THIS when a repo's causal layer looks empty, or threads or shared-key dataflow are missing. Returns a PROPOSED `.clew.yaml` — where a repo declares its own conventions, so dataflow the defaults cannot see becomes visible — written entirely as COMMENTS, so putting it in the repo verbatim changes nothing. Read the EVIDENCE and the REJECTED list: what was refused, and why, is usually the answer."
+  ]
+}

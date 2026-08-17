@@ -1,0 +1,68 @@
+{
+  "is_error": false,
+  "duration_api_ms": 98856,
+  "num_turns": 20,
+  "stop_reason": "end_turn",
+  "session_id": "35c2c554-c76f-4028-90e8-ad60b8880071",
+  "total_cost_usd": 0.27276500000000004,
+  "usage": {
+    "input_tokens": 137,
+    "cache_creation_input_tokens": 58873,
+    "cache_read_input_tokens": 1162320,
+    "output_tokens": 7433,
+    "output_tokens_details": {
+      "thinking_tokens": 4463
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 58873,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 8,
+        "output_tokens": 1377,
+        "cache_read_input_tokens": 88243,
+        "cache_creation_input_tokens": 3599,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3599
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1507,
+      "outputTokens": 7456,
+      "cacheReadInputTokens": 1162320,
+      "cacheCreationInputTokens": 58873,
+      "webSearchRequests": 0,
+      "costUSD": 0.27276500000000004,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## ANSWER\n\nI found multiple clear instances of **shared-state coupling** in mbedtls where one function writes to a data structure that another function reads, with **no direct call** between them:\n\n### 1. **CTR_DRBG Context Configuration**\n\n**Write Function:** `mbedtls_ctr_drbg_set_entropy_len` (library/ctr_drbg.c:124)\n```c\nctx->entropy_len = len;\n```\n\n**Read Function:** `mbedtls_ctr_drbg_seed` (library/ctr_drbg.c:555-557)\n```c\nif (ctx->entropy_len == 0) {\n    ctx->entropy_len = MBEDTLS_CTR_DRBG_ENTROPY_LEN;\n}\n```\n\n**Evidence of No Call:** \n- `mbedtls_ctr_drbg_set_entropy_len` callers: only `mbedtls_ctr_drbg_self_test`\n- `mbedtls_ctr_drbg_seed` does not call `mbedtls_ctr_drbg_set_entropy_len`\n- `mbedtls_ctr_drbg_set_entropy_len` does not call `mbedtls_ctr_drbg_seed`\n\n---\n\n### 2. **CTR_DRBG Nonce Length Configuration**\n\n**Write Function:** `mbedtls_ctr_drbg_set_nonce_len` (library/ctr_drbg.c:148)\n```c\nctx->reseed_counter = (int) len;\n```\n\n**Read Function:** `mbedtls_ctr_drbg_seed` (library/ctr_drbg.c:562-564)\n```c\nnonce_len = (ctx->reseed_counter >= 0 ?\n             (size_t) ctx->reseed_counter :\n             good_nonce_len(ctx->entropy_len));\n```\n\n**Evidence of No Call:**\n- `mbedtls_ctr_drbg_set_nonce_len` callers: only `mbedtls_ctr_drbg_self_test`\n- No call path between them\n\n---\n\n### 3. **CTR_DRBG Prediction Resistance Flag**\n\n**Write Function:** `mbedtls_ctr_drbg_set_prediction_resistance` (library/ctr_drbg.c:118)\n```c\nctx->prediction_resistance = resistance;\n```\n\n**Read Function:** `mbedtls_ctr_drbg_random_with_add` (library/ctr_drbg.c:633)\n```c\nif (ctx->reseed_counter >= ctx->reseed_interval ||\n    ctx->prediction_resistance) {\n```\n\n**Evidence of No Call:**\n- `mbedtls_ctr_drbg_set_prediction_resistance` callers: `main`, `mbedtls_ctr_drbg_self_test`\n- `mbedtls_ctr_drbg_random_with_add` does not call `mbedtls_ctr_drbg_set_prediction_resistance`\n\n---\n\n### 4. **HMAC_DRBG Entropy Length Configuration**\n\n**Write Function:** `mbedtls_hmac_drbg_set_entropy_len` (library/hmac_drbg.c:291)\n```c\nctx->entropy_len = len;\n```\n\n**Read Function:** `mbedtls_hmac_drbg_seed` (library/hmac_drbg.c:253)\n```c\nif (ctx->entropy_len == 0) {\n    ctx->entropy_len = md_size <= 20 ? 16 : ...\n}\n```\n\n**Evidence of No Call:**\n- `mbedtls_hmac_drbg_set_entropy_len` has no callers in the index\n- `mbedtls_hmac_drbg_seed` callers: `main`, `mbedtls_hmac_drbg_self_test`, `rng_seed`, `mbedtls_psa_drbg_seed`\n- No call relationship between them\n\n---\n\n## Gaps\n\nAll identified couplings follow the **setter/reader pattern** on context structures (CTR_DRBG and HMAC_DRBG initialization parameters). The index confirmed these are shared-key dataflow edges: one function initializes or configures a shared context, and separate callers may invoke the configuration function and then separately invoke functions that read those configured values.\n\nI did not find examples of more complex **global variable** couplings or **inter-module state sharing** patterns\u2014though the index reported 99 shared-key inferred edges total, suggesting such patterns likely exist elsewhere in the codebase. These setters/readers are the most obvious documented examples.",
+  "ttft_ms": 5609,
+  "ttft_stream_ms": 1385,
+  "time_to_request_ms": 75,
+  "type": "result",
+  "duration_ms": 98517,
+  "uuid": "0826f5d8-ceee-4a65-b113-1f2263b9571c"
+}

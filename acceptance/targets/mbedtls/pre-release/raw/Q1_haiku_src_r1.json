@@ -1,0 +1,68 @@
+{
+  "is_error": false,
+  "duration_api_ms": 36189,
+  "num_turns": 13,
+  "stop_reason": "end_turn",
+  "session_id": "bf8f5c0a-6dbb-44d2-b1ab-3a7874de1d72",
+  "total_cost_usd": 0.37013950000000007,
+  "usage": {
+    "input_tokens": 105,
+    "cache_creation_input_tokens": 139604,
+    "cache_read_input_tokens": 736165,
+    "output_tokens": 3163,
+    "output_tokens_details": {
+      "thinking_tokens": 784
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 139604,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 8,
+        "output_tokens": 1398,
+        "cache_read_input_tokens": 83444,
+        "cache_creation_input_tokens": 682,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 682
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1405,
+      "outputTokens": 3182,
+      "cacheReadInputTokens": 736165,
+      "cacheCreationInputTokens": 139604,
+      "webSearchRequests": 0,
+      "costUSD": 0.37013950000000007,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Yes, mbedtls **does use mutexes extensively** for thread-safe access to shared resources. Here's where and how:\n\n## Threading Architecture\n\nmbedtls provides a threading abstraction layer with a pluggable implementation (`include/mbedtls/threading.h:27-103`). The default implementation uses POSIX pthread mutexes when `MBEDTLS_THREADING_PTHREAD` is defined.\n\n## Global Mutexes\n\nThe library defines several **global mutexes** (`include/mbedtls/threading.h:105-159`):\n\n1. **`mbedtls_threading_readdir_mutex`** (`include/mbedtls/threading.h:120`) \u2014 Protects directory reading operations when `MBEDTLS_FS_IO` is enabled.\n\n2. **`mbedtls_threading_gmtime_mutex`** (`include/mbedtls/threading.h:130`) \u2014 Protects calls to the non-reentrant `gmtime()` function. Used in `library/platform_util.c:189-201` to serialize access when `MBEDTLS_HAVE_TIME_DATE` is enabled without a thread-safe alternative.\n\n3. **PSA Crypto Mutexes** (`include/mbedtls/threading.h:133-159`):\n   - **`mbedtls_threading_key_slot_mutex`** \u2014 Protects the key store (`global_data.key_slots`), key slot state transitions, and reader registration. Used throughout `library/psa_crypto.c` and `library/psa_crypto_slot_management.c`.\n   - **`mbedtls_threading_psa_globaldata_mutex`** \u2014 Protects general PSA global data and initialization state.\n   - **`mbedtls_threading_psa_rngdata_mutex`** \u2014 Protects PSA RNG state and data.\n\n## Per-Context Mutexes\n\nThe SSL session cache includes a per-context mutex (`include/mbedtls/ssl_cache.h:71-72`) embedded in `mbedtls_ssl_cache_context`. This is locked during cache get/set/remove operations (`library/ssl_cache.c:84-86` and `library/ssl_cache.c:259`).\n\n## How the Locking Works\n\n**Function pointer pattern:** The library uses function pointers initialized at runtime (`library/threading.c:101-104`):\n```c\nvoid (*mbedtls_mutex_init)(mbedtls_threading_mutex_t *) = threading_mutex_init_pthread;\nvoid (*mbedtls_mutex_free)(mbedtls_threading_mutex_t *) = threading_mutex_free_pthread;\nint (*mbedtls_mutex_lock)(mbedtls_threading_mutex_t *) = threading_mutex_lock_pthread;\nint (*mbedtls_mutex_unlock)(mbedtls_threading_mutex_t *) = threading_mutex_unlock_pthread;\n```\n\n**Pthread implementation** (`library/threading.c:50-99`):\n- `threading_mutex_init_pthread()` calls `pthread_mutex_init()` (`library/threading.c:63`)\n- `threading_mutex_lock_pthread()` calls `pthread_mutex_lock()` and returns `MBEDTLS_ERR_THREADING_MUTEX_ERROR` on failure (`library/threading.c:75-86`)\n- `threading_mutex_unlock_pthread()` calls `pthread_mutex_unlock()` similarly (`library/threading.c:88-99`)\n\n**Example usage** \u2014 PSA RNG access (`library/psa_crypto_random.c:147`):\n```c\nmbedtls_mutex_lock(&mbedtls_threading_psa_rngdata_mutex);\n// ... access RNG state ...\nmbedtls_mutex_unlock(&mbedtls_threading_psa_rngdata_mutex);\n```\n\n## Thread-Safety Scope\n\nAs documented in `docs/architecture/psa-thread-safety/psa-thread-safety.md:3-5`, **only the PSA Crypto key management API and `psa_crypto_init` are thread-safe as of Mbed TLS 3.6**. The mutex protection is conditional on `MBEDTLS_THREADING_C` being enabled.\n\n## Alternative Implementations\n\nUsers can provide custom threading implementations via `mbedtls_threading_set_alt()` (`include/mbedtls/threading.h:94-97`) to use mutexes with non-pthread platforms.\n\n## Gaps\n\n- I did not trace all 40+ mutex lock/unlock call sites across the codebase, only verified the key ones.\n- The exact contention characteristics and performance implications were not analyzed.\n- Whether additional functions beyond key management will be made thread-safe in future versions is specification, not implementation.",
+  "ttft_ms": 2284,
+  "ttft_stream_ms": 1650,
+  "time_to_request_ms": 179,
+  "type": "result",
+  "duration_ms": 35772,
+  "uuid": "a12fd78c-9f1f-4a96-bac6-2c128d9141d5"
+}

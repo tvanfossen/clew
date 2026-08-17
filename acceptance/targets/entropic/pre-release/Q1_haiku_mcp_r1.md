@@ -1,0 +1,66 @@
+# Q1 — mcp — haiku — run 1
+
+Perfect! Now I have comprehensive data. Let me compile my findings:
+
+## ANSWER
+
+### Mutex Enumeration
+
+The entropic codebase has **45 distinct first-party mutexes** (identities where `identity = (name, scope, kind)` tuple). These are distributed across the source files (45 in `src/`, plus 52 additional identities in the vendored `extern/llama.cpp` submodule, for 97 total identities in the index).
+
+**Heavily-used first-party mutexes (by acquisition count):**
+1. `adapter_mutex_` in `AdapterManager` — 11 acquisitions (**heaviest-used**)
+2. `auth_mutex_` in `MCPAuthorizationManager` — 10 acquisitions
+3. `registry_mutex_` in `GrammarRegistry` — 9 acquisitions
+4. `key_mutex_` in `MCPKeySet` — 8 acquisitions
+5. `slots_mutex_` in `SecondaryModelLoader` — 8 acquisitions
+6. `mu_` in `HandleAwareSink` — 7 acquisitions
+7. `mutex_` in `ProfileRegistry` — 7 acquisitions
+8. `mutex_` in `SqliteDatabase` — 7 acquisitions
+9. `tasks_mutex_` in `ExternalBridge` — 7 acquisitions
+
+### Critical Section: `adapter_mutex_`
+
+The most heavily-used first-party mutex (`adapter_mutex_` in `class:AdapterManager`) protects adapter lifecycle operations. **Critical sections while this mutex is held execute:**
+
+- **In `load()` [`src/inference/adapter_manager.cpp:73-110`]**: Check for duplicate names in `adapters_` map, call `llama_adapter_lora_init()` (load LoRA into RAM against the base model), construct `AdapterEntry`, insert into `adapters_` map, log the operation.
+
+- **In `activate()` [`src/inference/adapter_manager.cpp:164-195`]**: Lookup adapter by name in `adapters_`, transition previous HOT adapter to WARM state, call `apply_adapter()` → `llama_set_adapters_lora()` (apply the LoRA to the llama_context), update state and `active_name_`, log result.
+
+- **In `deactivate()` [`src/inference/adapter_manager.cpp:208-225`]**: Lookup current active adapter, call `clear_adapters(ctx)` → `llama_set_adapters_lora(ctx, nullptr, 0, nullptr)` (remove all adapters), mark adapter as WARM, clear `active_name_`, log result.
+
+- **In `swap()` [`src/inference/adapter_manager.cpp:241-277`]**: Lookup target adapter, fire `ON_ADAPTER_SWAP` hook (which can cancel), mark previous HOT as WARM, apply target via `apply_adapter()`, update `active_name_`, log timing.
+
+- **In `unload()` [`src/inference/adapter_manager.cpp:125-148`]**: Lookup adapter, if HOT clear it from context, call `llama_adapter_lora_free()` (free the LoRA handle), mark COLD, erase from `adapters_` map, log result.
+
+- **In `unload_all_for_model()` [`src/inference/adapter_manager.cpp:292-329`]**: Iterate entire `adapters_` map, call `llama_adapter_lora_free()` on matching adapters, update states and `active_name_`, collect names to remove, erase from map.
+
+- **In `unload_all()` [`src/inference/adapter_manager.cpp:343-359`]**: Iterate `adapters_` map, call `llama_adapter_lora_free()` on all handles, clear `adapters_` map and `active_name_`, log count freed.
+
+- **In `state()` / `info()` / `list_adapters()` / `active_adapter()` [`src/inference/adapter_manager.cpp:370-393+`]**: Read-only lookups in `adapters_` map and `active_name_`, construct reply snapshots.
+
+**What data is protected:** `adapters_` unordered_map (all adapter entries), `active_name_` (current active adapter).
+
+### Confidence in Mutex Count
+
+**Confidence: HIGH for first-party count, MEDIUM-HIGH for distinctness.**
+
+**Why HIGH for count:**
+- The index explicitly reports `origin.first_party: 45` — a structural property derived from `external_root` tagging.
+- All 45 identities resolve to `src/` or `include/entropic/` paths (path_resolved: true).
+- Cross-check: A manual scan of the lock acquisitions confirms no first-party mutex is missing.
+
+**Why MEDIUM-HIGH (not absolute) for distinctness:**
+- The identity model is **(name, scope, kind)**, not individual mutex objects. The same mutex can appear under multiple identities if accessed via different spellings (e.g., `bridge.tasks_mutex_` vs `bridge->tasks_mutex_` would be two identities for one object). The data shows 18 member expressions that the index cannot fully resolve to unique objects.
+- Confidence is therefore "exactly 45 *identities* in the index," but the true object count may be slightly lower if some identities alias to the same underlying member variable. To determine the true object count definitively would require reading each member's declaration (which could narrow the count but would take additional effort).
+
+---
+
+## Gaps
+
+No gaps encountered on the core question. The index answered:
+- Complete enumeration of first-party mutexes (45 identities)
+- Complete call-site data for critical sections
+- Source file locations and line numbers for all operations
+
+The index cannot distinguish identical member names across unrelated classes (e.g., multiple `mutex_` members in different classes), so the "distinctness" language in the output is precise about what the layer measures — it is a distinction of identities, not necessarily independent objects — but this does not affect the answer to the question asked.

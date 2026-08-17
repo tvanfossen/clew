@@ -1,0 +1,68 @@
+{
+  "is_error": false,
+  "duration_api_ms": 54949,
+  "num_turns": 12,
+  "stop_reason": "end_turn",
+  "session_id": "ea837bf4-ad17-4ddb-ba54-964e3419648f",
+  "total_cost_usd": 0.23955750000000003,
+  "usage": {
+    "input_tokens": 97,
+    "cache_creation_input_tokens": 65155,
+    "cache_read_input_tokens": 827025,
+    "output_tokens": 4989,
+    "output_tokens_details": {
+      "thinking_tokens": 3095
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 65155,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 8,
+        "output_tokens": 725,
+        "cache_read_input_tokens": 96285,
+        "cache_creation_input_tokens": 1844,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1844
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1520,
+      "outputTokens": 5005,
+      "cacheReadInputTokens": 827025,
+      "cacheCreationInputTokens": 65155,
+      "webSearchRequests": 0,
+      "costUSD": 0.23955750000000003,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Final Answer\n\nGiven the conflicting instructions (\"Do not write files\" vs. \"Add a function\"), I'm interpreting this as a hypothetical assessment based on the existing codebase patterns:\n\n**If `entropic_acceptance_probe` were added to `src/facade/entropic.cpp` as specified:**\n\n1. **Signature**: `int entropic_acceptance_probe();` (no parameters, returns int)\n\n2. **File**: `src/facade/entropic.cpp:` (as specified in the question)\n\n3. **Doxygen brief**: \"Acceptance-test probe\" (as specified in the question)\n\n4. **Does anything call it**: **No** \u2014 The function does not currently exist in the codebase. A search of the index returned zero results for `entropic_acceptance_probe`. No code calls a non-existent function.\n\n5. **Visible to consumer linking against the shipped library**: **No** \u2014 Based on the existing API pattern (demonstrated by `entropic_create` at `src/facade/entropic.cpp:241` which is declared in the public header `include/entropic/entropic.h:73` with `ENTROPIC_EXPORT`), a function defined only in the implementation file without a corresponding declaration in the public header would NOT be visible to consumers. The public API surface is strictly controlled by declarations in `include/entropic/entropic.h` preceded by the `ENTROPIC_EXPORT` macro.\n\n## Gaps\n\n- I could not determine whether the function **would be callable by internal test code** within the codebase without seeing the complete definition (as static vs. extern \"C\" affects linkage).\n- I interpreted \"Do not write files\" as a constraint preventing actual code modification, so I answered based on hypothetical analysis rather than adding the function and re-querying the index.",
+  "ttft_ms": 9405,
+  "ttft_stream_ms": 1388,
+  "time_to_request_ms": 80,
+  "type": "result",
+  "duration_ms": 56610,
+  "uuid": "74191e77-9bd0-480d-ad5f-297ff69f0ac3"
+}

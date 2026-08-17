@@ -1,0 +1,68 @@
+{
+  "is_error": false,
+  "duration_api_ms": 56007,
+  "num_turns": 20,
+  "stop_reason": "end_turn",
+  "session_id": "a4f8f2dc-0535-4255-8867-68cd30f47657",
+  "total_cost_usd": 0.2772159,
+  "usage": {
+    "input_tokens": 161,
+    "cache_creation_input_tokens": 54691,
+    "cache_read_input_tokens": 1432699,
+    "output_tokens": 4585,
+    "output_tokens_details": {
+      "thinking_tokens": 1236
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 54691,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 8,
+        "output_tokens": 1590,
+        "cache_read_input_tokens": 85729,
+        "cache_creation_input_tokens": 1931,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1931
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1554,
+      "outputTokens": 4602,
+      "cacheReadInputTokens": 1432699,
+      "cacheCreationInputTokens": 54691,
+      "webSearchRequests": 0,
+      "costUSD": 0.2772159,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Answer\n\n**How mbedtls is configured:**\n\nMbedtls uses compile-time preprocessor macros to configure which features are enabled or disabled. The library is configured entirely at build time through C preprocessor `#define` symbols, with no runtime configuration mechanism. Configuration decisions are recorded in header files as boolean enables (a feature is on if the macro is defined, off if not).\n\n**Where decisions are recorded:**\n\nConfiguration decisions are primarily recorded in three places:\n\n1. **Default configuration file**: `include/mbedtls/mbedtls_config.h` \u2014 This is the primary file containing all feature toggles. Each feature like `MBEDTLS_RSA_C`, `MBEDTLS_SSL_TLS_C`, `MBEDTLS_AES_C`, etc., is defined here (or commented out). The file includes extensive documentation for each option explaining what it enables, what it requires, and what requires it.\n\n2. **PSA crypto configuration**: `include/psa/crypto_config.h` \u2014 When `MBEDTLS_PSA_CRYPTO_CONFIG` is enabled, PSA-specific features are configured separately using `PSA_WANT_*` symbols.\n\n3. **Build-time integration**: `include/mbedtls/build_info.h` \u2014 This file orchestrates the configuration loading sequence. It includes the main config file (or an override), then user config files, then applies automatic adjustments. The sequence is (`include/mbedtls/build_info.h:112-192`):\n   - Load `MBEDTLS_CONFIG_FILE` if defined, else load default `mbedtls_config.h`\n   - Load `MBEDTLS_USER_CONFIG_FILE` if defined (allows per-application overrides)\n   - Load PSA config files if PSA crypto is enabled\n   - Include auto-adjustment files (`config_adjust_legacy_crypto.h`, `config_adjust_x509.h`, `config_adjust_ssl.h`)\n   - Finally, include `check_config.h` for consistency validation\n\n**Supported ways to change configuration:**\n\n1. **Direct file editing**: Edit `include/mbedtls/mbedtls_config.h` by uncommenting/commenting feature lines.\n\n2. **CMake build options** (`CMakeLists.txt:147-148`):\n   - `-DMBEDTLS_CONFIG_FILE=<path>` \u2014 Override the entire config file with a custom one\n   - `-DMBEDTLS_USER_CONFIG_FILE=<path>` \u2014 Append/override specific settings on top of the default config\n\n3. **Python configuration tool**: `scripts/config.py` provides programmatic access to manipulate configuration files. It can read, enable, disable, and generate configurations (`scripts/config.py:1-8`):\n   ```\n   config = MbedTLSConfig()\n   if 'MBEDTLS_RSA_C' in config: ...  # read\n   ```\n\n4. **Pre-built configuration profiles**: The `configs/` directory contains pre-configured profiles for specific use cases (e.g., `config-ccm-psk-dtls1_2.h`, `config-symmetric-only.h`).\n\n**What prevents contradictory configurations:**\n\nTwo mechanisms enforce consistency:\n\n1. **Automatic dependency injection** via auto-adjustment files. For example, `config_adjust_legacy_crypto.h:97-99` automatically enables `MBEDTLS_PSA_CRYPTO_CLIENT` if `MBEDTLS_PSA_CRYPTO_C` is defined. This ensures dependent features are implicitly enabled when their requirements are enabled.\n\n2. **Compile-time error checks in `include/mbedtls/check_config.h`**. This file contains `#error` preprocessor directives that fire at compilation time if incompatible options are set. Examples include (`check_config.h:57-59`, `121-149`):\n   - `#error \"MBEDTLS_HAVE_TIME_DATE without MBEDTLS_HAVE_TIME does not make sense\"`\n   - `#error \"MBEDTLS_CTR_DRBG_C defined, but not all prerequisites\"` (when required dependencies are missing)\n   - `#error \"... MBEDTLS_BLOCK_CIPHER_NO_DECRYPT and MBEDTLS_CIPHER_MODE_CBC cannot be defined simultaneously\"`\n\nThese checks are enforced **after all configuration files have been loaded and dependencies auto-adjusted** \u2014 once `MBEDTLS_CONFIG_IS_FINALIZED` is defined (`build_info.h:190`), then `check_config.h` is included to validate the final configuration state (`build_info.h:192`).\n\n## Gaps\n\nI could not locate the complete list of all available MBEDTLS feature flags from the index (the search returned only patterns and specific examples), nor a machine-readable manifest of which features depend on which others. The `check_config.h` file contains the constraints, but a structured dependency graph would require reading that entire file or parsing the doxygen comments in `mbedtls_config.h`.",
+  "ttft_ms": 2950,
+  "ttft_stream_ms": 1154,
+  "time_to_request_ms": 80,
+  "type": "result",
+  "duration_ms": 55796,
+  "uuid": "5444973b-3ccb-485e-aaca-d3c948aecbf8"
+}

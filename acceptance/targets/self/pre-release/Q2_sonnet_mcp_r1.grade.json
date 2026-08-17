@@ -1,0 +1,392 @@
+{
+  "q": "Q2",
+  "arm": "mcp",
+  "model": "sonnet",
+  "run": 1,
+  "answer": "Q2_sonnet_mcp_r1.md",
+  "rubric": "acceptance/targets/self/questions.yaml",
+  "declared_mark_count": 15,
+  "summary": {
+    "marks_hit": 12,
+    "marks_miss": 3,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 15,
+    "verdicts_disambiguated": 1,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": true,
+    "falsity_verdict": "CONSISTENT",
+    "marks_total": 15,
+    "score": 12.0,
+    "score_strict": 12.0
+  },
+  "falsity": {
+    "checked": true,
+    "verdict": "CONSISTENT",
+    "agreement": 1.0,
+    "tally": [
+      [
+        "CONSISTENT",
+        3
+      ]
+    ],
+    "samples": 3,
+    "errors": 0,
+    "facts": 4,
+    "vetoed": false
+  },
+  "marks": [
+    {
+      "index": 1,
+      "text": "**states that nested trees are INDEXED AND TAGGED rather than excluded**, and does not describe a containment or exclusion pass as current behaviour",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Queries (`chain_trace`, `callers`, `callees`, `dossier`) cross the boundary freely; only aggregates (coverage, orphan counts, file counts) filter to first-party by default\" / \"`stamp_external_provenance` (`external.py:201-280`) then tags every indexed file row: `path.dg_external_root` gets the owning root's repo-relative path\"",
+        "why": "The answer explicitly states nested trees are indexed (not excluded) and tagged via `dg_external_root`, with no exclusion pass described as current behavior.",
+        "raw": "QUOTE: \"Queries (`chain_trace`, `callers`, `callees`, `dossier`) cross the boundary freely; only aggregates (coverage, orphan counts, file counts) filter to first-party by default\" / \"`stamp_external_provenance` (`external.py:201-280`) then tags every indexed file row: `path.dg_external_root` gets the owning root's repo-relative path\"\nVERDICT: HIT\nWHY: The answer explicitly states nested trees are indexed (not excluded) and tagged via `dg_external_root`, with no exclusion pass described as current behavior."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "gives the reason tagging beat exclusion: a traversal that stops at the boundary can only say a call leaves the repository, when it could say what the call does",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"queries cross the boundary freely; only aggregates (coverage, orphan counts, file counts) filter to first-party by default\" and \"a `chain_trace` that stops at a submodule boundary answers 'this call leaves the repo' when it could answer what the call does\" [from item context] \u2014 actual answer text: \"Queries (`chain_trace`, `callers`, `callees`, `dossier`) cross the boundary freely; only aggregates (coverage, orphan counts, file counts) filter to first-party by default\"",
+        "why": "The answer states that queries cross the boundary and aggregates filter, but never gives the specific reason \"tagging beat exclusion\" \u2014 i.e., that a stopped traversal can only say a call leaves the repo vs. tagging lets it say what the call does; that comparative rationale is absent.",
+        "raw": "QUOTE: \"queries cross the boundary freely; only aggregates (coverage, orphan counts, file counts) filter to first-party by default\" and \"a `chain_trace` that stops at a submodule boundary answers 'this call leaves the repo' when it could answer what the call does\" [from item context] \u2014 actual answer text: \"Queries (`chain_trace`, `callers`, `callees`, `dossier`) cross the boundary freely; only aggregates (coverage, orphan counts, file counts) filter to first-party by default\"\n\nVERDICT: MISS\nWHY: The answer states that queries cross the boundary and aggregates filter, but never gives the specific reason \"tagging beat exclusion\" \u2014 i.e., that a stopped traversal can only say a call leaves the repo vs. tagging lets it say what the call does; that comparative rationale is absent."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 3,
+      "text": "names the test as the presence of a git tree in a directory",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "_holds_git_tree"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `_holds_git_tree` \u2014 1. **`_holds_git_tree`** (`doxyguard_db/scope.py:529-557`) \u2014 \"is there a separate git tree here at all?\" Test: `(directory / \".git\").exists()`. Uses `exists()`, not `is_dir()`, specifically because a submodule's `.git` is a **file** (a `gitdir: ../../.git/modules/<name>` pointer), not a directory \u2014 the docstring records that the old `\".git\" in dirnames` form was blind to every submodule while still reporting 28 \"hits\" on nested clones, which made it look correct (`scope.py:530-541`). This walk (`_nested_repos_under`, `scope.py:489-521`) is bounded \u2014 stops descending at any nested tree it finds, and at `_MAX_DEPTH = 16` (`scope.py:61`) \u2014 and treats an unreadable directory as a **warned gap**, not a clean negative (`_warn_unwalkable`, `scope.py:626-632`)."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "**states that the rule is deliberately NOT name-based**, and that `vendor/` or `third_party/` are conventions rather than facts",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Explicitly **no name matching** \u2014 `vendor/`/`third_party/` conventions are rejected as a detector because a copied-in third-party file with no git tree of its own is still first party\"",
+        "why": "States the rule is not name-based and that vendor/third_party are conventions, not facts, matching the item's substance.",
+        "raw": "QUOTE: \"Explicitly **no name matching** \u2014 `vendor/`/`third_party/` conventions are rejected as a detector because a copied-in third-party file with no git tree of its own is still first party\"\nVERDICT: HIT\nWHY: States the rule is not name-based and that vendor/third_party are conventions, not facts, matching the item's substance."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "draws the consequence in the other direction: a copied-in third-party file with no git tree of its own is FIRST PARTY, because the repository committed it",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"explicitly **no name matching** \u2014 `vendor/`/`third_party/` conventions are rejected as a detector because a copied-in third-party file with no git tree of its own is still first party\"",
+        "why": "States the exact consequence \u2014 no separate git tree means the file is treated as first party regardless of naming convention.",
+        "raw": "QUOTE: \"explicitly **no name matching** \u2014 `vendor/`/`third_party/` conventions are rejected as a detector because a copied-in third-party file with no git tree of its own is still first party\"\nVERDICT: HIT\nWHY: States the exact consequence \u2014 no separate git tree means the file is treated as first party regardless of naming convention."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "**finds that a submodule's `.git` is a FILE, not a directory** \u2014 a pointer written by `git submodule` where a standalone clone has a directory",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"a submodule's `.git` is a **file** (a `gitdir: ../../.git/modules/<name>` pointer), not a directory\"",
+        "why": "States the exact mechanism \u2014 submodule .git is a file pointer, unlike a standalone clone's directory.",
+        "raw": "QUOTE: \"a submodule's `.git` is a **file** (a `gitdir: ../../.git/modules/<name>` pointer), not a directory\"\nVERDICT: HIT\nWHY: States the exact mechanism \u2014 submodule .git is a file pointer, unlike a standalone clone's directory."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 7,
+      "text": "states that the predicate uses an existence test rather than a directory test, so both shapes are caught",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Test: `(directory / \".git\").exists()`. Uses `exists()`, not `is_dir()`, specifically because a submodule's `.git` is a **file** ... not a directory\"",
+        "why": "The answer explicitly states the predicate uses an existence test rather than a directory-type test, catching both directory-clone and file-pointer (submodule) shapes.",
+        "raw": "QUOTE: \"Test: `(directory / \".git\").exists()`. Uses `exists()`, not `is_dir()`, specifically because a submodule's `.git` is a **file** ... not a directory\"\nVERDICT: HIT\nWHY: The answer explicitly states the predicate uses an existence test rather than a directory-type test, catching both directory-clone and file-pointer (submodule) shapes."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 8,
+      "text": "**reports that a directory-only test found nested CLONES while silently missing every SUBMODULE**, and that a plausible non-zero count is what made it look like a working detector",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"the docstring records that the old `\\\".git\\\" in dirnames` form was blind to every submodule while still reporting 28 \\\"hits\\\" on nested clones, which made it look correct\"",
+        "why": "States the directory-only test found nested clones (28 hits) while silently missing submodules, and that the plausible non-zero count made it look like a working detector.",
+        "raw": "QUOTE: \"the docstring records that the old `\\\".git\\\" in dirnames` form was blind to every submodule while still reporting 28 \\\"hits\\\" on nested clones, which made it look correct\"\nVERDICT: HIT\nWHY: States the directory-only test found nested clones (28 hits) while silently missing submodules, and that the plausible non-zero count made it look like a working detector."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "notices that every unit fixture used a `.git` directory, so the suite was structurally incapable of catching it \u2014 the fixture matched the detector rather than the world",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer explains the submodule `.git`-as-file detection fix and cites the \"28 hits\" false-positive, but never states that every unit fixture built a `.git` directory (making the suite structurally incapable of catching the bug) \u2014 the fixture-matched-the-detector-not-the-world point is absent.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains the submodule `.git`-as-file detection fix and cites the \"28 hits\" false-positive, but never states that every unit fixture built a `.git` directory (making the suite structurally incapable of catching the bug) \u2014 the fixture-matched-the-detector-not-the-world point is absent."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 10,
+      "text": "**separates the TWO predicates and says they answer different questions** \u2014 one for descent (is there a separate git tree here?), one for ownership (did this repository commit it as a gitlink?)",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "nested_repo_roots",
+          "dependency_roots"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `nested_repo_roots` \u2014 - `nested_repo_roots` = every directory with its own `.git` (clones, submodules, worktrees) \u2014 used for **descent**, e.g. respecting each nested tree's own `.gitignore`, since `git ls-files` stops at any tree boundary.",
+          "symbol `dependency_roots` \u2014 - `dependency_roots` = the subset of those that are gitlinks \u2014 used for **ownership/tagging**."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 11,
+      "text": "states that ownership is the narrower of the two, a subset of the trees descent finds",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "NONE",
+        "why": "The answer discusses two predicates (tree-holding vs. dependency/gitlink) but never states that \"ownership\"/external tagging is the narrower subset of what descent (tree detection) finds as its own explicit framing \u2014 actually it does: \"wraps `dependency_roots` (not the wider `nested_repo_roots`)\" \u2014 this is exactly the subset claim.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses two predicates (tree-holding vs. dependency/gitlink) but never states that \"ownership\"/external tagging is the narrower subset of what descent (tree detection) finds as its own explicit framing \u2014 actually it does: \"wraps `dependency_roots` (not the wider `nested_repo_roots`)\" \u2014 this is exactly the subset claim.\n\nQUOTE: \"`external_roots` (`external.py:147-170`) wraps `dependency_roots` (not the wider `nested_repo_roots`) specifically so that \"declared as somebody else's code\" and \"happens to be a separate git tree\" don't get conflated\"\nVERDICT: HIT\nWHY: States ownership (dependency_roots) is the narrower subset of what the tree-descent walk (nested_repo_roots) finds.",
+        "verdict_disambiguated": true,
+        "verdict_sequence": [
+          "MISS",
+          "HIT"
+        ]
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 12,
+      "text": "states that the walk is bounded rather than a recursive glob, and gives a reason \u2014 descending into a found repository's own object store, or swallowing an unreadable directory",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"This walk (_nested_repos_under, scope.py:489-521) is bounded \u2014 stops descending at any nested tree it finds, and at _MAX_DEPTH = 16 (scope.py:61) \u2014 and treats an unreadable directory as a warned gap, not a clean negative\"",
+        "why": "States the walk is bounded (not a recursive glob) and gives both qualifying reasons \u2014 stopping descent at a found nested repo and handling unreadable directories.",
+        "raw": "QUOTE: \"This walk (_nested_repos_under, scope.py:489-521) is bounded \u2014 stops descending at any nested tree it finds, and at _MAX_DEPTH = 16 (scope.py:61) \u2014 and treats an unreadable directory as a warned gap, not a clean negative\"\nVERDICT: HIT\nWHY: States the walk is bounded (not a recursive glob) and gives both qualifying reasons \u2014 stopping descent at a found nested repo and handling unreadable directories."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 13,
+      "text": "**reports that an unreadable directory WARNS rather than being skipped silently**, and says why: a swallowed error reads exactly like \"no nested repository\", which is the answer that lets a foreign codebase in",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"treats an unreadable directory as a **warned gap**, not a clean negative (`_warn_unwalkable`, `scope.py:626-632`)\"",
+        "why": "States the unreadable-directory-warns mechanism, though the \"reads as no nested repository\" rationale is implied rather than spelled out as explicitly as the item phrasing \u2014 still the substance of the fact (warn vs silent skip) is present.",
+        "raw": "QUOTE: \"treats an unreadable directory as a **warned gap**, not a clean negative (`_warn_unwalkable`, `scope.py:626-632`)\"\nVERDICT: HIT\nWHY: States the unreadable-directory-warns mechanism, though the \"reads as no nested repository\" rationale is implied rather than spelled out as explicitly as the item phrasing \u2014 still the substance of the fact (warn vs silent skip) is present."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 14,
+      "text": "states that descent stops at a nested repository once found, and separately that a depth limit also stops it",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"This walk (`_nested_repos_under`, `scope.py:489-521`) is bounded \u2014 stops descending at any nested tree it finds, and at `_MAX_DEPTH = 16` (`scope.py:61`)\"",
+        "why": "States both that descent stops upon finding a nested repo and that a separate depth limit also stops it.",
+        "raw": "QUOTE: \"This walk (`_nested_repos_under`, `scope.py:489-521`) is bounded \u2014 stops descending at any nested tree it finds, and at `_MAX_DEPTH = 16` (`scope.py:61`)\"\nVERDICT: HIT\nWHY: States both that descent stops upon finding a nested repo and that a separate depth limit also stops it."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 15,
+      "text": "states that the root itself never counts as nested, so a root that is a repository does not report itself",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer discusses root repos vs nested repos and dependency filtering, but never states that a root itself is exempt from being counted as nested/dependency.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses root repos vs nested repos and dependency filtering, but never states that a root itself is exempt from being counted as nested/dependency."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

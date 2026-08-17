@@ -1,0 +1,101 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "clew-trace"
+version = "1.0.0"
+description = "Queryable, layered symbol database for C, C++ and Python codebases: doxygen + tree-sitter call graph, threads, locks and dataflow edges, served to AI agents over MCP."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = [
+    "doxygen",
+    "documentation",
+    "static-analysis",
+    "call-graph",
+    "tree-sitter",
+    "mcp",
+    "embedded",
+    "traceability",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = [
+    "pyyaml>=6.0,<8",
+    "rich>=13.0",
+    # Pinned to doxygen-guard's tree-sitter window so both stacks share one venv.
+    "tree-sitter>=0.23,<0.24",
+    "tree-sitter-c>=0.23,<0.23.5",
+    "tree-sitter-cpp>=0.23,<0.23.5",
+    # Declared, not left transitive: the importer swallows ImportError, so losing
+    # this takes the whole Python AST layer to zero rows with no error.
+    "tree-sitter-python>=0.23,<0.23.5",
+    "doxygen-guard>=1.4.2,<2",
+    # Pinned <15: reads Kconfig.unique_defined_syms, unique_choices,
+    # Symbol.orig_type, MenuNode.prompt/help/filename/linenr, expr_str.
+    "kconfiglib>=14,<15",
+    # Floored at 2: 1.x had mcp.server.fastmcp, which 2.0.0 deleted. Capped at 3:
+    # an unbounded major range already shipped a broken `init` once.
+    "mcp>=2,<3",
+    "anyio>=4.0",
+    "mcp-types>=2,<3",
+    # tomllib is stdlib only from 3.11; below that the backport IS the parser.
+    'tomli>=2; python_version < "3.11"',
+]
+
+[project.scripts]
+clew = "clew.cli:main"
+clew-mcp = "clew.mcp_server.server:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pre-commit>=3.6",
+    "build>=1.0",
+    "twine>=5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/tvanfossen/clew"
+Repository = "https://github.com/tvanfossen/clew"
+Issues = "https://github.com/tvanfossen/clew/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["clew"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/clew",
+    "/tests",
+    "/docs",
+    "/README.md",
+    "/LICENSE",
+    "/requirements.yaml",
+    "/.doxygen-guard.yaml",
+    "/.pre-commit-config.yaml",
+]
+exclude = [
+    "/.claude",
+    "/workspace",
+    "/docs/generated",
+    "**/__pycache__",
+    "**/*.pyc",
+]
+
+[tool.pytest.ini_options]
+## KEEP THE CACHE OUT OF THE REPO ROOT. Without this table pytest has no config file here and
+## defaults to `./.pytest_cache`, so the root grew a cache directory beside `.cache/`, which
+## already holds `ruff/` and this project's own scratch. Two conventions in one tree is the state
+## someone later "tidies" by deleting the wrong one.
+cache_dir = ".cache/pytest"

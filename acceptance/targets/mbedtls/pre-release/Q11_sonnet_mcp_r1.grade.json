@@ -1,0 +1,227 @@
+{
+  "q": "Q11",
+  "arm": "mcp",
+  "model": "sonnet",
+  "run": 1,
+  "answer": "Q11_sonnet_mcp_r1.md",
+  "rubric": "acceptance/targets/mbedtls/questions.yaml",
+  "declared_mark_count": 8,
+  "summary": {
+    "marks_hit": 8,
+    "marks_miss": 0,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 8,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": true,
+    "falsity_verdict": "CONSISTENT",
+    "marks_total": 8,
+    "score": 8.0,
+    "score_strict": 8.0
+  },
+  "falsity": {
+    "checked": true,
+    "verdict": "CONSISTENT",
+    "agreement": 1.0,
+    "tally": [
+      [
+        "CONSISTENT",
+        3
+      ]
+    ],
+    "samples": 3,
+    "errors": 0,
+    "vetoed": false
+  },
+  "marks": [
+    {
+      "index": 1,
+      "text": "names `include/mbedtls/mbedtls_config.h` as where the decision is recorded",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [
+          "mbedtls_config.h"
+        ],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "cite mbedtls_config.h: file named (whole-file citation)"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "**states that an option is turned on by UNCOMMENTING a line the file already carries**, rather than by adding a new define \u2014 the off state is written down, not absent",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Every option lives in `include/mbedtls/mbedtls_config.h` as a `#define NAME` (enabled) or `//#define NAME` (disabled, \"comment/uncomment this to enable/disable\")\"",
+        "why": "States the off state is a commented-out `#define` in the file, turned on by uncommenting it rather than adding a new define.",
+        "raw": "QUOTE: \"Every option lives in `include/mbedtls/mbedtls_config.h` as a `#define NAME` (enabled) or `//#define NAME` (disabled, \"comment/uncomment this to enable/disable\")\"\nVERDICT: HIT\nWHY: States the off state is a commented-out `#define` in the file, turned on by uncommenting it rather than adding a new define."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "names the supported programmatic route as well as editing by hand \u2014 `scripts/config.py` (`set` / `unset` / `full`), or the legacy `scripts/config.pl` that ships beside it. Naming some other tool does not earn the mark",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [
+          "config.py:0",
+          "config.pl:0"
+        ],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Use `scripts/config.py`, the maintained CLI for reading/writing `mbedtls_config.h` boolean defines and applying bulk presets (`full`, `baremetal`, `crypto`, `crypto_baremetal`, etc. \u2014 `scripts/config.py:357-409`) rather than hand-editing.\"",
+        "why": "Answer explicitly names scripts/config.py as a programmatic alternative to hand-editing, citing its set/preset functionality.",
+        "raw": "QUOTE: \"Use `scripts/config.py`, the maintained CLI for reading/writing `mbedtls_config.h` boolean defines and applying bulk presets (`full`, `baremetal`, `crypto`, `crypto_baremetal`, etc. \u2014 `scripts/config.py:357-409`) rather than hand-editing.\"\nVERDICT: HIT\nWHY: Answer explicitly names scripts/config.py as a programmatic alternative to hand-editing, citing its set/preset functionality."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "**distinguishes the macro that REPLACES the whole configuration file from the one that OVERLAYS it.** They are different mechanisms applied at different points and conflating them is a MISS",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Set `MBEDTLS_CONFIG_FILE` to point at a full replacement config ... Set `MBEDTLS_USER_CONFIG_FILE` / `MBEDTLS_PSA_CRYPTO_USER_CONFIG_FILE` to a small overlay file that overrides individual options on top of the base config\"",
+        "why": "The answer explicitly distinguishes the full-replacement config file macro from the overlay macro that overrides individual options on top of the base.",
+        "raw": "QUOTE: \"Set `MBEDTLS_CONFIG_FILE` to point at a full replacement config ... Set `MBEDTLS_USER_CONFIG_FILE` / `MBEDTLS_PSA_CRYPTO_USER_CONFIG_FILE` to a small overlay file that overrides individual options on top of the base config\"\nVERDICT: HIT\nWHY: The answer explicitly distinguishes the full-replacement config file macro from the overlay macro that overrides individual options on top of the base."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "**names what catches a contradictory configuration, and says it fails the COMPILE** rather than being detected at run time \u2014 `include/mbedtls/check_config.h` (202 `#error` directives) or `library/check_crypto_config.h` (17), which raise a PREPROCESSOR error so the translation unit does not compile. Both halves are required: naming the header without the compile-time consequence, or asserting a compile failure without naming what raises it, does not earn the mark",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`include/mbedtls/check_config.h` is included last, after finalization, and is nothing but a long chain of `#if defined(...) && !(...)` / `#error \\\"...\\\"` blocks \u2014 a compile-time assertion pass with no runtime cost\" ... \"fails the build with a named `#error` the moment two options conflict\"",
+        "why": "Names check_config.h and explicitly states it fails the build/compile via #error rather than at runtime.",
+        "raw": "QUOTE: \"`include/mbedtls/check_config.h` is included last, after finalization, and is nothing but a long chain of `#if defined(...) && !(...)` / `#error \\\"...\\\"` blocks \u2014 a compile-time assertion pass with no runtime cost\" ... \"fails the build with a named `#error` the moment two options conflict\"\nVERDICT: HIT\nWHY: Names check_config.h and explicitly states it fails the build/compile via #error rather than at runtime."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "reports that a second, separate configuration namespace exists for the PSA cryptography layer, gated by its own option",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"If `MBEDTLS_PSA_CRYPTO_CONFIG` is set, read the PSA config \u2014 `psa/crypto_config.h` by default or `MBEDTLS_PSA_CRYPTO_CONFIG_FILE`, then an optional `MBEDTLS_PSA_CRYPTO_USER_CONFIG_FILE` overlay\"",
+        "why": "Answer explicitly identifies a separate PSA config namespace (psa/crypto_config.h) gated by the MBEDTLS_PSA_CRYPTO_CONFIG option.",
+        "raw": "QUOTE: \"If `MBEDTLS_PSA_CRYPTO_CONFIG` is set, read the PSA config \u2014 `psa/crypto_config.h` by default or `MBEDTLS_PSA_CRYPTO_CONFIG_FILE`, then an optional `MBEDTLS_PSA_CRYPTO_USER_CONFIG_FILE` overlay\"\nVERDICT: HIT\nWHY: Answer explicitly identifies a separate PSA config namespace (psa/crypto_config.h) gated by the MBEDTLS_PSA_CRYPTO_CONFIG option."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 7,
+      "text": "mentions the shipped alternative configurations, or the adjustment headers that follow dependencies through before the consistency check runs",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Set MBEDTLS_CONFIG_FILE to point at a full replacement config \u2014 Mbed TLS ships several presets in configs/ (e.g. configs/config-suite-b.h, configs/config-thread.h)\"; also \"run the adjustment headers that derive dependent settings and reconcile legacy vs. PSA crypto config: config_psa.h, config_adjust_legacy_crypto.h, config_adjust_x509.h, config_adjust_ssl.h ... then include mbedtls/check_config.h \u2014 the consistency-check pass \u2014 as the very last step\"",
+        "why": "The answer names both the shipped alternative config presets in configs/ and the adjustment headers that run before check_config.h, satisfying the item either way.",
+        "raw": "QUOTE: \"Set MBEDTLS_CONFIG_FILE to point at a full replacement config \u2014 Mbed TLS ships several presets in configs/ (e.g. configs/config-suite-b.h, configs/config-thread.h)\"; also \"run the adjustment headers that derive dependent settings and reconcile legacy vs. PSA crypto config: config_psa.h, config_adjust_legacy_crypto.h, config_adjust_x509.h, config_adjust_ssl.h ... then include mbedtls/check_config.h \u2014 the consistency-check pass \u2014 as the very last step\"\nVERDICT: HIT\nWHY: The answer names both the shipped alternative config presets in configs/ and the adjustment headers that run before check_config.h, satisfying the item either way."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 8,
+      "text": "**gives the colleague a concrete recipe** \u2014 which file, which line, and how they would confirm it took effect",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Set MBEDTLS_USER_CONFIG_FILE / MBEDTLS_PSA_CRYPTO_USER_CONFIG_FILE to a small overlay file that overrides individual options on top of the base config (`include/mbedtls/build_info.h:124-142`), settable via compiler `-D` flags\" combined with \"Concrete example: MBEDTLS_SSL_EARLY_DATA ... off by default \u2014 `//#define MBEDTLS_SSL_EARLY_DATA` at `include/mbedtls/mbedtls_config.h:1969`\"",
+        "why": "The answer names specific files and line numbers (e.g. mbedtls_config.h:1969, build_info.h:104-192, check_config.h:860-865) and gives concrete recipes (edit config file, set MBEDTLS_CONFIG_FILE/USER_CONFIG_FILE, use scripts/config.py) plus how to confirm it took effect via check_config.h's compile-time #error assertions.",
+        "raw": "QUOTE: \"Set MBEDTLS_USER_CONFIG_FILE / MBEDTLS_PSA_CRYPTO_USER_CONFIG_FILE to a small overlay file that overrides individual options on top of the base config (`include/mbedtls/build_info.h:124-142`), settable via compiler `-D` flags\" combined with \"Concrete example: MBEDTLS_SSL_EARLY_DATA ... off by default \u2014 `//#define MBEDTLS_SSL_EARLY_DATA` at `include/mbedtls/mbedtls_config.h:1969`\"\nVERDICT: HIT\nWHY: The answer names specific files and line numbers (e.g. mbedtls_config.h:1969, build_info.h:104-192, check_config.h:860-865) and gives concrete recipes (edit config file, set MBEDTLS_CONFIG_FILE/USER_CONFIG_FILE, use scripts/config.py) plus how to confirm it took effect via check_config.h's compile-time #error assertions."
+      },
+      "verdict": "HIT"
+    }
+  ]
+}

@@ -1,0 +1,188 @@
+{
+  "q": "Q8",
+  "arm": "src",
+  "model": "sonnet",
+  "run": 1,
+  "answer": "Q8_sonnet_src_r1.md",
+  "rubric": "acceptance/targets/mbedtls/questions.yaml",
+  "declared_mark_count": 7,
+  "summary": {
+    "marks_hit": 5,
+    "marks_miss": 2,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 7,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": null,
+    "falsity_verdict": null,
+    "marks_total": 7,
+    "score": 5.0,
+    "score_strict": 5.0
+  },
+  "falsity": null,
+  "marks": [
+    {
+      "index": 1,
+      "text": "**identifies `framework/` as a git submodule that is not populated in this checkout**, rather than as an empty directory that happens to be there",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"The `framework` git submodule is not checked out.\" ... \"`git submodule status` reports it with a leading `-` and the directory is empty\" ... \"(confirmed empty via `ls framework`)\"",
+        "why": "Answer explicitly identifies framework as a git submodule not populated in this checkout, citing submodule status and mechanism, not just an empty directory.",
+        "raw": "QUOTE: \"The `framework` git submodule is not checked out.\" ... \"`git submodule status` reports it with a leading `-` and the directory is empty\" ... \"(confirmed empty via `ls framework`)\"\nVERDICT: HIT\nWHY: Answer explicitly identifies framework as a git submodule not populated in this checkout, citing submodule status and mechanism, not just an empty directory."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "names what refuses to proceed without it \u2014 the CMake configure step, the makefile, or both \u2014 rather than only asserting that something is missing",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"This repo is on the `development` branch ... they need to run `git submodule update --init` before anything else \u2014 `tests/scripts/check-generated-files.sh` directly invokes scripts under `framework/scripts/...` ... and building the test suite will fail without it.\"",
+        "why": "Names a specific script (check-generated-files.sh) that will fail/refuse without the submodule, not just a generic \"something is missing\" assertion.",
+        "raw": "QUOTE: \"This repo is on the `development` branch ... they need to run `git submodule update --init` before anything else \u2014 `tests/scripts/check-generated-files.sh` directly invokes scripts under `framework/scripts/...` ... and building the test suite will fail without it.\"\nVERDICT: HIT\nWHY: Names a specific script (check-generated-files.sh) that will fail/refuse without the submodule, not just a generic \"something is missing\" assertion."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "**tells the colleague what to actually do about it** (initialise the submodule), which is what the build's own error message says",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Since this is a dev-branch clone, they need to run `git submodule update --init` before anything else\"",
+        "why": "The answer explicitly tells the colleague to run `git submodule update --init`, matching the checklist item's required action.",
+        "raw": "QUOTE: \"Since this is a dev-branch clone, they need to run `git submodule update --init` before anything else\"\nVERDICT: HIT\nWHY: The answer explicitly tells the colleague to run `git submodule update --init`, matching the checklist item's required action."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "**reports that the test C sources are not in the tree** \u2014 `tests/suites/` holds inputs and data and no `.c` at all, so the suites are produced at build time",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "Answer discusses generated .c files, submodule requirements, and toolchain, but never states that tests/suites/ contains no .c files at all and holds only inputs/data produced into suites at build time.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: Answer discusses generated .c files, submodule requirements, and toolchain, but never states that tests/suites/ contains no .c files at all and holds only inputs/data produced into suites at build time."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 5,
+      "text": "names at least one tracked C or header file that is machine-generated, and its generator. Verified pairs at this commit: `library/ssl_debug_helpers_generated.c` \u2190 `generate_ssl_debug_helpers.py`, `programs/psa/psa_constant_names_generated.c` \u2190 `generate_psa_constant.py` (the banner's spelling; the tracked script is `scripts/generate_psa_constants.py`, PLURAL), `tests/src/psa_test_wrappers.c` \u2190 `generate_psa_wrappers.py`, `library/psa_crypto_driver_wrappers_no_static.h` \u2190 `scripts/generate_driver_wrappers.py`, and `library/error.c` / `library/version_features.c` \u2190 `scripts/generate_errors.pl` / `scripts/generate_features.pl`. THE GENERATOR NEED NOT BE IN THE CHECKOUT: the first and third live in the unpopulated `framework/` submodule, so quoting the file's own banner is a correct answer and citing an untracked script path is not an error. A pair outside this set does not earn the mark",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`library/ssl_debug_helpers_generated.c:1` \u2014 `/* Automatically generated by generate_ssl_debug_helpers.py. DO NOT EDIT. */`\"",
+        "why": "Names a tracked generated C file and its generator, matching one of the verified pairs (quoting the banner, which is explicitly allowed).",
+        "raw": "QUOTE: \"`library/ssl_debug_helpers_generated.c:1` \u2014 `/* Automatically generated by generate_ssl_debug_helpers.py. DO NOT EDIT. */`\"\nVERDICT: HIT\nWHY: Names a tracked generated C file and its generator, matching one of the verified pairs (quoting the banner, which is explicitly allowed)."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "**says HOW a reader can tell** \u2014 a banner in the file, a `_generated` name, or a build rule naming it as an output \u2014 rather than asserting it from prior knowledge of the project",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "_generated"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `_generated` \u2014 - `library/ssl_debug_helpers_generated.c:1` \u2014 `/* Automatically generated by generate_ssl_debug_helpers.py. DO NOT EDIT. */`"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 7,
+      "text": "distinguishes generated-and-committed from generated-at-build-time; both are present here and they have different consequences for someone editing",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"Two different signal types exist... Files that self-identify as generated... Files that are generated but carry NO marker comment at all \u2014 the only way to know is to consult the build scripts... library/error.c (no header comment identifying it as generated \u2014 checked directly)\"",
+        "why": "The answer distinguishes marker-vs-no-marker generated files (all runtime/build-time generated), but doesn't distinguish generated-and-committed-to-git from generated-at-build-time (regenerated during the build) as two categories with different edit consequences.",
+        "raw": "QUOTE: \"Two different signal types exist... Files that self-identify as generated... Files that are generated but carry NO marker comment at all \u2014 the only way to know is to consult the build scripts... library/error.c (no header comment identifying it as generated \u2014 checked directly)\"\nVERDICT: MISS\nWHY: The answer distinguishes marker-vs-no-marker generated files (all runtime/build-time generated), but doesn't distinguish generated-and-committed-to-git from generated-at-build-time (regenerated during the build) as two categories with different edit consequences."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+choice
+	prompt "Motor variant"
+	default WIDGET_MOTOR_ALPHA
+
+config WIDGET_MOTOR_ALPHA
+	bool "Alpha motor"
+	help
+	  Alpha motor. Valid supply range 18.0V-30.0V.
+
+config WIDGET_MOTOR_BETA
+	bool "Beta motor"
+	help
+	  Beta motor. Valid supply range 13.0V-21.0V.
+	  Overcurrent thresholds are currently reused from the alpha motor as a
+	  placeholder pending real measurements for this motor.
+
+endchoice
+
+config WIDGET_MOTOR_NAME
+	string
+	default "alpha" if WIDGET_MOTOR_ALPHA
+	default "beta"

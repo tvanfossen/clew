@@ -1,0 +1,227 @@
+{
+  "q": "Q11",
+  "arm": "mcp",
+  "model": "haiku",
+  "run": 1,
+  "answer": "Q11_haiku_mcp_r1.md",
+  "rubric": "acceptance/targets/mbedtls/questions.yaml",
+  "declared_mark_count": 8,
+  "summary": {
+    "marks_hit": 5,
+    "marks_miss": 3,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 8,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": true,
+    "falsity_verdict": "CONSISTENT",
+    "marks_total": 8,
+    "score": 5.0,
+    "score_strict": 5.0
+  },
+  "falsity": {
+    "checked": true,
+    "verdict": "CONSISTENT",
+    "agreement": 1.0,
+    "tally": [
+      [
+        "CONSISTENT",
+        3
+      ]
+    ],
+    "samples": 3,
+    "errors": 0,
+    "vetoed": false
+  },
+  "marks": [
+    {
+      "index": 1,
+      "text": "names `include/mbedtls/mbedtls_config.h` as where the decision is recorded",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [
+          "mbedtls_config.h"
+        ],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "cite mbedtls_config.h: file named (whole-file citation)"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "**states that an option is turned on by UNCOMMENTING a line the file already carries**, rather than by adding a new define \u2014 the off state is written down, not absent",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Direct file editing: Edit `include/mbedtls/mbedtls_config.h` by uncommenting/commenting feature lines.\"",
+        "why": "States enabling a feature via uncommenting an existing line in the config file, not adding a new define.",
+        "raw": "QUOTE: \"Direct file editing: Edit `include/mbedtls/mbedtls_config.h` by uncommenting/commenting feature lines.\"\nVERDICT: HIT\nWHY: States enabling a feature via uncommenting an existing line in the config file, not adding a new define."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "names the supported programmatic route as well as editing by hand \u2014 `scripts/config.py` (`set` / `unset` / `full`), or the legacy `scripts/config.pl` that ships beside it. Naming some other tool does not earn the mark",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [
+          "config.py:0",
+          "config.pl:0"
+        ],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Python configuration tool: `scripts/config.py` provides programmatic access to manipulate configuration files. It can read, enable, disable, and generate configurations\"",
+        "why": "Names scripts/config.py as the programmatic route alongside hand-editing, satisfying the item's substance.",
+        "raw": "QUOTE: \"Python configuration tool: `scripts/config.py` provides programmatic access to manipulate configuration files. It can read, enable, disable, and generate configurations\"\nVERDICT: HIT\nWHY: Names scripts/config.py as the programmatic route alongside hand-editing, satisfying the item's substance."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "**distinguishes the macro that REPLACES the whole configuration file from the one that OVERLAYS it.** They are different mechanisms applied at different points and conflating them is a MISS",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer discusses MBEDTLS_CONFIG_FILE and MBEDTLS_USER_CONFIG_FILE as both being config-file mechanisms (one \"override the entire config file,\" the other described as \"append/override specific settings on top\"), but never explicitly names or contrasts a REPLACE mechanism vs. an OVERLAY mechanism as distinct semantics \u2014 it never states that USER_CONFIG_FILE is included in addition to (overlaying) the base/replacement file rather than being an alternative full replacement itself; the distinction is gestured at but not clearly drawn.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses MBEDTLS_CONFIG_FILE and MBEDTLS_USER_CONFIG_FILE as both being config-file mechanisms (one \"override the entire config file,\" the other described as \"append/override specific settings on top\"), but never explicitly names or contrasts a REPLACE mechanism vs. an OVERLAY mechanism as distinct semantics \u2014 it never states that USER_CONFIG_FILE is included in addition to (overlaying) the base/replacement file rather than being an alternative full replacement itself; the distinction is gestured at but not clearly drawn."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 5,
+      "text": "**names what catches a contradictory configuration, and says it fails the COMPILE** rather than being detected at run time \u2014 `include/mbedtls/check_config.h` (202 `#error` directives) or `library/check_crypto_config.h` (17), which raise a PREPROCESSOR error so the translation unit does not compile. Both halves are required: naming the header without the compile-time consequence, or asserting a compile failure without naming what raises it, does not earn the mark",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Compile-time error checks in `include/mbedtls/check_config.h`. This file contains `#error` preprocessor directives that fire at compilation time if incompatible options are set.\"",
+        "why": "Names check_config.h and explicitly ties its #error directives to a compile-time failure.",
+        "raw": "QUOTE: \"Compile-time error checks in `include/mbedtls/check_config.h`. This file contains `#error` preprocessor directives that fire at compilation time if incompatible options are set.\"\nVERDICT: HIT\nWHY: Names check_config.h and explicitly ties its #error directives to a compile-time failure."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "reports that a second, separate configuration namespace exists for the PSA cryptography layer, gated by its own option",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer describes `include/psa/crypto_config.h` as configured via `PSA_WANT_*` symbols but only when `MBEDTLS_PSA_CRYPTO_CONFIG` is enabled \u2014 it never names a second, separately-gated namespace (i.e., that PSA config is itself gated by its own distinct option separate from the main config namespace).",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes `include/psa/crypto_config.h` as configured via `PSA_WANT_*` symbols but only when `MBEDTLS_PSA_CRYPTO_CONFIG` is enabled \u2014 it never names a second, separately-gated namespace (i.e., that PSA config is itself gated by its own distinct option separate from the main config namespace)."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 7,
+      "text": "mentions the shipped alternative configurations, or the adjustment headers that follow dependencies through before the consistency check runs",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "Answer covers config.py, CMake overrides, mbedtls_config.h, check_config.h, and auto-adjustment files, and mentions the `configs/` profile directory in passing, but never mentions those pre-built alternative profiles again as part of the dependency/consistency-check discussion, and does not describe adjustment headers as ones that specifically follow dependencies \"through\" before the consistency check \u2014 it only describes one example (PSA_CRYPTO_CLIENT) without naming this as the shipped-alternative-configs mechanism the item requires.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: Answer covers config.py, CMake overrides, mbedtls_config.h, check_config.h, and auto-adjustment files, and mentions the `configs/` profile directory in passing, but never mentions those pre-built alternative profiles again as part of the dependency/consistency-check discussion, and does not describe adjustment headers as ones that specifically follow dependencies \"through\" before the consistency check \u2014 it only describes one example (PSA_CRYPTO_CLIENT) without naming this as the shipped-alternative-configs mechanism the item requires."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 8,
+      "text": "**gives the colleague a concrete recipe** \u2014 which file, which line, and how they would confirm it took effect",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Direct file editing: Edit `include/mbedtls/mbedtls_config.h` by uncommenting/commenting feature lines\" ... \"check_config.h` (`check_config.h:57-59`, `121-149`)... These checks are enforced... once `MBEDTLS_CONFIG_IS_FINALIZED` is defined (`build_info.h:190`)\"",
+        "why": "Names the specific file/lines to edit and cites check_config.h's compile-time errors (with line refs) as the concrete way to confirm the change took effect.",
+        "raw": "QUOTE: \"Direct file editing: Edit `include/mbedtls/mbedtls_config.h` by uncommenting/commenting feature lines\" ... \"check_config.h` (`check_config.h:57-59`, `121-149`)... These checks are enforced... once `MBEDTLS_CONFIG_IS_FINALIZED` is defined (`build_info.h:190`)\"\nVERDICT: HIT\nWHY: Names the specific file/lines to edit and cites check_config.h's compile-time errors (with line refs) as the concrete way to confirm the change took effect."
+      },
+      "verdict": "HIT"
+    }
+  ]
+}

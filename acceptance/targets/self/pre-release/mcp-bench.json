@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "doxyguard-db": {
+      "type": "stdio",
+      "command": "~/Projects/docs-db/.venv/bin/doxyguard-db-mcp",
+      "args": [
+        "--repo",
+        "~/ddb-targets/self"
+      ]
+    }
+  }
+}

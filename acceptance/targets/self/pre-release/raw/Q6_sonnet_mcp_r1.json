@@ -1,0 +1,80 @@
+{
+  "is_error": false,
+  "duration_api_ms": 58495,
+  "num_turns": 13,
+  "stop_reason": "end_turn",
+  "session_id": "63ef52fa-9630-45e0-8f8f-261434a03068",
+  "total_cost_usd": 0.6424409,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 53212,
+    "cache_read_input_tokens": 843043,
+    "output_tokens": 4580,
+    "output_tokens_details": {
+      "thinking_tokens": 1260
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 53212,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1842,
+        "cache_read_input_tokens": 95939,
+        "cache_creation_input_tokens": 584,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 584
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1406,
+      "outputTokens": 18,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001496,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 20,
+      "outputTokens": 4580,
+      "cacheReadInputTokens": 843043,
+      "cacheCreationInputTokens": 53212,
+      "webSearchRequests": 0,
+      "costUSD": 0.6409449,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Enough evidence. Composing the final answer.\n\n## Answer\n\nThe program's YAML manifests are read through a small number of distinct schema layers, and each layer independently decides what happens to a mistyped key. There is no single validator for the whole file \u2014 a typo's fate depends on *which* level it's in.\n\n### Level 1 \u2014 the document's top-level section names\n\n`load_declaration_located()` reads `.doxyguard-db.yaml` (or the `x-` passthrough in `.doxygen-guard.yaml`) and checks every top-level key against `KNOWN_SECTIONS` \u2014 a frozenset of the exact accepted spellings, e.g. `shared_key_patterns` (plural), `thread_patterns`, `dispatch`, `locks`, `requirements`, etc. (`doxyguard_db/declaration.py:234-251`, list assembled from `SECTION_*` constants at `doxyguard_db/declaration.py:85-214`).\n\nIf your colleague writes `shared_key_pattern` (singular) instead of `shared_key_patterns`, `load_declaration_located` raises `DeclarationError`, naming the bad key and the full allowed set (`doxyguard_db/declaration.py:327-335`):\n```\nraise DeclarationError(\n    f\"{path}: unknown section(s) {...} \u2014 allowed: {...}. Nothing reads an \"\n    f\"unknown section, so the build would have used built-in defaults \"\n    f\"while reporting that your declaration was honoured.\"\n)\n```\nThis is a deliberate, documented choice (`doxyguard_db/declaration.py:281-300`): unlike a broken file, a misspelled section still parses as valid YAML, and the author clearly intended something \u2014 silently falling back to defaults there would look like success. **The build refuses outright.**\n\n### Level 2 \u2014 entries inside a section, and here it forks in two directions\n\n**a) `dispatch:` section entries \u2014 same fail-closed treatment, one level down.**\n`_interface_entry`, `_table_entry`, and `_wrapper_entry` each call `_reject_unknown(entry, <ALLOWED_KEYS>, owner)` (`doxyguard_db/dispatch.py:327,354,375`), and the top-level document keys of the `dispatch:` block itself are checked the same way at `doxyguard_db/dispatch.py:429`. `_reject_unknown` (`doxyguard_db/dispatch.py:109-123`) raises `DeclarationError` naming the bad key(s) and the allowed set, exactly mirroring the section-level check. A typo'd key inside a `dispatch:` interface/table/wrapper entry is refused.\n\n**b) `shared_key_patterns:` entries \u2014 no rejection at all; the typo is silently absorbed.**\n`_parse_pattern_entry` (`doxyguard_db/shared_key_edges.py:533-556`) validates only `dispatch_mode` against a vocabulary (raising if that specific field is wrong). But the key fields themselves are read with `.get(..., default)`:\n```python\nreturn AccessorPattern(entry[\"pattern\"], int(entry.get(\"key_arg_index\", 0)), dispatch_mode)\n```\nThere is no `_reject_unknown` here. So if your colleague mistypes `key_arg_index` as `key_arg_idx`, `entry.get(\"key_arg_index\", 0)` finds nothing, silently defaults to `0`, and the manifest is accepted \u2014 but every accessor gets keyed off argument 0 regardless of what was actually intended. **No error, no warning \u2014 a quietly wrong dataflow graph.** This exact trap is called out in the repo's own CLAUDE.md as a known danger.\n\n### A correctly written manifest\n\nPasses through both checks with nothing raised: `load_declaration_located` logs `declaration: <path> declares <section names>` at INFO (`doxyguard_db/declaration.py:336`) and the parsed mapping is used to override built-in defaults.\n\n### A file that isn't valid YAML at all\n\nThis is handled by an *earlier*, separate layer: `_read_mapping` (`doxyguard_db/declaration.py:345-357`). A `yaml.YAMLError` (bad syntax) or an `OSError` (unreadable file), or a file that parses but isn't a mapping (e.g. a bare list), is caught, logged at **WARNING**, and treated as `{}` \u2014 i.e., the declaration is silently ignored and the build proceeds entirely on built-in defaults. This is the opposite of the section/key-typo case: unparseable YAML is \"an accident with nothing recoverable in it,\" so it degrades gracefully rather than failing the build; a misspelled-but-parseable key is \"a document that parses, where the author plainly intended something,\" so \u2014 at the section level and in `dispatch:` entries \u2014 it refuses instead.\n\n## Gaps\n\n- I did not exhaustively check every other section's entry-level parser (`entry_patterns`, `thread_patterns`, `locks`, `event_tags`, etc.) for whether they follow the `_reject_unknown` pattern or the silent-default pattern like `shared_key_patterns` \u2014 I verified the two contrasting cases (`dispatch` vs `shared_key_patterns`) via the index and a direct read of `shared_key_edges.py`, but did not check the remaining ~8 sections' entry parsers individually.\n- The `mcp_server` and `buildoptions.py` \"Tier 1\" structured-options path (mentioned in search results) is a separate, non-YAML input tier I did not trace further since the question is specifically about YAML manifests.",
+  "ttft_ms": 3096,
+  "ttft_stream_ms": 1921,
+  "time_to_request_ms": 83,
+  "type": "result",
+  "duration_ms": 57905,
+  "uuid": "973a53f0-bbf9-4465-979a-60e60dfd0c6b"
+}

@@ -1,0 +1,68 @@
+{
+  "is_error": false,
+  "duration_api_ms": 67221,
+  "num_turns": 23,
+  "stop_reason": "end_turn",
+  "session_id": "4740c98e-d5e4-441e-a6cf-d7d9a154b8f3",
+  "total_cost_usd": 0.3928685,
+  "usage": {
+    "input_tokens": 185,
+    "cache_creation_input_tokens": 95362,
+    "cache_read_input_tokens": 1765625,
+    "output_tokens": 4790,
+    "output_tokens_details": {
+      "thinking_tokens": 1649
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 95362,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 8,
+        "output_tokens": 1234,
+        "cache_read_input_tokens": 98204,
+        "cache_creation_input_tokens": 567,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 567
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1522,
+      "outputTokens": 4812,
+      "cacheReadInputTokens": 1765625,
+      "cacheCreationInputTokens": 95362,
+      "webSearchRequests": 0,
+      "costUSD": 0.3928685,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Now I have the complete picture. Let me provide the answer.\n\n## ANSWER\n\n**The Rule: Five-Tier Precedence for Layered Settings**\n\nThe program combines settings from multiple sources using a single rule stated in `tiers.py:4`:\n\n```\nresolved = (tier1 or tier2 or tier5) union tier3 union tier4\n```\n\nThis breaks down as:\n\n| Tier | Source | Behavior | Priority |\n|------|--------|----------|----------|\n| 1 | Explicit (CLI flag) | REPLACES the stated layer | Highest |\n| 2 | Declared (`.doxyguard-db.yaml`) | REPLACES the stated layer | Second |\n| 3 | Target-fact (discovered facts) | ACCUMULATES | Always present |\n| 4 | Ecosystem (known signatures) | ACCUMULATES | Always present |\n| 5 | Heuristic (name-pattern guesses) | REPLACES the stated layer | Floor (default) |\n\n**The Precise Rule:** Pick the highest-priority non-empty tier from (1, 2, 5), then union it with tiers 3 and 4, then de-duplicate while preserving first-seen order.\n\n**In Code Form** (`tiers.py:330-335`):\n```python\ntier, stated = _stated_layer(explicit, declared, heuristics)\nreturn LayeredResolution(\n    values=_ordered_unique((*facts, *ecosystem, *stated)),\n    tier=tier,\n    stated=stated,\n)\n```\n\nWhere `_stated_layer` (lines 345-358) checks:\n```python\nif explicit:\n    return TIER_EXPLICIT, tuple(str(v) for v in explicit)\nif declared:\n    return TIER_DECLARED, tuple(str(v) for v in declared)\nreturn TIER_HEURISTIC, tuple(heuristics)\n```\n\n**The Motto** (`tiers.py:6`): \"You can correct our guesses; you cannot un-discover a fact.\"\n\n---\n\n## **Empty Value on the Command Line**\n\nAn empty value means **withdrawal**, not absence. The program maintains **three states**:\n\n1. **Absent** (`None`): The flag is not passed \u2192 **inherits** whatever was previously recorded\n2. **Empty** (`[]`): The flag is passed with no values (e.g., `--exclude` with nothing after) \u2192 **withdraws** any tier-1 statement, falling back to tier 2 or tier 5\n3. **Non-empty**: The flag is passed with values \u2192 **replaces** the previous tier-1 statement\n\n**Example from cli.py:414-419** (the `--exclude` help text):\n> \"Pass --exclude with no values to withdraw a recorded one; omit the flag entirely to inherit it.\"\n\nThis three-state distinction is critical (`cli.py:764-767`):\n> \"THREE STATES, kept distinct: the flag ABSENT (`None`) inherits, the flag EMPTY (`[]`) withdraws, and a non-empty list replaces. Collapsing absent into empty would make the record unreadable-back; collapsing empty into absent would make it unwithdrawable except by deleting the database.\"\n\nThe empty list is **recorded** as a tier-1 statement (marking that the operator made a decision) but is **falsy**, so it doesn't win the comparison \u2014 it falls through to declared or heuristic, allowing withdrawal without database deletion.\n\n---\n\n## Gaps\n\nNone. The rule is explicit and uniformly documented. Every path through which a setting can arrive (`cli.py`, `tiers.py`, `buildoptions.py`) references the same five-tier rule and the three-state handling.",
+  "ttft_ms": 3859,
+  "ttft_stream_ms": 3361,
+  "time_to_request_ms": 666,
+  "type": "result",
+  "duration_ms": 67315,
+  "uuid": "94c5613e-eda0-47af-bcbc-ef979f1a8dde"
+}

@@ -1,0 +1,28 @@
+# Declares the @req id shape. The pipeline reads the pattern from here rather
+# than hardcoding `REQ-\d+` — that is the no-hardcoding mandate, and this file is
+# what makes the req_edges layer of the fixture a DECLARED behaviour rather than
+# a built-in assumption.
+output_dir: docs/generated/
+
+# The INDEX scope, declared through doxygen-guard's `x-` consumer passthrough. It is
+# separate from the gate's `files:` regex in `.pre-commit-config.yaml` on purpose:
+# the gate says what must be DOCUMENTED, this says what should be REASONABLE-ABOUT,
+# and this fixture exists to pin the reading of both.
+x-clew:
+  index_scope:
+    roots:
+      - src
+      - gen
+      - test
+
+validate:
+  exclude:
+    - "^gen/"
+  tags:
+    req:
+      pattern: "^REQ-[0-9]{4}$"
+
+impact:
+  requirements:
+    id_column: "id"
+    name_column: "title"

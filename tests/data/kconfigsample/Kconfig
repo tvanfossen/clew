@@ -1,0 +1,20 @@
+mainmenu "Widget firmware"
+
+source "Kconfig.motor"
+
+config WIDGET_LOG_LEVEL
+	int "Log verbosity"
+	default 2
+	help
+	  How chatty the widget is. Level 3 enables the packet dump, which is
+	  far too slow for production and exists for bench debugging only.
+
+menu "Radio"
+
+config WIDGET_RADIO
+	bool "Enable the radio"
+	default y
+	help
+	  Bring the 2.4GHz radio up at boot.
+
+endmenu

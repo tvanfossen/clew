@@ -1,0 +1,68 @@
+{
+  "is_error": false,
+  "duration_api_ms": 151019,
+  "num_turns": 59,
+  "stop_reason": "end_turn",
+  "session_id": "5428420e-0d81-4cfe-9346-39a0116e9be5",
+  "total_cost_usd": 0.7190762000000002,
+  "usage": {
+    "input_tokens": 473,
+    "cache_creation_input_tokens": 76080,
+    "cache_read_input_tokens": 5030812,
+    "output_tokens": 12378,
+    "output_tokens_details": {
+      "thinking_tokens": 6345
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 76080,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 8,
+        "output_tokens": 1055,
+        "cache_read_input_tokens": 105901,
+        "cache_creation_input_tokens": 3153,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3153
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1850,
+      "outputTokens": 12397,
+      "cacheReadInputTokens": 5030812,
+      "cacheCreationInputTokens": 76080,
+      "webSearchRequests": 0,
+      "costUSD": 0.7190762000000002,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## QUESTION (Q2) ANSWER\n\nYes, entropic holds two mutexes at once in multiple places, and the acquisition order appears to be **consistent**.\n\n### Confirmed Cases\n\n**Case 1: SecondaryModelLoader \u2192 InferenceBackend**\n\n- **Where**: `src/inference/secondary_model_loader.cpp:36-57` in `ensure_loaded()`\n- **Locks**: `slots_mutex_` (SecondaryModelLoader) \u2192 `transition_mutex_` (InferenceBackend)\n- **Code path**: `ensure_loaded()` acquires `slots_mutex_` at line 36, then calls `load_and_activate()` at line 48, which calls `load()` (backend.cpp:55) and `activate()` (backend.cpp:89), both acquiring `transition_mutex_`\n- **Confidence**: **HIGH** \u2014 Clear nested lock acquisition in source code\n\n**Case 2: C API \u2192 AdapterManager**\n\n- **Where**: `src/facade/entropic.cpp:2993-3001` in `entropic_adapter_swap()`\n- **Locks**: `api_mutex` (EngineHandle) \u2192 `adapter_mutex_` (AdapterManager)\n- **Code path**: `entropic_adapter_swap()` creates `HandleApiLock lock(handle)` at line 2993 (which acquires `api_mutex` via src/facade/engine_handle.h:176), then calls `swap()` at line 3000 which acquires `adapter_mutex_` at src/inference/adapter_manager.cpp:242\n- **Confidence**: **HIGH** \u2014 Clear API entry-point pattern with nested internal lock\n\n**Case 3: ModelOrchestrator \u2192 AdapterManager**\n\n- **Where**: `src/inference/orchestrator.cpp:1020-1043` in `get_model()`\n- **Locks**: `swap_mutex_` (ModelOrchestrator) \u2192 `adapter_mutex_` (AdapterManager)\n- **Code path**: `get_model()` acquires `swap_mutex_` at line 1020, then calls `ensure_tier_lora()` at line 1043, which calls `ensure_adapter_for_tier()` (line 1280), which calls `swap()` that acquires `adapter_mutex_`\n- **Confidence**: **HIGH** \u2014 Dossier confirms lock ordering in call chain\n\n### Acquisition Order Consistency\n\nAll three cases follow a **consistent hierarchical pattern**:\n- **Case 1**: Secondary component \u2192 primary backend component\n- **Case 2**: API layer \u2192 orchestrator's adapter manager  \n- **Case 3**: Orchestrator \u2192 adapter manager\n\n**No reverse-order acquisitions found.** The architecture prevents circular lock dependencies through layering: higher-level components acquire locks before calling lower-level functions, never the reverse.\n\n## Gaps\n\n- I did not exhaustively verify every code path that touches these mutexes. A complete deadlock analysis would require checking all functions that acquire any of these 7 mutexes (slots_mutex_, transition_mutex_, adapter_mutex_, swap_mutex_, api_mutex, identities_mutex_, registry_mutex_, auth_mutex_, tasks_mutex_) to confirm no other ordering exists.\n- The dossier lock nesting information `locks_held` does not surface all transitive lock acquisitions, only direct critical sections; some nested acquisitions required following call chains manually.",
+  "ttft_ms": 3237,
+  "ttft_stream_ms": 1378,
+  "time_to_request_ms": 98,
+  "type": "result",
+  "duration_ms": 154603,
+  "uuid": "881961ba-5c24-4f29-ab2f-ed19568255ef"
+}

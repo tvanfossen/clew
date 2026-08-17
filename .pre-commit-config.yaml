@@ -1,0 +1,58 @@
+---
+exclude: |
+  (?x)^(
+    \.venv/.*|
+    \.claude/.*|
+    workspace/.*|
+    docs/generated/.*|
+    acceptance/targets/.*|
+    tests/data/.*|
+    .*\.egg-info/.*
+  )$
+
+repos:
+  - repo: https://github.com/brandon-arrendondo/knots
+    rev: v1.15.1
+    hooks:
+      - id: knots
+
+  - repo: https://github.com/tvanfossen/doxygen-guard
+    rev: 1.4.2
+    hooks:
+      - id: doxygen-guard
+        args: [validate]
+        files: ^(clew|acceptance|tests)/.*\.py$
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.1
+    hooks:
+      - id: ruff
+        args: ["--fix", "--select=E4,E7,E9,F", "--target-version=py310", "--cache-dir=.cache/ruff"]
+      - id: ruff-format
+        args: ["--line-length=100", "--target-version=py310", "--cache-dir=.cache/ruff"]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-added-large-files
+        args: ['--maxkb=512']
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: mixed-line-ending
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        ## `cache_dir` is set once, in pyproject's `[tool.pytest.ini_options]`. It used to be
+        ## overridden here as well, which is two places for one setting and therefore one place
+        ## to forget when it changes.
+        entry: .venv/bin/python -m pytest tests/ -q
+        language: system
+        pass_filenames: false
+        always_run: true

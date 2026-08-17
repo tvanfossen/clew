@@ -1,0 +1,69 @@
+.venv/
+# BOTH spellings, because `.venv/` with the trailing slash matches a DIRECTORY only and so
+# does not match a SYMLINK named `.venv`. `git add -A` would then stage a tracked symlink
+# pointing at an absolute machine path. Same hazard as the two `doxygen_out` spellings below:
+# one spelling of an ignore silently covers less than a reader assumes.
+.venv
+__pycache__/
+*.pyc
+*.egg-info/
+.ipynb_checkpoints/
+workspace/
+
+# Tool caches. `.ruff_cache/` is the one that matters: ruff writes its own
+# `.ruff_cache/.gitignore` containing `*`, so the directory self-hides and looks handled —
+# but that is ruff's file, not this repo's guarantee. Delete the cache and the protection
+# goes with it.
+.cache/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.tox/
+htmlcov/
+.coverage
+
+# Build outputs. `python -m build` runs in CI, so anyone reproducing it locally creates these.
+dist/
+build/
+
+# Working-instructions and scratch. `.claude/CLAUDE.md` lives here deliberately: how someone
+# instructs their own agent is theirs to maintain, not a shipped asset.
+.claude/
+
+# The doxygen-guard output directory the guard's own config declares
+# (`output_dir: docs/generated/`), so any guard run recreates it.
+docs/generated/
+
+# Built indexes and their caches. DEFENSE IN DEPTH, not convenience: clew is pointed at
+# third-party repos, so a stray database in the tree is that repo's source graph — symbol
+# names, file paths, call structure — in a single file. It is the highest-value thing here to
+# leak by accident, and a multi-megabyte binary is exactly what a hurried `git add -A`
+# swallows without anyone reading the diff. `--output` accepts any path, so these patterns
+# exist to keep that true when someone builds an index somewhere new.
+*.db
+*.db-journal
+*.db-wal
+*.idxcache
+
+# Doxygen scratch from a HAND-RUN doxygen. The pipeline forces OUTPUT_DIRECTORY away from the
+# target repo, so this only catches manual invocations.
+#
+# TWO SPELLINGS, not a glob. The dot-prefixed form is the one the pipeline produces and
+# `doxygen_out/` never matched it — a leading dot makes it a non-match, which once staged 47
+# files of doxygen XML. `*doxygen_out/` would also swallow a deliberately-named directory, and
+# an over-broad ignore that hides a real file is a worse hazard than the mess it prevents.
+#
+# Deliberately NOT ignoring bare `html/` or `xml/` for the same reason: those are ordinary
+# directory names.
+doxygen_out/
+.doxygen_out/
+
+# Private-target acceptance evidence. A cell transcript quotes the target's source verbatim,
+# so committing one publishes that source. THIS IS THE ONLY PROTECTION — there is no scrub
+# gate, so a `git add -f` here is unguarded. Both spellings, per the rule at the top.
+acceptance/targets/internal
+acceptance/targets/internal/
+
+# In-flux findings. A committed workbook becomes a citable claim before it has been measured;
+# measured results go in `acceptance/targets/*/` beside the transcripts that produced them.
+acceptance/docs/

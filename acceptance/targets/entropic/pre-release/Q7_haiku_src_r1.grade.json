@@ -1,0 +1,286 @@
+{
+  "q": "Q7",
+  "arm": "src",
+  "model": "haiku",
+  "run": 1,
+  "answer": "Q7_haiku_src_r1.md",
+  "rubric": "acceptance/targets/entropic/questions.yaml",
+  "declared_mark_count": 11,
+  "summary": {
+    "marks_hit": 4,
+    "marks_miss": 7,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 11,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": null,
+    "falsity_verdict": null,
+    "marks_total": 11,
+    "score": 4.0,
+    "score_strict": 4.0
+  },
+  "falsity": null,
+  "marks": [
+    {
+      "index": 1,
+      "text": "**the function is actually added** and is valid C++ \u2014 an answer describing an edit that was never made is the failure this question exists to catch",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer explicitly declines to add the function, only describing a hypothetical spec \u2014 the item requires the function actually be added.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explicitly declines to add the function, only describing a hypothetical spec \u2014 the item requires the function actually be added."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 2,
+      "text": "reports the signature as written, returning `int` and taking no arguments",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "`int entropic_acceptance_probe(void);`",
+        "why": "The answer explicitly reports the signature as returning `int` with no arguments (void).",
+        "raw": "QUOTE: `int entropic_acceptance_probe(void);`\nVERDICT: HIT\nWHY: The answer explicitly reports the signature as returning `int` with no arguments (void)."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "names the file `src/facade/entropic.cpp`",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "`src/facade/entropic.cpp:228-4124`",
+        "why": "The file `src/facade/entropic.cpp` is explicitly named multiple times in the answer.",
+        "raw": "QUOTE: `src/facade/entropic.cpp:228-4124`\nVERDICT: HIT\nWHY: The file `src/facade/entropic.cpp` is explicitly named multiple times in the answer."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "reports the doxygen brief it wrote, matching what is in the file",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The candidate refused to write the file and only speculated a doxygen comment based on an unrelated function's pattern, not reporting the actual brief it wrote for the new function matching a file.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The candidate refused to write the file and only speculated a doxygen comment based on an unrelated function's pattern, not reporting the actual brief it wrote for the new function matching a file."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 5,
+      "text": "**states that nothing calls it**, and does not invent a caller",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Does anything call it: No. It's a newly-added function with no existing call sites.\"",
+        "why": "The answer explicitly states nothing calls it and doesn't invent a caller.",
+        "raw": "QUOTE: \"Does anything call it: No. It's a newly-added function with no existing call sites.\"\nVERDICT: HIT\nWHY: The answer explicitly states nothing calls it and doesn't invent a caller."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "**the reported facts describe the post-edit tree**, not the pre-edit one \u2014 the function is reported as existing, with no hedging about whether it is there",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer explicitly declines to add the function and treats it as hypothetical/not-yet-existing, offering only a specification of what it \"would look like\" \u2014 the opposite of reporting it as existing without hedging.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explicitly declines to add the function and treats it as hypothetical/not-yet-existing, offering only a specification of what it \"would look like\" \u2014 the opposite of reporting it as existing without hedging."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 7,
+      "text": "**states what entropic's own guard configuration requires of the new function** \u2014 `.doxygen-guard.yaml` sets `presence.require_doxygen`, `presence.require_return` and `version.require_present`, so a bare `@brief` is not enough",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "require_doxygen",
+          "require_return",
+          "require_present"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never mentions `.doxygen-guard.yaml` or its require_doxygen/require_return/version.require_present settings; it only infers documentation conventions from an example function pattern.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions `.doxygen-guard.yaml` or its require_doxygen/require_return/version.require_present settings; it only infers documentation conventions from an example function pattern."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 8,
+      "text": "**answers the visibility question correctly**: a function added only to `src/facade/entropic.cpp` is NOT part of the shipped ABI, because the project compiles with hidden visibility and public entry points carry `ENTROPIC_EXPORT` and a declaration in `include/entropic/entropic.h`. An answer that says the new function is callable by a consumer is wrong",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "ENTROPIC_EXPORT"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `ENTROPIC_EXPORT` \u2014 2. All symbols are hidden unless marked with `ENTROPIC_EXPORT`"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "the answer is verifiable against the diff \u2014 what it says is in the file is in the file",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer describes what a hypothetical, unwritten function would look like rather than pointing to actual diff content, so there is nothing in it that is verifiable against a diff.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes what a hypothetical, unwritten function would look like rather than pointing to actual diff content, so there is nothing in it that is verifiable against a diff."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 10,
+      "text": "notes that `version.require_increment_on_change` is also set, so if the edit had touched an existing function's body that function's `@version` would have to be bumped, while a new function needs no bump",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "require_increment_on_change"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never mentions version.require_increment_on_change or that touching an existing function's body would require an @version bump versus a new function needing none.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions version.require_increment_on_change or that touching an existing function's body would require an @version bump versus a new function needing none."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 11,
+      "text": "notes that the existing entry points in this file are `extern \"C\"` and that a C++-mangled probe would not match the surrounding convention even if it were exported",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer discusses `extern \"C\"` placement and ENTROPIC_EXPORT visibility, but never mentions C++ symbol mangling or that a mangled probe would fail to match the surrounding extern \"C\" convention.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses `extern \"C\"` placement and ENTROPIC_EXPORT visibility, but never mentions C++ symbol mangling or that a mangled probe would fail to match the surrounding extern \"C\" convention."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

@@ -1,0 +1,289 @@
+{
+  "q": "Q1",
+  "arm": "src",
+  "model": "haiku",
+  "run": 1,
+  "answer": "Q1_haiku_src_r1.md",
+  "rubric": "acceptance/targets/entropic/questions.yaml",
+  "declared_mark_count": 11,
+  "summary": {
+    "marks_hit": 8,
+    "marks_miss": 3,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 11,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": null,
+    "falsity_verdict": null,
+    "marks_total": 11,
+    "score": 8.0,
+    "score_strict": 8.0
+  },
+  "falsity": null,
+  "marks": [
+    {
+      "index": 1,
+      "text": "enumerates the mutexes with their owning class, not as a flat list of bare names",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"**MCP/Transport Layer:**\\n- `io_mutex_` (transport_stdio.h:158) \u2014 Guards pipe I/O\" (and similarly grouped throughout, e.g. \"**Inference/Backend:**\\n- `transition_mutex_` (backend.h:756)\")",
+        "why": "Mutexes are grouped by subsystem/owning class with file:line context (e.g. transport_stdio.h, backend.h, engine.h), not presented as a flat bare-name list.",
+        "raw": "QUOTE: \"**MCP/Transport Layer:**\\n- `io_mutex_` (transport_stdio.h:158) \u2014 Guards pipe I/O\" (and similarly grouped throughout, e.g. \"**Inference/Backend:**\\n- `transition_mutex_` (backend.h:756)\")\nVERDICT: HIT\nWHY: Mutexes are grouped by subsystem/owning class with file:line context (e.g. transport_stdio.h, backend.h, engine.h), not presented as a flat bare-name list."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "**refuses to report a bare declaration count as the number of distinct mutexes**, and gives an argued figure with its basis AND the population it counted. Over entropic's own code (`src/` + `include/`): 41 declaration sites over 34 names, 40 scalars plus a 23-element array, so ~40 declarations against 63 objects per owning instance; the index's lock roster restricted to those same trees is 46 rows over 42 distinct `(name, scope)`. Over the WHOLE repository as indexed it is 103 rows over 97 distinct, because `extern/llama.cpp` contributes 54 rows / 52 distinct and `tests/` 3 / 3. Any engine-scoped figure in the 30-45 band passes, and so does 97 or 103 when the answer says the figure is whole-repository and separates the submodule out. An unattributed 97 does not, because 52 of those mutexes belong to a different repository; nor does any number with no basis, in either direction",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Entropic uses **32 distinct mutexes** across the codebase... **External library mutexes:** The llama.cpp submodule likely contains additional mutexes not analyzed here (intentionally scoped `extern/`).\"",
+        "why": "Gives an engine-scoped figure (32, within the 30-45 band) with an itemized file:line basis and explicitly states the population excludes the extern/ submodule.",
+        "raw": "QUOTE: \"Entropic uses **32 distinct mutexes** across the codebase... **External library mutexes:** The llama.cpp submodule likely contains additional mutexes not analyzed here (intentionally scoped `extern/`).\"\nVERDICT: HIT\nWHY: Gives an engine-scoped figure (32, within the 30-45 band) with an itemized file:line basis and explicitly states the population excludes the extern/ submodule."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "**notices `HookRegistry::mutexes_` is an ARRAY** \u2014 one declaration, `ENTROPIC_HOOK_COUNT_` == 23 physical `std::shared_mutex` objects, indexed by a runtime hook point \u2014 and says which way that cuts for a count",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "HookRegistry::mutexes_",
+          "ENTROPIC_HOOK_COUNT_",
+          "std::shared_mutex"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never mentions HookRegistry::mutexes_ or an array-of-mutexes indexed by hook point; all listed mutexes are single scalar declarations.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions HookRegistry::mutexes_ or an array-of-mutexes indexed by hook point; all listed mutexes are single scalar declarations."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 4,
+      "text": "**for one mutex it names, reports the critical-section EXTENT and what runs inside it** \u2014 which functions acquire it and what those sections call \u2014 and the report checks out against the source. Any of entropic's own mutexes is acceptable and the mark is that the extent is right; a mutex declared under `extern/llama.cpp` does not satisfy it, because the question asks what runs inside entropic's critical sections",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"What Executes While Held** (`backend.cpp:414\u2013441`): ... LogprobResult result = do_evaluate_logprobs(tokens, n_tokens); ... result.total_logprob += lp; ... result.perplexity = std::exp(-mean_lp);\"",
+        "why": "Names entropic's own `eval_mutex_`, its declaration site, and details what functions/operations run inside the critical section (logging, do_evaluate_logprobs, aggregation, perplexity calc).",
+        "raw": "QUOTE: \"What Executes While Held** (`backend.cpp:414\u2013441`): ... LogprobResult result = do_evaluate_logprobs(tokens, n_tokens); ... result.total_logprob += lp; ... result.perplexity = std::exp(-mean_lp);\"\nVERDICT: HIT\nWHY: Names entropic's own `eval_mutex_`, its declaration site, and details what functions/operations run inside the critical section (logging, do_evaluate_logprobs, aggregation, perplexity calc)."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "**reports the acquisition shape and gets it right: every acquisition in entropic's own code is scoped RAII**, `lock_guard` 148 / `shared_lock` 13 / `unique_lock` 11 over `src/` + `include/`, with no `lock()`/`unlock()` pair in those trees \u2014 and reads that as correct for a modern-C++ codebase rather than as a gap. `extern/llama.cpp` does lock manually (48 `lock()`/`unlock()`/`try_lock()` sites over 12 files), so reporting manual locking is a MISS only when it is attributed to entropic",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "Call sites use `std::lock_guard` consistently (no naked lock/unlock pairs)",
+        "why": "Answer gestures at RAII-only acquisition but gives no counts (lock_guard/shared_lock/unique_lock breakdown) and never addresses extern/llama.cpp's manual lock()/unlock() usage as a contrast.",
+        "raw": "QUOTE: Call sites use `std::lock_guard` consistently (no naked lock/unlock pairs)\nVERDICT: MISS\nWHY: Answer gestures at RAII-only acquisition but gives no counts (lock_guard/shared_lock/unique_lock breakdown) and never addresses extern/llama.cpp's manual lock()/unlock() usage as a contrast."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 6,
+      "text": "**finds `entropic_engine::api_mutex` and explains why a guard-site census misses it**: it is acquired 21 times through `HandleApiLock`, whose `std::lock_guard` member is bound in a constructor initialiser list, so no guard is constructed at any call site. An answer whose census is built only on `std::lock_guard` occurrences and does not notice this has missed the mutex that serializes entropic's entire public C API",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "std::lock_guard"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "entropic_engine::api_mutex",
+          "HandleApiLock"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `std::lock_guard` \u2014 std::lock_guard<std::mutex> lock(eval_mutex_);"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 7,
+      "text": "**names the `mutex_` collision**: six unrelated classes in entropic's own code declare a member literally named `mutex_`, so 30 guard sites and any name-keyed grouping conflate six different mutexes. Eight if the submodule is counted \u2014 cpp-httplib's `ThreadPool` and ggml's `spine_mem_pool_manager` \u2014 and either figure passes when the population is stated",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "mutex_"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "ThreadPool",
+          "spine_mem_pool_manager"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `mutex_` \u2014 - `io_mutex_` (transport_stdio.h:158) \u2014 Guards pipe I/O"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 8,
+      "text": "finds the mutex that is declared and never acquired \u2014 `s_session_paths_mu` in `src/types/logging.cpp` \u2014 or states that it checked for such a case and reports the result",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "s_session_paths_mu"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `s_session_paths_mu` \u2014 - `s_session_paths_mu` (logging.cpp:132) \u2014 Guards session path registry"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "**states the confidence honestly and in the right direction**: says which way its own method over- and under-counts, rather than reporting one number as settled",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"External library mutexes: The llama.cpp submodule likely contains additional mutexes not analyzed here (intentionally scoped extern/).\"",
+        "why": "The answer names a specific direction its count undercounts (external/submodule mutexes excluded), not just asserting a settled number.",
+        "raw": "QUOTE: \"External library mutexes: The llama.cpp submodule likely contains additional mutexes not analyzed here (intentionally scoped extern/).\"\nVERDICT: HIT\nWHY: The answer names a specific direction its count undercounts (external/submodule mutexes excluded), not just asserting a settled number."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 10,
+      "text": "notices that the long-running public entry points in `src/facade/entropic.cpp` deliberately do NOT take `api_mutex` \u2014 the comments say a long turn must not block other API calls \u2014 so \"serializes the public API\" has a documented exception",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "api_mutex"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `api_mutex` \u2014 - `api_mutex` (facade/engine_handle.h:76) \u2014 Serializes C API calls"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 11,
+      "text": "notes that `HandleApiLock` bundles the mutex with a logging scope and that the member order in the class is load-bearing, the comment stating the mutex is acquired first and released last",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "HandleApiLock"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never mentions HandleApiLock, its logging scope bundling, or the load-bearing member-order/first-acquired-last-released comment.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions HandleApiLock, its logging scope bundling, or the load-bearing member-order/first-acquired-last-released comment."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

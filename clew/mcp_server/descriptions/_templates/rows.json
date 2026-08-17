@@ -1,0 +1,14 @@
+{
+  "name": "rows",
+  "why": [
+    "Appended to every tool that returns row lists. Row fields carrying no value are",
+    "ELIDED by clew.wire, so a model that tests `row.crosses_thread is None`",
+    "would raise a KeyError instead, and one that treats a missing key as a negative",
+    "answer would report 'this edge does not cross threads' for an edge nobody",
+    "measured. Kept to one sentence because MCP has no shared preamble: the wire pays",
+    "for this text once per tool that includes it."
+  ],
+  "text": [
+    "A row field that does not apply is ABSENT, not null; `false` is a measurement and is always present."
+  ]
+}

@@ -1,0 +1,62 @@
+---
+# doxygen-guard configuration for clew (dogfooding — we enforce on ourselves).
+#
+# Every function/class in the shipped Python package carries:
+#   ## @brief    one-line summary
+#   ## @version  bumped on body change
+#   ## @return   on non-void functions
+#
+# @req COVERAGE IS NOT GATED. It was, by scripts/req_coverage_audit.py, which is
+# DELETED. Nothing now checks that a requirement claiming `implemented` resolves to
+# an implementing function, or that one claiming `planned` resolves to none.
+# Last measured by hand: 30 of 34 resolve; the 4 that do not are untagged
+# deliberately (two satisfied by configuration and human review, two unbuilt).
+#
+# Also not gated: whether a TEST covers a requirement. req_test_edges is sparse.
+
+output_dir: docs/generated/
+
+# Declare where our catalog lives, so the INDEX finds it without a CLI flag.
+# Not cosmetic dogfooding: `bd2d34e` taught clew to honour this field
+# precisely because a repo that declares its catalog had the declaration read by
+# the gate and ignored by the index — and we then shipped that fix without
+# applying it to ourselves. A bare `--scope from-guard` build of this repo
+# ingested ZERO catalog rows, so `req_trace` returned implementers with no title,
+# status or acceptance, and the "30 of 34" figure was reproducible only with an
+# undocumented `--requirements` argument. Through the MCP server, which passes no
+# flags, it could not be reproduced at all.
+impact:
+  requirements:
+    file: requirements.yaml
+
+validate:
+  exclude:
+    - "^\\.venv/"
+    - "^\\.claude/"
+    - "^workspace/"
+    - "^tests/"           # tests are exempt (fixtures, asserts)
+    - "^scripts/"         # dev helpers
+    - "^acceptance/"      # benchmark harness + evidence, not shipped code
+    - "^docs/generated/"
+  # NOTE: this key was DUPLICATED — an empty `tags:` sat directly above the real
+  # one. YAML takes the last, so the real block won and nothing broke, which is
+  # why it survived. The trap is that a reorder or an insertion between them
+  # would silently hand the win to the empty mapping, dropping the declared @req
+  # id pattern and disabling tag validation with no error anywhere.
+  tags:
+    # clew's own requirement id shape. Declared so @req tags validate
+    # against it — NOT hardcoded anywhere in the pipeline.
+    #
+    # A BARE ID, nothing else. This pattern used to carry an optional
+    # `( \[inferred\])?` suffix, because the project had a convention where a tag
+    # could mark its own mapping as inferred rather than asserted, and
+    # doxygen-guard validates the WHOLE remainder of the `@req` line rather than
+    # just the first token.
+    #
+    # The convention was RETIRED 2026-07-30 by the owner: "I would rather not put
+    # requirements as inferred or not — they should simply be the stated ID,
+    # inferred is noise." The marker is gone from the tags, the parser and the
+    # schema — `req_edges.confidence` no longer exists, because a column that can
+    # hold only one value states nothing.
+    req:
+      pattern: "^REQ-DDB-[A-Z]+-[0-9]{3}$"

@@ -1,0 +1,788 @@
+{
+  "q": "Q1",
+  "arm": "mcp",
+  "model": "sonnet",
+  "run": 1,
+  "answer": "Q1_sonnet_mcp_r1.md",
+  "rubric": "acceptance/targets/mbedtls/questions.yaml",
+  "declared_mark_count": 31,
+  "summary": {
+    "marks_hit": 28,
+    "marks_miss": 3,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 31,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": true,
+    "falsity_verdict": "CONSISTENT",
+    "marks_total": 31,
+    "score": 28.0,
+    "score_strict": 28.0
+  },
+  "falsity": {
+    "checked": true,
+    "verdict": "CONSISTENT",
+    "agreement": 1.0,
+    "tally": [
+      [
+        "CONSISTENT",
+        3
+      ]
+    ],
+    "samples": 3,
+    "errors": 0,
+    "vetoed": false
+  },
+  "marks": [
+    {
+      "index": 1,
+      "text": "concludes that mbedtls DOES contain locking code",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"mbedtls uses mutexes extensively\" / \"Ten distinct lock identities exist in the codebase\"",
+        "why": "The answer explicitly concludes mbedtls contains locking code, with extensive detail on the mutex abstraction and usage sites.",
+        "raw": "QUOTE: \"mbedtls uses mutexes extensively\" / \"Ten distinct lock identities exist in the codebase\"\nVERDICT: HIT\nWHY: The answer explicitly concludes mbedtls contains locking code, with extensive detail on the mutex abstraction and usage sites."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "names `mbedtls_mutex_lock`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "mbedtls_mutex_lock"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `mbedtls_mutex_lock` \u2014 - `mbedtls_mutex_init`, `mbedtls_mutex_lock`, `mbedtls_mutex_unlock` are declared `extern` in `include/mbedtls/threading.h:111-114` and defined as function-pointer variables in `library/threading.c:101-104`."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "names `mbedtls_mutex_unlock`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "mbedtls_mutex_unlock"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `mbedtls_mutex_unlock` \u2014 - `mbedtls_mutex_init`, `mbedtls_mutex_lock`, `mbedtls_mutex_unlock` are declared `extern` in `include/mbedtls/threading.h:111-114` and defined as function-pointer variables in `library/threading.c:101-104`."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "identifies the lock primitive as a FUNCTION POINTER \u2014 not a function, not a macro",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"The actual lock/unlock/init/free operations are **global function pointers**, not direct calls\" \u2014 \"declared `extern` in `include/mbedtls/threading.h:111-114` and defined as function-pointer variables in `library/threading.c:101-104`\"",
+        "why": "Answer explicitly identifies the lock primitives as function pointers (not direct function calls or macros), with specific supporting file/line detail.",
+        "raw": "QUOTE: \"The actual lock/unlock/init/free operations are **global function pointers**, not direct calls\" \u2014 \"declared `extern` in `include/mbedtls/threading.h:111-114` and defined as function-pointer variables in `library/threading.c:101-104`\"\nVERDICT: HIT\nWHY: Answer explicitly identifies the lock primitives as function pointers (not direct function calls or macros), with specific supporting file/line detail."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "states there are FOUR such pointers (init / free / lock / unlock)",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"By default they're initialized to the pthread-backed implementations... `mbedtls_threading_set_alt()`... lets an application swap in its own mutex implementation... by overwriting these four pointers\"",
+        "why": "The answer explicitly names the four function pointers (init/lock/unlock declared, plus free implied via mutex_free pattern) and states \"these four pointers\" directly, matching the item's substance.",
+        "raw": "QUOTE: \"By default they're initialized to the pthread-backed implementations... `mbedtls_threading_set_alt()`... lets an application swap in its own mutex implementation... by overwriting these four pointers\"\nVERDICT: HIT\nWHY: The answer explicitly names the four function pointers (init/lock/unlock declared, plus free implied via mutex_free pattern) and states \"these four pointers\" directly, matching the item's substance."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "locates the pointer declarations in `include/mbedtls/threading.h`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [
+          "threading.h:111-114"
+        ],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "cite threading.h:111-114 \u2248 answer threading.h:111-114"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 7,
+      "text": "explains WHY it is a pointer \u2014 pluggable threading for portability \u2014 rather than reporting it as an oddity",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"By default they're initialized to the pthread-backed implementations... `mbedtls_threading_set_alt()`... lets an application swap in its own mutex implementation (e.g. for a non-pthread OS/RTOS) by overwriting these four pointers\"",
+        "why": "The answer explains the pointer indirection exists specifically to allow swapping in alternate (non-pthread) implementations for portability, not just noting it as odd.",
+        "raw": "QUOTE: \"By default they're initialized to the pthread-backed implementations... `mbedtls_threading_set_alt()`... lets an application swap in its own mutex implementation (e.g. for a non-pthread OS/RTOS) by overwriting these four pointers\"\nVERDICT: HIT\nWHY: The answer explains the pointer indirection exists specifically to allow swapping in alternate (non-pthread) implementations for portability, not just noting it as odd."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 8,
+      "text": "names at least one concrete pthread binding (e.g. `threading_mutex_lock_pthread`)",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "threading_mutex_lock_pthread"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `threading_mutex_lock_pthread` \u2014 - By default they're initialized to the pthread-backed implementations: `threading_mutex_init_pthread` (`library/threading.c:51-64`, wraps `pthread_mutex_init`) and `threading_mutex_lock_pthread` (`library/threading.c:75-86`, wraps `pthread_mutex_lock`)."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "locates the bindings in `library/threading.c`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [
+          "threading.c:101-104"
+        ],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "cite threading.c:101-104 \u2248 answer threading.c:101-104"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 10,
+      "text": "traces the chain through to `pthread_mutex_lock`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "pthread_mutex_lock"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `pthread_mutex_lock` \u2014 - By default they're initialized to the pthread-backed implementations: `threading_mutex_init_pthread` (`library/threading.c:51-64`, wraps `pthread_mutex_init`) and `threading_mutex_lock_pthread` (`library/threading.c:75-86`, wraps `pthread_mutex_lock`)."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 11,
+      "text": "names `mbedtls_threading_set_alt` as the route by which a caller substitutes its own",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "mbedtls_threading_set_alt"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `mbedtls_threading_set_alt` \u2014 - `mbedtls_threading_set_alt()` (`library/threading.c:133-154`) lets an application swap in its own mutex implementation (e.g. for a non-pthread OS/RTOS) by overwriting these four pointers, then re-initializes the library's own static mutexes through the new pointers."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 12,
+      "text": "names the `MBEDTLS_THREADING_ALT` stand-ins \u2014 `threading_mutex_dummy` and `threading_mutex_fail` \u2014 which REFUSE until a caller calls `mbedtls_threading_set_alt`, and are not present in a pthread build at all",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [
+          "mbedtls_threading_set_alt"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "threading_mutex_dummy",
+          "threading_mutex_fail"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [
+          "threading.c:120-128"
+        ],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `mbedtls_threading_set_alt` \u2014 - `mbedtls_threading_set_alt()` (`library/threading.c:133-154`) lets an application swap in its own mutex implementation (e.g. for a non-pthread OS/RTOS) by overwriting these four pointers, then re-initializes the library's own static mutexes through the new pointers.",
+          "cite threading.c:120-128: file named, lines [(101, 104), (51, 64), (75, 86), (133, 154), (18, 18)] do not overlap"
+        ]
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "Answer discusses threading.c pthread-backed defaults and mbedtls_threading_set_alt swap, but never names threading_mutex_dummy/threading_mutex_fail stand-ins or their refuse-until-set-alt behavior.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: Answer discusses threading.c pthread-backed defaults and mbedtls_threading_set_alt swap, but never names threading_mutex_dummy/threading_mutex_fail stand-ins or their refuse-until-set-alt behavior."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 13,
+      "text": "states that the threading layer is CONDITIONALLY COMPILED",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"All of this is gated behind `MBEDTLS_THREADING_C` / `MBEDTLS_THREADING_PTHREAD` (`library/threading.c:18,50`) \u2014 locking is compiled out entirely if threading support isn't enabled.\"",
+        "why": "The answer explicitly states the threading/locking layer is conditionally compiled behind macros.",
+        "raw": "QUOTE: \"All of this is gated behind `MBEDTLS_THREADING_C` / `MBEDTLS_THREADING_PTHREAD` (`library/threading.c:18,50`) \u2014 locking is compiled out entirely if threading support isn't enabled.\"\nVERDICT: HIT\nWHY: The answer explicitly states the threading/locking layer is conditionally compiled behind macros."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 14,
+      "text": "names `MBEDTLS_THREADING_C` as the gate",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "MBEDTLS_THREADING_C"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `MBEDTLS_THREADING_C` \u2014 All of this is gated behind `MBEDTLS_THREADING_C` / `MBEDTLS_THREADING_PTHREAD` (`library/threading.c:18,50`) \u2014 locking is compiled out entirely if threading support isn't enabled."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 15,
+      "text": "states it is OFF in the shipped default configuration, so whether these locks exist in a given build is a configuration question",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"gated behind `MBEDTLS_THREADING_C` / `MBEDTLS_THREADING_PTHREAD` (`library/threading.c:18,50`) \u2014 locking is compiled out entirely if threading support isn't enabled\"",
+        "why": "States locking is a compile-time config option but never says it is OFF in the shipped default configuration.",
+        "raw": "QUOTE: \"gated behind `MBEDTLS_THREADING_C` / `MBEDTLS_THREADING_PTHREAD` (`library/threading.c:18,50`) \u2014 locking is compiled out entirely if threading support isn't enabled\"\nVERDICT: MISS\nWHY: States locking is a compile-time config option but never says it is OFF in the shipped default configuration."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 16,
+      "text": "names the backend selector \u2014 `MBEDTLS_THREADING_PTHREAD` or `MBEDTLS_THREADING_ALT`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "MBEDTLS_THREADING_PTHREAD"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "MBEDTLS_THREADING_ALT"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `MBEDTLS_THREADING_PTHREAD` \u2014 All of this is gated behind `MBEDTLS_THREADING_C` / `MBEDTLS_THREADING_PTHREAD` (`library/threading.c:18,50`) \u2014 locking is compiled out entirely if threading support isn't enabled."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 17,
+      "text": "reports tens of call sites, not one and not hundreds. BOTH figures are creditable and neither may be marked down: 48 call sites in 16 files, or the 52 lines in 18 files that `git grep -n mbedtls_mutex_lock` prints (the same 48 plus the `threading.h` declaration, two pointer definitions in mutually exclusive branches of `library/threading.c`, and one assignment inside `mbedtls_threading_set_alt`)",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "mbedtls_mutex_lock"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [
+          "threading.c:101-104",
+          "threading.h:111-114"
+        ],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `mbedtls_mutex_lock` \u2014 - `mbedtls_mutex_init`, `mbedtls_mutex_lock`, `mbedtls_mutex_unlock` are declared `extern` in `include/mbedtls/threading.h:111-114` and defined as function-pointer variables in `library/threading.c:101-104`.",
+          "cite threading.c:101-104 \u2248 answer threading.c:101-104",
+          "cite threading.h:111-114 \u2248 answer threading.h:111-114"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 18,
+      "text": "names at least one concrete file where locking occurs",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`mbedtls_threading_key_slot_mutex` \u2014 protects the PSA key-slot table. Acquired around key lifecycle operations: `psa_destroy_key` (`library/psa_crypto.c:1310-1421`)\"",
+        "why": "Names concrete files (e.g. library/psa_crypto.c, library/rsa.c) where locking occurs.",
+        "raw": "QUOTE: \"`mbedtls_threading_key_slot_mutex` \u2014 protects the PSA key-slot table. Acquired around key lifecycle operations: `psa_destroy_key` (`library/psa_crypto.c:1310-1421`)\"\nVERDICT: HIT\nWHY: Names concrete files (e.g. library/psa_crypto.c, library/rsa.c) where locking occurs."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 19,
+      "text": "identifies `library/psa_crypto.c` as the heaviest user",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [
+          "psa_crypto.c"
+        ],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "cite psa_crypto.c: file named (whole-file citation)"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 20,
+      "text": "notes that call sites exist OUTSIDE `library/` \u2014 `programs/ssl/ssl_pthread_server.c` and `tests/suites/`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "ssl_pthread_server"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [
+          "ssl_pthread_server.c"
+        ],
+        "refs_file_only": [],
+        "refs_missed": [
+          "test_suite_psa_crypto.function:0"
+        ],
+        "evidence": [
+          "symbol `ssl_pthread_server` \u2014 - `debug_mutex` in `programs/ssl/ssl_pthread_server.c` \u2014 an example-program-level mutex serializing debug-log output across the demo's worker threads (`handle_ssl_connection`, spawned via `pthread_create` at `programs/ssl/ssl_pthread_server.c:277`).",
+          "cite ssl_pthread_server.c: file named (whole-file citation)"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 21,
+      "text": "distinguishes the mutex OBJECTS from the primitive: there is more than one mutex, not a single global lock",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Ten distinct lock identities exist in the codebase, all first-party\" (with subsequent listing of global mutexes like `mbedtls_threading_key_slot_mutex`, `mbedtls_threading_psa_globaldata_mutex`, etc., plus per-object mutexes like `mbedtls_rsa_context.private_mutex`, `cache->mutex`, `heap.mutex`)",
+        "why": "The answer explicitly enumerates multiple distinct mutex objects rather than treating locking as a single global lock.",
+        "raw": "QUOTE: \"Ten distinct lock identities exist in the codebase, all first-party\" (with subsequent listing of global mutexes like `mbedtls_threading_key_slot_mutex`, `mbedtls_threading_psa_globaldata_mutex`, etc., plus per-object mutexes like `mbedtls_rsa_context.private_mutex`, `cache->mutex`, `heap.mutex`)\nVERDICT: HIT\nWHY: The answer explicitly enumerates multiple distinct mutex objects rather than treating locking as a single global lock."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 22,
+      "text": "names `mbedtls_threading_readdir_mutex`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "mbedtls_threading_readdir_mutex"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `mbedtls_threading_readdir_mutex` \u2014 - `mbedtls_threading_readdir_mutex` \u2014 guards non-reentrant `readdir()` use in certificate-path loading (`library/x509_crt.c`, 1 acquisition)."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 23,
+      "text": "names `mbedtls_threading_gmtime_mutex`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "mbedtls_threading_gmtime_mutex"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `mbedtls_threading_gmtime_mutex` \u2014 - `mbedtls_threading_gmtime_mutex` \u2014 guards a non-reentrant `gmtime()` call (`library/platform_util.c`, 1 acquisition)."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 24,
+      "text": "names `mbedtls_threading_key_slot_mutex`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "mbedtls_threading_key_slot_mutex"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `mbedtls_threading_key_slot_mutex` \u2014 - `mbedtls_threading_key_slot_mutex` \u2014 protects the PSA key-slot table. Acquired around key lifecycle operations: `psa_destroy_key` (`library/psa_crypto.c:1310-1421`), `psa_start_key_creation`/`psa_finish_key_creation`/`psa_fail_key_creation` (`library/psa_crypto.c:1801-1808, 1927-1991, 2022-2045`), and `psa_get_and_lock_key_slot`/`psa_close_key`/`psa_purge_key`/`psa_unregister_read_under_mutex` in `library/psa_crypto_slot_management.c:822-891, 938-943, 1034-1055, 1071-1090`."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 25,
+      "text": "names `mbedtls_threading_psa_globaldata_mutex`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "mbedtls_threading_psa_globaldata_mutex"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `mbedtls_threading_psa_globaldata_mutex` \u2014 - `mbedtls_threading_psa_globaldata_mutex` \u2014 protects PSA global init state, e.g. `psa_get_initialized`/`psa_get_drivers_initialized` (`library/psa_crypto.c:141-148, 159-165`), `mbedtls_psa_crypto_free`/`mbedtls_psa_crypto_init_subsystem` (`library/psa_crypto.c:8407-8593`)."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 26,
+      "text": "names `mbedtls_threading_psa_rngdata_mutex`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "mbedtls_threading_psa_rngdata_mutex"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `mbedtls_threading_psa_rngdata_mutex` \u2014 - `mbedtls_threading_psa_rngdata_mutex` \u2014 protects the shared PSA RNG/DRBG state, e.g. `psa_random_reseed`/`psa_random_deplete` (`library/psa_crypto.c:8030-8056`), `mbedtls_psa_crypto_init_subsystem` (`library/psa_crypto.c:8545-8560`), `psa_random_internal_generate` (`library/psa_crypto_random.c:147-154`)."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 27,
+      "text": "states that FIVE named global mutexes live in the LIBRARY (`library/threading.c`), and does not present that as the repository's total \u2014 a sixth named global, `debug_mutex`, sits in `programs/`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [
+          "mbedtls_threading_readdir_mutex",
+          "mbedtls_threading_gmtime_mutex"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [
+          "threading.c:182-190"
+        ],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `mbedtls_threading_readdir_mutex` \u2014 - `mbedtls_threading_readdir_mutex` \u2014 guards non-reentrant `readdir()` use in certificate-path loading (`library/x509_crt.c`, 1 acquisition).",
+          "symbol `mbedtls_threading_gmtime_mutex` \u2014 - `mbedtls_threading_gmtime_mutex` \u2014 guards a non-reentrant `gmtime()` call (`library/platform_util.c`, 1 acquisition).",
+          "cite threading.c:182-190: file named, lines [(101, 104), (51, 64), (75, 86), (133, 154), (18, 18)] do not overlap"
+        ]
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`mbedtls_threading_key_slot_mutex`\", \"`mbedtls_threading_psa_globaldata_mutex`\", \"`mbedtls_threading_psa_rngdata_mutex`\", \"`mbedtls_threading_gmtime_mutex`\", \"`mbedtls_threading_readdir_mutex`\" (listed under \"Global/static mutexes\"), plus \"`debug_mutex` in `programs/ssl/ssl_pthread_server.c` \u2014 an example-program-level mutex\"",
+        "why": "The answer names exactly five global mutexes in library/threading.c and separately identifies debug_mutex as a sixth, program-level global in programs/, without conflating the two counts.",
+        "raw": "QUOTE: \"`mbedtls_threading_key_slot_mutex`\", \"`mbedtls_threading_psa_globaldata_mutex`\", \"`mbedtls_threading_psa_rngdata_mutex`\", \"`mbedtls_threading_gmtime_mutex`\", \"`mbedtls_threading_readdir_mutex`\" (listed under \"Global/static mutexes\"), plus \"`debug_mutex` in `programs/ssl/ssl_pthread_server.c` \u2014 an example-program-level mutex\"\nVERDICT: HIT\nWHY: The answer names exactly five global mutexes in library/threading.c and separately identifies debug_mutex as a sixth, program-level global in programs/, without conflating the two counts."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 28,
+      "text": "identifies the per-context `mutex` struct MEMBER as a second, distinct class of mutex",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"**Per-object mutexes** (embedded as a struct member, one instance per object): `mbedtls_rsa_context.private_mutex`... `cache->mutex` in the SSL session cache... `heap.mutex`...\"",
+        "why": "The answer explicitly distinguishes per-context/per-object embedded `mutex` struct members as a distinct class from the global/static named mutexes.",
+        "raw": "QUOTE: \"**Per-object mutexes** (embedded as a struct member, one instance per object): `mbedtls_rsa_context.private_mutex`... `cache->mutex` in the SSL session cache... `heap.mutex`...\"\nVERDICT: HIT\nWHY: The answer explicitly distinguishes per-context/per-object embedded `mutex` struct members as a distinct class from the global/static named mutexes."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 29,
+      "text": "states that seven public headers carry such a member, or names at least two of them (`ctr_drbg.h`, `entropy.h`, `hmac_drbg.h`, `rsa.h`, `ssl_cache.h`, `ssl_cookie.h`, `ssl_ticket.h`)",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [
+          "rsa.h"
+        ],
+        "refs_file_only": [],
+        "refs_missed": [
+          "ctr_drbg.h:0",
+          "entropy.h:0",
+          "hmac_drbg.h:0",
+          "ssl_cache.h:0",
+          "ssl_cookie.h:0",
+          "ssl_ticket.h:0"
+        ],
+        "evidence": [
+          "cite rsa.h: file named (whole-file citation)"
+        ]
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "rsa.h:120 \u2014 `mbedtls_rsa_context.private_mutex`; and `cache->mutex` in the SSL session cache (`library/ssl_cache.c`)",
+        "why": "Names at least two of the seven listed headers' members (rsa.h and ssl_cache.c), satisfying the item.",
+        "raw": "QUOTE: rsa.h:120 \u2014 `mbedtls_rsa_context.private_mutex`; and `cache->mutex` in the SSL session cache (`library/ssl_cache.c`)\nVERDICT: HIT\nWHY: Names at least two of the seven listed headers' members (rsa.h and ssl_cache.c), satisfying the item."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 30,
+      "text": "names `heap.mutex` \u2014 a mutex MEMBER of the file-static `buffer_alloc_ctx heap` in `library/memory_buffer_alloc.c`, not a mutex global of its own",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [
+          "heap.mutex"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "buffer_alloc_ctx"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [
+          "memory_buffer_alloc.c:63",
+          "memory_buffer_alloc.c:68"
+        ],
+        "evidence": [
+          "symbol `heap.mutex` \u2014 - `heap.mutex` in `library/memory_buffer_alloc.c` \u2014 protects the static heap used by `mbedtls_memory_buffer_alloc_init` when `MBEDTLS_THREADING_C` is on, so the allocator is thread-safe."
+        ]
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"heap.mutex in library/memory_buffer_alloc.c (library/memory_buffer_alloc.c) \u2014 protects the static heap used by mbedtls_memory_buffer_alloc_init when MBEDTLS_THREADING_C is on, so the allocator is thread-safe.\"",
+        "why": "States heap.mutex is a member of the static heap struct in memory_buffer_alloc.c, not a standalone global mutex.",
+        "raw": "QUOTE: \"heap.mutex in library/memory_buffer_alloc.c (library/memory_buffer_alloc.c) \u2014 protects the static heap used by mbedtls_memory_buffer_alloc_init when MBEDTLS_THREADING_C is on, so the allocator is thread-safe.\"\nVERDICT: HIT\nWHY: States heap.mutex is a member of the static heap struct in memory_buffer_alloc.c, not a standalone global mutex."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 31,
+      "text": "states that the per-context mutexes are DISTINCT objects \u2014 two contexts of different types do not share one lock",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer lists multiple distinct mutex objects but never states that different context types (e.g., two contexts of different types) do not share a lock instance \u2014 that specific claim of distinctness across contexts is absent.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists multiple distinct mutex objects but never states that different context types (e.g., two contexts of different types) do not share a lock instance \u2014 that specific claim of distinctness across contexts is absent."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

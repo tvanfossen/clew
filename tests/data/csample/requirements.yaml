@@ -1,0 +1,40 @@
+# demobot requirements — single source of truth for BOTH consumers:
+#   * doxygen-guard (@req coverage + cross-reference, impact reports)
+#     reads it with id_column: "id", name_column: "title"
+#   * clew ingests {id, block, title, acceptance, priority}
+#     into the requirements table for traceability queries
+- id: REQ-0100
+  block: sensor
+  title: Battery voltage monitoring
+  acceptance: sensor_poll publishes battery millivolts into the data model every loop pass.
+  priority: P1
+- id: REQ-0200
+  block: event_bus
+  title: Queued event dispatch
+  acceptance: Events published from any subsystem are delivered to subscribed handlers in FIFO order on the next dispatch pass.
+  priority: P0
+- id: REQ-0300
+  block: command
+  title: Cloud command handling
+  acceptance: Recognised cloud command payloads are routed to their feature handlers; unknown payloads are logged and dropped.
+  priority: P1
+- id: REQ-0400
+  block: telemetry
+  title: Telemetry reporting
+  acceptance: telemetry_report formats current data-model values for upstream publication.
+  priority: P2
+- id: REQ-0500
+  block: datamodel
+  title: Generated data model with change events
+  acceptance: The ingot-generated store persists keyed values and invokes the registered change callback on every successful set; the dispatch handler routes key changes to their consumers.
+  priority: P0
+- id: REQ-0621
+  block: sound
+  title: Find-my-robot audible ping
+  acceptance: A cloud "ping" command causes the robot to play the find-me chime within one dispatch pass.
+  priority: P1
+- id: REQ-0900
+  block: legacy
+  title: ADC calibration (rev-A hardware)
+  acceptance: Self-test trims ADC offset within tolerance on rev-A boards.
+  priority: P3

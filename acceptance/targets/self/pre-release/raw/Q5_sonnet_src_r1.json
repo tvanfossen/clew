@@ -1,0 +1,80 @@
+{
+  "is_error": false,
+  "duration_api_ms": 50327,
+  "num_turns": 8,
+  "stop_reason": "end_turn",
+  "session_id": "0cc565c2-64d8-4392-a55b-b4567b4ba111",
+  "total_cost_usd": 0.9233366000000001,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 110209,
+    "cache_read_input_tokens": 692382,
+    "output_tokens": 3528,
+    "output_tokens_details": {
+      "thinking_tokens": 195
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 110209,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2577,
+        "cache_read_input_tokens": 112627,
+        "cache_creation_input_tokens": 745,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 745
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1320,
+      "outputTokens": 16,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.0014,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 16,
+      "outputTokens": 3528,
+      "cacheReadInputTokens": 692382,
+      "cacheCreationInputTokens": 110209,
+      "webSearchRequests": 0,
+      "costUSD": 0.9219366,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I have what I need to answer.\n\n## Answer\n\n**The single source of truth is `doxyguard_db/vocabulary.py`.** Every enumerated column's allowed value set lives exactly once there, as a `Vocabulary` dataclass instance (`doxyguard_db/vocabulary.py:100-171`), collected into a registry keyed by `(table, column)`:\n\n```\nCOLUMNS: dict[tuple[str, str], Vocabulary]   # vocabulary.py:938-973\n```\n\nTwo functions are the only sanctioned way to turn a `Vocabulary` into SQL or to accept a declared string:\n- `Vocabulary.check(column)` (`vocabulary.py:129-138`) generates the SQL `CHECK(col IN (...))` clause by explicit quote-and-join (never `{tuple!r}`, which mis-handles a 1-value tuple or an apostrophe \u2014 `vocabulary.py:29-36`).\n- `Vocabulary.validated(value, owner=, field=)` (`vocabulary.py:159-171`) is the \"single choke point every declared-enum path routes through\" \u2014 it returns the value unchanged if it's a member, else raises `DeclarationError` (`vocabulary.py:63-76`) naming the origin file, the bad token, and the full allowed set.\n\n**How the rest of the codebase is kept from restating the values:**\n1. **DDL callers never spell a value list.** Every `CREATE TABLE` that needs a CHECK calls the module-level `check(table, column)` (`vocabulary.py:1030-1040`), e.g. `locks.py:320,323-324`: `` kind TEXT NOT NULL {check(\"locks\", \"kind\")} ``. `check()` raises `KeyError` for an unregistered column rather than silently omitting the CHECK.\n2. **A filesystem source scan is the actual gate**, in `tests/test_vocabulary.py:96-111` (`test_no_raw_check_literal_survives_outside_vocabulary`): it `rglob`s every `.py` file in the package and fails if the literal string `\"CHECK(\"` appears anywhere except `vocabulary.py`. It deliberately scans the filesystem, not `git ls-files`, because an untracked file already slipped a raw `CHECK(` past `pre-commit --all-files` once (`htmlview.py`, per the docstring at lines 6-14 and the project CLAUDE.md's \"GATE TRAP\" note).\n3. **A second scan forbids reintroducing a parallel constant** (`test_no_module_redefines_a_valid_constant`, `test_vocabulary.py:124-142`): no module may define a `_VALID_*` constant, which is exactly the shape of the historical bug (`_VALID_KINDS` defined twice, once in `threads.py`, once in `locks.py`, with different values \u2014 `vocabulary.py:6-10`).\n4. **Declared-config loaders route through `.validated()`**, not string comparison \u2014 e.g. `locks.py:254-260` (`_declared_lock_pattern`) validates `form`, `kind`, `mode`, `role` against `ACQ_FORM`/`LOCK_KIND`/`ACQ_MODE`/`ACQ_ROLE` respectively, so a `.doxyguard-db.yaml` typo raises `DeclarationError` at load time instead of being coerced to a default (documented failure mode at `locks.py:206-217`: `form: \"cal\"` used to silently become an RAII guard).\n5. **A committed golden snapshot** (`tests/data/schema_vocabulary.json`, compared in `test_shipped_schema_matches_the_committed_snapshot`, `test_vocabulary.py:225-229`) catches a *widening* of a vocabulary, which a registry-vs-registry check can't (`test_vocabulary.py:16-20`).\n6. **A cache-stage scan** (`test_cache_stage_names_are_not_spelled_inline`, `test_vocabulary.py:145-156`) additionally forbids inlining the `extract_cache.stage` literal, since that column carries no CHECK at all (`vocabulary.py:565-570`).\n\n**Dependencies, and why they're what they are:**\n- `dataclasses`, `pathlib` only (`vocabulary.py:53-54`). The module docstring calls this out explicitly as a **TRUE LEAF** with **zero intra-package imports, by design** (`vocabulary.py:16-20`): `doxyguard_db/_common.py` pulls in `rich`, and `doxyguard_db/query/_common.py` is deliberately stdlib-only \u2014 importing either here would make one of those two layers un-importable without the other's dependencies. Even logging is avoided: the module logs nothing on purpose since validation raises and generation is deterministic (`vocabulary.py:56-60`).\n\n**What breaks if two vocabulary entries with identical-looking values were merged into one object:**\nThe module docstring states this directly (`vocabulary.py:22-27`): five distinct vocabularies \u2014 `THREAD_STRENGTH`, `KEY_STRENGTH`, `LOCK_IDENTITY`, `ACQ_STRENGTH`, `BOUNDARY_STRENGTH` \u2014 all share the tuple `('low','medium','high')` but mean five unrelated things (spawn-detection strength, dataflow-seam confidence, lock-identity certainty, critical-section-resolution confidence, external-boundary confidence). If two of these were collapsed into one shared `Vocabulary` object, **adding a value for one purpose would silently widen the CHECK constraint on all the others that share the object**, and \u2014 critically \u2014 \"every test that compares the shipped schema to this registry stays green,\" because the registry-vs-shipped-schema reconcile test (`test_reconcile_is_bidirectional_and_unfiltered`, `test_vocabulary.py:232-239`) only checks that registered and shipped columns agree, not that distinct meanings stay distinct. This exact invariant is pinned by `test_the_five_strength_vocabularies_are_distinct_objects` (`test_vocabulary.py:387-398`), which asserts `len({id(v) for v in five}) == 5` \u2014 i.e., it specifically checks object identity, not just value equality, precisely to catch this merge.\n\nA more severe case is `LOCK_KIND` specifically (`vocabulary.py:377-385`, and the docstring warning at `vocabulary.py:41-45`): `locks.kind` is part of the `locks` table's identity key, `UNIQUE(name, scope, kind)` (`locks.py:325`, `query/models.py:510-511`). If two lock-kind entries that \"look identical\" (e.g. a typo variant) were merged/normalized to one token, \"two differently-typo'd kinds normalizing to one token merge unrelated acquisitions into a single lock row\" \u2014 fabricating a shared lock between two acquisition sites that never actually contend for the same mutex. This is exactly why `validated()` fails closed rather than normalizing to an `'unknown'` fallback (`vocabulary.py:38-45`): there is no honest fallback value that doesn't invent a specific, false synchronization claim.\n\n## Gaps\n\n- I did not exhaustively trace every one of the ~30 call sites of `check()`/`bool_check()`/`.validated()` across the pipeline modules \u2014 I verified the pattern concretely in `locks.py` and confirmed via the source-scan tests that no other site can bypass it, but did not individually read every module listed in `VOCABULARIES`/`COLUMNS`.\n- I did not run the test suite myself to confirm current green status; I'm relying on the static content of `tests/test_vocabulary.py` as read.",
+  "ttft_ms": 2008,
+  "ttft_stream_ms": 1463,
+  "time_to_request_ms": 274,
+  "type": "result",
+  "duration_ms": 49702,
+  "uuid": "46bfed01-bffb-4828-b18a-64b0dd9e1a5d"
+}

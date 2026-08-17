@@ -1,0 +1,80 @@
+{
+  "is_error": false,
+  "duration_api_ms": 34614,
+  "num_turns": 7,
+  "stop_reason": "end_turn",
+  "session_id": "7630bec6-30b5-450a-8f33-2ec1b5a2f6a4",
+  "total_cost_usd": 0.44005519999999987,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 43564,
+    "cache_read_input_tokens": 463074,
+    "output_tokens": 2550,
+    "output_tokens_details": {
+      "thinking_tokens": 414
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 43564,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1677,
+        "cache_read_input_tokens": 85942,
+        "cache_creation_input_tokens": 990,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 990
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1373,
+      "outputTokens": 18,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001463,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 12,
+      "outputTokens": 2550,
+      "cacheReadInputTokens": 463074,
+      "cacheCreationInputTokens": 43564,
+      "webSearchRequests": 0,
+      "costUSD": 0.4385921999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Threads entropic runs\n\nThe index's `threads` layer records **21 thread rows total**, but 17 of those are spawned inside the vendored `extern/llama.cpp` submodule, not by entropic itself. Filtering to first-party spawn sites (`origin.first_party` = 4), **entropic itself spawns 4 threads**:\n\n| Thread (entry) | Spawn site | Kind |\n|---|---|---|\n| `ExternalBridge::accept_loop` | `src/facade/external_bridge.cpp:796` (in `ExternalBridge::start`) | pthread, 5 members |\n| `HealthMonitor::monitor_loop` | `src/mcp/health_monitor.cpp:92` (in `HealthMonitor::start`) | pthread, 5 members |\n| `StdioTransport::stderr_reader_loop` | `src/mcp/transport_stdio.cpp:164` (in `StdioTransport::open`) | pthread, 4 members |\n| `SSETransport::sse_reader_loop` | `src/mcp/transport_sse.cpp:107` (in `SSETransport::open`) | pthread, 4 members |\n\nThe other 17 (e.g. `httplib::ThreadPool::worker`, `server_http_context::listen_after_bind`, `ma_thread_create__posix`/`__win32`, various Python `threading.Thread`/`asyncio` spawns in test/bench scripts) all originate under `extern/llama.cpp` \u2014 vendored, not entropic's own code \u2014 per `origin.external_roots: [\"extern/llama.cpp\"]`.\n\n## Example: which thread executes `monitor_loop`\n\n`entropic::HealthMonitor::monitor_loop()` is defined at `include/entropic/mcp/health_monitor.h:137-155` (body in `src/mcp/health_monitor.cpp:137-155`). It is itself the entry function of thread id 9, spawned by `HealthMonitor::start` at `src/mcp/health_monitor.cpp:92`.\n\nIts body (`src/mcp/health_monitor.cpp:137-155`):\n- Runs a polling loop (500ms interval) while `running_` is true.\n- Holds `watched_mutex_` (`class:HealthMonitor`, lines 142-149) around iterating `watched_` and calling `check_server(name, entry)` (line 146) when an entry's `next_action` is due.\n- Holds `wake_mutex_` (lines 151-154) while waiting on `wake_cv_.wait_for(...)`.\n- Calls `check_server` (`src/mcp/health_monitor.cpp` \u2014 resolved callee, rowid 17471).\n\nSo: **`monitor_loop` runs entirely on the `HealthMonitor::monitor_loop` thread (thread id 9)** \u2014 a dedicated background pthread started by `HealthMonitor::start`, distinct from whatever thread calls `start()`.\n\n## Coverage\n\nPer `index(action=stats)`: the index covers **482 indexed files** (418 with symbols), of which **1,237 are marked external** (the `extern/llama.cpp` submodule, tracked but reported separately from first-party figures). Substantive first-party files: 310, barren: 4 (barren_ratio 1.3%). Thread/lock layers are populated: 21 thread rows, 47 thread-membership rows, 103 locks, 403 lock acquisitions, 1,803 critical-section calls, 7 external boundaries \u2014 all queried live in this answer.\n\n## Gaps\n\n- I did not verify whether `check_server` (the one callee of `monitor_loop`) itself acquires additional locks or spawns further work \u2014 that would need a follow-up `dossier(check_server)` call, which I skipped since one thread's execution path was sufficient to answer the question.\n- Thread `confidence` is reported as `\"medium\"` for all 21 rows (AST-based spawn-pattern detection, not a guaranteed-exhaustive enumeration) \u2014 so a spawn primitive outside the indexed pattern set (e.g. an unrecognized wrapper) would not show up here at all; I have no way to positively rule that out from the index alone.\n- I did not separately confirm entropic's total first-party source-file count outside the index's own bookkeeping (it reports 482 indexed + 1,237 external against whatever the full working tree contains); I'm relying on the index's own coverage figures rather than an independent file count.",
+  "ttft_ms": 3248,
+  "ttft_stream_ms": 2471,
+  "time_to_request_ms": 82,
+  "type": "result",
+  "duration_ms": 34563,
+  "uuid": "e04ea1e7-7507-4007-aa06-c46a9050d212"
+}

@@ -1,0 +1,364 @@
+{
+  "q": "Q6",
+  "arm": "mcp",
+  "model": "haiku",
+  "run": 1,
+  "answer": "Q6_haiku_mcp_r1.md",
+  "rubric": "acceptance/targets/self/questions.yaml",
+  "declared_mark_count": 14,
+  "summary": {
+    "marks_hit": 6,
+    "marks_miss": 8,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 14,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": true,
+    "falsity_verdict": "CONSISTENT",
+    "marks_total": 14,
+    "score": 6.0,
+    "score_strict": 6.0
+  },
+  "falsity": {
+    "checked": true,
+    "verdict": "CONSISTENT",
+    "agreement": 1.0,
+    "tally": [
+      [
+        "CONSISTENT",
+        3
+      ]
+    ],
+    "samples": 3,
+    "errors": 0,
+    "facts": 4,
+    "vetoed": false
+  },
+  "marks": [
+    {
+      "index": 1,
+      "text": "**states that a misspelled SECTION name in the declaration file is REFUSED**, with an error rather than a warning",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "DeclarationError"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `DeclarationError` \u2014 5. **RAISES `DeclarationError`** (declaration.py:330-336) with message:"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "states that the refusal names the offending key",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"unknown key(s) 'key_arg_idx' \u2014 allowed: 'direction', 'key_arg_index', 'pattern'\"",
+        "why": "The answer's error message explicitly names the offending key ('key_arg_idx') in the raised DeclarationError.",
+        "raw": "QUOTE: \"unknown key(s) 'key_arg_idx' \u2014 allowed: 'direction', 'key_arg_index', 'pattern'\"\nVERDICT: HIT\nWHY: The answer's error message explicitly names the offending key ('key_arg_idx') in the raised DeclarationError."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "states that the refusal also names the allowed set, so the fix does not require reading the source",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "KNOWN_SECTIONS"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `KNOWN_SECTIONS` \u2014 3. Compares each key against `KNOWN_SECTIONS` frozenset (declaration.py:234-241)"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "**gives the reason a misspelled section is treated more harshly than a broken file: it PARSES, so degrading would run on built-in defaults while reporting that the declaration was honoured**",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"The deliberate design (from dispatch.py:414-420): Anything malformed **RAISES** rather than degrading, because \"a silently-ignored declaration is indistinguishable from never having written one.\" A misspelled section or key is a document that parses where the author plainly intended something, so degrading would mean running on built-in defaults while falsely reporting that the declaration was honoured \u2014 worse than refusing.\"",
+        "why": "The answer explicitly gives the reason \u2014 it parses (author plainly intended something), so degrading would run on defaults while falsely reporting the declaration was honoured.",
+        "raw": "QUOTE: \"The deliberate design (from dispatch.py:414-420): Anything malformed **RAISES** rather than degrading, because \"a silently-ignored declaration is indistinguishable from never having written one.\" A misspelled section or key is a document that parses where the author plainly intended something, so degrading would mean running on built-in defaults while falsely reporting that the declaration was honoured \u2014 worse than refusing.\"\nVERDICT: HIT\nWHY: The answer explicitly gives the reason \u2014 it parses (author plainly intended something), so degrading would run on defaults while falsely reporting the declaration was honoured."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "**states that unparseable YAML is treated as ABSENT with a warning, and that the build CONTINUES on defaults**",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Logs a **WARNING** (declaration.py:353): `\"%s is unreadable (%s) \u2014 ignoring it, using defaults\"`\" ... \"Result: Build proceeds with defaults, no error\"",
+        "why": "States unparseable YAML is caught, warned, treated as absent (empty dict/defaults), and build continues successfully.",
+        "raw": "QUOTE: \"Logs a **WARNING** (declaration.py:353): `\"%s is unreadable (%s) \u2014 ignoring it, using defaults\"`\" ... \"Result: Build proceeds with defaults, no error\"\nVERDICT: HIT\nWHY: States unparseable YAML is caught, warned, treated as absent (empty dict/defaults), and build continues successfully."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "gives the reason for the asymmetry: an unparseable file is an accident with nothing recoverable in it, while a misspelled key is a document whose author plainly intended something",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"The deliberate design (from dispatch.py:414-420): Anything malformed **RAISES** rather than degrading, because \"a silently-ignored declaration is indistinguishable from never having written one.\" A misspelled section or key is a document that parses where the author plainly intended something, so degrading would mean running on built-in defaults while falsely reporting that the declaration was honoured \u2014 worse than refusing.\" combined with \"WARNING logged, degraded to defaults\" for unparseable YAML",
+        "why": "The answer explains why misspelled keys raise (author intended something, silently defaulting misreports honoring the declaration), but never states the other half of the asymmetry \u2014 that an unparseable file is an accident with nothing recoverable in it, which is why that case gets defaults instead of a raise.",
+        "raw": "QUOTE: \"The deliberate design (from dispatch.py:414-420): Anything malformed **RAISES** rather than degrading, because \"a silently-ignored declaration is indistinguishable from never having written one.\" A misspelled section or key is a document that parses where the author plainly intended something, so degrading would mean running on built-in defaults while falsely reporting that the declaration was honoured \u2014 worse than refusing.\" combined with \"WARNING logged, degraded to defaults\" for unparseable YAML\nVERDICT: MISS\nWHY: The answer explains why misspelled keys raise (author intended something, silently defaulting misreports honoring the declaration), but never states the other half of the asymmetry \u2014 that an unparseable file is an accident with nothing recoverable in it, which is why that case gets defaults instead of a raise."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 7,
+      "text": "**states that an absent declaration is the NORM rather than an error**, and that most repositories run entirely on built-in defaults",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer explains multiple validation levels but never states that an absent declaration is normal/expected or that most repos run on built-in defaults with no manifest at all.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains multiple validation levels but never states that an absent declaration is normal/expected or that most repos run on built-in defaults with no manifest at all."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 8,
+      "text": "**distinguishes the ENTRY level from the SECTION level, and reports that the two are not guarded to the same depth by the file path** \u2014 a slip inside a section is quieter than a slip in a section name",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer distinguishes section-level vs entry-level key validation but never addresses file-path guarding depth or that a slip inside a section is quieter due to unchecked path granularity.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer distinguishes section-level vs entry-level key validation but never addresses file-path guarding depth or that a slip inside a section is quieter due to unchecked path granularity."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 9,
+      "text": "**finds that the caller-stated options path DOES validate entry keys and refuses unknown ones**, so the same typo behaves differently depending on which route it arrives by",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "_checked_entry"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"The deliberate design (from dispatch.py:414-420): Anything malformed **RAISES** rather than degrading\" / \"**RAISES `DeclarationError`**\" for the entry-level key typo (`key_arg_idx`) via the caller-stated options path (`_wrapper_entry` / `_reject_unknown`)",
+        "why": "The answer explicitly shows that entry-level keys under a declared section (the caller-stated options path) are validated against an allowed set and reject unknown keys with a DeclarationError, contrasted with the YAML-syntax-level path that silently degrades \u2014 matching the item's substance that the same typo behaves differently by route.",
+        "raw": "QUOTE: \"The deliberate design (from dispatch.py:414-420): Anything malformed **RAISES** rather than degrading\" / \"**RAISES `DeclarationError`**\" for the entry-level key typo (`key_arg_idx`) via the caller-stated options path (`_wrapper_entry` / `_reject_unknown`)\nVERDICT: HIT\nWHY: The answer explicitly shows that entry-level keys under a declared section (the caller-stated options path) are validated against an allowed set and reject unknown keys with a DeclarationError, contrasted with the YAML-syntax-level path that silently degrades \u2014 matching the item's substance that the same typo behaves differently by route."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 10,
+      "text": "states why an entry-level slip is the more dangerous kind: it parses to a valid mapping that no consumer reads, so nothing signals it",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"Why this matters (from dispatch.py:91-95): Without this check, `key_arg_idx` would silently default to argument 0 (line 381), producing **wrong dataflow from a typo** \u2014 a build that succeeds while encoding a completely different data model than intended.\"",
+        "why": "This explains entry-level slips produce silent wrong behavior, but doesn't state the comparative claim that entry-level is *more dangerous than* document-level precisely because it \"parses to a valid mapping that no consumer reads, so nothing signals it\" \u2014 in the answer, entry-level slips actually DO raise DeclarationError and fail loudly (per _reject_unknown), contradicting rather than confirming the item's premise.",
+        "raw": "QUOTE: \"Why this matters (from dispatch.py:91-95): Without this check, `key_arg_idx` would silently default to argument 0 (line 381), producing **wrong dataflow from a typo** \u2014 a build that succeeds while encoding a completely different data model than intended.\"\nVERDICT: MISS\nWHY: This explains entry-level slips produce silent wrong behavior, but doesn't state the comparative claim that entry-level is *more dangerous than* document-level precisely because it \"parses to a valid mapping that no consumer reads, so nothing signals it\" \u2014 in the answer, entry-level slips actually DO raise DeclarationError and fail loudly (per _reject_unknown), contradicting rather than confirming the item's premise."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 11,
+      "text": "confirms the correctly-written case positively: a recognised section is read and its source path is recorded, rather than merely \"nothing bad happens\"",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"6. **Result: Build succeeds, dataflow edges are recorded**\" (Correctly Written Manifest section, item 5-6: \"`_declared_keys_from_doc` builds the manifest... Result: Build succeeds, dataflow edges are recorded\")",
+        "why": "The correct case confirms parsing/validation success and that edges are recorded, but never names a source path being read/recorded (e.g., a file path or origin string) for the recognized section \u2014 it only mentions the manifest/edges, not a path.",
+        "raw": "QUOTE: \"6. **Result: Build succeeds, dataflow edges are recorded**\" (Correctly Written Manifest section, item 5-6: \"`_declared_keys_from_doc` builds the manifest... Result: Build succeeds, dataflow edges are recorded\")\nVERDICT: MISS\nWHY: The correct case confirms parsing/validation success and that edges are recorded, but never names a source path being read/recorded (e.g., a file path or origin string) for the recognized section \u2014 it only mentions the manifest/edges, not a path."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 12,
+      "text": "**reports that a declaration may live in two places and that the dedicated file WINS when both exist**, rather than the two being merged",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "Answer describes validation/rejection of unknown keys, not a \"declaration may live in two places, dedicated file wins over merge\" scenario.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: Answer describes validation/rejection of unknown keys, not a \"declaration may live in two places, dedicated file wins over merge\" scenario."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 13,
+      "text": "states that the passthrough location is read only when the dedicated file is absent",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"**RAISES `DeclarationError`** (declaration.py:330-336)\" / the whole answer describes explicit refuse-behavior at every level, never a passthrough fallback location read only when a dedicated file is absent",
+        "why": "The answer covers unknown-key/section rejection and YAML-parse-error degradation, but never discusses a \"passthrough location\" being read only when a dedicated file is absent \u2014 that specific mechanism is not addressed at all.",
+        "raw": "QUOTE: \"**RAISES `DeclarationError`** (declaration.py:330-336)\" / the whole answer describes explicit refuse-behavior at every level, never a passthrough fallback location read only when a dedicated file is absent\nVERDICT: MISS\nWHY: The answer covers unknown-key/section rejection and YAML-parse-error degradation, but never discusses a \"passthrough location\" being read only when a dedicated file is absent \u2014 that specific mechanism is not addressed at all."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 14,
+      "text": "states that the source path travels with the parsed data, and gives the reason \u2014 an error that names a file which need not exist sends an owner to edit nothing",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"the index still stamps directories some other rule EXCLUDES\" \u2014 NONE found on this specific item.",
+        "why": "The answer discusses DeclarationError messages naming files/keys and build failures, but never states that parsed data carries its source path with it, nor gives the reasoning that an error naming a nonexistent file misdirects an owner's edits.",
+        "raw": "QUOTE: \"the index still stamps directories some other rule EXCLUDES\" \u2014 NONE found on this specific item.\nVERDICT: MISS\nWHY: The answer discusses DeclarationError messages naming files/keys and build failures, but never states that parsed data carries its source path with it, nor gives the reasoning that an error naming a nonexistent file misdirects an owner's edits."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

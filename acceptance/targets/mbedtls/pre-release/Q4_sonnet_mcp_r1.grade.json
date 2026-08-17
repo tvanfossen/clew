@@ -1,0 +1,632 @@
+{
+  "q": "Q4",
+  "arm": "mcp",
+  "model": "sonnet",
+  "run": 1,
+  "answer": "Q4_sonnet_mcp_r1.md",
+  "rubric": "acceptance/targets/mbedtls/questions.yaml",
+  "declared_mark_count": 26,
+  "summary": {
+    "marks_hit": 18,
+    "marks_miss": 8,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 26,
+    "verdicts_disambiguated": 1,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": null,
+    "falsity_verdict": null,
+    "marks_total": 26,
+    "score": 18.0,
+    "score_strict": 18.0
+  },
+  "falsity": null,
+  "marks": [
+    {
+      "index": 1,
+      "text": "identifies `library/` as the implementation",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`library/` | 174 | 4,690 | Implementation \u2014 the `.c` files behind that API\"",
+        "why": "The answer explicitly identifies `library/` as the implementation directory.",
+        "raw": "QUOTE: \"`library/` | 174 | 4,690 | Implementation \u2014 the `.c` files behind that API\"\nVERDICT: HIT\nWHY: The answer explicitly identifies `library/` as the implementation directory."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "identifies `include/` as the public interface",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`include/` | 97 | 4,057 | Public API \u2014 headers under `include/mbedtls`, `include/psa`, `include/tls13`\"",
+        "why": "The answer explicitly labels include/ as the \"Public API\"/public interface.",
+        "raw": "QUOTE: \"`include/` | 97 | 4,057 | Public API \u2014 headers under `include/mbedtls`, `include/psa`, `include/tls13`\"\nVERDICT: HIT\nWHY: The answer explicitly labels include/ as the \"Public API\"/public interface."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "states what each of `library/` and `include/` holds that the other does not \u2014 the implementations against the declared contract",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [
+          "library:0",
+          "include:0"
+        ],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`include/` | 97 | 4,057 | Public API \u2014 headers... `library/` | 174 | 4,690 | Implementation \u2014 the `.c` files behind that API\"",
+        "why": "Answer explicitly states include/ holds declared public API headers while library/ holds the .c implementation files behind them, the contract-vs-implementation split the item requires.",
+        "raw": "QUOTE: \"`include/` | 97 | 4,057 | Public API \u2014 headers... `library/` | 174 | 4,690 | Implementation \u2014 the `.c` files behind that API\"\nVERDICT: HIT\nWHY: Answer explicitly states include/ holds declared public API headers while library/ holds the .c implementation files behind them, the contract-vs-implementation split the item requires."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "identifies `programs/` as sample applications",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`programs/` (80 indexed, 965 symbols) \u2014 example/utility executables built on top of the library, not the library itself.\"",
+        "why": "Explicitly identifies programs/ as example applications, distinct from the library.",
+        "raw": "QUOTE: \"`programs/` (80 indexed, 965 symbols) \u2014 example/utility executables built on top of the library, not the library itself.\"\nVERDICT: HIT\nWHY: Explicitly identifies programs/ as example applications, distinct from the library."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "identifies `tests/` as the test suite",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`tests/` (44 indexed, 859 symbols; 310 files on disk \u2014 most are `.data`/`.function` test-generator inputs the index's grammar doesn't parse) \u2014 the test suite.\"",
+        "why": "The answer explicitly names tests/ as the test suite.",
+        "raw": "QUOTE: \"`tests/` (44 indexed, 859 symbols; 310 files on disk \u2014 most are `.data`/`.function` test-generator inputs the index's grammar doesn't parse) \u2014 the test suite.\"\nVERDICT: HIT\nWHY: The answer explicitly names tests/ as the test suite."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "states that `tests/` is the largest directory in the repository",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer's largest-by-count table lists `library/` (174) as biggest and never claims `tests/` is the largest directory; its `tests/` entry (44 indexed) is smaller than several others cited.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer's largest-by-count table lists `library/` (174) as biggest and never claims `tests/` is the largest directory; its `tests/` entry (44 indexed) is smaller than several others cited."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 7,
+      "text": "identifies `3rdparty/` as code mbedtls did not author",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"**`3rdparty/`** (32 indexed / 38 on disk, 454 symbols) \u2014 explicitly vendored, not mbedtls's own code. The project says so itself: `README.md:319-324` \u2014 \\\"Third-party code included in Mbed TLS\u2026 located within the `3rdparty/` directory,\\\" naming Project Everest (`3rdparty/everest/`) and p256-m (`3rdparty/p256-m/p256-m/`) as imported under their own licenses.\"",
+        "why": "The answer explicitly identifies 3rdparty/ as vendored code not authored by mbedtls, citing the project's own README statement.",
+        "raw": "QUOTE: \"**`3rdparty/`** (32 indexed / 38 on disk, 454 symbols) \u2014 explicitly vendored, not mbedtls's own code. The project says so itself: `README.md:319-324` \u2014 \\\"Third-party code included in Mbed TLS\u2026 located within the `3rdparty/` directory,\\\" naming Project Everest (`3rdparty/everest/`) and p256-m (`3rdparty/p256-m/p256-m/`) as imported under their own licenses.\"\nVERDICT: HIT\nWHY: The answer explicitly identifies 3rdparty/ as vendored code not authored by mbedtls, citing the project's own README statement."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 8,
+      "text": "names at least one of its two components (`everest`, `p256-m`)",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"naming Project Everest (`3rdparty/everest/`) and p256-m (`3rdparty/p256-m/p256-m/`) as imported under their own licenses\"",
+        "why": "Both component names, everest and p256-m, are explicitly named.",
+        "raw": "QUOTE: \"naming Project Everest (`3rdparty/everest/`) and p256-m (`3rdparty/p256-m/p256-m/`) as imported under their own licenses\"\nVERDICT: HIT\nWHY: Both component names, everest and p256-m, are explicitly named."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "states that `3rdparty/` is COMMITTED into the tree rather than being a submodule",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"**`3rdparty/`** (32 indexed / 38 on disk, 454 symbols) \u2014 explicitly vendored, not mbedtls's own code. The project says so itself: `README.md:319-324` \u2014 \\\"Third-party code included in Mbed TLS\u2026 located within the `3rdparty/` directory,\\\" naming Project Everest (`3rdparty/everest/`) and p256-m (`3rdparty/p256-m/p256-m/`) as imported under their own licenses.\"",
+        "why": "The answer describes 3rdparty/ as vendored third-party code but never states it is committed into the tree rather than a submodule.",
+        "raw": "QUOTE: \"**`3rdparty/`** (32 indexed / 38 on disk, 454 symbols) \u2014 explicitly vendored, not mbedtls's own code. The project says so itself: `README.md:319-324` \u2014 \\\"Third-party code included in Mbed TLS\u2026 located within the `3rdparty/` directory,\\\" naming Project Everest (`3rdparty/everest/`) and p256-m (`3rdparty/p256-m/p256-m/`) as imported under their own licenses.\"\nVERDICT: MISS\nWHY: The answer describes 3rdparty/ as vendored third-party code but never states it is committed into the tree rather than a submodule."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 10,
+      "text": "identifies `framework/` as the repository's one actual submodule",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"**`3rdparty/`** (32 indexed / 38 on disk, 454 symbols) \u2014 explicitly vendored, not mbedtls's own code.\"",
+        "why": "The answer identifies 3rdparty/ as vendored/imported third-party code, but never states it is a git submodule (nor does it name `framework/` at all) \u2014 a different mechanism than \"submodule.\"",
+        "raw": "QUOTE: \"**`3rdparty/`** (32 indexed / 38 on disk, 454 symbols) \u2014 explicitly vendored, not mbedtls's own code.\"\nVERDICT: MISS\nWHY: The answer identifies 3rdparty/ as vendored/imported third-party code, but never states it is a git submodule (nor does it name `framework/` at all) \u2014 a different mechanism than \"submodule.\""
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 11,
+      "text": "notes that `framework/` is UNPOPULATED in this checkout",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer discusses include/, library/, 3rdparty/, programs/, tests/, configs/, scripts/, docs/, but never mentions a `framework/` directory being unpopulated.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses include/, library/, 3rdparty/, programs/, tests/, configs/, scripts/, docs/, but never mentions a `framework/` directory being unpopulated."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 12,
+      "text": "gives a size figure at all",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"271 first-party source files / ~8,700 documented symbols\"",
+        "why": "The answer explicitly gives a concrete size figure for the codebase.",
+        "raw": "QUOTE: \"271 first-party source files / ~8,700 documented symbols\"\nVERDICT: HIT\nWHY: The answer explicitly gives a concrete size figure for the codebase."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 13,
+      "text": "says WHAT that figure counted \u2014 a bare number earns the figure mark and not this one",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"271 indexed files, ~8,700 symbols\" ... \"it's an *index* count (files this repo's grammar can parse), not a raw file census\"",
+        "why": "The answer explicitly states what each figure counts (indexed/parsed files and symbols vs. disk file census), not just bare numbers.",
+        "raw": "QUOTE: \"271 indexed files, ~8,700 symbols\" ... \"it's an *index* count (files this repo's grammar can parse), not a raw file census\"\nVERDICT: HIT\nWHY: The answer explicitly states what each figure counts (indexed/parsed files and symbols vs. disk file census), not just bare numbers."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 14,
+      "text": "the figure is defensible against source. Any of these is creditable and none may be marked down: 949 tracked files, 431 C sources and headers, 177 files under `library/`, 109 implementation `.c` files, 99 files under `include/`, 97 public headers",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"disk has 99 files under `include/` and 177 under `library/` (grep, disk listing)\"",
+        "why": "States both creditable disk figures (99 under include/, 177 under library/) explicitly.",
+        "raw": "QUOTE: \"disk has 99 files under `include/` and 177 under `library/` (grep, disk listing)\"\nVERDICT: HIT\nWHY: States both creditable disk figures (99 under include/, 177 under library/) explicitly."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 15,
+      "text": "distinguishes the LIBRARY's size from the REPOSITORY's",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"That's the number I'd give someone asking 'how big is mbedtls': **271 first-party source files / ~8,700 documented symbols**... Everything else in the repo is not the library\"",
+        "why": "The answer explicitly separates the library (include/+library/, 271 files) from the full repository (adding 3rdparty, programs, tests, configs, scripts, docs, root), stating a distinct size for each.",
+        "raw": "QUOTE: \"That's the number I'd give someone asking 'how big is mbedtls': **271 first-party source files / ~8,700 documented symbols**... Everything else in the repo is not the library\"\nVERDICT: HIT\nWHY: The answer explicitly separates the library (include/+library/, 271 files) from the full repository (adding 3rdparty, programs, tests, configs, scripts, docs, root), stating a distinct size for each."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 16,
+      "text": "states positively what a whole-repository count includes beyond the library \u2014 tests, samples, vendored code, build and project files",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer breaks out non-library directories individually (tests, 3rdparty, programs, configs, scripts, docs) but never states the item's actual claim \u2014 that a whole-repository count/index would include all of these plus build/project files as part of that total; it only ever frames them as \"not the library.\"",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer breaks out non-library directories individually (tests, 3rdparty, programs, configs, scripts, docs) but never states the item's actual claim \u2014 that a whole-repository count/index would include all of these plus build/project files as part of that total; it only ever frames them as \"not the library.\""
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 17,
+      "text": "identifies which of those is the largest contributor to the gap (`tests/`)",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"tests/` (44 indexed, 859 symbols; 310 files on disk \u2014 most are `.data`/`.function` test-generator inputs the index's grammar doesn't parse) \u2014 the test suite.\" combined with \"`programs/`... 965 symbols\" and \"3rdparty/`... 454 symbols\" showing tests/ has more disk files (310) than programs (80) or 3rdparty (32), but symbol count (859) is less than programs (965)",
+        "why": "The answer lists tests/, programs/, 3rdparty/, configs/, scripts/, docs/ as non-library contributors but never identifies which single one is the largest contributor to any \"gap\" (e.g., doc-build coverage gap or index-vs-disk gap) \u2014 it presents parallel data without naming a largest contributor among them.",
+        "raw": "QUOTE: \"tests/` (44 indexed, 859 symbols; 310 files on disk \u2014 most are `.data`/`.function` test-generator inputs the index's grammar doesn't parse) \u2014 the test suite.\" combined with \"`programs/`... 965 symbols\" and \"3rdparty/`... 454 symbols\" showing tests/ has more disk files (310) than programs (80) or 3rdparty (32), but symbol count (859) is less than programs (965)\nVERDICT: MISS\nWHY: The answer lists tests/, programs/, 3rdparty/, configs/, scripts/, docs/ as non-library contributors but never identifies which single one is the largest contributor to any \"gap\" (e.g., doc-build coverage gap or index-vs-disk gap) \u2014 it presents parallel data without naming a largest contributor among them."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 18,
+      "text": "finds the project's own documentation configuration",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`doxygen/mbedtls.doxyfile:9-11`: INPUT = ../include input ../tests/include/alt-dummy / FILE_PATTERNS = *.h / RECURSIVE = YES\"",
+        "why": "The answer locates and quotes the project's own Doxygen configuration file and its scope-defining settings.",
+        "raw": "QUOTE: \"`doxygen/mbedtls.doxyfile:9-11`: INPUT = ../include input ../tests/include/alt-dummy / FILE_PATTERNS = *.h / RECURSIVE = YES\"\nVERDICT: HIT\nWHY: The answer locates and quotes the project's own Doxygen configuration file and its scope-defining settings."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 19,
+      "text": "names where it lives (`doxygen/mbedtls.doxyfile`)",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"doxygen/mbedtls.doxyfile:9-11\"",
+        "why": "The answer names the exact file location (doxygen/mbedtls.doxyfile) where the doc build's scope is defined.",
+        "raw": "QUOTE: \"doxygen/mbedtls.doxyfile:9-11\"\nVERDICT: HIT\nWHY: The answer names the exact file location (doxygen/mbedtls.doxyfile) where the doc build's scope is defined."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 20,
+      "text": "states that its build covers HEADERS ONLY",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"That's `*.h` only, over three roots... It does not include `library/*.c` at all\"",
+        "why": "The answer explicitly states the doc build covers only headers (*.h), not the .c implementation.",
+        "raw": "QUOTE: \"That's `*.h` only, over three roots... It does not include `library/*.c` at all\"\nVERDICT: HIT\nWHY: The answer explicitly states the doc build covers only headers (*.h), not the .c implementation."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 21,
+      "text": "names the declaration that says so (`FILE_PATTERNS = *.h`)",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "FILE_PATTERNS"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `FILE_PATTERNS` \u2014 FILE_PATTERNS  = *.h"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 22,
+      "text": "concludes that by its own declaration it reaches none of the implementation files",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "NONE",
+        "why": "The answer identifies library/ as the implementation directory and notes the doc build excludes it, but never states the broader claim that the doxyfile's own declared scope reaches none of the implementation files as an explicit conclusion about the declaration's reach \u2014 it does state \"It does not include `library/*.c` at all\" which is actually a match.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer identifies library/ as the implementation directory and notes the doc build excludes it, but never states the broader claim that the doxyfile's own declared scope reaches none of the implementation files as an explicit conclusion about the declaration's reach \u2014 it does state \"It does not include `library/*.c` at all\" which is actually a match.\n\nQUOTE: \"It does not include `library/*.c` at all\"\nVERDICT: HIT\nWHY: This directly states the doc build's own declared scope (the Doxyfile INPUT/FILE_PATTERNS) never reaches the implementation (.c) files.",
+        "verdict_disambiguated": true,
+        "verdict_sequence": [
+          "MISS",
+          "HIT"
+        ]
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 23,
+      "text": "names at least one directory its `INPUT` does list (`include`)",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "INPUT"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `INPUT` \u2014 INPUT          = ../include input ../tests/include/alt-dummy"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 24,
+      "text": "explains that an API reference documents the published CONTRACT",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"mbedtls's own doc build documents the public interface, not the implementation behind it\"",
+        "why": "The answer describes the doc build's file scope (headers only) but never states that an API reference documents the published/supported CONTRACT (vs. internals) \u2014 it's about which files are input, not the contract concept.",
+        "raw": "QUOTE: \"mbedtls's own doc build documents the public interface, not the implementation behind it\"\nVERDICT: MISS\nWHY: The answer describes the doc build's file scope (headers only) but never states that an API reference documents the published/supported CONTRACT (vs. internals) \u2014 it's about which files are input, not the contract concept."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 25,
+      "text": "explains that understanding what the library DOES requires the implementations",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"So the honest three-part answer... **The doc build's scope**: a strict subset of that \u2014 just the `*.h` public headers in `include/`... never the `.c` implementation.\"",
+        "why": "The answer discusses what counts as \"the library\" (headers+implementation) and what the doc build covers, but never makes the specific claim that understanding what the library DOES (its behavior/functionality) requires reading the implementations \u2014 it's about scope/inventory, not about behavioral understanding requiring implementation.",
+        "raw": "QUOTE: \"So the honest three-part answer... **The doc build's scope**: a strict subset of that \u2014 just the `*.h` public headers in `include/`... never the `.c` implementation.\"\nVERDICT: MISS\nWHY: The answer discusses what counts as \"the library\" (headers+implementation) and what the doc build covers, but never makes the specific claim that understanding what the library DOES (its behavior/functionality) requires reading the implementations \u2014 it's about scope/inventory, not about behavioral understanding requiring implementation."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 26,
+      "text": "states that the doc build never reads those implementations, so it cannot answer that second question at all",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"It does not include `library/*.c` at all \u2014 mbedtls's own doc build documents the public interface, not the implementation behind it\"",
+        "why": "States the doc build never reads library/*.c implementations, so it cannot answer questions about that implementation.",
+        "raw": "QUOTE: \"It does not include `library/*.c` at all \u2014 mbedtls's own doc build documents the public interface, not the implementation behind it\"\nVERDICT: HIT\nWHY: States the doc build never reads library/*.c implementations, so it cannot answer questions about that implementation."
+      },
+      "verdict": "HIT"
+    }
+  ]
+}

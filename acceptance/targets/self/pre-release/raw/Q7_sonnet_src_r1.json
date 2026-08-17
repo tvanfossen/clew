@@ -1,0 +1,80 @@
+{
+  "is_error": false,
+  "duration_api_ms": 60886,
+  "num_turns": 10,
+  "stop_reason": "end_turn",
+  "session_id": "8ce3f321-518a-4727-98e2-1f5fc88ac4e8",
+  "total_cost_usd": 1.0752411,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 122804,
+    "cache_read_input_tokens": 900717,
+    "output_tokens": 4449,
+    "output_tokens_details": {
+      "thinking_tokens": 496
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 122804,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2897,
+        "cache_read_input_tokens": 117508,
+        "cache_creation_input_tokens": 8450,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 8450
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1327,
+      "outputTokens": 16,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001407,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 20,
+      "outputTokens": 4449,
+      "cacheReadInputTokens": 900717,
+      "cacheCreationInputTokens": 122804,
+      "webSearchRequests": 0,
+      "costUSD": 1.0738341,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Answer\n\n### The mechanism: content-addressed sidecar cache, keyed independently at three granularities\n\n`docs.db` itself is **rebuilt from scratch every run** (doxygen \u2192 copy \u2192 augment \u2192 atomic `os.replace`) \u2014 the incrementality state cannot live inside it, so it lives in a separate SQLite sidecar file, `<output>.idxcache` by default (`doxyguard_db/indexcache.py:7-9`, `doxyguard_db/cli.py:2033,2112`).\n\nThat sidecar holds three tables (`doxyguard_db/indexcache.py:9-24`):\n\n1. **`source_files`** \u2014 per-file identity: `size_bytes`, `mtime_ns`, `content_sha` (`doxyguard_db/indexcache.py:70-75`). `size+mtime_ns` is only a cheap prefilter to skip re-hashing; the sha256 of the file's bytes is the actual authority for \"changed or not\" (`doxyguard_db/treescan.py:8-12`, `indexcache.py:206-218`). This is why a `touch` with no edit, or a branch checkout that restores identical bytes, both register as unchanged (`treescan.py:11-12`).\n2. **`extract_cache`** \u2014 per-file AST-harvest payloads keyed by `(content_sha, stage, stage_version, extra_key)` (`indexcache.py:76-83`). Payloads are deliberately **rowid-free** \u2014 they store source lines/identifier text, and rowid resolution happens fresh every build against the newly generated `memberdef` table, because doxygen rowids aren't stable run to run (`indexcache.py:15-19`).\n3. **`doxygen_cache`** \u2014 `tree_sha \u2192 (db_path, output_sha)`, letting an unchanged tree skip re-running doxygen entirely, the most expensive stage (`indexcache.py:20-24`, `52-58`). `tree_sha` folds the build version, the exact Doxyfile bytes fed to doxygen, and the sorted `(path, content_sha)` set together (`indexcache.py:364-379`).\n\n### Why it's kept in a sidecar, not in docs.db\n\nTwo reasons, both explicit in the module docstring: docs.db is regenerated wholesale every run so state that needs to *persist across* runs can't live in it (`indexcache.py:7-9`); and the per-file payloads are content-addressed rather than tied to any particular database's rowids, which lets them survive the fact that doxygen assigns new, unstable rowids on every parse (`indexcache.py:15-19`).\n\n### What makes previously-done work count as no longer usable (every invalidation trigger)\n\n- **File content changed** \u2014 `content_sha` differs from what's stored for that path; `mtime_ns`/`size` only gate whether re-hashing happens, never the hit/miss decision itself (`indexcache.py:206-218,243-246`).\n- **File added** \u2014 no prior identity row exists for the path (`indexcache.py:241-242`).\n- **File removed** \u2014 a path in the previous scan is absent from the current tree; its `source_files` row is dropped on commit, so it stops ever hitting again (`indexcache.py:247`, `510-516`).\n- **`DOXYGUARD_DB_BUILD_VERSION` bump** \u2014 wipes `source_files`, `extract_cache`, and `doxygen_cache` unconditionally; deliberately belt-and-braces rather than reasoning about which stage moved (`indexcache.py:158-188`, rationale in `doxyguard_db/signature.py:16-18,26-359` \u2014 each numbered comment records *why* a given bump invalidates).\n- **Per-stage `stage_version` bump** \u2014 invalidates only that stage's `extract_cache` rows (keyed into the tuple), without forcing a whole-cache wipe (`indexcache.py:76-83`, e.g. signature.py's notes at builds 43\u219244/44\u219245/46/48 on `stage_version` moving independently of `DOXYGUARD_DB_BUILD_VERSION`).\n- **Manifest/declared-config content changes** (`--thread-patterns`, `--shared-key-patterns`, `--mqtt-dispatch`, `--data-model`, `--guard-config`, or an equivalent section of `.doxyguard-db.yaml`) \u2014 hashed via `manifest_key`/`extra_key` and folded into the affected stage's cache key, so editing a manifest re-runs exactly the stages it feeds (`treescan.py:107-131`, `indexcache.py:28-30`).\n- **Doxyfile content or forced flags change** \u2014 folded into `tree_sha`, so any INPUT/EXCLUDE/predefined/preprocessor change invalidates the doxygen-cache entry (`indexcache.py:364-379`).\n- **The cached doxygen output no longer matches its recorded digest** (`doxygen_get`) \u2014 because every `tree_sha` key names the *same* on-disk `db_path` (doxygen's output location is derived only from `--index-cache`/`--output`), a stale/aliased entry is detected by re-hashing the file and comparing to the recorded `output_sha`; a mismatch forces a miss even though the row still \"exists\" (`indexcache.py:381-435`, rationale gh#399).\n- **An unhashable/unreadable file** \u2014 `hash_file` returns `\"\"` on OSError, which is treated as \"perpetually changed,\" never trusted as a match (`treescan.py:90-104`); similarly an unhashable doxygen output is simply not cached at all rather than risking a false hit (`indexcache.py:440-459`).\n- **`--rebuild` (`read_enabled=False`)** \u2014 makes every lookup of a *prior* run's entry miss (forces a full re-warm), while still allowing entries this same run just wrote to be served, so `--rebuild` doesn't undo the shared single-parse-per-file optimization within one run (`indexcache.py:94-100,278-283`).\n- **`doxygen_cache` table shape mismatch** (an older sidecar predates a column, e.g. missing `output_sha`) \u2014 the whole table is dropped and recreated rather than migrated, since it's pure cache and costs only one doxygen re-run (`indexcache.py:129-156`).\n\nOverall invalidation policy is explicitly \"trigger-happy\": *when in doubt, miss* \u2014 a false miss costs time, a false hit ships a wrong database (`indexcache.py:26`).\n\n### What is NOT made incremental\n\nEvery **cross-file / whole-graph** augmentation stage is always fully recomputed on every build, regardless of cache state \u2014 reachability, thread membership, boundary annotation, requirements, and (by the same logic) call/dataflow edges, because they depend on the entire assembled graph rather than any single file (`doxyguard_db/cli.py:1282-1284`, doc comment: *\"every CROSS-FILE stage below... is always recomputed, because they depend on the whole assembled graph\"*). Only the **per-file AST extraction stages** are incremental via the cache (`cli.py:1291-1293`, gh#358 shared-parse-pass note).\n\nAdditionally:\n- `docs.db` itself is never incrementally patched \u2014 it's built fresh into a temp path and atomically swapped in (`indexcache.py:7-9`; `cli.py:2033,2112`).\n- The **running MCP server process's own code/logic is not incremental at all** \u2014 it's fixed at import/launch time. A source change is invisible to it until restart; `mcp_server/freshness.py:14-16,90-104,156-161` computes a `code` staleness axis specifically because rebuilding through a stale server can *silently downgrade* the index (drop whole layers) while reporting success (`freshness.py:30-40`). This is explicitly *not* fixed by hot-reloading modules \u2014 that's rejected as unsafe (`freshness.py:366-369`).\n\n## Gaps\n\n- I did not trace every individual stage's `stage_version` history in exhaustive detail (there are ~15+ numbered rationale entries in `signature.py`); I cited representative ones rather than all of them, since the mechanism (bump invalidates that stage's `extract_cache` rows) is uniform.\n- I did not verify from source exactly which augmentation stages besides reachability/threads/requirements/boundaries fall under \"cross-file, always recomputed\" \u2014 the docstring at `cli.py:1282-1284` names those four as examples but doesn't give an exhaustive enumeration, and I did not individually confirm each remaining stage (e.g. `shared_key_edges`, `locks`, `kconfig_gates`) against that claim by reading each module.",
+  "ttft_ms": 3340,
+  "ttft_stream_ms": 1590,
+  "time_to_request_ms": 277,
+  "type": "result",
+  "duration_ms": 60528,
+  "uuid": "4478da82-3096-4b64-8bbf-b484b28c27d1"
+}

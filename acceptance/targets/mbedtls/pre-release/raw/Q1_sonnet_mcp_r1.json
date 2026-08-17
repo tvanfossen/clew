@@ -1,0 +1,80 @@
+{
+  "is_error": false,
+  "duration_api_ms": 44915,
+  "num_turns": 6,
+  "stop_reason": "end_turn",
+  "session_id": "cb3d9725-c60c-45d0-aea9-41843edfbef3",
+  "total_cost_usd": 0.5315907,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 54453,
+    "cache_read_input_tokens": 489639,
+    "output_tokens": 3765,
+    "output_tokens_details": {
+      "thinking_tokens": 545
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 54453,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2424,
+        "cache_read_input_tokens": 97334,
+        "cache_creation_input_tokens": 465,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 465
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1375,
+      "outputTokens": 19,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.00147,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 12,
+      "outputTokens": 3765,
+      "cacheReadInputTokens": 489639,
+      "cacheCreationInputTokens": 54453,
+      "webSearchRequests": 0,
+      "costUSD": 0.5301207,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Yes \u2014 mbedtls uses mutexes extensively, all built on a single pluggable abstraction layer rather than raw pthread calls scattered through the code.\n\n## The abstraction: function-pointer indirection\n\n`include/mbedtls/threading.h:29` defines `mbedtls_threading_mutex_t`, a struct wrapping a `pthread_mutex_t private_mutex` plus a `private_state` field used only by test instrumentation.\n\nThe actual lock/unlock/init/free operations are **global function pointers**, not direct calls:\n- `mbedtls_mutex_init`, `mbedtls_mutex_lock`, `mbedtls_mutex_unlock` are declared `extern` in `include/mbedtls/threading.h:111-114` and defined as function-pointer variables in `library/threading.c:101-104`.\n- By default they're initialized to the pthread-backed implementations: `threading_mutex_init_pthread` (`library/threading.c:51-64`, wraps `pthread_mutex_init`) and `threading_mutex_lock_pthread` (`library/threading.c:75-86`, wraps `pthread_mutex_lock`).\n- `mbedtls_threading_set_alt()` (`library/threading.c:133-154`) lets an application swap in its own mutex implementation (e.g. for a non-pthread OS/RTOS) by overwriting these four pointers, then re-initializes the library's own static mutexes through the new pointers.\n\nAll of this is gated behind `MBEDTLS_THREADING_C` / `MBEDTLS_THREADING_PTHREAD` (`library/threading.c:18,50`) \u2014 locking is compiled out entirely if threading support isn't enabled.\n\n## Where mutexes are used\n\nTen distinct lock identities exist in the codebase, all first-party:\n\n**Global/static mutexes** (declared once, protecting module-level state), all `mbedtls_threading_mutex_t`, initialized via the function pointers above:\n- `mbedtls_threading_key_slot_mutex` \u2014 protects the PSA key-slot table. Acquired around key lifecycle operations: `psa_destroy_key` (`library/psa_crypto.c:1310-1421`), `psa_start_key_creation`/`psa_finish_key_creation`/`psa_fail_key_creation` (`library/psa_crypto.c:1801-1808, 1927-1991, 2022-2045`), and `psa_get_and_lock_key_slot`/`psa_close_key`/`psa_purge_key`/`psa_unregister_read_under_mutex` in `library/psa_crypto_slot_management.c:822-891, 938-943, 1034-1055, 1071-1090`.\n- `mbedtls_threading_psa_globaldata_mutex` \u2014 protects PSA global init state, e.g. `psa_get_initialized`/`psa_get_drivers_initialized` (`library/psa_crypto.c:141-148, 159-165`), `mbedtls_psa_crypto_free`/`mbedtls_psa_crypto_init_subsystem` (`library/psa_crypto.c:8407-8593`).\n- `mbedtls_threading_psa_rngdata_mutex` \u2014 protects the shared PSA RNG/DRBG state, e.g. `psa_random_reseed`/`psa_random_deplete` (`library/psa_crypto.c:8030-8056`), `mbedtls_psa_crypto_init_subsystem` (`library/psa_crypto.c:8545-8560`), `psa_random_internal_generate` (`library/psa_crypto_random.c:147-154`).\n- `mbedtls_threading_gmtime_mutex` \u2014 guards a non-reentrant `gmtime()` call (`library/platform_util.c`, 1 acquisition).\n- `mbedtls_threading_readdir_mutex` \u2014 guards non-reentrant `readdir()` use in certificate-path loading (`library/x509_crt.c`, 1 acquisition).\n\n**Per-object mutexes** (embedded as a struct member, one instance per object):\n- `mbedtls_rsa_context.private_mutex` (`include/mbedtls/rsa.h:120`) \u2014 serializes access to a single RSA context (e.g. blinding-value state) across calls like `mbedtls_rsa_private`/`mbedtls_rsa_public`. Locked/unlocked via `mbedtls_mutex_lock/unlock(&ctx->mutex)` at `library/rsa.c:1239,1257,1518,1631`.\n- `cache->mutex` in the SSL session cache (`library/ssl_cache.c`) \u2014 protects `mbedtls_ssl_cache_get/set/remove`.\n- `heap.mutex` in `library/memory_buffer_alloc.c` \u2014 protects the static heap used by `mbedtls_memory_buffer_alloc_init` when `MBEDTLS_THREADING_C` is on, so the allocator is thread-safe.\n- `debug_mutex` in `programs/ssl/ssl_pthread_server.c` \u2014 an example-program-level mutex serializing debug-log output across the demo's worker threads (`handle_ssl_connection`, spawned via `pthread_create` at `programs/ssl/ssl_pthread_server.c:277`).\n\n## How the locking works, mechanically\n\nEvery use follows the same pattern: `mbedtls_mutex_lock(&mutex)` \u2192 check return code \u2192 critical section \u2192 `mbedtls_mutex_unlock(&mutex)` \u2192 check return code (both calls return `int`, propagating `MBEDTLS_ERR_THREADING_MUTEX_ERROR`/`MBEDTLS_ERR_THREADING_BAD_INPUT_DATA` on failure rather than asserting). Locks are exclusive (no reader/writer distinction) and all critical sections found are single-mutex \u2014 the index found **zero two-lock nestings**, i.e. no traced critical section here calls into a function that itself takes a second mutex, so there's no cross-mutex ordering to reason about from what's indexed.\n\n## Gaps\n\n- The index reports lock **identities** by operand spelling, not by distinct runtime object \u2014 for the per-object mutexes (`ctx->mutex`, `cache->mutex`, `heap.mutex`, `mutex->mutex`), I confirmed line numbers for `ctx->mutex` in `library/rsa.c` via a direct grep (the index's own `dossier` can't resolve a bare member-expression name to a site list \u2014 expected per its documented limitation). I did not similarly re-verify exact line numbers for `cache->mutex` and `heap.mutex`; their file locations came from the index's `search(corpus=locks)` result, not a line-numbered site.\n- I did not check whether any lock/unlock call sites exist elsewhere that use a different spelling of the same mutex operand (the index's own caveat: an identity is `(name, scope, kind)`, so a second spelling of the same object would appear as a separate, uncounted row).\n- Nesting analysis (0 two-lock holdings) only covers call-graph-traceable nesting inside indexed functions; it is not a deadlock proof and doesn't account for locking done through unresolved/fnptr-indirect calls the index marks `ambiguous`.",
+  "ttft_ms": 1878,
+  "ttft_stream_ms": 1385,
+  "time_to_request_ms": 80,
+  "type": "result",
+  "duration_ms": 44597,
+  "uuid": "7bfb4ff6-9b75-43a6-89e9-b9ede42c5dba"
+}

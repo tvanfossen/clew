@@ -1,0 +1,80 @@
+{
+  "is_error": false,
+  "duration_api_ms": 83804,
+  "num_turns": 11,
+  "stop_reason": "end_turn",
+  "session_id": "c6ad2fbc-a280-4a60-bb9b-e0f8c893cba4",
+  "total_cost_usd": 0.7276897999999999,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 65124,
+    "cache_read_input_tokens": 717436,
+    "output_tokens": 8013,
+    "output_tokens_details": {
+      "thinking_tokens": 3209
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 65124,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4545,
+        "cache_read_input_tokens": 105522,
+        "cache_creation_input_tokens": 2970,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2970
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1382,
+      "outputTokens": 18,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001472,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 16,
+      "outputTokens": 8013,
+      "cacheReadInputTokens": 717436,
+      "cacheCreationInputTokens": 65124,
+      "webSearchRequests": 0,
+      "costUSD": 0.7262178,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Where the boundary is\n\nEntropic vendors llama.cpp as a git submodule at `extern/llama.cpp` (`.gitmodules`), pinned to commit `20a04b22063020cd0f29b7781f5352d7a6abf786` (tag `gguf-v0.19.0-840-g20a04b220`) \u2014 code comments refer to this pin by its short form **\"b8420\"** (`src/inference/llama_cpp_backend.cpp:6`, `src/inference/adapter_manager.cpp:6`, `src/inference/llama_cpp_backend.h:8`).\n\nEntropic's own abstraction seam is a set of pure-virtual interfaces:\n- `entropic::InferenceBackend` \u2014 concrete base with 80% shared logic (`include/entropic/inference/backend.h:69`)\n- `entropic::Tokenizer` (`include/entropic/inference/tokenizer.h:40`)\n- `entropic::Sampler` / `entropic::SamplerFactory` (`include/entropic/inference/sampler.h:48,93`)\n\nThe **only** production implementations of these interfaces that talk to llama.cpp are:\n- `entropic::LlamaCppBackend` (`src/inference/llama_cpp_backend.h:65`, brief calls itself \"the 15% layer\")\n- `entropic::LlamaCppTokenizer` (`src/inference/llama_cpp_tokenizer.h:35`)\n- `entropic::LlamaCppSamplerFactory` / `entropic::LlamaCppSampler` (`src/inference/llama_cpp_sampler.h:118,~120`)\n\n(Their only siblings in the index's `derived` lists are test mocks \u2014 `MockBackend`, `MockTokenizer`, `MockSampler`, `MockSamplerFactory` \u2014 confirming these are the sole real seams.)\n\n## How wide the boundary actually is\n\nIt's wider than \"one backend class.\" Seven first-party translation units under `src/inference/` `#include <llama.h>` (or `mtmd.h`/`ggml.h`) directly and call the C API:\n\n| file | lines | llama.cpp surface used |\n|---|---|---|\n| `src/inference/llama_cpp_backend.h` / `.cpp` | 1281 / 4125 | `llama_model`, `llama_context`, `llama_vocab`, `llama_token`/`llama_seq_id`, decode loop, batching, MTP draft \u2014 plus `mtmd_context`/`mtmd_bitmap` (multimodal), forward-declared at `llama_cpp_backend.h:50-51`, full types only in the `.cpp` |\n| `src/inference/llama_cpp_tokenizer.cpp`/`.h` | 107 / 53 | vocab tokenize/detokenize API |\n| `src/inference/llama_cpp_sampler.cpp`/`.h` | 227 / 137 | `llama_sampler*` chain |\n| `src/inference/adapter_manager.cpp` | 495 | `llama_adapter_lora_init`/`_free` (LoRA C API, explicitly \"pinned b8420\" at line 6) |\n| `src/inference/speculative_compat.cpp` | 277 | `llama_model_is_recurrent`/`llama_model_is_hybrid` (`:58,:64`) \u2014 this file's entire purpose is bridging llama.cpp model-type differences |\n| `src/inference/grammar_registry.cpp` | 297 | `llama_sampler_init_grammar`/`llama_sampler_free` (`:264,:271`) |\n\n`src/inference/orchestrator.cpp` (1832 lines) includes `llama_cpp_backend.h` and `dynamic_cast`s to `LlamaCppBackend*` (`:330,:394,:396`) but doesn't call llama.h symbols itself \u2014 it depends on the concrete class, not the library.\n\n**The boundary leaks past `src/inference/` into public headers**, though only as opaque pointer types (not full API usage): `include/entropic/inference/adapter_manager.h:37-39`, `orchestrator.h:44-45`, and `speculative_compat.h:47` forward-declare `struct llama_model`, `llama_context`, `llama_adapter_lora` so entropic's own public API surface carries llama.cpp's pointer types as opaque handles. `include/entropic/types/config.h` also encodes llama.cpp semantics (its `llama_split_mode` enum at `:178`, hybrid/recurrent detection at `:886`, `llama_log_path` field at `:985`) even though it doesn't include `llama.h`.\n\nBuild-level coupling: `src/facade/CMakeLists.txt:40,48,67-69` links `llama`/`llama-common` and adds `extern/llama.cpp/include` and `extern/llama.cpp/ggml/include` to the include path.\n\nScale: `extern/llama.cpp` indexes to 1237 files / 30077 symbols vs. entropic's own `src`+`include` at 201 files / ~2783 symbols \u2014 the vendored library is roughly 10\u00d7 the symbol count of entropic's first-party inference code, but only **7 files** of those 201 actually call into it.\n\n## What would break on an upgrade\n\nDirectly, in likely-impact order:\n1. **`src/inference/llama_cpp_backend.{h,cpp}`** \u2014 largest and deepest coupling (decode loop, batching, MTP, mmproj/vision via mtmd). Any llama.cpp API rename/signature change here is highest risk.\n2. **`src/inference/speculative_compat.cpp`** \u2014 is *literally* the API-compatibility shim; if llama.cpp changes model-type detection semantics this is the first thing that needs editing (and the class is explicitly named for a pinned commit \u2014 `LlamaCppBackend_b8420`, `llama_cpp_backend.h:6-8` \u2014 implying the versioned-subclass pattern is the intended upgrade mechanism, not in-place editing).\n3. **`src/inference/adapter_manager.cpp`** \u2014 LoRA C API, explicitly commented as pinned to b8420.\n4. **`src/inference/grammar_registry.cpp`** \u2014 grammar sampler init/free.\n5. **`src/inference/llama_cpp_tokenizer.cpp`** / **`llama_cpp_sampler.cpp`** \u2014 narrower, single-purpose adapters, lower risk but still direct API surface.\n6. **`src/facade/CMakeLists.txt`** \u2014 link/include paths would need touching for any llama.cpp target rename or restructure.\n7. **Public headers with forward-declared llama types** (`include/entropic/inference/adapter_manager.h`, `orchestrator.h`, `speculative_compat.h`) \u2014 only break if llama.cpp renames these structs, but that would ripple into entropic's own public API, not just implementation files.\n\n**What would not break**: `src/inference/orchestrator.cpp` (depends on `LlamaCppBackend`, not llama.cpp directly), `src/config/loader.cpp:657` and `src/core/response_generator.cpp:205,354` (mention \"llama\" only in comments/a config key name, no API calls), and the `InferenceBackend`/`Tokenizer`/`Sampler`/`SamplerFactory` interfaces themselves, which are llama.cpp-agnostic by design.\n\n## Gaps\n\n- I did not read the full 4125-line `llama_cpp_backend.cpp` body \u2014 the dossier/grep confirm which llama.cpp symbols it touches by name, but I did not verify each call site individually for version-sensitivity.\n- I have not diffed against a newer llama.cpp commit, so \"what would break\" is inferred from *which* API surfaces are touched (decode, sampler, vocab, LoRA, grammar, model-type queries, mtmd) rather than confirmed against an actual upstream diff \u2014 I have no such diff available in this environment.\n- Whether `include/entropic/types/config.h`'s `llama_split_mode`-shaped enum and hybrid/recurrent config knobs are kept in sync with llama.cpp by a test or only by convention was not checked.",
+  "ttft_ms": 2495,
+  "ttft_stream_ms": 1283,
+  "time_to_request_ms": 72,
+  "type": "result",
+  "duration_ms": 84114,
+  "uuid": "b3419375-69f3-454b-b096-57e12f7d459d"
+}

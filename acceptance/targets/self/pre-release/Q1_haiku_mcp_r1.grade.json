@@ -1,0 +1,346 @@
+{
+  "q": "Q1",
+  "arm": "mcp",
+  "model": "haiku",
+  "run": 1,
+  "answer": "Q1_haiku_mcp_r1.md",
+  "rubric": "acceptance/targets/self/questions.yaml",
+  "declared_mark_count": 13,
+  "summary": {
+    "marks_hit": 7,
+    "marks_miss": 6,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 13,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": true,
+    "falsity_verdict": "CONSISTENT",
+    "marks_total": 13,
+    "score": 7.0,
+    "score_strict": 7.0
+  },
+  "falsity": {
+    "checked": true,
+    "verdict": "CONSISTENT",
+    "agreement": 1.0,
+    "tally": [
+      [
+        "CONSISTENT",
+        3
+      ]
+    ],
+    "samples": 3,
+    "errors": 0,
+    "facts": 4,
+    "vetoed": false
+  },
+  "marks": [
+    {
+      "index": 1,
+      "text": "names `derive_scope` in `doxyguard_db/scope.py` as where the decision is made",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [
+          "derive_scope"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [
+          "scope.py:0"
+        ],
+        "evidence": [
+          "symbol `derive_scope` \u2014 **Core logic:** `doxyguard_db/scope.py:166-191` in the `derive_scope()` function, which evaluates the three tiers."
+        ]
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Core logic: `doxyguard_db/scope.py:166-191` in the `derive_scope()` function, which evaluates the three tiers.\"",
+        "why": "Names derive_scope in scope.py as the decision point, matching the checklist item.",
+        "raw": "QUOTE: \"Core logic: `doxyguard_db/scope.py:166-191` in the `derive_scope()` function, which evaluates the three tiers.\"\nVERDICT: HIT\nWHY: Names derive_scope in scope.py as the decision point, matching the checklist item."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "states that there are exactly TWO outcomes \u2014 a declared `index_scope`, or the whole-repository default \u2014 rather than describing a longer chain of fallbacks",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"Location: `doxyguard_db/scope.py:200-242` in `whole_repo_scope()`\" combined with \"TIER 2 (DECLARED) \u2014 Medium Priority\" and \"TIER 1 (STATED) \u2014 Highest Priority\" describing three separate tiers rather than two outcomes",
+        "why": "The answer describes a three-tier chain (stated CLI arg, declared file, whole-repo default) rather than stating there are exactly two outcomes (declared index_scope vs. whole-repo default).",
+        "raw": "QUOTE: \"Location: `doxyguard_db/scope.py:200-242` in `whole_repo_scope()`\" combined with \"TIER 2 (DECLARED) \u2014 Medium Priority\" and \"TIER 1 (STATED) \u2014 Highest Priority\" describing three separate tiers rather than two outcomes\nVERDICT: MISS\nWHY: The answer describes a three-tier chain (stated CLI arg, declared file, whole-repo default) rather than stating there are exactly two outcomes (declared index_scope vs. whole-repo default)."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 3,
+      "text": "identifies the whole-repository tier as the DEFAULT reached whenever no `index_scope` is declared, not as a last resort reached only after other options fail",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "whole_repo_scope"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `whole_repo_scope` \u2014 - Location: `doxyguard_db/scope.py:200-242` in `whole_repo_scope()`"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "names `index_scope` as the declaration section that selects the non-default tier",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"The `index_scope:` section with `roots:` and `excludes:` keys (see lines 419-421 of scope.py for example format)\"",
+        "why": "The answer explicitly names `index_scope` as the declaration section used to select the declared (non-default) tier.",
+        "raw": "QUOTE: \"The `index_scope:` section with `roots:` and `excludes:` keys (see lines 419-421 of scope.py for example format)\"\nVERDICT: HIT\nWHY: The answer explicitly names `index_scope` as the declaration section used to select the declared (non-default) tier."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "reports that a declaration can arrive from more than one place \u2014 the dedicated `.doxyguard-db.yaml`, the guard config's `x-` passthrough, or stated by an embedding caller \u2014 rather than naming only one",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Location: `doxyguard_db/declaration.py:281-339` in `load_declaration_located()` determines which file is read... Declaration file: `.doxyguard-db.yaml` at repo root (preferred) OR `x-doxyguard-db` passthrough in `.doxygen-guard.yaml`\" and \"Parameter: CLI argument `--index_scope` or programmatic `stated` dict parameter\"",
+        "why": "The answer names all three sources \u2014 dedicated `.doxyguard-db.yaml`, the `x-doxyguard-db` passthrough in the guard config, and a stated/CLI parameter from an embedding caller \u2014 as distinct tiers rather than naming only one.",
+        "raw": "QUOTE: \"Location: `doxyguard_db/declaration.py:281-339` in `load_declaration_located()` determines which file is read... Declaration file: `.doxyguard-db.yaml` at repo root (preferred) OR `x-doxyguard-db` passthrough in `.doxygen-guard.yaml`\" and \"Parameter: CLI argument `--index_scope` or programmatic `stated` dict parameter\"\nVERDICT: HIT\nWHY: The answer names all three sources \u2014 dedicated `.doxyguard-db.yaml`, the `x-doxyguard-db` passthrough in the guard config, and a stated/CLI parameter from an embedding caller \u2014 as distinct tiers rather than naming only one."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "states that a caller-stated scope reports its provenance differently, as stated by the caller rather than by naming a file, and gives the reason: naming a file that says nothing sends an owner to edit nothing",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer notes tier-1 provenance is logged as \"stated by the caller\" but never gives the stated reason (that naming a file which says nothing would send an owner to edit nothing).",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer notes tier-1 provenance is logged as \"stated by the caller\" but never gives the stated reason (that naming a file which says nothing would send an owner to edit nothing)."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 7,
+      "text": "**states that a Doxyfile no longer supplies the INPUT** \u2014 the doc build is a publishing target, not a reasoning boundary. An answer describing a Doxyfile fallback for INPUT is describing behaviour that was removed",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"which replaces the Doxyfile's own INPUT entirely\"",
+        "why": "The answer explicitly states the Doxyfile's INPUT is replaced/overridden, not used as a fallback, matching the item's substance.",
+        "raw": "QUOTE: \"which replaces the Doxyfile's own INPUT entirely\"\nVERDICT: HIT\nWHY: The answer explicitly states the Doxyfile's INPUT is replaced/overridden, not used as a fallback, matching the item's substance."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 8,
+      "text": "**states that a Doxyfile is still read for ALIASES and PREDEFINED**, so \"the Doxyfile is ignored\" is too strong",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"Location: `doxyguard_db/declaration.py:281-339` in `load_declaration_located()` determines which file is read\" combined with \"which replaces the Doxyfile's own INPUT entirely\" \u2014 but no mention of ALIASES/PREDEFINED being retained from the Doxyfile.",
+        "why": "The answer describes INPUT being replaced but never states the Doxyfile is still read for ALIASES and PREDEFINED.",
+        "raw": "QUOTE: \"Location: `doxyguard_db/declaration.py:281-339` in `load_declaration_located()` determines which file is read\" combined with \"which replaces the Doxyfile's own INPUT entirely\" \u2014 but no mention of ALIASES/PREDEFINED being retained from the Doxyfile.\nVERDICT: MISS\nWHY: The answer describes INPUT being replaced but never states the Doxyfile is still read for ALIASES and PREDEFINED."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 9,
+      "text": "reports that the whole-repo tier subtracts the paths git ignores",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Paths git ignores: `_gitignored_paths(root)` at line 222 (via `git ls-files --others --ignored --exclude-standard --directory`)\"",
+        "why": "The answer explicitly states the whole-repo/default tier excludes git-ignored paths, naming the mechanism and location.",
+        "raw": "QUOTE: \"Paths git ignores: `_gitignored_paths(root)` at line 222 (via `git ls-files --others --ignored --exclude-standard --directory`)\"\nVERDICT: HIT\nWHY: The answer explicitly states the whole-repo/default tier excludes git-ignored paths, naming the mechanism and location."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 10,
+      "text": "**notices that gitignored paths are gathered on BOTH sides of every nested-tree boundary**, and gives the reason \u2014 `git ls-files` stops at a submodule boundary, so the parent sweep reports nothing inside a nested tree",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer notes a loop gathering nested trees' own ignored paths but never explains the mechanism/reason (git ls-files stopping at submodule boundaries requiring per-tree sweeps).",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer notes a loop gathering nested trees' own ignored paths but never explains the mechanism/reason (git ls-files stopping at submodule boundaries requiring per-tree sweeps)."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 11,
+      "text": "reports that dot and cache directories are also subtracted, as things no repository restates",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Dot-directories and cache directories: `_pruned_dirs()` at line 229 (excludes paths matching `_skip_dir()` at line 401, which catches `.git`, `__pycache__`, `node_modules`)\"",
+        "why": "The answer explicitly names dot and cache directories as subtracted in the default whole-repo scope, matching the item's substance.",
+        "raw": "QUOTE: \"Dot-directories and cache directories: `_pruned_dirs()` at line 229 (excludes paths matching `_skip_dir()` at line 401, which catches `.git`, `__pycache__`, `node_modules`)\"\nVERDICT: HIT\nWHY: The answer explicitly names dot and cache directories as subtracted in the default whole-repo scope, matching the item's substance."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 12,
+      "text": "**states that the doxygen-guard gate is NOT consulted for index scope**, and separates the two questions: the gate says what must be DOCUMENTED, the scope says what should be reasoned about",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never states the gate is separate from/not consulted for index scope; it only discusses the scope precedence system without mentioning the doxygen-guard gate's documentation requirement at all.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states the gate is separate from/not consulted for index scope; it only discusses the scope precedence system without mentioning the doxygen-guard gate's documentation requirement at all."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 13,
+      "text": "states that a nested git tree is INSIDE the whole-repo scope by construction, and that this is the intent rather than an oversight",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer describes nested git trees being included in whole-repo scope via `_gitignored_paths`/loop, but never states this inclusion is intentional design rather than an oversight.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes nested git trees being included in whole-repo scope via `_gitignored_paths`/loop, but never states this inclusion is intentional design rather than an oversight."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

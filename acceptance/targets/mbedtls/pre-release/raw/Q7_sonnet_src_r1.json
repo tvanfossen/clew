@@ -1,0 +1,80 @@
+{
+  "is_error": false,
+  "duration_api_ms": 29170,
+  "num_turns": 6,
+  "stop_reason": "end_turn",
+  "session_id": "27310437-d611-4bfa-9157-46194078edb1",
+  "total_cost_usd": 0.5908899,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 74062,
+    "cache_read_input_tokens": 382213,
+    "output_tokens": 2025,
+    "output_tokens_details": {
+      "thinking_tokens": 232
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 74062,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1118,
+        "cache_read_input_tokens": 76902,
+        "cache_creation_input_tokens": 326,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 326
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1343,
+      "outputTokens": 20,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001443,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 12,
+      "outputTokens": 2025,
+      "cacheReadInputTokens": 382213,
+      "cacheCreationInputTokens": 74062,
+      "webSearchRequests": 0,
+      "costUSD": 0.5894469,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Answer\n\n**Function added:** `library/version.c:38-41`\n\n```c\nint mbedtls_acceptance_probe(void)\n{\n    return 0;\n}\n```\n\n- **Signature:** `int mbedtls_acceptance_probe(void)` \u2014 `library/version.c:38`\n- **File:** `library/version.c` (inside the `#if defined(MBEDTLS_VERSION_C)` guard, `library/version.c:10` \u2026 `52`)\n- **Doxygen brief:** \"Acceptance-test probe: a no-op marker function used to verify that this build's source tree is being read live.\" \u2014 `library/version.c:33-34`\n- **Callers:** none. A repo-wide `Grep` for `mbedtls_acceptance_probe` (`library/version.c:38` diagnostics context) returned only the definition itself \u2014 no other file references it, so it is currently uncalled/unwired into any build target, test, or header declaration.\n\nNote: the function is also not declared in any header (e.g. `include/mbedtls/version.h`), so it isn't part of the public API surface \u2014 it only exists as a file-local addition inside `version.c`.\n\n## How I brought my view of the repo up to date\n\nI have no persistent index for this repo \u2014 every call reads the live filesystem. Before editing I ran:\n- `git log -1` and `git status --short` to confirm the current HEAD (`068ff08...`, clean tree aside from one untracked marker file) \u2014 effectively instantaneous (<1s).\n- `wc -l` + `tail -40` on `library/version.c`, then a full `Read` of the file (32 lines) to get exact line numbers before editing \u2014 instantaneous.\n\nAfter editing, I ran a repo-wide `Grep` for the new symbol name to check for callers \u2014 also effectively instantaneous (well under a second; the tool reported no meaningful latency).\n\nTotal elapsed wall-clock time for orientation + edit + verification was on the order of a few seconds \u2014 there was no build, no index rebuild, and no compilation step involved, since I only needed to read/edit source text and grep for references. (A pre-existing clangd/clang diagnostic about `mbedtls/build_info.h` not being found appeared after the edit, but it's unrelated to the new function \u2014 it reflects that `build_info.h` is a generated header not present without a configured build, and it also implicated the pre-existing `#include \"common.h\"` line, not anything I added.)\n\n## Gaps\n\n- I did not attempt to build the project, so I cannot confirm the file still compiles cleanly end-to-end (the `build_info.h` diagnostic suggests this tree isn't in a fully configured/generated state regardless of my change).\n- I did not exhaustively check generated/build artifacts (e.g. CMake-generated symbol lists, `.map`/`.def` files) for references to the new symbol \u2014 only the source tree via `Grep`. If such generated artifacts exist and are stale, they wouldn't show a reference either way since the function was just added.",
+  "ttft_ms": 2466,
+  "ttft_stream_ms": 1359,
+  "time_to_request_ms": 177,
+  "type": "result",
+  "duration_ms": 28433,
+  "uuid": "f846e84c-8bac-47a3-8f2b-48c8fd49b88a"
+}

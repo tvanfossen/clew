@@ -1,0 +1,40 @@
+{
+  "name": "disambiguate",
+  "used_by": [
+    "callees",
+    "callers",
+    "dossier"
+  ],
+  "why": [
+    "Included by every tool that ACCEPTS the `qualified` argument (gh#37). Before it, a",
+    "`candidates` list was advisory: `Candidate` documented its `file` field as \"the",
+    "disambiguating hint a consumer passes back\" and no accessor accepted one, so a model",
+    "that read the list correctly and picked the identity it wanted had no move available.",
+    "Measured on this repo's own self-index: eleven memberdef rows are named `harvest` and",
+    "ten `reimplements` rows name `Harvester.harvest` as their base, so a bare call resolved",
+    "to a SUBCLASS and reported `overridden_by: []` — a confident empty answer about the one",
+    "identity with ten implementors.",
+    "",
+    "The text names the FIELD to copy rather than describing a format, because a model that",
+    "has to construct the string will construct a plausible wrong one — this repo's own",
+    "record is that `Harvester.harvest` and `_CallSiteHarvester.harvest` both look like",
+    "valid selectors and neither resolves unless it is the full identity the payload",
+    "published. Copy, do not compose. That clause must never be cut from the served text.",
+    "",
+    "Cut 2026-08-11 for the fixed-prompt budget: the most-multiplied block in the surface,",
+    "so a sentence here costs three times its length on the wire.",
+    "",
+    "ROUND 2, 2026-08-11. Cut to the copy-verbatim instruction alone. Moved here, each",
+    "being a case where the argument is merely not useful rather than one where a model",
+    "would act wrongly:",
+    "  * it selects an IDENTITY, not a signature — run(int) and run(double) share one;",
+    "  * omitting it on a unique name is a no-op;",
+    "  * an unmatched value returns the ordinary not-found envelope, which says so at the",
+    "    time, and never widens the answer;",
+    "  * `edge_class='key'` rows stay scoped to the BARE name;",
+    "  * chain_trace does not accept it, and refuses an unknown argument."
+  ],
+  "text": [
+    "`qualified` picks WHICH same-named function you mean: a `candidates[i].qualified` string COPIED VERBATIM from an earlier reply, never composed, with the name left BARE."
+  ]
+}

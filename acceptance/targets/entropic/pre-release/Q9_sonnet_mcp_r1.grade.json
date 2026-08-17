@@ -1,0 +1,282 @@
+{
+  "q": "Q9",
+  "arm": "mcp",
+  "model": "sonnet",
+  "run": 1,
+  "answer": "Q9_sonnet_mcp_r1.md",
+  "rubric": "acceptance/targets/entropic/questions.yaml",
+  "declared_mark_count": 11,
+  "summary": {
+    "marks_hit": 9,
+    "marks_miss": 2,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 11,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": null,
+    "falsity_verdict": null,
+    "marks_total": 11,
+    "score": 9.0,
+    "score_strict": 9.0
+  },
+  "falsity": null,
+  "marks": [
+    {
+      "index": 1,
+      "text": "describes what the project IS \u2014 a local inference engine that runs a GGUF model and exposes tool-calling \u2014 rather than only listing directories",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Entropic is a C++ agentic-LLM engine: a shared-library core (`librentropic.so`) that runs a local LLM (via a bundled `llama.cpp` submodule) as a stateful, tool-using agent loop, exposed through a pure-C API (`entropic.h`) and a CLI binary. It supports MCP tool servers...\"",
+        "why": "The answer explicitly describes the project as a local inference engine running an LLM via llama.cpp with tool-calling/MCP support, not just a directory listing.",
+        "raw": "QUOTE: \"Entropic is a C++ agentic-LLM engine: a shared-library core (`librentropic.so`) that runs a local LLM (via a bundled `llama.cpp` submodule) as a stateful, tool-using agent loop, exposed through a pure-C API (`entropic.h`) and a CLI binary. It supports MCP tool servers...\"\nVERDICT: HIT\nWHY: The answer explicitly describes the project as a local inference engine running an LLM via llama.cpp with tool-calling/MCP support, not just a directory listing."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "**identifies it as primarily a LIBRARY with a C ABI**, and names `include/entropic/entropic.h` or a concrete entry point such as `entropic_create` / `entropic_run` as the surface a consumer actually uses",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "entropic_create"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "entropic_run"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `entropic_create` \u2014 1. **CLI binary** \u2014 `src/cli/main.cpp:111` (`int main(int argc, char* argv[])`). It's a thin dispatcher over a table of subcommands (`src/cli/main.cpp:93-97`, `anonymous_namespace{main.cpp}::Subcommand`, `src/cli/main.cpp:77-80`): `mcp-bridge` (`run_mcp_bridge`), `version`, `download`. Per the file's own doc comment (`src/cli/main.cpp:1-23`), `mcp-bridge` is the primary integration point \u2014 a consumer adds `entropic` to `.mcp.json` and the CLI relays JSON-RPC/stdio to an already-running engine's unix socket. **The CLI itself never creates an engine or loads a model** \u2014 that's Design Rule #36 (`docs/architecture-cpp.md:934`), confirmed by reading `main.cpp`: no call to `entropic_create` anywhere in it."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "**identifies `src/cli/main.cpp` as the program entry point**, and not one of the other seven tracked `main` definitions, nor one of the 152 other `main` rows the whole-repository index carries",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "`src/cli/main.cpp:111` (`int main(int argc, char* argv[])`)",
+        "why": "The answer explicitly identifies `src/cli/main.cpp` as the real CLI entry point, and separately documents the overload/name-collision hazard (8+ candidate `main` functions across the repo) that a bare `dossier(\"main\")` call would mis-resolve to.",
+        "raw": "QUOTE: `src/cli/main.cpp:111` (`int main(int argc, char* argv[])`)\nVERDICT: HIT\nWHY: The answer explicitly identifies `src/cli/main.cpp` as the real CLI entry point, and separately documents the overload/name-collision hazard (8+ candidate `main` functions across the repo) that a bare `dossier(\"main\")` call would mis-resolve to."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "**notices there are several `main` functions** and says which are not entropic's own program entry. There are eight in tracked C/C++ \u2014 `src/cli/main.cpp`, four examples, three tests \u2014 while the whole-repository index carries 153 `main` rows, 140 of them under `extern/llama.cpp`. The 13 first-party rows cover all eight C/C++ entries, INCLUDING both `.c` files (`examples/headless/main.c`, `tests/unit/api/header_c99_test.c`), plus five Python entry points. Either census passes when its population is stated, and an answer naming more than one is not over-reporting",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"A bare `dossier(\"main\")` call resolves ambiguously to an unrelated `main()` inside `extern/llama.cpp/tools/parser/template-analysis.cpp` (the index has 8+ candidate `main` functions across the repo, all named identically)\"",
+        "why": "The answer notices multiple `main` functions and explicitly identifies which one is not entropic's own entry (the llama.cpp one), naming it as an unrelated/vendored candidate distinct from the real CLI entry.",
+        "raw": "QUOTE: \"A bare `dossier(\"main\")` call resolves ambiguously to an unrelated `main()` inside `extern/llama.cpp/tools/parser/template-analysis.cpp` (the index has 8+ candidate `main` functions across the repo, all named identically)\"\nVERDICT: HIT\nWHY: The answer notices multiple `main` functions and explicitly identifies which one is not entropic's own entry (the llama.cpp one), naming it as an unrelated/vendored candidate distinct from the real CLI entry."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "names at least four real subsystems from `inference / mcp / core / facade / config / storage / types / cli / prompts`",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`librentropic-core`\", \"`librentropic-inference-{cuda,vulkan,cpu}`\", \"`librentropic-mcp`\", \"`librentropic-config`\", \"`librentropic-storage`\", \"`librentropic` (facade)\" (table rows naming `types`, `core`, `inference`, `mcp`, `config`, `storage`, `facade` subsystems); also \"CLI/bridge changes: `src/cli/main.cpp`\"",
+        "why": "The answer explicitly names and describes core, inference, mcp, config, storage, facade, types, and cli as real subsystems \u2014 well over four from the list.",
+        "raw": "QUOTE: \"`librentropic-core`\", \"`librentropic-inference-{cuda,vulkan,cpu}`\", \"`librentropic-mcp`\", \"`librentropic-config`\", \"`librentropic-storage`\", \"`librentropic` (facade)\" (table rows naming `types`, `core`, `inference`, `mcp`, `config`, `storage`, `facade` subsystems); also \"CLI/bridge changes: `src/cli/main.cpp`\"\nVERDICT: HIT\nWHY: The answer explicitly names and describes core, inference, mcp, config, storage, facade, types, and cli as real subsystems \u2014 well over four from the list."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "**weights them rather than listing equals** \u2014 `inference` and `mcp` dominate \u2014 and states what it counted, since the two lead depending on whether private headers are included",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer gives per-file symbol counts and design-rule references but never states that \"inference\" and \"mcp\" dominate the codebase as weighted categories, nor ties that dominance to whether private headers are included in the count.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer gives per-file symbol counts and design-rule references but never states that \"inference\" and \"mcp\" dominate the codebase as weighted categories, nor ties that dominance to whether private headers are included in the count."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 7,
+      "text": "**identifies `extern/llama.cpp` as a boundary**: the inference work is done by a submodule, and that is the single most important structural fact about this repository",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"17 belong to the vendored `extern/llama.cpp`\" / \"`extern/` (llama.cpp submodule) accounts for 1,237 indexed + 49,705 files marked external \u2014 i.e. the vast majority of the physical tree is vendored inference code this answer treats as a dependency, not a subsystem to describe in depth\" / \"via a bundled `llama.cpp` submodule\"",
+        "why": "The answer explicitly names extern/llama.cpp as a submodule boundary and treats it as external/vendored inference code rather than a subsystem to detail.",
+        "raw": "QUOTE: \"17 belong to the vendored `extern/llama.cpp`\" / \"`extern/` (llama.cpp submodule) accounts for 1,237 indexed + 49,705 files marked external \u2014 i.e. the vast majority of the physical tree is vendored inference code this answer treats as a dependency, not a subsystem to describe in depth\" / \"via a bundled `llama.cpp` submodule\"\nVERDICT: HIT\nWHY: The answer explicitly names extern/llama.cpp as a submodule boundary and treats it as external/vendored inference code rather than a subsystem to detail."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 8,
+      "text": "gives orientation a newcomer could ACT on \u2014 where to start reading for a given kind of change \u2014 not just an inventory",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"**Adding/changing an MCP tool server**: `src/mcp/servers/*.cpp` + the plugin ABI... **Touching generation/inference behavior**: `src/inference/llama_cpp_backend.cpp`... **Config/identity changes**: `src/config/loader.cpp`... **CLI/bridge changes**: `src/cli/main.cpp` is intentionally minimal\"",
+        "why": "The \"If you had to change something tomorrow\" section gives concrete, actionable start-reading points keyed to specific kinds of changes, not just an inventory.",
+        "raw": "QUOTE: \"**Adding/changing an MCP tool server**: `src/mcp/servers/*.cpp` + the plugin ABI... **Touching generation/inference behavior**: `src/inference/llama_cpp_backend.cpp`... **Config/identity changes**: `src/config/loader.cpp`... **CLI/bridge changes**: `src/cli/main.cpp` is intentionally minimal\"\nVERDICT: HIT\nWHY: The \"If you had to change something tomorrow\" section gives concrete, actionable start-reading points keyed to specific kinds of changes, not just an inventory."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "**states coverage honestly**: what fraction of the repository the answer rests on and what was not looked at, against a denominator it names. `tests/` alone is 238 of 674 tracked files; the index's own denominators are 434 first-party indexed files against 1,118 tagged external, so either basis passes and an unnamed denominator does not",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"The index holds **2,132 files** total; of those, **`extern/` (llama.cpp submodule) accounts for 1,237 indexed + 49,705 files marked external** \u2014 i.e. the vast majority of the physical tree is vendored inference code this answer treats as a dependency\"",
+        "why": "Names an explicit denominator (2,132 indexed files, plus root 418/413 split) and states what fraction/portion (extern/ vendored code, largest files) was not read in depth.",
+        "raw": "QUOTE: \"The index holds **2,132 files** total; of those, **`extern/` (llama.cpp submodule) accounts for 1,237 indexed + 49,705 files marked external** \u2014 i.e. the vast majority of the physical tree is vendored inference code this answer treats as a dependency\"\nVERDICT: HIT\nWHY: Names an explicit denominator (2,132 indexed files, plus root 418/413 split) and states what fraction/portion (extern/ vendored code, largest files) was not read in depth."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 10,
+      "text": "notes that `src/cli/main.cpp` is a subcommand dispatcher whose primary subcommand is `mcp-bridge`, so the CLI's main job is to expose the engine to an external MCP client",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"src/cli/main.cpp is intentionally minimal \u2014 do not add engine/model logic there\" and \"The CLI itself never creates an engine or loads a model\" and it identifies `mcp-bridge` as \"the primary integration point \u2014 a consumer adds entropic to .mcp.json and the CLI relays JSON-RPC/stdio to an already-running engine's unix socket\"",
+        "why": "The answer explicitly names main.cpp as a thin subcommand dispatcher, identifies mcp-bridge as the primary/integration subcommand, and states its job is exposing the engine to an external MCP client.",
+        "raw": "QUOTE: \"src/cli/main.cpp is intentionally minimal \u2014 do not add engine/model logic there\" and \"The CLI itself never creates an engine or loads a model\" and it identifies `mcp-bridge` as \"the primary integration point \u2014 a consumer adds entropic to .mcp.json and the CLI relays JSON-RPC/stdio to an already-running engine's unix socket\"\nVERDICT: HIT\nWHY: The answer explicitly names main.cpp as a thin subcommand dispatcher, identifies mcp-bridge as the primary/integration subcommand, and states its job is exposing the engine to an external MCP client."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 11,
+      "text": "notes that the test tree is larger than `src/` and `include/` combined, and treats it as a way in rather than as noise",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"The index holds **2,132 files** total; of those, **`extern/` (llama.cpp submodule) accounts for 1,237 indexed + 49,705 files marked external** \u2014 i.e. the vast majority of the physical tree is vendored inference code this answer treats as a dependency, not a subsystem to describe in depth... `src/` 112 files (1,105 symbols), `include/` 89 files (1,678 symbols), `tests/` 218 files (1,565 symbols)\"",
+        "why": "The answer reports test file counts alongside src/include but never notes tests as larger than src+include combined (218 < 112+89=201 is actually true numerically, but it's not remarked on at all, nor is it treated as a \"way in\" for investigation \u2014 it's just listed in a table with no commentary on relative size or investigative value).",
+        "raw": "QUOTE: \"The index holds **2,132 files** total; of those, **`extern/` (llama.cpp submodule) accounts for 1,237 indexed + 49,705 files marked external** \u2014 i.e. the vast majority of the physical tree is vendored inference code this answer treats as a dependency, not a subsystem to describe in depth... `src/` 112 files (1,105 symbols), `include/` 89 files (1,678 symbols), `tests/` 218 files (1,565 symbols)\"\nVERDICT: MISS\nWHY: The answer reports test file counts alongside src/include but never notes tests as larger than src+include combined (218 < 112+89=201 is actually true numerically, but it's not remarked on at all, nor is it treated as a \"way in\" for investigation \u2014 it's just listed in a table with no commentary on relative size or investigative value)."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

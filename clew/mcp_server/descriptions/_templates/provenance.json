@@ -1,0 +1,39 @@
+{
+  "name": "provenance",
+  "used_by": [
+    "dossier",
+    "search"
+  ],
+  "why": [
+    "Included by the tools whose payload IS a symbol. gh#11 lets memberdef hold a row",
+    "the tree-sitter parser recovered rather than one doxygen documented, and marks it",
+    "`provenance: 'ast'`. Without this text the mark is disclosure nobody reads, and the",
+    "mistake it prevents is specific and silent: a recovered row has an EMPTY brief, so a",
+    "model that never learned the field exists reads that as 'this function is",
+    "undocumented' when the truth is 'doxygen could not parse this file at all'. Those two",
+    "readings lead to opposite actions — the first says the code is fine and the docs are",
+    "thin, the second says the INDEX is thin and its counts should not be trusted.",
+    "",
+    "Measured on mbedtls: 2,527 of 4,206 indexed functions are parser-recovered, so on a",
+    "target in that state the field is the majority case, not an edge case. On entropic it",
+    "is 2 of 2,058. The field is ABSENT on a doxygen row precisely because that is the norm",
+    "and wire elision drops it — stating the default here is what makes the absence",
+    "readable instead of ambiguous.",
+    "",
+    "Cut 2026-08-11 for the fixed-prompt budget. The dropped sentence explained that on a",
+    "dossier `provenance: 'ast'` beside a NON-EMPTY brief is not a contradiction — doxygen",
+    "documented the header declaration while the parser recovered the definition it could",
+    "not read.",
+    "",
+    "ROUND 2, 2026-08-11. Cut to the two readings that change an action: what an absent",
+    "field means, and what an empty brief on an `ast` row means. Moved here: the usual",
+    "cause (code behind an unsatisfied preprocessor guard), the enumeration of what such a",
+    "row lacks (no brief, no parameters, no requirement tags — implied by 'the parser",
+    "recovered it'), 'name, file and lines are real', and the closing 'the index is",
+    "incomplete about that file', which restates UNPARSED for a reader who has just been",
+    "told the file did not parse."
+  ],
+  "text": [
+    "`provenance` ABSENT means doxygen documented the symbol — the normal case. `provenance: 'ast'` means the parser recovered it from source doxygen never emitted, so an empty brief there means UNPARSED, not undocumented."
+  ]
+}

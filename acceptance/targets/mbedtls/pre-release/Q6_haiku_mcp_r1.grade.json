@@ -1,0 +1,249 @@
+{
+  "q": "Q6",
+  "arm": "mcp",
+  "model": "haiku",
+  "run": 1,
+  "answer": "Q6_haiku_mcp_r1.md",
+  "rubric": "acceptance/targets/mbedtls/questions.yaml",
+  "declared_mark_count": 8,
+  "summary": {
+    "marks_hit": 5,
+    "marks_miss": 3,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 8,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": true,
+    "falsity_verdict": "CONSISTENT",
+    "marks_total": 8,
+    "score": 5.0,
+    "score_strict": 5.0
+  },
+  "falsity": {
+    "checked": true,
+    "verdict": "CONSISTENT",
+    "agreement": 1.0,
+    "tally": [
+      [
+        "CONSISTENT",
+        3
+      ]
+    ],
+    "samples": 3,
+    "errors": 0,
+    "vetoed": false
+  },
+  "marks": [
+    {
+      "index": 1,
+      "text": "locates certificate verification in the x509 layer and names a concrete file \u2014 `library/x509_crt.c` or `include/mbedtls/x509_crt.h`. A file that does not exist in this tree does not earn the mark however plausible its name",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [
+          "x509_crt.c",
+          "x509_crt.h"
+        ],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "cite x509_crt.c: file named (whole-file citation)",
+          "cite x509_crt.h: file named (whole-file citation)"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "names a public entry point, or the profile-taking form the simple one delegates to \u2014 any of `mbedtls_x509_crt_verify` (`include/mbedtls/x509_crt.h:3159`), `mbedtls_x509_crt_verify_with_profile` (`:3176`), `mbedtls_x509_crt_verify_restartable` (`:3210`) or `mbedtls_x509_crt_verify_with_ca_cb` (`library/x509_crt.c`). Any ONE earns the mark; a name outside this set does not",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "mbedtls_x509_crt_verify",
+          "mbedtls_x509_crt_verify_with_profile",
+          "mbedtls_x509_crt_verify_restartable",
+          "mbedtls_x509_crt_verify_with_ca_cb"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `mbedtls_x509_crt_verify` \u2014 - `mbedtls_x509_crt_verify()` \u2014 verifies a certificate chain against trusted CAs `include/mbedtls/x509_crt.h:3159`",
+          "symbol `mbedtls_x509_crt_verify_with_profile` \u2014 - `mbedtls_x509_crt_verify_with_profile()` \u2014 verifies with a security profile `include/mbedtls/x509_crt.h:3159` (depth 1 call to restartable version)",
+          "symbol `mbedtls_x509_crt_verify_restartable` \u2014 - `mbedtls_x509_crt_verify_restartable()` \u2014 restartable version for interruptible verification `include/mbedtls/x509_crt.h:3159` (depth 1 wrapper)",
+          "symbol `mbedtls_x509_crt_verify_with_ca_cb` \u2014 - `mbedtls_ssl_verify_certificate()` \u2014 called during SSL handshake `library/ssl_tls.c:9915`, which invokes either `mbedtls_x509_crt_verify_with_ca_cb()` or `mbedtls_x509_crt_verify_restartable()` based on CA callback availability"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "**explains the MECHANISM \u2014 what is checked and in what order** \u2014 rather than only locating the code",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"The main verification flow starts with `x509_crt_verify_restartable_ca_cb()` ... which coordinates four sequential checks: 1. Name Verification ... 2. Public Key and Algorithm Checks ... 3. Chain Verification ... 4. Signature Cryptographic Verification\"",
+        "why": "The answer lays out the ordered sequence of checks (name \u2192 key/algorithm \u2192 chain/time/parent/CRL \u2192 signature crypto), not just where the code lives.",
+        "raw": "QUOTE: \"The main verification flow starts with `x509_crt_verify_restartable_ca_cb()` ... which coordinates four sequential checks: 1. Name Verification ... 2. Public Key and Algorithm Checks ... 3. Chain Verification ... 4. Signature Cryptographic Verification\"\nVERDICT: HIT\nWHY: The answer lays out the ordered sequence of checks (name \u2192 key/algorithm \u2192 chain/time/parent/CRL \u2192 signature crypto), not just where the code lives."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "**treats chain building as distinct from the per-certificate checks** \u2014 finding a parent and verifying its signature is different work from checking a name or a validity date",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"**Chain Verification** \u2014 `x509_crt_verify_chain()` `library/x509_crt.c:2511`\\n   - Builds the certificate chain from end-entity to root\\n   - For each certificate in chain:\\n     - **Time validation**... \\n     - **Parent finding** \u2014 `x509_crt_find_parent()`\" together with separately-listed \"Name Verification\" as its own numbered step distinct from chain building",
+        "why": "The answer separates parent-finding/chain assembly (x509_crt_verify_chain, x509_crt_find_parent, signature verification via x509_crt_check_signature) as its own pipeline stage distinct from per-cert checks like name verification and time/profile checks.",
+        "raw": "QUOTE: \"**Chain Verification** \u2014 `x509_crt_verify_chain()` `library/x509_crt.c:2511`\\n   - Builds the certificate chain from end-entity to root\\n   - For each certificate in chain:\\n     - **Time validation**... \\n     - **Parent finding** \u2014 `x509_crt_find_parent()`\" together with separately-listed \"Name Verification\" as its own numbered step distinct from chain building\nVERDICT: HIT\nWHY: The answer separates parent-finding/chain assembly (x509_crt_verify_chain, x509_crt_find_parent, signature verification via x509_crt_check_signature) as its own pipeline stage distinct from per-cert checks like name verification and time/profile checks."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "**reports that the outcome is a set of accumulated FLAGS rather than a bare pass/fail**, so a caller can tell WHY verification failed",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer mentions one flag (BADCERT_CN_MISMATCH) being set on a single check's failure, but never states that verification's overall outcome is an accumulated bitmask of such flags rather than a bare pass/fail result.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions one flag (BADCERT_CN_MISMATCH) being set on a single check's failure, but never states that verification's overall outcome is an accumulated bitmask of such flags rather than a bare pass/fail result."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 6,
+      "text": "**identifies the verification PROFILE as the policy input** \u2014 the acceptable digests, key types and key sizes are data, and more than one profile ships",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"Verification respects configured security profiles via `mbedtls_x509_crt_profile` parameter, which gates acceptable algorithms and key sizes at multiple check points throughout the chain.\"",
+        "why": "Names the profile parameter as a gating mechanism but never states it's data (acceptable digests/key types/sizes) with multiple profiles shipping \u2014 the \"more than one profile ships\" fact is absent.",
+        "raw": "QUOTE: \"Verification respects configured security profiles via `mbedtls_x509_crt_profile` parameter, which gates acceptable algorithms and key sizes at multiple check points throughout the chain.\"\nVERDICT: MISS\nWHY: Names the profile parameter as a gating mechanism but never states it's data (acceptable digests/key types/sizes) with multiple profiles shipping \u2014 the \"more than one profile ships\" fact is absent."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 7,
+      "text": "says how it searched, given it was not handed a symbol name",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never states its search method (e.g., searching by name/pattern absent a known symbol) \u2014 it only reports findings and gaps, not how it went about searching without a symbol name.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states its search method (e.g., searching by name/pattern absent a known symbol) \u2014 it only reports findings and gaps, not how it went about searching without a symbol name."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 8,
+      "text": "**includes REVOCATION as part of verification** \u2014 `x509_crt_verifycrl` (`library/x509_crt.c:2015`) is called for each chain link from `x509_crt_verify_chain` (`:2511`, the call at `:2680`) and sets `MBEDTLS_X509_BADCERT_REVOKED` (`:2115`), and the whole CRL path is a separately compiled option (`MBEDTLS_X509_CRL_PARSE_C`, `:1991`-`:2124`). Naming the CRL check, the revoked flag, or the fact that revocation is optional at compile time earns the mark; presenting chain building plus the per-certificate checks as the whole of verification is incomplete",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "x509_crt_verifycrl",
+          "x509_crt_verify_chain"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "MBEDTLS_X509_BADCERT_REVOKED",
+          "MBEDTLS_X509_CRL_PARSE_C"
+        ],
+        "refs_hit": [
+          "x509_crt.c:2015",
+          "x509_crt.c:2511",
+          "x509_crt.c:1991"
+        ],
+        "refs_file_only": [
+          "x509_crt.c:2680",
+          "x509_crt.c:2115",
+          "x509_crt.c:2124"
+        ],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `x509_crt_verifycrl` \u2014 - **CRL verification** \u2014 `x509_crt_verifycrl()` `library/x509_crt.c:2015` if CRL list provided",
+          "symbol `x509_crt_verify_chain` \u2014 3. **Chain Verification** \u2014 `x509_crt_verify_chain()` `library/x509_crt.c:2511`",
+          "cite x509_crt.c:2015 \u2248 answer x509_crt.c:2015-2015",
+          "cite x509_crt.c:2511 \u2248 answer x509_crt.c:2511-2511",
+          "cite x509_crt.c:2680: file named, lines [(3063, 3063), (2992, 2992), (2511, 2511), (2542, 2542), (2382, 2382), (2015, 2015), (2259, 2259), (2185, 2185), (2129, 2129), (2015, 2015), (1995, 1995)] do not overlap",
+          "cite x509_crt.c:2115: file named, lines [(3063, 3063), (2992, 2992), (2511, 2511), (2542, 2542), (2382, 2382), (2015, 2015), (2259, 2259), (2185, 2185), (2129, 2129), (2015, 2015), (1995, 1995)] do not overlap",
+          "cite x509_crt.c:1991 \u2248 answer x509_crt.c:1995-1995",
+          "cite x509_crt.c:2124: file named, lines [(3063, 3063), (2992, 2992), (2511, 2511), (2542, 2542), (2382, 2382), (2015, 2015), (2259, 2259), (2185, 2185), (2129, 2129), (2015, 2015), (1995, 1995)] do not overlap"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    }
+  ]
+}

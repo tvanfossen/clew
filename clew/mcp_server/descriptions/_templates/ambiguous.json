@@ -1,0 +1,33 @@
+{
+  "name": "ambiguous",
+  "used_by": [
+    "dossier"
+  ],
+  "why": [
+    "MOVED FROM callers/callees TO dossier (gh#372). Those two tools are gone — their rows",
+    "are dossier's `callers`/`callees` fields — and the block had to move with them, or the",
+    "warning would have been deleted along with the surface that carried it.",
+    "",
+    "It is MORE necessary here, not less. This repo's own recorded finding is that",
+    "`candidates` disambiguates the IDENTITY of the described symbol while nothing",
+    "disambiguates the EDGES attributed to it: dossier('_classify') names three same-named",
+    "functions in `candidates` and then lists the union of all three functions' neighbours",
+    "at confidence 'exact', because corroboration means three layers agreed and all three",
+    "resolve by name. A reader who checks `candidates` and then reads `callers` is still",
+    "misled. So the tool a model is told to call FIRST is exactly where the block belongs.",
+    "",
+    "The withholding clause is GONE and that is a real difference: the deleted tools capped",
+    "an ambiguous list at a sample of 8 and said `count` was still the true total. The",
+    "composite dossier never capped, and adding a cap in order to warn about it would",
+    "change what a call returns. So the block now discloses only — trimming is the byte",
+    "budget's job and it discloses separately, in `_limited`.",
+    "",
+    "Measured on the public entropic index: `size` matches 9 distinct signatures and",
+    "returns 331 caller rows, 330 of them shared with its eight namesakes. Every one of",
+    "those rows already said confidence='fuzzy', and that was not enough, because fuzzy is",
+    "a three-value enum over a quantity that is a NUMBER."
+  ],
+  "text": [
+    "An `ambiguous` block means the name matched several signatures: the neighbour rows are SHARED with all of them, so do not attribute them to one until you re-ask with `qualified`."
+  ]
+}

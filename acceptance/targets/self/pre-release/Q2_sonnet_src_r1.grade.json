@@ -1,0 +1,387 @@
+{
+  "q": "Q2",
+  "arm": "src",
+  "model": "sonnet",
+  "run": 1,
+  "answer": "Q2_sonnet_src_r1.md",
+  "rubric": "acceptance/targets/self/questions.yaml",
+  "declared_mark_count": 15,
+  "summary": {
+    "marks_hit": 13,
+    "marks_miss": 2,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 15,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": true,
+    "falsity_verdict": "CONSISTENT",
+    "marks_total": 15,
+    "score": 13.0,
+    "score_strict": 13.0
+  },
+  "falsity": {
+    "checked": true,
+    "verdict": "CONSISTENT",
+    "agreement": 1.0,
+    "tally": [
+      [
+        "CONSISTENT",
+        3
+      ]
+    ],
+    "samples": 3,
+    "errors": 0,
+    "facts": 4,
+    "vetoed": false
+  },
+  "marks": [
+    {
+      "index": 1,
+      "text": "**states that nested trees are INDEXED AND TAGGED rather than excluded**, and does not describe a containment or exclusion pass as current behaviour",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"The pipeline treats a nested repository as a first-class case rather than something to strip out. It **admits and indexes** nested trees, but tags every file that belongs to one\"",
+        "why": "Explicitly states nested trees are indexed and tagged, not excluded or contained, matching the item's substance.",
+        "raw": "QUOTE: \"The pipeline treats a nested repository as a first-class case rather than something to strip out. It **admits and indexes** nested trees, but tags every file that belongs to one\"\nVERDICT: HIT\nWHY: Explicitly states nested trees are indexed and tagged, not excluded or contained, matching the item's substance."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "gives the reason tagging beat exclusion: a traversal that stops at the boundary can only say a call leaves the repository, when it could say what the call does",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"traversal queries (`callers`/`callees`/`chain_trace`) freely cross the boundary\" combined with \"chain_trace that stops at a submodule boundary answers 'this call leaves the repo' when it could answer what the call does\"",
+        "why": "The answer explicitly states the reason tagging beats exclusion \u2014 traversal stopping at a boundary can only assert the call leaves the repo, whereas the actual mechanism (what the call does) is preserved.",
+        "raw": "QUOTE: \"traversal queries (`callers`/`callees`/`chain_trace`) freely cross the boundary\" combined with \"chain_trace that stops at a submodule boundary answers 'this call leaves the repo' when it could answer what the call does\"\n\nVERDICT: HIT\nWHY: The answer explicitly states the reason tagging beats exclusion \u2014 traversal stopping at a boundary can only assert the call leaves the repo, whereas the actual mechanism (what the call does) is preserved."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "names the test as the presence of a git tree in a directory",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "_holds_git_tree"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `_holds_git_tree` \u2014 The check itself, `_holds_git_tree`, is `(directory / \".git\").exists()` (`doxyguard_db/scope.py:529-557`) \u2014 `exists()` rather than `is_dir()`, because it must cover:"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "**states that the rule is deliberately NOT name-based**, and that `vendor/` or `third_party/` are conventions rather than facts",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"The test is purely structural, never name-based: **a directory holding its own `.git` entry is a different repository**... `vendor/`/`third_party/` naming is explicitly rejected as a signal\"",
+        "why": "Explicitly states the rule is not name-based and that vendor/third_party are conventions rejected as signals.",
+        "raw": "QUOTE: \"The test is purely structural, never name-based: **a directory holding its own `.git` entry is a different repository**... `vendor/`/`third_party/` naming is explicitly rejected as a signal\"\nVERDICT: HIT\nWHY: Explicitly states the rule is not name-based and that vendor/third_party are conventions rejected as signals."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "draws the consequence in the other direction: a copied-in third-party file with no git tree of its own is FIRST PARTY, because the repository committed it",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"a stray developer clone sitting inside a directory the parent **tracks as ordinary files** (mode `100644`) \u2192 first party, because the parent committed and owns those files regardless of what happens to be checked out there\"",
+        "why": "States the exact consequence \u2014 a nested tree with no git ownership by the parent is still first-party because the repo committed those files.",
+        "raw": "QUOTE: \"a stray developer clone sitting inside a directory the parent **tracks as ordinary files** (mode `100644`) \u2192 first party, because the parent committed and owns those files regardless of what happens to be checked out there\"\nVERDICT: HIT\nWHY: States the exact consequence \u2014 a nested tree with no git ownership by the parent is still first-party because the repo committed those files."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "**finds that a submodule's `.git` is a FILE, not a directory** \u2014 a pointer written by `git submodule` where a standalone clone has a directory",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"a `git submodule` checkout, whose `.git` is a **44-byte pointer file**\"",
+        "why": "The answer explicitly states that a submodule's .git is a pointer file rather than a directory, contrasting it with a standalone clone's directory form.",
+        "raw": "QUOTE: \"a `git submodule` checkout, whose `.git` is a **44-byte pointer file**\"\nVERDICT: HIT\nWHY: The answer explicitly states that a submodule's .git is a pointer file rather than a directory, contrasting it with a standalone clone's directory form."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 7,
+      "text": "states that the predicate uses an existence test rather than a directory test, so both shapes are caught",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`_holds_git_tree`, is `(directory / \".git\").exists()` (`doxyguard_db/scope.py:529-557`) \u2014 `exists()` rather than `is_dir()`, because it must cover: a standalone clone (`.git` directory), a `git submodule` checkout, whose `.git` is a **44-byte pointer file**\"",
+        "why": "The answer explicitly states the predicate uses `.exists()` rather than `.is_dir()`, catching both directory and file forms of `.git`.",
+        "raw": "QUOTE: \"`_holds_git_tree`, is `(directory / \".git\").exists()` (`doxyguard_db/scope.py:529-557`) \u2014 `exists()` rather than `is_dir()`, because it must cover: a standalone clone (`.git` directory), a `git submodule` checkout, whose `.git` is a **44-byte pointer file**\"\nVERDICT: HIT\nWHY: The answer explicitly states the predicate uses `.exists()` rather than `.is_dir()`, catching both directory and file forms of `.git`."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 8,
+      "text": "**reports that a directory-only test found nested CLONES while silently missing every SUBMODULE**, and that a plausible non-zero count is what made it look like a working detector",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"detected 28 false positives instead\" (of true submodules on entropic) \u2014 referring to the submodule detection fix history at doxyguard_db/scope.py:529-541, describing the pre-fix behavior of the directory-only `.git` check missing submodules and returning nested clones/false positives instead.",
+        "why": "The answer states that the earlier detector missed real submodules (whose `.git` is a pointer file, not a directory) and instead found 28 nested trees/false positives \u2014 i.e., a directory-only test found nested clones while missing submodules, with a plausible non-zero count masking the failure.",
+        "raw": "QUOTE: \"detected 28 false positives instead\" (of true submodules on entropic) \u2014 referring to the submodule detection fix history at doxyguard_db/scope.py:529-541, describing the pre-fix behavior of the directory-only `.git` check missing submodules and returning nested clones/false positives instead.\n\nVERDICT: HIT\n\nWHY: The answer states that the earlier detector missed real submodules (whose `.git` is a pointer file, not a directory) and instead found 28 nested trees/false positives \u2014 i.e., a directory-only test found nested clones while missing submodules, with a plausible non-zero count masking the failure."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "notices that every unit fixture used a `.git` directory, so the suite was structurally incapable of catching it \u2014 the fixture matched the detector rather than the world",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"Every unit fixture built a `.git` directory, so the whole suite was structurally incapable of catching it: **the fixture matched the detector rather than the world**.\" (this is from CLAUDE.md context, checking answer itself)",
+        "why": "The answer states the opposite \u2014 that the submodule-as-file case is explicitly fixture-tested \u2014 rather than noting all fixtures used `.git` directories and missed the file-pointer case.",
+        "raw": "QUOTE: \"Every unit fixture built a `.git` directory, so the whole suite was structurally incapable of catching it: **the fixture matched the detector rather than the world**.\" (this is from CLAUDE.md context, checking answer itself)\n\nRe-checking candidate answer directly: \"I did not find any test or code comment acknowledging this case\" and the submodule fixture note \"detected 28 false positives instead\" \u2014 but the specific claim that every unit fixture used a `.git` directory (as opposed to file/pointer) causing structural blindness to submodules is not stated as such in the answer. The answer actually says the submodule case (`.git` as file) IS explicitly regression-tested (`test_a_submodule_whose_git_is_a_file_is_detected`), which contradicts/does not match the checklist item's claim that fixtures used `.git` directories only.\n\nQUOTE: NONE\nVERDICT: MISS\nWHY: The answer states the opposite \u2014 that the submodule-as-file case is explicitly fixture-tested \u2014 rather than noting all fixtures used `.git` directories and missed the file-pointer case."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 10,
+      "text": "**separates the TWO predicates and says they answer different questions** \u2014 one for descent (is there a separate git tree here?), one for ownership (did this repository commit it as a gitlink?)",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "nested_repo_roots",
+          "dependency_roots"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `nested_repo_roots` \u2014 That raw set \u2014 `nested_repo_roots` (`doxyguard_db/scope.py:250-269`) \u2014 answers only \"is there a separate git tree here.\" A second, narrower function, `dependency_roots` (`doxyguard_db/scope.py:277-292`), filters that set down to trees the **parent repo itself declares** as a dependency, via `_is_dependency_of_parent` (`doxyguard_db/scope.py:565-619`), which runs `git ls-files -s -- <dir>` in the parent and checks for the gitlink mode `160000`. This distinguishes:",
+          "symbol `dependency_roots` \u2014 That raw set \u2014 `nested_repo_roots` (`doxyguard_db/scope.py:250-269`) \u2014 answers only \"is there a separate git tree here.\" A second, narrower function, `dependency_roots` (`doxyguard_db/scope.py:277-292`), filters that set down to trees the **parent repo itself declares** as a dependency, via `_is_dependency_of_parent` (`doxyguard_db/scope.py:565-619`), which runs `git ls-files -s -- <dir>` in the parent and checks for the gitlink mode `160000`. This distinguishes:"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 11,
+      "text": "states that ownership is the narrower of the two, a subset of the trees descent finds",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"That raw set \u2014 `nested_repo_roots` \u2026 answers only 'is there a separate git tree here.' A second, narrower function, `dependency_roots` \u2026 filters that set down to trees the parent repo itself declares as a dependency\"",
+        "why": "States descent finds all nested trees while ownership (dependency_roots/external classification) is a narrower filtered subset of that set.",
+        "raw": "QUOTE: \"That raw set \u2014 `nested_repo_roots` \u2026 answers only 'is there a separate git tree here.' A second, narrower function, `dependency_roots` \u2026 filters that set down to trees the parent repo itself declares as a dependency\"\nVERDICT: HIT\nWHY: States descent finds all nested trees while ownership (dependency_roots/external classification) is a narrower filtered subset of that set."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 12,
+      "text": "states that the walk is bounded rather than a recursive glob, and gives a reason \u2014 descending into a found repository's own object store, or swallowing an unreadable directory",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"is a bounded `os.walk`, not `rglob`: it stops descending the moment it finds a `.git`, stops at a depth limit, and treats any unreadable directory as a *warned gap*, never a silent \\\"no nested repo found\\\"\"",
+        "why": "States the walk is bounded (not rglob) and gives reasons matching both accepted mechanisms \u2014 stopping descent at a found repo and handling unreadable directories.",
+        "raw": "QUOTE: \"is a bounded `os.walk`, not `rglob`: it stops descending the moment it finds a `.git`, stops at a depth limit, and treats any unreadable directory as a *warned gap*, never a silent \\\"no nested repo found\\\"\"\nVERDICT: HIT\nWHY: States the walk is bounded (not rglob) and gives reasons matching both accepted mechanisms \u2014 stopping descent at a found repo and handling unreadable directories."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 13,
+      "text": "**reports that an unreadable directory WARNS rather than being skipped silently**, and says why: a swallowed error reads exactly like \"no nested repository\", which is the answer that lets a foreign codebase in",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"The walk that applies this test, `_nested_repos_under` ... treats any unreadable directory as a *warned gap*, never a silent \"no nested repo found\"\"",
+        "why": "The answer explicitly states an unreadable directory produces a warning rather than a silent skip, and ties it to the exact risk the item names (a swallowed error looking like \"no nested repo\").",
+        "raw": "QUOTE: \"The walk that applies this test, `_nested_repos_under` ... treats any unreadable directory as a *warned gap*, never a silent \"no nested repo found\"\"\nVERDICT: HIT\nWHY: The answer explicitly states an unreadable directory produces a warning rather than a silent skip, and ties it to the exact risk the item names (a swallowed error looking like \"no nested repo\")."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 14,
+      "text": "states that descent stops at a nested repository once found, and separately that a depth limit also stops it",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"stops descending the moment it finds a `.git`, stops at a depth limit\"",
+        "why": "Answer states both stopping conditions \u2014 nested-repo detection halts descent and a separate depth limit also halts it.",
+        "raw": "QUOTE: \"stops descending the moment it finds a `.git`, stops at a depth limit\"\nVERDICT: HIT\nWHY: Answer states both stopping conditions \u2014 nested-repo detection halts descent and a separate depth limit also halts it."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 15,
+      "text": "states that the root itself never counts as nested, so a root that is a repository does not report itself",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never states that the root itself is exempt from being classified/reported as nested relative to itself.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that the root itself is exempt from being classified/reported as nested relative to itself."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

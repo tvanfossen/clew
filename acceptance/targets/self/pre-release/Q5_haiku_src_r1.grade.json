@@ -1,0 +1,343 @@
+{
+  "q": "Q5",
+  "arm": "src",
+  "model": "haiku",
+  "run": 1,
+  "answer": "Q5_haiku_src_r1.md",
+  "rubric": "acceptance/targets/self/questions.yaml",
+  "declared_mark_count": 13,
+  "summary": {
+    "marks_hit": 6,
+    "marks_miss": 7,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 13,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": true,
+    "falsity_verdict": "CONSISTENT",
+    "marks_total": 13,
+    "score": 6.0,
+    "score_strict": 6.0
+  },
+  "falsity": {
+    "checked": true,
+    "verdict": "CONSISTENT",
+    "agreement": 1.0,
+    "tally": [
+      [
+        "CONSISTENT",
+        3
+      ]
+    ],
+    "samples": 3,
+    "errors": 0,
+    "facts": 3,
+    "vetoed": false
+  },
+  "marks": [
+    {
+      "index": 1,
+      "text": "names `doxyguard_db/vocabulary.py` as the single source",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [
+          "vocabulary.py:0"
+        ],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`vocabulary.py` is a **\"TRUE LEAF\"** (line 16)... The file documents that it \"logs nothing on purpose \u2014 a pure registry has nothing to report\"... \"one-definition-per-meaning\"\"",
+        "why": "The answer explicitly names doxyguard_db/vocabulary.py as the single source/registry for enumerated values, consistent with the checklist item.",
+        "raw": "QUOTE: \"`vocabulary.py` is a **\"TRUE LEAF\"** (line 16)... The file documents that it \"logs nothing on purpose \u2014 a pure registry has nothing to report\"... \"one-definition-per-meaning\"\"\nVERDICT: HIT\nWHY: The answer explicitly names doxyguard_db/vocabulary.py as the single source/registry for enumerated values, consistent with the checklist item."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "**states that the database's constraint clauses are GENERATED from it rather than written alongside it**",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Instead of spelling CHECK clauses as string literals at CREATE TABLE sites, the `check()` function ... looks up the vocabulary from the `COLUMNS` dict ... and calls `.check(column)` to generate it\"",
+        "why": "The answer explicitly states CHECK clauses are generated from vocabulary.py rather than written separately.",
+        "raw": "QUOTE: \"Instead of spelling CHECK clauses as string literals at CREATE TABLE sites, the `check()` function ... looks up the vocabulary from the `COLUMNS` dict ... and calls `.check(column)` to generate it\"\nVERDICT: HIT\nWHY: The answer explicitly states CHECK clauses are generated from vocabulary.py rather than written separately."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "gives the checkable consequence: a search for constraint clauses across the package matches only that one file",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never states the checkable consequence that searching for CHECK/constraint clauses across the package would match only vocabulary.py.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states the checkable consequence that searching for CHECK/constraint clauses across the package would match only vocabulary.py."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 4,
+      "text": "names the method that renders a vocabulary into a constraint clause",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"the `check()` function (line 1030\u20131040) looks up the vocabulary from the `COLUMNS` dict (line 938\u2013973) and calls `.check(column)` to generate it\"",
+        "why": "The answer names the `check()` method as the one rendering a vocabulary into a CHECK clause.",
+        "raw": "QUOTE: \"the `check()` function (line 1030\u20131040) looks up the vocabulary from the `COLUMNS` dict (line 938\u2013973) and calls `.check(column)` to generate it\"\nVERDICT: HIT\nWHY: The answer names the `check()` method as the one rendering a vocabulary into a CHECK clause."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "**states that the clause is built by explicit quoting and joining rather than by formatting a Python tuple**",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"the `check(table, column)` function ... calls `.check(column)` to generate it\" / \"quote-and-join with `''` escaping, never a repr\" \u2014 actually checking answer text: the answer does not contain this phrase; instead it describes `.check()` method lookup mechanism without stating explicit quote/join vs tuple-formatting.",
+        "why": "The answer explains vocabulary object reuse and CHECK generation via `.check()`/`check()` lookup, but never states the specific mechanism of explicit string quoting-and-joining versus repr/tuple-formatting.",
+        "raw": "QUOTE: \"the `check(table, column)` function ... calls `.check(column)` to generate it\" / \"quote-and-join with `''` escaping, never a repr\" \u2014 actually checking answer text: the answer does not contain this phrase; instead it describes `.check()` method lookup mechanism without stating explicit quote/join vs tuple-formatting.\nVERDICT: MISS\nWHY: The answer explains vocabulary object reuse and CHECK generation via `.check()`/`check()` lookup, but never states the specific mechanism of explicit string quoting-and-joining versus repr/tuple-formatting."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 6,
+      "text": "gives the first reason: a one-element tuple's representation carries a trailing comma the database rejects",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never mentions a one-element tuple's trailing-comma repr issue or why a repr (vs explicit quote-and-join) would break; it only discusses object identity/merging, not the tuple-repr mechanism.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions a one-element tuple's trailing-comma repr issue or why a repr (vs explicit quote-and-join) would break; it only discusses object identity/merging, not the tuple-repr mechanism."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 7,
+      "text": "gives the second reason: Python's quoting rules are not the database's, so a value containing an apostrophe would be quoted in a way the database reads as an identifier",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never mentions apostrophes/quoting-rule mismatch between Python and SQL; it discusses value-widening and rank inconsistency, not the CHECK-string-escaping issue.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions apostrophes/quoting-rule mismatch between Python and SQL; it discusses value-widening and rank inconsistency, not the CHECK-string-escaping issue."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 8,
+      "text": "states that an apostrophe inside a value is escaped by doubling it",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never mentions escaping apostrophes by doubling them; it only discusses CHECK-clause generation and vocabulary merging, not string quoting/escaping.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions escaping apostrophes by doubling them; it only discusses CHECK-clause generation and vocabulary merging, not string quoting/escaping."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 9,
+      "text": "**reports that the module is a true LEAF \u2014 it imports only from the standard library and nothing from within the package**",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`vocabulary.py` is a **\"TRUE LEAF\"** (line 16). It has **zero intra-package imports** by design (line 16\u201320)\" and \"It imports `dataclasses` + `pathlib` and nothing else\"",
+        "why": "Answer states the module is a true leaf with zero intra-package imports, relying only on stdlib (dataclasses, pathlib).",
+        "raw": "QUOTE: \"`vocabulary.py` is a **\"TRUE LEAF\"** (line 16). It has **zero intra-package imports** by design (line 16\u201320)\" and \"It imports `dataclasses` + `pathlib` and nothing else\"\nVERDICT: HIT\nWHY: Answer states the module is a true leaf with zero intra-package imports, relying only on stdlib (dataclasses, pathlib)."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 10,
+      "text": "names its standard-library imports as dataclasses and pathlib",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"It has **zero intra-package imports** by design\" combined with \"The logger is imported directly from `logging`\" \u2014 but no mention of `dataclasses` or `pathlib` as its stdlib imports",
+        "why": "The answer discusses vocabulary.py's Vocabulary dataclass and its lack of intra-package imports, but never names `dataclasses` and `pathlib` specifically as its standard-library imports.",
+        "raw": "QUOTE: \"It has **zero intra-package imports** by design\" combined with \"The logger is imported directly from `logging`\" \u2014 but no mention of `dataclasses` or `pathlib` as its stdlib imports\nVERDICT: MISS\nWHY: The answer discusses vocabulary.py's Vocabulary dataclass and its lack of intra-package imports, but never names `dataclasses` and `pathlib` specifically as its standard-library imports."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 11,
+      "text": "gives the reason leafness matters: a vocabulary imported by the schema must not import anything that imports the schema",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"Importing either here would entangle both their dependencies into every importer of `vocabulary.py`\"",
+        "why": "The answer explains why vocabulary.py itself avoids importing rich/query dependencies (to stay lightweight for its importers), but never states the specific reciprocal constraint the item requires \u2014 that a vocabulary imported by the schema must not import anything that in turn imports the schema (i.e., avoiding an import cycle), which is a distinct concern from dependency weight.",
+        "raw": "QUOTE: \"Importing either here would entangle both their dependencies into every importer of `vocabulary.py`\"\n\nVERDICT: MISS\n\nWHY: The answer explains why vocabulary.py itself avoids importing rich/query dependencies (to stay lightweight for its importers), but never states the specific reciprocal constraint the item requires \u2014 that a vocabulary imported by the schema must not import anything that in turn imports the schema (i.e., avoiding an import cycle), which is a distinct concern from dependency weight."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 12,
+      "text": "**states that a vocabulary carries meaning as well as values** \u2014 each one holds a human-readable account of what the values mean, so a consumer reading a row is not left to infer it",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"the file documents that it \"logs nothing on purpose \u2014 a pure registry has nothing to report\" \u2014 but more relevantly: `means`: Documentation of what the vocabulary means\"",
+        "why": "The answer explicitly lists `means` as a field carrying \"Documentation of what the vocabulary means,\" stating the vocabulary holds meaning alongside values.",
+        "raw": "QUOTE: \"the file documents that it \"logs nothing on purpose \u2014 a pure registry has nothing to report\" \u2014 but more relevantly: `means`: Documentation of what the vocabulary means\"\nVERDICT: HIT\nWHY: The answer explicitly lists `means` as a field carrying \"Documentation of what the vocabulary means,\" stating the vocabulary holds meaning alongside values."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 13,
+      "text": "**answers the merge question with a consequence beyond the schema**: two entries that look identical are distinguished somewhere that reads them, so merging them silently reclassifies existing rows rather than merely shortening a list",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"If someone merged them into ONE object... Adding a value to one silently widens the CHECK on all five\" / \"Rank inconsistency silently breaks... changing one vocabulary's rank ordering changes all five, potentially breaking seeding logic for unrelated layers\"",
+        "why": "The answer identifies that merging identical-looking vocabularies (all \"low\"/\"medium\"/\"high\") is distinguished by table/column binding, and states consequences beyond the schema (CHECK widening plus rank-based logic like reachability seeding breaking silently) \u2014 matching the \"reclassifies existing rows\" consequence.",
+        "raw": "QUOTE: \"If someone merged them into ONE object... Adding a value to one silently widens the CHECK on all five\" / \"Rank inconsistency silently breaks... changing one vocabulary's rank ordering changes all five, potentially breaking seeding logic for unrelated layers\"\nVERDICT: HIT\nWHY: The answer identifies that merging identical-looking vocabularies (all \"low\"/\"medium\"/\"high\") is distinguished by table/column binding, and states consequences beyond the schema (CHECK widening plus rank-based logic like reachability seeding breaking silently) \u2014 matching the \"reclassifies existing rows\" consequence."
+      },
+      "verdict": "HIT"
+    }
+  ]
+}

@@ -1,0 +1,945 @@
+# clew requirements catalog (dogfooding).
+#
+# Flat schema doxygen-guard reads: {id, block, title, acceptance, priority}.
+# Extra keys {status, evidence} are clew's own live implementation-tracking
+# view (the guard ignores unknown keys; @req COVERAGE is NOT gated yet — see
+# REQ-DDB-CONFIG-002). clew controls its OWN flat format here; arbitrary
+# target repos' catalog shape is read from THEIR .doxygen-guard.yaml declaration
+# (STRICTLY NO HARDCODING).
+#
+# @req id shape (declared in .doxygen-guard.yaml):
+#   ^REQ-DDB-[A-Z]+-[0-9]{3}( \[inferred\])?$
+# The optional suffix is a CONFIDENCE marker, not part of the id. It is in the
+# pattern because doxygen-guard validates the whole `@req` line while clew
+# splits id from marker — see the comment on that key for why declaring it was the
+# honest fix rather than deleting the marker.
+# Product domains only: PIPE, SCHEMA, QUERY, MCP, CONFIG, INDEX, CLI.
+#
+# `evidence:` IS PROSE AND IT DRIFTS. As of task #62 the machine-checkable link is
+# `@req REQ-DDB-*` tags in the source, queryable with `req_trace`; evidence is a
+# reading aid, ranked BELOW the tags. Every field below was re-verified against
+# the tree on 2026-07-30, and the drift found was substantial: fifteen entries
+# cited spec documents that no longer exist under any name (R1-SPEC.md /
+# R2-SPEC.md / R4-SPEC.md / PIVOT.md / PLAN-round2.md), one cited a test file
+# renamed long ago, four asserted "(verified) unbuilt" about subsystems that ship,
+# and one pinned a build-version constant seven bumps behind. That is the exact
+# failure doxygen-guard exists to prevent, occurring inside doxygen-guard's own
+# toolchain — which is why traceability now lives in tags.
+#
+# A requirement with NO implementer is left with none ON PURPOSE. Three are:
+# CONFIG-002 is satisfied by configuration rather than by any function, and
+# SCHEMA-008 / SCHEMA-010 are unbuilt. Inventing a mapping to raise the count
+# would put a falsehood where a tool will repeat it confidently to every future
+# reader.
+
+requirements:
+  REQ-DDB-CLI-001:
+    subsystem: cli
+    name: Six-argument build CLI, every declaration stated through one route
+    acceptance_criteria: python -m clew accepts EXACTLY six build arguments — --output (the
+      only required one), --repo-root, --declare FILE, --exclude, --rebuild, --verbose — and no others.
+      Every declared convention is stated through --declare (or the target's own .clew.yaml, or
+      the `options` argument of build_index / index(action='refresh')); all three routes go through
+      buildoptions.apply_options, so they validate identically and land on the same dests.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'clew/cli.py _build_argparser + _FOLDED_BUILD_DEFAULTS + _apply_declared_document
+      + _apply_declared_paths. COLLAPSED 22 -> 6: eight arguments duplicated a declaration section, so
+      one fact had two spellings with a precedence rule between them. Every removed dest survives with
+      its declared default (build_index sources defaults BY PARSING; apply_options assigns onto those
+      dests), so no value MEANS anything different — pinned by tests/test_cli_surface.py, which asserts
+      the exact six, that each folded dest still exists, and that the declaration route reaches the same
+      stage the flag did. --guard-config was DELETED in favour of discover_guard_config rather than
+      folded. --doxyfile/--scope/--index-cache stay reachable on the typed surface only.'
+  REQ-DDB-CLI-002:
+    subsystem: cli
+    name: init registers the MCP server surgically, and doctors the environment
+    acceptance_criteria: '`clew init` writes ONE file — the MCP client config — and writes it
+      surgically: it parses the existing document, replaces exactly one entry under `mcpServers`,
+      and re-serialises everything else byte-identically. A malformed target is REFUSED rather
+      than rewritten. An identical entry is a no-op; a DIFFERING existing entry is refused with a
+      diff unless --force. An overwrite leaves a backup. --scope repo writes <repo>/.mcp.json,
+      --scope global writes the user-level Claude Code config, relocatable by CLAUDE_CONFIG_DIR.
+      --dry-run prints the exact JSON and touches nothing. The same run reports a doctor line per
+      check (client config, server command, MCP SDK, doxygen, indexable, declaration), and only
+      the two write-invalidating checks may withhold the write; a missing binary reports non-zero
+      WITH the config written, because the fix is an install rather than a config edit. It writes
+      no other file: a CLAUDE.md belongs to the user.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'clew/init_command.py — build_parser (four flags), diagnose (the six checks in
+      reporting order), BLOCKING_CHECKS, _execute. The surgical merge and the atomic write are
+      clew/mcp_config.py plan_merge / apply_plan (sibling temp file, backup before os.replace).
+      tests/test_init.py asserts on BYTES rather than exit codes, including that the user-scope
+      target resolves inside pytest''s temp tree before any test writes there.'
+  REQ-DDB-CONFIG-001:
+    subsystem: config
+    name: No hardcoded repo conventions - read declarations (STRICTLY NO HARDCODING)
+    acceptance_criteria: The @req id pattern (validate.tags.req.pattern) and requirements-catalog column
+      mapping (impact.requirements.{id_column,name_column}) are read from the target repo's .doxygen-guard.yaml,
+      never hardcoded; permissive fallback when no config exists.
+    x-priority: P0
+    x-status: implemented
+    x-evidence: clew/requirements.py load_guard_config/resolve_req_id_pattern/resolve_catalog_columns;
+      declaration.py load_declaration/section/declared_path (the .clew.yaml surface); precommit.py
+      discover_guard_config/discover_guard_config_logged (the repo's own pre-commit hook DECLARES where
+      its guard config lives, via the --config arg) and pinned_guard_rev (which release that config is
+      written against); cli.py _declared_or_flag (explicit flag beats declaration); tests/test_requirements_declared.py,
+      tests/test_declaration.py, tests/test_guard_config_discovery.py. The prior field named only the
+      first two functions and so predated both resolve_catalog_columns and the whole declaration.py/precommit.py
+      surface; it then cited precommit.py load_guard_declaration, which was DELETED with the guard tier
+      of index-scope derivation (its compiled hook-level files/exclude filter had no consumer left).
+  REQ-DDB-CONFIG-002:
+    subsystem: config
+    name: Dogfooding - clew enforces doxygen-guard + ruff + pytest on itself
+    acceptance_criteria: clew carries .doxygen-guard.yaml, requirements.yaml, and .pre-commit-config.yaml;
+      pre-commit runs ruff, doxygen-guard (presence/@version/@return), and the full pytest suite green
+      on the package code.
+    x-priority: P0
+    coverage_exempt: satisfied by configuration FILES (.doxygen-guard.yaml, .pre-commit-config.yaml),
+      not by any function — a tag here would have to be attached to something arbitrary
+    x-status: partial
+    x-evidence: 'NO IMPLEMENTER BY NATURE — satisfied by configuration files, not by any function, so
+      it is deliberately left untagged. .doxygen-guard.yaml + .pre-commit-config.yaml are present and
+      the hook set is ruff, ruff-format, doxygen-guard (pinned upstream at rev v1.3.1, not repo:local),
+      single-path, oss-scrub and the full pytest suite. Still `partial` for one reason only: @req COVERAGE
+      is not GATED — a requirement with no implementer does not fail the build. Tag coverage itself is
+      no longer zero (task #62: 30 of 34 requirements have implementers).'
+  REQ-DDB-CONFIG-003:
+    subsystem: config
+    name: clew owns a FLAT requirements schema (distinct from target-repo catalogs)
+    acceptance_criteria: clew's own requirements.yaml uses flat {id, block, title, acceptance,
+      priority} entries with id shape ^REQ-DDB-[A-Z]+-[0-9]{3}$, while arbitrary target catalogs' shapes
+      are still read from THEIR declarations.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'This file''s header + .doxygen-guard.yaml req.pattern; tests/data/csample/requirements.yaml
+      carries a target-repo shape that differs. Code link tagged [inferred], because the requirement is
+      chiefly a property of a DATA file: requirements.py _is_flat_req_list / _keyed_req_entries / _insert_req_entry
+      are the functions that read either shape.'
+  REQ-DDB-CONFIG-004:
+    subsystem: config
+    name: The preprocessor configuration an index represents is DECLARED, and recorded
+    acceptance_criteria: A target may declare `preprocessor.predefined` and/or `preprocessor.config_header`
+      (an explicit repo-relative path, or `auto` for conventional discovery that REFUSES on
+      two or more candidates); the resolved macros reach doxygen as `PREDEFINED +=` so a repo's
+      own Doxyfile PREDEFINED survives, are covered by the index-cache tree hash so a changed
+      declaration cannot serve a stale parse, and the source/header/macro list are persisted to
+      build_meta under a `preprocessor.` prefix. A target declaring nothing builds identically.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'gh#17. clew/preprocessor.py resolve_preprocessor / macros_from_header /
+      doxyfile_lines / _discover_config_header / PreprocessorConfig.as_meta; wired in cli.py
+      _preprocessor / _doxygen_stage / _run_doxygen_from_args and doxygen.py _build_doxyfile_content /
+      doxyfile_content_for / run_doxygen; persisted by signature.write_build_signature''s third
+      prefix. tests/test_preprocessor.py. Part 3 (recording WHICH variant) is separable and
+      load-bearing on its own: an index of a multi-variant codebase is an index of one variant,
+      and nothing said which — so two indexes of one repo could disagree about whether a function
+      exists with no field to explain it.'
+  REQ-DDB-CONFIG-005:
+    subsystem: config
+    name: The Kconfig CONFIGURATION SPACE is discovered, stored and searchable
+    acceptance_criteria: A repo's top-level Kconfig is located explicit-declaration-first
+      (`kconfig.root`), then at the repo root, then among a fixed set of conventional application
+      directories, REFUSING on two or more candidates; its symbols are stored with name, declared
+      type, prompt, help, default expression (conditions kept) and the `choice` group they belong
+      to; every prompt and help block is inserted into `supplementary_docs` so `search_prose`
+      reaches a limitation documented nowhere else; and the discovery source, root, symbol/choice/
+      documented counts and any PARSE ERROR are persisted to build_meta under a `kconfig.` prefix.
+      A repo with no Kconfig creates no table, writes no row and builds identically. No resolved
+      value is stored — the space is structure, the variant a build used is `preprocessor.*`.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'gh#18. clew/kconfig.py discover_kconfig / load_kconfig / store_kconfig /
+      ingest_kconfig_prose / import_kconfig / KconfigModel.as_meta; wired in cli.py _build_stages
+      immediately AFTER ingest_supplementary_docs, which DROPs the FTS table and would otherwise
+      delete these rows silently. Persisted by signature.write_build_signature''s fourth prefix.
+      tests/test_kconfig.py, fixture tests/data/kconfigsample. `kconfiglib` is a REQUIRED
+      dependency, not an extra: optionality would give the layer two indistinguishable ways to be
+      empty, which is this repo''s most-repeated defect. It does not make the capability
+      unconditional, which is why `kconfig.error` is a first-class row — a Zephyr application
+      indexed outside its west workspace legitimately fails to parse.'
+  REQ-DDB-CONFIG-006:
+    subsystem: config
+    name: Layered options resolve through ONE five-tier precedence rule, and the winning tier
+      is recorded
+    acceptance_criteria: 'Every layered build option resolves through a single primitive
+      implementing `resolved = (tier1 or tier2 or tier5) union tier3 union tier4` — an explicit
+      flag or a declaration REPLACES the tier-5 name-pattern guesses, while tier-3 facts
+      (language/platform entry points, a target''s own manifests) and tier-4 known-ecosystem
+      signatures ACCUMULATE and survive every stated tier. The primitive returns the resolved
+      values bound to the tier that won, and the only producer of the `options.*` build_meta
+      rows refuses anything but that object, so a value whose provenance was discarded cannot
+      be stamped. A tier-1 statement is recorded and replayed by later builds of the same
+      database (absent inherits, empty withdraws, non-empty replaces); a tier-2 declaration is
+      not replayed, because it re-derives from a file that may have changed. A target stating
+      nothing resolves to the full built-in set, facts and guesses together.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'gh#319. clew/tiers.py resolve_layered / LayeredResolution.as_meta /
+      options_meta / recorded_explicit; reachability.py splits the previously MIXED
+      DEFAULT_ENTRY_PATTERNS into ENTRY_PATTERN_FACTS (tier 3) and ENTRY_PATTERN_HEURISTICS
+      (tier 5); wired in cli.py _entry_patterns / _recorded_entry_patterns / _run_pipeline /
+      _build_stages and persisted by signature.write_build_signature''s sixth prefix.
+      propose/notindexed.py seeds_reachability is the second consumer of the split and is
+      pinned to the resolver''s own no-statement result. tests/test_tiers.py. The defect that
+      motivated it: "supersede" meant three different things across the pipeline, so passing
+      --entry-patterns dropped `main`, reachability collapsed and nothing reported it.'
+  REQ-DDB-CONFIG-007:
+    subsystem: config
+    name: The build reports what it could NOT see, as structured data, including zero
+    acceptance_criteria: 'Every discovery diagnostic the build computes — accessor FAMILIES no
+      active shared-key pattern covers, xrefitem ALIAS tags no active event vocabulary claims,
+      and acquire/release PAIRS no active lock pattern covers (gh#385, added because the lock
+      layer reported a confident `1` identity on a repo with five global mutexes and nothing
+      told the owner that declaring one primitive would take it to 10)
+      — are persisted to build_meta under a `diagnostics.` prefix and reported
+      by `status`, and therefore by every `build_or_refresh` reply, NAMED and with their counts.
+      A count of ZERO is written and reported: a silent zero is indistinguishable from a
+      diagnostic that never ran, from an index built before the diagnostic existed, and from a
+      target the diagnostic is structurally blind to. The accessor count is reported against the
+      SIZE OF THE CORPUS it examined, so a zero states what was searched rather than only that
+      nothing was found. The active event vocabulary''s SOURCE — a target''s own declaration
+      versus the built-in verbs — is reported, so an operator can see whether their declaration
+      took effect. The keys these diagnostics name are the keys the build surface accepts.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'gh#320. clew/diagnostics.py BuildDiagnostics / collect / as_meta,
+      persisted by signature.write_build_signature''s SEVENTH prefix and read back by the same
+      query._common.meta_section every other section uses. Re-derived at the stamp site from the
+      pure resolvers (shared_key_edges.resolve_shared_key_patterns +
+      detect_undeclared_accessor_families, event_edges.classify_aliases) rather than widening
+      three stage signatures for a metadata row — the choice cli.py already documents for
+      key_alias_prefixes, and safe here because no COLUMN can disagree with it. The corpus
+      predicate is shared as ACCESSOR_CORPUS_KINDS so the denominator cannot drift from the
+      numerator. The defect: three capabilities had never been observed working on a real index,
+      and "the diagnostic is silent" carries no information at all — this project has read a
+      silent zero as a fact about a repository three times. tests/test_diagnostics.py.'
+  REQ-DDB-CONFIG-008:
+    subsystem: config
+    name: TIER 1 is reachable from an embedding caller through ONE structured options argument
+    acceptance_criteria: 'An embedding caller — `build_index`, and therefore the MCP
+      `build_or_refresh` tool — can STATE any tier-1 build option in a single `options` mapping
+      whose keys are the declaration file''s own section names, so one vocabulary covers both
+      routes and the build diagnostics name their findings in it. Values are inline for the list
+      and small-mapping options and a path for the six manifest-shaped documents; a relative path
+      resolves against the REPO ROOT, not the caller''s working directory. A stated value WINS
+      over the target''s declaration, which wins over the built-in defaults. The surface fails
+      closed at BOTH levels: an unknown section is refused by name against the accepted set, a
+      correctly-spelled but DERIVED key is refused with the reason it cannot be stated rather than
+      as unknown, and an entry whose value is out of vocabulary (an event role that is not
+      producer/consumer) is refused rather than parsed into a mapping nothing reads. Validation
+      completes before any assignment, so a mapping with one bad entry applies NOTHING. Omitting
+      the argument, or passing an empty mapping, changes nothing and is not an error.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'gh#332, and it is gh#319''s top tier finally reachable — that work built a
+      five-tier precedence rule whose tier 1 no consumer could reach, which made tier 5 the
+      ceiling rather than the floor. clew/buildoptions.py apply_options / accepted_options
+      / BuildOptionError, wired through cli.build_index and mcp_server.server._run_build /
+      build_or_refresh. `event_tags` is the key that proves the gap: it had NO CLI flag by an
+      earlier deliberate decision, so before this the only way to state a bus vocabulary was to
+      edit the target repo''s own tree. The entry-level gate exists because that level is the
+      quiet one — CLAUDE.md records `key_arg_idx` for `key_arg_index` silently keying dataflow off
+      argument 0. Paired with REQ-DDB-CONFIG-007: without the diagnostics an operator has a knob
+      and no reason to turn it. tests/test_buildoptions.py.'
+  REQ-DDB-PIPE-007:
+    subsystem: pipeline
+    name: CONFIG-gated source lines are harvested from preprocessor conditionals
+    acceptance_criteria: The tree-sitter harvest records one `kconfig_gates` row per (symbol, form,
+      file, line) for every `CONFIG_*` token appearing in a `#ifdef` / `#ifndef` / `#if` / `#elif`
+      directive, distinguishing the three forms so `ifndef`'s inverted sense is not read as
+      `ifdef` and an unevaluated expression claims no polarity. A runtime `if (IS_ENABLED(...))` is
+      NOT a gate. Gates on symbols no Kconfig declares are KEPT — dead code behind a switch nobody
+      can set is a finding. The table is created even at zero rows when tree-sitter is available
+      and deliberately NOT created when it is absent, so an empty layer is distinguishable from an
+      absent one.
+    x-priority: P2
+    x-status: implemented
+    x-evidence: gh#18 part 3. clew/kconfig_gates.py _GateHarvester / _gates_from_node /
+      _ifdef_form / import_kconfig_gates / ensure_kconfig_gates_table, its own extract_cache
+      partition (STAGE_KCONFIG_GATES). tests/test_kconfig.py.
+  REQ-DDB-PIPE-009:
+    subsystem: pipeline
+    name: An AST name fan-out is deleted where a stronger layer named the real callee
+    acceptance_criteria: The `ast` / `ast_member` layers resolve a callee by NAME and emit one
+      `fuzzy` edge per namesake. A stage below EVERY call-edge layer deletes such a row when the
+      same (caller, bare callee name) group carries NON-FUZZY evidence naming a different
+      qualified identity. Three exemptions, each of which the unexempted version got wrong — a
+      group with no non-fuzzy anchor is untouched (so the rule is not "prefer non-fuzzy", which
+      would empty a mostly-fuzzy C++ graph); a row whose identity IS an anchor is kept, because
+      those rows ARE `corroborated_by`; and a doxygen `reimplements` override of an anchor is
+      kept, because template-method dispatch reaches the derived override through no other edge.
+      `fuzzy` rows from `declared_dispatch` / `fnptr` encode a deliberate multi-candidate dispatch
+      and are out of scope. Identity is `query._common.qualified_name_of`, reused rather than
+      re-derived, so pipeline deletions cannot drift from query identity and decl/def duality is
+      safe. ONLY `fuzzy` rows are deleted, so liveness, termini and thread membership — all of
+      which traverse non-fuzzy edges only — are provably unchanged. A `memberdef` without a
+      `definition` column, or an index with no `call_edges` table, deletes nothing rather than
+      raising.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: gh#26 residual. clew/dominated_edges.py — classify_dominated,
+      prune_dominated_fuzzy_edges, prune_dominated_fuzzy_call_edges, _identity_index,
+      _override_pairs, _anchors, _delete, _log_verdict; wired in cli.py below
+      import_declared_dispatch_edges. Build version 27. Measured before landing — entropic 539 of
+      5,614 fan-out fuzzy rows deleted, mbedtls 0 of 4, self-index 246 of 2,874; 8 groups totalling
+      51 deleted rows hand-checked against source, all 51 fabrications.
+      tests/test_dominated_edges.py.
+  REQ-DDB-PIPE-010:
+    subsystem: pipeline
+    name: Shared-key fan-out is capped on edges produced, not on either side alone
+    acceptance_criteria: A shared key is suppressed when `writers x readers` exceeds the edge
+      ceiling — the count of edges it would actually contribute — rather than when either side
+      alone exceeds a participant cap. The per-side test discarded the two LINEAR shapes with the
+      most meaning per edge, a FUNNEL (many writers, one reader) and its dual a BROADCAST, while
+      the O(n^2) noise blob it exists to stop requires both sides to be large. The ceiling equals
+      the previous rule's maximum admission (8 x 8), so no key the old rule admitted is newly
+      discarded, and a many-to-many key above it is still suppressed entirely. Every suppressed
+      key is NAMED at INFO with its writer and reader counts, so a reader whose key returned
+      nothing can learn it was suppressed without reading pipeline source.
+    x-priority: P2
+    x-status: implemented
+    x-evidence: gh#28. clew/shared_key_edges.py — _MAX_KEY_EDGES, _build_inferred_edges,
+      _log_suppressed_keys. Build version 27. Both public targets declare no accessor patterns, so
+      their shared_key_edges layer is empty and the measured delta on entropic and mbedtls is zero;
+      the shape recovery is pinned by fixtures. Replaces a test that ASSERTED the defect — 9
+      writers x 1 reader yielding zero edges. tests/test_build_docs_db.py
+      test_shared_key_funnel_key_survives_suppression /
+      test_shared_key_broadcast_key_survives_suppression /
+      test_shared_key_quadratic_fanout_key_still_suppressed /
+      test_shared_key_at_the_edge_ceiling_is_admitted /
+      test_shared_key_suppressed_key_is_named_in_the_log.
+  REQ-DDB-QUERY-006:
+    subsystem: query
+    name: The configuration space is queryable, and an empty answer says why
+    acceptance_criteria: The `kconfig_space` accessor returns the symbols with their choice-group identity and
+      per-symbol gate counts, the gating sites (optionally narrowed to one symbol, accepted bare or
+      CONFIG_-prefixed), and the provenance that distinguishes the THREE ways it can be empty — no
+      Kconfig (`found` false), one found but unparseable (`found` true with `error`), or one that
+      genuinely declares nothing. It reports the variant this index was built in beside the space,
+      so a `default` cannot be read as a fact about the build.
+    x-priority: P2
+    x-status: implemented
+    x-evidence: gh#18. clew/query/kconfig.py kconfig_space / _symbols / _gates / _meta;
+      models KconfigEntry / KconfigGate / KconfigSpace; exposed over MCP as the `kconfig` tool
+      (mcp_server/tools_query.py, descriptions/kconfig.json), returned through wire.one rather than
+      the many-envelope so `found`/`error` survive. tests/test_kconfig.py, tests/test_mcp_server.py.
+  REQ-DDB-SCHEMA-013:
+    subsystem: schema
+    name: Kconfig structure tables, created independently of the gating table
+    acceptance_criteria: The `kconfig_symbols` table (with a vocabulary-generated CHECK on `type`) and
+      `kconfig_choices` are created together and `kconfig_gates` (with a CHECK on `form`)
+      separately, because the two layers fail independently — a repo can have a parseable Kconfig
+      and no C sources, or gated C and an unparseable Kconfig — and a shared creator would make one
+      layer's absence look like the other's.
+    x-priority: P2
+    x-status: implemented
+    x-evidence: gh#18. clew/kconfig.py ensure_kconfig_tables and
+      clew/kconfig_gates.py ensure_kconfig_gates_table; both CHECKs generated from
+      vocabulary.KCONFIG_TYPE / KCONFIG_GATE_FORM and pinned in tests/data/schema_vocabulary.json.
+      `choice_key` is deliberately NOT a foreign key — it is a synthetic per-build ordinal, and a
+      REFERENCES would promise a stability across builds the enumeration order does not.
+  REQ-DDB-PIPE-008:
+    subsystem: pipeline
+    name: File-level documentation is indexed as a searchable unit
+    acceptance_criteria: Every indexed source file's module docstring (Python, read via the AST) or
+      leading file-level DOXYGEN comment (C-family — `/**`, `/*!`, `///`, `//!` only, so a plain
+      `/* Copyright */` header cannot enter the corpus) is stored as one `file_docs` row AND as one
+      FTS5 `supplementary_docs` chunk. The stage reads the INDEXED file inventory rather than
+      globbing the tree, so it cannot widen the build's scope decision. It runs AFTER
+      `ingest_supplementary_docs` (which DROPs the FTS table) and AFTER `report_index_coverage`
+      (which counts a file that yielded prose as not barren, so running earlier would improve the
+      barren ratio with no extra symbol indexed). A file with no documentation, an unclaimed
+      suffix, or non-UTF-8 bytes yields no row and does not fail the build.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: gh#10. clew/filedocs.py — FileDocExtractor base with PythonFileDoc /
+      CFamilyFileDoc, extract_file_doc, ingest_file_docs, _collect_file_docs, _indexed_files,
+      _read_text, ensure_file_docs_table; wired in cli.py below report_index_coverage. Build
+      version 23. tests/test_filedocs.py.
+  REQ-DDB-SCHEMA-014:
+    subsystem: schema
+    name: A file-level documentation table, absent on an older index rather than empty
+    acceptance_criteria: The table `file_docs(file_path, doc)` holds one row per indexed file carrying
+      file-level documentation. No enumerated column, so nothing is generated from vocabulary. The
+      table's ABSENCE is meaningful and queryable — an index built before build 23 has no such
+      table, and `query.has_file_docs` reports that so an empty search can say the corpus was
+      absent instead of asserting a negative it had no way to check.
+    x-priority: P2
+    x-status: implemented
+    x-evidence: gh#10. clew/filedocs.py ensure_file_docs_table; read by
+      query/corpus.py file_doc_rows / has_file_docs. tests/test_filedocs.py.
+  REQ-DDB-QUERY-007:
+    subsystem: query
+    name: An empty result is graded, and names the scope that produced it
+    acceptance_criteria: An empty `search` or `list_files` reply states which corpora were searched,
+      carries the indexed scope (source, reason, file count, covered top-level directories and
+      extensions), and claims only the confidence it has earned. THREE cases are distinguished —
+      a single token matching nothing anywhere keeps the full definitive wording; a `list_files`
+      pattern whose extension appears in NO indexed file is definitive about the index with the
+      reason stated, and explicitly not a claim about the working tree; a multi-token `search` miss
+      is NOT definitive and reports per-token hit counts naming the token that emptied the
+      conjunction. The per-token diagnosis is computed only on a zero result and only up to
+      MAX_DIAGNOSED_TOKENS. The extension certainty is derived from the UNCAPPED extension list, so
+      a truncated display list cannot manufacture a false negative. A CORPUS MISS NAMES ITS OWN
+      BOUNDARY AND ROUTES ONWARD rather than asserting the index is exhausted — the files corpus
+      holds indexed SOURCE files, so a build script or a Doxyfile is absent there by construction,
+      and its miss note says so and names `doc_scope` and the directory inventory — both of which
+      accompany EVERY files reply, hit or miss, so the route is data the caller already has rather
+      than another call. `doc_scope` returns the repository's DECLARED doxyfile and vendored roots,
+      and returns empty when nothing is declared, which is a different fact from no doc build
+      existing.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: gh#21 + gh#31. query/corpus.py index_scope / indexed_extensions / _extensions /
+      _scope_provenance / _indexed_paths / file_doc_rows / has_file_docs; query/symbols.py
+      token_hit_counts / _one_token_count / MAX_DIAGNOSED_TOKENS; models.IndexScope;
+      mcp_server/emptiness.py search_emptiness / list_files_emptiness / _conjunction_note /
+      _files_note / _scope_sentence, injected through tools_query._many's `diagnose` hook so the
+      strong note stays the default for the fifteen tools whose emptiness DOES mean absence.
+      tests/test_emptiness.py. The routing half is gh#435 — query/corpus.py doc_scope /
+      _DECLARED_SCOPE_KEYS; tools_query._files_miss / _files_context; tests/
+      test_payload_completeness.py. Measured cause — an index-arm cell was told its miss was a
+      definitive empty result and not to retry, for a Doxyfile that was in build_meta the whole
+      time; it obeyed and spent four shell calls.
+  REQ-DDB-QUERY-008:
+    subsystem: query
+    name: One whole-graph aggregate, so a consumer can calibrate how much to trust the index
+    acceptance_criteria: A single `graph_stats` accessor aggregates the GRAPH rather than a symbol or a
+      seed, and reports each figure under a name that cannot be misread. The call-edge row count and
+      the count of distinct (caller_rowid, callee_rowid) logical pairs are BOTH returned, with their
+      ratio and a `row_meaning` sentence carrying both numbers — because `call_edges` stores one row
+      per extraction layer and a single collapsed edge count is the misreading gh#38 already shipped.
+      The confidence and source distributions are returned at row level, and the share of LOGICAL PAIRS
+      for which no layer resolved the endpoint non-fuzzily is returned as its own figure (a per-pair
+      test, not a row filter). Every richness layer is reported in one of THREE states — populated,
+      empty, or absent — so an empty layer reads as a measurement and an absent one as a fact about
+      the build, never as evidence about the code. Indexed files, files yielding symbols and files
+      yielding bodies are three separate counts under the decl/def duality, and gh#6's persisted
+      coverage figures are READ from build_meta rather than re-measured. The whole accessor is
+      NON-RAISING — a thin, tableless or partially-built index returns a populated aggregate rather
+      than an error, because a trust aggregate that fails on a thin index is useless exactly when it
+      is needed.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: gh#7. clew/query/graph.py graph_stats / call_edge_counts / layer_states /
+      file_counts / _empty_edge_counts / _symbol_provenance / _scalar / _distribution /
+      _int_figure / _float_figure,
+      ROW_MEANING + EMPTY_ROW_MEANING; models EdgeCounts / FileCounts / LayerStat / GraphStats;
+      vocabulary LAYER_STATE + GRAPH_LAYERS; query/_common.py meta_section (the one build_meta
+      reader, which mcp_server/state.py _meta_section now delegates to rather than copying a fourth
+      time). Exposed over MCP as the `graph_stats` tier-1 tool
+      (mcp_server/tools_query.py, descriptions/graph_stats.json) through wire.one rather than the
+      many-envelope, so a measured zero survives. status's own description points at it.
+      tests/test_graph_stats.py, tests/test_mcp_server.py.
+  REQ-DDB-QUERY-009:
+    subsystem: query
+    name: The override relation is reachable, so a consumer can ask what a virtual call runs
+    acceptance_criteria: Doxygen's own `reimplements` relation is exposed on the query surface. `dossier`
+      returns `overrides` (the base methods this function reimplements) and `overridden_by` (the
+      derived methods that reimplement it), each carrying the counterpart's name, rowid, signature,
+      file and line so a consumer can read the implementation without a second lookup. Both are
+      resolved through the function's IDENTITY rowids rather than its bare name, so the decl/def
+      duality cannot lose a relation doxygen recorded against the declaration and two unrelated
+      same-named functions cannot fabricate one between them. Every call-class edge from `callers`
+      and `callees` additionally carries `implementors` — the known concrete overrides of that
+      endpoint — as an ANNOTATION and never as a synthetic edge, so no confidence value is upgraded
+      and nothing new enters the reachability or thread traversals. A non-virtual function returns
+      empty lists and no `implementors`, and an index whose `reimplements` table is absent degrades
+      to empty rather than raising.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: gh#8. clew/query/symbols.py overrides_of / overridden_by / _override_refs /
+      _implementors_by_identity; models OverrideRef and CallEdge.implementors; composed into
+      query/dossier.py dossier. Described in mcp_server/descriptions/dossier.json and the shared
+      `neighbours` template, because an agent will not infer a relation it has never been told
+      about. Pure read side — no schema change and no build-version bump, since `reimplements` is
+      created by doxygen's own sqlite3 backend and has been populated all along (17 rows on this
+      repo's self-index, 117 on entropic). tests/test_overrides.py, tests/test_mcp_server.py.
+  REQ-DDB-QUERY-010:
+    subsystem: query
+    name: A consumer can act on `candidates` — an ambiguous name is addressable, not merely reported
+    acceptance_criteria: Every accessor that returns a `candidates` list and can honour a selection accepts
+      an OPTIONAL `qualified` argument naming which same-named identity to answer about, and every
+      `Candidate` publishes that string verbatim in a `qualified` field so the caller copies rather than
+      composes it. The selector is the SAME qualified-name key the index already uses to decide which
+      memberdef rows are one function, so a disambiguated call scopes the identity, its call-edge
+      neighbours, its thread membership and both override directions consistently instead of introducing
+      a second notion of sameness. Omitting the argument reproduces the previous definition-preferring
+      behaviour byte for byte, so the bare-name path is unchanged and the addition is not breaking. An
+      unmatched selector returns the ordinary not-found result and NEVER falls back to the bare-name
+      union, so a wrong string cannot read as a silently widened answer. A disambiguated reply still
+      reports `candidates`, measured over every same-named row, so a narrowed answer is distinguishable
+      from a unique one. The two surfaces that cannot honour a selection say so rather than accepting it —
+      `chain_trace` refuses it because its walk resolves every hop by bare name, and `lookup_class`
+      resolves a compound rather than a function identity.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: gh#37. clew/query/_common.py matching_identity (the selector rule, and why a
+      qualified name over a rowid or a file substring) + the optional `qualified` parameter on
+      function_candidates / identity_rowids / resolve_rowid; models.Candidate.qualified; threaded through
+      query/symbols.py resolve_symbol / callers / callees / overrides_of / overridden_by /
+      _override_refs / _direct_call_edges / _call_edges, query/dossier.py dossier and query/source.py
+      source; exposed on the wire by mcp_server/tools_query.py and described by the shared
+      `disambiguate` snippet. Pure read side — no schema change and no build-version bump.
+      tests/test_disambiguation.py.
+  REQ-DDB-INDEX-001:
+    subsystem: pipeline
+    name: Index everything by default (RECURSIVE + EXTRACT_STATIC forced)
+    acceptance_criteria: The pipeline forces RECURSIVE + EXTRACT_STATIC so a target repo needs only INPUT/OUTPUT_DIRECTORY;
+      the full source is indexed with targeted excludes only (--extra-exclude).
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/doxygen.py _DOXYFILE_FORCED_FLAGS, applied by _build_doxyfile_content and
+      exposed for cache hashing by doxyfile_content_for; consumed by run_doxygen. EXTRACT_ANON_NSPACES
+      is forced too. cli.py --extra-input/--extra-exclude.
+  REQ-DDB-INDEX-002:
+    subsystem: pipeline
+    name: Incremental/partial re-index for cheap refreshes
+    acceptance_criteria: After the first full index, a changed-file-only re-index refreshes the db without
+      a full doxygen+AST pass, keeping the R3 build/refresh cycle affordable on large (3000+ fn) repos.
+    x-priority: P1
+    x-status: partial
+    x-evidence: 'STALE FIELD CORRECTED 2026-07-30 — this said "Only from-scratch copy->augment->os.replace
+      exists today (cli.py); no mtime/changed-file logic (verified)" while clew/indexcache.py
+      and treescan.py ship exactly that: treescan.hash_file/enumerate_tree + IndexCache.scan identify
+      changed files (mtime+size prefilter, content sha as authority) and IndexCache.extract_get/extract_put
+      reuse per-file AST harvest payloads; cli.py _open_index_cache wires it, --no-index-cache/--rebuild
+      disable it. Still `partial`, NOT implemented: the doxygen run is keyed on IndexCache.tree_sha via
+      doxygen_get, so it is skipped only when the WHOLE tree is unchanged. Any single edit re-runs doxygen
+      in full. The AST half of the acceptance is met; the doxygen half is not.'
+  REQ-DDB-INDEX-003:
+    subsystem: pipeline
+    name: Report index COVERAGE, not only index size
+    acceptance_criteria: A build that skips most of a repository reports this fact numerically without
+      being asked — at build time as a proportionate warning naming the largest files that yielded
+      nothing, and in `status` as a queryable measurement persisted into build_meta.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'clew/coverage.py measure_index_coverage/report_index_coverage (+ IndexCoverage,
+      FileYield); wired by cli.py _build_stages AFTER ingest_supplementary_docs (prose-yielding files
+      are not barren) and persisted via signature.write_build_signature''s `coverage` section at build
+      version 18; surfaced by mcp_server/state.py _coverage_meta into db_status. Composes rather than
+      competes with doxygen.warn_if_no_function_bodies, which stays the TOTAL-absence term and
+      suppresses the partial one. DETECTION HALF ONLY — making PREDEFINED reachable and defaulting to
+      the target''s own build config are gh#17, sequenced after this so the recovery work has a metric.
+      Barren is defined as "at most one memberdef row under unioned file_id/bodyfile_id attribution",
+      which is language-agnostic by construction rather than an extension list: a header declares, a
+      guarded-out translation unit yields nothing. Thresholds calibrated on three public targets —
+      mbedtls 190/374 = 50.8% (the defect), entropic 7/177 = 4.0% and this repo 1/116 = 0.9% (both
+      benign) — so WARN_RATIO 0.25 sits an order of magnitude above the worst benign case.'
+  REQ-DDB-INDEX-004:
+    subsystem: pipeline
+    name: Recover parser-visible function definitions doxygen did not emit
+    acceptance_criteria: A build over a repository whose code sits behind unset feature macros produces
+      a usable call graph, and every symbol row in it says where it came from — doxygen or the parser.
+      A recovered row carries name, file, line span and static-ness and NO brief; a symbol doxygen
+      already emitted is never duplicated.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'gh#11. clew/ast_symbols.py recover_ast_symbols (+ ParsedFunction,
+      ensure_symbol_provenance, _FunctionDefinitionHarvester); wired by cli.py _build_stages between
+      repair_attribute_named_functions and report_index_coverage, i.e. BEFORE every call-edge layer,
+      because those resolve endpoints to memberdef rowids. Provenance lives in memberdef.dg_source,
+      added by ALTER TABLE ADD COLUMN with NOT NULL DEFAULT ''doxygen'' against OUR COPY of doxygen''s
+      output, and constrained by vocabulary.SYMBOL_SOURCE. Dedup is by body-span overlap within the
+      file, not by name, so two same-named functions in one translation unit stay separable; ties fail
+      toward dropping the parsed row. C/C++ only — doxygen indexes Python fully, so there is nothing to
+      recover there. COMPLEMENTARY TO, NOT A REPLACEMENT FOR, declaring PREDEFINED (gh#17): this
+      recovers the GRAPH and not the prose, which is why coverage.py reports the documented barren
+      ratio alongside the overall one.'
+  REQ-DDB-INDEX-005:
+    subsystem: pipeline
+    name: Index nested git trees, and tag them so an aggregate is not a false claim
+    acceptance_criteria: A repository that vendors another as a submodule has that submodule's code
+      indexed and reachable — chain_trace, callers, callees and dossier cross the boundary — while
+      coverage, orphan and file counts report FIRST PARTY by default and name the external population
+      separately. Admitting a submodule must not move the first-party figures. A tree the repository
+      DECLARES as a dependency — a gitlink, mode 160000, which is what `.gitmodules` describes — is
+      external; everything else this repo tracks is first party, whatever it is named and whoever
+      happens to have a clone sitting there.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'gh#333 + gh#335. clew/external.py stamp_external_provenance /
+      ensure_external_provenance / external_roots, reusing scope.nested_repo_roots — the same bounded
+      walk that until gh#333 produced these paths only to EXCLUDE them, so nothing new is detected and
+      what was discarded is stored. The tag is one namespaced column on doxygen''s `path` table
+      (vocabulary.EXTERNAL_ROOT_COLUMN), because path is what memberdef.file_id/bodyfile_id and
+      therefore every edge, lock, thread and requirement reaches through. NO NAME MATCHING on vendor/
+      or third_party/: those are conventions, and a copied-in third-party header with no git tree of
+      its own IS first party. NO QUERY FILTERS on the column — an empty answer that is actually a
+      filtered answer is the failure the emptiness notes exist to prevent.'
+    x-note: 'CRITERION CORRECTED at gh#352 (build version 34). It used to read "A directory with its
+      own git tree is external", which made the tag a property of the WORKING COPY rather than of the
+      repository: a developer clone left inside a TRACKED directory tagged that repo''s own committed
+      code as somebody else''s, so the same commit indexed differently depending on who built it.
+      Measured on entropic — three roots tagged external against the ONE .gitmodules declares, the
+      other two holding entropic''s own blobs at mode 100644. Descent still keys on `.git` (a nested
+      tree hides its build output from its parent whether or not the parent declared it); only the
+      OWNERSHIP question reads the gitlink. One predicate was answering both.'
+  REQ-DDB-QUERY-011:
+    subsystem: query
+    name: One first-party/external reporting contract — every roster splits, and the buckets sum
+    acceptance_criteria: Every roster-shaped answer reports first_party + external + unresolved, those
+      three account for the whole population, and the split is over the figure the payload tells a
+      caller to QUOTE rather than over its row count. No query filters on the tag — every member is
+      returned whoever owns it, and each row says whose it is. A payload that names a count without
+      naming whose code it counts is a defect even when the count is right.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'gh#352. query/models.OriginSplit.of is the single classifier and RAISES when the
+      buckets do not sum, so a lossy split cannot be reported as a measurement. Consumers: query/locks
+      lock_roster (splits distinct_mutexes, not rows — a mutex taken with two guard kinds is ONE
+      member) and diagnostics.BuildDiagnostics.as_meta (names only first-party accessor families while
+      accessor_families_count keeps the total, so the three keys reconcile). WHY: lock_roster''s
+      payload said "Quote distinct_mutexes as the mutex count" while 52 of entropic''s 97 belonged to
+      the vendored extern/llama.cpp — the tool instructed a caller to attribute the majority of another
+      repository''s locks to this one, and the acceptance rubric had begun COMPENSATING by widening a
+      mark to accept 97 "when attributed and split". A tool teaching its own grader to accept its
+      defect is the failure, not the wrong number. Same shape in the accessor diagnostic: probed across
+      both public targets it named 11 families and an operator should declare NONE of them (entropic 9,
+      all vendored inside extern/llama.cpp; mbedtls 2 DES key-schedule setters). A mixed-origin member
+      resolves to FIRST PARTY, the asymmetry scope._is_dependency_of_parent argues: mislabelling this
+      repo''s own code as somebody else''s removes it from the figure an operator acts on.'
+  REQ-DDB-QUERY-012:
+    subsystem: query
+    name: A macro is reachable — its expansion and every definition site, without reading source
+    acceptance_criteria: search matches memberdef rows of kind 'macro definition' by name and by
+      EXPANSION, the empty-result token diagnosis counts that corpus too, and dossier reports every
+      '#define' of the asked-for name with its parameters, its expansion and its file/line — including
+      when the same name ALSO denotes a function, and including when it denotes only a macro. A macro
+      that is indexed and unreachable is the defect; a macro reported once when it is defined three
+      times is the same defect one level in.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'gh#373. clew/query/macros.py macro_definitions_conn (one MacroDef per site,
+      expansion out of memberdef.initializer), query/dossier.py _macro_dossier + the macros panel,
+      query/symbols.py _macro_candidates and _one_token_count; tests/test_macro_query.py. WHY: the
+      mbedtls Q2 acceptance question is about MBEDTLS_PRIVATE, a macro. Measured on the graded run,
+      search(''MBEDTLS_ALLOW_PRIVATE_ACCESS'') returned a definitive zero while three rows for it sat
+      in memberdef, and dossier(''MBEDTLS_PRIVATE'') described a STRUCT MEMBER — doxygen records each
+      wrapped field as int mbedtls_aes_context::MBEDTLS_PRIVATE(nr) with kind=''function'', so ~2,000
+      member rows shadowed the one macro row. The cell spent 20 index calls, fell back to Read four
+      times and to Grep once, and then reported the macro layer as an index GAP. It was not a gap:
+      2,063 of mbedtls''s 2,504 macro rows carry an initializer. The standing lesson in its purest
+      form — "no rows" was a claim about the QUERY. Note the shadowing is why this cannot be a
+      fallback for "the name resolves to no function": on the motivating name, it does.'
+  REQ-DDB-MCP-001:
+    subsystem: mcp
+    name: Two-tier MCP server over clew.db
+    acceptance_criteria: A shipped MCP server exposes Tier-0 lifecycle tools always-on and Tier-1 query
+      tools after a db is built; launched AT a target repo, its first action is build/refresh of that
+      repo's clew.db.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'STALE FIELD CORRECTED 2026-07-30 — this said "NO mcp module or SDK refs in clew/
+      (verified); task #17 pending", and the parenthetical made a false claim authoritative. clew/mcp_server/
+      ships: server.py build_server (tier-0 registration), run_stdio (stdio transport advertising tools/list_changed),
+      DocsDbServer.pin (--repo pins the server and builds at startup); console script clew-mcp;
+      tests/test_mcp_server.py. Design doc is docs/design/r3-mcp-server.md, not PIVOT.md (which does not
+      exist).'
+  REQ-DDB-MCP-002:
+    subsystem: mcp
+    name: Tier-0 lifecycle/utility tools available before any db exists
+    acceptance_criteria: Set/point target, build-or-refresh, status, and list-targets tools are registered
+      and callable at launch, before a clew.db has been built.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: STALE FIELD CORRECTED 2026-07-30 (was "PIVOT.md R3 (TIER-0 static/always-on); unbuilt").
+      clew/mcp_server/server.py DocsDbServer.set_target/build_or_refresh/status/list_targets,
+      all registered by build_server before any db exists; cull and propose_declaration are tier-0 too.
+      docs/design/r3-mcp-server.md.
+  REQ-DDB-MCP-003:
+    subsystem: mcp
+    name: Tier-1 dynamic query-tool registration + periodic cull
+    acceptance_criteria: Query tools (dossier/chain-trace/callers/callees/req-trace/search/thread-of)
+      register dynamically after the db is active via tools/list_changed; a periodic freshness sweep culls
+      stale/aged dbs. MCP SDK specifics grounded at R3 time, not from memory.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: STALE FIELD CORRECTED 2026-07-30 (was "PIVOT.md R3 ...; unbuilt"). clew/mcp_server/server.py
+      register_query_tools/unregister_query_tools over tools_query.TIER1_TOOLS, activated by DocsDbServer._activate_tier1
+      which sends tools/list_changed, and DocsDbServer.cull for the aged/version-stale sweep. docs/design/r3-mcp-server.md;
+      tests/test_mcp_server.py.
+  REQ-DDB-MCP-004:
+    subsystem: mcp
+    name: The tool reports its own currency on three distinguishable axes
+    acceptance_criteria: A consumer can tell WHICH kind of staleness is in play and what clears it,
+      without asking twice. The data axis (database older than source) reports the measured cost of
+      correcting it; the schema axis distinguishes an index newer than the server — where `stale` is
+      unresolvable by any rebuild — from one older than it; the code axis reports that the running
+      process loaded its modules before the current working tree, while stating that query DATA is
+      read live and is current AND that a BUILD through such a process is REFUSED, because a stale
+      process reads live data but writes dead logic and would re-stamp the index with it. A
+      staleness fact rides in every query reply, and is ABSENT when the tool is current. The data axis's measured cost is reported PER STAGE as well as in total,
+      because one number for a thirty-stage pipeline says whether to refresh and not what to make
+      faster.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: gh#2 + gh#9 + gh#29, landed as one change. clew/mcp_server/freshness.py
+      (the three axes and their messages; PROCESS_SOURCE_FINGERPRINT taken at import, i.e. launch),
+      state._refresh_meta + db_status (`refresh`/`code`/`staleness` blocks), cli._stamp_refresh_metrics
+      + signature.write_build_signature `refresh=` (build version 24), server.staleness_notices and
+      build_or_refresh `duration_ms`, tools_query.QueryTools._staleness. The per-stage breakdown is
+      stagetimer.StageTimer, marked through cli._build_stages and stamped as `refresh.stages`. Q7
+      mark 7 and Q8 mark 5 are the acceptance marks this exists to satisfy; tests/test_freshness.py
+      and tests/test_stage_timings.py hold the controls.
+  REQ-DDB-PIPE-001:
+    subsystem: pipeline
+    name: Build a layered SQLite knowledge db from a target repo's Doxyfile
+    acceptance_criteria: python -m clew --doxyfile X --output Y produces clew.db carrying structure,
+      call, callback/fnptr, thread, shared-key, MQTT, requirement, and liveness layers in fixed stage
+      order.
+    x-priority: P0
+    x-status: implemented
+    x-evidence: clew/cli.py _build_stages (the fixed stage order, now 19 numbered stages plus
+      the 9b/9c/13b sub-stages its module docstring enumerates), driven by _run_pipeline; tests/test_build_docs_db.py.
+      The prior field cited tests/test_clew.py, which was renamed and no longer exists.
+  REQ-DDB-PIPE-002:
+    subsystem: pipeline
+    name: Atomic swap-safe build (temp db then os.replace onto --output)
+    acceptance_criteria: Build writes to <output>.tmp and os.replace()s it onto --output; a failed build
+      leaves the prior clew.db untouched and no reader ever sees a half-built db.
+    x-priority: P0
+    x-status: implemented
+    x-evidence: clew/cli.py _run_pipeline (try/os.replace/tmp.unlink)
+  REQ-DDB-PIPE-003:
+    subsystem: pipeline
+    name: Multi-layer call-edge recovery (doxygen sqlite + AST + fnptr)
+    acceptance_criteria: call_edges populated from doxygen_sqlite inline xrefs, tree-sitter
+      AST (resolved+fuzzy), and callback/fnptr registration; each edge row records source and confidence.
+    x-priority: P0
+    x-status: implemented
+    x-evidence: clew/call_edges.py build_call_edges/import_ast_call_edges;
+      callback_edges.py import_callback_registration_edges; cli.py stages 6-9
+  REQ-DDB-PIPE-004:
+    subsystem: pipeline
+    name: Reachability liveness from entry-point seeds, call-edges non-fuzzy only
+    acceptance_criteria: mark_reachability BFS seeds from DEFAULT_ENTRY_PATTERNS (main/%init%/%task%/%handler%/%thread%/%isr%/%entry%/%_cb/%callback%),
+      walks call_edges non-fuzzy only, never traverses shared_key/queue edges.
+    x-priority: P0
+    x-status: implemented
+    x-evidence: clew/reachability.py mark_reachability/_gather_reachability_seeds/_bfs_live_set/_write_symbol_liveness
+      + DEFAULT_ENTRY_PATTERNS; a third structural seed source (py_entrypoints.python_entry_seeds) now
+      joins the two the module docstring describes; CLAUDE.md ground truth; cli.py stage 18
+  REQ-DDB-PIPE-005:
+    subsystem: pipeline
+    name: Build-version signature stamped last
+    acceptance_criteria: write_build_signature stamps build_meta with CLEW_BUILD_VERSION as the
+      final stage so a partial build never looks current; bumped freely (independent repo, dual-constant
+      retired).
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'clew/signature.py write_build_signature/read_build_signature; cli.py stamps last.
+      STALE FIELD CORRECTED 2026-07-30: both the title and this field pinned "CLEW_BUILD_VERSION
+      = 2", seven bumps behind (it is 10). A requirement text must not restate a value that is designed
+      to change — the constant is the source of truth.'
+  REQ-DDB-PIPE-006:
+    subsystem: pipeline
+    name: ANSI-clean pipeline output for captured surfaces
+    acceptance_criteria: Every pipeline subprocess runs under NO_COLOR=1 / TERM=dumb / CLICOLOR=0 so captured
+      build logs (R4 emit, R3 tool output) contain no SGR noise.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/_common.py clean_subprocess_env (NO_COLOR=1/TERM=dumb/CLICOLOR=0). The prior
+      field cited PIVOT.md 3.2, which does not exist.
+  REQ-DDB-QUERY-001:
+    subsystem: query
+    name: Stable query library returning JSON-serializable frozen dataclasses
+    acceptance_criteria: clew.query exposes dossier/callers/callees/req_trace/thread_of/thread_roster/search/resolve_symbol/chain_trace
+      returning frozen dataclasses (asdict-serializable), never raw rows or HTML; accepts Path|str|Connection.
+    x-priority: P0
+    x-status: implemented
+    x-evidence: clew/query/__init__.py __all__; query/models.py (the frozen dataclasses); query/_common.py
+      connect (the Path|str|Connection normalizer); query/symbols.py callers/callees/search/thread_of/thread_roster/req_trace;
+      tests/test_query.py
+  REQ-DDB-QUERY-002:
+    subsystem: query
+    name: Unified causal-chain traversal (D6)
+    acceptance_criteria: chain_trace walks UNION(call_edges non-fuzzy incl. fnptr, shared_key_edges),
+      annotates each hop (dispatch_mode/edge_triggered/crosses_thread/to_thread), bounds cycles by path-membership
+      + depth taper, terminates a branch at an external_boundaries terminus.
+    x-priority: P0
+    x-status: implemented
+    x-evidence: clew/query/traversal.py chain_trace + _neighbors/_call_hops/_key_hops (the UNION),
+      _cap_at_depth (depth taper) and termini_for (boundary termination); docs/design/r2-query-library.md;
+      tests/test_query.py. The prior field cited R2-SPEC.md, which does not exist.
+  REQ-DDB-QUERY-003:
+    subsystem: query
+    name: Definition-preferring symbol resolution
+    acceptance_criteria: resolve_symbol returns the definition row (file_id==bodyfile_id) over header
+      declarations for a name; rowid->name rendering is DISTINCT-by-name (decl/def duality).
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/query/symbols.py resolve_symbol; query/_common.py resolve_rowid/rowids_for_name/function_candidates;
+      shared_key_edges.py _definition_preferring_name_index (the build-side equivalent); CLAUDE.md decl/def
+      duality ground truth
+  REQ-DDB-QUERY-004:
+    subsystem: query
+    name: Dossier surfaces the full R1 richness
+    acceptance_criteria: dossier() returns identity/liveness/requirements(+tests)/callers/callees plus
+      threads[], is_terminus/terminus info, and per-key-edge dispatch_mode/edge_triggered/crosses_thread/to_thread.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/query/dossier.py dossier + _reqs_and_tests; query/symbols.py key_edges (per-key-edge
+      R1 columns) and threads_for; docs/design/r2-query-library.md. The prior field cited R2-SPEC.md,
+      which does not exist.
+  REQ-DDB-QUERY-005:
+    subsystem: query
+    name: Chain-trace collects linked requirements per node
+    acceptance_criteria: chain_trace attaches the requirements linked to each function node along the
+      causal chain so a consumer can answer which reqs an end-to-end path touches.
+    x-priority: P2
+    x-status: implemented
+    x-evidence: clew/query/traversal.py _reqs_for, attached per node by _make_node; docs/design/r2-query-library.md.
+      The prior field cited R2-SPEC.md, which does not exist.
+  REQ-DDB-SCHEMA-001:
+    subsystem: schema
+    name: Threads, thread membership, and thread-boundary flags
+    acceptance_criteria: threads + thread_membership populate from AST spawn-site harvest (POSIX/FreeRTOS/CMSIS
+      defaults + declared --thread-patterns wrappers); shared_key_edges carry crosses_thread/to_thread_id
+      computed from membership.
+    x-priority: P0
+    x-status: implemented
+    x-evidence: clew/threads.py extract_threads/_populate_membership/annotate_thread_boundaries,
+      patterns via load_thread_patterns, tables via _ensure_threads_tables; tests/test_r1_richness.py
+  REQ-DDB-SCHEMA-002:
+    subsystem: schema
+    name: Dispatch semantics on shared-key edges (mode + edge-trigger)
+    acceptance_criteria: shared_key_edges carry dispatch_mode (inline/queued/keyed/unknown) and edge_triggered
+      (declared-only, per accessor family, never inferred per key).
+    x-priority: P0
+    x-status: implemented
+    x-evidence: 'clew/shared_key_edges.py _writer_dispatch_map (dispatch_mode) and _coerce_edge_triggered
+      (declared-only edge_triggered); column CHECKs generated from vocabulary.py; tests/test_r1_richness.py
+      test_inferred_dispatch_mode_*, test_declared_edge_triggered_*. The prior field cited "R1-SPEC.md
+      DDL", and no R1-SPEC.md exists — the DDL lives in _ensure_shared_key_edges_table. Note task #32:
+      dispatch_mode is populated by this code but measured empty on some targets.'
+  REQ-DDB-SCHEMA-003:
+    subsystem: schema
+    name: External-boundary terminus recording
+    acceptance_criteria: external_boundaries records in-repo functions invoking an externally-registered
+      callback with global_name, kind, registered_by_rowid, registered_param_index instead of silently
+      dropping the unresolved case.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/callback_edges.py _registration_forwards_externally/_record_external_boundary/_insert_external_boundaries,
+      table via _ensure_external_boundaries_table; tests/test_r1_richness.py test_external_boundary_records_forwarded_dead_end
+  REQ-DDB-SCHEMA-004:
+    subsystem: schema
+    name: Keyed/MQTT dispatch as shared-key edges (declared, D5)
+    acceptance_criteria: --mqtt-dispatch manifest (fn_name, topic_arg_index, handler_arg_index) produces
+      keyed/high shared_key_edges with topic as key_name; a 'dynamic'/'unknown' sentinel when the topic
+      is runtime-built.
+    x-priority: P2
+    x-status: implemented
+    x-evidence: clew/shared_key_edges.py import_mqtt_dispatch_edges + _load_subscribe_patterns
+      + _build_keyed_edges; tests/test_r1_richness.py test_mqtt_dispatch_topic_literal_keyed_edge
+  REQ-DDB-SCHEMA-005:
+    subsystem: schema
+    name: Shared-key dataflow edges - inferred and declared layers
+    acceptance_criteria: import_shared_key_edges_inferred derives writer/reader edges from --shared-key-patterns
+      accessors (arg-based key index + pointer_expression unwrap); import_shared_key_edges_declared adds
+      authoritative --data-model edges. Queue edges do NOT feed reachability.
+    x-priority: P0
+    x-status: implemented
+    x-evidence: clew/shared_key_edges.py import_shared_key_edges_inferred/import_shared_key_edges_declared,
+      patterns resolved by resolve_shared_key_patterns/load_shared_key_patterns; CLAUDE.md queue-dataflow
+      ground truth
+  REQ-DDB-SCHEMA-006:
+    subsystem: schema
+    name: Requirement traceability edges (@req + test coverage)
+    acceptance_criteria: import_req_edges maps @req tags to functions in BOTH the literal and the xrefitem-aliased
+      form (both decl/def rowids tolerated), recording confidence stated vs inferred; import_req_test_edges
+      maps @req-tagged test_* functions to requirements.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'clew/requirements.py import_req_edges/import_req_test_edges, tags parsed by _extract_req_tags
+      (literal) and _extract_xref_req_tags (alias form), catalog by ingest_requirements_yaml; CLAUDE.md
+      @req-both-forms ground truth. The acceptance used to say "literal @req REQ-NNNN", which understated
+      it twice over: the alias form has been handled since 2026-07-23 and the id shape is never assumed.
+      Task #62 found and fixed a silent drop in _extract_req_tags — see the CLEW_BUILD_VERSION
+      10 note.'
+  REQ-DDB-SCHEMA-007:
+    subsystem: schema
+    name: Optional declared inputs gate POPULATION, not table existence
+    acceptance_criteria: threads, thread_membership, external_boundaries, shared_key_edges are always
+      CREATEd (empty if no manifest); --thread-patterns/--data-model/--mqtt-dispatch only fill them; no
+      ALTER, every build from-scratch.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/threads.py _ensure_threads_tables, callback_edges.py _ensure_external_boundaries_table,
+      shared_key_edges.py _ensure_shared_key_edges_table — each CREATEs unconditionally, ahead of any
+      manifest check; tests/test_r1_richness.py test_*_always_creates_empty_tables. The prior field cited
+      R1-SPEC.md, which does not exist.
+  REQ-DDB-SCHEMA-008:
+    subsystem: schema
+    name: Bus-A fan-out XOR mutual-exclusion labeling
+    acceptance_criteria: Two-way mutually-exclusive fan-out (a data-model dispatcher XOR an FSM-library
+      path) is labeled as such on the edges rather than presented as unconditional parallel fan-out.
+    x-priority: P3
+    x-status: planned
+    x-evidence: NO IMPLEMENTER — unbuilt, and deliberately left untagged. Deferred out of R1 for want
+      of a generic source for the XOR condition. The prior field cited R1-SPEC.md and PLAN-round2.md;
+      neither exists.
+  REQ-DDB-SCHEMA-009:
+    subsystem: schema
+    name: Event-bus post->handler coupling
+    acceptance_criteria: Event post/trigger call sites are coupled to their handlers so an event-bus dispatch
+      hop is walkable without a hand-declared manifest.
+    x-priority: P3
+    x-status: partial
+    x-evidence: 'STALE FIELD CORRECTED 2026-07-30 — this said "deferred (dispatch is struct-member call,
+      not AST-detectable; declared-manifest follow-on)" while clew/event_edges.py ships the walkable
+      hop: import_event_edges + _topic_roles + _edges_for land producer/consumer pairs in shared_key_edges
+      as edge_kind=''event'', so chain_trace crosses the seam with no query-layer change, and NO hand-declared
+      manifest is needed. Tagged [inferred] rather than stated because the MECHANISM differs from the
+      acceptance: the coupling is read from the author''s own @emits/@handles xrefitem tags ("Nothing
+      here is inferred", per that module''s docstring), not derived from call sites. A repo that documents
+      no event tags still gets nothing — hence `partial`, not implemented.'
+  REQ-DDB-SCHEMA-010:
+    subsystem: schema
+    name: MQTT topic->handler AST inference
+    acceptance_criteria: MQTT topic->handler mappings are inferred from source (AST), removing the need
+      for the --mqtt-dispatch declared manifest on repos that build topics dynamically.
+    x-priority: P3
+    x-status: planned
+    x-evidence: NO IMPLEMENTER — unbuilt, and deliberately left untagged. The declared --mqtt-dispatch
+      manifest (REQ-DDB-SCHEMA-004) covers R1; runtime map-dispatch is not AST-detectable. The prior field
+      cited R1-SPEC.md, which does not exist.
+  REQ-DDB-SCHEMA-011:
+    subsystem: schema
+    name: Lock layer - locks, acquisitions, critical sections, and nesting order
+    acceptance_criteria: clew/locks.py + critical_sections.py populate `locks`,
+      `lock_acquisitions`, `critical_section_calls` and `lock_nestings` across both reference
+      idioms (C++ RAII declarations, C/POSIX lock/unlock pairs). Identity is SCOPE-QUALIFIED
+      and fails closed, because a bare member name like `mutex_` recurs across unrelated
+      classes and name-only keying would fabricate a shared lock indistinguishable from real
+      synchronization. `query/locks.py` exposes runs_under_lock / locks_held_when /
+      lock_nestings.
+    x-priority: P2
+    x-status: implemented
+    x-evidence: 'ADDED 2026-07-30 during the coverage sweep. The lock layer shipped as R1 L1+L2
+      with four tables, a documented scope-qualified identity rule, three MCP tools and a
+      measured result on the public entropic index (17 two-lock holdings, both scopes named) -
+      and had NO catalog requirement at all. It was found only because arming the coverage gate
+      forced every function to name what it implements, and locks.py had nothing honest to name.
+      A requirement was added rather than folding these functions under an unrelated id: the
+      repo rule is that a wrongly-tagged requirement is worse than an untagged one.'
+  REQ-DDB-SCHEMA-012:
+    subsystem: schema
+    name: One definition per enumerated value - DDL CHECK constraints are generated
+    acceptance_criteria: clew/vocabulary.py is the single source for every enumerated
+      value the pipeline writes and the query layer reads. All DDL CHECK clauses are generated
+      from that registry, so `grep -rn "CHECK(" clew/` matches only vocabulary.py.
+      Deliberately a TRUE LEAF (dataclasses + pathlib only) - it cannot import `._common`,
+      because a vocabulary both halves of the codebase import must not depend on either.
+    x-priority: P2
+    x-status: implemented
+    x-evidence: 'ADDED 2026-07-30 during the coverage sweep, same reason as SCHEMA-011: a
+      shipped subsystem with no requirement. Every enum had previously been spelled out three
+      times (a DDL CHECK, a module-local _VALID_* tuple, a docstring); consolidating them closed
+      four guard holes - columns that accepted any string because no CHECK had ever been
+      written. CHECK text is built by explicit quote-and-join with '''' escaping, never a repr,
+      because a repr emits a trailing comma on a 1-tuple and Python quoting is not SQL quoting.'

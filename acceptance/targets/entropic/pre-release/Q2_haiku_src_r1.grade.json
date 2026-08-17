@@ -1,0 +1,333 @@
+{
+  "q": "Q2",
+  "arm": "src",
+  "model": "haiku",
+  "run": 1,
+  "answer": "Q2_haiku_src_r1.md",
+  "rubric": "acceptance/targets/entropic/questions.yaml",
+  "declared_mark_count": 12,
+  "summary": {
+    "marks_hit": 5,
+    "marks_miss": 7,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 12,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": null,
+    "falsity_verdict": null,
+    "marks_total": 12,
+    "score": 5.0,
+    "score_strict": 5.0
+  },
+  "falsity": null,
+  "marks": [
+    {
+      "index": 1,
+      "text": "**finds the `MCPAuthorizationManager::auth_mutex_` \u2192 `MCPKeySet::key_mutex_` nesting** and states the mechanism: the authorization manager holds its own mutex and calls into a `MCPKeySet` that locks on entry",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "MCPAuthorizationManager::auth_mutex_",
+          "MCPKeySet::key_mutex_",
+          "MCPKeySet"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer only discusses swap_mutex_/mtp_mutex_ in llama_cpp_backend; it never mentions MCPAuthorizationManager::auth_mutex_ or MCPKeySet::key_mutex_.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer only discusses swap_mutex_/mtp_mutex_ in llama_cpp_backend; it never mentions MCPAuthorizationManager::auth_mutex_ or MCPKeySet::key_mutex_."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 2,
+      "text": "**verifies it at both ends against the source** rather than asserting it \u2014 the two class headers each document their own locking invariant, and the seven call sites are in one file",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer analyzes call-site ordering between two mutexes across two files, but never mentions verifying against class-header-documented locking invariants or seven call sites confined to one file.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer analyzes call-site ordering between two mutexes across two files, but never mentions verifying against class-header-documented locking invariants or seven call sites confined to one file."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 3,
+      "text": "**finds at least one of the other two real nestings** \u2014 `SecondaryModelLoader::slots_mutex_` \u2192 `InferenceBackend::transition_mutex_` (in `release_role` / `shutdown`), or `LlamaCppBackend::mtp_mutex_` \u2192 `PromptCache::mutex_` (in `do_unload`). An answer that reports the authorization pair as the codebase's ONLY two-lock holding is incomplete, and this mark is the one that says so",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "do_unload"
+        ],
+        "symbols_weak": [
+          "LlamaCppBackend::mtp_mutex_"
+        ],
+        "symbols_missed": [
+          "SecondaryModelLoader::slots_mutex_",
+          "InferenceBackend::transition_mutex_",
+          "release_role",
+          "PromptCache::mutex_"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `LlamaCppBackend::mtp_mutex_` (unqualified) \u2014 5. `LlamaCppBackend::do_deactivate()` acquires `mtp_mutex_` at llama_cpp_backend.cpp:622",
+          "symbol `do_unload` \u2014 6. `LlamaCppBackend::do_unload()` acquires `mtp_mutex_` at llama_cpp_backend.cpp:746"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "**reports the ORDER as consistent** for whatever it finds \u2014 the outer lock is the same one every time in all three pairs \u2014 so no inversion is demonstrated",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Acquisition Order Consistency: CONSISTENT - Only one ordering path exists: `swap_mutex_` \u2192 `mtp_mutex_`... No reverse ordering (mtp \u2192 swap) exists, so no deadlock risk\"",
+        "why": "The answer explicitly states the acquisition order is consistent across the one case found, matching the item's substance.",
+        "raw": "QUOTE: \"Acquisition Order Consistency: CONSISTENT - Only one ordering path exists: `swap_mutex_` \u2192 `mtp_mutex_`... No reverse ordering (mtp \u2192 swap) exists, so no deadlock risk\"\nVERDICT: HIT\nWHY: The answer explicitly states the acquisition order is consistent across the one case found, matching the item's substance."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "**argues the no-inversion case structurally rather than by inspection**: `MCPKeySet` never names `MCPAuthorizationManager` and `InferenceBackend` never names `SecondaryModelLoader`, so the reverse order is not reachable at all for those pairs",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "MCPKeySet",
+          "MCPAuthorizationManager",
+          "InferenceBackend",
+          "SecondaryModelLoader"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never mentions MCPKeySet, MCPAuthorizationManager, InferenceBackend, or SecondaryModelLoader, nor argues reachability from naming/reference structure.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions MCPKeySet, MCPAuthorizationManager, InferenceBackend, or SecondaryModelLoader, nor argues reachability from naming/reference structure."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 6,
+      "text": "**does not fabricate a nesting.** Any reported pair whose inner call is a same-named method of an unrelated type is a MISS for this mark, however plausible \u2014 `.get()` on a `std::unique_ptr` is not `SecondaryModelLoader::get`, `.size()` on a container is not `MCPKeySet::size`, `.store()` on a `std::atomic` is not `PromptCache::store`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "std::unique_ptr",
+          "SecondaryModelLoader::get",
+          "MCPKeySet::size",
+          "std::atomic",
+          "PromptCache::store"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "NONE",
+        "why": "The answer's reported nesting (swap_mutex_/mtp_mutex_ via deactivate()/unload()/do_deactivate()/do_unload()) shows no fabricated same-named-method confusion (e.g., no unique_ptr::get(), container::size(), or atomic::store() misattribution).",
+        "raw": "QUOTE: NONE\nVERDICT: HIT\nWHY: The answer's reported nesting (swap_mutex_/mtp_mutex_ via deactivate()/unload()/do_deactivate()/do_unload()) shows no fabricated same-named-method confusion (e.g., no unique_ptr::get(), container::size(), or atomic::store() misattribution)."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 7,
+      "text": "**states how it searched and why that method over-reports** on this codebase specifically: the inner call is named by an unqualified method name, and several of entropic's own method names collide with standard-library member names",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never explains its search methodology (unqualified name matching) or notes that entropic's own method names collide with standard-library member names causing over-reporting.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never explains its search methodology (unqualified name matching) or notes that entropic's own method names collide with standard-library member names causing over-reporting."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 8,
+      "text": "answers the question that was asked \u2014 whether entropic can deadlock \u2014 rather than listing findings. Consistent ordering in every pair found means no cycle is demonstrated",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"the acquisition order is **consistent**\" / \"No reverse ordering (mtp \u2192 swap) exists, so no deadlock risk\"",
+        "why": "The answer directly addresses whether entropic can deadlock, concludes no cycle exists because ordering is consistent in every pair found, rather than just listing findings.",
+        "raw": "QUOTE: \"the acquisition order is **consistent**\" / \"No reverse ordering (mtp \u2192 swap) exists, so no deadlock risk\"\nVERDICT: HIT\nWHY: The answer directly addresses whether entropic can deadlock, concludes no cycle exists because ordering is consistent in every pair found, rather than just listing findings."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "**distinguishes \"I found no inversion\" from \"there is no inversion\"**, and says what its method could not have seen. A dispatch through a base-class pointer or a `std::function` is outside the reach of any static scan of this kind",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "std::function"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"I could not definitively verify: Whether there are any paths where `seq_id_mutex_` and `mtp_mutex_` are held together... Whether any other subsystem mutexes... interact with the backend mutexes in a two-mutex pattern\"",
+        "why": "The answer lists gaps in coverage but never frames these as limits of a static-scan method (e.g., dispatch through base-class pointers or std::function being unreachable), nor distinguishes \"found no inversion\" from \"there is no inversion\" for the one case it did analyze.",
+        "raw": "QUOTE: \"I could not definitively verify: Whether there are any paths where `seq_id_mutex_` and `mtp_mutex_` are held together... Whether any other subsystem mutexes... interact with the backend mutexes in a two-mutex pattern\"\nVERDICT: MISS\nWHY: The answer lists gaps in coverage but never frames these as limits of a static-scan method (e.g., dispatch through base-class pointers or std::function being unreachable), nor distinguishes \"found no inversion\" from \"there is no inversion\" for the one case it did analyze."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 10,
+      "text": "spots that pairs 2 and 3 COMPOSE: `InferenceBackend::unload` calls the virtual `do_unload`, so one `release_role` call holds four mutexes in a chain no single function body shows",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "do_unload"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "InferenceBackend::unload",
+          "release_role"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `do_unload` \u2014 6. `LlamaCppBackend::do_unload()` acquires `mtp_mutex_` at llama_cpp_backend.cpp:746"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 11,
+      "text": "notes that `InferenceBackend::unload` fires a consumer-supplied hook callback while holding `transition_mutex_`, which is a re-entrancy hazard the source cannot resolve because the callback is external",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "InferenceBackend::unload",
+          "transition_mutex_"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer covers a different topic (two-mutex ordering in orchestrator/backend) and never mentions `InferenceBackend::unload`, a consumer-supplied hook callback, or re-entrancy from an external callback held under `transition_mutex_`.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers a different topic (two-mutex ordering in orchestrator/backend) and never mentions `InferenceBackend::unload`, a consumer-supplied hook callback, or re-entrancy from an external callback held under `transition_mutex_`."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 12,
+      "text": "quantifies its own precision \u2014 states how many candidates its method produced and how many survived reading \u2014 rather than presenting a filtered list as if it were the raw result",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"one case where entropic holds two mutexes at once\" / no stated candidate count or survival ratio",
+        "why": "The answer never states how many candidate pairings/paths it examined versus how many held up under reading; it just presents the found case and unverified gaps.",
+        "raw": "QUOTE: \"one case where entropic holds two mutexes at once\" / no stated candidate count or survival ratio\nVERDICT: MISS\nWHY: The answer never states how many candidate pairings/paths it examined versus how many held up under reading; it just presents the found case and unverified gaps."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

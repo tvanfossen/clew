@@ -1,0 +1,188 @@
+{
+  "q": "Q8",
+  "arm": "mcp",
+  "model": "sonnet",
+  "run": 1,
+  "answer": "Q8_sonnet_mcp_r1.md",
+  "rubric": "acceptance/targets/mbedtls/questions.yaml",
+  "declared_mark_count": 7,
+  "summary": {
+    "marks_hit": 7,
+    "marks_miss": 0,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 7,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": null,
+    "falsity_verdict": null,
+    "marks_total": 7,
+    "score": 7.0,
+    "score_strict": 7.0
+  },
+  "falsity": null,
+  "marks": [
+    {
+      "index": 1,
+      "text": "**identifies `framework/` as a git submodule that is not populated in this checkout**, rather than as an empty directory that happens to be there",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`.gitmodules` declares a `framework` submodule (mbedtls-framework) whose path (`framework/`) exists but is **empty** \u2014 `git submodule status` shows it unpopulated (leading `-`)\"",
+        "why": "The answer explicitly identifies framework/ as an unpopulated git submodule, not merely an empty directory, citing the submodule status mechanism.",
+        "raw": "QUOTE: \"`.gitmodules` declares a `framework` submodule (mbedtls-framework) whose path (`framework/`) exists but is **empty** \u2014 `git submodule status` shows it unpopulated (leading `-`)\"\nVERDICT: HIT\nWHY: The answer explicitly identifies framework/ as an unpopulated git submodule, not merely an empty directory, citing the submodule status mechanism."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "names what refuses to proceed without it \u2014 the CMake configure step, the makefile, or both \u2014 rather than only asserting that something is missing",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`tests/CMakeLists.txt` (e.g. lines 24, 36, 48, 60, and its `mbedtls_framework/*.py` dependencies at 105-110, 137, 157) shows the test-generation targets invoke `../framework/scripts/generate_*.py` directly \u2014 so **running the test suite does need it**\"",
+        "why": "Names the makefile/CMake test-generation targets that refuse to proceed without the submodule, not just asserting it's missing.",
+        "raw": "QUOTE: \"`tests/CMakeLists.txt` (e.g. lines 24, 36, 48, 60, and its `mbedtls_framework/*.py` dependencies at 105-110, 137, 157) shows the test-generation targets invoke `../framework/scripts/generate_*.py` directly \u2014 so **running the test suite does need it**\"\nVERDICT: HIT\nWHY: Names the makefile/CMake test-generation targets that refuse to proceed without the submodule, not just asserting it's missing."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "**tells the colleague what to actually do about it** (initialise the submodule), which is what the build's own error message says",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"They must run `git submodule update --init` (or clone with `--recurse-submodules`) before `make check`/`ctest`.\"",
+        "why": "Answer explicitly names the fix (initialize the submodule via `git submodule update --init`) tying it to the build's own README/error guidance.",
+        "raw": "QUOTE: \"They must run `git submodule update --init` (or clone with `--recurse-submodules`) before `make check`/`ctest`.\"\nVERDICT: HIT\nWHY: Answer explicitly names the fix (initialize the submodule via `git submodule update --init`) tying it to the build's own README/error guidance."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "**reports that the test C sources are not in the tree** \u2014 `tests/suites/` holds inputs and data and no `.c` at all, so the suites are produced at build time",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"the actual test suite `.c` files (e.g. `test_suite_rsa.c`) don't exist in the tree at all yet \u2014 `CONTRIBUTING.md:60` explains they're 'dynamically generated to produce the actual test source files' from a `.function` file + a `.data` file under `tests/suites/`, at build time\"",
+        "why": "States that test suite .c sources are absent from the tree and are generated at build time from inputs under tests/suites/.",
+        "raw": "QUOTE: \"the actual test suite `.c` files (e.g. `test_suite_rsa.c`) don't exist in the tree at all yet \u2014 `CONTRIBUTING.md:60` explains they're 'dynamically generated to produce the actual test source files' from a `.function` file + a `.data` file under `tests/suites/`, at build time\"\nVERDICT: HIT\nWHY: States that test suite .c sources are absent from the tree and are generated at build time from inputs under tests/suites/."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "names at least one tracked C or header file that is machine-generated, and its generator. Verified pairs at this commit: `library/ssl_debug_helpers_generated.c` \u2190 `generate_ssl_debug_helpers.py`, `programs/psa/psa_constant_names_generated.c` \u2190 `generate_psa_constant.py` (the banner's spelling; the tracked script is `scripts/generate_psa_constants.py`, PLURAL), `tests/src/psa_test_wrappers.c` \u2190 `generate_psa_wrappers.py`, `library/psa_crypto_driver_wrappers_no_static.h` \u2190 `scripts/generate_driver_wrappers.py`, and `library/error.c` / `library/version_features.c` \u2190 `scripts/generate_errors.pl` / `scripts/generate_features.pl`. THE GENERATOR NEED NOT BE IN THE CHECKOUT: the first and third live in the unpopulated `framework/` submodule, so quoting the file's own banner is a correct answer and citing an untracked script path is not an error. A pair outside this set does not earn the mark",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "`library/ssl_debug_helpers_generated.c:1` \u2014 `/* Automatically generated by generate_ssl_debug_helpers.py. DO NOT EDIT. */`",
+        "why": "Names a tracked C file and its generator script by quoting the file's own banner, matching one of the verified pairs.",
+        "raw": "QUOTE: `library/ssl_debug_helpers_generated.c:1` \u2014 `/* Automatically generated by generate_ssl_debug_helpers.py. DO NOT EDIT. */`\nVERDICT: HIT\nWHY: Names a tracked C file and its generator script by quoting the file's own banner, matching one of the verified pairs."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "**says HOW a reader can tell** \u2014 a banner in the file, a `_generated` name, or a build rule naming it as an output \u2014 rather than asserting it from prior knowledge of the project",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "_generated"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `_generated` \u2014 - `library/ssl_debug_helpers_generated.c:1` \u2014 `/* Automatically generated by generate_ssl_debug_helpers.py. DO NOT EDIT. */`"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 7,
+      "text": "distinguishes generated-and-committed from generated-at-build-time; both are present here and they have different consequences for someone editing",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Two generated `.c` files are already checked in and can be identified purely by content... **Beyond what's checked in:** the actual test suite `.c` files (e.g. `test_suite_rsa.c`) don't exist in the tree at all yet ... they're 'dynamically generated to produce the actual test source files' ... at build time (this is one of the things the missing `framework` submodule blocks).\"",
+        "why": "The answer explicitly distinguishes files generated-and-committed (with DO NOT EDIT banners) from files generated only at build time (test suite .c files), noting the consequence that the latter requires the submodule/build step.",
+        "raw": "QUOTE: \"Two generated `.c` files are already checked in and can be identified purely by content... **Beyond what's checked in:** the actual test suite `.c` files (e.g. `test_suite_rsa.c`) don't exist in the tree at all yet ... they're 'dynamically generated to produce the actual test source files' ... at build time (this is one of the things the missing `framework` submodule blocks).\"\nVERDICT: HIT\nWHY: The answer explicitly distinguishes files generated-and-committed (with DO NOT EDIT banners) from files generated only at build time (test suite .c files), noting the consequence that the latter requires the submodule/build step."
+      },
+      "verdict": "HIT"
+    }
+  ]
+}

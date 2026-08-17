@@ -1,0 +1,335 @@
+{
+  "q": "Q2",
+  "arm": "src",
+  "model": "sonnet",
+  "run": 1,
+  "answer": "Q2_sonnet_src_r1.md",
+  "rubric": "acceptance/targets/entropic/questions.yaml",
+  "declared_mark_count": 12,
+  "summary": {
+    "marks_hit": 8,
+    "marks_miss": 4,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 12,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": null,
+    "falsity_verdict": null,
+    "marks_total": 12,
+    "score": 8.0,
+    "score_strict": 8.0
+  },
+  "falsity": null,
+  "marks": [
+    {
+      "index": 1,
+      "text": "**finds the `MCPAuthorizationManager::auth_mutex_` \u2192 `MCPKeySet::key_mutex_` nesting** and states the mechanism: the authorization manager holds its own mutex and calls into a `MCPKeySet` that locks on entry",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "MCPAuthorizationManager::auth_mutex_",
+          "MCPKeySet::key_mutex_",
+          "MCPKeySet"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer discusses entirely different mutex pairs (swap_mutex_, adapter_mutex_, transition_mutex_, mtp_mutex_, watched_mutex_, event_mutex_, slots_mutex_) and never mentions MCPAuthorizationManager::auth_mutex_ or MCPKeySet::key_mutex_.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses entirely different mutex pairs (swap_mutex_, adapter_mutex_, transition_mutex_, mtp_mutex_, watched_mutex_, event_mutex_, slots_mutex_) and never mentions MCPAuthorizationManager::auth_mutex_ or MCPKeySet::key_mutex_."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 2,
+      "text": "**verifies it at both ends against the source** rather than asserting it \u2014 the two class headers each document their own locking invariant, and the seven call sites are in one file",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never checks or cites the two class headers' documented locking invariants, nor identifies seven call sites concentrated in one file.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never checks or cites the two class headers' documented locking invariants, nor identifies seven call sites concentrated in one file."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 3,
+      "text": "**finds at least one of the other two real nestings** \u2014 `SecondaryModelLoader::slots_mutex_` \u2192 `InferenceBackend::transition_mutex_` (in `release_role` / `shutdown`), or `LlamaCppBackend::mtp_mutex_` \u2192 `PromptCache::mutex_` (in `do_unload`). An answer that reports the authorization pair as the codebase's ONLY two-lock holding is incomplete, and this mark is the one that says so",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "SecondaryModelLoader::slots_mutex_",
+          "InferenceBackend::transition_mutex_",
+          "release_role",
+          "LlamaCppBackend::mtp_mutex_",
+          "do_unload"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "PromptCache::mutex_"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `SecondaryModelLoader::slots_mutex_` \u2014 4. **`SecondaryModelLoader::slots_mutex_` \u2192 `InferenceBackend::transition_mutex_`** (new, found by the review agent, verified by me) \u2014 `ensure_loaded()` holds `slots_mutex_` (`src/inference/secondary_model_loader.cpp:36`) across `backend->load_and_activate()` (`:48`); `release_role()`/`shutdown()` likewise hold `slots_mutex_` across `backend->unload()` (`:102`, `:163`). Same mutex pair/order as case 2, different outer lock. **High confidence.**",
+          "symbol `InferenceBackend::transition_mutex_` \u2014 2. **`ModelOrchestrator::swap_mutex_` \u2192 `InferenceBackend::transition_mutex_`** \u2014 same `get_model()` scope, via `deactivate()`/`unload()` (`src/inference/backend.cpp:118,140`) and `load()`/`activate()` (`:55,89`). **High confidence.**",
+          "symbol `release_role` \u2014 4. **`SecondaryModelLoader::slots_mutex_` \u2192 `InferenceBackend::transition_mutex_`** (new, found by the review agent, verified by me) \u2014 `ensure_loaded()` holds `slots_mutex_` (`src/inference/secondary_model_loader.cpp:36`) across `backend->load_and_activate()` (`:48`); `release_role()`/`shutdown()` likewise hold `slots_mutex_` across `backend->unload()` (`:102`, `:163`). Same mutex pair/order as case 2, different outer lock. **High confidence.**",
+          "symbol `LlamaCppBackend::mtp_mutex_` \u2014 5. **`InferenceBackend::transition_mutex_` \u2192 `LlamaCppBackend::mtp_mutex_`** (new, verified) \u2014 `do_deactivate()` and `do_unload()` are called from within `transition_mutex_`-held `deactivate()`/`unload()`, and each explicitly takes `mtp_mutex_` (`src/inference/llama_cpp_backend.cpp:622`, `:746`), by design (gh#108, serializing against an in-flight `generate_mtp()` which itself holds `mtp_mutex_` alone at `:3915`, never `transition_mutex_`). **High confidence, and the order is deliberately one-directional per the code comments.**",
+          "symbol `do_unload` \u2014 5. **`InferenceBackend::transition_mutex_` \u2192 `LlamaCppBackend::mtp_mutex_`** (new, verified) \u2014 `do_deactivate()` and `do_unload()` are called from within `transition_mutex_`-held `deactivate()`/`unload()`, and each explicitly takes `mtp_mutex_` (`src/inference/llama_cpp_backend.cpp:622`, `:746`), by design (gh#108, serializing against an in-flight `generate_mtp()` which itself holds `mtp_mutex_` alone at `:3915`, never `transition_mutex_`). **High confidence, and the order is deliberately one-directional per the code comments.**"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "**reports the ORDER as consistent** for whatever it finds \u2014 the outer lock is the same one every time in all three pairs \u2014 so no inversion is demonstrated",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Within `src/`/`include/`, every nesting found has a fixed, one-directional outer\u2192inner relationship (`swap_mutex_`/`slots_mutex_` outer; `adapter_mutex_`/`transition_mutex_` inner; `transition_mutex_` outer to `mtp_mutex_`). No call path was found going the other way.\"",
+        "why": "The answer explicitly states the lock ordering is consistent/one-directional in every case found, with no inversion demonstrated.",
+        "raw": "QUOTE: \"Within `src/`/`include/`, every nesting found has a fixed, one-directional outer\u2192inner relationship (`swap_mutex_`/`slots_mutex_` outer; `adapter_mutex_`/`transition_mutex_` inner; `transition_mutex_` outer to `mtp_mutex_`). No call path was found going the other way.\"\nVERDICT: HIT\nWHY: The answer explicitly states the lock ordering is consistent/one-directional in every case found, with no inversion demonstrated."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "**argues the no-inversion case structurally rather than by inspection**: `MCPKeySet` never names `MCPAuthorizationManager` and `InferenceBackend` never names `SecondaryModelLoader`, so the reverse order is not reachable at all for those pairs",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "InferenceBackend",
+          "SecondaryModelLoader"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "MCPKeySet",
+          "MCPAuthorizationManager"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `InferenceBackend` \u2014 2. **`ModelOrchestrator::swap_mutex_` \u2192 `InferenceBackend::transition_mutex_`** \u2014 same `get_model()` scope, via `deactivate()`/`unload()` (`src/inference/backend.cpp:118,140`) and `load()`/`activate()` (`:55,89`). **High confidence.**",
+          "symbol `SecondaryModelLoader` \u2014 4. **`SecondaryModelLoader::slots_mutex_` \u2192 `InferenceBackend::transition_mutex_`** (new, found by the review agent, verified by me) \u2014 `ensure_loaded()` holds `slots_mutex_` (`src/inference/secondary_model_loader.cpp:36`) across `backend->load_and_activate()` (`:48`); `release_role()`/`shutdown()` likewise hold `slots_mutex_` across `backend->unload()` (`:102`, `:163`). Same mutex pair/order as case 2, different outer lock. **High confidence.**"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "**does not fabricate a nesting.** Any reported pair whose inner call is a same-named method of an unrelated type is a MISS for this mark, however plausible \u2014 `.get()` on a `std::unique_ptr` is not `SecondaryModelLoader::get`, `.size()` on a container is not `MCPKeySet::size`, `.store()` on a `std::atomic` is not `PromptCache::store`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "std::unique_ptr",
+          "SecondaryModelLoader::get",
+          "MCPKeySet::size",
+          "std::atomic",
+          "PromptCache::store"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "NONE",
+        "why": "All reported nestings cite specific named mutex members and domain methods (e.g. lora_manager_.swap(), backend->load(), fire_swap_hook()), not generic same-named methods like .get()/.size()/.store() on unrelated types, so no fabricated nesting of the described kind is present.",
+        "raw": "QUOTE: NONE\nVERDICT: HIT\nWHY: All reported nestings cite specific named mutex members and domain methods (e.g. lora_manager_.swap(), backend->load(), fire_swap_hook()), not generic same-named methods like .get()/.size()/.store() on unrelated types, so no fabricated nesting of the described kind is present."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 7,
+      "text": "**states how it searched and why that method over-reports** on this codebase specifically: the inner call is named by an unqualified method name, and several of entropic's own method names collide with standard-library member names",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never discusses its search method or name-collision over-reporting risk (e.g., unqualified method names colliding with std-library member names); it only presents findings.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never discusses its search method or name-collision over-reporting risk (e.g., unqualified method names colliding with std-library member names); it only presents findings."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 8,
+      "text": "answers the question that was asked \u2014 whether entropic can deadlock \u2014 rather than listing findings. Consistent ordering in every pair found means no cycle is demonstrated",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Within `src/`/`include/`, every nesting found has a fixed, one-directional outer\u2192inner relationship (`swap_mutex_`/`slots_mutex_` outer; `adapter_mutex_`/`transition_mutex_` inner; `transition_mutex_` outer to `mtp_mutex_`). No call path was found going the other way.\"",
+        "why": "The answer directly addresses the deadlock question and states the ordering is consistent in every pair found with no reverse path, i.e., no cycle demonstrated.",
+        "raw": "QUOTE: \"Within `src/`/`include/`, every nesting found has a fixed, one-directional outer\u2192inner relationship (`swap_mutex_`/`slots_mutex_` outer; `adapter_mutex_`/`transition_mutex_` inner; `transition_mutex_` outer to `mtp_mutex_`). No call path was found going the other way.\"\nVERDICT: HIT\nWHY: The answer directly addresses the deadlock question and states the ordering is consistent in every pair found with no reverse path, i.e., no cycle demonstrated."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "**distinguishes \"I found no inversion\" from \"there is no inversion\"**, and says what its method could not have seen. A dispatch through a base-class pointer or a `std::function` is outside the reach of any static scan of this kind",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "std::function"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"This is the one point where 'consistent order' can't be fully verified statically: if any hook implementation (registered from outside this repo, e.g. a CLI/TUI/C-API consumer) re-enters the same backend or adapter manager, that's a same-thread self-deadlock... **can't confirm or rule out a real inversion without seeing hook implementations, which live outside this repo.**\"",
+        "why": "The answer explicitly distinguishes its static findings from a certainty claim, naming callback/hook dispatch (an indirect-call mechanism analogous to base-class/std::function dispatch) as outside the reach of its method.",
+        "raw": "QUOTE: \"This is the one point where 'consistent order' can't be fully verified statically: if any hook implementation (registered from outside this repo, e.g. a CLI/TUI/C-API consumer) re-enters the same backend or adapter manager, that's a same-thread self-deadlock... **can't confirm or rule out a real inversion without seeing hook implementations, which live outside this repo.**\"\nVERDICT: HIT\nWHY: The answer explicitly distinguishes its static findings from a certainty claim, naming callback/hook dispatch (an indirect-call mechanism analogous to base-class/std::function dispatch) as outside the reach of its method."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 10,
+      "text": "spots that pairs 2 and 3 COMPOSE: `InferenceBackend::unload` calls the virtual `do_unload`, so one `release_role` call holds four mutexes in a chain no single function body shows",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "do_unload",
+          "release_role"
+        ],
+        "symbols_weak": [
+          "InferenceBackend::unload"
+        ],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `InferenceBackend::unload` (unqualified) \u2014 2. **`ModelOrchestrator::swap_mutex_` \u2192 `InferenceBackend::transition_mutex_`** \u2014 same `get_model()` scope, via `deactivate()`/`unload()` (`src/inference/backend.cpp:118,140`) and `load()`/`activate()` (`:55,89`). **High confidence.**",
+          "symbol `do_unload` \u2014 5. **`InferenceBackend::transition_mutex_` \u2192 `LlamaCppBackend::mtp_mutex_`** (new, verified) \u2014 `do_deactivate()` and `do_unload()` are called from within `transition_mutex_`-held `deactivate()`/`unload()`, and each explicitly takes `mtp_mutex_` (`src/inference/llama_cpp_backend.cpp:622`, `:746`), by design (gh#108, serializing against an in-flight `generate_mtp()` which itself holds `mtp_mutex_` alone at `:3915`, never `transition_mutex_`). **High confidence, and the order is deliberately one-directional per the code comments.**",
+          "symbol `release_role` \u2014 4. **`SecondaryModelLoader::slots_mutex_` \u2192 `InferenceBackend::transition_mutex_`** (new, found by the review agent, verified by me) \u2014 `ensure_loaded()` holds `slots_mutex_` (`src/inference/secondary_model_loader.cpp:36`) across `backend->load_and_activate()` (`:48`); `release_role()`/`shutdown()` likewise hold `slots_mutex_` across `backend->unload()` (`:102`, `:163`). Same mutex pair/order as case 2, different outer lock. **High confidence.**"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 11,
+      "text": "notes that `InferenceBackend::unload` fires a consumer-supplied hook callback while holding `transition_mutex_`, which is a re-entrancy hazard the source cannot resolve because the callback is external",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "transition_mutex_"
+        ],
+        "symbols_weak": [
+          "InferenceBackend::unload"
+        ],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `InferenceBackend::unload` (unqualified) \u2014 2. **`ModelOrchestrator::swap_mutex_` \u2192 `InferenceBackend::transition_mutex_`** \u2014 same `get_model()` scope, via `deactivate()`/`unload()` (`src/inference/backend.cpp:118,140`) and `load()`/`activate()` (`:55,89`). **High confidence.**",
+          "symbol `transition_mutex_` \u2014 2. **`ModelOrchestrator::swap_mutex_` \u2192 `InferenceBackend::transition_mutex_`** \u2014 same `get_model()` scope, via `deactivate()`/`unload()` (`src/inference/backend.cpp:118,140`) and `load()`/`activate()` (`:55,89`). **High confidence.**"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 12,
+      "text": "quantifies its own precision \u2014 states how many candidates its method produced and how many survived reading \u2014 rather than presenting a filtered list as if it were the raw result",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer narrates counts of confirmed/new/disputed cases but never states how many total candidates its method produced versus how many survived verification by reading.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer narrates counts of confirmed/new/disputed cases but never states how many total candidates its method produced versus how many survived verification by reading."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

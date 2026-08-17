@@ -1,0 +1,93 @@
+# SPDX-License-Identifier: MIT
+#
+# clew release — build sdist + wheel on a version tag and publish to PyPI.
+#
+# WHY TRUSTED PUBLISHING (OIDC) AND NOT AN API TOKEN
+# --------------------------------------------------
+# A PyPI API token is a long-lived bearer secret. Stored as a repo secret it can
+# be exfiltrated by any workflow change that runs attacker-controlled code, it
+# does not expire on its own, rotating it is a manual chore nobody schedules,
+# and it is equally valid from anywhere on the internet — a leaked token is a
+# supply-chain compromise of every future release.
+#
+# Trusted Publishing instead has GitHub mint a SHORT-LIVED OIDC token, scoped to
+# this repository AND this workflow file AND (below) this environment, which
+# PyPI exchanges for a publish credential valid for minutes. Nothing
+# long-lived is ever stored in the repo, so there is no secret to leak, rotate,
+# or revoke. It also produces PEP 740 attestations, letting a consumer verify a
+# release really came from this workflow.
+#
+# The PyPI trusted publisher is registered against the distribution in `[project] name`, this
+# repository, this filename, and the `pypi` environment below.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  # A tag must not be able to publish code that would not pass a PR. This calls
+  # the real CI workflow rather than repeating it.
+  gate:
+    # FORK GUARD. Deliberately written against `repository.fork` rather than a
+    # hardcoded `github.repository == 'owner/name'` string: the repository name
+    # is not yet known (see the @architect note above), and a name comparison
+    # that is wrong fails CLOSED in the worst way — it silently never runs. A
+    # fork that pushes a `v*` tag stops here, and since the fork also cannot
+    # obtain an OIDC identity PyPI trusts, publishing is blocked twice over.
+    if: ${{ !github.event.repository.fork }}
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    name: build + publish to PyPI
+    needs: gate
+    runs-on: ubuntu-24.04
+    environment:
+      name: pypi
+      url: https://pypi.org/p/clew-trace
+    permissions:
+      # The ONLY elevated permission needed, and the whole point of the OIDC
+      # flow: it lets the job request an identity token. There is no
+      # `secrets.PYPI_API_TOKEN` anywhere in this file by design.
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build sdist + wheel
+        run: |
+          python -m pip install --upgrade build twine
+          python -m build
+
+      - name: Refuse to publish if the tag and the package version disagree
+        # Without this, `git tag v0.2.0` on a tree whose pyproject still says
+        # 0.1.0 would happily publish 0.1.0 — or collide with the already-
+        # released 0.1.0 and fail deep inside the upload step. Fail early and
+        # say which two things disagree.
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          # PEP 427 encodes the version as the 2nd '-'-separated wheel field.
+          wheel_version="$(ls dist/*.whl | head -1 | cut -d- -f2)"
+          echo "tag=${tag_version} wheel=${wheel_version}"
+          if [ "${tag_version}" != "${wheel_version}" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not match packaged version ${wheel_version} — bump [project].version in pyproject.toml, or retag."
+            exit 1
+          fi
+
+      - name: Validate distribution metadata
+        run: twine check --strict dist/*
+
+      - name: Publish to PyPI (Trusted Publishing — no token)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        # No `password:` / `user:` on purpose. The action detects the ambient
+        # OIDC token from `id-token: write` and performs the exchange itself.
+        # Supplying a token here would silently defeat everything above.

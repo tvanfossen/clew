@@ -1,0 +1,364 @@
+{
+  "q": "Q6",
+  "arm": "mcp",
+  "model": "sonnet",
+  "run": 1,
+  "answer": "Q6_sonnet_mcp_r1.md",
+  "rubric": "acceptance/targets/self/questions.yaml",
+  "declared_mark_count": 14,
+  "summary": {
+    "marks_hit": 9,
+    "marks_miss": 5,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 14,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": true,
+    "falsity_verdict": "CONSISTENT",
+    "marks_total": 14,
+    "score": 9.0,
+    "score_strict": 9.0
+  },
+  "falsity": {
+    "checked": true,
+    "verdict": "CONSISTENT",
+    "agreement": 1.0,
+    "tally": [
+      [
+        "CONSISTENT",
+        3
+      ]
+    ],
+    "samples": 3,
+    "errors": 0,
+    "facts": 4,
+    "vetoed": false
+  },
+  "marks": [
+    {
+      "index": 1,
+      "text": "**states that a misspelled SECTION name in the declaration file is REFUSED**, with an error rather than a warning",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "DeclarationError"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `DeclarationError` \u2014 If your colleague writes `shared_key_pattern` (singular) instead of `shared_key_patterns`, `load_declaration_located` raises `DeclarationError`, naming the bad key and the full allowed set (`doxyguard_db/declaration.py:327-335`):"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "states that the refusal names the offending key",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`load_declaration_located` raises `DeclarationError` naming the bad key and the full allowed set\"",
+        "why": "The answer explicitly states the refusal names the offending key (and allowed set).",
+        "raw": "QUOTE: \"`load_declaration_located` raises `DeclarationError` naming the bad key and the full allowed set\"\nVERDICT: HIT\nWHY: The answer explicitly states the refusal names the offending key (and allowed set)."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "states that the refusal also names the allowed set, so the fix does not require reading the source",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "KNOWN_SECTIONS"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `KNOWN_SECTIONS` \u2014 `load_declaration_located()` reads `.doxyguard-db.yaml` (or the `x-` passthrough in `.doxygen-guard.yaml`) and checks every top-level key against `KNOWN_SECTIONS` \u2014 a frozenset of the exact accepted spellings, e.g. `shared_key_patterns` (plural), `thread_patterns`, `dispatch`, `locks`, `requirements`, etc. (`doxyguard_db/declaration.py:234-251`, list assembled from `SECTION_*` constants at `doxyguard_db/declaration.py:85-214`)."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "**gives the reason a misspelled section is treated more harshly than a broken file: it PARSES, so degrading would run on built-in defaults while reporting that the declaration was honoured**",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"unlike a broken file, a misspelled section still parses as valid YAML, and the author clearly intended something \u2014 silently falling back to defaults there would look like success. **The build refuses outright.**\"",
+        "why": "The answer states the mechanism (parses vs. doesn't) and its consequence (would silently run on defaults while reporting the declaration was honoured), matching the item.",
+        "raw": "QUOTE: \"unlike a broken file, a misspelled section still parses as valid YAML, and the author clearly intended something \u2014 silently falling back to defaults there would look like success. **The build refuses outright.**\"\nVERDICT: HIT\nWHY: The answer states the mechanism (parses vs. doesn't) and its consequence (would silently run on defaults while reporting the declaration was honoured), matching the item."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "**states that unparseable YAML is treated as ABSENT with a warning, and that the build CONTINUES on defaults**",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"unparseable YAML... is caught, logged at **WARNING**, and treated as `{}`... the declaration is silently ignored and the build proceeds entirely on built-in defaults\"",
+        "why": "States unparseable YAML is treated as absent (empty mapping) with a warning log, and build continues on defaults.",
+        "raw": "QUOTE: \"unparseable YAML... is caught, logged at **WARNING**, and treated as `{}`... the declaration is silently ignored and the build proceeds entirely on built-in defaults\"\nVERDICT: HIT\nWHY: States unparseable YAML is treated as absent (empty mapping) with a warning log, and build continues on defaults."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "gives the reason for the asymmetry: an unparseable file is an accident with nothing recoverable in it, while a misspelled key is a document whose author plainly intended something",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "unparseable YAML is \"an accident with nothing recoverable in it,\" so it degrades gracefully rather than failing the build; a misspelled-but-parseable key is \"a document that parses, where the author plainly intended something,\" so \u2014 at the section level and in `dispatch:` entries \u2014 it refuses instead.",
+        "why": "The answer explicitly states both halves of the asymmetry with the required reasoning.",
+        "raw": "QUOTE: unparseable YAML is \"an accident with nothing recoverable in it,\" so it degrades gracefully rather than failing the build; a misspelled-but-parseable key is \"a document that parses, where the author plainly intended something,\" so \u2014 at the section level and in `dispatch:` entries \u2014 it refuses instead.\nVERDICT: HIT\nWHY: The answer explicitly states both halves of the asymmetry with the required reasoning."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 7,
+      "text": "**states that an absent declaration is the NORM rather than an error**, and that most repositories run entirely on built-in defaults",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer covers error-handling for malformed/mistyped YAML but never states that an absent declaration is the norm or that most repos run entirely on built-in defaults.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers error-handling for malformed/mistyped YAML but never states that an absent declaration is the norm or that most repos run entirely on built-in defaults."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 8,
+      "text": "**distinguishes the ENTRY level from the SECTION level, and reports that the two are not guarded to the same depth by the file path** \u2014 a slip inside a section is quieter than a slip in a section name",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Level 1 \u2014 the document's top-level section names ... checks every top-level key against `KNOWN_SECTIONS`\" / \"Level 2 \u2014 entries inside a section, and here it forks in two directions\" / \"the same as the standing lesson: `key_arg_idx` for `key_arg_index` would silently key the dataflow off argument 0\" (paraphrased from answer's shared_key_patterns example)",
+        "why": "Answer explicitly separates section-level (KNOWN_SECTIONS, doxyguard_db/declaration.py) from entry-level (dispatch.py vs shared_key_edges.py), showing the two are guarded to different depths with file/line citations.",
+        "raw": "QUOTE: \"Level 1 \u2014 the document's top-level section names ... checks every top-level key against `KNOWN_SECTIONS`\" / \"Level 2 \u2014 entries inside a section, and here it forks in two directions\" / \"the same as the standing lesson: `key_arg_idx` for `key_arg_index` would silently key the dataflow off argument 0\" (paraphrased from answer's shared_key_patterns example)\nVERDICT: HIT\nWHY: Answer explicitly separates section-level (KNOWN_SECTIONS, doxyguard_db/declaration.py) from entry-level (dispatch.py vs shared_key_edges.py), showing the two are guarded to different depths with file/line citations."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "**finds that the caller-stated options path DOES validate entry keys and refuses unknown ones**, so the same typo behaves differently depending on which route it arrives by",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "_checked_entry"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer explicitly declines to trace the \"caller-stated options\" tier (mcp_server/buildoptions.py), which is the specific path this item is about.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explicitly declines to trace the \"caller-stated options\" tier (mcp_server/buildoptions.py), which is the specific path this item is about."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 10,
+      "text": "states why an entry-level slip is the more dangerous kind: it parses to a valid mapping that no consumer reads, so nothing signals it",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"the key fields themselves are read with `.get(..., default)`... So if your colleague mistypes `key_arg_index` as `key_arg_idx`, `entry.get(\"key_arg_index\", 0)` finds nothing, silently defaults to `0`, and the manifest is accepted... No error, no warning\"",
+        "why": "The answer explicitly states the entry-level typo parses as valid YAML/mapping, is silently accepted with no error/warning, and the wrong default is used with nothing signaling it \u2014 matching the item's substance.",
+        "raw": "QUOTE: \"the key fields themselves are read with `.get(..., default)`... So if your colleague mistypes `key_arg_index` as `key_arg_idx`, `entry.get(\"key_arg_index\", 0)` finds nothing, silently defaults to `0`, and the manifest is accepted... No error, no warning\"\n\nVERDICT: HIT\nWHY: The answer explicitly states the entry-level typo parses as valid YAML/mapping, is silently accepted with no error/warning, and the wrong default is used with nothing signaling it \u2014 matching the item's substance."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 11,
+      "text": "confirms the correctly-written case positively: a recognised section is read and its source path is recorded, rather than merely \"nothing bad happens\"",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"the parsed mapping is used to override built-in defaults\" preceded by \"`load_declaration_located` logs `declaration: <path> declares <section names>` at INFO (`doxyguard_db/declaration.py:336`)\"",
+        "why": "States the correct case is read (logged with section names and path via `<path>`) and the parsed mapping is used to override defaults, i.e. a positive confirmation, not just absence of error.",
+        "raw": "QUOTE: \"the parsed mapping is used to override built-in defaults\" preceded by \"`load_declaration_located` logs `declaration: <path> declares <section names>` at INFO (`doxyguard_db/declaration.py:336`)\"\nVERDICT: HIT\nWHY: States the correct case is read (logged with section names and path via `<path>`) and the parsed mapping is used to override defaults, i.e. a positive confirmation, not just absence of error."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 12,
+      "text": "**reports that a declaration may live in two places and that the dedicated file WINS when both exist**, rather than the two being merged",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"There is no `_reject_unknown` here.\" (contrasting `shared_key_patterns` silently defaulting vs `dispatch:` entries raising) \u2014 no dedicated-vs-shared-file precedence claim appears anywhere in the answer.",
+        "why": "The answer discusses section/key-typo handling within a single manifest file, not a scenario where a declaration could live in two different files/places with one file taking precedence over merging.",
+        "raw": "QUOTE: \"There is no `_reject_unknown` here.\" (contrasting `shared_key_patterns` silently defaulting vs `dispatch:` entries raising) \u2014 no dedicated-vs-shared-file precedence claim appears anywhere in the answer.\nVERDICT: MISS\nWHY: The answer discusses section/key-typo handling within a single manifest file, not a scenario where a declaration could live in two different files/places with one file taking precedence over merging."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 13,
+      "text": "states that the passthrough location is read only when the dedicated file is absent",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer mentions the passthrough exists but never states it's read only when the dedicated file is absent.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions the passthrough exists but never states it's read only when the dedicated file is absent."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 14,
+      "text": "states that the source path travels with the parsed data, and gives the reason \u2014 an error that names a file which need not exist sends an owner to edit nothing",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"This is a deliberate, documented choice ... unlike a broken file, a misspelled section still parses as valid YAML, and the author clearly intended something \u2014 silently falling back to defaults there would look like success. **The build refuses outright.**\" combined with the raised error naming the bad key and allowed set \u2014 but no statement that the path travels with parsed data or that an error names a file which need not exist.",
+        "why": "The answer covers fail-closed vs silent-default behavior and error messages naming bad keys, but never states the specific item's fact \u2014 that the source path travels alongside parsed data, with the reasoning that a file-naming error could name a nonexistent file, sending an owner to edit nothing.",
+        "raw": "QUOTE: \"This is a deliberate, documented choice ... unlike a broken file, a misspelled section still parses as valid YAML, and the author clearly intended something \u2014 silently falling back to defaults there would look like success. **The build refuses outright.**\" combined with the raised error naming the bad key and allowed set \u2014 but no statement that the path travels with parsed data or that an error names a file which need not exist.\n\nVERDICT: MISS\nWHY: The answer covers fail-closed vs silent-default behavior and error messages naming bad keys, but never states the specific item's fact \u2014 that the source path travels alongside parsed data, with the reasoning that a file-naming error could name a nonexistent file, sending an owner to edit nothing."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

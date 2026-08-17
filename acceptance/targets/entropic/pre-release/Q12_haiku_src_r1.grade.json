@@ -1,0 +1,338 @@
+{
+  "q": "Q12",
+  "arm": "src",
+  "model": "haiku",
+  "run": 1,
+  "answer": "Q12_haiku_src_r1.md",
+  "rubric": "acceptance/targets/entropic/questions.yaml",
+  "declared_mark_count": 13,
+  "summary": {
+    "marks_hit": 6,
+    "marks_miss": 7,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 13,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": null,
+    "falsity_verdict": null,
+    "marks_total": 13,
+    "score": 6.0,
+    "score_strict": 6.0
+  },
+  "falsity": null,
+  "marks": [
+    {
+      "index": 1,
+      "text": "**identifies `extern/llama.cpp` as a submodule**, not as vendored source, and states that it is the only one \u2014 `.gitmodules` declares exactly one. The index tags THREE external roots (`extern/llama.cpp`, `examples/explorer`, `examples/pychess`) because the two example directories hold developer clones on disk, but their contents are entropic's own tracked blobs and not gitlinks. \"Three submodules\" is a MISS; one submodule plus two nested clones of tracked example directories passes",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer identifies llama.cpp as a submodule but never states it is the only one or addresses the examples/explorer and examples/pychess nested clones.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer identifies llama.cpp as a submodule but never states it is the only one or addresses the examples/explorer and examples/pychess nested clones."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 2,
+      "text": "**reports the pin** \u2014 the commit the submodule is fixed at \u2014 rather than describing the dependency as \"llama.cpp\" with no version",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"vendored as a git submodule at `extern/llama.cpp` (pinned at tag `b9886`, commit `20a04b220`)\"",
+        "why": "The answer names both the tag and the commit hash the submodule is pinned at, not just \"llama.cpp\" with no version.",
+        "raw": "QUOTE: \"vendored as a git submodule at `extern/llama.cpp` (pinned at tag `b9886`, commit `20a04b220`)\"\nVERDICT: HIT\nWHY: The answer names both the tag and the commit hash the submodule is pinned at, not just \"llama.cpp\" with no version."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "**finds the polymorphic seam**: `LlamaCppBackend` implements the abstract `InferenceBackend`, which is declared in a public header and names nothing upstream",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "LlamaCppBackend",
+          "InferenceBackend"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer discusses the llama.cpp boundary/wrapper layer extensively but never mentions `LlamaCppBackend` implementing an abstract `InferenceBackend` interface declared in a public header.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses the llama.cpp boundary/wrapper layer extensively but never mentions `LlamaCppBackend` implementing an abstract `InferenceBackend` interface declared in a public header."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 4,
+      "text": "**quantifies the seam's width** with a real figure \u2014 how many of entropic's files include an upstream header, or how many distinct upstream symbols are called \u2014 and locates it in `src/inference/`",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Six files import `<llama.h>` directly... Total: ~90 distinct API entry points\" / \"Wrapper layer: `src/inference/` directory \u2014 12,449 lines of C++ code across 24 files\"",
+        "why": "Gives concrete figures (6 files import llama.h, ~90 distinct API functions) and explicitly locates the wrapper in src/inference/.",
+        "raw": "QUOTE: \"Six files import `<llama.h>` directly... Total: ~90 distinct API entry points\" / \"Wrapper layer: `src/inference/` directory \u2014 12,449 lines of C++ code across 24 files\"\nVERDICT: HIT\nWHY: Gives concrete figures (6 files import llama.h, ~90 distinct API functions) and explicitly locates the wrapper in src/inference/."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "**checks the public headers and reports what it found there**: zero upstream `#include`s under `include/`, which is the fact that makes the boundary a boundary",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer discusses the include boundary via `<llama.h>` usage counts and API surface but never reports on `include/` public headers or the zero-upstream-#include fact.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses the include boundary via `<llama.h>` usage counts and API surface but never reports on `include/` public headers or the zero-upstream-#include fact."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 6,
+      "text": "**finds the qualification to that.** Three public headers forward-declare upstream types (`llama_model`, `llama_context`, `llama_adapter_lora`), and one public function signature takes `const llama_model*`. An answer that reports the public API as fully independent of upstream is wrong, and an answer that reports it as coupled without noticing that no header is included has missed the distinction",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "llama_model",
+          "llama_context",
+          "llama_adapter_lora"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `llama_model` \u2014 | Model lifecycle | 4 | `llama_model_load_from_file`, `llama_model_free`, `llama_model_get_vocab`, `llama_model_is_recurrent` |",
+          "symbol `llama_context` \u2014 | Context management | 6 | `llama_init_from_model`, `llama_free`, `llama_context_default_params`, `llama_memory_seq_cp`, `llama_memory_seq_rm` |",
+          "symbol `llama_adapter_lora` \u2014 | Adapter (LoRA) | 5 | `llama_adapter_lora_init`, `llama_adapter_lora_free`, `llama_set_adapters_lora` |"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 7,
+      "text": "**notices entropic depends on upstream's `common` layer, not only on `llama.h`** \u2014 `<common.h>`, `<chat.h>`, `<sampling.h>`, `<speculative.h>` \u2014 and reads that as a wider and less stable dependency than the C API. `LLAMA_BUILD_COMMON` being forced ON in `extern/CMakeLists.txt` is the corroborating evidence",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "LLAMA_BUILD_COMMON",
+          "CMakeLists"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never mentions common.h/chat.h/sampling.h/speculative.h headers or LLAMA_BUILD_COMMON/extern/CMakeLists.txt; it discusses llama.h API surface and speculative_compat.cpp assumptions but not the common-layer dependency.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions common.h/chat.h/sampling.h/speculative.h headers or LLAMA_BUILD_COMMON/extern/CMakeLists.txt; it discusses llama.h API surface and speculative_compat.cpp assumptions but not the common-layer dependency."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 8,
+      "text": "**finds at least one place where entropic COPIES upstream behaviour rather than calling it**, and explains why: `speculative_compat.cpp` mirrors a `static` upstream function that cannot be called from outside its translation unit, and duplicates two of its constants with a keep-in-sync comment. Naming `tool_call_markers.h`'s vendor-coupled marker table instead also passes",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "speculative_compat"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "tool_call_markers"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `speculative_compat` \u2014 - Six files import `<llama.h>` directly: `llama_cpp_backend.h/cpp`, `llama_cpp_sampler.cpp`, `llama_cpp_tokenizer.cpp`, `adapter_manager.cpp`, `speculative_compat.cpp`, `grammar_registry.cpp`, `orchestrator.cpp`"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "**answers \"what would break on an upgrade\" concretely**, naming a specific coupling rather than saying the API might change \u2014 the mirrored constants, the marker table, the `common` layer, or the multimodal subdirectory pulled in by path",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Hardcoded compatibility assumptions: Speculative decode compatibility checks manually mirror llama.cpp's internal logic (line 27\u201330 in speculative_compat.cpp)... Multimodal coupling: libmtmd (built as part of llama.cpp) is tightly integrated; new image formats or inference modes in mtmd cause ripple in llama_cpp_backend.cpp\"",
+        "why": "Names concrete couplings (mirrored compatibility logic, multimodal mtmd integration) with specific breakage examples, not just \"the API might change.\"",
+        "raw": "QUOTE: \"Hardcoded compatibility assumptions: Speculative decode compatibility checks manually mirror llama.cpp's internal logic (line 27\u201330 in speculative_compat.cpp)... Multimodal coupling: libmtmd (built as part of llama.cpp) is tightly integrated; new image formats or inference modes in mtmd cause ripple in llama_cpp_backend.cpp\"\nVERDICT: HIT\nWHY: Names concrete couplings (mirrored compatibility logic, multimodal mtmd integration) with specific breakage examples, not just \"the API might change.\""
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 10,
+      "text": "**does not describe the submodule's contents as entropic's code.** `git ls-files extern` returns two entries; the submodule's files belong to a different repository and are not entropic's to change",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"**Direct llama.h dependencies:** Six files import `<llama.h>` directly\" / treats extern/llama.cpp as a \"third-party library\" wrapped by entropic code, never asserting the submodule's own files are entropic's to change",
+        "why": "The answer discusses the boundary/wrapper extensively but never addresses `git ls-files extern` or explicitly disclaims ownership of the submodule's contents as a distinct fact \u2014 the specific checklist item (non-ownership of the vendored files) is not stated.",
+        "raw": "QUOTE: \"**Direct llama.h dependencies:** Six files import `<llama.h>` directly\" / treats extern/llama.cpp as a \"third-party library\" wrapped by entropic code, never asserting the submodule's own files are entropic's to change\nVERDICT: MISS\nWHY: The answer discusses the boundary/wrapper extensively but never addresses `git ls-files extern` or explicitly disclaims ownership of the submodule's contents as a distinct fact \u2014 the specific checklist item (non-ownership of the vendored files) is not stated."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 11,
+      "text": "finds the STALE PIN CLAIM: `src/inference/llama_cpp_backend.cpp`'s file comment names a build number that is not the checked-out submodule commit, while `docs/architecture-cpp.md` records the actual bump. Full credit requires noticing the two disagree, not merely quoting one of them",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "llama_cpp_backend"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `llama_cpp_backend` \u2014 - Six files import `<llama.h>` directly: `llama_cpp_backend.h/cpp`, `llama_cpp_sampler.cpp`, `llama_cpp_tokenizer.cpp`, `adapter_manager.cpp`, `speculative_compat.cpp`, `grammar_registry.cpp`, `orchestrator.cpp`"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 12,
+      "text": "verifies that the mirrored constants are currently IN SYNC by reading both trees, rather than only reporting that a sync risk exists",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never addresses mirrored constants or verifies their sync by reading both trees.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never addresses mirrored constants or verifies their sync by reading both trees."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 13,
+      "text": "notes that `extern/CMakeLists.txt` adds a SECOND subdirectory from inside the submodule (`llama.cpp/tools/mtmd`) by path, so the coupling includes upstream's internal directory layout and not just its API",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "CMakeLists"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer discusses mtmd API functions but never mentions extern/CMakeLists.txt adding llama.cpp/tools/mtmd as a second subdirectory by path.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses mtmd API functions but never mentions extern/CMakeLists.txt adding llama.cpp/tools/mtmd as a second subdirectory by path."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

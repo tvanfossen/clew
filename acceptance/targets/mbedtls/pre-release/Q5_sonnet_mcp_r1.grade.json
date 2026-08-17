@@ -1,0 +1,191 @@
+{
+  "q": "Q5",
+  "arm": "mcp",
+  "model": "sonnet",
+  "run": 1,
+  "answer": "Q5_sonnet_mcp_r1.md",
+  "rubric": "acceptance/targets/mbedtls/questions.yaml",
+  "declared_mark_count": 7,
+  "summary": {
+    "marks_hit": 5,
+    "marks_miss": 2,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 7,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": null,
+    "falsity_verdict": null,
+    "marks_total": 7,
+    "score": 5.0,
+    "score_strict": 5.0
+  },
+  "falsity": null,
+  "marks": [
+    {
+      "index": 1,
+      "text": "**identifies it as a library, not an application**, and says so explicitly",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Mbed TLS is a C library implementing cryptographic primitives, the PSA Cryptography API, X.509 certificate handling, and SSL/TLS + DTLS protocols, aimed at embedded/small-footprint use\"",
+        "why": "Explicitly calls it a \"library\" (not an application), naming its implementation scope.",
+        "raw": "QUOTE: \"Mbed TLS is a C library implementing cryptographic primitives, the PSA Cryptography API, X.509 certificate handling, and SSL/TLS + DTLS protocols, aimed at embedded/small-footprint use\"\nVERDICT: HIT\nWHY: Explicitly calls it a \"library\" (not an application), naming its implementation scope."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "**states that no single `main` is canonical** \u2014 about 60 files define one, 61 of the 62 under `programs/`, so nominating one as THE entry point is wrong. The exact count is not required and neither is the `programs/` claim being exact",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "main_test"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer discusses `main()` only as a caller of parsing functions in test/fuzz drivers, and never states that multiple/dozens of files each define a `main`, making no single one canonical.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses `main()` only as a caller of parsing functions in test/fuzz drivers, and never states that multiple/dozens of files each define a `main`, making no single one canonical."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 3,
+      "text": "describes what it does: a TLS / cryptography library",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Mbed TLS is a C library implementing cryptographic primitives, the PSA Cryptography API, X.509 certificate handling, and SSL/TLS + DTLS protocols, aimed at embedded/small-footprint use\"",
+        "why": "The answer explicitly describes the codebase as a TLS/cryptography library.",
+        "raw": "QUOTE: \"Mbed TLS is a C library implementing cryptographic primitives, the PSA Cryptography API, X.509 certificate handling, and SSL/TLS + DTLS protocols, aimed at embedded/small-footprint use\"\nVERDICT: HIT\nWHY: The answer explicitly describes the codebase as a TLS/cryptography library."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "names the real structure \u2014 `library/` implementations, `include/` public API, `programs/` examples, `tests/`",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`library/` | 174 | 4,690 | The implementation... `include/mbedtls/`, `include/psa/` | 97 | 4,057 | Public API headers... `programs/` | 80 | 965 | Example/utility binaries... `tests/` | 44 | 859 | Test framework + generated test code\"",
+        "why": "The answer's table explicitly names all four directories with their correct roles (library=implementation, include=public API, programs=examples, tests=tests).",
+        "raw": "QUOTE: \"`library/` | 174 | 4,690 | The implementation... `include/mbedtls/`, `include/psa/` | 97 | 4,057 | Public API headers... `programs/` | 80 | 965 | Example/utility binaries... `tests/` | 44 | 859 | Test framework + generated test code\"\nVERDICT: HIT\nWHY: The answer's table explicitly names all four directories with their correct roles (library=implementation, include=public API, programs=examples, tests=tests)."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "**points a newcomer at `include/` for the public surface**, which is where a library's contract lives",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`include/mbedtls/`, `include/psa/` | 97 | 4,057 | Public API headers \u2014 the surface a consumer links against\"",
+        "why": "The answer explicitly identifies include/ as the public API/contract surface a consumer links against.",
+        "raw": "QUOTE: \"`include/mbedtls/`, `include/psa/` | 97 | 4,057 | Public API headers \u2014 the surface a consumer links against\"\nVERDICT: HIT\nWHY: The answer explicitly identifies include/ as the public API/contract surface a consumer links against."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "weights the parts rather than listing them as equals",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Structurally, `library/` splits into three layers\" combined with weighting entries like `include/mbedtls/ssl.h` (606 symbols \u2014 the largest header in the index) / `library/ssl_tls.c` (314 symbols, the largest library source) called out as central vs. `3rdparty/` (32 files, \"vendored code ... committed but not authored here\")",
+        "why": "The answer explicitly differentiates parts by centrality/size/role (largest header, largest source, vendored/peripheral) rather than listing all directories as equal entries.",
+        "raw": "QUOTE: \"Structurally, `library/` splits into three layers\" combined with weighting entries like `include/mbedtls/ssl.h` (606 symbols \u2014 the largest header in the index) / `library/ssl_tls.c` (314 symbols, the largest library source) called out as central vs. `3rdparty/` (32 files, \"vendored code ... committed but not authored here\")\nVERDICT: HIT\nWHY: The answer explicitly differentiates parts by centrality/size/role (largest header, largest source, vendored/peripheral) rather than listing all directories as equal entries."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 7,
+      "text": "**reports that `library/` is FLAT** \u2014 109 `.c` files in one directory and ZERO files in any subdirectory of it, so the grouping a newcomer actually navigates by is the filename prefix (`psa_crypto*.c` 15 files, `ssl*.c` 14, `x509*.c` 8), not a directory tree. `include/` is the opposite shape \u2014 exactly two subdirectories and nothing deeper, `include/mbedtls/` (74 `.h`) and `include/psa/` (23 `.h`). Naming either shape earns the mark",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer reports directory-level file/symbol counts but never states that `library/` is flat (no subdirectories) or that `include/` has exactly two subdirectories and nothing deeper.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer reports directory-level file/symbol counts but never states that `library/` is flat (no subdirectories) or that `include/` has exactly two subdirectories and nothing deeper."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

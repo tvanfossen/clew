@@ -1,0 +1,68 @@
+{
+  "is_error": false,
+  "duration_api_ms": 47499,
+  "num_turns": 14,
+  "stop_reason": "end_turn",
+  "session_id": "3ec083a7-dd25-4add-b9fb-09bcc7b98a61",
+  "total_cost_usd": 0.20829970000000003,
+  "usage": {
+    "input_tokens": 113,
+    "cache_creation_input_tokens": 45176,
+    "cache_read_input_tokens": 952337,
+    "output_tokens": 4219,
+    "output_tokens_details": {
+      "thinking_tokens": 1733
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 45176,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 8,
+        "output_tokens": 1780,
+        "cache_read_input_tokens": 77990,
+        "cache_creation_input_tokens": 155,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 155
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1514,
+      "outputTokens": 4240,
+      "cacheReadInputTokens": 952337,
+      "cacheCreationInputTokens": 45176,
+      "webSearchRequests": 0,
+      "costUSD": 0.20829970000000003,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Answer\n\nmbedtls is layered: a core cryptographic library at its center, wrapped by public interfaces, surrounded by test infrastructure and vendored dependencies.\n\n### **The Core Library (What mbedtls Actually Is)**\n\nThe implementation lives in `library/`, with **109 C files** containing the cryptographic primitives, SSL/TLS protocol engines, X.509 certificate handling, and the PSA Cryptography API implementation. These 109 files carry **4,690 indexed symbols**. Supporting them is `include/`, with **97 header files** split into two public interfaces: the legacy mbedtls C API (in `include/mbedtls/`) and the PSA Cryptography API (in `include/psa/`). Those headers define **4,057 symbols** as the public contract `library/` implements. Together, `library/` + `include/` = **206 source files** forming the library itself.\n\nThe README documents this as three linked libraries built from this code: libmbedcrypto (cryptographic primitives), libmbedx509 (certificate handling), and libmbedtls (the SSL/TLS engine).\n\n### **What the Documentation Covers**\n\nThe Doxyfile at `doxygen/mbedtls.doxyfile:9-10` specifies INPUT paths and FILE_PATTERNS:\n\n```\nINPUT                  = ../include input ../tests/include/alt-dummy\nFILE_PATTERNS          = *.h\n```\n\nSo the **generated API documentation covers only headers** (the public interface, not the implementation). It includes:\n- All files in `include/mbedtls/` (the main public API)\n- All files in `include/psa/` (the PSA Cryptography API)\n- Alternative test dummy headers in `tests/include/alt-dummy/`\n\nIt **does NOT document**:\n- The implementation in `library/`\n- The programs, test suite, or build scripts\n\n### **Everything Else in the Repository**\n\n- **3rdparty/** (32 indexed files, 454 symbols): Vendored external code\u2014Everest (curve25519 and X25519 implementations) and P256-M (NIST P-256 alternate implementation). Declared and excluded from first-party metrics.\n\n- **programs/** (80 indexed files, 76 C files, 965 symbols): Example programs and utilities\u2014SSL client/server demos, key generation, certificate tools, fuzzing harnesses, benchmarking code.\n\n- **tests/** (44 indexed files, 3 C files, 859 symbols): The test suite's support code (test data, certificate fixtures, SSL test helpers). The actual test scripts are not indexed by extension.\n\n- **configs/** (13 indexed files, 143 symbols): Pre-built configuration profiles for specific use cases (symmetric-only crypto, Suite-B compliance, thread-safe builds, etc.).\n\n- **scripts/** (9 indexed files, 141 symbols): Build automation and configuration helpers (Python and Perl scripts).\n\n- **docs/** (30 indexed files, 12 symbols): Markdown documentation and generated HTML fragments for ReadTheDocs.\n\n### **Repository Scope**\n\nTotal indexed: **527 files** (the whole repository).  \nIndexed by category:\n- library: 174 files, 4,690 symbols\n- include: 97 files, 4,057 symbols  \n- programs: 80 files, 965 symbols\n- tests: 44 files, 859 symbols\n- 3rdparty: 32 files, 454 symbols\n- configs: 13 files, 143 symbols\n- scripts: 9 files, 141 symbols\n- docs: 30 files, 12 symbols\n- Root (config files): 47 files, 0 symbols\n\n### **How Big Is mbedtls?**\n\n**If asked for a size metric, I'd say: \"The library is approximately 109 C implementation files and 97 header files defining two public API surfaces. The documentation build covers only the headers (97 files, 4,057 API symbols). The full repository includes test suites, example programs, and 9 files of vendored external cryptographic implementations, bringing the total to 527 indexed files.\"**\n\nThe metric depends on what you're measuring:\n- **Shipped code**: 206 files (library + include)\n- **Documented interface**: 97 files (headers only)\n- **With tests and programs**: ~200 files\n- **Whole repository**: 527 indexed files\n\n## Gaps\n\nNone. The index answered all structural questions directly. No source reads were needed.",
+  "ttft_ms": 3455,
+  "ttft_stream_ms": 1207,
+  "time_to_request_ms": 82,
+  "type": "result",
+  "duration_ms": 47009,
+  "uuid": "c9b9032d-828a-468e-a2ed-51aff0e99e8a"
+}

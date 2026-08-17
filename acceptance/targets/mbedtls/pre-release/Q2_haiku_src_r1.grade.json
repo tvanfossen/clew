@@ -1,0 +1,600 @@
+{
+  "q": "Q2",
+  "arm": "src",
+  "model": "haiku",
+  "run": 1,
+  "answer": "Q2_haiku_src_r1.md",
+  "rubric": "acceptance/targets/mbedtls/questions.yaml",
+  "declared_mark_count": 24,
+  "summary": {
+    "marks_hit": 14,
+    "marks_miss": 10,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 24,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": true,
+    "falsity_verdict": "CONSISTENT",
+    "marks_total": 24,
+    "score": 14.0,
+    "score_strict": 14.0
+  },
+  "falsity": {
+    "checked": true,
+    "verdict": "CONSISTENT",
+    "agreement": 1.0,
+    "tally": [
+      [
+        "CONSISTENT",
+        3
+      ]
+    ],
+    "samples": 3,
+    "errors": 0,
+    "vetoed": false
+  },
+  "marks": [
+    {
+      "index": 1,
+      "text": "finds `MBEDTLS_PRIVATE`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "MBEDTLS_PRIVATE"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `MBEDTLS_PRIVATE` \u2014 The macro is **`MBEDTLS_PRIVATE(member)`**, defined in `include/mbedtls/private_access.h:15` and `include/mbedtls/private_access.h:17`."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "locates its definition in `include/mbedtls/private_access.h`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "MBEDTLS_PRIVATE"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [
+          "private_access.h:15-17"
+        ],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `MBEDTLS_PRIVATE` \u2014 The macro is **`MBEDTLS_PRIVATE(member)`**, defined in `include/mbedtls/private_access.h:15` and `include/mbedtls/private_access.h:17`.",
+          "cite private_access.h:15-17 \u2248 answer private_access.h:15-15"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "states the DEFAULT expansion is a prefixed name (`private_<member>`)",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [
+          "private_access.h:15"
+        ],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "cite private_access.h:15 \u2248 answer private_access.h:15-15"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "states the OPT-IN expansion is the bare member name",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "Expands to the bare member name",
+        "why": "Answer explicitly states that with MBEDTLS_ALLOW_PRIVATE_ACCESS defined the macro expands to the bare member name.",
+        "raw": "QUOTE: Expands to the bare member name\nVERDICT: HIT\nWHY: Answer explicitly states that with MBEDTLS_ALLOW_PRIVATE_ACCESS defined the macro expands to the bare member name."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "names `MBEDTLS_ALLOW_PRIVATE_ACCESS` as the condition that selects between them",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "MBEDTLS_ALLOW_PRIVATE_ACCESS"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `MBEDTLS_ALLOW_PRIVATE_ACCESS` \u2014 #ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "gets the DIRECTION right \u2014 the prefixed form is what you get by DEFAULT, from the macro's absence, and the bare name is the opt-in",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Without MBEDTLS_ALLOW_PRIVATE_ACCESS: Expands to private_<member> (prepends private_)\"",
+        "why": "States that the private_-prefixed form is the default (absent the macro), and the accessible form is opt-in via defining MBEDTLS_ALLOW_PRIVATE_ACCESS.",
+        "raw": "QUOTE: \"Without MBEDTLS_ALLOW_PRIVATE_ACCESS: Expands to private_<member> (prepends private_)\"\nVERDICT: HIT\nWHY: States that the private_-prefixed form is the default (absent the macro), and the accessible form is opt-in via defining MBEDTLS_ALLOW_PRIVATE_ACCESS."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 7,
+      "text": "states that one struct member therefore has two spellings depending on the including translation unit",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"A struct member `MBEDTLS_PRIVATE(p)` expands to `private_p`... library sees... member `p`\"",
+        "why": "The answer states the same struct member (e.g. `p`) is spelled `p` in library translation units (with MBEDTLS_ALLOW_PRIVATE_ACCESS) and `private_p` in application translation units without it, satisfying the item's substance.",
+        "raw": "QUOTE: \"A struct member `MBEDTLS_PRIVATE(p)` expands to `private_p`... library sees... member `p`\"\nVERDICT: HIT\nWHY: The answer states the same struct member (e.g. `p`) is spelled `p` in library translation units (with MBEDTLS_ALLOW_PRIVATE_ACCESS) and `private_p` in application translation units without it, satisfying the item's substance."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 8,
+      "text": "says WHICH consumer gets which \u2014 the library and any opting-in code see the bare name, everyone else sees the prefixed one",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Without MBEDTLS_ALLOW_PRIVATE_ACCESS: Expands to private_<member>... With MBEDTLS_ALLOW_PRIVATE_ACCESS: Expands to the bare member name\" / \"The library itself defines MBEDTLS_ALLOW_PRIVATE_ACCESS at library/common.h:132\" / \"Test/demo programs enabling access: programs/ssl/ssl_client2.c:8\"",
+        "why": "The answer explicitly identifies the library (and opting-in code like ssl_client2.c) as seeing the bare name, and everyone else (applications without the define) seeing the prefixed name.",
+        "raw": "QUOTE: \"Without MBEDTLS_ALLOW_PRIVATE_ACCESS: Expands to private_<member>... With MBEDTLS_ALLOW_PRIVATE_ACCESS: Expands to the bare member name\" / \"The library itself defines MBEDTLS_ALLOW_PRIVATE_ACCESS at library/common.h:132\" / \"Test/demo programs enabling access: programs/ssl/ssl_client2.c:8\"\nVERDICT: HIT\nWHY: The answer explicitly identifies the library (and opting-in code like ssl_client2.c) as seeing the bare name, and everyone else (applications without the define) seeing the prefixed name."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "explains the struct is public so callers can ALLOCATE it",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer discusses the MBEDTLS_PRIVATE macro's name-mangling mechanism but never addresses the struct itself being public so callers can allocate it.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses the MBEDTLS_PRIVATE macro's name-mangling mechanism but never addresses the struct itself being public so callers can allocate it."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 10,
+      "text": "explains that its members are nonetheless not part of the API promise",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"This pattern is **deprecated** as of recent versions\"",
+        "why": "The answer describes the escape hatch's deprecation but never states that MBEDTLS_PRIVATE members generally are not part of the public API promise.",
+        "raw": "QUOTE: \"This pattern is **deprecated** as of recent versions\"\nVERDICT: MISS\nWHY: The answer describes the escape hatch's deprecation but never states that MBEDTLS_PRIVATE members generally are not part of the public API promise."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 11,
+      "text": "explains that renaming makes accidental member use fail to COMPILE",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"A struct member `MBEDTLS_PRIVATE(p)` expands to `private_p` (not `p`)... Accessing `mpi->p` produces a **compiler error**: \"no member named 'p' in struct\"\"",
+        "why": "The answer explicitly states that accidental access to the original member name fails to compile due to the rename.",
+        "raw": "QUOTE: \"A struct member `MBEDTLS_PRIVATE(p)` expands to `private_p` (not `p`)... Accessing `mpi->p` produces a **compiler error**: \"no member named 'p' in struct\"\"\nVERDICT: HIT\nWHY: The answer explicitly states that accidental access to the original member name fails to compile due to the rename."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 12,
+      "text": "says what happens to application code that reaches past it: it compiles against a name mbedtls does not promise, and a later release may rename or remove that member without it counting as a break",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"the entire struct offset changes when every member is renamed\" / \"This pattern is **deprecated**... and is mentioned as something that 'could be broken in any future release.'\"",
+        "why": "Answer describes compile errors from the renamed-member mechanism and a deprecation note, but never states the item's specific claim that code accessing the private name still compiles against a name mbedtls doesn't promise, and a later release may rename/remove that member without it counting as a break (i.e. accessing `private_p`/`MBEDTLS_PRIVATE`-wrapped access itself is unstable API, not just risky offset math).",
+        "raw": "QUOTE: \"the entire struct offset changes when every member is renamed\" / \"This pattern is **deprecated**... and is mentioned as something that 'could be broken in any future release.'\"\nVERDICT: MISS\nWHY: Answer describes compile errors from the renamed-member mechanism and a deprecation note, but never states the item's specific claim that code accessing the private name still compiles against a name mbedtls doesn't promise, and a later release may rename/remove that member without it counting as a break (i.e. accessing `private_p`/`MBEDTLS_PRIVATE`-wrapped access itself is unstable API, not just risky offset math)."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 13,
+      "text": "identifies that the library's OWN translation units opt in",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"The library itself defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` at `library/common.h:132`\"",
+        "why": "States the library's own source opts into private access via its own define.",
+        "raw": "QUOTE: \"The library itself defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` at `library/common.h:132`\"\nVERDICT: HIT\nWHY: States the library's own source opts into private access via its own define."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 14,
+      "text": "names `library/common.h` as where the library does it",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "MBEDTLS_ALLOW_PRIVATE_ACCESS"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [
+          "common.h:132"
+        ],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `MBEDTLS_ALLOW_PRIVATE_ACCESS` \u2014 #ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS",
+          "cite common.h:132 \u2248 answer common.h:132-132"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 15,
+      "text": "concludes that the library therefore always sees the plain names",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer explains the two conditional expansions and their audiences but never concludes that the library itself always sees the plain (unprefixed) names.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains the two conditional expansions and their audiences but never concludes that the library itself always sees the plain (unprefixed) names."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 16,
+      "text": "concludes that the macro constrains CALLERS rather than mbedtls itself",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"The library can access `mpi->p`, `mpi->s`, `mpi->n` directly... An application that does NOT define `MBEDTLS_ALLOW_PRIVATE_ACCESS` sees... A struct member `MBEDTLS_PRIVATE(p)` expands to `private_p` (not `p`)\"",
+        "why": "The answer describes the mechanism (library vs. application access differ) but never states the conclusion that the macro constrains callers/applications rather than mbedtls itself \u2014 it frames both sides as \"two worlds\" without asserting which side the restriction is targeted at.",
+        "raw": "QUOTE: \"The library can access `mpi->p`, `mpi->s`, `mpi->n` directly... An application that does NOT define `MBEDTLS_ALLOW_PRIVATE_ACCESS` sees... A struct member `MBEDTLS_PRIVATE(p)` expands to `private_p` (not `p`)\"\nVERDICT: MISS\nWHY: The answer describes the mechanism (library vs. application access differ) but never states the conclusion that the macro constrains callers/applications rather than mbedtls itself \u2014 it frames both sides as \"two worlds\" without asserting which side the restriction is targeted at."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 17,
+      "text": "names at least one other opt-in site \u2014 the sample TLS client or server (`programs/ssl/ssl_client2.c`, `programs/ssl/ssl_server2.c`)",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "ssl_client2"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "ssl_server2"
+        ],
+        "refs_hit": [
+          "ssl_client2.c:8"
+        ],
+        "refs_file_only": [],
+        "refs_missed": [
+          "ssl_server2.c:8"
+        ],
+        "evidence": [
+          "symbol `ssl_client2` \u2014 - **Test/demo programs enabling access:** `programs/ssl/ssl_client2.c:8` \u2014 `#define MBEDTLS_ALLOW_PRIVATE_ACCESS` (at top of file before includes)",
+          "cite ssl_client2.c:8 \u2248 answer ssl_client2.c:8-8"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 18,
+      "text": "reports hundreds of uses \u2014 not tens, not thousands. BOTH figures are creditable: about 884 lines in 71 files for the bare token, or 879 in 70 for the `MBEDTLS_PRIVATE(` invocation",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "the answer contains no count of lines/files, only \"Concrete struct using the macro\", \"Another example\" citations without any aggregate total",
+        "why": "The answer never reports an aggregate usage count (~884 lines/71 files or 879/70) for the token or macro invocation \u2014 only illustrative examples.",
+        "raw": "QUOTE: the answer contains no count of lines/files, only \"Concrete struct using the macro\", \"Another example\" citations without any aggregate total\nVERDICT: MISS\nWHY: The answer never reports an aggregate usage count (~884 lines/71 files or 879/70) for the token or macro invocation \u2014 only illustrative examples."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 19,
+      "text": "reports dozens of files rather than a handful",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"Concrete struct using the macro:** `include/mbedtls/bignum.h:208-229`... **Another example:** `include/mbedtls/ssl.h:1275-1373`\" (only two file citations plus the macro's own definition file and library/common.h, programs/ssl/ssl_client2.c \u2014 five files total)",
+        "why": "The answer cites roughly five specific files, not dozens.",
+        "raw": "QUOTE: \"Concrete struct using the macro:** `include/mbedtls/bignum.h:208-229`... **Another example:** `include/mbedtls/ssl.h:1275-1373`\" (only two file citations plus the macro's own definition file and library/common.h, programs/ssl/ssl_client2.c \u2014 five files total)\nVERDICT: MISS\nWHY: The answer cites roughly five specific files, not dozens."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 20,
+      "text": "states the uses are overwhelmingly in the PUBLIC HEADERS rather than in the implementation (about 860 of 884, ~97%)",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never states the header-vs-implementation usage distribution (~860 of 884, ~97% in public headers).",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states the header-vs-implementation usage distribution (~860 of 884, ~97% in public headers)."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 21,
+      "text": "notes that a small number of uses exist OUTSIDE `include/` \u2014 in `library/`, `programs/` and `tests/`",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"Test/demo programs enabling access:** `programs/ssl/ssl_client2.c:8` \u2014 `#define MBEDTLS_ALLOW_PRIVATE_ACCESS`\"",
+        "why": "The answer notes one use in `programs/` but never notes uses in `library/` or `tests/` outside `include/`, nor characterizes it as \"a small number of uses outside include/\" across those three locations \u2014 it only cites library/common.h as the library enabling access, not as an example of the pattern the item describes.",
+        "raw": "QUOTE: \"Test/demo programs enabling access:** `programs/ssl/ssl_client2.c:8` \u2014 `#define MBEDTLS_ALLOW_PRIVATE_ACCESS`\"\nVERDICT: MISS\nWHY: The answer notes one use in `programs/` but never notes uses in `library/` or `tests/` outside `include/`, nor characterizes it as \"a small number of uses outside include/\" across those three locations \u2014 it only cites library/common.h as the library enabling access, not as an example of the pattern the item describes."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 22,
+      "text": "states that ANY translation unit can define the opt-in macro and get full access",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Test/demo programs enabling access: `programs/ssl/ssl_client2.c:8` \u2014 `#define MBEDTLS_ALLOW_PRIVATE_ACCESS` (at top of file before includes)\"",
+        "why": "Shows a non-library translation unit defining the macro itself (before its includes) to gain full access, demonstrating the opt-in is available to any TU.",
+        "raw": "QUOTE: \"Test/demo programs enabling access: `programs/ssl/ssl_client2.c:8` \u2014 `#define MBEDTLS_ALLOW_PRIVATE_ACCESS` (at top of file before includes)\"\nVERDICT: HIT\nWHY: Shows a non-library translation unit defining the macro itself (before its includes) to gain full access, demonstrating the opt-in is available to any TU."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 23,
+      "text": "describes the mechanism as a NAMING CONVENTION the compiler enforces",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"expands to `private_<member>` (prepends `private_`)... Accessing `mpi->p` produces a **compiler error**: 'no member named 'p' in struct'\"",
+        "why": "The answer describes the mechanism as renaming members (a naming convention) which the compiler then enforces by rejecting mismatched names at compile time.",
+        "raw": "QUOTE: \"expands to `private_<member>` (prepends `private_`)... Accessing `mpi->p` produces a **compiler error**: 'no member named 'p' in struct'\"\nVERDICT: HIT\nWHY: The answer describes the mechanism as renaming members (a naming convention) which the compiler then enforces by rejecting mismatched names at compile time."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 24,
+      "text": "states that it provides no access control and is not encapsulation in the C++ sense",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer describes the macro's renaming mechanism in detail but never states that it provides no real access control or that it isn't C++-style encapsulation (e.g., it doesn't note that `private_s` is still publicly accessible, just renamed).",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the macro's renaming mechanism in detail but never states that it provides no real access control or that it isn't C++-style encapsulation (e.g., it doesn't note that `private_s` is still publicly accessible, just renamed)."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

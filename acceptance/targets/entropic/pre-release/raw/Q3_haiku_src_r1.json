@@ -1,0 +1,68 @@
+{
+  "is_error": false,
+  "duration_api_ms": 91916,
+  "num_turns": 30,
+  "stop_reason": "end_turn",
+  "session_id": "e1fe467c-010e-4d06-8453-86c8e375865a",
+  "total_cost_usd": 0.4427476,
+  "usage": {
+    "input_tokens": 241,
+    "cache_creation_input_tokens": 89689,
+    "cache_read_input_tokens": 2239856,
+    "output_tokens": 7553,
+    "output_tokens_details": {
+      "thinking_tokens": 2659
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 89689,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 8,
+        "output_tokens": 1809,
+        "cache_read_input_tokens": 92466,
+        "cache_creation_input_tokens": 699,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 699
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1539,
+      "outputTokens": 7569,
+      "cacheReadInputTokens": 2239856,
+      "cacheCreationInputTokens": 89689,
+      "webSearchRequests": 0,
+      "costUSD": 0.4427476,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Answer: Threads in Entropic\n\nEntropic runs **9 categories of threads**, with the exact count varying at runtime depending on client connections and async tasks:\n\n### 1. **SSE Reader Thread** (1 instance, if SSE transport is active)\n- **Location:** `src/mcp/transport_sse.cpp:107`\n- **Function:** `SSETransport::sse_reader_loop()` (line 263)\n- **Purpose:** Continuously reads from SSE event stream, parses events, stores JSON-RPC responses by request ID\n- **Lifecycle:** Started in `SSETransport::open()`, joined on `close()`\n\n### 2. **Stdio Stderr Thread** (1 instance per spawned child process)\n- **Location:** `src/mcp/transport_stdio.cpp:164`\n- **Function:** `StdioTransport::stderr_reader_loop()` (line 494)\n- **Purpose:** Forwards child process stderr to spdlog WARNING logger; polls every 500ms\n- **Lifecycle:** Started in `StdioTransport::open()`, joined on `close()`\n\n### 3. **Health Monitor Thread** (1 instance)\n- **Location:** `src/mcp/health_monitor.cpp:92`\n- **Function:** `HealthMonitor::monitor_loop()` (line 137)\n- **Purpose:** Monitors watched MCP server health, handles reconnection attempts, checks every 500ms\n- **Lifecycle:** Started in `HealthMonitor::start()`, joined on `stop()`\n\n### 4. **Response Generator Observer Thread** (ephemeral, 1 per cancellable inference)\n- **Location:** `src/core/response_generator.cpp:413`\n- **Purpose:** Polls interrupt flag at 10ms intervals during batch generation, bridges engine interrupt to C ABI cancel_int parameter\n- **Lifecycle:** Spawned at start of `dispatch_batch_generate()`, joined before return\n- **Lifetime:** Microseconds to seconds (as long as inference runs)\n\n### 5. **Inference C API Poller Thread** (ephemeral, 1 per C API inference call)\n- **Location:** `src/inference/inference_c_api.cpp:385` (class `CancelFlagBridge`)\n- **Purpose:** Bridges int* cancel_flag (C ABI) to std::atomic<bool> for backend; polls every 10ms\n- **Lifecycle:** Spawned in constructor, joined in destructor\n\n### 6. **Interface Factory Poller Thread** (ephemeral, 1 per orchestrator generate call)\n- **Location:** `src/inference/interface_factory.cpp:246`\n- **Purpose:** Similar to C API poller; bridges int* cancel to atomic<bool> during inference\n- **Lifecycle:** Spawned inline during generate, joined before return\n\n### 7. **Accept Thread** (1 instance, if external MCP bridge is running)\n- **Location:** `src/facade/external_bridge.cpp:796`\n- **Function:** `ExternalBridge::accept_loop()` (line 917)\n- **Purpose:** Listens on Unix domain socket, accepts client connections, spawns per-client threads\n- **Lifecycle:** Started in `ExternalBridge::start()`, joined in `ExternalBridge::stop()`\n\n### 8. **Per-Client Serve Threads** (variable: 1 per connected MCP client)\n- **Location:** `src/facade/external_bridge.cpp:945`\n- **Function:** `ExternalBridge::serve_client()` (line 988)\n- **Purpose:** Reads JSON-RPC requests from client socket, dispatches to MCP tools (initialize, tools/list, tools/call, entropic.ask, entropic.status, etc.)\n- **Lifecycle:** Spawned in `accept_loop()` per connection, joined in `ExternalBridge::stop()`\n\n### 9. **Async Ask Worker Threads** (variable: 1 per async entropic.ask request)\n- **Location:** `src/facade/external_bridge.cpp:1158`\n- **Function:** Lambda in `ExternalBridge::run_async_ask()` calls `entropic_run()`\n- **Purpose:** Executes inference asynchronously, reports progress via MCP notifications, detached (not joined)\n- **Lifecycle:** Spawned in `run_async_ask()`, detached immediately\n\n---\n\n## Example: Tracing `handle_status()`\n\n**Function choice:** `handle_status()` at `src/facade/external_bridge.cpp:295`\n\n**Execution thread:** **Per-client serve thread** (one per connected MCP client)\n\n**Call chain:**\n```\nPer-client serve_client(client_fd) [external_bridge.cpp:988]\n  \u2192 read JSON-RPC request from socket\n  \u2192 dispatch(request_json, client_fd) [external_bridge.cpp:1038]\n    \u2192 dispatch_tool(...) [external_bridge.cpp:570]\n      \u2192 handle_status(handle) [external_bridge.cpp:295]\n        \u2192 entropic_context_count(handle, &count) [facade/entropic.cpp:2739]\n          \u2192 handle->engine->message_count() [lock-free atomic read]\n        \u2192 entropic_metrics_json(handle, &mjson) [facade/entropic.cpp:2881]\n          \u2192 queries engine metrics asynchronously\n        \u2192 returns JSON tool result to client\n```\n\n**Thread safety:** `handle_status()` acquires no locks on the main engine (metrics queries are lock-free). The per-client serve thread runs concurrently with the async ask worker threads and can be interrupted by the accept thread only during socket operations.\n\n---\n\n## Coverage\n\n**Codebase scope:**\n- **Source files analyzed:** 112 files (`.cpp` and `.h` in `src/`)\n- **Lines of code:** 3,276 LOC in source (excluding extern/llama.cpp submodule)\n- **Threading code coverage:** All 9 thread spawn sites identified and traced\n  - 6 long-lived infrastructure threads (SSE, stderr, health monitor, accept)\n  - 3 per-request threads (generator observer, pollers, async ask worker)\n\n**Threads per layer:**\n- **MCP Transport layer:** 2 (SSE reader, stdio stderr)\n- **Health/Reconnection:** 1 (monitor)\n- **Inference execution:** 3 (observer, C API poller, interface factory poller) \u2014 ephemeral during generation\n- **Socket I/O:** 1 accept + N per-client serves\n- **Async task execution:** M async ask workers (detached)\n\n---\n\n## Gaps\n\n- **Llama.cpp internal threads:** The `extern/llama.cpp` submodule contains additional threading (at least in server-mode build), but that submodule's code is excluded per the benchmark scope (entropic source-only). Llama.cpp's own threading is transparent to entropic's management layer.\n- **Memory ordering semantics:** Could not fully verify all std::memory_order specifications without running dynamic analysis (all uses appear correct: acquire/release patterns for flags, relaxed for metrics).\n- **Exact async task cardinality:** The number of async ask workers depends on client request rate and task cleanup; no static bound enforced beyond 15-minute expiration (`src/facade/external_bridge.cpp:1220`).",
+  "ttft_ms": 2755,
+  "ttft_stream_ms": 1426,
+  "time_to_request_ms": 208,
+  "type": "result",
+  "duration_ms": 91445,
+  "uuid": "4c22344d-7d47-41d2-bce9-fbfa61698f53"
+}

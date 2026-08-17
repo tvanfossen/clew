@@ -1,0 +1,417 @@
+# SPDX-License-Identifier: MIT
+"""THREE AXES OF STALENESS, INTERPRETED — the tool describing its own currency.
+
+`db_status` already measured freshness and already published the diagnosis for
+two of these axes as raw fields that nothing read out loud. This module turns
+those fields into a sentence naming the ACTION that clears them, because the
+three axes are cleared by three DIFFERENT actions and a bare `stale: true` does
+not say which.
+
+  * `data`   — the database is older than the source. Cleared by a rebuild.
+                `db_status` reports it correctly today as `source_changed_files`.
+  * `code`   — the running server process imported its modules at launch, so a
+                committed fix is not in its answers. Cleared ONLY by restarting
+                the client. `status` reported `stale: false` here — truthfully,
+                about the `data` axis — while serving old logic, which is why this
+                is the actively misleading one (gh#29).
+  * `schema` — `build_version` versus `expected_build_version`. When the index is
+                NEWER than the server, `stale: true` is UNRESOLVABLE by any action
+                the consumer can take: rebuilding re-stamps the same newer version
+                and the flag stays up. Observed live at 23 versus 17. The two
+                integers were already in the payload; nothing interpreted them.
+
+PRECISION ABOUT THE `code` AXIS MATTERS AS MUCH AS RAISING IT. Query tools open
+the database per call, so DATA is read live and IS current — a session confirmed
+newly-added symbols appearing immediately while the version skew showed. What is
+stale is the process's LOGIC and its module-level constants. Saying "the server is
+stale" without that qualification trades one wrong conclusion for another, and the
+messages below are worded to keep the distinction.
+
+AND THAT PRECISION WAS HALF WRONG, WHICH IS WORSE THAN VAGUE (gh#348). "The DATA is
+not affected" is TRUE FOR READS and FALSE FOR WRITES: a stale process reads live data
+and writes dead logic. Measured by calling the tool — a build-30 process rebuilt a
+build-32 index AT 30, the `external` stage vanished from the stage list,
+`external_files`/`unresolved_files` left `coverage`, and `status` afterwards reported
+`stale: false, build_version: 30`, i.e. perfectly healthy, having just destroyed a
+layer. The notice that should have stopped that told the reader not to worry.
+
+So the read exemption and the write refusal now travel together in one sentence, and
+`stale_code_refusal` is what a write path calls BEFORE touching an index. Refusing is
+cheap: one client reconnect restored the dropped layer.
+
+THE AXIS NAMES ARE NOT IN `vocabulary.py`, deliberately. That module is the single
+source for the SCHEMA's enumerated columns and the DDL CHECK clauses generated from
+them; these three tokens never reach a table. Putting them there would imply a
+column somewhere holds them, and would put a payload-shape decision behind the
+schema's change control.
+
+@brief Interpret the data / code / schema staleness axes into actionable messages.
+@version 2
+"""
+
+from __future__ import annotations
+
+import hashlib
+from collections.abc import Mapping
+from pathlib import Path
+
+from ..signature import CLEW_BUILD_VERSION
+
+## The three axes, as tokens a consumer can branch on. A message is prose and may be
+## reworded; the axis is the stable field.
+AXIS_DATA = "data"
+AXIS_CODE = "code"
+AXIS_SCHEMA = "schema"
+
+## THE TWO HALVES OF THE `code` AXIS, WRITTEN ONCE. They are constants rather than inline
+## prose because the notice and the write refusal must not be able to drift apart: the
+## whole defect was a message that stated one half and was pinned by a test for that half.
+_READ_EXEMPTION = (
+    "READS are not affected — query tools open the database per call and read it live, so "
+    "the data in this reply is current."
+)
+_WRITE_HAZARD = (
+    "WRITES ARE AFFECTED and a build through this process is refused: it would run old "
+    "pipeline logic and re-stamp the index with it, which can silently DROP WHOLE LAYERS "
+    "and then report the result as healthy."
+)
+
+## Only `.py` is fingerprinted. A `.pyc` is regenerated as a side effect of importing
+## the very code we are trying to identify, so hashing bytecode would make the
+## fingerprint change because it was read — and the house test procedure purges
+## `__pycache__` between control runs, which would move it again for no source change.
+_SOURCE_GLOB = "*.py"
+
+## Length of the published fingerprint. It exists to be COMPARED, never inverted, so
+## twelve hex characters is ample and keeps the block small against the response budget.
+_FINGERPRINT_CHARS = 12
+
+
+## @brief The installed package's source directory.
+## @return Path to the `clew` package root.
+## @version 1
+## @dg_internal
+def package_source_root() -> Path:
+    """The directory the RUNNING process imported from, whatever install shape put it
+    there. Under `pipx install --editable` that is the working tree, which is the whole
+    reason the `code` axis can drift at all; under a snapshot install it is a
+    site-packages copy that never changes, and the axis then correctly stays silent.
+
+    @brief Locate the imported package's source directory.
+    @return The package root.
+    @version 1
+    """
+    return Path(__file__).resolve().parent.parent
+
+
+## @brief Fingerprint the package source's identity on disk.
+## @param root Package root to fingerprint (defaults to the imported one).
+## @return Short hex digest, or "" when the tree cannot be read or holds no source.
+## @version 2
+## @req REQ-DDB-MCP-004
+def source_fingerprint(root: Path | None = None) -> str:
+    """Hashes RELATIVE path, mtime and size for every `.py` under the package — never
+    file CONTENT, and never an absolute path.
+
+    Not content because the question is "has the tree moved since this process started",
+    which mtime answers for a few hundred stats where reading every byte would cost
+    real time on a surface called once per reply.
+
+    Not absolute paths because anything reachable over MCP is published, and stamping a
+    machine's directory layout into a payload is the disclosure that forced the
+    build-version-9 bump. A digest over relative paths compares exactly as well and
+    discloses nothing.
+
+    Returns "" — meaning "cannot tell", never "unchanged" — when the tree is unreadable,
+    and `notices` treats an empty fingerprint on either side as no evidence rather than
+    as agreement. A missing measurement must not read as a clean bill of health.
+
+    THE EMPTY-TREE CASE IS CHECKED SEPARATELY AND A CONTROL CAUGHT IT. `Path.rglob`
+    SWALLOWS a missing or unreadable directory and yields nothing rather than raising, so
+    the `except OSError` alone let a tree that could not be read hash to the digest of
+    ZERO FILES — a perfectly stable, entirely fabricated fingerprint. Worse than useless:
+    two unreadable trees produce the SAME digest, so `matches_source` would compare equal
+    and report the process as healthy on no evidence at all. That is this repo's standing
+    lesson exactly — "no rows" is a claim about the detector — reached by a detector that
+    could not look. A package with zero `.py` files is not a package.
+
+    @brief Digest the package source tree's mtime/size identity.
+    @return Short hex digest, or "" when unreadable or empty.
+    @version 2
+    """
+    base = root if root is not None else package_source_root()
+    digest = hashlib.sha256()
+    seen = 0
+    try:
+        for path in sorted(base.rglob(_SOURCE_GLOB)):
+            stat = path.stat()
+            rel = path.relative_to(base).as_posix()
+            digest.update(f"{rel}:{stat.st_mtime_ns}:{stat.st_size}\n".encode())
+            seen += 1
+    except OSError:
+        return ""
+    return digest.hexdigest()[:_FINGERPRINT_CHARS] if seen else ""
+
+
+## The fingerprint AS THIS PROCESS STARTED. Computed at import, which for the server is
+## launch — the same moment the modules whose logic we are describing were bound. A
+## LATER-imported submodule (the pipeline imports several lazily) may therefore be newer
+## than this fingerprint claims, so the message below says the loaded modules MAY predate
+## the tree rather than asserting which ones do.
+PROCESS_SOURCE_FINGERPRINT = source_fingerprint()
+
+
+## @brief The package version this process is running.
+## @return Version string, or "unknown" when the metadata cannot be read.
+## @version 2
+## @dg_internal
+def package_version() -> str:
+    """Read from installed metadata rather than a hardcoded literal, so it cannot drift
+    from `pyproject.toml`. "unknown" rather than a raise: this is called on the way out
+    of replies that already succeeded.
+
+    @brief Read the installed package version.
+    @return Version string or "unknown".
+    @version 2
+    """
+    try:
+        from importlib.metadata import (
+            version,
+        )
+
+        return version("clew")
+    except Exception:
+        return "unknown"
+
+
+## @brief The code identity the process is actually running.
+## @return {package_version, process_fingerprint, source_fingerprint, matches_source}.
+## @version 1
+## @req REQ-DDB-MCP-004
+def code_identity() -> dict[str, object]:
+    """The `code` axis as data, so a consumer can see the comparison and not only the
+    verdict — gh#29's point was that a payload should say what produced it.
+
+    `matches_source` is False ONLY on positive evidence of disagreement: two non-empty
+    fingerprints that differ. An unreadable tree leaves it True, because "cannot tell"
+    must not manufacture a warning that sends someone restarting a client for no reason.
+    The asymmetry is deliberate and is the opposite of the one `source_fingerprint`
+    makes, for the same reason: absent evidence is not evidence.
+
+    @brief Report the running code's identity against the source tree.
+    @return Code identity mapping.
+    @version 1
+    """
+    current = source_fingerprint()
+    both_known = bool(current) and bool(PROCESS_SOURCE_FINGERPRINT)
+    return {
+        "package_version": package_version(),
+        "process_fingerprint": PROCESS_SOURCE_FINGERPRINT,
+        "source_fingerprint": current,
+        "matches_source": (not both_known) or current == PROCESS_SOURCE_FINGERPRINT,
+    }
+
+
+## @brief Human phrasing for what a refresh of this target last cost.
+## @param refresh The persisted `refresh.*` section, or None.
+## @return A clause naming the measured cost, or one saying it has not been measured.
+## @version 1
+## @dg_internal
+def _cost_clause(refresh: Mapping[str, str] | None) -> str:
+    """GROUNDED IN THIS TARGET'S OWN HISTORY, not a constant (gh#9). An agent that
+    cannot measure the correction must estimate it, and it estimates badly — that is
+    the whole of Q8, the worst result in the acceptance matrix.
+
+    Says so plainly when there is no history, rather than falling back to a
+    representative number. A fabricated estimate presented as a measurement is the
+    failure this repo has recorded most often.
+
+    @brief Phrase the measured cost-to-refresh.
+    @return Cost clause.
+    @version 1
+    """
+    duration = (refresh or {}).get("duration_ms")
+    if not duration:
+        return "no refresh of this target has been timed yet, so the cost is unmeasured"
+    reprocessed = (refresh or {}).get("files_reprocessed")
+    files = f" reprocessing {reprocessed} file(s)" if reprocessed else ""
+    return f"the last refresh of this target measured {duration} ms{files}"
+
+
+## @brief The data-axis notice, when the sources have drifted.
+## @param status A `db_status` payload.
+## @return One notice, or None when the database describes the current sources.
+## @version 2
+## @dg_internal
+def _data_notice(status: Mapping[str, object]) -> dict[str, str] | None:
+    """Fires on `source_changed_files`, which `db_status` has measured correctly all
+    along — this only says what to DO about it, with the cost attached so the decision
+    is informed rather than guessed.
+
+    @brief Build the data-axis notice.
+    @return The notice, or None.
+    @version 2
+    """
+    changed = status.get("source_changed_files") or 0
+    if not isinstance(changed, int) or changed <= 0:
+        return None
+    newest = status.get("newest_changed_source")
+    where = f" (most recently {newest})" if newest else ""
+    refresh = status.get("refresh")
+    cost = _cost_clause(refresh if isinstance(refresh, Mapping) else None)
+    return {
+        "axis": AXIS_DATA,
+        "message": (
+            f"{changed} indexed source file(s) have changed since this index was built"
+            f"{where}, so an answer may describe code that no longer exists. Call "
+            f"index(action='refresh') to correct it — {cost}."
+        ),
+    }
+
+
+## @brief The schema-axis notice, when the stamped and expected versions disagree.
+## @param status A `db_status` payload.
+## @return One notice, or None when the versions agree.
+## @version 2
+## @dg_internal
+def _schema_notice(status: Mapping[str, object]) -> dict[str, str] | None:
+    """THE DIRECTION DECIDES THE ADVICE, and getting it backwards is worse than
+    silence. `expected < actual` means the SERVER predates the INDEX: rebuilding
+    re-stamps the same newer version, so `stale: true` cannot be cleared by any action
+    the consumer takes, and telling them to rebuild sends them round a loop that cannot
+    terminate. Observed live at 23 versus 17.
+
+    The opposite direction is the ordinary one and a rebuild really does fix it.
+
+    @brief Build the schema-axis notice.
+    @return The notice, or None.
+    @version 2
+    """
+    stamped = status.get("build_version")
+    if not isinstance(stamped, int) or stamped == CLEW_BUILD_VERSION:
+        return None
+    if stamped > CLEW_BUILD_VERSION:
+        message = (
+            f"This index was built by pipeline version {stamped} and this server process "
+            f"expects {CLEW_BUILD_VERSION}, so THE SERVER PREDATES THE INDEX. "
+            "REBUILDING CANNOT CLEAR the `stale` flag — a rebuild re-stamps the same "
+            "newer version. Restart the MCP client so it loads the current code."
+        )
+    else:
+        message = (
+            f"This index was built by pipeline version {stamped} and this server expects "
+            f"{CLEW_BUILD_VERSION}, so the index predates the server and may be "
+            "missing whole layers rather than merely being out of date. Call "
+            "index(action='refresh', force=True) to rebuild it."
+        )
+    return {"axis": AXIS_SCHEMA, "message": message}
+
+
+## @brief The code-axis notice, when the source moved under a running process.
+## @param code A `code_identity` payload.
+## @return One notice, or None when the process matches the source tree.
+## @version 2
+## @dg_internal
+def _code_notice(code: Mapping[str, object]) -> dict[str, str] | None:
+    """THE AXIS THAT HAD NO SIGNAL AT ALL, and whose available signal pointed the other
+    way (gh#29). It has now cost this loop three separate debugging sessions: a fix
+    lands, `status` reports `stale: false`, and the query returns the pre-fix payload
+    byte-for-byte, so an agent cannot distinguish "my fix did not work" from "the server
+    has not loaded my fix".
+
+    The message is careful in THREE directions now. It must not let anyone conclude their
+    fix failed; it must not let anyone conclude the DATA is stale, because the query tools
+    open the database per call and are current, which was measured; and — gh#348 — it must
+    not let anyone conclude a REBUILD is safe, because it is not. The first two were here
+    already. The third is the one whose absence cost a layer: the message said the data was
+    unaffected, full stop, and was read as reassurance by someone about to write.
+
+    Only logic and module-level constants are old, and only a client restart replaces them
+    — this deliberately does not hot-reload modules, which is a bad idea and was not asked
+    for.
+
+    @brief Build the code-axis notice.
+    @return The notice, or None.
+    @version 2
+    """
+    if code.get("matches_source"):
+        return None
+    return {
+        "axis": AXIS_CODE,
+        "message": (
+            f"This server process loaded clew {code.get('package_version')} at "
+            f"launch and the package source has changed since "
+            f"(fingerprint {code.get('process_fingerprint')} on disk now "
+            f"{code.get('source_fingerprint')}), so its LOGIC and module-level constants "
+            f"may predate the working tree. {_READ_EXEMPTION} {_WRITE_HAZARD} A rebuild "
+            "cannot fix this: restart the MCP client to load the current code."
+        ),
+    }
+
+
+## @brief The refusal a write path owes its caller when this process predates its source.
+## @param code A `code_identity` payload; measured when omitted.
+## @return The refusal message, or None when a write is safe.
+## @version 2
+## @req REQ-DDB-MCP-004
+def stale_code_refusal(code: Mapping[str, object] | None = None) -> str | None:
+    """THE GUARD A WRITE PATH CALLS BEFORE TOUCHING AN INDEX. Returns None — meaning
+    "go ahead" — on the ordinary case, so the caller is one `if` and the prose lives here
+    with the rest of the code-axis wording rather than being paraphrased at each call site.
+
+    IT DOES NOT ACCEPT AN OVERRIDE, and `force` deliberately does not bypass it. `force`
+    exists to skip the FRESHNESS check; the incident that motivated this used it, so a
+    refusal it could argue past would have prevented nothing.
+
+    REJECTED — reload the pipeline modules and proceed: `PROCESS_SOURCE_FINGERPRINT` is
+    taken at import and module-level constants captured by OTHER modules do not refresh
+    with a reload, so a partially-reloaded pipeline would build with a MIXTURE of old and
+    new logic and report success. That is a harder bug than the one being fixed.
+
+    REJECTED — warn loudly and proceed: the notice above ALREADY warned on every call. It
+    was read, and the downgrade happened anyway, because the warning said the data was
+    unaffected. A louder version of a message that is already present and already wrong is
+    not a fix.
+
+    @brief Refuse a write when the running code predates the source tree.
+    @return Refusal message, or None when the process matches its source.
+    @version 2
+    """
+    identity = code if code is not None else code_identity()
+    if identity.get("matches_source"):
+        return None
+    return (
+        f"REFUSED: this server process loaded clew "
+        f"{identity.get('package_version')} at launch and the package source has changed "
+        f"since (fingerprint {identity.get('process_fingerprint')} on disk now "
+        f"{identity.get('source_fingerprint')}). {_WRITE_HAZARD} Nothing was written. "
+        "Restart the MCP client so it loads the current code, then call "
+        f"index(action='refresh', force=True) — one reconnect is the whole cost. {_READ_EXEMPTION}"
+    )
+
+
+## @brief Every staleness axis currently in play, with the action that clears it.
+## @param status A `db_status` payload.
+## @param code A `code_identity` payload; measured when omitted.
+## @return Notices in data → schema → code order; EMPTY when the tool is current.
+## @version 1
+## @req REQ-DDB-MCP-004
+def notices(
+    status: Mapping[str, object], code: Mapping[str, object] | None = None
+) -> list[dict[str, str]]:
+    """EMPTY ON A CURRENT TOOL, which is the load-bearing half. A warning that is always
+    present is a warning nobody reads, and this annotation rides on every query reply —
+    so the control on the whole change is that a genuinely current index is annotated
+    with nothing at all.
+
+    Ordered by how likely the reader is to act on it: `data` is the common case and the
+    cheapest fix, `schema` is rarer and changes which fix applies, `code` is last because
+    it is the one that says no rebuild will help.
+
+    @brief List the active staleness axes with their remedies.
+    @return List of {axis, message}, empty when current.
+    @version 1
+    """
+    identity = code if code is not None else code_identity()
+    found = (_data_notice(status), _schema_notice(status), _code_notice(identity))
+    return [notice for notice in found if notice is not None]

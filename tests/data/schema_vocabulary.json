@@ -1,0 +1,176 @@
+{
+  "call_edges.confidence": [
+    "exact",
+    "fuzzy",
+    "resolved"
+  ],
+  "call_edges.source": [
+    "ast",
+    "ast_member",
+    "binding",
+    "declared_dispatch",
+    "doxygen_sqlite",
+    "fnptr",
+    "macro_hop"
+  ],
+  "critical_section_calls.resolution": [
+    "ambiguous",
+    "external",
+    "receiver_unverified",
+    "resolved"
+  ],
+  "data_model_keys.dialect": [
+    "ingot",
+    "udm"
+  ],
+  "data_model_keys.helpers": [
+    "0",
+    "1"
+  ],
+  "data_model_keys.listed": [
+    "0",
+    "1"
+  ],
+  "data_model_keys.observed": [
+    "0",
+    "1"
+  ],
+  "external_boundaries.confidence": [
+    "high",
+    "low",
+    "medium"
+  ],
+  "external_boundaries.kind": [
+    "external_registration",
+    "interface_boundary",
+    "unresolved_callback"
+  ],
+  "external_boundaries.source": [
+    "callback_edges",
+    "declared_dispatch"
+  ],
+  "kconfig_gates.form": [
+    "if_expr",
+    "ifdef",
+    "ifndef"
+  ],
+  "kconfig_gates.origin": [
+    "declared",
+    "kconfig",
+    "undeclared"
+  ],
+  "kconfig_symbols.type": [
+    "bool",
+    "hex",
+    "int",
+    "string",
+    "tristate",
+    "unknown"
+  ],
+  "lock_acquisitions.confidence": [
+    "high",
+    "low",
+    "medium"
+  ],
+  "lock_acquisitions.declared": [
+    "0",
+    "1"
+  ],
+  "lock_acquisitions.form": [
+    "call",
+    "declared",
+    "raii"
+  ],
+  "lock_acquisitions.mode": [
+    "exclusive",
+    "shared"
+  ],
+  "lock_acquisitions.role": [
+    "acquire",
+    "scoped",
+    "try_acquire"
+  ],
+  "locks.identity_confidence": [
+    "high",
+    "low",
+    "medium"
+  ],
+  "locks.kind": [
+    "mutex",
+    "recursive_mutex",
+    "semaphore",
+    "shared_mutex",
+    "spinlock",
+    "unknown"
+  ],
+  "locks.source": [
+    "ast_decl",
+    "ast_use",
+    "declared"
+  ],
+  "memberdef.dg_source": [
+    "ast",
+    "doxygen"
+  ],
+  "shared_key_edges.confidence": [
+    "high",
+    "low",
+    "medium"
+  ],
+  "shared_key_edges.crosses_thread": [
+    "0",
+    "1"
+  ],
+  "shared_key_edges.declared": [
+    "0",
+    "1"
+  ],
+  "shared_key_edges.dispatch_mode": [
+    "inline",
+    "keyed",
+    "queued",
+    "unknown"
+  ],
+  "shared_key_edges.edge_kind": [
+    "event",
+    "state",
+    "unknown"
+  ],
+  "shared_key_edges.edge_triggered": [
+    "0",
+    "1"
+  ],
+  "shared_key_edges.source": [
+    "shared_key_declared",
+    "shared_key_inferred"
+  ],
+  "symbol_liveness.status": [
+    "live",
+    "orphan"
+  ],
+  "thread_membership.source": [
+    "call_closure",
+    "declared"
+  ],
+  "threads.confidence": [
+    "high",
+    "low",
+    "medium"
+  ],
+  "threads.kind": [
+    "coroutine",
+    "isr",
+    "main",
+    "oneshot",
+    "process",
+    "pthread",
+    "task",
+    "timer",
+    "unknown",
+    "win32"
+  ],
+  "threads.source": [
+    "ast_spawn",
+    "declared"
+  ]
+}

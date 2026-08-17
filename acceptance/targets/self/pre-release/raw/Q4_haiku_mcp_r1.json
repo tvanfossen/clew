@@ -1,0 +1,68 @@
+{
+  "is_error": false,
+  "duration_api_ms": 52073,
+  "num_turns": 16,
+  "stop_reason": "end_turn",
+  "session_id": "ad82853f-eda2-4a25-8d49-1f68a89878cb",
+  "total_cost_usd": 0.2700741,
+  "usage": {
+    "input_tokens": 129,
+    "cache_creation_input_tokens": 65840,
+    "cache_read_input_tokens": 1180031,
+    "output_tokens": 3751,
+    "output_tokens_details": {
+      "thinking_tokens": 809
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 65840,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 8,
+        "output_tokens": 1238,
+        "cache_read_input_tokens": 98511,
+        "cache_creation_input_tokens": 275,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 275
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1541,
+      "outputTokens": 3770,
+      "cacheReadInputTokens": 1180031,
+      "cacheCreationInputTokens": 65840,
+      "webSearchRequests": 0,
+      "costUSD": 0.2700741,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Perfect. Now I have enough information to answer the question comprehensively. Let me compile my answer based on what I've found:\n\n## Answer\n\nThe rule that combines settings supplied in multiple ways is a **five-tier precedence system** with a specific combination rule that treats stated tiers (CLI and declaration) differently from accumulated tiers.\n\n### The Five-Tier Precedence Rule\n\n**Tier precedence (highest to lowest):**\n1. **Tier 1 (Explicit)**: CLI flags / direct arguments passed to `build_index()` or `index(action='refresh')`\n2. **Tier 2 (Declared)**: The target repository's own `.doxyguard-db.yaml` or `--declare` document\n3. **Tier 3 (Target-fact)**: Facts someone else already wrote (Doxyfile ALIASES/PREDEFINED, manifests, language/platform entry points)\n4. **Tier 4 (Ecosystem)**: Known-ecosystem signatures (UDM, ingot conventions)\n5. **Tier 5 (Heuristic)**: Name-pattern matching (the floor, explicitly provisional)\n\n**The combination rule (dossier:tiers.py:1-4):**\n\n```\nresolved = (tier1 or tier2 or tier5) union tier3 union tier4\n```\n\n**In plain language:** The resolved value is the **union of three parts**:\n- The **stated layer**: whichever of tier 1, tier 2, or tier 5 has a value (in that priority order)\n- **PLUS** tier 3 (target-fact) values, which **always accumulate** and cannot be removed by any statement\n- **PLUS** tier 4 (ecosystem) values, which **always accumulate**\n\n**Why this matters (dossier:tiers.py:19-23):** You can override the guesses (tier 5), but you cannot remove facts (tiers 3 and 4). Moving a setting from `.doxyguard-db.yaml` to a CLI flag does not accidentally lose other accumulated knowledge. For example, `entry_patterns` declared as `[%trampoline%]` plus the heuristic guesses `[main, app_main]` plus target facts `[app_run]` all combine into the final set `[app_run, main, app_main, %trampoline%]`.\n\n### What an Empty Value on the Command Line Means\n\n**An empty value is a WITHDRAWAL** (dossier:tiers.py:266-271 and dossier:cli.py:764-767):\n\n- **Absent flag** (`None`): Inherits the next tier down (declared, then heuristic)\n- **Empty value** (`[]` for lists, `{}` for documents): Explicitly withdraws tier 1, falling back to tier 2 (declaration) and then tier 5 (heuristic)\n- **Non-empty value**: Replaces only the heuristic tier, leaving tier-3/4 facts untouched\n\n**Three distinct states** are maintained:\n\nFor example, `--exclude` (cli.py:756-796):\n- `--exclude` absent \u2192 inherits recorded exclusions from previous build\n- `--exclude` with no values \u2192 withdraws all exclusions, emptying the stated tier\n- `--exclude path1 path2` \u2192 replaces with these paths\n\nThe same pattern applies to all layered options (entry_patterns, shared_key_patterns, etc.).\n\n**Implementation detail (tiers.py:354-358):** Empty sequences are falsy in Python, so `if explicit:` treats both `None` (absent) and `[]` (empty) as \"nothing stated,\" causing both to fall through. The distinction is that `None` means \"the flag was absent\" while `[]` is explicitly passed and stamped into `build_meta` as a tier-1 statement with no explicit values, creating an auditable record of a withdrawal.\n\n### Why This Matters\n\nThis design prevents the silent defect where **a valid setting applied and recorded but not read back gets discarded on the next refresh** (cli.py:757-762). By distinguishing absent (inherit), empty (withdraw), and stated (replace), an operator can:\n- Leave a setting alone by omitting the flag\n- Explicitly undo a previous statement by passing an empty value\n- Override with a new value by passing it\n\nAll three outcomes are distinguished, recorded, and replayed consistently across builds.\n\n---\n\n## Gaps\n\nNone. The indexing system provided complete documentation of the precedence rule and empty-value semantics through:\n- `doxyguard_db/tiers.py` \u2014 the formal five-tier combination rule and `resolve_layered()` implementation\n- `doxyguard_db/cli.py` \u2014 the `_operator_excludes()` function exemplifying the three-state behavior\n- `doxyguard_db/buildoptions.py` \u2014 tier-1 statement validation\n\nThe rule applies uniformly to all layered options: `entry_patterns`, `exclude`, `shared_key_patterns`, `data_model`, `thread_patterns`, `locks`, `mqtt_dispatch`, `dispatch`, `predefined`, `event_tags`, `vendored`, and `requirements`.",
+  "ttft_ms": 3522,
+  "ttft_stream_ms": 1886,
+  "time_to_request_ms": 86,
+  "type": "result",
+  "duration_ms": 51802,
+  "uuid": "1baf9ea6-571f-4ffd-8c9d-589ea32ced90"
+}

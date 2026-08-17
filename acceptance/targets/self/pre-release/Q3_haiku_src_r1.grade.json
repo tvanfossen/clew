@@ -1,0 +1,392 @@
+{
+  "q": "Q3",
+  "arm": "src",
+  "model": "haiku",
+  "run": 1,
+  "answer": "Q3_haiku_src_r1.md",
+  "rubric": "acceptance/targets/self/questions.yaml",
+  "declared_mark_count": 15,
+  "summary": {
+    "marks_hit": 10,
+    "marks_miss": 5,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 15,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": true,
+    "falsity_verdict": "CONSISTENT",
+    "marks_total": 15,
+    "score": 10.0,
+    "score_strict": 10.0
+  },
+  "falsity": {
+    "checked": true,
+    "verdict": "CONSISTENT",
+    "agreement": 1.0,
+    "tally": [
+      [
+        "CONSISTENT",
+        3
+      ]
+    ],
+    "samples": 3,
+    "errors": 0,
+    "facts": 4,
+    "vetoed": false
+  },
+  "marks": [
+    {
+      "index": 1,
+      "text": "names `discover_doxyfile` as the search",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [
+          "discover_doxyfile"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [
+          "doxygen.py:0"
+        ],
+        "evidence": [
+          "symbol `discover_doxyfile` \u2014 **Locations searched (in order):** `discover_doxyfile` at doxygen.py:189-234"
+        ]
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"**Locations searched (in order):** `discover_doxyfile` at doxygen.py:189-234\"",
+        "why": "The answer explicitly names `discover_doxyfile` as the function performing the Doxyfile search.",
+        "raw": "QUOTE: \"**Locations searched (in order):** `discover_doxyfile` at doxygen.py:189-234\"\nVERDICT: HIT\nWHY: The answer explicitly names `discover_doxyfile` as the function performing the Doxyfile search."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "**states that the search matches the NAME `Doxyfile` and only that name**, so a repository whose file is spelled differently is not found",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer describes trusted directories (root, docs/, doc/) but never states the search is restricted to files literally named \"Doxyfile\" (as opposed to any other spelling being unfindable).",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes trusted directories (root, docs/, doc/) but never states the search is restricted to files literally named \"Doxyfile\" (as opposed to any other spelling being unfindable)."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 3,
+      "text": "gives the search locations as the repository root, then `docs/`, then `doc/`",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Root, then `docs/`/`doc/`, then refuse\" \u2014 and directly: \"1. `repo_root / \"Doxyfile\"` \u2014 doxygen.py:231 / 2. `repo_root / \"docs\" / \"Doxyfile\"` ... / 3. `repo_root / \"doc\" / \"Doxyfile\"`\"",
+        "why": "The answer explicitly lists the search order as repo root, then docs/, then doc/, matching the item's substance.",
+        "raw": "QUOTE: \"Root, then `docs/`/`doc/`, then refuse\" \u2014 and directly: \"1. `repo_root / \"Doxyfile\"` \u2014 doxygen.py:231 / 2. `repo_root / \"docs\" / \"Doxyfile\"` ... / 3. `repo_root / \"doc\" / \"Doxyfile\"`\"\nVERDICT: HIT\nWHY: The answer explicitly lists the search order as repo root, then docs/, then doc/, matching the item's substance."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "**states that it REFUSES to guess beyond those locations**, rather than describing a wider search",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Files found but NOT used: Any `*/Doxyfile` outside the trusted locations (root, `docs/`, `doc/`) ... These are deliberately refused with a logged message\"",
+        "why": "The answer explicitly states the search is confined to the trusted locations and refuses (deliberately) any Doxyfile found outside them, rather than searching wider.",
+        "raw": "QUOTE: \"Files found but NOT used: Any `*/Doxyfile` outside the trusted locations (root, `docs/`, `doc/`) ... These are deliberately refused with a logged message\"\nVERDICT: HIT\nWHY: The answer explicitly states the search is confined to the trusted locations and refuses (deliberately) any Doxyfile found outside them, rather than searching wider."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "reports what the earlier wider search cost: it selected a TEST FIXTURE's Doxyfile to index a whole project",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"The reasoning: discovery was 'caught selecting a TEST FIXTURE's Doxyfile to index a whole project' (doxygen.py:203)\"",
+        "why": "The answer explicitly names the historical cost \u2014 the search selecting a test fixture's Doxyfile and using it to index the whole project.",
+        "raw": "Quote: \"The reasoning: discovery was 'caught selecting a TEST FIXTURE's Doxyfile to index a whole project' (doxygen.py:203)\"\n\nQUOTE: \"discovery was \\\"caught selecting a TEST FIXTURE's Doxyfile to index a whole project\\\" (doxygen.py:203)\"\nVERDICT: HIT\nWHY: The answer explicitly names the historical cost \u2014 the search selecting a test fixture's Doxyfile and using it to index the whole project."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "**states the principle that a wrong configuration file is worse than none**, and the reason \u2014 none triggers synthesis from the declared scope, while a wrong one produces a well-formed database describing the wrong code",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer describes stray Doxyfiles being rejected and synthesis used as fallback, but never states the principle that a wrong config is worse than none because it would produce a well-formed database describing the wrong code.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes stray Doxyfiles being rejected and synthesis used as fallback, but never states the principle that a wrong config is worse than none because it would produce a well-formed database describing the wrong code."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 7,
+      "text": "states that files found but not used are exposed separately rather than adopted or discarded silently",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "rejected_doxyfile_candidates"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `rejected_doxyfile_candidates` \u2014 **Files found but NOT used:** `rejected_doxyfile_candidates` at doxygen.py:280-297"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 8,
+      "text": "**enumerates FOUR distinct outcomes**, not two or three",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Not found anywhere\" ... \"Multiple candidates in conventional dirs\" ... \"Found in conventional dir (unambiguous)\" ... \"Found via hook args\" ... \"Found at root\" (Guard Config Outcomes table)",
+        "why": "The guard config table lists five distinct outcomes (found at root, found via hook args, found unambiguously in conventional dir, multiple ambiguous candidates, not found), satisfying \"four distinct outcomes.\"",
+        "raw": "QUOTE: \"Not found anywhere\" ... \"Multiple candidates in conventional dirs\" ... \"Found in conventional dir (unambiguous)\" ... \"Found via hook args\" ... \"Found at root\" (Guard Config Outcomes table)\n\nVERDICT: HIT\n\nWHY: The guard config table lists five distinct outcomes (found at root, found via hook args, found unambiguously in conventional dir, multiple ambiguous candidates, not found), satisfying \"four distinct outcomes.\""
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "identifies the outcome where an explicitly named file does not exist",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Explicit --doxyfile missing | User passed `--doxyfile <path>` but it doesn't exist | **NO** \u2014 FATAL | doxygen.py:333-341; `DOXYFILE_EXPLICIT_MISSING`\"",
+        "why": "The answer identifies the specific outcome when an explicitly named file (via --doxyfile) does not exist, and states it is fatal.",
+        "raw": "QUOTE: \"Explicit --doxyfile missing | User passed `--doxyfile <path>` but it doesn't exist | **NO** \u2014 FATAL | doxygen.py:333-341; `DOXYFILE_EXPLICIT_MISSING`\"\nVERDICT: HIT\nWHY: The answer identifies the specific outcome when an explicitly named file (via --doxyfile) does not exist, and states it is fatal."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 10,
+      "text": "identifies the outcome where there is no target repository to search",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Neither --doxyfile nor --repo-root given | No input whatsoever | **NO** \u2014 FATAL | doxygen.py:348-355; `DOXYFILE_NO_TARGET`\"",
+        "why": "The answer explicitly identifies the fatal outcome where no target repo/input is given at all.",
+        "raw": "QUOTE: \"Neither --doxyfile nor --repo-root given | No input whatsoever | **NO** \u2014 FATAL | doxygen.py:348-355; `DOXYFILE_NO_TARGET`\"\nVERDICT: HIT\nWHY: The answer explicitly identifies the fatal outcome where no target repo/input is given at all."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 11,
+      "text": "identifies the outcome where a repository was searched and genuinely ships none",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "All discovery outcomes described end in either success, fallback/synthesis, or fatal error/warning \u2014 no case where a repository was searched and genuinely ships none of that kind of file with no fallback substitute mentioned as a distinct outcome type (all \"not found\" cases resolve to defaults/synthesis, not a \"ships none\" outcome).",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: All discovery outcomes described end in either success, fallback/synthesis, or fatal error/warning \u2014 no case where a repository was searched and genuinely ships none of that kind of file with no fallback substitute mentioned as a distinct outcome type (all \"not found\" cases resolve to defaults/synthesis, not a \"ships none\" outcome)."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 12,
+      "text": "identifies the outcome where candidates were found but declined",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Multiple candidates in conventional dirs | **YES** \u2014 none adopted, defaults used, WARNING logged\"",
+        "why": "The answer explicitly describes candidates being found but declined (none adopted, falls back to defaults) with a code citation.",
+        "raw": "QUOTE: \"Multiple candidates in conventional dirs | **YES** \u2014 none adopted, defaults used, WARNING logged\"\nVERDICT: HIT\nWHY: The answer explicitly describes candidates being found but declined (none adopted, falls back to defaults) with a code citation."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 13,
+      "text": "**says which outcomes are fatal and which continue: the two REFUSALS are the explicitly-named-but-missing file and the absent target; the other two proceed via synthesis.** An answer treating all four as errors, or all four as survivable, misses the distinction the split exists for",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Explicit --doxyfile missing ... NO \u2014 FATAL ... DOXYFILE_EXPLICIT_MISSING\" / \"Neither --doxyfile nor --repo-root given ... NO \u2014 FATAL ... DOXYFILE_NO_TARGET\" / \"Stray Doxyfiles found ... YES \u2014 synthesis used instead\" / \"None found ... YES \u2014 synthesis used\"",
+        "why": "The answer correctly distinguishes the two fatal refusals (explicit missing file, no target) from the two synthesis-continuing outcomes (stray files, none found).",
+        "raw": "Looking at the answer's fatal vs. survivable classification.\n\nChecking the two REFUSALS the item requires: \"explicitly-named-but-missing file\" and \"absent target\". The answer's table lists:\n- \"Explicit --doxyfile missing\" \u2192 **NO \u2014 FATAL** (DOXYFILE_EXPLICIT_MISSING)\n- \"Neither --doxyfile nor --repo-root given\" \u2192 **NO \u2014 FATAL** (DOXYFILE_NO_TARGET)\n\nAnd the other two proceed via synthesis:\n- \"Stray Doxyfiles found\" \u2192 **YES \u2014 synthesis used instead**\n- \"None found\" \u2192 **YES \u2014 synthesis used**\n\nThis exactly matches the required split: two named fatal outcomes (explicit-but-missing, no-target) and two that proceed via synthesis (stray/rejected candidates, none found).\n\nQUOTE: \"Explicit --doxyfile missing ... NO \u2014 FATAL ... DOXYFILE_EXPLICIT_MISSING\" / \"Neither --doxyfile nor --repo-root given ... NO \u2014 FATAL ... DOXYFILE_NO_TARGET\" / \"Stray Doxyfiles found ... YES \u2014 synthesis used instead\" / \"None found ... YES \u2014 synthesis used\"\nVERDICT: HIT\nWHY: The answer correctly distinguishes the two fatal refusals (explicit missing file, no target) from the two synthesis-continuing outcomes (stray files, none found)."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 14,
+      "text": "gives the reason the split is kept explicit \u2014 a supported configuration reported as an error costs the reader their next twenty minutes on the wrong hypothesis",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer documents fatal-vs-nonfatal outcomes exhaustively but never gives the reasoning that misreporting a supported configuration as an error wastes the reader's time chasing a wrong hypothesis.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer documents fatal-vs-nonfatal outcomes exhaustively but never gives the reasoning that misreporting a supported configuration as an error wastes the reader's time chasing a wrong hypothesis."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 15,
+      "text": "**states that discovery is now a pure query that no longer warns about the strays it declines**, and gives the reason: the same finding reached the user twice, once from discovery and once from the caller",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer discusses discovery/rejection behavior in detail but never frames discovery as now a pure query without warnings, nor cites the \"same finding reached the user twice\" reasoning.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses discovery/rejection behavior in detail but never frames discovery as now a pure query without warnings, nor cites the \"same finding reached the user twice\" reasoning."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

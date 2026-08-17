@@ -1,0 +1,117 @@
+# SPDX-License-Identifier: MIT
+#
+# GRADING KEY TEMPLATE — copy this directory to `acceptance/targets/<your-target>/` and replace
+# everything below the front matter. Read `README.md` beside this file first; it is the runbook.
+#
+# The rules below are not style advice. Each one is here because breaking it produced a wrong
+# published number in this project at least once, and most are enforced by tests in
+# `acceptance/bench/test_bench_harness.py` that will fail your rubric rather than mis-grade it.
+
+## ── front matter ──────────────────────────────────────────────────────────────────────────
+## `target` and `commit` are REQUIRED. `preflight_target_revision` refuses to run when the
+## checkout is not at `commit`, because a rubric verified against one tree and run against
+## another grades code the answer never saw.
+##
+## `ground_truth_source` is REQUIRED and is a claim you are making. Prefer SOURCE-derived: a
+## figure read out of the index moves whenever the pipeline moves, and then the rubric is
+## grading the tool against its own output. Where you must use an index figure, say so here.
+target: owner/repo
+commit: 0000000000000000000000000000000000000000
+version: 1.0.0
+ground_truth_source: |-
+  THE TARGET'S OWN SOURCE at the commit above, read directly with git grep / file reads.
+  State here anything that came from somewhere else, and why.
+
+## NO COUNTS IN THE FRONT MATTER. `marks` is the list's length. Every written count in this
+## project's rubric history has been wrong at some point; a number you maintain by hand is a
+## number that goes stale silently.
+
+questions:
+  ## ── one question ────────────────────────────────────────────────────────────────────────
+  - id: Q1
+    title: |-
+        A short name for the question. Not the question itself.
+    ## THE PROMPT IS THE SPECIFICATION AND IT DOES NOT MOVE once a grid has run against it.
+    ##
+    ## Write it the way a colleague would actually ask, and do NOT name the tool, the layer or
+    ## the payload key that answers it. A prompt that says "use the locks layer" measures
+    ## instruction-following, not capability. Ask for the OUTCOME and let both arms find their
+    ## own route.
+    ##
+    ## Good shapes, all of which have discriminated between arms here: "trace X to Y";
+    ## "what runs when Z arrives"; "you have never seen this repo, orient"; "ask something this
+    ## codebase cannot tell you"; "edit it, then answer about what you wrote".
+    prompt: |-
+        The question, verbatim, as a human would ask it.
+    marks:
+    ## ── ONE ATOMIC FACT PER MARK. Binary. No partial credit. ─────────────────────────────
+    ## If a mark contains ", and" joining two things an answer could get separately right, it
+    ## is two marks. Compound marks are systematically biased toward MISS for both arms, and
+    ## one target in this set measured 50.6% compound — its result is confounded to this day.
+    - text: |-
+        names `some_function` as the thing that does X
+      ## SYMBOLS AND REFS ARE A SUFFICIENT CONDITION, not a hint for the reader. A declared
+      ## symbol that appears in the answer awards the mark WITHOUT the judge ever seeing it.
+      ## So declare one only when its presence really does settle the mark.
+      ##
+      ## Two rules are enforced by tests:
+      ##   * no prose-shaped symbols — a bare lowercase alphabetic token of 12 chars or fewer
+      ##     is prose, not an identifier. `check`, `absent`, `rejected` and `heap` have all
+      ##     been caught awarding marks unseen.
+      ##   * no symbols on a mark whose text contains a standalone 3+ digit number — a COUNT
+      ##     cannot be settled by a SYMBOL, and declaring one hands the mark away.
+      symbols: ['some_function']
+      ## `[file]`, `[file, line]` or `[file, lo, hi]`. A bare `[file]` is a whole-file citation.
+      refs: [['src/thing.c', 120, 140]]
+    - text: |-
+        states that the count is N, and gives the population it counted
+      ## No symbols here: the mark asks for a figure, so only a reader can settle it.
+      symbols: []
+      refs: []
+    - text: |-
+        **distinguishes "I found none" from "there are none"**
+      symbols: []
+      refs: []
+      ## VETO-SAFE means the D3 falsity check may treat this mark's text as an ESTABLISHED FACT
+      ## that an answer can CONTRADICT. Default false, and be stingy.
+      ##
+      ## Only short, concrete, positive statements of fact about the target qualify. A mark
+      ## carrying grading language ("an answer that does X misses the point") is a rule about
+      ## scoring, not a fact, and feeding it to the veto is malformed.
+      ##
+      ## READ THIS BEFORE SETTING IT TRUE: fed a FALSE fact, the veto inverts and zeroes the
+      ## MORE ACCURATE answer. That is not hypothetical — on the veto's first live firing in
+      ## this project it fired unanimously against a correct answer, because the rubric's fact
+      ## was wrong. Re-verify against source anything you mark veto-safe.
+      veto_safe: false
+    ## `arm_only: db` fences a mark to the index arm; `raw` to the source arm. Use it when a
+    ## mark is genuinely unreachable for one arm, and expect to justify it — a fence is a
+    ## smaller denominator, and a reader must be able to see that 6/6 and 6/10 differ.
+
+  - id: Q2
+    title: |-
+        Second question
+    prompt: |-
+        ...
+    marks:
+    - text: |-
+        ...
+      symbols: []
+      refs: []
+
+## ── RULES THAT HAVE NO FIELD, and are checked by reading ────────────────────────────────
+##
+## NO MARK MAY BE SATISFIED BY SILENCE. "does not fabricate a nesting" is met by an answer
+## that never mentions nesting at all. Convert it to a positive obligation, or delete it.
+## Three such marks shipped in one rubric here before anyone noticed.
+##
+## A MARK MUST BE FALSIFIABLE AGAINST THE TARGET. Grading instructions ("the answer should be
+## well organised") are not facts and cannot be scored; they inflate the denominator and
+## nothing else.
+##
+## WRITE THE MARK YOU EXPECT BOTH ARMS TO FAIL. A rubric where every mark is reachable measures
+## nothing at the top end. The most informative questions in this set are the ones where both
+## arms score 20-30%.
+##
+## SPREAD THE DIFFICULTY. If one question carries 40% of the marks it dominates the target's
+## result. 10-16 marks per question has worked well here.

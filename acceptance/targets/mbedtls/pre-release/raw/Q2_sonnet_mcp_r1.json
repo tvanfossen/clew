@@ -1,0 +1,80 @@
+{
+  "is_error": false,
+  "duration_api_ms": 33258,
+  "num_turns": 10,
+  "stop_reason": "end_turn",
+  "session_id": "92b0df3b-9f81-4558-9885-e4501af08cdf",
+  "total_cost_usd": 0.4482926,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 44069,
+    "cache_read_input_tokens": 460612,
+    "output_tokens": 2945,
+    "output_tokens_details": {
+      "thinking_tokens": 265
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 44069,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1489,
+        "cache_read_input_tokens": 86723,
+        "cache_creation_input_tokens": 692,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 692
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1394,
+      "outputTokens": 18,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001484,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 12,
+      "outputTokens": 2945,
+      "cacheReadInputTokens": 460612,
+      "cacheCreationInputTokens": 44069,
+      "webSearchRequests": 0,
+      "costUSD": 0.4468086,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Answer\n\n**The macro:** `MBEDTLS_PRIVATE`, defined in `include/mbedtls/private_access.h:14-18`:\n\n```c\n#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS\n#define MBEDTLS_PRIVATE(member) private_##member\n#else\n#define MBEDTLS_PRIVATE(member) member\n#endif\n```\n(include/mbedtls/private_access.h:14-18)\n\nIt's used to wrap struct member declarations everywhere in the public headers \u2014 e.g. `include/mbedtls/aes.h:64-90`:\n```c\nint MBEDTLS_PRIVATE(nr);\nuint32_t MBEDTLS_PRIVATE(buf)[44];\nmbedtls_aes_context MBEDTLS_PRIVATE(crypt);\n```\n856 occurrences across 59 headers (confirmed via grep over `include/`), including core types like `mbedtls_pk_ec`, `mbedtls_pk_rsa` (per the index's `referenced_by` for the macro).\n\n**What it expands to, and when:**\n- If `MBEDTLS_ALLOW_PRIVATE_ACCESS` is **not** defined at the point the header is included, `MBEDTLS_PRIVATE(member)` \u2192 **`private_##member`** (token-pasted, e.g. `MBEDTLS_PRIVATE(nr)` \u2192 `private_nr`). This is the default, application-facing behavior.\n- If `MBEDTLS_ALLOW_PRIVATE_ACCESS` **is** defined first, `MBEDTLS_PRIVATE(member)` \u2192 **`member`** (the macro becomes a no-op).\n\n**Library vs. application view:**\nThe library itself defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` in `library/common.h:132`, with the comment \"Allow library to access its structs' private members\" (`library/common.h:127-132`). `common.h` is included before any public headers in library `.c` files, so when the library's own source compiles those headers, every `MBEDTLS_PRIVATE(member)` collapses to the plain `member` name \u2014 i.e. the library sees its structs with their real, natural field names (`nr`, `buf`, `crypt`, \u2026).\n\nAn application, by contrast, normally does **not** define `MBEDTLS_ALLOW_PRIVATE_ACCESS`, so for it every field is renamed to `private_<member>` \u2014 a name the application isn't supposed to write directly. The intent (per the header's own brief, \"Macro wrapper for struct's members,\" `include/mbedtls/private_access.h:4`, and `docs/3.0-migration-guide.md:74`) is that applications go through accessor functions instead of touching struct fields.\n\n**What happens if application code reaches past it:** the migration guide is explicit (`docs/3.0-migration-guide.md:74`): \"As a last resort, you can access the field `foo` of a structure `bar` by writing `bar.MBEDTLS_PRIVATE(foo)`. Note that you do so at your own risk, since such code is likely to break in a future minor version of Mbed TLS.\" Two of the three call sites that pre-define `MBEDTLS_ALLOW_PRIVATE_ACCESS` themselves are the sample programs `programs/ssl/ssl_client2.c:8` and `programs/ssl/ssl_server2.c:8` \u2014 i.e. even Mbed TLS's own example applications opt into direct-field access rather than staying purely at the accessor-function API, which the guide flags as unsupported beyond LTS releases (`docs/3.0-migration-guide.md:74`, noting only the 3.6 LTS line tries to keep this stable).\n\n## Gaps\n- I did not exhaustively enumerate every one of the 856 `MBEDTLS_PRIVATE` call sites or every accessor-function replacement; `aes.h` and `common.h` were read directly to confirm the pattern the index pointed at (the index's macro `referenced_by` list was partial \u2014 only 4 names \u2014 so file-level grep was needed to get the real usage count and confirm library/application include ordering, which the index does not model).\n- I did not verify at the preprocessor/build level that `common.h` is transitively included before public headers in *every* library `.c` file \u2014 this is inferred from the standard mbedtls build convention and the placement/comment of the define, not directly traced edge-by-edge through the index.",
+  "ttft_ms": 3149,
+  "ttft_stream_ms": 1349,
+  "time_to_request_ms": 78,
+  "type": "result",
+  "duration_ms": 32330,
+  "uuid": "ceb36637-99b4-4353-9da7-d3ff751a0e89"
+}

@@ -1,0 +1,648 @@
+{
+  "q": "Q3",
+  "arm": "mcp",
+  "model": "sonnet",
+  "run": 1,
+  "answer": "Q3_sonnet_mcp_r1.md",
+  "rubric": "acceptance/targets/mbedtls/questions.yaml",
+  "declared_mark_count": 26,
+  "summary": {
+    "marks_hit": 16,
+    "marks_miss": 10,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 26,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": true,
+    "falsity_verdict": "CONSISTENT",
+    "marks_total": 26,
+    "score": 16.0,
+    "score_strict": 16.0
+  },
+  "falsity": {
+    "checked": true,
+    "verdict": "CONSISTENT",
+    "agreement": 1.0,
+    "tally": [
+      [
+        "CONSISTENT",
+        3
+      ]
+    ],
+    "samples": 3,
+    "errors": 0,
+    "vetoed": false
+  },
+  "marks": [
+    {
+      "index": 1,
+      "text": "reports that thread creation is absent from the library proper",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"No core library code (`library/`) spawns threads \u2014 thread creation is confined to `programs/` (a demo SSL server and a benchmarking tool). `library/threading.c` provides mutex abstractions used *by* threaded callers but does not itself create threads.\"",
+        "why": "The answer explicitly states thread creation is absent from the core library and confined to example/test programs.",
+        "raw": "QUOTE: \"No core library code (`library/`) spawns threads \u2014 thread creation is confined to `programs/` (a demo SSL server and a benchmarking tool). `library/threading.c` provides mutex abstractions used *by* threaded callers but does not itself create threads.\"\nVERDICT: HIT\nWHY: The answer explicitly states thread creation is absent from the core library and confined to example/test programs."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "states that NO spawn site is under `library/`",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"No core library code (`library/`) spawns threads \u2014 thread creation is confined to `programs/` (a demo SSL server and a benchmarking tool). `library/threading.c` provides mutex abstractions used *by* threaded callers but does not itself create threads.\"",
+        "why": "The answer explicitly states no spawn site exists under library/.",
+        "raw": "QUOTE: \"No core library code (`library/`) spawns threads \u2014 thread creation is confined to `programs/` (a demo SSL server and a benchmarking tool). `library/threading.c` provides mutex abstractions used *by* threaded callers but does not itself create threads.\"\nVERDICT: HIT\nWHY: The answer explicitly states no spawn site exists under library/."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "finds the POSIX spawn site in the sample TLS server",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"**1. POSIX pthread \u2014 `programs/ssl/ssl_pthread_server.c`** ... `pthread_create(&threads[i].thread, NULL, handle_ssl_connection, &threads[i].data)` at `programs/ssl/ssl_pthread_server.c:277`\"",
+        "why": "Names the POSIX pthread_create spawn site with file/line in the sample TLS server program.",
+        "raw": "QUOTE: \"**1. POSIX pthread \u2014 `programs/ssl/ssl_pthread_server.c`** ... `pthread_create(&threads[i].thread, NULL, handle_ssl_connection, &threads[i].data)` at `programs/ssl/ssl_pthread_server.c:277`\"\nVERDICT: HIT\nWHY: Names the POSIX pthread_create spawn site with file/line in the sample TLS server program."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "names `pthread_create` as the primitive there",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "pthread_create"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `pthread_create` \u2014 - `thread_create()` (`programs/ssl/ssl_pthread_server.c:246-283`) calls `pthread_create(&threads[i].thread, NULL, handle_ssl_connection, &threads[i].data)` at `programs/ssl/ssl_pthread_server.c:277`."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "finds the Windows-only spawn in the benchmark program",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Win32 `_beginthread` \u2014 `programs/test/benchmark.c`\" ... \"Gated by `_WIN32 && !EFIX64 && !EFI32`\"",
+        "why": "Answer identifies the Windows-only `_beginthread` spawn in benchmark.c, gated by `_WIN32`.",
+        "raw": "QUOTE: \"Win32 `_beginthread` \u2014 `programs/test/benchmark.c`\" ... \"Gated by `_WIN32 && !EFIX64 && !EFI32`\"\nVERDICT: HIT\nWHY: Answer identifies the Windows-only `_beginthread` spawn in benchmark.c, gated by `_WIN32`."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "names `_beginthread` as the primitive there",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "_beginthread"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `_beginthread` \u2014 **2. Win32 `_beginthread` \u2014 `programs/test/benchmark.c`**"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 7,
+      "text": "states that there are exactly TWO spawn sites in this checkout",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "mbedtls creates threads in two places",
+        "why": "The answer states exactly two spawn sites (ssl_pthread_server.c and benchmark.c) in the checkout.",
+        "raw": "QUOTE: mbedtls creates threads in two places\nVERDICT: HIT\nWHY: The answer states exactly two spawn sites (ssl_pthread_server.c and benchmark.c) in the checkout."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 8,
+      "text": "distinguishes LIBRARY code from sample programs and tests \u2014 the spawn sites are in `programs/`, and the crypto/X.509/TLS library code itself creates no threads",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"No core library code (`library/`) spawns threads \u2014 thread creation is confined to `programs/` (a demo SSL server and a benchmarking tool).\"",
+        "why": "The answer explicitly distinguishes library code from sample programs and states the spawn sites are in programs/, matching the checklist item.",
+        "raw": "QUOTE: \"No core library code (`library/`) spawns threads \u2014 thread creation is confined to `programs/` (a demo SSL server and a benchmarking tool).\"\nVERDICT: HIT\nWHY: The answer explicitly distinguishes library code from sample programs and states the spawn sites are in programs/, matching the checklist item."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "says what the POSIX thread runs \u2014 the per-connection TLS exchange",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"The spawned thread runs `handle_ssl_connection()`... which does the actual per-connection work: `mbedtls_ssl_init`/`mbedtls_ssl_setup`/`mbedtls_ssl_set_bio`, a handshake loop calling `mbedtls_ssl_handshake`... a read loop calling `mbedtls_ssl_read`... a write of a canned HTTP response via `mbedtls_ssl_write`... then `mbedtls_ssl_close_notify`/`mbedtls_ssl_free`.\"",
+        "why": "The answer names the POSIX pthread and states its thread function runs the full per-connection TLS handshake/read/write exchange.",
+        "raw": "QUOTE: \"The spawned thread runs `handle_ssl_connection()`... which does the actual per-connection work: `mbedtls_ssl_init`/`mbedtls_ssl_setup`/`mbedtls_ssl_set_bio`, a handshake loop calling `mbedtls_ssl_handshake`... a read loop calling `mbedtls_ssl_read`... a write of a canned HTTP response via `mbedtls_ssl_write`... then `mbedtls_ssl_close_notify`/`mbedtls_ssl_free`.\"\nVERDICT: HIT\nWHY: The answer names the POSIX pthread and states its thread function runs the full per-connection TLS handshake/read/write exchange."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 10,
+      "text": "names its entry function (`handle_ssl_connection`)",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "handle_ssl_connection"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `handle_ssl_connection` \u2014 - `thread_create()` (`programs/ssl/ssl_pthread_server.c:246-283`) calls `pthread_create(&threads[i].thread, NULL, handle_ssl_connection, &threads[i].data)` at `programs/ssl/ssl_pthread_server.c:277`."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 11,
+      "text": "says what the Windows thread runs \u2014 the benchmark's timer/alarm",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "implementing a software alarm/timeout for the benchmark tool on Windows",
+        "why": "The answer explicitly identifies the Win32 thread (TimerProc via _beginthread) as running the benchmark's alarm/timeout timer.",
+        "raw": "QUOTE: implementing a software alarm/timeout for the benchmark tool on Windows\nVERDICT: HIT\nWHY: The answer explicitly identifies the Win32 thread (TimerProc via _beginthread) as running the benchmark's alarm/timeout timer."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 12,
+      "text": "names its entry function (`TimerProc`)",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "TimerProc"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `TimerProc` \u2014 - `mbedtls_set_alarm()` (the `_WIN32`/non-EFI variant, `programs/test/benchmark.c:419-431`) calls `_beginthread(TimerProc, 0, NULL)` at `programs/test/benchmark.c:430`."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 13,
+      "text": "notes the thread lifecycle is completed, not just started (`pthread_join`)",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "pthread_join"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer describes thread_create/pthread_create spawn sites but never mentions pthread_join or completion of the thread lifecycle beyond creation.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes thread_create/pthread_create spawn sites but never mentions pthread_join or completion of the thread lifecycle beyond creation."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 14,
+      "text": "reports that the POSIX spawn site in `programs/ssl/ssl_pthread_server.c` is itself conditionally compiled, behind `MBEDTLS_THREADING_C` / `MBEDTLS_THREADING_PTHREAD`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [
+          "ssl_pthread_server.c:24-30"
+        ],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "cite ssl_pthread_server.c:24-30 \u2248 answer ssl_pthread_server.c:30-30"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 15,
+      "text": "names `MBEDTLS_THREADING_C` or `MBEDTLS_THREADING_PTHREAD` as its guard",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "MBEDTLS_THREADING_C",
+          "MBEDTLS_THREADING_PTHREAD"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `MBEDTLS_THREADING_C` \u2014 - Gated by `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` (`programs/ssl/ssl_pthread_server.c:30`), so this code path only compiles/runs when those config options are enabled.",
+          "symbol `MBEDTLS_THREADING_PTHREAD` \u2014 - Gated by `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` (`programs/ssl/ssl_pthread_server.c:30`), so this code path only compiles/runs when those config options are enabled."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 16,
+      "text": "states that both are commented out in the shipped default config",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never mentions that the two thread-spawn sites (or any config) are commented out in the shipped default config; it only discusses compile-time macro gates (MBEDTLS_THREADING_C/PTHREAD, _WIN32), not the default-config comment-out state.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions that the two thread-spawn sites (or any config) are commented out in the shipped default config; it only discusses compile-time macro gates (MBEDTLS_THREADING_C/PTHREAD, _WIN32), not the default-config comment-out state."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 17,
+      "text": "concludes that a default POSIX build of this repository creates no threads \u2014 the pthread spawn's own guard (`MBEDTLS_THREADING_C` / `MBEDTLS_THREADING_PTHREAD`) is off in the shipped configuration. An answer that adds that a default WINDOWS build does spawn one is MORE correct, not less, and must not be marked down for it",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [
+          "mbedtls_config.h:3787",
+          "mbedtls_config.h:2196"
+        ],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"Gated by `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` (`programs/ssl/ssl_pthread_server.c:30`), so this code path only compiles/runs when those config options are enabled.\"",
+        "why": "The item requires concluding the default POSIX build creates NO threads because those guards are off by default; the answer only notes the guards exist/gate compilation without stating they're off in the shipped default configuration.",
+        "raw": "QUOTE: \"Gated by `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` (`programs/ssl/ssl_pthread_server.c:30`), so this code path only compiles/runs when those config options are enabled.\"\n\nVERDICT: MISS\n\nWHY: The item requires concluding the default POSIX build creates NO threads because those guards are off by default; the answer only notes the guards exist/gate compilation without stating they're off in the shipped default configuration."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 18,
+      "text": "mentions the stub `main` the guard compiles instead",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never mentions a stub `main` the guard compiles as a fallback/synthesis mechanism; it only discusses real thread-spawn sites and their actual `main()` call sites.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions a stub `main` the guard compiles as a fallback/synthesis mechanism; it only discusses real thread-spawn sites and their actual `main()` call sites."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 19,
+      "text": "identifies that the connection threads share state, not merely that several exist",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer names two independent thread-spawn sites but never states that these threads share state (e.g., shared data/mutex/global) \u2014 it only identifies \"several exist\" plus mutex infrastructure existing separately, not shared state between the connection threads themselves.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer names two independent thread-spawn sites but never states that these threads share state (e.g., shared data/mutex/global) \u2014 it only identifies \"several exist\" plus mutex infrastructure existing separately, not shared state between the connection threads themselves."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 20,
+      "text": "names the ONE shared `const mbedtls_ssl_config` every thread receives",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "mbedtls_ssl_config"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer discusses thread-spawn sites but never names or identifies a shared `mbedtls_ssl_config` object received by threads.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses thread-spawn sites but never names or identifies a shared `mbedtls_ssl_config` object received by threads."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 21,
+      "text": "states that each thread builds its OWN `mbedtls_ssl_context` as a local",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "mbedtls_ssl_context"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "Answer discusses thread creation sites and functions run, but never states that each thread constructs its own local `mbedtls_ssl_context`.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: Answer discusses thread creation sites and functions run, but never states that each thread constructs its own local `mbedtls_ssl_context`."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 22,
+      "text": "identifies stdout as shared between the threads",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer describes thread creation sites and threading.c mutex infrastructure but never identifies stdout as a resource shared/accessed across the threads.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes thread creation sites and threading.c mutex infrastructure but never identifies stdout as a resource shared/accessed across the threads."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 23,
+      "text": "names `debug_mutex` as what serialises the shared output",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "debug_mutex"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never mentions `debug_mutex` or any mutex serialising shared output; it only discusses thread-spawn sites and generic threading.c mutex abstractions.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions `debug_mutex` or any mutex serialising shared output; it only discusses thread-spawn sites and generic threading.c mutex abstractions."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 24,
+      "text": "notes that this is the only `mbedtls_mutex_lock` call site outside `library/` and `tests/`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "mbedtls_mutex_lock"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer discusses thread-spawn sites (pthread_create, _beginthread) but never addresses mbedtls_mutex_lock call sites or that count outside library/tests.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses thread-spawn sites (pthread_create, _beginthread) but never addresses mbedtls_mutex_lock call sites or that count outside library/tests."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 25,
+      "text": "connects the absence of spawns to the design: a library called from the CALLER's threads, which is why its mutex primitives are runtime-pluggable rather than fixed",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"No core library code (`library/`) spawns threads \u2014 thread creation is confined to `programs/` (a demo SSL server and a benchmarking tool). `library/threading.c` provides mutex abstractions used *by* threaded callers but does not itself create threads.\"",
+        "why": "The answer states the library is called by caller-owned threads (no spawns in library, only in caller programs) and that its mutex abstractions serve those external threaded callers \u2014 connecting the absence of spawns to the pluggable-mutex design.",
+        "raw": "QUOTE: \"No core library code (`library/`) spawns threads \u2014 thread creation is confined to `programs/` (a demo SSL server and a benchmarking tool). `library/threading.c` provides mutex abstractions used *by* threaded callers but does not itself create threads.\"\nVERDICT: HIT\nWHY: The answer states the library is called by caller-owned threads (no spawns in library, only in caller programs) and that its mutex abstractions serve those external threaded callers \u2014 connecting the absence of spawns to the pluggable-mutex design."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 26,
+      "text": "states positively that the library is thread-AWARE \u2014 it provides locking for callers without creating threads itself",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"library/threading.c provides mutex abstractions used *by* threaded callers but does not itself create threads.\"",
+        "why": "States the library supplies locking for callers while thread creation lives outside it (in programs/), matching the item's substance.",
+        "raw": "QUOTE: \"library/threading.c provides mutex abstractions used *by* threaded callers but does not itself create threads.\"\nVERDICT: HIT\nWHY: States the library supplies locking for callers while thread creation lives outside it (in programs/), matching the item's substance."
+      },
+      "verdict": "HIT"
+    }
+  ]
+}

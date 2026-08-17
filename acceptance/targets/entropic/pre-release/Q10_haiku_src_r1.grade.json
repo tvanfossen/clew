@@ -1,0 +1,265 @@
+{
+  "q": "Q10",
+  "arm": "src",
+  "model": "haiku",
+  "run": 1,
+  "answer": "Q10_haiku_src_r1.md",
+  "rubric": "acceptance/targets/entropic/questions.yaml",
+  "declared_mark_count": 10,
+  "summary": {
+    "marks_hit": 8,
+    "marks_miss": 2,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 10,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": null,
+    "falsity_verdict": null,
+    "marks_total": 10,
+    "score": 8.0,
+    "score_strict": 8.0
+  },
+  "falsity": null,
+  "marks": [
+    {
+      "index": 1,
+      "text": "**finds the capability at all** and does not conclude prematurely that it is absent",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"ReconnectPolicy \u2026 implements exponential backoff with jitter\" and \"Retry scheduling \u2026 Calls policy_.delay_ms(attempt)\"",
+        "why": "The answer clearly locates and explains the retry/backoff capability with specific mechanism, files, and line numbers rather than concluding it's absent.",
+        "raw": "QUOTE: \"ReconnectPolicy \u2026 implements exponential backoff with jitter\" and \"Retry scheduling \u2026 Calls policy_.delay_ms(attempt)\"\nVERDICT: HIT\nWHY: The answer clearly locates and explains the retry/backoff capability with specific mechanism, files, and line numbers rather than concluding it's absent."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "**finds MORE THAN ONE mechanism.** entropic's own code has three unrelated ones; naming two passes, naming one does not. *An answer naming three or four is NOT over-reporting \u2014 a previous key said \"two\" and would have marked a more complete answer down*",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Attempts graceful `SIGTERM` and waits up to 3 seconds with 50ms polling\" (StdioTransport shutdown retry), alongside the ReconnectPolicy exponential backoff mechanism and the HealthMonitor's separate 500ms polling loop",
+        "why": "The answer names exponential backoff (ReconnectPolicy), a distinct SIGTERM/SIGKILL retry-then-escalate mechanism (StdioTransport), and a separate polling loop (HealthMonitor) \u2014 more than one unrelated mechanism.",
+        "raw": "QUOTE: \"Attempts graceful `SIGTERM` and waits up to 3 seconds with 50ms polling\" (StdioTransport shutdown retry), alongside the ReconnectPolicy exponential backoff mechanism and the HealthMonitor's separate 500ms polling loop\nVERDICT: HIT\nWHY: The answer names exponential backoff (ReconnectPolicy), a distinct SIGTERM/SIGKILL retry-then-escalate mechanism (StdioTransport), and a separate polling loop (HealthMonitor) \u2014 more than one unrelated mechanism."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "names at least one concrete function or file where the behaviour lives",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"ReconnectPolicy** (`src/mcp/reconnect_policy.cpp:54-65` and `include/entropic/mcp/reconnect_policy.h:23-40`) implements exponential backoff with jitter\"",
+        "why": "Names a concrete file/function (delay_ms in reconnect_policy.cpp) where the behavior lives.",
+        "raw": "QUOTE: \"ReconnectPolicy** (`src/mcp/reconnect_policy.cpp:54-65` and `include/entropic/mcp/reconnect_policy.h:23-40`) implements exponential backoff with jitter\"\nVERDICT: HIT\nWHY: Names a concrete file/function (delay_ms in reconnect_policy.cpp) where the behavior lives."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "**explains the MECHANISM of at least one, not just its location** \u2014 what triggers it and what bounds it. `ReconnectPolicy::delay_ms` (base \u00d7 factor^attempt, capped, plus jitter) bounded by `exhausted(attempt)`; or `apply_revisions`' bounded loop ending in a rejection verdict; or the empty-turn counter with its per-tier ceiling. A location with no trigger and no bound MISSES",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "ReconnectPolicy::delay_ms",
+          "apply_revisions"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"delay(n) = min(base * factor^n, max) + random_jitter(0, delay*0.1)\" ... \"Exhaustion check ... If `policy_.exhausted(attempt)` returns true, transitions to 'error' state and stops retrying\"",
+        "why": "States the backoff formula (trigger/growth) and the exhausted() bound, matching the ReconnectPolicy example exactly.",
+        "raw": "QUOTE: \"delay(n) = min(base * factor^n, max) + random_jitter(0, delay*0.1)\" ... \"Exhaustion check ... If `policy_.exhausted(attempt)` returns true, transitions to 'error' state and stops retrying\"\nVERDICT: HIT\nWHY: States the backoff formula (trigger/growth) and the exhausted() bound, matching the ReconnectPolicy example exactly."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "**finds `ReconnectPolicy` specifically.** It is the strongest implementation of the capability and NEITHER of its methods is named retry or backoff, so an answer that reached it did so by concept \u2014 through `HealthMonitor`, through `ReconnectConfig`, through reading `src/mcp/`, or through prose \u2014 rather than by matching an identifier",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "ReconnectPolicy",
+          "HealthMonitor"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "ReconnectConfig"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `ReconnectPolicy` \u2014 **ReconnectPolicy** (`src/mcp/reconnect_policy.cpp:54-65` and `include/entropic/mcp/reconnect_policy.h:23-40`) implements exponential backoff with jitter:",
+          "symbol `HealthMonitor` \u2014 ### Integration: HealthMonitor"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "**searched by concept and says how.** The route is part of the answer here, because the identifier route provably does not reach the main mechanism",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer presents findings with file/line citations but never describes its search method (concept vs. identifier) or explains why an identifier-based route would fail to reach the mechanism.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer presents findings with file/line citations but never describes its search method (concept vs. identifier) or explains why an identifier-based route would fail to reach the mechanism."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 7,
+      "text": "**distinguishes a real policy from incidental naming.** Most files in `src/` + `include/` mentioning \"retry\" mention it in prompt text, comments or a buffer resize, and the count grows several-fold once `extern/llama.cpp` is counted. `retry` in a name is not proof of retry behaviour, and here the code with the name is not the code with the backoff",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never addresses false-positive naming (retry mentioned in prompts/comments/buffer resizing, or extern/llama.cpp inflation) or distinguishes named-retry code from actual backoff code \u2014 it only presents the retry/backoff findings directly.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never addresses false-positive naming (retry mentioned in prompts/comments/buffer resizing, or extern/llama.cpp inflation) or distinguishes named-retry code from actual backoff code \u2014 it only presents the retry/backoff findings directly."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 8,
+      "text": "**contrasts the mechanisms rather than merging them** \u2014 one is timed and exponential, one is a bounded loop with no timing at all. An answer that describes \"entropic's retry logic\" as one thing has flattened three",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Primary: Exponential Backoff for MCP Server Reconnection\" / \"Secondary: Process Termination Retry\" with the latter described as \"Attempts graceful SIGTERM and waits up to 3 seconds with 50ms polling\" and \"Falls back to SIGKILL\" \u2014 no timing/backoff formula applied to this bounded loop",
+        "why": "The answer explicitly separates the exponential-backoff reconnection mechanism from the bounded SIGTERM/SIGKILL termination retry loop, treating them as distinct mechanisms rather than merging them into one \"retry logic.\"",
+        "raw": "QUOTE: \"Primary: Exponential Backoff for MCP Server Reconnection\" / \"Secondary: Process Termination Retry\" with the latter described as \"Attempts graceful SIGTERM and waits up to 3 seconds with 50ms polling\" and \"Falls back to SIGKILL\" \u2014 no timing/backoff formula applied to this bounded loop\nVERDICT: HIT\nWHY: The answer explicitly separates the exponential-backoff reconnection mechanism from the bounded SIGTERM/SIGKILL termination retry loop, treating them as distinct mechanisms rather than merging them into one \"retry logic.\""
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "**states what it could not determine.** Partial discovery reported as partial is a pass; reported as complete is not",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Could not find any retry/backoff behavior for database operations, file I/O, or API calls beyond MCP server reconnection\" / \"No explicit retry loop discovered for transient network failures in tool execution (`src/mcp/tool_executor.cpp` has error handling but no retry delays)\"",
+        "why": "The answer explicitly enumerates what it could not find rather than presenting its discovery as exhaustive.",
+        "raw": "QUOTE: \"Could not find any retry/backoff behavior for database operations, file I/O, or API calls beyond MCP server reconnection\" / \"No explicit retry loop discovered for transient network failures in tool execution (`src/mcp/tool_executor.cpp` has error handling but no retry delays)\"\nVERDICT: HIT\nWHY: The answer explicitly enumerates what it could not find rather than presenting its discovery as exhaustive."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 10,
+      "text": "notices that `max_retries == 0` means infinite rather than none in `ReconnectPolicy`, which is the opposite of the natural reading and is the kind of default that decides an incident",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "max_retries",
+          "ReconnectPolicy"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `max_retries` \u2014 - `max_retries = 5` (give up after 5 attempts; 0 = infinite)",
+          "symbol `ReconnectPolicy` \u2014 **ReconnectPolicy** (`src/mcp/reconnect_policy.cpp:54-65` and `include/entropic/mcp/reconnect_policy.h:23-40`) implements exponential backoff with jitter:"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    }
+  ]
+}

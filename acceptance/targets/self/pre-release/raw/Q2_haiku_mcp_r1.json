@@ -1,0 +1,68 @@
+{
+  "is_error": false,
+  "duration_api_ms": 61103,
+  "num_turns": 25,
+  "stop_reason": "end_turn",
+  "session_id": "c197448f-bf10-4e8d-84d5-9b4b221ffc22",
+  "total_cost_usd": 0.25534130000000005,
+  "usage": {
+    "input_tokens": 129,
+    "cache_creation_input_tokens": 56040,
+    "cache_read_input_tokens": 1156363,
+    "output_tokens": 5204,
+    "output_tokens_details": {
+      "thinking_tokens": 1304
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 56040,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 8,
+        "output_tokens": 1538,
+        "cache_read_input_tokens": 87821,
+        "cache_creation_input_tokens": 1165,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1165
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1515,
+      "outputTokens": 5222,
+      "cacheReadInputTokens": 1156363,
+      "cacheCreationInputTokens": 56040,
+      "webSearchRequests": 0,
+      "costUSD": 0.25534130000000005,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## ANSWER\n\nThis codebase treats nested repositories as **indexed but distinctly tagged**. Here's the architecture:\n\n### **What It Does**\n\nThe codebase includes nested repositories in the full index (since gh#333: `doxyguard_db/scope.py:200-244`), but tags each indexed file to mark which external repository it belongs to. This allows:\n- Cross-boundary traversal (chain_trace and call graphs cross submodule boundaries)\n- Accurate provenance reporting (each file knows its owner)\n- First-party aggregates (coverage/orphan counts exclude external files by default: `doxyguard_db/external.py:34-39`)\n\n### **How It Decides**\n\nTwo predicates determine the classification (`doxyguard_db/scope.py:529-619`):\n\n**1. Detection: `_holds_git_tree()` checks for the presence of `.git`**\n```\n(directory / \".git\").exists()  [doxyguard_db/scope.py:557]\n```\nThis returns True for:\n- A nested clone (`.git` directory)\n- A submodule (`.git` file containing `gitdir:` pointer: `doxyguard_db/scope.py:532`)\n- A git worktree (`.git` file: `doxyguard_db/scope.py:543`)\n\n**2. Declaration: `_is_dependency_of_parent()` asks git whether the parent claims ownership**\n```\ngit ls-files -s <directory.name> | grep \"160000\"  [doxyguard_db/scope.py:605-619]\n```\nMode `160000` means gitlink (declared submodule). Mode `100644`/`100755` means the parent TRACKS the files\u2014first party. The **fail-closed rule is inverted here**: when git cannot answer, the answer is \"first party\" (`doxyguard_db/scope.py:574-576`), because tagging the repo's own code as external would make it vanish from first-party counts and depend on the developer's working copy.\n\n### **Where It's Applied**\n\n**Scope phase** (`doxyguard_db/scope.py`):\n- `nested_repo_roots(repo_root)` finds all directories with `.git`, bounds the search to avoid descending into git object stores (`doxyguard_db/scope.py:489-523`)\n- `dependency_roots(repo_root)` filters those to only gitlinks (`doxyguard_db/scope.py:277-294`)\n- `whole_repo_scope()` includes nested trees in the index by default and respects each tree's `.gitignore` (`doxyguard_db/scope.py:221-228`)\n\n**Tagging phase** (after the index is built):\n- `stamp_external_provenance(db_path, repo_root)` runs during the build pipeline (`doxyguard_db/cli.py:1428`)\n- For each indexed file, it determines the owning external root via path-prefix matching with `/` separator boundary (`doxyguard_db/external.py:244`)\n- Updates the `external_root` column in the `path` table (`doxyguard_db/external.py:246`)\n- Also marks unresolved `#include` targets that refer to no disk file (`doxyguard_db/external.py:247-248`)\n\n### **How Real-World Nested Repositories Appear**\n\nThe tests (`tests/test_external_provenance.py`) validate these cases:\n\n**1. Standard submodule with `.git` file** (`test_a_submodule_whose_git_is_a_file_is_detected:401-427`)\n- A `git submodule` checkout writes a 44-byte pointer file: `gitdir: ../../.git/modules/<name>`\n- Detected as `.git` file (not directory)\n- Tagged external if declared in `.gitmodules`\n- **Important historical note**: Earlier versions tested only `\".git\" in dirnames` and missed ALL submodules, while reporting 28 nested clones when measuring entropic (which had only 1 submodule) because of unreadable directories in git object stores (`doxyguard_db/scope.py:537-541`)\n\n**2. Developer's stray clone** (`test_a_stray_developer_clone_the_parent_tracks_is_first_party:170-213`)\n- A developer runs `git clone` inside a directory whose files the parent repository tracks\n- Has a real `.git` directory but is NOT a gitlink (mode 100644/100755, not 160000)\n- Stays first party, because tagging it would make the same commit index differently depending on who built it (`doxyguard_db/scope.py:580-583`)\n- Real example: entropic had three directories with `.git` but only one declared as a gitlink (`doxyguard_db/scope.py:585-589`)\n\n**3. Vendored code without `.git`** (`test_only_a_directory_with_its_own_git_tree_is_external:139-166`)\n- A copied-in third-party file like `vendor/copied/header_only.h` with no git tree\n- Stays first party, because the repo committed it and owns it\n- No name-based detection (no `vendor/` or `third_party/` heuristic): `doxyguard_db/external.py:17-21`\n\n**4. Path-prefix collisions** (`test_a_shared_path_prefix_does_not_misattribute_a_sibling_tree:431-450`)\n- `vendor/lib` and `vendor/lib-utils` are separate external roots\n- Attribution uses path-separator-aware matching: `name.startswith(f\"{root}/\")`, not bare `startswith` (`doxyguard_db/external.py:179-194`)\n\n**5. External tree with no indexed files** (`test_a_nested_tree_with_no_indexed_file_is_not_reported:368-385`)\n- Detected but not reported in `external_roots` metadata because it owns no row\n- Prevents publishing directory names of excluded subtrees (`doxyguard_db/external.py:256-265`)\n\n## Gaps\n\nNone identified. The index answers fully on the detection mechanism, decision criteria, application points, and real-world cases.",
+  "ttft_ms": 4242,
+  "ttft_stream_ms": 1476,
+  "time_to_request_ms": 84,
+  "type": "result",
+  "duration_ms": 61046,
+  "uuid": "d6f9e141-ff79-466d-884c-2fe1fa9541fe"
+}

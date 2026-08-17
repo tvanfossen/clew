@@ -1,0 +1,68 @@
+{
+  "is_error": false,
+  "duration_api_ms": 64398,
+  "num_turns": 23,
+  "stop_reason": "end_turn",
+  "session_id": "2c9323c6-0909-45ca-9fbf-66eafe8d6678",
+  "total_cost_usd": 0.3555111000000001,
+  "usage": {
+    "input_tokens": 185,
+    "cache_creation_input_tokens": 86061,
+    "cache_read_input_tokens": 1583431,
+    "output_tokens": 4693,
+    "output_tokens_details": {
+      "thinking_tokens": 1275
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 86061,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 8,
+        "output_tokens": 1210,
+        "cache_read_input_tokens": 88604,
+        "cache_creation_input_tokens": 892,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 892
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1496,
+      "outputTokens": 4710,
+      "cacheReadInputTokens": 1583431,
+      "cacheCreationInputTokens": 86061,
+      "webSearchRequests": 0,
+      "costUSD": 0.3555111000000001,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## ANSWER\n\nThis codebase indexes nested repositories but **tags them as external** rather than excluding them. The decision is made in two independent checks, and the application occurs during the build pipeline.\n\n### WHAT THE CODEBASE DOES\n\n**Index nested trees, tag files by ownership.** `external.py:13-21` states the rule:\n\n> A directory with its own git tree (a `.gitmodules` entry, or a directory containing `.git`) \u2192 EXTERNAL. Anything else this repo tracks \u2192 FIRST PARTY. NO NAME MATCHING.\n\nNested trees are indexed because `external.py:4-9` explains that excluding them loses information: a `chain_trace` that stops at a submodule boundary answers \"this call leaves the repo\" when it could answer what the call actually does. Instead, files are tagged with `dg_external_root` on the `path` table and files themselves remain queryable.\n\n### HOW IT DECIDES\n\n**Two independent predicates, both required.**\n\n**Step 1 \u2014 Filesystem detection:** `scope.py:557` \u2014 `(directory / \".git\").exists()`. This covers:\n- Clone directories with `.git/` as a directory\n- Submodules with `.git` as a 44-byte pointer file (the gitdir reference)\n- Git worktrees with `.git` as a file\n\n**Step 2 \u2014 Ownership check:** `scope.py:619` \u2014 `git ls-files -s <path>` on the parent directory. Only if the parent records the child at mode `160000` (a gitlink) is it tagged external. This is critical: `scope.py:578-583` explains why:\n\n> A `.git` in a directory says somebody has a repository THERE; it does not say the parent treats that directory as somebody else's code. The two diverge in a case that is common: a developer clone left inside a directory whose files the parent TRACKS.\n\nReal measurement on entropic: three nested trees detected, but `.gitmodules` declared only one. `git ls-files -s examples/explorer` returned mode 100644 (ordinary files), not 160000, so those two are entropic's own committed code.\n\n### WHERE THE DECISION IS APPLIED\n\nThe decision is applied in `cli.py:1428`: `external_tagged, external = stamp_external_provenance(output, repo_root)`, which runs **after** the index is built but **before** coverage is reported (`cli.py:1430`).\n\n`external.py:201-246` walks every indexed file, checks whether it falls inside an `external_root`, and stamps the `dg_external_root` column. Coverage aggregates then default to FIRST PARTY by filtering this column, while traversal queries (`chain_trace`, `callers`, `callees`) cross the boundary freely.\n\n### VALIDATION AGAINST REAL NESTED REPOSITORY FORMS\n\n| Form | Detection | Tagging | Verified By |\n|------|-----------|---------|------------|\n| Submodule (`.git` is 44-byte file) | \u2713 exists() covers files (`scope.py:543`) | \u2713 `git ls-files -s` returns 160000 | `test_external_provenance.py:399-426` |\n| Clone (`.git` is directory) | \u2713 exists() covers directories | \u2713 if parent declared as gitlink | `test_external_provenance.py:139-165` |\n| Stray developer clone (has `.git`, parent tracks files) | \u2713 detected by `_holds_git_tree` | \u2717 gitlink check fails (`git ls-files` returns 100644) | `test_external_provenance.py:168-213` (measured on entropic) |\n| Copied-in code with no `.git` | \u2717 no `.git` to detect | N/A | `test_external_provenance.py:139-165` asserts \"vendor/copied/header_only.h stays first party\" |\n| Git worktree (`.git` is file) | \u2713 exists() covers worktrees (`scope.py:543`) | \u2713 if parent declared as gitlink | Noted but not explicitly tested |\n| Unresolvable `#include` (bare filename, no file on disk) | \u2717 not resolved | \u2717 matched separately via `dg_unresolved` column | `test_external_provenance.py:326-359` |\n\n**The critical fix:** Prior to gh#352, the detector only checked `\".git\" in dirnames` (looking for directories). On entropic, which wraps llama.cpp as an actual submodule, this reported **28 nested trees** while missing `extern/llama.cpp` \u2014 the submodule it was built to detect (`scope.py:531-541`). Every test fixture used `.git` directories, so nothing in the suite could catch the defect.\n\n## Gaps\n\nNone. The source code is complete and the decision logic is well-documented with extensive integration tests covering all major cases where nested repositories appear on disk.",
+  "ttft_ms": 2497,
+  "ttft_stream_ms": 1507,
+  "time_to_request_ms": 259,
+  "type": "result",
+  "duration_ms": 63615,
+  "uuid": "db6728e7-2a16-4d97-9f7b-ab86e98001b0"
+}

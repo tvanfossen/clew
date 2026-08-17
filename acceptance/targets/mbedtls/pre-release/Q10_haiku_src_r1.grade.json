@@ -1,0 +1,212 @@
+{
+  "q": "Q10",
+  "arm": "src",
+  "model": "haiku",
+  "run": 1,
+  "answer": "Q10_haiku_src_r1.md",
+  "rubric": "acceptance/targets/mbedtls/questions.yaml",
+  "declared_mark_count": 6,
+  "summary": {
+    "marks_hit": 4,
+    "marks_miss": 2,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 6,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": true,
+    "falsity_verdict": "CONSISTENT",
+    "marks_total": 6,
+    "score": 4.0,
+    "score_strict": 4.0
+  },
+  "falsity": {
+    "checked": true,
+    "verdict": "CONSISTENT",
+    "agreement": 1.0,
+    "tally": [
+      [
+        "CONSISTENT",
+        3
+      ]
+    ],
+    "samples": 3,
+    "errors": 0,
+    "vetoed": false
+  },
+  "marks": [
+    {
+      "index": 1,
+      "text": "reports at least one real coupling with both ends named",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"**Writer:** `mbedtls_debug_set_threshold` (library/debug.c:36-39) writes to global `debug_threshold`... **Readers:**... `mbedtls_debug_print_msg` (library/debug.c:63-95) reads at line 76\"",
+        "why": "Names a real coupling with both ends specified (writer function and reader function via shared global).",
+        "raw": "QUOTE: \"**Writer:** `mbedtls_debug_set_threshold` (library/debug.c:36-39) writes to global `debug_threshold`... **Readers:**... `mbedtls_debug_print_msg` (library/debug.c:63-95) reads at line 76\"\nVERDICT: HIT\nWHY: Names a real coupling with both ends specified (writer function and reader function via shared global)."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "**names the shared object that carries it**, not only the two functions \u2014 the buffer allocator's file-static `heap` (`library/memory_buffer_alloc.c:68`), the allocator pointers `mbedtls_calloc_func` / `mbedtls_free_func` (`library/platform.c:44-45`), or either file-static `global_data` (`library/psa_crypto.c:124`, `library/psa_crypto_slot_management.c:193`). An object not in this set does not earn the mark",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "mbedtls_calloc_func",
+          "mbedtls_free_func"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "global_data"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `mbedtls_calloc_func` \u2014 - `mbedtls_platform_set_calloc_free` (line 57-62) writes `mbedtls_calloc_func` and `mbedtls_free_func`",
+          "symbol `mbedtls_free_func` \u2014 - `mbedtls_platform_set_calloc_free` (line 57-62) writes `mbedtls_calloc_func` and `mbedtls_free_func`"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "**reports that the pattern RECURS \u2014 couplings in at least two DIFFERENT files**, rather than one example and a stop. At least four independent instances exist: the buffer allocator's file-static `heap` (`library/memory_buffer_alloc.c:68`), the allocator function pointers `mbedtls_calloc_func` / `mbedtls_free_func` (`library/platform.c:44-45`), and a SEPARATE `static psa_global_data_t global_data` in each of `library/psa_crypto.c:124` and `library/psa_crypto_slot_management.c:193`. An answer of \"none\" is wrong rather than merely incomplete",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [
+          "mbedtls_calloc_func",
+          "mbedtls_free_func"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "psa_global_data_t",
+          "global_data"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [
+          "memory_buffer_alloc.c:68",
+          "platform.c:44-45",
+          "psa_crypto.c:124",
+          "psa_crypto_slot_management.c:193"
+        ],
+        "evidence": [
+          "symbol `mbedtls_calloc_func` \u2014 - `mbedtls_platform_set_calloc_free` (line 57-62) writes `mbedtls_calloc_func` and `mbedtls_free_func`",
+          "symbol `mbedtls_free_func` \u2014 - `mbedtls_platform_set_calloc_free` (line 57-62) writes `mbedtls_calloc_func` and `mbedtls_free_func`"
+        ]
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Writers/Readers in library/platform.c: mbedtls_platform_set_calloc_free (line 57-62) writes mbedtls_calloc_func and mbedtls_free_func\" combined with separate couplings shown in library/debug.c and library/mps_trace.c",
+        "why": "The answer names one of the four canonical instances (calloc_func/free_func in platform.c) and shows the same writer/reader-without-call-edge pattern recurring in at least two other different files (debug.c, mps_trace.c), satisfying the \"recurs across files\" requirement.",
+        "raw": "QUOTE: \"Writers/Readers in library/platform.c: mbedtls_platform_set_calloc_free (line 57-62) writes mbedtls_calloc_func and mbedtls_free_func\" combined with separate couplings shown in library/debug.c and library/mps_trace.c\nVERDICT: HIT\nWHY: The answer names one of the four canonical instances (calloc_func/free_func in platform.c) and shows the same writer/reader-without-call-edge pattern recurring in at least two other different files (debug.c, mps_trace.c), satisfying the \"recurs across files\" requirement."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "**identifies at least one coupling that runs through a FUNCTION POINTER**, where no call connects the writer to the reader even in principle",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"**Writers/Readers in library/platform.c:**\\n- `mbedtls_platform_set_calloc_free` (line 57-62) writes `mbedtls_calloc_func` and `mbedtls_free_func`\\n- `mbedtls_calloc` (line 47-50) reads `mbedtls_calloc_func`\"",
+        "why": "mbedtls_calloc_func/free_func are function-pointer variables set by the setter and invoked by the reader, satisfying the function-pointer coupling requirement.",
+        "raw": "QUOTE: \"**Writers/Readers in library/platform.c:**\\n- `mbedtls_platform_set_calloc_free` (line 57-62) writes `mbedtls_calloc_func` and `mbedtls_free_func`\\n- `mbedtls_calloc` (line 47-50) reads `mbedtls_calloc_func`\"\nVERDICT: HIT\nWHY: mbedtls_calloc_func/free_func are function-pointer variables set by the setter and invoked by the reader, satisfying the function-pointer coupling requirement."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "**states that `library/psa_crypto.c` and `library/psa_crypto_slot_management.c` each declare a SEPARATE file-static `psa_global_data_t global_data`** \u2014 two distinct objects that share a name",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "psa_global_data_t"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [
+          "psa_crypto.c:124",
+          "psa_crypto_slot_management.c:193"
+        ],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never mentions psa_crypto.c or psa_crypto_slot_management.c each declaring a separate file-static psa_global_data_t global_data.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions psa_crypto.c or psa_crypto_slot_management.c each declaring a separate file-static psa_global_data_t global_data."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 6,
+      "text": "**uses the library's OWN mutex documentation as evidence of a coupling.** `include/mbedtls/threading.h:134-143` says `key_slot_mutex` \"protects the registered_readers and state variable for all key slots in &global_data.key_slots\" and names the five functions that must hold it \u2014 `psa_key_slot_state_transition`, `psa_register_read`, `psa_unregister_read`, `psa_key_slot_has_readers`, `psa_wipe_key_slot` \u2014 while `:146-158` splits the PSA `global_data` members between a non-RNG mutex and an RNG-only one. A mutex declared to guard a named object is itself a statement that functions with no call between them touch it; citing that prose, or the key-slot coupling it describes, earns the mark",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "key_slot_mutex",
+          "psa_key_slot_state_transition",
+          "psa_register_read",
+          "psa_unregister_read",
+          "psa_key_slot_has_readers",
+          "psa_wipe_key_slot",
+          "global_data"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [
+          "threading.h:134-143",
+          "threading.h:146-158"
+        ],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer discusses debug threshold, platform function pointers, and MPS trace depth, but never cites threading.h's key_slot_mutex documentation or the named functions (psa_key_slot_state_transition, psa_register_read, etc.) as evidence of coupling.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses debug threshold, platform function pointers, and MPS trace depth, but never cites threading.h's key_slot_mutex documentation or the named functions (psa_key_slot_state_transition, psa_register_read, etc.) as evidence of coupling."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "is_error": false,
+  "duration_api_ms": 35969,
+  "num_turns": 8,
+  "stop_reason": "end_turn",
+  "session_id": "c84446f0-d9d4-4337-a635-1d91ca7d0321",
+  "total_cost_usd": 0.4959469,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 51669,
+    "cache_read_input_tokens": 469033,
+    "output_tokens": 2912,
+    "output_tokens_details": {
+      "thinking_tokens": 203
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 51669,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1896,
+        "cache_read_input_tokens": 90419,
+        "cache_creation_input_tokens": 4561,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4561
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1412,
+      "outputTokens": 19,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001507,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 12,
+      "outputTokens": 2912,
+      "cacheReadInputTokens": 469033,
+      "cacheCreationInputTokens": 51669,
+      "webSearchRequests": 0,
+      "costUSD": 0.4944399,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I have everything needed for a complete, precise answer.\n\n## Answer\n\n**The rule lives in `doxyguard_db/tiers.py:1-329`**, specifically `resolve_layered()` (`doxyguard_db/tiers.py:300-335`) built on `_stated_layer()` (`doxyguard_db/tiers.py:345-358`).\n\n### The five tiers (`doxyguard_db/tiers.py:8-14`, constants at `doxyguard_db/tiers.py:57-68`)\n\n| tier | name | source | combines by |\n|---|---|---|---|\n| 1 | `explicit` | a CLI flag | REPLACES |\n| 2 | `declared` | the target repo's `.doxyguard-db.yaml` (or `x-doxyguard-db` passthrough) | REPLACES |\n| 3 | `target-fact` | facts someone else already wrote (Doxyfile ALIASES/PREDEFINED, a generator manifest, a language/platform entry point) | ACCUMULATES |\n| 4 | `ecosystem` | a known-ecosystem signature (e.g. UDM, ingot) | ACCUMULATES |\n| 5 | `heuristic` | built-in name-pattern guesses (the floor) | REPLACES |\n\n### The combination formula (`doxyguard_db/tiers.py:4`)\n\n```\nresolved = (tier1 or tier2 or tier5) union tier3 union tier4\n```\n\nIn prose (`doxyguard_db/tiers.py:6`, `doxyguard_db/tiers.py:314-319`): tiers 1, 2, and 5 (`explicit`, `declared`, `heuristic`) are **mutually exclusive and only one wins** \u2014 pick explicit if present, else declared if present, else fall back to heuristics as the floor. Tiers 3 and 4 (`target-fact`, `ecosystem`) **always accumulate on top, regardless of which stated tier won**, and no stated tier can remove them \u2014 \"you can correct our guesses; you cannot un-discover a fact\" (`doxyguard_db/tiers.py:6`). The accumulating layers are placed first in the resolved order (`doxyguard_db/tiers.py:314-316`), so a target that states nothing at all resolves to exactly `(*facts, *ecosystem, *heuristics)` \u2014 the built-in default, unchanged.\n\nTiers 3 and 4 have **identical combination behaviour** by design (`doxyguard_db/tiers.py:24-29`) \u2014 the 3-vs-4 label only affects reporting/provenance, never the resolved set. The only load-bearing distinction is 3-or-4 (fact, permanent) versus 5 (guess, discardable).\n\nFor predicting an unseen setting: check whether it's a `LayeredResolution` (list-valued, via `resolve_layered`) or a `DocumentResolution` (manifest-valued, via `resolve_document`, `doxyguard_db/tiers.py:258-288`) \u2014 both implement the same three-way stated-tier choice (`_stated_layer` / the `if explicit / elif declared / else floor` chain at `doxyguard_db/tiers.py:284-288`), differing only in whether facts/ecosystem accumulate underneath (lists do; a document resolution has no accumulating counterpart since a manifest's effect is computed downstream in loaders, `doxyguard_db/tiers.py:202-207`).\n\n### What an empty value on the command line means\n\n**An empty/falsy CLI value is a withdrawal, not a statement** \u2014 it is treated identically to the flag being absent for override purposes, and control falls through to tier 2 (declared), then tier 5 (heuristic floor):\n\n- For list options: `[]` is falsy, so `_stated_layer` falls through past `explicit` (`doxyguard_db/tiers.py:321-324`, `doxyguard_db/tiers.py:354-358`): *\"An empty `explicit` IS A WITHDRAWAL, not a statement... which is what lets an operator undo a recorded flag without deleting the database. `None` means the flag was absent.\"* (Note: `None` = flag never given; `[]`/falsy = flag given but emptied \u2014 both fall through, but only `None` is indistinguishable from \"never stated\"; an emptied value is still recordable as a withdrawal.)\n- For manifest/document options: `{}` (falsy) is likewise a withdrawal (`doxyguard_db/tiers.py:267-271`): *\"Clearing an option means 'stop overriding', which is the same intent as 'fall back to the target's own declaration'.\"*\n\nSo: passing an empty value on the CLI does **not** clear the setting to nothing \u2014 it un-overrides it, deferring to whatever the repo's own `.doxyguard-db.yaml` declares, and if that's also absent, down to the built-in heuristic default.\n\n## Gaps\n\n- I did not trace every one of the ~15+ call sites that invoke `resolve_layered`/`resolve_document` to confirm each concrete CLI option (e.g. `--entry-patterns`, `--shared-key-patterns`) actually routes through this module rather than some bespoke path \u2014 the docstring at `doxyguard_db/tiers.py:16-22` states this module was introduced specifically to *unify* previously-inconsistent per-option behavior, implying some call sites may have been migrated after this file's `@version 1`; I did not verify migration completeness across the whole CLI.\n- I did not open `doxyguard_db/cli.py`'s `_declared_or_flag` (referenced at `doxyguard_db/tiers.py:264`) to see the CLI-side wiring in full; the tiers.py module was sufficient to answer the rule itself.",
+  "ttft_ms": 2216,
+  "ttft_stream_ms": 1139,
+  "time_to_request_ms": 90,
+  "type": "result",
+  "duration_ms": 35158,
+  "uuid": "8138ff98-36c3-414f-a3a4-e16d9650adde"
+}

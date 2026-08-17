@@ -1,0 +1,338 @@
+{
+  "q": "Q2",
+  "arm": "mcp",
+  "model": "sonnet",
+  "run": 1,
+  "answer": "Q2_sonnet_mcp_r1.md",
+  "rubric": "acceptance/targets/entropic/questions.yaml",
+  "declared_mark_count": 12,
+  "summary": {
+    "marks_hit": 8,
+    "marks_miss": 4,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 12,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": null,
+    "falsity_verdict": null,
+    "marks_total": 12,
+    "score": 8.0,
+    "score_strict": 8.0
+  },
+  "falsity": null,
+  "marks": [
+    {
+      "index": 1,
+      "text": "**finds the `MCPAuthorizationManager::auth_mutex_` \u2192 `MCPKeySet::key_mutex_` nesting** and states the mechanism: the authorization manager holds its own mutex and calls into a `MCPKeySet` that locks on entry",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "MCPKeySet"
+        ],
+        "symbols_weak": [
+          "MCPAuthorizationManager::auth_mutex_",
+          "MCPKeySet::key_mutex_"
+        ],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `MCPAuthorizationManager::auth_mutex_` (unqualified) \u2014 `MCPAuthorizationManager::check_access` takes its own `auth_mutex_`, then calls `MCPKeySet::has_access` on an entry found in its map \u2014 and `has_access` takes `MCPKeySet`'s own `key_mutex_` while `auth_mutex_` is still held:",
+          "symbol `MCPKeySet::key_mutex_` (unqualified) \u2014 `MCPAuthorizationManager::check_access` takes its own `auth_mutex_`, then calls `MCPKeySet::has_access` on an entry found in its map \u2014 and `has_access` takes `MCPKeySet`'s own `key_mutex_` while `auth_mutex_` is still held:",
+          "symbol `MCPKeySet` \u2014 `MCPAuthorizationManager::check_access` takes its own `auth_mutex_`, then calls `MCPKeySet::has_access` on an entry found in its map \u2014 and `has_access` takes `MCPKeySet`'s own `key_mutex_` while `auth_mutex_` is still held:"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "**verifies it at both ends against the source** rather than asserting it \u2014 the two class headers each document their own locking invariant, and the seven call sites are in one file",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Confidence: high. Verified by reading both function bodies directly (not just the index's inferred edge)\" combined with \"src/mcp/mcp_authorization.cpp:98\" / \"src/mcp/mcp_key_set.cpp:60\" / \"grant_from\" at \"mcp_authorization.cpp:128-145\" all in one file",
+        "why": "The answer verifies the nesting by reading both class files' own lock acquisitions (auth_mutex_ in mcp_authorization, key_mutex_ in mcp_key_set) and cites the seven call sites as confined to mcp_authorization.cpp, matching the item's substance.",
+        "raw": "QUOTE: \"Confidence: high. Verified by reading both function bodies directly (not just the index's inferred edge)\" combined with \"src/mcp/mcp_authorization.cpp:98\" / \"src/mcp/mcp_key_set.cpp:60\" / \"grant_from\" at \"mcp_authorization.cpp:128-145\" all in one file\nVERDICT: HIT\nWHY: The answer verifies the nesting by reading both class files' own lock acquisitions (auth_mutex_ in mcp_authorization, key_mutex_ in mcp_key_set) and cites the seven call sites as confined to mcp_authorization.cpp, matching the item's substance."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "**finds at least one of the other two real nestings** \u2014 `SecondaryModelLoader::slots_mutex_` \u2192 `InferenceBackend::transition_mutex_` (in `release_role` / `shutdown`), or `LlamaCppBackend::mtp_mutex_` \u2192 `PromptCache::mutex_` (in `do_unload`). An answer that reports the authorization pair as the codebase's ONLY two-lock holding is incomplete, and this mark is the one that says so",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [
+          "InferenceBackend::transition_mutex_",
+          "PromptCache::mutex_"
+        ],
+        "symbols_missed": [
+          "SecondaryModelLoader::slots_mutex_",
+          "release_role",
+          "LlamaCppBackend::mtp_mutex_",
+          "do_unload"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `InferenceBackend::transition_mutex_` (unqualified) \u2014 - `transition_mutex_` (`InferenceBackend`) \u2192 `mutex_` (`PromptCache`) \u2014 reported via `src/inference/backend.cpp:76`. That line is `state_.store(ModelState::WARM, std::memory_order_release);` \u2014 again an atomic store. **False positive.**",
+          "symbol `PromptCache::mutex_` (unqualified) \u2014 - `identities_mutex_` (`IdentityManager`) \u2192 `mutex_` (`PromptCache`) \u2014 reported via a `store` call at `src/core/identity_manager.cpp:181`. Reading the line: `router_dirty_.store(true, std::memory_order_release);` \u2014 this is `std::atomic<bool>::store`, not `PromptCache::store`. **False positive.**"
+        ]
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer reports only the auth_mutex_/key_mutex_ pair as confirmed and treats several other index-flagged nestings as false positives, never identifying either the SecondaryModelLoader/InferenceBackend or LlamaCppBackend/PromptCache nesting.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer reports only the auth_mutex_/key_mutex_ pair as confirmed and treats several other index-flagged nestings as false positives, never identifying either the SecondaryModelLoader/InferenceBackend or LlamaCppBackend/PromptCache nesting."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 4,
+      "text": "**reports the ORDER as consistent** for whatever it finds \u2014 the outer lock is the same one every time in all three pairs \u2014 so no inversion is demonstrated",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Both call sites (`check_access`, `grant_from`) take `auth_mutex_` before `key_mutex_`; nothing in `MCPKeySet`'s own methods ... ever calls back into `MCPAuthorizationManager`, so `key_mutex_` \u2192 `auth_mutex_` in the reverse order does not occur.\"",
+        "why": "The answer explicitly reports the outer lock (auth_mutex_) as consistent across both pairs it identifies, with no inversion.",
+        "raw": "QUOTE: \"Both call sites (`check_access`, `grant_from`) take `auth_mutex_` before `key_mutex_`; nothing in `MCPKeySet`'s own methods ... ever calls back into `MCPAuthorizationManager`, so `key_mutex_` \u2192 `auth_mutex_` in the reverse order does not occur.\"\nVERDICT: HIT\nWHY: The answer explicitly reports the outer lock (auth_mutex_) as consistent across both pairs it identifies, with no inversion."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "**argues the no-inversion case structurally rather than by inspection**: `MCPKeySet` never names `MCPAuthorizationManager` and `InferenceBackend` never names `SecondaryModelLoader`, so the reverse order is not reachable at all for those pairs",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "MCPKeySet",
+          "MCPAuthorizationManager",
+          "InferenceBackend"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "SecondaryModelLoader"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `MCPKeySet` \u2014 `MCPAuthorizationManager::check_access` takes its own `auth_mutex_`, then calls `MCPKeySet::has_access` on an entry found in its map \u2014 and `has_access` takes `MCPKeySet`'s own `key_mutex_` while `auth_mutex_` is still held:",
+          "symbol `MCPAuthorizationManager` \u2014 `MCPAuthorizationManager::check_access` takes its own `auth_mutex_`, then calls `MCPKeySet::has_access` on an entry found in its map \u2014 and `has_access` takes `MCPKeySet`'s own `key_mutex_` while `auth_mutex_` is still held:",
+          "symbol `InferenceBackend` \u2014 - `transition_mutex_` (`InferenceBackend`) \u2192 `mutex_` (`PromptCache`) \u2014 reported via `src/inference/backend.cpp:76`. That line is `state_.store(ModelState::WARM, std::memory_order_release);` \u2014 again an atomic store. **False positive.**"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "**does not fabricate a nesting.** Any reported pair whose inner call is a same-named method of an unrelated type is a MISS for this mark, however plausible \u2014 `.get()` on a `std::unique_ptr` is not `SecondaryModelLoader::get`, `.size()` on a container is not `MCPKeySet::size`, `.store()` on a `std::atomic` is not `PromptCache::store`",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "std::atomic",
+          "PromptCache::store"
+        ],
+        "symbols_weak": [
+          "MCPKeySet::size"
+        ],
+        "symbols_missed": [
+          "std::unique_ptr",
+          "SecondaryModelLoader::get"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `MCPKeySet::size` (unqualified) \u2014 Both call sites (`check_access`, `grant_from`) take `auth_mutex_` before `key_mutex_`; nothing in `MCPKeySet`'s own methods (`grant`, `revoke`, `has_access`, `list`, `size`, `clear`, `serialize`, `deserialize` \u2014 `include/entropic/mcp/mcp_key_set.h:55-144`) ever calls back into `MCPAuthorizationManager`, so `key_mutex_` \u2192 `auth_mutex_` in the reverse order does not occur.",
+          "symbol `std::atomic` \u2014 - `identities_mutex_` (`IdentityManager`) \u2192 `mutex_` (`PromptCache`) \u2014 reported via a `store` call at `src/core/identity_manager.cpp:181`. Reading the line: `router_dirty_.store(true, std::memory_order_release);` \u2014 this is `std::atomic<bool>::store`, not `PromptCache::store`. **False positive.**",
+          "symbol `PromptCache::store` \u2014 - `identities_mutex_` (`IdentityManager`) \u2192 `mutex_` (`PromptCache`) \u2014 reported via a `store` call at `src/core/identity_manager.cpp:181`. Reading the line: `router_dirty_.store(true, std::memory_order_release);` \u2014 this is `std::atomic<bool>::store`, not `PromptCache::store`. **False positive.**"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 7,
+      "text": "**states how it searched and why that method over-reports** on this codebase specifically: the inner call is named by an unqualified method name, and several of entropic's own method names collide with standard-library member names",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never explains that its search method (grep/name-based call matching) over-reports because callee names like `store`/`remove` are unqualified and collide with stdlib member names; it only reports specific false-positive hits without stating that generalizable mechanism/reason.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never explains that its search method (grep/name-based call matching) over-reports because callee names like `store`/`remove` are unqualified and collide with stdlib member names; it only reports specific false-positive hits without stating that generalizable mechanism/reason."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 8,
+      "text": "answers the question that was asked \u2014 whether entropic can deadlock \u2014 rather than listing findings. Consistent ordering in every pair found means no cycle is demonstrated",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Both call sites (`check_access`, `grant_from`) take `auth_mutex_` before `key_mutex_`; nothing in `MCPKeySet`'s own methods ... ever calls back into `MCPAuthorizationManager`, so `key_mutex_` \u2192 `auth_mutex_` in the reverse order does not occur.\" / \"its acquisition order is consistent (single order, no reversal found)\"",
+        "why": "The answer directly answers whether entropic can deadlock (concluding no cycle demonstrated because ordering is consistent in every pair found) rather than merely listing findings.",
+        "raw": "QUOTE: \"Both call sites (`check_access`, `grant_from`) take `auth_mutex_` before `key_mutex_`; nothing in `MCPKeySet`'s own methods ... ever calls back into `MCPAuthorizationManager`, so `key_mutex_` \u2192 `auth_mutex_` in the reverse order does not occur.\" / \"its acquisition order is consistent (single order, no reversal found)\"\nVERDICT: HIT\nWHY: The answer directly answers whether entropic can deadlock (concluding no cycle demonstrated because ordering is consistent in every pair found) rather than merely listing findings."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "**distinguishes \"I found no inversion\" from \"there is no inversion\"**, and says what its method could not have seen. A dispatch through a base-class pointer or a `std::function` is outside the reach of any static scan of this kind",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "std::function"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer hedges on general audit completeness and AST-resolved-call limitations, but never notes that virtual/base-class-pointer dispatch or std::function callbacks are structurally invisible to this kind of static scan.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer hedges on general audit completeness and AST-resolved-call limitations, but never notes that virtual/base-class-pointer dispatch or std::function callbacks are structurally invisible to this kind of static scan."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 10,
+      "text": "spots that pairs 2 and 3 COMPOSE: `InferenceBackend::unload` calls the virtual `do_unload`, so one `release_role` call holds four mutexes in a chain no single function body shows",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "InferenceBackend::unload",
+          "do_unload",
+          "release_role"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer discusses a different two-mutex case (auth_mutex_\u2192key_mutex_) and false positives, but never mentions InferenceBackend::unload/do_unload or a chain of four mutexes via a virtual call from release_role.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses a different two-mutex case (auth_mutex_\u2192key_mutex_) and false positives, but never mentions InferenceBackend::unload/do_unload or a chain of four mutexes via a virtual call from release_role."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 11,
+      "text": "notes that `InferenceBackend::unload` fires a consumer-supplied hook callback while holding `transition_mutex_`, which is a re-entrancy hazard the source cannot resolve because the callback is external",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "transition_mutex_"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "InferenceBackend::unload"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `transition_mutex_` \u2014 - `transition_mutex_` (`InferenceBackend`) \u2192 `mutex_` (`PromptCache`) \u2014 reported via `src/inference/backend.cpp:76`. That line is `state_.store(ModelState::WARM, std::memory_order_release);` \u2014 again an atomic store. **False positive.**"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 12,
+      "text": "quantifies its own precision \u2014 states how many candidates its method produced and how many survived reading \u2014 rather than presenting a filtered list as if it were the raw result",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"The index's `lock_nestings` query surfaced four more apparent first-party two-mutex holdings\" ... \"All four are flagged `resolution: \"receiver_unverified\"` / `resolved_sites: 0`\"",
+        "why": "The answer states candidate counts from its method (one confirmed real case, four other index-reported nestings) and explicitly reports how many survived manual reading verification (all four were false positives), quantifying precision rather than presenting a filtered list as raw.",
+        "raw": "QUOTE: \"The index's `lock_nestings` query surfaced four more apparent first-party two-mutex holdings\" ... \"All four are flagged `resolution: \"receiver_unverified\"` / `resolved_sites: 0`\"\nVERDICT: HIT\nWHY: The answer states candidate counts from its method (one confirmed real case, four other index-reported nestings) and explicitly reports how many survived manual reading verification (all four were false positives), quantifying precision rather than presenting a filtered list as raw."
+      },
+      "verdict": "HIT"
+    }
+  ]
+}

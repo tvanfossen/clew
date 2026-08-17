@@ -1,0 +1,80 @@
+{
+  "is_error": false,
+  "duration_api_ms": 42586,
+  "num_turns": 6,
+  "stop_reason": "end_turn",
+  "session_id": "b9a76471-374b-481b-86fe-984439abb457",
+  "total_cost_usd": 0.788485,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 102159,
+    "cache_read_input_tokens": 419110,
+    "output_tokens": 3222,
+    "output_tokens_details": {
+      "thinking_tokens": 409
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 102159,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2222,
+        "cache_read_input_tokens": 93764,
+        "cache_creation_input_tokens": 11539,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 11539
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1337,
+      "outputTokens": 19,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.0014320000000000001,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 12,
+      "outputTokens": 3222,
+      "cacheReadInputTokens": 419110,
+      "cacheCreationInputTokens": 102159,
+      "webSearchRequests": 0,
+      "costUSD": 0.787053,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I found the exact mechanism. This is a complete, precise answer.\n\n## Answer\n\nThis program resolves every layered setting (things like `entry_patterns`, `shared_key_patterns`, spawn/lock/dispatch manifests, etc.) through one shared combination rule, implemented once in `doxyguard_db/tiers.py:1-568` rather than per-option.\n\n### The five tiers\n\n`doxyguard_db/tiers.py:8-14` (docstring table) and `tiers.py:57-68` define:\n\n| tier | name | source | combines by |\n|---|---|---|---|\n| 1 | `explicit` | a CLI flag stated for this one build | REPLACES |\n| 2 | `declared` | the target repo's own `.doxyguard-db.yaml` (or its `x-doxyguard-db` passthrough) | REPLACES |\n| 3 | `target-fact` | facts already written elsewhere (a Doxyfile's ALIASES/PREDEFINED, a generator manifest, a language/platform entry point) | ACCUMULATES |\n| 4 | `ecosystem` | a known-ecosystem signature (e.g. UDM/ingot) | ACCUMULATES |\n| 5 | `heuristic` | built-in name-pattern guessing \u2014 the floor | REPLACES |\n\n### The rule\n\n`doxyguard_db/tiers.py:4`:\n\n```\nresolved = (tier1 or tier2 or tier5) union tier3 union tier4\n```\n\nIn prose (`tiers.py:6`): **\"you can correct our guesses; you cannot un-discover a fact.\"**\n\nMechanically, per `resolve_layered`/`_stated_layer` (`tiers.py:300-358`):\n- Tiers 1, 2, and 5 are mutually exclusive competitors for one \"replaceable\" slot: tier 1 wins if stated (truthy), else tier 2 if declared (truthy), else tier 5 (the built-in heuristic) is used unconditionally as the floor. This is a strict override chain, not a merge \u2014 whichever of the three wins supplies the *entire* replaceable layer, and the losers contribute nothing.\n- Tiers 3 and 4 always accumulate underneath, in that order, ahead of whichever stated layer won (`tiers.py:314-316,332`): `values = ordered_unique((*facts, *ecosystem, *stated))`. No CLI flag or declaration can suppress a tier-3/4 fact \u2014 they are guaranteed to survive.\n- `tiers.py:24-29` explicitly notes tiers 3 and 4 are behaviorally identical (both accumulate, both are irremovable); the only load-bearing split is \"3-or-4 (fact, permanent) vs 5 (guess, discardable)\".\n- For manifest/document-shaped options (`shared_key_patterns`, `thread_patterns`, `locks`, `dispatch`, `mqtt_dispatch`), the analogous `resolve_document` (`tiers.py:258-288`) makes the same three-way choice \u2014 explicit, else declared, else the `heuristic` floor label (meaning \"nothing stated, so only tiers 3/4's accumulation applies\") \u2014 since a whole document can't be \"unioned\" the way a list can.\n- The winning tier is recorded in `build_meta` under an `options.<name>.tier` key (`LayeredResolution.as_meta`/`DocumentResolution.as_meta`, `tiers.py:149-165,230-249`) so a later read (`recorded_explicit`/`recorded_document`, `tiers.py:432-465,474-498`) only replays a tier-1 statement, cross-checked against the recorded tier \u2014 never a stale or withdrawn one.\n\nTo predict the outcome for any setting not yet examined: find whether it's a plain list-valued option (uses `resolve_layered`) or a whole-document option (uses `resolve_document`), then apply: explicit flag wins if truthy \u2192 else declared value if truthy \u2192 else built-in heuristic guess; and separately, whatever tier-3 (target-fact) and tier-4 (ecosystem) values exist for it are always included regardless of what wins tier 1/2/5.\n\n### What an empty value on the command line means\n\nAn empty/falsy explicit CLI value (e.g. `[]` for a list option, or `{}` for a manifest document) is **not treated as \"nothing stated\" but is also not silently equivalent to omitting the flag** \u2014 it is a **withdrawal**, explicitly distinguished from `None` (flag absent):\n\n- `tiers.py:293,321-324`: *\"An empty `explicit` IS A WITHDRAWAL, not a statement. `[]` is falsy, so it falls through to the declaration and then to the guesses, which is what lets an operator undo a recorded flag without deleting the database. `None` means the flag was absent.\"*\n- Same logic for documents at `tiers.py:267-271`: *\"AN EMPTY DOCUMENT IS A WITHDRAWAL... `{}` is falsy, so it falls through to the declaration and then to the floor, and no statement is recorded.\"*\n- `_stated_layer` (`tiers.py:345-358`) implements this: `if explicit: return TIER_EXPLICIT, ...` \u2014 an empty sequence/mapping is falsy in Python, so it falls through to the `declared`-then-`heuristic` check, exactly as if the flag had never been passed at that call, **except** that no tier-1 record is written, so a previously-recorded tier-1 statement stops being replayed on the next build too.\n\nSo: passing an empty value on the CLI actively clears/undoes a prior explicit statement (letting tier 2 or tier 5 take over again), rather than being ignored as a no-op.\n\n## Gaps\n\n- I traced the *general* resolution rule and its precise semantics from `tiers.py`. I did not exhaustively verify that every one of the ~14 settings in `buildoptions.py` (`SECTION_DOCUMENT_OPTIONS`, `MANIFEST_OPTIONS`, etc.) actually calls `resolve_layered`/`resolve_document` \u2014 I inspected `buildoptions.py:1-697` which documents and validates the *options surface* (tier 1/tier 2 merge point) but did not grep every call site (e.g. in `scope.py`, `shared_key_edges.py`, `declaration.py`) to confirm each individually routes through `tiers.py`'s primitives rather than some option having a bespoke resolver. The docstring in `tiers.py:16-22` implies this unification was a deliberate fix for prior inconsistency, suggesting it is now universal, but I did not check every consumer file to be certain no option still has a bespoke rule.",
+  "ttft_ms": 5302,
+  "ttft_stream_ms": 1521,
+  "time_to_request_ms": 177,
+  "type": "result",
+  "duration_ms": 42136,
+  "uuid": "1f03207b-e12b-4636-83aa-cd0bb36da4c2"
+}

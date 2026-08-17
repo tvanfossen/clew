@@ -1,0 +1,410 @@
+{
+  "q": "Q7",
+  "arm": "src",
+  "model": "haiku",
+  "run": 1,
+  "answer": "Q7_haiku_src_r1.md",
+  "rubric": "acceptance/targets/self/questions.yaml",
+  "declared_mark_count": 16,
+  "summary": {
+    "marks_hit": 14,
+    "marks_miss": 2,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 16,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": true,
+    "falsity_verdict": "CONSISTENT",
+    "marks_total": 16,
+    "score": 14.0,
+    "score_strict": 14.0
+  },
+  "falsity": {
+    "checked": true,
+    "verdict": "CONSISTENT",
+    "agreement": 1.0,
+    "tally": [
+      [
+        "CONSISTENT",
+        3
+      ]
+    ],
+    "samples": 3,
+    "errors": 0,
+    "facts": 4,
+    "vetoed": false
+  },
+  "marks": [
+    {
+      "index": 1,
+      "text": "**states that the main database is rebuilt from scratch on every run**, so it cannot itself hold the incrementality state",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"docs.db is rebuilt from scratch on every run \u2014 incrementality state cannot live inside it\"",
+        "why": "The answer explicitly states the main database is rebuilt from scratch each run and therefore cannot hold incrementality state.",
+        "raw": "QUOTE: \"docs.db is rebuilt from scratch on every run \u2014 incrementality state cannot live inside it\"\nVERDICT: HIT\nWHY: The answer explicitly states the main database is rebuilt from scratch each run and therefore cannot hold incrementality state."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "states that the state therefore lives in a SIDECAR database beside the output",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [
+          "indexcache.py:0"
+        ],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"A sidecar SQLite database at `<output>.idxcache` (derived from `--index-cache` or `--output` path). `indexcache.py:1-34` documents it as independent from `docs.db` because `docs.db` is rebuilt from scratch on every run\"",
+        "why": "The answer explicitly states the incremental state lives in a separate sidecar database alongside the output, distinct from the rebuilt-each-run main database.",
+        "raw": "QUOTE: \"A sidecar SQLite database at `<output>.idxcache` (derived from `--index-cache` or `--output` path). `indexcache.py:1-34` documents it as independent from `docs.db` because `docs.db` is rebuilt from scratch on every run\"\nVERDICT: HIT\nWHY: The answer explicitly states the incremental state lives in a separate sidecar database alongside the output, distinct from the rebuilt-each-run main database."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "**enumerates THREE tables in the sidecar**, not one or two",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"**Three Tables:** 1. `source_files` ... 2. `extract_cache` ... 3. `doxygen_cache`\"",
+        "why": "The answer explicitly enumerates and names three distinct sidecar tables.",
+        "raw": "QUOTE: \"**Three Tables:** 1. `source_files` ... 2. `extract_cache` ... 3. `doxygen_cache`\"\nVERDICT: HIT\nWHY: The answer explicitly enumerates and names three distinct sidecar tables."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "identifies the per-file identity table",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "`source_files` \u2014 repo-relative path \u2192 (size_bytes, mtime_ns, content_sha). `mtime+size` is a prefilter; `content_sha` is the authority.",
+        "why": "Names the per-file table keyed by path with identity fields (size/mtime/content hash).",
+        "raw": "QUOTE: `source_files` \u2014 repo-relative path \u2192 (size_bytes, mtime_ns, content_sha). `mtime+size` is a prefilter; `content_sha` is the authority.\nVERDICT: HIT\nWHY: Names the per-file table keyed by path with identity fields (size/mtime/content hash)."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "identifies the per-file extraction payload table",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`extract_cache` \u2014 `(content_sha, stage, stage_version, extra_key)` \u2192 payload\"",
+        "why": "The answer explicitly identifies the per-file extraction cache/payload table with its key structure and purpose.",
+        "raw": "QUOTE: \"`extract_cache` \u2014 `(content_sha, stage, stage_version, extra_key)` \u2192 payload\"\nVERDICT: HIT\nWHY: The answer explicitly identifies the per-file extraction cache/payload table with its key structure and purpose."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "identifies the table holding the external tool's own output keyed by tree",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`doxygen_cache` \u2014 `tree_sha` \u2192 `(db_path, output_sha, created_at)`. Stores the HASH of the doxygen output, not just the path\"",
+        "why": "Names the table storing doxygen's own output keyed by tree hash.",
+        "raw": "QUOTE: \"`doxygen_cache` \u2014 `tree_sha` \u2192 `(db_path, output_sha, created_at)`. Stores the HASH of the doxygen output, not just the path\"\nVERDICT: HIT\nWHY: Names the table storing doxygen's own output keyed by tree hash."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 7,
+      "text": "**states that size and modification time are only a PREFILTER and the content hash is the authority**",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`mtime+size` is a prefilter; `content_sha` is the authority.\"",
+        "why": "Explicitly states size/mtime are a prefilter while content hash is authoritative, matching the checklist item.",
+        "raw": "QUOTE: \"`mtime+size` is a prefilter; `content_sha` is the authority.\"\nVERDICT: HIT\nWHY: Explicitly states size/mtime are a prefilter while content hash is authoritative, matching the checklist item."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 8,
+      "text": "**draws the consequence: touching a file without editing it stays a cache HIT**",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Content SHA decides; mtime alone cannot catch `git checkout` or `touch` without edits.\"",
+        "why": "This states that a touch (mtime change) without content edits will not be treated as a change, i.e., content_sha still matches and it remains a cache hit.",
+        "raw": "QUOTE: \"Content SHA decides; mtime alone cannot catch `git checkout` or `touch` without edits.\"\nVERDICT: HIT\nWHY: This states that a touch (mtime change) without content edits will not be treated as a change, i.e., content_sha still matches and it remains a cache hit."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "draws the second consequence: a branch checkout that restores identical content also stays a hit",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer discusses content-hash-based cache invalidation for file changes, but never addresses branch checkout restoring identical content as a case that stays a cache hit.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses content-hash-based cache invalidation for file changes, but never addresses branch checkout restoring identical content as a case that stays a cache hit."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 10,
+      "text": "**states that cached extraction payloads hold no database row identifiers**, and gives the reason \u2014 the external tool's row identifiers are not stable across runs, so they are re-resolved on every build",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Payloads are rowid-FREE (recording source line numbers + identifier text, not doxygen rowids, which are unstable across runs)\"",
+        "why": "States extract_cache payloads hold no db row identifiers and gives the exact reason \u2014 doxygen's row identifiers are unstable across runs.",
+        "raw": "QUOTE: \"Payloads are rowid-FREE (recording source line numbers + identifier text, not doxygen rowids, which are unstable across runs)\"\nVERDICT: HIT\nWHY: States extract_cache payloads hold no db row identifiers and gives the exact reason \u2014 doxygen's row identifiers are unstable across runs."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 11,
+      "text": "**states the invalidation stance as deliberately trigger-happy \u2014 when in doubt, MISS** \u2014 and gives the asymmetry behind it: a false miss costs time, a false hit ships a wrong database",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never states an invalidation stance of \"trigger-happy/when in doubt, MISS\" or the asymmetry between a false miss (costs time) and a false hit (ships a wrong database).",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states an invalidation stance of \"trigger-happy/when in doubt, MISS\" or the asymmetry between a false miss (costs time) and a false hit (ships a wrong database)."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 12,
+      "text": "names the global build version as an invalidator that wipes the whole cache",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "DOXYGUARD_DB_BUILD_VERSION"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `DOXYGUARD_DB_BUILD_VERSION` \u2014 **1. `DOXYGUARD_DB_BUILD_VERSION` Bump** (currently 50, `signature.py:368-465`) \u2014 Any version bump wipes the entire cache: `indexcache.py:161-188` deletes all three tables. Examples from the 300+ comments in `signature.py`:"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 13,
+      "text": "names per-stage versioning as a narrower invalidator, so one stage's change does not wipe the others",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Bumping one stage invalidates only that stage's cache entries, not all ten.\"",
+        "why": "The answer explicitly names per-stage stage_version as a narrower invalidator that doesn't wipe other stages' caches.",
+        "raw": "QUOTE: \"Bumping one stage invalidates only that stage's cache entries, not all ten.\"\nVERDICT: HIT\nWHY: The answer explicitly names per-stage stage_version as a narrower invalidator that doesn't wipe other stages' caches."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 14,
+      "text": "**names the content of the declared manifests as a third invalidator**, folded into the affected stage's key so changing a declaration invalidates only what read it",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Each stage that reads a manifest (thread-patterns, shared-key-patterns, dispatch, mqtt-dispatch, data-model) folds the manifest's content hash into `extra_key`... A changed declaration changes the key, invalidating that stage's cache entries.\"",
+        "why": "States manifest content as a third invalidator folded into the stage's cache key, so a declaration change invalidates only the stages that read it.",
+        "raw": "QUOTE: \"Each stage that reads a manifest (thread-patterns, shared-key-patterns, dispatch, mqtt-dispatch, data-model) folds the manifest's content hash into `extra_key`... A changed declaration changes the key, invalidating that stage's cache entries.\"\nVERDICT: HIT\nWHY: States manifest content as a third invalidator folded into the stage's cache key, so a declaration change invalidates only the stages that read it."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 15,
+      "text": "**answers the NOT-incremental half: the external documentation tool's own run cannot be made incremental**, so it is skipped wholesale on an unchanged tree rather than partially repeated",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Doxygen Run Itself \u2014 cli.py:1210 states \"doxygen has no incremental mode.\" Only the SKIP is incremental (tree-hash reuse), not the run.\"",
+        "why": "Answer explicitly states doxygen's own run has no incremental mode and is skipped wholesale (not partially repeated) via tree-hash reuse.",
+        "raw": "QUOTE: \"Doxygen Run Itself \u2014 cli.py:1210 states \"doxygen has no incremental mode.\" Only the SKIP is incremental (tree-hash reuse), not the run.\"\nVERDICT: HIT\nWHY: Answer explicitly states doxygen's own run has no incremental mode and is skipped wholesale (not partially repeated) via tree-hash reuse."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 16,
+      "text": "**reports that the tree-keyed row carries a hash of the output as well as the path**, and gives the reason \u2014 every key names the same output path, so trusting the path alone produced a false hit",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "output_sha"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `output_sha` \u2014 3. `doxygen_cache` \u2014 `tree_sha` \u2192 `(db_path, output_sha, created_at)`. Stores the HASH of the doxygen output, not just the path, because multiple configurations can point at the same output file and overwrite it. `indexcache.py:381-435` details the false-hit fix (#399) \u2014 comparing the recorded digest against the file's current digest."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    }
+  ]
+}

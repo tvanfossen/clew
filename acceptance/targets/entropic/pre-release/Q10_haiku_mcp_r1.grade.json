@@ -1,0 +1,263 @@
+{
+  "q": "Q10",
+  "arm": "mcp",
+  "model": "haiku",
+  "run": 1,
+  "answer": "Q10_haiku_mcp_r1.md",
+  "rubric": "acceptance/targets/entropic/questions.yaml",
+  "declared_mark_count": 10,
+  "summary": {
+    "marks_hit": 7,
+    "marks_miss": 3,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 10,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": null,
+    "falsity_verdict": null,
+    "marks_total": 10,
+    "score": 7.0,
+    "score_strict": 7.0
+  },
+  "falsity": null,
+  "marks": [
+    {
+      "index": 1,
+      "text": "**finds the capability at all** and does not conclude prematurely that it is absent",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Yes, this codebase implements **two distinct retry/backoff mechanisms**\" ... \"MCP Server Reconnection with Exponential Backoff\" with location `include/entropic/mcp/reconnect_policy.h`, `src/mcp/reconnect_policy.cpp:54-65`",
+        "why": "The answer locates and describes a concrete retry/backoff mechanism with specific files and line numbers rather than concluding it's absent.",
+        "raw": "QUOTE: \"Yes, this codebase implements **two distinct retry/backoff mechanisms**\" ... \"MCP Server Reconnection with Exponential Backoff\" with location `include/entropic/mcp/reconnect_policy.h`, `src/mcp/reconnect_policy.cpp:54-65`\nVERDICT: HIT\nWHY: The answer locates and describes a concrete retry/backoff mechanism with specific files and line numbers rather than concluding it's absent."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "**finds MORE THAN ONE mechanism.** entropic's own code has three unrelated ones; naming two passes, naming one does not. *An answer naming three or four is NOT over-reporting \u2014 a previous key said \"two\" and would have marked a more complete answer down*",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"two distinct retry/backoff mechanisms\": (1) MCP Server Reconnection with Exponential Backoff, (2) Constitutional Validation Retry Loop",
+        "why": "The answer names two distinct mechanisms with locations, satisfying \"more than one.\"",
+        "raw": "QUOTE: \"two distinct retry/backoff mechanisms\": (1) MCP Server Reconnection with Exponential Backoff, (2) Constitutional Validation Retry Loop\nVERDICT: HIT\nWHY: The answer names two distinct mechanisms with locations, satisfying \"more than one.\""
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "names at least one concrete function or file where the behaviour lives",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Location:\" `include/entropic/mcp/reconnect_policy.h` (class definition), `src/mcp/reconnect_policy.cpp` (implementation)",
+        "why": "Names concrete files/classes where the retry/backoff behaviour lives.",
+        "raw": "QUOTE: \"Location:\" `include/entropic/mcp/reconnect_policy.h` (class definition), `src/mcp/reconnect_policy.cpp` (implementation)\nVERDICT: HIT\nWHY: Names concrete files/classes where the retry/backoff behaviour lives."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "**explains the MECHANISM of at least one, not just its location** \u2014 what triggers it and what bounds it. `ReconnectPolicy::delay_ms` (base \u00d7 factor^attempt, capped, plus jitter) bounded by `exhausted(attempt)`; or `apply_revisions`' bounded loop ending in a rejection verdict; or the empty-turn counter with its per-tier ceiling. A location with no trigger and no bound MISSES",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "apply_revisions"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "ReconnectPolicy::delay_ms"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `apply_revisions` \u2014 - When true, it automatically enters revision loop (calls `apply_revisions()` repeatedly)"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "**finds `ReconnectPolicy` specifically.** It is the strongest implementation of the capability and NEITHER of its methods is named retry or backoff, so an answer that reached it did so by concept \u2014 through `HealthMonitor`, through `ReconnectConfig`, through reading `src/mcp/`, or through prose \u2014 rather than by matching an identifier",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "ReconnectPolicy",
+          "HealthMonitor"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "ReconnectConfig"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `ReconnectPolicy` \u2014 The `ReconnectPolicy` class implements exponential backoff with jitter for reconnecting to external MCP servers:",
+          "symbol `HealthMonitor` \u2014 - **Integration with HealthMonitor** (`include/entropic/mcp/health_monitor.h`):"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "**searched by concept and says how.** The route is part of the answer here, because the identifier route provably does not reach the main mechanism",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer gives locations/mechanisms but never discusses searching by concept or explains that an identifier-based route fails to reach the mechanism.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer gives locations/mechanisms but never discusses searching by concept or explains that an identifier-based route fails to reach the mechanism."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 7,
+      "text": "**distinguishes a real policy from incidental naming.** Most files in `src/` + `include/` mentioning \"retry\" mention it in prompt text, comments or a buffer resize, and the count grows several-fold once `extern/llama.cpp` is counted. `retry` in a name is not proof of retry behaviour, and here the code with the name is not the code with the backoff",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"Note: The constitutional validator uses **bounded iteration** (controlled by `auto_retry_enabled_` flag) rather than a time-based backoff like the MCP reconnection policy.\"",
+        "why": "The answer distinguishes two mechanisms from each other, but never addresses the checklist's actual claim \u2014 that most files/mentions of \"retry\" in the codebase are incidental (prompt text, comments, buffer resizes) and that a name containing \"retry\" isn't proof of retry behavior; it doesn't discuss the naming-vs-real-policy distinction at all.",
+        "raw": "QUOTE: \"Note: The constitutional validator uses **bounded iteration** (controlled by `auto_retry_enabled_` flag) rather than a time-based backoff like the MCP reconnection policy.\"\nVERDICT: MISS\nWHY: The answer distinguishes two mechanisms from each other, but never addresses the checklist's actual claim \u2014 that most files/mentions of \"retry\" in the codebase are incidental (prompt text, comments, buffer resizes) and that a name containing \"retry\" isn't proof of retry behavior; it doesn't discuss the naming-vs-real-policy distinction at all."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 8,
+      "text": "**contrasts the mechanisms rather than merging them** \u2014 one is timed and exponential, one is a bounded loop with no timing at all. An answer that describes \"entropic's retry logic\" as one thing has flattened three",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Note: The constitutional validator uses **bounded iteration** (controlled by `auto_retry_enabled_` flag) rather than a time-based backoff like the MCP reconnection policy.\"",
+        "why": "The answer explicitly contrasts one mechanism as timed/exponential backoff (MCP reconnect) versus the other as bounded iteration with no timing (constitutional validator), rather than merging them.",
+        "raw": "QUOTE: \"Note: The constitutional validator uses **bounded iteration** (controlled by `auto_retry_enabled_` flag) rather than a time-based backoff like the MCP reconnection policy.\"\nVERDICT: HIT\nWHY: The answer explicitly contrasts one mechanism as timed/exponential backoff (MCP reconnect) versus the other as bounded iteration with no timing (constitutional validator), rather than merging them."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "**states what it could not determine.** Partial discovery reported as partial is a pass; reported as complete is not",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "None \u2014 the index provided comprehensive coverage of both retry mechanisms with complete implementation details visible.",
+        "why": "The answer explicitly claims complete coverage with no unresolved gaps, rather than stating what it could not determine.",
+        "raw": "QUOTE: None \u2014 the index provided comprehensive coverage of both retry mechanisms with complete implementation details visible.\nVERDICT: MISS\nWHY: The answer explicitly claims complete coverage with no unresolved gaps, rather than stating what it could not determine."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 10,
+      "text": "notices that `max_retries == 0` means infinite rather than none in `ReconnectPolicy`, which is the opposite of the natural reading and is the kind of default that decides an incident",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "max_retries",
+          "ReconnectPolicy"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `max_retries` \u2014 - `max_retries = 5`: Maximum reconnection attempts",
+          "symbol `ReconnectPolicy` \u2014 The `ReconnectPolicy` class implements exponential backoff with jitter for reconnecting to external MCP servers:"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    }
+  ]
+}

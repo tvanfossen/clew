@@ -1,0 +1,514 @@
+# SPDX-License-Identifier: MIT
+#
+# THE GRADING KEY FOR THE SELF TARGET, AS DATA.
+#
+# WHY THIS TARGET EXISTS. Every other target in the reference set is C or C++. The query
+# surface works on Python — doxygen indexes it, and gh#397 enabled the tree-sitter recovery
+# path — but no graded measurement has ever covered a Python repository, so "it works on
+# Python" has been an assertion about a capability rather than a measurement of one. This
+# rubric is the only Python datapoint in the set.
+#
+# GROUND TRUTH IS SOURCE-DERIVED, WHICH MATTERS MORE HERE THAN ANYWHERE ELSE. The target is
+# this repository, so an index-derived figure would move whenever the pipeline moved and the
+# rubric would silently be grading the tool against itself. Every mark below was verified by
+# reading the source at the pinned commit — the docstrings and code of the modules named,
+# not a query reply.
+#
+# THE PIN IS LOAD-BEARING AND WILL GO STALE. This repository changes daily, which is exactly
+# why #355 kept it out of the reference set before now. A grid run against a different commit
+# is not comparable to this one; `preflight_target_revision` refuses on a mismatch rather than
+# letting the two drift quietly.
+#
+# MOVING THE PIN IS ALLOWED ONLY WITH THE DIFF CHECKED. It moved once already, from the commit
+# the marks were read at to the commit that added this file, and that is safe for exactly one
+# reason: `git diff --stat <old>..<new> -- clew/` is EMPTY, so every fact below holds
+# identically at both. A pin advanced without that check is a rubric whose ground truth was
+# verified against code the run will not execute.
+#
+# THE PREDECESSOR IS RETIRED. `questions.md` was an unrun, stale draft explicitly marked in
+# CLAUDE.md as not-a-grading-key. The seven QUESTIONS were good and are kept, re-verified
+# against current behaviour; every MARK is new. Two of the draft's premises had gone stale in
+# ways worth recording: Q1's Doxyfile fallback no longer exists (gh#333 replaced INPUT), and
+# Q6's document-level slip now REFUSES rather than building green.
+#
+# NO COUNTS ARE WRITTEN IN THE FRONT MATTER. `marks` is the list's length.
+
+target: tvanfossen/clew
+commit: d091b1d1860fbf16109a7a01d9350a5aeb388235
+version: 1.0.0
+ground_truth_source: |-
+  THIS REPOSITORY'S OWN SOURCE at the commit above, read directly. Not the index, and not
+  any figure the pipeline reports about itself: the target is the tool, so an index-derived
+  mark would grade the tool against its own output and move whenever the pipeline moved.
+
+questions:
+  - id: Q1
+    title: |-
+        What decides which files a build reads?
+    prompt: |-
+        This program hands a file set to an external documentation tool. Something in this codebase decides what that file set is. Find where that decision is made, lay out every input that can influence it and which one wins, and say what happens when a repository states nothing at all.
+    marks:
+    - text: |-
+        names `derive_scope` in `clew/scope.py` as where the decision is made
+      symbols: ['derive_scope']
+      refs: [['scope.py']]
+      veto_safe: true
+    - text: |-
+        states that there are exactly TWO outcomes — a declared `index_scope`, or the whole-repository default — rather than describing a longer chain of fallbacks
+      symbols: []
+      refs: []
+    - text: |-
+        identifies the whole-repository tier as the DEFAULT reached whenever no `index_scope` is declared, not as a last resort reached only after other options fail
+      symbols: ['whole_repo_scope']
+      refs: []
+      veto_safe: true
+    - text: |-
+        names `index_scope` as the declaration section that selects the non-default tier
+      symbols: []
+      refs: []
+    - text: |-
+        reports that a declaration can arrive from more than one place — the dedicated `.clew.yaml`, the guard config's `x-` passthrough, or stated by an embedding caller — rather than naming only one
+      symbols: []
+      refs: []
+    - text: |-
+        states that a caller-stated scope reports its provenance differently, as stated by the caller rather than by naming a file, and gives the reason: naming a file that says nothing sends an owner to edit nothing
+      symbols: []
+      refs: []
+    - text: |-
+        **states that a Doxyfile no longer supplies the INPUT** — the doc build is a publishing target, not a reasoning boundary. An answer describing a Doxyfile fallback for INPUT is describing behaviour that was removed
+      symbols: []
+      refs: []
+    - text: |-
+        **states that a Doxyfile is still read for ALIASES and PREDEFINED**, so "the Doxyfile is ignored" is too strong
+      symbols: []
+      refs: []
+      veto_safe: true
+    - text: |-
+        reports that the whole-repo tier subtracts the paths git ignores
+      symbols: []
+      refs: []
+    - text: |-
+        **notices that gitignored paths are gathered on BOTH sides of every nested-tree boundary**, and gives the reason — `git ls-files` stops at a submodule boundary, so the parent sweep reports nothing inside a nested tree
+      symbols: []
+      refs: []
+    - text: |-
+        reports that dot and cache directories are also subtracted, as things no repository restates
+      symbols: []
+      refs: []
+    - text: |-
+        **states that the doxygen-guard gate is NOT consulted for index scope**, and separates the two questions: the gate says what must be DOCUMENTED, the scope says what should be reasoned about
+      symbols: []
+      refs: []
+      veto_safe: true
+    - text: |-
+        states that a nested git tree is INSIDE the whole-repo scope by construction, and that this is the intent rather than an oversight
+      symbols: []
+      refs: []
+
+  - id: Q2
+    title: |-
+        What keeps a foreign codebase out, and what gets through anyway?
+    prompt: |-
+        A repository may contain another repository inside it. Explain what this codebase does about that, how it decides, and where that decision is applied. Then check the decision against the ways a nested repository can actually appear on disk and report what you find.
+    marks:
+    - text: |-
+        **states that nested trees are INDEXED AND TAGGED rather than excluded**, and does not describe a containment or exclusion pass as current behaviour
+      symbols: []
+      refs: []
+      veto_safe: true
+    - text: |-
+        gives the reason tagging beat exclusion: a traversal that stops at the boundary can only say a call leaves the repository, when it could say what the call does
+      symbols: []
+      refs: []
+    - text: |-
+        names the test as the presence of a git tree in a directory
+      symbols: ['_holds_git_tree']
+      refs: []
+      veto_safe: true
+    - text: |-
+        **states that the rule is deliberately NOT name-based**, and that `vendor/` or `third_party/` are conventions rather than facts
+      symbols: []
+      refs: []
+      veto_safe: true
+    - text: |-
+        draws the consequence in the other direction: a copied-in third-party file with no git tree of its own is FIRST PARTY, because the repository committed it
+      symbols: []
+      refs: []
+    - text: |-
+        **finds that a submodule's `.git` is a FILE, not a directory** — a pointer written by `git submodule` where a standalone clone has a directory
+      symbols: []
+      refs: []
+      veto_safe: true
+    - text: |-
+        states that the predicate uses an existence test rather than a directory test, so both shapes are caught
+      symbols: []
+      refs: []
+    - text: |-
+        **reports that a directory-only test found nested CLONES while silently missing every SUBMODULE**, and that a plausible non-zero count is what made it look like a working detector
+      symbols: []
+      refs: []
+    - text: |-
+        notices that every unit fixture used a `.git` directory, so the suite was structurally incapable of catching it — the fixture matched the detector rather than the world
+      symbols: []
+      refs: []
+    - text: |-
+        **separates the TWO predicates and says they answer different questions** — one for descent (is there a separate git tree here?), one for ownership (did this repository commit it as a gitlink?)
+      symbols: ['nested_repo_roots', 'dependency_roots']
+      refs: []
+    - text: |-
+        states that ownership is the narrower of the two, a subset of the trees descent finds
+      symbols: []
+      refs: []
+    - text: |-
+        states that the walk is bounded rather than a recursive glob, and gives a reason — descending into a found repository's own object store, or swallowing an unreadable directory
+      symbols: []
+      refs: []
+    - text: |-
+        **reports that an unreadable directory WARNS rather than being skipped silently**, and says why: a swallowed error reads exactly like "no nested repository", which is the answer that lets a foreign codebase in
+      symbols: []
+      refs: []
+    - text: |-
+        states that descent stops at a nested repository once found, and separately that a depth limit also stops it
+      symbols: []
+      refs: []
+    - text: |-
+        states that the root itself never counts as nested, so a root that is a repository does not report itself
+      symbols: []
+      refs: []
+
+  - id: Q3
+    title: |-
+        The configuration it wants is missing, or present and not trusted
+    prompt: |-
+        This program looks for a configuration file belonging to the external tool it drives. Explain everywhere it looks, what it does with files it finds but does not use, and enumerate every distinct outcome the search can produce. For each outcome, say whether the build can continue.
+    marks:
+    - text: |-
+        names `discover_doxyfile` as the search
+      symbols: ['discover_doxyfile']
+      refs: [['doxygen.py']]
+      veto_safe: true
+    - text: |-
+        **states that the search matches the NAME `Doxyfile` and only that name**, so a repository whose file is spelled differently is not found
+      symbols: []
+      refs: []
+      veto_safe: true
+    - text: |-
+        gives the search locations as the repository root, then `docs/`, then `doc/`
+      symbols: []
+      refs: []
+      veto_safe: true
+    - text: |-
+        **states that it REFUSES to guess beyond those locations**, rather than describing a wider search
+      symbols: []
+      refs: []
+    - text: |-
+        reports what the earlier wider search cost: it selected a TEST FIXTURE's Doxyfile to index a whole project
+      symbols: []
+      refs: []
+    - text: |-
+        **states the principle that a wrong configuration file is worse than none**, and the reason — none triggers synthesis from the declared scope, while a wrong one produces a well-formed database describing the wrong code
+      symbols: []
+      refs: []
+    - text: |-
+        states that files found but not used are exposed separately rather than adopted or discarded silently
+      symbols: ['rejected_doxyfile_candidates']
+      refs: []
+    - text: |-
+        **enumerates FOUR distinct outcomes**, not two or three
+      symbols: []
+      refs: []
+      veto_safe: true
+    - text: |-
+        identifies the outcome where an explicitly named file does not exist
+      symbols: []
+      refs: []
+    - text: |-
+        identifies the outcome where there is no target repository to search
+      symbols: []
+      refs: []
+    - text: |-
+        identifies the outcome where a repository was searched and genuinely ships none
+      symbols: []
+      refs: []
+    - text: |-
+        identifies the outcome where candidates were found but declined
+      symbols: []
+      refs: []
+    - text: |-
+        **says which outcomes are fatal and which continue: the two REFUSALS are the explicitly-named-but-missing file and the absent target; the other two proceed via synthesis.** An answer treating all four as errors, or all four as survivable, misses the distinction the split exists for
+      symbols: []
+      refs: []
+    - text: |-
+        gives the reason the split is kept explicit — a supported configuration reported as an error costs the reader their next twenty minutes on the wrong hypothesis
+      symbols: []
+      refs: []
+    - text: |-
+        **states that discovery is now a pure query that no longer warns about the strays it declines**, and gives the reason: the same finding reached the user twice, once from discovery and once from the caller
+      symbols: []
+      refs: []
+
+  - id: Q4
+    title: |-
+        A declaration and a command-line flag disagree
+    prompt: |-
+        Several of this program's settings can be supplied in more than one way at once — on the command line, in the target repository's own declaration, and from things the program works out for itself. Find the rule that combines them and explain it precisely enough that someone could predict the outcome for a setting you have not looked at. Then say what an empty value on the command line means.
+    marks:
+    - text: |-
+        states the precedence as an ordered rule with the caller's explicit statement at the top and the built-in defaults at the bottom
+      symbols: []
+      refs: []
+    - text: |-
+        names the target's own declaration file as the tier between them
+      symbols: []
+      refs: []
+    - text: |-
+        **states the naming rule that makes the answer predictable for an unexamined setting: the option name IS the declaration section name**
+      symbols: []
+      refs: []
+      veto_safe: true
+    - text: |-
+        **names the one documented exception to that rule** — a bare macro list kept as an alias for the fuller section form
+      symbols: []
+      refs: []
+    - text: |-
+        states that the exception is asymmetric in a specific way: the section form can express something the alias cannot
+      symbols: []
+      refs: []
+    - text: |-
+        reports that the correspondence is asserted by a test in both directions, so a new section arrives with an option or breaks the test
+      symbols: []
+      refs: []
+    - text: |-
+        **states the THREE-STATE rule for a per-option value: absent INHERITS, empty WITHDRAWS, non-empty REPLACES.** An answer giving only two states, or saying an empty value changes nothing, has missed the distinction the design exists for
+      symbols: []
+      refs: []
+      veto_safe: true
+    - text: |-
+        **separates that from the OPTIONS MAPPING as a whole**, where passing nothing or an empty mapping does change nothing and is not an error — so a caller forwarding its own optional argument inherits by default
+      symbols: []
+      refs: []
+    - text: |-
+        **states that validation happens for every option BEFORE any is assigned**, so one bad entry leaves the namespace untouched
+      symbols: ['apply_options']
+      refs: []
+    - text: |-
+        gives the reason a partial application would be worse than a refusal — it would build with a mixture of what the caller asked for and what they did not, and report success
+      symbols: []
+      refs: []
+    - text: |-
+        **states that an unrecognised option is REFUSED BY NAME rather than ignored**
+      symbols: []
+      refs: []
+      veto_safe: true
+    - text: |-
+        distinguishes settings that are facts about ONE RUN from settings that are standing properties of the repository, and states that only the latter get a declaration section
+      symbols: []
+      refs: []
+    - text: |-
+        names at least one setting deliberately kept out of the declaration on those grounds
+      symbols: []
+      refs: []
+
+  - id: Q5
+    title: |-
+        One module owns every enumerated value
+    prompt: |-
+        The values allowed in this program's enumerated fields are defined in exactly one place. Find it, explain how the rest of the codebase is kept from restating them, and say what its dependencies are and why. Then explain what would break if someone merged two of its entries that look identical.
+    marks:
+    - text: |-
+        names `clew/vocabulary.py` as the single source
+      symbols: []
+      refs: [['vocabulary.py']]
+      veto_safe: true
+    - text: |-
+        **states that the database's constraint clauses are GENERATED from it rather than written alongside it**
+      symbols: []
+      refs: []
+      veto_safe: true
+    - text: |-
+        gives the checkable consequence: a search for constraint clauses across the package matches only that one file
+      symbols: []
+      refs: []
+    - text: |-
+        names the method that renders a vocabulary into a constraint clause
+      symbols: []
+      refs: []
+    - text: |-
+        **states that the clause is built by explicit quoting and joining rather than by formatting a Python tuple**
+      symbols: []
+      refs: []
+    - text: |-
+        gives the first reason: a one-element tuple's representation carries a trailing comma the database rejects
+      symbols: []
+      refs: []
+    - text: |-
+        gives the second reason: Python's quoting rules are not the database's, so a value containing an apostrophe would be quoted in a way the database reads as an identifier
+      symbols: []
+      refs: []
+    - text: |-
+        states that an apostrophe inside a value is escaped by doubling it
+      symbols: []
+      refs: []
+    - text: |-
+        **reports that the module is a true LEAF — it imports only from the standard library and nothing from within the package**
+      symbols: []
+      refs: []
+      veto_safe: true
+    - text: |-
+        names its standard-library imports as dataclasses and pathlib
+      symbols: []
+      refs: []
+    - text: |-
+        gives the reason leafness matters: a vocabulary imported by the schema must not import anything that imports the schema
+      symbols: []
+      refs: []
+    - text: |-
+        **states that a vocabulary carries meaning as well as values** — each one holds a human-readable account of what the values mean, so a consumer reading a row is not left to infer it
+      symbols: []
+      refs: []
+    - text: |-
+        **answers the merge question with a consequence beyond the schema**: two entries that look identical are distinguished somewhere that reads them, so merging them silently reclassifies existing rows rather than merely shortening a list
+      symbols: []
+      refs: []
+
+  - id: Q6
+    title: |-
+        A mis-spelled key in a manifest
+    prompt: |-
+        A colleague writes one of the YAML manifests this program reads and mistypes a key — the wrong singular or plural, say. Walk through exactly what happens, at every level of the file where a key can appear. Then confirm what happens to a correctly written one, and say how that differs from a file that is not valid YAML at all.
+    marks:
+    - text: |-
+        **states that a misspelled SECTION name in the declaration file is REFUSED**, with an error rather than a warning
+      symbols: ['DeclarationError']
+      refs: []
+      veto_safe: true
+    - text: |-
+        states that the refusal names the offending key
+      symbols: []
+      refs: []
+    - text: |-
+        states that the refusal also names the allowed set, so the fix does not require reading the source
+      symbols: ['KNOWN_SECTIONS']
+      refs: []
+    - text: |-
+        **gives the reason a misspelled section is treated more harshly than a broken file: it PARSES, so degrading would run on built-in defaults while reporting that the declaration was honoured**
+      symbols: []
+      refs: []
+    - text: |-
+        **states that unparseable YAML is treated as ABSENT with a warning, and that the build CONTINUES on defaults**
+      symbols: []
+      refs: []
+      veto_safe: true
+    - text: |-
+        gives the reason for the asymmetry: an unparseable file is an accident with nothing recoverable in it, while a misspelled key is a document whose author plainly intended something
+      symbols: []
+      refs: []
+    - text: |-
+        **states that an absent declaration is the NORM rather than an error**, and that most repositories run entirely on built-in defaults
+      symbols: []
+      refs: []
+      veto_safe: true
+    - text: |-
+        **distinguishes the ENTRY level from the SECTION level, and reports that the two are not guarded to the same depth by the file path** — a slip inside a section is quieter than a slip in a section name
+      symbols: []
+      refs: []
+    - text: |-
+        **finds that the caller-stated options path DOES validate entry keys and refuses unknown ones**, so the same typo behaves differently depending on which route it arrives by
+      symbols: ['_checked_entry']
+      refs: []
+    - text: |-
+        states why an entry-level slip is the more dangerous kind: it parses to a valid mapping that no consumer reads, so nothing signals it
+      symbols: []
+      refs: []
+    - text: |-
+        confirms the correctly-written case positively: a recognised section is read and its source path is recorded, rather than merely "nothing bad happens"
+      symbols: []
+      refs: []
+    - text: |-
+        **reports that a declaration may live in two places and that the dedicated file WINS when both exist**, rather than the two being merged
+      symbols: []
+      refs: []
+      veto_safe: true
+    - text: |-
+        states that the passthrough location is read only when the dedicated file is absent
+      symbols: []
+      refs: []
+    - text: |-
+        states that the source path travels with the parsed data, and gives the reason — an error that names a file which need not exist sends an owner to edit nothing
+      symbols: []
+      refs: []
+
+  - id: Q7
+    title: |-
+        How does it avoid redoing work, and what makes it decide it must?
+    prompt: |-
+        Re-running this program on a repository that has barely changed should not repeat all of the work. Explain how that is achieved, where the state that makes it possible is kept and why it is kept there, and enumerate everything that can make previously done work count as no longer usable. Then say what is NOT made incremental.
+    marks:
+    - text: |-
+        **states that the main database is rebuilt from scratch on every run**, so it cannot itself hold the incrementality state
+      symbols: []
+      refs: []
+      veto_safe: true
+    - text: |-
+        states that the state therefore lives in a SIDECAR database beside the output
+      symbols: []
+      refs: [['indexcache.py']]
+    - text: |-
+        **enumerates THREE tables in the sidecar**, not one or two
+      symbols: []
+      refs: []
+      veto_safe: true
+    - text: |-
+        identifies the per-file identity table
+      symbols: []
+      refs: []
+    - text: |-
+        identifies the per-file extraction payload table
+      symbols: []
+      refs: []
+    - text: |-
+        identifies the table holding the external tool's own output keyed by tree
+      symbols: []
+      refs: []
+    - text: |-
+        **states that size and modification time are only a PREFILTER and the content hash is the authority**
+      symbols: []
+      refs: []
+      veto_safe: true
+    - text: |-
+        **draws the consequence: touching a file without editing it stays a cache HIT**
+      symbols: []
+      refs: []
+    - text: |-
+        draws the second consequence: a branch checkout that restores identical content also stays a hit
+      symbols: []
+      refs: []
+    - text: |-
+        **states that cached extraction payloads hold no database row identifiers**, and gives the reason — the external tool's row identifiers are not stable across runs, so they are re-resolved on every build
+      symbols: []
+      refs: []
+    - text: |-
+        **states the invalidation stance as deliberately trigger-happy — when in doubt, MISS** — and gives the asymmetry behind it: a false miss costs time, a false hit ships a wrong database
+      symbols: []
+      refs: []
+    - text: |-
+        names the global build version as an invalidator that wipes the whole cache
+      symbols: ['CLEW_BUILD_VERSION']
+      refs: []
+      veto_safe: true
+    - text: |-
+        names per-stage versioning as a narrower invalidator, so one stage's change does not wipe the others
+      symbols: []
+      refs: []
+    - text: |-
+        **names the content of the declared manifests as a third invalidator**, folded into the affected stage's key so changing a declaration invalidates only what read it
+      symbols: []
+      refs: []
+    - text: |-
+        **answers the NOT-incremental half: the external documentation tool's own run cannot be made incremental**, so it is skipped wholesale on an unchanged tree rather than partially repeated
+      symbols: []
+      refs: []
+    - text: |-
+        **reports that the tree-keyed row carries a hash of the output as well as the path**, and gives the reason — every key names the same output path, so trusting the path alone produced a false hit
+      symbols: ['output_sha']
+      refs: []

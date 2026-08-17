@@ -1,0 +1,80 @@
+{
+  "is_error": false,
+  "duration_api_ms": 80079,
+  "num_turns": 27,
+  "stop_reason": "end_turn",
+  "session_id": "0c51aa07-f788-4c57-ab65-5bb979dc256b",
+  "total_cost_usd": 1.0364465,
+  "usage": {
+    "input_tokens": 32,
+    "cache_creation_input_tokens": 90878,
+    "cache_read_input_tokens": 1304415,
+    "output_tokens": 6557,
+    "output_tokens_details": {
+      "thinking_tokens": 1434
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 90878,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2477,
+        "cache_read_input_tokens": 93914,
+        "cache_creation_input_tokens": 167,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 167
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1318,
+      "outputTokens": 17,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001403,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 32,
+      "outputTokens": 6557,
+      "cacheReadInputTokens": 1304415,
+      "cacheCreationInputTokens": 90878,
+      "webSearchRequests": 0,
+      "costUSD": 1.0350435000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Now I have enough to write the full answer.\n\n## Answer\n\n**How configuration works (compile-time, header-based, not a build-system flag list)**\n\nMbed TLS's feature set is controlled by C preprocessor macros defined in a single header, `include/mbedtls/mbedtls_config.h`. Each optional feature is a commented-out `#define`; leaving the `//` in place means \"off by default\", removing it means \"on\". Example \u2014 restartable (non-blocking) ECC operations, off by default:\n\n- Doxygen block documents the feature and its dependency (`include/mbedtls/mbedtls_config.h:787-838`)\n- The actual off-by-default line: `//#define MBEDTLS_ECP_RESTARTABLE` (`include/mbedtls/mbedtls_config.h:839`)\n\n**Where the \"off by default\" decision is recorded**\n\nDirectly in that file, as the presence/absence of the `#define`. There is no separate defaults database \u2014 the header *is* the record. `README.md:9` states this explicitly: \"Some platform specific options are available in the fully documented configuration file `include/mbedtls/mbedtls_config.h`, which is also the place where features can be selected.\"\n\n**Supported ways to change it**\n\n1. **Edit `mbedtls_config.h` directly** \u2014 uncomment the `#define` (README.md:9).\n2. **`scripts/config.py`** \u2014 a Python tool that edits the config header programmatically, e.g. `python3 scripts/config.py set MBEDTLS_PSA_P256M_DRIVER_ENABLED` (`docs/psa-driver-example-and-guide.md:145-146`). It also supports named \"adapter\" presets such as `full`, `baremetal`, `crypto`, etc., which flip whole groups of options at once (`scripts/config.py:367-407`).\n3. **`MBEDTLS_CONFIG_FILE`** \u2014 a compile-time macro (set via `-D` or CMake cache var) that replaces `mbedtls_config.h` entirely with a different file (`include/mbedtls/build_info.h:112-115`; CMake wiring: `CMakeLists.txt:147`, `library/CMakeLists.txt:357-359`). Shipped example alternates live under `configs/` (e.g. `configs/config-thread.h`, `configs/config-suite-b.h`).\n4. **`MBEDTLS_USER_CONFIG_FILE`** \u2014 a second compile-time macro for a file that is included *after* the base config, to override/append individual settings without replacing the whole file (`include/mbedtls/build_info.h:126-131`; CMake wiring: `CMakeLists.txt:148`, `438-442`). This is the documented preferred route for small project-specific tweaks (`docs/psa-driver-example-and-guide.md:137`).\n5. Separately, if `MBEDTLS_PSA_CRYPTO_CONFIG` is enabled, PSA's own `PSA_WANT_xxx` macros are configured the same way via `psa/crypto_config.h`, with matching `MBEDTLS_PSA_CRYPTO_CONFIG_FILE` / `MBEDTLS_PSA_CRYPTO_USER_CONFIG_FILE` override points (`include/mbedtls/build_info.h:132-138`).\n\nAll of these funnel through the same inclusion sequence in `include/mbedtls/build_info.h:112-138`, which every public Mbed TLS header pulls in.\n\n**What stops a build whose options contradict each other**\n\nAfter all config files are read, `build_info.h` runs derived/adjustment headers (`config_psa.h`, `config_adjust_legacy_crypto.h`, `config_adjust_x509.h`, `config_adjust_ssl.h`) and then defines `MBEDTLS_CONFIG_IS_FINALIZED` before including `include/mbedtls/check_config.h` (`include/mbedtls/build_info.h:149-190`). `check_config.h` is a large set of `#if defined(...) ... #error \"...\"` preprocessor checks that enforce prerequisites and mutual exclusions, e.g.:\n\n- Missing dependency: `#if defined(MBEDTLS_HAVE_TIME_DATE) && !defined(MBEDTLS_HAVE_TIME) / #error \"... does not make sense\"` (`include/mbedtls/check_config.h:57-58`)\n- Missing dependency: `#if defined(MBEDTLS_CTR_DRBG_C) && !(...) / #error \"MBEDTLS_CTR_DRBG_C defined, but not all prerequisites\"` (`include/mbedtls/check_config.h:101-104`)\n- Direct contradiction between two enabled options: `#if defined(MBEDTLS_BLOCK_CIPHER_NO_DECRYPT) && defined(PSA_WANT_ALG_CBC_NO_PADDING) / #error \"... cannot be defined simultaneously\"` (`include/mbedtls/check_config.h:121-126`)\n- Specific to the example feature above: enabling `MBEDTLS_ECP_RESTARTABLE` together with any `*_ALT` implementation fails: `#if defined(MBEDTLS_ECP_RESTARTABLE) && (defined(MBEDTLS_ECDH_COMPUTE_SHARED_ALT) || ... || defined(MBEDTLS_ECP_ALT)) / #error \"MBEDTLS_ECP_RESTARTABLE defined, but it cannot coexist with an alternative ECP implementation\"` (`include/mbedtls/check_config.h:187-195`), matching the doc note that this feature \"is incompatible with MBEDTLS_ECP_ALT, MBEDTLS_ECDH_XXX_ALT, MBEDTLS_ECDSA_XXX_ALT\" (`include/mbedtls/mbedtls_config.h:829-831`).\n\nThese are hard compile errors (`#error`), so a contradictory configuration fails at preprocessing time for every translation unit, regardless of which of the four override mechanisms produced it \u2014 the check runs once, centrally, after all config sources have been merged (`include/mbedtls/build_info.h:149-190` \u2192 `check_config.h`). The header explicitly warns not to include `check_config.h` directly or from a config file, since it depends on `MBEDTLS_CONFIG_IS_FINALIZED` having been set after all adjustment passes (`include/mbedtls/check_config.h:8-11, 23-27`).\n\n## Gaps\n\n- `scripts/config.py`'s base class (`config_common.ConfigTool`/`ConfigFile`, imported via `framework_scripts_path.py`) lives in the `framework` git submodule, which is not checked out in this working copy (`ls framework/` is empty). So I could not inspect the exact `get`/`set`/`unset`/`adapt` CLI grammar in its own source \u2014 I relied on the documented example invocation (`docs/psa-driver-example-and-guide.md:145-146`) and the subclass's adapter registrations in `scripts/config.py:357-407` rather than the base parser itself.\n- I did not exhaustively enumerate every `#error` in `check_config.h` (it's several hundred lines); I cited representative dependency/contradiction checks, including the one specific to the example feature (`MBEDTLS_ECP_RESTARTABLE`).",
+  "ttft_ms": 2639,
+  "ttft_stream_ms": 1470,
+  "time_to_request_ms": 179,
+  "type": "result",
+  "duration_ms": 99134,
+  "uuid": "32690165-14e4-4fd9-b60f-d5b6a00e2356"
+}

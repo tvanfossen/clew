@@ -1,0 +1,313 @@
+{
+  "q": "Q3",
+  "arm": "mcp",
+  "model": "sonnet",
+  "run": 1,
+  "answer": "Q3_sonnet_mcp_r1.md",
+  "rubric": "acceptance/targets/entropic/questions.yaml",
+  "declared_mark_count": 11,
+  "summary": {
+    "marks_hit": 4,
+    "marks_miss": 7,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 11,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": null,
+    "falsity_verdict": null,
+    "marks_total": 11,
+    "score": 4.0,
+    "score_strict": 4.0
+  },
+  "falsity": null,
+  "marks": [
+    {
+      "index": 1,
+      "text": "**refuses to answer with a single number**, and says why: two spawn sites are per-connection or per-request and two more are per-configured-server, so the live thread count is a runtime property, not a source property",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "Answer gives a single count (4 first-party threads) and doesn't distinguish per-connection/per-request vs per-configured-server spawn cardinality as a reason it can't be a single number.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: Answer gives a single count (4 first-party threads) and doesn't distinguish per-connection/per-request vs per-configured-server spawn cardinality as a reason it can't be a single number."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 2,
+      "text": "locates the spawn sites and gives a count of them with its basis, and says which tree the count is over \u2014 9 real spawns in `src/` + `include/` is the source figure, and anything close passes with the non-spawn tokens excluded and the exclusion explained. The index's thread roster is 21 rows over the whole repository, of which only 4 resolve into entropic's own code (`accept_loop`, `HealthMonitor::monitor_loop`, `StdioTransport::stderr_reader_loop`, `SSETransport::sse_reader_loop`) and the remaining 17 spawn under `extern/llama.cpp` \u2014 so 21 passes when it is attributed that way and an unattributed 21 does not",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "ExternalBridge::accept_loop",
+          "HealthMonitor::monitor_loop",
+          "StdioTransport::stderr_reader_loop",
+          "SSETransport::sse_reader_loop"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `ExternalBridge::accept_loop` \u2014 | `ExternalBridge::accept_loop` | `src/facade/external_bridge.cpp:796` (in `ExternalBridge::start`) | pthread, 5 members |",
+          "symbol `HealthMonitor::monitor_loop` \u2014 | `HealthMonitor::monitor_loop` | `src/mcp/health_monitor.cpp:92` (in `HealthMonitor::start`) | pthread, 5 members |",
+          "symbol `StdioTransport::stderr_reader_loop` \u2014 | `StdioTransport::stderr_reader_loop` | `src/mcp/transport_stdio.cpp:164` (in `StdioTransport::open`) | pthread, 4 members |",
+          "symbol `SSETransport::sse_reader_loop` \u2014 | `SSETransport::sse_reader_loop` | `src/mcp/transport_sse.cpp:107` (in `SSETransport::open`) | pthread, 4 members |"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "**separates spawns from non-spawns**, naming at least one non-spawn category: a bare member declaration (`std::thread accept_thread_;`) and `std::thread::hardware_concurrency()` are both `std::thread` tokens and neither starts anything",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [
+          "std::thread"
+        ],
+        "symbols_missed": [
+          "accept_thread_",
+          "std::thread::hardware_concurrency"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `std::thread` (unqualified) \u2014 | `StdioTransport::stderr_reader_loop` | `src/mcp/transport_stdio.cpp:164` (in `StdioTransport::open`) | pthread, 4 members |"
+        ]
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"The other 17 (e.g. `httplib::ThreadPool::worker`, ... all originate under `extern/llama.cpp`\" / \"Filtering to first-party spawn sites (`origin.first_party` = 4), **entropic itself spawns 4 threads**\"",
+        "why": "The answer distinguishes first-party vs external spawns, but never names the required non-spawn category (a bare member declaration or `hardware_concurrency()` token that isn't a spawn at all) \u2014 it separates spawns from spawns-elsewhere, not spawns from non-spawns.",
+        "raw": "QUOTE: \"The other 17 (e.g. `httplib::ThreadPool::worker`, ... all originate under `extern/llama.cpp`\" / \"Filtering to first-party spawn sites (`origin.first_party` = 4), **entropic itself spawns 4 threads**\"\nVERDICT: MISS\nWHY: The answer distinguishes first-party vs external spawns, but never names the required non-spawn category (a bare member declaration or `hardware_concurrency()` token that isn't a spawn at all) \u2014 it separates spawns from spawns-elsewhere, not spawns from non-spawns."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 4,
+      "text": "**names what at least three of the threads DO**, not just where they are constructed \u2014 e.g. the accept loop, the health monitor loop, the per-client serve loop, the SSE reader, the stderr forwarder",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"ExternalBridge::accept_loop | ... | HealthMonitor::monitor_loop | ... | StdioTransport::stderr_reader_loop | ... | SSETransport::sse_reader_loop\" plus \"Runs a polling loop (500ms interval)... Holds watched_mutex_... calling check_server\"",
+        "why": "Names all four threads by their functional roles (accept loop, health monitor loop, stderr reader, SSE reader) matching the item's examples, and elaborates monitor_loop's actual behavior (polling, locking, dispatch), going beyond mere construction sites.",
+        "raw": "QUOTE: \"ExternalBridge::accept_loop | ... | HealthMonitor::monitor_loop | ... | StdioTransport::stderr_reader_loop | ... | SSETransport::sse_reader_loop\" plus \"Runs a polling loop (500ms interval)... Holds watched_mutex_... calling check_server\"\nVERDICT: HIT\nWHY: Names all four threads by their functional roles (accept loop, health monitor loop, stderr reader, SSE reader) matching the item's examples, and elaborates monitor_loop's actual behavior (polling, locking, dispatch), going beyond mere construction sites."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "**answers the concrete \"which thread runs X\"** for a function it picks, and traces it to a spawn site rather than asserting it",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"`entropic::HealthMonitor::monitor_loop()` is defined at `include/entropic/mcp/health_monitor.h:137-155`... It is itself the entry function of thread id 9, spawned by `HealthMonitor::start` at `src/mcp/health_monitor.cpp:92`... So: **`monitor_loop` runs entirely on the `HealthMonitor::monitor_loop` thread (thread id 9)** \u2014 a dedicated background pthread started by `HealthMonitor::start`\"",
+        "why": "It picks a concrete function (monitor_loop), names the thread that runs it, and traces it to its actual spawn site/line rather than merely asserting the association.",
+        "raw": "QUOTE: \"`entropic::HealthMonitor::monitor_loop()` is defined at `include/entropic/mcp/health_monitor.h:137-155`... It is itself the entry function of thread id 9, spawned by `HealthMonitor::start` at `src/mcp/health_monitor.cpp:92`... So: **`monitor_loop` runs entirely on the `HealthMonitor::monitor_loop` thread (thread id 9)** \u2014 a dedicated background pthread started by `HealthMonitor::start`\"\nVERDICT: HIT\nWHY: It picks a concrete function (monitor_loop), names the thread that runs it, and traces it to its actual spawn site/line rather than merely asserting the association."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "**notices the two spawn FORMS** \u2014 in entropic's own code, six lambdas against three `std::thread(&Class::method, this)` \u2014 and says that the lambda bodies have to be read to learn the entry point",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [
+          "std::thread"
+        ],
+        "symbols_missed": [
+          "Class::method"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `std::thread` (unqualified) \u2014 | `StdioTransport::stderr_reader_loop` | `src/mcp/transport_stdio.cpp:164` (in `StdioTransport::open`) | pthread, 4 members |"
+        ]
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer identifies pthread-based spawns (`entropic::HealthMonitor::monitor_loop` etc.) but never contrasts a lambda-entry form against a `std::thread(&Class::method, this)` form, nor notes that lambda bodies must be read to find the entry point.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer identifies pthread-based spawns (`entropic::HealthMonitor::monitor_loop` etc.) but never contrasts a lambda-entry form against a `std::thread(&Class::method, this)` form, nor notes that lambda bodies must be read to find the entry point."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 7,
+      "text": "**finds the detached thread.** Exactly one of entropic's own nine detaches (`external_bridge.cpp`, the async-ask worker); the other eight are joined. An answer that reports the lifecycle uniformly has missed it. Lifecycle claims about `extern/llama.cpp`'s threads are neither required nor penalised",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "external_bridge"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `external_bridge` \u2014 | `ExternalBridge::accept_loop` | `src/facade/external_bridge.cpp:796` (in `ExternalBridge::start`) | pthread, 5 members |"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 8,
+      "text": "**quantifies its coverage with a denominator stated** \u2014 what fraction of entropic's functions its answer actually places on a thread, against what total \u2014 and reads silence as \"not established\" rather than as \"runs on the main thread\"",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer quantifies thread rows and files/coverage stats, but never states a fraction of entropic's functions actually placed on a thread against a total function count.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer quantifies thread rows and files/coverage stats, but never states a fraction of entropic's functions actually placed on a thread against a total function count."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 9,
+      "text": "**does not invent a scheduler.** entropic's OWN code has no thread pool, no executor and no task queue; every thread of its own is one of the nine `std::thread` constructions. The indexed repository does contain one \u2014 `class ThreadPool final : public TaskQueue` at `extern/llama.cpp/vendor/cpp-httplib/httplib.h:1556` \u2014 so naming it AS THE SUBMODULE'S is correct and passes; attributing a scheduler to entropic is the MISS",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [
+          "ThreadPool"
+        ],
+        "symbols_weak": [
+          "std::thread"
+        ],
+        "symbols_missed": [
+          "TaskQueue"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [
+          "httplib.h:1556"
+        ],
+        "evidence": [
+          "symbol `std::thread` (unqualified) \u2014 | `StdioTransport::stderr_reader_loop` | `src/mcp/transport_stdio.cpp:164` (in `StdioTransport::open`) | pthread, 4 members |",
+          "symbol `ThreadPool` \u2014 The other 17 (e.g. `httplib::ThreadPool::worker`, `server_http_context::listen_after_bind`, `ma_thread_create__posix`/`__win32`, various Python `threading.Thread`/`asyncio` spawns in test/bench scripts) all originate under `extern/llama.cpp` \u2014 vendored, not entropic's own code \u2014 per `origin.external_roots: [\"extern/llama.cpp\"]`."
+        ]
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"17 of those are spawned inside the vendored extern/llama.cpp submodule\" / \"The other 17 (e.g. httplib::ThreadPool::worker, ... all originate under extern/llama.cpp\"",
+        "why": "The answer notes ThreadPool::worker is a vendored llama.cpp thread but never identifies it as a scheduler/thread-pool construct being correctly attributed to the submodule rather than entropic \u2014 it just lists it among generic external threads without naming the scheduler distinction the item requires.",
+        "raw": "QUOTE: \"17 of those are spawned inside the vendored extern/llama.cpp submodule\" / \"The other 17 (e.g. httplib::ThreadPool::worker, ... all originate under extern/llama.cpp\"\nVERDICT: MISS\nWHY: The answer notes ThreadPool::worker is a vendored llama.cpp thread but never identifies it as a scheduler/thread-pool construct being correctly attributed to the submodule rather than entropic \u2014 it just lists it among generic external threads without naming the scheduler distinction the item requires."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 10,
+      "text": "notes that the per-client threads are tracked in a `client_threads_` collection guarded by its own mutex, so the unbounded set is at least managed rather than merely detached",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "client_threads_"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never mentions a `client_threads_` collection or its guarding mutex; it discusses first-party spawn sites but not a tracked-collection-with-mutex mechanism.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions a `client_threads_` collection or its guarding mutex; it discusses first-party spawn sites but not a tracked-collection-with-mutex mechanism."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 11,
+      "text": "observes that the one detached thread calls back into the public C API (`entropic_run`) on the owning handle, so it crosses the facade boundary from the outside",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "entropic_run"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never mentions the detached thread calling back into `entropic_run` on the owning handle or crossing the facade boundary from outside.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions the detached thread calling back into `entropic_run` on the owning handle or crossing the facade boundary from outside."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

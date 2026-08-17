@@ -1,0 +1,16 @@
+# Declared data-model manifest: the key inventory joined with write/read
+# ownership. Produces high-confidence shared_key_edges (declared=1, source
+# 'shared_key_declared') beside the INFERRED edges the AST pass derives from the
+# same source tree — so one logical seam is present under two provenances, which
+# is the shape the provenance-collapse tests measure against.
+keys:
+  - name: DEMOBOT_POWER_BATTERY_MV
+    event: false        # state: readers poll it
+    persistent: true
+    writers: [sensor_poll]
+    readers: [telemetry_report]
+  - name: DEMOBOT_UX_SOUND_EVENT
+    event: true         # event: the write triggers reader-side behaviour
+    persistent: false
+    writers: [handle_ping_cmd]
+    readers: [handle_dm_key_event]

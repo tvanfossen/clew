@@ -1,0 +1,227 @@
+{
+  "q": "Q11",
+  "arm": "src",
+  "model": "haiku",
+  "run": 1,
+  "answer": "Q11_haiku_src_r1.md",
+  "rubric": "acceptance/targets/mbedtls/questions.yaml",
+  "declared_mark_count": 8,
+  "summary": {
+    "marks_hit": 5,
+    "marks_miss": 3,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 8,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": true,
+    "falsity_verdict": "CONSISTENT",
+    "marks_total": 8,
+    "score": 5.0,
+    "score_strict": 5.0
+  },
+  "falsity": {
+    "checked": true,
+    "verdict": "CONSISTENT",
+    "agreement": 1.0,
+    "tally": [
+      [
+        "CONSISTENT",
+        3
+      ]
+    ],
+    "samples": 3,
+    "errors": 0,
+    "vetoed": false
+  },
+  "marks": [
+    {
+      "index": 1,
+      "text": "names `include/mbedtls/mbedtls_config.h` as where the decision is recorded",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [
+          "mbedtls_config.h"
+        ],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "cite mbedtls_config.h: file named (whole-file citation)"
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "**states that an option is turned on by UNCOMMENTING a line the file already carries**, rather than by adding a new define \u2014 the off state is written down, not absent",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "Use any of the pre-configured files in `configs/` as a base (e.g., `config-symmetric-only.h:1`)",
+        "why": "The answer lists file-editing, CMake flags, compiler flags, and a Python script as ways to change config, but never states that a specific option is enabled by uncommenting an already-present (commented-out) line in a file.",
+        "raw": "QUOTE: Use any of the pre-configured files in `configs/` as a base (e.g., `config-symmetric-only.h:1`)\nVERDICT: MISS\nWHY: The answer lists file-editing, CMake flags, compiler flags, and a Python script as ways to change config, but never states that a specific option is enabled by uncommenting an already-present (commented-out) line in a file."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 3,
+      "text": "names the supported programmatic route as well as editing by hand \u2014 `scripts/config.py` (`set` / `unset` / `full`), or the legacy `scripts/config.pl` that ships beside it. Naming some other tool does not earn the mark",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [
+          "config.py:0",
+          "config.pl:0"
+        ],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Python configuration tool** (`scripts/config.py:357-413`) - `scripts/config.py` provides programmatic manipulation with pre-defined profiles: - `full` / `full_no_deprecated` / `full_no_platform` / `crypto_full` / `crypto_baremetal` / `baremetal` - Example: `python3 scripts/config.py set MBEDTLS_AES_C`\"",
+        "why": "Names scripts/config.py with set command specifically, satisfying the programmatic route requirement.",
+        "raw": "QUOTE: \"Python configuration tool** (`scripts/config.py:357-413`) - `scripts/config.py` provides programmatic manipulation with pre-defined profiles: - `full` / `full_no_deprecated` / `full_no_platform` / `crypto_full` / `crypto_baremetal` / `baremetal` - Example: `python3 scripts/config.py set MBEDTLS_AES_C`\"\nVERDICT: HIT\nWHY: Names scripts/config.py with set command specifically, satisfying the programmatic route requirement."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "**distinguishes the macro that REPLACES the whole configuration file from the one that OVERLAYS it.** They are different mechanisms applied at different points and conflating them is a MISS",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer distinguishes primary config vs. user override/append and CMake's MBEDTLS_CONFIG_FILE vs. MBEDTLS_USER_CONFIG_FILE, but never states that one macro (MBEDTLS_CONFIG_FILE) *replaces* the default config file entirely while another (MBEDTLS_USER_CONFIG_FILE) *overlays*/appends on top of it \u2014 it describes both as file-selection options without naming the replace-vs-overlay distinction.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer distinguishes primary config vs. user override/append and CMake's MBEDTLS_CONFIG_FILE vs. MBEDTLS_USER_CONFIG_FILE, but never states that one macro (MBEDTLS_CONFIG_FILE) *replaces* the default config file entirely while another (MBEDTLS_USER_CONFIG_FILE) *overlays*/appends on top of it \u2014 it describes both as file-selection options without naming the replace-vs-overlay distinction."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 5,
+      "text": "**names what catches a contradictory configuration, and says it fails the COMPILE** rather than being detected at run time \u2014 `include/mbedtls/check_config.h` (202 `#error` directives) or `library/check_crypto_config.h` (17), which raise a PREPROCESSOR error so the translation unit does not compile. Both halves are required: naming the header without the compile-time consequence, or asserting a compile failure without naming what raises it, does not earn the mark",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"1. **Compile-time validation checks** (`include/mbedtls/check_config.h`)... If contradictions exist, the compiler stops with a clear `#error` message. There is **no way** to produce a binary with contradictory options \u2014 compilation will fail.\"",
+        "why": "Names check_config.h and explicitly ties it to contradictory config causing compile failure via #error directives.",
+        "raw": "QUOTE: \"1. **Compile-time validation checks** (`include/mbedtls/check_config.h`)... If contradictions exist, the compiler stops with a clear `#error` message. There is **no way** to produce a binary with contradictory options \u2014 compilation will fail.\"\nVERDICT: HIT\nWHY: Names check_config.h and explicitly ties it to contradictory config causing compile failure via #error directives."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "reports that a second, separate configuration namespace exists for the PSA cryptography layer, gated by its own option",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"**Secondary config:** `include/psa/crypto_config.h` \u2014 Separate configuration for PSA Crypto API options.\"",
+        "why": "The answer identifies a separate PSA config namespace (crypto_config.h), gated by its own option (MBEDTLS_PSA_CRYPTO_CONFIG, mentioned in step 3 of the init sequence).",
+        "raw": "QUOTE: \"**Secondary config:** `include/psa/crypto_config.h` \u2014 Separate configuration for PSA Crypto API options.\"\nVERDICT: HIT\nWHY: The answer identifies a separate PSA config namespace (crypto_config.h), gated by its own option (MBEDTLS_PSA_CRYPTO_CONFIG, mentioned in step 3 of the init sequence)."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 7,
+      "text": "mentions the shipped alternative configurations, or the adjustment headers that follow dependencies through before the consistency check runs",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"python3 scripts/config.py set MBEDTLS_AES_C\" combined with pre-defined profiles list \"`full` / `full_no_deprecated` / `full_no_platform` / `crypto_full` / `crypto_baremetal` / `baremetal`\" and \"**Automatic dependency activation** ... those dependencies are **automatically enabled**\" and \"Include multiple `config_adjust_*.h` files\" as step 6, before \"Include `check_config.h` which performs compile-time validation\" as step 8",
+        "why": "The answer names both the shipped alternative configs (config.py profiles / configs/*.h) and the adjustment headers (config_adjust_*.h, auto-enable dependencies) that run before check_config.h's consistency validation.",
+        "raw": "QUOTE: \"python3 scripts/config.py set MBEDTLS_AES_C\" combined with pre-defined profiles list \"`full` / `full_no_deprecated` / `full_no_platform` / `crypto_full` / `crypto_baremetal` / `baremetal`\" and \"**Automatic dependency activation** ... those dependencies are **automatically enabled**\" and \"Include multiple `config_adjust_*.h` files\" as step 6, before \"Include `check_config.h` which performs compile-time validation\" as step 8\nVERDICT: HIT\nWHY: The answer names both the shipped alternative configs (config.py profiles / configs/*.h) and the adjustment headers (config_adjust_*.h, auto-enable dependencies) that run before check_config.h's consistency validation."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 8,
+      "text": "**gives the colleague a concrete recipe** \u2014 which file, which line, and how they would confirm it took effect",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"Use compiler preprocessor flags: `-DMBEDTLS_CONFIG_FILE='<foo.h>'`... Example: `python3 scripts/config.py set MBEDTLS_AES_C`\" / \"If contradictions exist, the compiler stops with a clear `#error` message.\"",
+        "why": "The answer gives file/line locations for config mechanisms but never gives a concrete recipe to confirm a specific change \"took effect\" (e.g., grep the generated config, check a build log, inspect a preprocessed output) \u2014 it only describes how config errors surface, not a verification step for a colleague's specific edit.",
+        "raw": "Checking the answer for a concrete \"how to confirm it took effect\" recipe with file/line.\n\nQUOTE: \"Use compiler preprocessor flags: `-DMBEDTLS_CONFIG_FILE='<foo.h>'`... Example: `python3 scripts/config.py set MBEDTLS_AES_C`\" / \"If contradictions exist, the compiler stops with a clear `#error` message.\"\nVERDICT: MISS\nWHY: The answer gives file/line locations for config mechanisms but never gives a concrete recipe to confirm a specific change \"took effect\" (e.g., grep the generated config, check a build log, inspect a preprocessed output) \u2014 it only describes how config errors surface, not a verification step for a colleague's specific edit."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

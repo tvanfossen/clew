@@ -1,0 +1,68 @@
+{
+  "is_error": false,
+  "duration_api_ms": 102846,
+  "num_turns": 38,
+  "stop_reason": "end_turn",
+  "session_id": "29079a08-6a90-41fe-83bd-4522948d9bd3",
+  "total_cost_usd": 0.4953821,
+  "usage": {
+    "input_tokens": 305,
+    "cache_creation_input_tokens": 85265,
+    "cache_read_input_tokens": 2759821,
+    "output_tokens": 9431,
+    "output_tokens_details": {
+      "thinking_tokens": 4629
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 85265,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 8,
+        "output_tokens": 1456,
+        "cache_read_input_tokens": 87528,
+        "cache_creation_input_tokens": 1211,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1211
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1600,
+      "outputTokens": 9454,
+      "cacheReadInputTokens": 2759821,
+      "cacheCreationInputTokens": 85265,
+      "webSearchRequests": 0,
+      "costUSD": 0.4953821,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Based on my analysis of the mbedtls codebase, I found several instances of functions that write to shared state which other functions later read, with no direct call relationship between the writing and reading functions:\n\n## Primary Coupling: Debug Threshold\n\n**Writer:** `mbedtls_debug_set_threshold` (library/debug.c:36-39) writes to global `debug_threshold` at line 38.\n\n**Readers:** Multiple functions read `debug_threshold` with no call from `mbedtls_debug_set_threshold`:\n- `mbedtls_debug_print_msg` (library/debug.c:63-95) reads at line 76\n- `mbedtls_debug_print_ret` (library/debug.c:97-123) reads at line 106\n- `mbedtls_debug_print_buf` (library/debug.c:125-178) reads at line 136\n- `mbedtls_debug_print_ecp` (library/debug.c:181-199) reads at line 190\n- `mbedtls_debug_print_psa_ec` (library/debug.c:243-271) reads at line 254\n- `mbedtls_debug_print_mpi` (library/debug.c:275-389) reads at line 287\n- `mbedtls_debug_print_crt` (library/debug.c:394-422) reads at line 405\n\n**Pattern:** A typical usage flow is `mbedtls_debug_set_threshold(level)` called once during initialization, followed by multiple independent debug print function calls that check this threshold. No function-to-function calls exist between the setter and the various getters.\n\n---\n\n## Platform Function Pointers\n\n**Writers/Readers in library/platform.c:**\n- `mbedtls_platform_set_calloc_free` (line 57-62) writes `mbedtls_calloc_func` and `mbedtls_free_func`\n- `mbedtls_calloc` (line 47-50) reads `mbedtls_calloc_func`\n- `mbedtls_free` (line 52-55) reads `mbedtls_free_func`\n\nSimilar patterns exist for:\n- `mbedtls_platform_set_snprintf` \u2192 `mbedtls_snprintf` reader\n- `mbedtls_platform_set_printf` \u2192 `mbedtls_printf` reader\n- `mbedtls_platform_set_fprintf` \u2192 `mbedtls_fprintf` reader\n\n**Pattern:** Platform abstractions are typically set once at startup, then used throughout the codebase without callbacks to the setup functions.\n\n---\n\n## MPS Trace Depth Counter\n\n**Coupling in library/mps_trace.c:**\n- `trace_depth` global at line 19\n- `mbedtls_mps_trace_inc_depth` (line 66-68) writes to it\n- `mbedtls_mps_trace_dec_depth` (line 62-64) writes to it\n- `mbedtls_mps_trace_get_depth` (line 58-61) reads it\n\n**Pattern:** No call relationship enforced between increment/decrement operations and the read operation across different functions.\n\n---\n\n## Gaps\n\nI could not identify a comprehensive call graph to definitively rule out all indirect call paths without an indexed database. The analysis assumes that absence of direct function calls in the source means no coupling, but complex multi-level indirection or conditional compilation might create hidden call paths not visible through simple text search.",
+  "ttft_ms": 2299,
+  "ttft_stream_ms": 1007,
+  "time_to_request_ms": 182,
+  "type": "result",
+  "duration_ms": 102584,
+  "uuid": "486d062d-9be2-4674-9770-1fe71f289232"
+}

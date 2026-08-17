@@ -1,0 +1,80 @@
+{
+  "is_error": false,
+  "duration_api_ms": 74202,
+  "num_turns": 17,
+  "stop_reason": "end_turn",
+  "session_id": "b3e05ea0-7745-426c-9fdd-3ddfa8cd1946",
+  "total_cost_usd": 1.0385746000000002,
+  "usage": {
+    "input_tokens": 34,
+    "cache_creation_input_tokens": 74548,
+    "cache_read_input_tokens": 1687082,
+    "output_tokens": 5572,
+    "output_tokens_details": {
+      "thinking_tokens": 999
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 74548,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2117,
+        "cache_read_input_tokens": 116369,
+        "cache_creation_input_tokens": 1490,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1490
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1395,
+      "outputTokens": 17,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.00148,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 34,
+      "outputTokens": 5572,
+      "cacheReadInputTokens": 1687082,
+      "cacheCreationInputTokens": 74548,
+      "webSearchRequests": 0,
+      "costUSD": 1.0370946,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "This confirms the enforcement mechanism precisely. I have everything needed.\n\n## Answer\n\n**The single source is `doxyguard_db/vocabulary.py`** (`doxyguard_db/vocabulary.py:1-1081`). Its module docstring states the mandate directly: \"Every enumerated column in docs.db used to spell its allowed values as a SQL string literal at the CREATE TABLE site, and sometimes a SECOND time as a module constant... This module is the single source.\" (`doxyguard_db/vocabulary.py:2-14`).\n\n**Mechanism.** Each enumerated value set is one frozen `Vocabulary` dataclass instance (`doxyguard_db/vocabulary.py:100-171`): `id`, an ordered `values: tuple[str, ...]`, `means` (semantics), an explicit `rank` map, and a `reserved` frozenset. Two methods are the only way anything is allowed to touch a vocabulary's values:\n- `Vocabulary.check(column)` (`doxyguard_db/vocabulary.py:129-138`) generates a `CHECK(col IN (...))` SQL fragment by explicit quote-and-join (never `{tuple!r}` \u2014 noted at `doxyguard_db/vocabulary.py:29-36,130-132` because a repr-based join breaks on 1-value sets and apostrophes).\n- `Vocabulary.validated(value, owner=, field=)` (`doxyguard_db/vocabulary.py:159-171`) is the \"single choke point every declared-enum path routes through,\" raising `DeclarationError` (`doxyguard_db/vocabulary.py:65-76`) rather than normalizing an unknown token.\n\nAll 33 vocabularies are registered in `VOCABULARIES` (`doxyguard_db/vocabulary.py:895-933`), and every DDL column that should carry a CHECK is bound to its vocabulary in `COLUMNS: dict[tuple[str,str], Vocabulary]` (`doxyguard_db/vocabulary.py:938-973`). A module-level `check(table, column)` (`doxyguard_db/vocabulary.py:1030-1040`) looks up `COLUMNS` and raises `KeyError` for anything unregistered \u2014 \"a silently-absent CHECK is the exact hole this module exists to close.\"\n\n**How the rest of the codebase is kept from restating them.** Each layer's own table-creation function imports `check`/`bool_check` from `vocabulary` and splices the clause inline, e.g. `doxyguard_db/locks.py:320`: `kind TEXT NOT NULL {check(\"locks\", \"kind\")}`. Nothing else is allowed to write `CHECK(` literally: `tests/test_vocabulary.py:96-111` scans every package source file and asserts `\"CHECK(\"` appears in exactly one file, `vocabulary.py` itself \u2014 a filesystem-level gate, since `pre-commit --all-files` can't see a brand-new untracked file and an artifact-reconcile test can't see a CREATE TABLE the fixture build never runs. `tests/test_vocabulary.py:412-418` separately asserts every registered `(table, column)` produces a valid clause and that an unregistered one raises.\n\n**Dependencies, and why.** The module docstring is explicit that it is a **true leaf** (`doxyguard_db/vocabulary.py:16-20`): zero intra-package imports \u2014 not even `doxyguard_db/_common.py` (which pulls in `rich`) or `doxyguard_db/query/_common.py` (deliberately stdlib-only). It imports only `dataclasses` and `pathlib`. The reason: importing either of those two dependency-bearing modules here would make one of them un-importable without dragging in the other's dependency (`rich` vs. stdlib-only), since every other layer (locks, threads, shared_key_edges, kconfig, datamodel, etc. \u2014 24 files import from it, confirmed by grep) depends on `vocabulary.py`, so it must depend on nothing back.\n\n**What breaks if two entries that \"look identical\" get merged.** The docstring calls this out directly (`doxyguard_db/vocabulary.py:22-27`): five vocabularies (spawn-detection strength, provenance strength, lock-identity certainty, acquisition-resolution success, and `external_boundaries` confidence) all happen to share the tuple `('low','medium','high')` and are deliberately kept as five separate objects. If two were merged into one shared `Vocabulary`, adding a value for one purpose (e.g. widening lock-identity confidence) would silently widen the `CHECK` constraint on the other four unrelated columns too \u2014 and every test comparing the shipped schema against the registry would stay green, because the schema-reconcile test only checks that the CHECK text matches what the registry emits, not that the registry's *grouping* is semantically correct.\n\nThe sharper case is `LOCK_KIND` (`doxyguard_db/vocabulary.py:377-385`), where the module docstring states `locks.kind` is **part of lock identity** \u2014 `UNIQUE(name, scope, kind)`. If two kind values that \"look identical\" (e.g. two spellings that get merged/normalized to one token) were collapsed, two acquisitions naming genuinely different lock kinds would collapse into **one lock row**, fabricating shared synchronization between two things that don't actually share a lock \u2014 exactly the failure the fail-closed `validated()` (no `'unknown'` fallback for `acq_form`/`acq_role`/`acq_mode`, per `doxyguard_db/vocabulary.py:38-45`) exists to prevent.\n\n## Gaps\n\n- I could not get `dossier`'s `callers` to show who invokes `check(\"locks\",\"kind\")` etc. \u2014 it returned empty for both the `Vocabulary.check` method and the module-level `check` function (likely the same name-collision limitation this repo's own memory notes document for overloaded/same-named symbols, e.g. `gh#26`). I resolved actual call sites by `Grep` on `doxyguard_db/locks.py` instead and verified inline usage directly in the source.\n- `dossier(kind=\"file\")` on `doxyguard_db/vocabulary.py` was refused (\"a file has no dossier\"); file-level brief came from `search(corpus=\"symbols\")`'s file-doc provenance instead.",
+  "ttft_ms": 3549,
+  "ttft_stream_ms": 1361,
+  "time_to_request_ms": 96,
+  "type": "result",
+  "duration_ms": 74166,
+  "uuid": "8148acd4-f9b5-4549-9148-f4b457cc2c87"
+}

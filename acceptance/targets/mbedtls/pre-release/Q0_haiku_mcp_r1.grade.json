@@ -1,0 +1,237 @@
+{
+  "q": "Q0",
+  "arm": "mcp",
+  "model": "haiku",
+  "run": 1,
+  "answer": "Q0_haiku_mcp_r1.md",
+  "rubric": "acceptance/targets/mbedtls/questions.yaml",
+  "declared_mark_count": 9,
+  "summary": {
+    "marks_hit": 5,
+    "marks_miss": 4,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 9,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": null,
+    "falsity_verdict": null,
+    "marks_total": 9,
+    "score": 5.0,
+    "score_strict": 5.0
+  },
+  "falsity": null,
+  "marks": [
+    {
+      "index": 1,
+      "text": "**the coverage check comes FIRST inside this answer** \u2014 the basis is established before the answer makes any claim about what mbedtls contains, rather than the claims arriving first and a check being appended to them. Judge the ORDER OF THIS ONE ANSWER; a cell answers one question, so nothing here rests on what a later question would have done",
+      "arm_only": "db",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Good\u2014the index is **current and serving the mbedtls repository**. Let me verify coverage by checking what the index actually holds\" [followed by the coverage table before any content claim about mbedtls]",
+        "why": "The answer opens with a freshness/coverage check and establishes the basis (build version, staleness, file counts) before making any substantive claim about mbedtls's contents.",
+        "raw": "QUOTE: \"Good\u2014the index is **current and serving the mbedtls repository**. Let me verify coverage by checking what the index actually holds\" [followed by the coverage table before any content claim about mbedtls]\nVERDICT: HIT\nWHY: The answer opens with a freshness/coverage check and establishes the basis (build version, staleness, file counts) before making any substantive claim about mbedtls's contents."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "states the basis as something **checked** \u2014 naming what it ran and what came back \u2014 rather than an assumption that the default view is complete",
+      "arm_only": "db",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"One MCP `status` call: returned full diagnostics, 1 round-trip\" / \"Measured coverage report: timestamps, stage execution times, file/edge counts all included\"",
+        "why": "The answer names the specific call it ran (status) and what came back (diagnostics with concrete metrics), rather than assuming default coverage.",
+        "raw": "Looking at the answer, I need to find where it justifies its coverage claim as something checked (a call made, a result returned) rather than assumed.\n\nThe answer explicitly lists: \"One MCP `status` call: returned full diagnostics, 1 round-trip\" and \"Measured coverage report: timestamps, stage execution times, file/edge counts all included\" \u2014 plus the full table of metrics from that status call (build version, staleness, file counts, etc.), and a \"What I Checked & Found\" section.\n\nQUOTE: \"One MCP `status` call: returned full diagnostics, 1 round-trip\" / \"Measured coverage report: timestamps, stage execution times, file/edge counts all included\"\nVERDICT: HIT\nWHY: The answer names the specific call it ran (status) and what came back (diagnostics with concrete metrics), rather than assuming default coverage."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "**notices that this library guards nearly every function body behind conditional compilation**, and that a view taken with nothing declared therefore under-covers it \u2014 this is a fact about mbedtls, findable in `library/*.c` and `include/mbedtls/mbedtls_config.h`",
+      "arm_only": "db",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [
+          "mbedtls_config.h:0"
+        ],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer discusses file-pattern/scope coverage but never notes that mbedtls guards nearly every function body behind `#if`/conditional compilation (config macros), which is the specific under-coverage mechanism this item requires.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses file-pattern/scope coverage but never notes that mbedtls guards nearly every function body behind `#if`/conditional compilation (config macros), which is the specific under-coverage mechanism this item requires."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 4,
+      "text": "**acts on the gap rather than only reporting it** \u2014 names the configuration it needs covered instead of leaving the shortfall as a caveat",
+      "arm_only": "db",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"The index relies on **the Doxyfile's `FILE_PATTERNS: *.h`**, which means `.c` implementation files are **not indexed by the Doxyfile's input set**\"",
+        "why": "This names the mechanism causing a gap but frames it as resolved/acceptable (\"correct for this repo\") rather than naming a configuration to add/declare to cover it \u2014 it's left as an explained caveat, not acted on.",
+        "raw": "QUOTE: \"The index relies on **the Doxyfile's `FILE_PATTERNS: *.h`**, which means `.c` implementation files are **not indexed by the Doxyfile's input set**\"\nVERDICT: MISS\nWHY: This names the mechanism causing a gap but frames it as resolved/acceptable (\"correct for this repo\") rather than naming a configuration to add/declare to cover it \u2014 it's left as an explained caveat, not acted on."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 5,
+      "text": "**states the declaration explicitly rather than deriving it** from the library's own configuration file; a guessed policy is not a stated one, and an answer that says it inferred what to cover has done the thing this mark exists to distinguish",
+      "arm_only": "db",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Doxyfile `FILE_PATTERNS`: `*.h` (headers only)\" / \"Doxyfile `INPUT`: `../include`, `input`, `../tests/include/alt-dummy`\" / \"No `.doxygen-guard.yaml` or `.doxyguard-db.yaml` found \u2192 **whole-repo indexing**\"",
+        "why": "The answer names the concrete declared config values (FILE_PATTERNS, INPUT, absence of guard/db yaml) rather than saying it inferred or guessed the scope policy.",
+        "raw": "QUOTE: \"Doxyfile `FILE_PATTERNS`: `*.h` (headers only)\" / \"Doxyfile `INPUT`: `../include`, `input`, `../tests/include/alt-dummy`\" / \"No `.doxygen-guard.yaml` or `.doxyguard-db.yaml` found \u2192 **whole-repo indexing**\"\nVERDICT: HIT\nWHY: The answer names the concrete declared config values (FILE_PATTERNS, INPUT, absence of guard/db yaml) rather than saying it inferred or guessed the scope policy."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "**reports the cost as a measured number.** Zero is valid only if nothing was done, and it must be stated rather than omitted",
+      "arm_only": "db",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"One MCP `status` call**: returned full diagnostics, 1 round-trip\"",
+        "why": "States the cost as a measured number (1 round-trip/one call) rather than omitting it.",
+        "raw": "QUOTE: \"One MCP `status` call**: returned full diagnostics, 1 round-trip\"\nVERDICT: HIT\nWHY: States the cost as a measured number (1 round-trip/one call) rather than omitting it."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 7,
+      "text": "**CONFIRMS, in this same answer, that the correction took effect** \u2014 having widened the coverage it checks again and says what came back the second time, rather than asserting that the change worked. Mark 4 grades acting on the gap; this one grades closing it and verifying the close inside one answer, which is what a single cell can actually evidence",
+      "arm_only": "db",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer performs a single coverage check with no prior gap/correction and no second check confirming a fix took effect.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer performs a single coverage check with no prior gap/correction and no second check confirming a fix took effect."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 8,
+      "text": "**says what it changed** \u2014 so a reader can tell which of its answers rest on the default coverage and which on the widened one, rather than presenting a widened view as if it had been the default",
+      "arm_only": "db",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"The index relies on **the Doxyfile's `FILE_PATTERNS: *.h`**, which means `.c` implementation files are **not indexed by the Doxyfile's input set**\u2014but the whole-repo scope overrides this for structure and the AST layer still reaches `.c` files.\"",
+        "why": "The answer explicitly distinguishes what the Doxyfile-declared scope would cover versus what the actual whole-repo widened scope covers, letting a reader tell which layers rest on which.",
+        "raw": "QUOTE: \"The index relies on **the Doxyfile's `FILE_PATTERNS: *.h`**, which means `.c` implementation files are **not indexed by the Doxyfile's input set**\u2014but the whole-repo scope overrides this for structure and the AST layer still reaches `.c` files.\"\nVERDICT: HIT\nWHY: The answer explicitly distinguishes what the Doxyfile-declared scope would cover versus what the actual whole-repo widened scope covers, letting a reader tell which layers rest on which."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "distinguishes \"not present in this repository\" from \"not present in what I can currently see\", which are different claims needing different evidence",
+      "arm_only": "db",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer discusses coverage gaps and scope but never frames a \"not found\" result as ambiguous between \"absent from the repo\" and \"absent from the indexed/visible view.\"",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses coverage gaps and scope but never frames a \"not found\" result as ambiguous between \"absent from the repo\" and \"absent from the indexed/visible view.\""
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

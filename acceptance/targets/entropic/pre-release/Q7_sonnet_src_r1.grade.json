@@ -1,0 +1,286 @@
+{
+  "q": "Q7",
+  "arm": "src",
+  "model": "sonnet",
+  "run": 1,
+  "answer": "Q7_sonnet_src_r1.md",
+  "rubric": "acceptance/targets/entropic/questions.yaml",
+  "declared_mark_count": 11,
+  "summary": {
+    "marks_hit": 8,
+    "marks_miss": 3,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 11,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": null,
+    "falsity_verdict": null,
+    "marks_total": 11,
+    "score": 8.0,
+    "score_strict": 8.0
+  },
+  "falsity": null,
+  "marks": [
+    {
+      "index": 1,
+      "text": "**the function is actually added** and is valid C++ \u2014 an answer describing an edit that was never made is the failure this question exists to catch",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"added at `src/facade/entropic.cpp:4131`\" combined with the full signature, doxygen brief text, and containing block description",
+        "why": "The answer specifies the concrete function signature, exact file/line, surrounding context, and doxygen comment as actually added, not merely described abstractly.",
+        "raw": "QUOTE: \"added at `src/facade/entropic.cpp:4131`\" combined with the full signature, doxygen brief text, and containing block description\nVERDICT: HIT\nWHY: The answer specifies the concrete function signature, exact file/line, surrounding context, and doxygen comment as actually added, not merely described abstractly."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "reports the signature as written, returning `int` and taking no arguments",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"**Signature:** `int entropic_acceptance_probe()` (extern \"C\" linkage, no parameters)\"",
+        "why": "Answer explicitly states the function returns int and takes no parameters, matching the item's substance.",
+        "raw": "QUOTE: \"**Signature:** `int entropic_acceptance_probe()` (extern \"C\" linkage, no parameters)\"\nVERDICT: HIT\nWHY: Answer explicitly states the function returns int and takes no parameters, matching the item's substance."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "names the file `src/facade/entropic.cpp`",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"**File:** `src/facade/entropic.cpp`, inside the same `extern \"C\" { ... }` block\"",
+        "why": "The answer explicitly names the file src/facade/entropic.cpp.",
+        "raw": "QUOTE: \"**File:** `src/facade/entropic.cpp`, inside the same `extern \"C\" { ... }` block\"\nVERDICT: HIT\nWHY: The answer explicitly names the file src/facade/entropic.cpp."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 4,
+      "text": "reports the doxygen brief it wrote, matching what is in the file",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"**Doxygen brief:** \\\"Acceptance-test probe: a trivial no-op sentinel used to verify the docs.db pipeline can pick up a freshly added translation-unit local function.\\\" (`src/facade/entropic.cpp:4123-4130`)\"",
+        "why": "The answer reports the exact brief it wrote and cites the matching file location.",
+        "raw": "QUOTE: \"**Doxygen brief:** \\\"Acceptance-test probe: a trivial no-op sentinel used to verify the docs.db pipeline can pick up a freshly added translation-unit local function.\\\" (`src/facade/entropic.cpp:4123-4130`)\"\nVERDICT: HIT\nWHY: The answer reports the exact brief it wrote and cites the matching file location."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 5,
+      "text": "**states that nothing calls it**, and does not invent a caller",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"**Does anything call it?** No. `grep -rn \"entropic_acceptance_probe\"` across all `.cpp`/`.h`/`.hpp` files in the repo returns only its own definition line (`src/facade/entropic.cpp:4131`) \u2014 no call sites anywhere.\"",
+        "why": "States plainly that nothing calls the function, with no invented caller.",
+        "raw": "QUOTE: \"**Does anything call it?** No. `grep -rn \"entropic_acceptance_probe\"` across all `.cpp`/`.h`/`.hpp` files in the repo returns only its own definition line (`src/facade/entropic.cpp:4131`) \u2014 no call sites anywhere.\"\nVERDICT: HIT\nWHY: States plainly that nothing calls the function, with no invented caller."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 6,
+      "text": "**the reported facts describe the post-edit tree**, not the pre-edit one \u2014 the function is reported as existing, with no hedging about whether it is there",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"**Signature:** `int entropic_acceptance_probe()` (extern \"C\" linkage, no parameters) \u2014 added at `src/facade/entropic.cpp:4131`.\"",
+        "why": "The answer reports the function as existing at a specific location with no hedging about whether it's present.",
+        "raw": "QUOTE: \"**Signature:** `int entropic_acceptance_probe()` (extern \"C\" linkage, no parameters) \u2014 added at `src/facade/entropic.cpp:4131`.\"\nVERDICT: HIT\nWHY: The answer reports the function as existing at a specific location with no hedging about whether it's present."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 7,
+      "text": "**states what entropic's own guard configuration requires of the new function** \u2014 `.doxygen-guard.yaml` sets `presence.require_doxygen`, `presence.require_return` and `version.require_present`, so a bare `@brief` is not enough",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "require_doxygen",
+          "require_return",
+          "require_present"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never mentions `.doxygen-guard.yaml`, its presence/version requirements, or that a bare `@brief` is insufficient \u2014 it only discusses symbol visibility/linkage, not guard configuration.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions `.doxygen-guard.yaml`, its presence/version requirements, or that a bare `@brief` is insufficient \u2014 it only discusses symbol visibility/linkage, not guard configuration."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 8,
+      "text": "**answers the visibility question correctly**: a function added only to `src/facade/entropic.cpp` is NOT part of the shipped ABI, because the project compiles with hidden visibility and public entry points carry `ENTROPIC_EXPORT` and a declaration in `include/entropic/entropic.h`. An answer that says the new function is callable by a consumer is wrong",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "HIT",
+        "symbols_hit": [
+          "ENTROPIC_EXPORT"
+        ],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": [
+          "symbol `ENTROPIC_EXPORT` \u2014 2. Even if it were called internally, the build sets `CMAKE_CXX_VISIBILITY_PRESET hidden` and `CMAKE_VISIBILITY_INLINES_HIDDEN ON` (`CMakeLists.txt:34-35`), so only symbols explicitly marked `ENTROPIC_EXPORT` (`__attribute__((visibility(\"default\")))`, defined in `include/entropic/entropic_export.h:28`) are exported from the shared library. `entropic_acceptance_probe` carries no `ENTROPIC_EXPORT` marker, so it would have hidden visibility and not appear in the shared library's dynamic symbol table even if a header existed."
+        ]
+      },
+      "judge": null,
+      "verdict": "HIT"
+    },
+    {
+      "index": 9,
+      "text": "the answer is verifiable against the diff \u2014 what it says is in the file is in the file",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"**Signature:** `int entropic_acceptance_probe()` (extern \"C\" linkage, no parameters) \u2014 added at `src/facade/entropic.cpp:4131`... **Doxygen brief:** \\\"Acceptance-test probe: a trivial no-op sentinel used to verify the docs.db pipeline can pick up a freshly added translation-unit local function.\\\" (`src/facade/entropic.cpp:4123-4130`)\"",
+        "why": "The answer gives specific, concrete, checkable claims (exact signature, line numbers, quoted doxygen text) that map directly onto file content rather than vague paraphrase.",
+        "raw": "QUOTE: \"**Signature:** `int entropic_acceptance_probe()` (extern \"C\" linkage, no parameters) \u2014 added at `src/facade/entropic.cpp:4131`... **Doxygen brief:** \\\"Acceptance-test probe: a trivial no-op sentinel used to verify the docs.db pipeline can pick up a freshly added translation-unit local function.\\\" (`src/facade/entropic.cpp:4123-4130`)\"\nVERDICT: HIT\nWHY: The answer gives specific, concrete, checkable claims (exact signature, line numbers, quoted doxygen text) that map directly onto file content rather than vague paraphrase."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 10,
+      "text": "notes that `version.require_increment_on_change` is also set, so if the edit had touched an existing function's body that function's `@version` would have to be bumped, while a new function needs no bump",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "require_increment_on_change"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never mentions `version.require_increment_on_change` or the @version bump requirement for edited vs. new functions.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions `version.require_increment_on_change` or the @version bump requirement for edited vs. new functions."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 11,
+      "text": "notes that the existing entry points in this file are `extern \"C\"` and that a C++-mangled probe would not match the surrounding convention even if it were exported",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer discusses extern \"C\" linkage and export visibility but never addresses that a C++-mangled probe wouldn't match the file's convention even if exported.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses extern \"C\" linkage and export visibility but never addresses that a C++-mangled probe wouldn't match the file's convention even if exported."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}

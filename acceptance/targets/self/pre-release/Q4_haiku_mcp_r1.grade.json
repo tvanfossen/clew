@@ -1,0 +1,347 @@
+{
+  "q": "Q4",
+  "arm": "mcp",
+  "model": "haiku",
+  "run": 1,
+  "answer": "Q4_haiku_mcp_r1.md",
+  "rubric": "acceptance/targets/self/questions.yaml",
+  "declared_mark_count": 13,
+  "summary": {
+    "marks_hit": 3,
+    "marks_miss": 10,
+    "judge_errors": 0,
+    "unmarked_pct": 0.0,
+    "marks_judged": 13,
+    "verdicts_disambiguated": 0,
+    "marks_fenced_out": 0,
+    "index_false": 0,
+    "quality_vetoed": false,
+    "falsity_checked": true,
+    "falsity_verdict": "CONTRADICTED",
+    "marks_total": 13,
+    "score": 3.0,
+    "score_strict": 3.0
+  },
+  "falsity": {
+    "checked": true,
+    "verdict": "CONTRADICTED",
+    "agreement": 0.67,
+    "tally": [
+      [
+        "CONSISTENT",
+        1
+      ],
+      [
+        "CONTRADICTED",
+        2
+      ]
+    ],
+    "samples": 3,
+    "errors": 0,
+    "facts": 3,
+    "vetoed": false
+  },
+  "marks": [
+    {
+      "index": 1,
+      "text": "states the precedence as an ordered rule with the caller's explicit statement at the top and the built-in defaults at the bottom",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"Tier precedence (highest to lowest): 1. Tier 1 (Explicit)... 5. Tier 5 (Heuristic): Name-pattern matching (the floor, explicitly provisional)\"",
+        "why": "The answer explicitly orders precedence from CLI/explicit statement at top to heuristic/built-in defaults at the bottom.",
+        "raw": "QUOTE: \"Tier precedence (highest to lowest): 1. Tier 1 (Explicit)... 5. Tier 5 (Heuristic): Name-pattern matching (the floor, explicitly provisional)\"\nVERDICT: HIT\nWHY: The answer explicitly orders precedence from CLI/explicit statement at top to heuristic/built-in defaults at the bottom."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 2,
+      "text": "names the target's own declaration file as the tier between them",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "The target repository's own `.doxyguard-db.yaml` or `--declare` document",
+        "why": "The answer explicitly names the target's own declaration file (.doxyguard-db.yaml) as tier 2 between tier 1 and tier 3.",
+        "raw": "QUOTE: The target repository's own `.doxyguard-db.yaml` or `--declare` document\nVERDICT: HIT\nWHY: The answer explicitly names the target's own declaration file (.doxyguard-db.yaml) as tier 2 between tier 1 and tier 3."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 3,
+      "text": "**states the naming rule that makes the answer predictable for an unexamined setting: the option name IS the declaration section name**",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "\"The rule applies uniformly to all layered options: `entry_patterns`, `exclude`, `shared_key_patterns`, `data_model`, `thread_patterns`, `locks`, `mqtt_dispatch`, `dispatch`, `predefined`, `event_tags`, `vendored`, and `requirements`.\"",
+        "why": "The answer describes the five-tier precedence/combination mechanism and empty-vs-absent semantics, but never states that the option's name IS the declaration section name \u2014 i.e., that the setting is predictable because the CLI/option name maps directly to the same-named key in the declaration file.",
+        "raw": "QUOTE: \"The rule applies uniformly to all layered options: `entry_patterns`, `exclude`, `shared_key_patterns`, `data_model`, `thread_patterns`, `locks`, `mqtt_dispatch`, `dispatch`, `predefined`, `event_tags`, `vendored`, and `requirements`.\"\nVERDICT: MISS\nWHY: The answer describes the five-tier precedence/combination mechanism and empty-vs-absent semantics, but never states that the option's name IS the declaration section name \u2014 i.e., that the setting is predictable because the CLI/option name maps directly to the same-named key in the declaration file."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 4,
+      "text": "**names the one documented exception to that rule** \u2014 a bare macro list kept as an alias for the fuller section form",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never mentions a bare macro list kept as an alias for a fuller section form; no such exception is discussed anywhere.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions a bare macro list kept as an alias for a fuller section form; no such exception is discussed anywhere."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 5,
+      "text": "states that the exception is asymmetric in a specific way: the section form can express something the alias cannot",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer describes the five-tier precedence/withdrawal system generally but never mentions any \"section vs alias\" exception or asymmetry where one form expresses something the other cannot.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the five-tier precedence/withdrawal system generally but never mentions any \"section vs alias\" exception or asymmetry where one form expresses something the other cannot."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 6,
+      "text": "reports that the correspondence is asserted by a test in both directions, so a new section arrives with an option or breaks the test",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never mentions that this correspondence is asserted by a test that constrains changes in both directions.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions that this correspondence is asserted by a test that constrains changes in both directions."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 7,
+      "text": "**states the THREE-STATE rule for a per-option value: absent INHERITS, empty WITHDRAWS, non-empty REPLACES.** An answer giving only two states, or saying an empty value changes nothing, has missed the distinction the design exists for",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "HIT",
+        "quote": "\"**Absent flag** (`None`): Inherits the next tier down (declared, then heuristic)\" / \"**Empty value** (`[]` for lists, `{}` for documents): Explicitly withdraws tier 1... falling back to tier 2... and then tier 5\" / \"**Non-empty value**: Replaces only the heuristic tier\"",
+        "why": "The answer explicitly distinguishes absent\u2192inherit, empty\u2192withdraw, non-empty\u2192replace, matching the three-state rule.",
+        "raw": "QUOTE: \"**Absent flag** (`None`): Inherits the next tier down (declared, then heuristic)\" / \"**Empty value** (`[]` for lists, `{}` for documents): Explicitly withdraws tier 1... falling back to tier 2... and then tier 5\" / \"**Non-empty value**: Replaces only the heuristic tier\"\nVERDICT: HIT\nWHY: The answer explicitly distinguishes absent\u2192inherit, empty\u2192withdraw, non-empty\u2192replace, matching the three-state rule."
+      },
+      "verdict": "HIT"
+    },
+    {
+      "index": 8,
+      "text": "**separates that from the OPTIONS MAPPING as a whole**, where passing nothing or an empty mapping does change nothing and is not an error \u2014 so a caller forwarding its own optional argument inherits by default",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer never distinguishes an option's own None/withdrawal semantics from the broader options-mapping-as-a-whole default (empty/absent mapping changes nothing); it treats them as one system.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never distinguishes an option's own None/withdrawal semantics from the broader options-mapping-as-a-whole default (empty/absent mapping changes nothing); it treats them as one system."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 9,
+      "text": "**states that validation happens for every option BEFORE any is assigned**, so one bad entry leaves the namespace untouched",
+      "arm_only": "",
+      "conceptual": false,
+      "objective": {
+        "verdict": "MISS",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [
+          "apply_options"
+        ],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer describes precedence/combination and withdrawal semantics for layered options, but never states that all options are validated before any is assigned so a bad entry leaves the namespace untouched.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes precedence/combination and withdrawal semantics for layered options, but never states that all options are validated before any is assigned so a bad entry leaves the namespace untouched."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 10,
+      "text": "gives the reason a partial application would be worse than a refusal \u2014 it would build with a mixture of what the caller asked for and what they did not, and report success",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer explains the tier/precedence and empty-vs-absent semantics but never states that a partial application would build with a mix of requested/unrequested settings while reporting success.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains the tier/precedence and empty-vs-absent semantics but never states that a partial application would build with a mix of requested/unrequested settings while reporting success."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 11,
+      "text": "**states that an unrecognised option is REFUSED BY NAME rather than ignored**",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer describes withdrawal/override semantics but never states that an unrecognised/unknown option is refused by name.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes withdrawal/override semantics but never states that an unrecognised/unknown option is refused by name."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 12,
+      "text": "distinguishes settings that are facts about ONE RUN from settings that are standing properties of the repository, and states that only the latter get a declaration section",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer describes the tier/precedence system but never distinguishes per-run facts from standing repo properties or states only the latter get a declaration section.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the tier/precedence system but never distinguishes per-run facts from standing repo properties or states only the latter get a declaration section."
+      },
+      "verdict": "MISS"
+    },
+    {
+      "index": 13,
+      "text": "names at least one setting deliberately kept out of the declaration on those grounds",
+      "arm_only": "",
+      "conceptual": true,
+      "objective": {
+        "verdict": "n/a",
+        "symbols_hit": [],
+        "symbols_weak": [],
+        "symbols_missed": [],
+        "refs_hit": [],
+        "refs_file_only": [],
+        "refs_missed": [],
+        "evidence": []
+      },
+      "judge": {
+        "verdict": "MISS",
+        "quote": "NONE",
+        "why": "The answer describes the tier/precedence and empty-value withdrawal mechanisms but never names a specific setting deliberately excluded from the declaration schema.",
+        "raw": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the tier/precedence and empty-value withdrawal mechanisms but never names a specific setting deliberately excluded from the declaration schema."
+      },
+      "verdict": "MISS"
+    }
+  ]
+}
