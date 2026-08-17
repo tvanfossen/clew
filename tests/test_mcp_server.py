@@ -1314,7 +1314,7 @@ def test_wrappers_match_the_r2_library_exactly(
         """@brief Plain asdict, then the independently-computed wire transform."""
         return expected_wire(asdict(obj))  # type: ignore[arg-type]
 
-    reference = wire(q.dossier(rich_db, "sensor_poll", repo_root=repo_root))
+    reference = wire(q.function_dossier(rich_db, "sensor_poll", repo_root=repo_root))
     reply = _payload(tools.dossier("sensor_poll"))
     ## Spelled out rather than imported from `_DOSSIER_OPTIONAL`, deliberately: the
     ## docstring above says a WIDENED elision list must still fail here, and importing
@@ -1483,7 +1483,7 @@ def test_wrapper_content_reaches_the_r1_richness(tools: QueryTools) -> None:
 
     source_row = next(
         w
-        for w in q.dossier(tools.db(), "sensor_poll").writes
+        for w in q.function_dossier(tools.db(), "sensor_poll").writes
         if w.key_name == "DEMOBOT_POWER_BATTERY_MV"
     )
     for field in ("edge_kind", "dispatch_mode", "edge_triggered", "crosses_thread"):

@@ -1312,7 +1312,7 @@ class QueryTools:
     ## @param max_body_lines Cap on each body excerpt.
     ## @param depth Hops to traverse per subject.
     ## @return The batch envelope: one entry per requested name, in request order.
-    ## @version 3
+    ## @version 4
     ## @dg_internal
     def _batched_dossiers(
         self,
@@ -1340,9 +1340,9 @@ class QueryTools:
 
         @brief Batch dossier envelope for several subjects of any kind.
         @return The serialized batch.
-        @version 3
+        @version 4
         """
-        built = q.subject_dossiers(
+        built = q.dossiers(
             self.db(target),
             subjects,
             kind=kind,
@@ -1386,7 +1386,7 @@ class QueryTools:
     ## @param target Repo root or slug to answer from; omit for the server's derived target.
     ## @param max_body_lines Cap on the verbatim `body` excerpt; raise it to read past a `truncated` body.
     ## @return The resolved subject's payload, a batch envelope, or a miss envelope when nothing of that name is indexed.
-    ## @version 11
+    ## @version 12
     ## @req REQ-DDB-MCP-003
     ## @req REQ-DDB-QUERY-010
     def dossier(
@@ -1475,12 +1475,12 @@ class QueryTools:
 
         @brief Composite dossier for one or several subjects of any kind.
         @return The subject payload, a batch envelope, or a miss envelope.
-        @version 11
+        @version 12
         """
         if not isinstance(subject, str):
             names = _accepted_batch(list(subject), qualified)
             return self._batched_dossiers(names, kind, target, max_body_lines, depth)
-        built = q.subject_dossier(
+        built = q.dossier(
             self.db(target),
             subject,
             kind=kind,

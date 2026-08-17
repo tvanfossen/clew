@@ -166,15 +166,24 @@ reported as unchecked. The first void cell aborts the sweep.
 
 `target,q,arm,model,run,tokens,tool_uses,duration_ms,build_ms,bringup_ms,marks_hit,marks_total,audit_clean,verdict`
 
-`build_ms` is measured per cell from the transcript by pairing each `build_or_refresh`
+`build_ms` is measured per cell from the transcript by pairing each `index(action='refresh')`
 `tool_use` with the `tool_result` carrying its id — the build happens inside the cell's own
 server process. It is written EMPTY, not `0`, for a cell that built nothing.
+
+Only `action='refresh'` counts. `index` also serves `status`, `targets` and `cull`, and
+`status` is its default action, so matching the tool name alone would charge a routine status
+call to build time. A call recording no `action` is not counted: absent resolves to `status`.
+
+Transcripts committed before the server was renamed record their calls under an earlier server
+name, and `bench_arms.MCP_SERVER_ALIASES` keeps them matchable. This is load-bearing rather
+than tidy — when the alias list was missing, every metric derived from a committed transcript
+read zero, which is a legitimate value for a source-arm cell and therefore silent.
 
 **It INCLUDES the doxygen run and is reported unsplit** (owner decision). That is what an
 operator waits for; measuring a pre-warmed build would measure something no user experiences.
 A cold mbedtls bringup is ~32 s of doxygen and that is allowed to be the headline.
 
-`bringup_ms` is the same measurement widened to every bringup tool — `build_or_refresh` plus
+`bringup_ms` is the same measurement widened to every bringup tool — the build plus
 `propose_declaration`, the surface an agent uses to work out what a repository has to declare
 before it can answer. Reported BESIDE `build_ms`, never instead of it: bringup is a cost of its
 own ("bringup is a cost that must be quantified directly"), and charging the discovery of a

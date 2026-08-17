@@ -54,7 +54,7 @@ def test_dossier_writer_identity_and_liveness(rich_db: Path) -> None:
     """The dossier's identity + liveness/thread/terminus structure for a plain
     writer. Split from the R1-field assertions below so each test names one
     thing (and so neither exceeds the complexity standard)."""
-    d = q.dossier(rich_db, "sensor_poll")
+    d = q.function_dossier(rich_db, "sensor_poll")
     assert d is not None
     assert d.name == "sensor_poll"
     assert d.signature == "void sensor_poll(void)"
@@ -67,7 +67,7 @@ def test_dossier_writer_identity_and_liveness(rich_db: Path) -> None:
 def test_dossier_writer_has_shared_key_and_r1_fields(rich_db: Path) -> None:
     """sensor_poll writes DEMOBOT_POWER_BATTERY_MV → telemetry_report; the
     KeyEdge carries the R1 dispatch/thread fields."""
-    d = q.dossier(rich_db, "sensor_poll")
+    d = q.function_dossier(rich_db, "sensor_poll")
     assert d is not None
     writes = {w.other: w for w in d.writes if w.key_name == "DEMOBOT_POWER_BATTERY_MV"}
     assert "telemetry_report" in writes
@@ -86,7 +86,7 @@ def test_dossier_writer_has_shared_key_and_r1_fields(rich_db: Path) -> None:
 def test_dossier_reader_and_requirements(rich_db: Path) -> None:
     """telemetry_report reads the battery key (other = the writer) and links
     its own requirement."""
-    d = q.dossier(rich_db, "telemetry_report")
+    d = q.function_dossier(rich_db, "telemetry_report")
     assert d is not None
     reads = {r.other for r in d.reads if r.key_name == "DEMOBOT_POWER_BATTERY_MV"}
     assert "sensor_poll" in reads
@@ -101,13 +101,13 @@ def test_all_req_edges_agrees_with_req_trace(rich_db: Path) -> None:
 
 
 def test_dossier_unknown_function_is_none(rich_db: Path) -> None:
-    assert q.dossier(rich_db, "no_such_function_xyz") is None
+    assert q.function_dossier(rich_db, "no_such_function_xyz") is None
 
 
 def test_dossier_unambiguous_has_no_candidates(rich_db: Path) -> None:
     """A uniquely-named function's dossier carries an empty `candidates` — the
     overload signal must not fire on the common case."""
-    d = q.dossier(rich_db, "sensor_poll")
+    d = q.function_dossier(rich_db, "sensor_poll")
     assert d is not None
     assert d.candidates == []
 
@@ -228,7 +228,7 @@ def test_dossier_does_not_double_report_dataflow(rich_db: Path) -> None:
     writes/reads separately, so merging there would report every dataflow edge
     twice in one payload in two different shapes (CallEdge.name vs
     KeyEdge.other). Pins that the split shape stayed split."""
-    d = q.dossier(rich_db, "sensor_poll")
+    d = q.function_dossier(rich_db, "sensor_poll")
     assert d is not None
     assert all(c.edge_class == "call" for c in d.callers + d.callees)
     assert "telemetry_report" not in {c.name for c in d.callees}
@@ -382,7 +382,7 @@ def test_pre_r1_shared_key_schema_degrades_instead_of_raising(tmp_path: Path) ->
     assert {c.name for c in q.callers(db, "consumer") if c.edge_class == "key"} == {"producer"}
 
     # ...and every sibling surface over the same JOIN survives it too.
-    d = q.dossier(db, "producer")
+    d = q.function_dossier(db, "producer")
     assert d is not None and [w.other for w in d.writes] == ["consumer"]
     assert "consumer" in {n.name for n in q.chain_trace(db, "producer", max_depth=2).nodes}
 
@@ -851,7 +851,7 @@ def test_name_accessors_degrade_gracefully_on_table_less_db(tmp_path: Path) -> N
     assert q.callees(p, "x") == []
     assert q.search(p, "x") == []
     assert q.thread_of(p, "x") == []
-    assert q.dossier(p, "x") is None
+    assert q.function_dossier(p, "x") is None
     assert q.source(p, "x", tmp_path) is None
     assert q.resolve_symbol(p, "x") is None
     assert q.chain_trace(p, "x") is not None  # returns an (empty) Chain, does not raise
@@ -1134,7 +1134,7 @@ def test_chain_trace_crosses_thread_key_hop(tmp_path: Path) -> None:
     assert hop.to_thread == "consumer_thread"
 
     # And the dossier surfaces the same hop's thread membership on the reader.
-    d_writer = q.dossier(db, "producer")
+    d_writer = q.function_dossier(db, "producer")
     assert d_writer is not None
     write = d_writer.writes[0]
     assert write.crosses_thread is True
@@ -1564,7 +1564,7 @@ def test_same_named_module_private_helpers_do_not_share_edges(tmp_path: Path) ->
     _name_collision_db(db)
 
     # The definition-preferring pick is guidance._classify (lowest rowid, has body).
-    d = q.dossier(db, "_classify")
+    d = q.function_dossier(db, "_classify")
     assert d is not None
     assert d.file == "pkg/guidance.py"
     assert len(d.candidates) == 3, "the ambiguity signal must still fire"
@@ -1729,7 +1729,7 @@ def test_namesake_fanout_is_no_longer_laundered_into_exact(tmp_path: Path) -> No
     db = tmp_path / "fanout.db"
     _fanout_collision_db(db)
 
-    d = q.dossier(db, "_classify")
+    d = q.function_dossier(db, "_classify")
     assert d is not None and d.file == "pkg/guidance.py"
 
     by_name = {c.name: c for c in d.callers if c.edge_class == "call"}

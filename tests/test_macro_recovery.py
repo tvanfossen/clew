@@ -14,7 +14,7 @@ lines of `include/mbedtls/private_access.h`:
 doxygen evaluates the `#ifndef`, takes the true branch and never emits line 17, so the
 index held one of the two spellings. The 2026-08-12 index arm spent **14.6% MORE tokens**
 than reading source, at identical completeness, and read source **8-9 times per run** —
-with every one of those reads on two of three runs following a `dossier` that RETURNED
+with every one of those reads on two of three runs following a `function_dossier` that RETURNED
 ROWS. A payload gap, not a recall gap.
 
 ## WHY THE FIXTURE IS A REAL FILE AND BOTH STAGES ACTUALLY RUN
@@ -56,7 +56,7 @@ import pytest
 from clew.ast_symbols import harvest_macro_definitions, recover_ast_symbols
 from clew.harvest import _ast_parse_one_file, try_import_tree_sitter
 from clew.kconfig_gates import import_kconfig_gates
-from clew.query import dossier
+from clew.query import function_dossier
 from clew.query.macros import MACRO_KIND, macro_definitions
 from clew.vocabulary import (
     KCONFIG_GATE_IFDEF,
@@ -331,24 +331,26 @@ def test_each_definition_site_reports_its_own_gate_polarity(
 def test_a_macro_only_dossier_carries_the_first_sites_gates(
     taken_branch_index: Path, repo: Path
 ) -> None:
-    """A dossier has ONE `file` and ONE `line_start`, so its `gated_by` can describe one
+    """A function_dossier has ONE `file` and ONE `line_start`, so its `gated_by` can describe one
     position — and it must be the position it reports. `_macro_dossier` takes its identity
     from the first site and COPIES that site's gates rather than recomputing them, so the
     two cannot drift apart.
 
     `PRIVATE` resolves to no function in this fixture, so this is the macro-SUBJECT path.
     The per-site lists on `macros` stay the complete answer; this pins that the
-    dossier-level field means the same thing here as it does on a function."""
+    function_dossier-level field means the same thing here as it does on a function."""
     recover_ast_symbols(taken_branch_index, repo, None)
     import_kconfig_gates(taken_branch_index, repo)
 
-    doss = dossier(taken_branch_index, "PRIVATE")
+    doss = function_dossier(taken_branch_index, "PRIVATE")
     assert doss is not None
     assert doss.kind == MACRO_KIND
     assert doss.line_start == GATED_LINE
     assert {(g.macro, g.form) for g in doss.gated_by} == {
         ("ALLOW_PRIVATE_ACCESS", KCONFIG_GATE_IFNDEF)
-    }, "the dossier's gates must describe the line the dossier reports, not both branches"
+    }, (
+        "the function_dossier's gates must describe the line the function_dossier reports, not both branches"
+    )
     ## And the panel still carries both, which is the field a reader is pointed at.
     assert sorted(m.line for m in doss.macros) == [GATED_LINE, ELSE_LINE]
 

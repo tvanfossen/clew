@@ -169,7 +169,7 @@ def _variable_rows(conn: sqlite3.Connection, name: str) -> list[tuple]:
 ## @param conn Open connection.
 ## @param name Bare or qualified compound name.
 ## @return True when a class/struct/union/interface matches exactly or as a qualified tail.
-## @version 2
+## @version 3
 ## @dg_internal
 def _is_compound(conn: sqlite3.Connection, name: str) -> bool:
     """EXACT OR QUALIFIED-TAIL, never `lookup_class`'s substring fallback. That fallback
@@ -180,7 +180,7 @@ def _is_compound(conn: sqlite3.Connection, name: str) -> bool:
     IT MUST FILTER ON `CLASS_KINDS`, and not doing so was a measured defect. doxygen puts
     more than classes in `compounddef`: it registers a row per FILE with `kind='file'`, and
     on mbedtls `resolve_subject("threading.c")` therefore came back `('class',)` while
-    `subject_dossier` returned nothing at all — because `lookup_class` DOES filter on
+    `dossier` returned nothing at all — because `lookup_class` DOES filter on
     `CLASS_KINDS` and found no class. Probe and builder must agree or the caller is told
     "this kind exists" and then handed an empty section, which is the same disagreement
     gh#390 produced for config symbols one commit ago.
@@ -191,7 +191,7 @@ def _is_compound(conn: sqlite3.Connection, name: str) -> bool:
 
     @brief Probe the compound corpus.
     @return True when the name names a class, struct, union or interface.
-    @version 2
+    @version 3
     """
     if not table_exists(conn, "compounddef"):
         return False
@@ -550,7 +550,7 @@ def _chain_for(
 ## @req REQ-DDB-QUERY-004
 ## @req REQ-DDB-QUERY-009
 ## @req REQ-DDB-QUERY-010
-def subject_dossier(
+def dossier(
     db: DbSource,
     subject: str,
     kind: str | None = None,
@@ -619,7 +619,7 @@ def subject_dossier(
 ## @return One entry per requested name, positionally aligned, None where a name resolves to nothing.
 ## @version 1
 ## @req REQ-DDB-QUERY-004
-def subject_dossiers(
+def dossiers(
     db: DbSource,
     subjects: list[str],
     kind: str | None = None,
@@ -629,7 +629,7 @@ def subject_dossiers(
 ) -> list[SubjectDossier | None]:
     """ONE CONNECTION, N SUBJECTS, and the sharing is free rather than engineered:
     `connect` yields a caller-supplied `Connection` as-is, so passing the open connection
-    down as `db` makes every nested `connect` inside `subject_dossier` a no-op. Five
+    down as `db` makes every nested `connect` inside `dossier` a no-op. Five
     subjects used to mean five sqlite opens and five sets of `table_exists` probes
     against the same file.
 
@@ -645,7 +645,7 @@ def subject_dossiers(
     """
     with connect(db) as conn:
         return [
-            subject_dossier(
+            dossier(
                 conn,
                 name,
                 kind=kind,
@@ -706,13 +706,13 @@ def _config_subject(conn: sqlite3.Connection, name: str) -> KconfigSpace | None:
 ## @param conn Open connection.
 ## @param name Bare macro name.
 ## @return The macro Dossier, or None when the name defines no macro.
-## @version 1
+## @version 2
 ## @dg_internal
 def _macro_subject(conn: sqlite3.Connection, name: str) -> Dossier | None:
     """THE EMPTY-LIST COUPLING MADE EXPLICIT (gh#404). `_macro_dossier` indexes `macros[0]`
     unguarded, and today it cannot be reached with an empty list because `_is_macro` gated the
     kind — a coupling that holds by luck of ordering rather than by construction. Returning None
-    here instead is what lets `subject_dossier`'s existing "section is None" branch report a clean
+    here instead is what lets `dossier`'s existing "section is None" branch report a clean
     miss, the same way every other builder does.
 
     NO `qualified` ARGUMENT, because a `#define` has no qualified spelling to disambiguate: the
@@ -721,7 +721,7 @@ def _macro_subject(conn: sqlite3.Connection, name: str) -> Dossier | None:
 
     @brief Build the macro subject's dossier.
     @return The Dossier, or None.
-    @version 1
+    @version 2
     """
     macros = macro_definitions_conn(conn, name)
     return _macro_dossier(macros) if macros else None

@@ -657,3 +657,51 @@ def test_a_small_reply_keeps_the_full_staleness_prose(rich_db: Path) -> None:
     full = [{"axis": fr.AXIS_DATA, "message": "x" * 400}]
     fitted = QueryTools(lambda: rich_db, lambda: rich_db.parent, lambda: full)._staleness({"a": 1})
     assert fitted == full
+
+
+## @brief The version `status` reports must be the version the package actually declares.
+## @return None.
+## @version 1
+def test_status_reports_the_real_package_version_not_the_unknown_fallback() -> None:
+    """THIS SHIPPED THROUGH 1.0.0. `package_version()` asked `importlib.metadata` for
+    `version("clew")` — the IMPORT name — while the distribution ships as `clew-trace`, so
+    every `index(action='status')` reply reported `package_version: "unknown"`. That is the
+    first field a consumer pastes into a bug report, and it named no version at all.
+
+    NOTHING CAUGHT IT BECAUSE THE FALLBACK IS SILENT BY DESIGN. A failed metadata lookup
+    returns the string "unknown" rather than raising, deliberately — it is called on the way
+    out of replies that already succeeded — so the broken lookup renders as a plausible
+    field value. The function's own docstring meanwhile claimed it could not drift from
+    `pyproject.toml`, which was true of the version and false of the distribution name it
+    passed. A defect that reads as a legitimate value needs a test asserting the value is
+    legitimate; there is no error to notice.
+
+    ASSERTED AGAINST `pyproject.toml`, NEVER A LITERAL. A hardcoded "1.0.0" here would be a
+    third place to forget on the next release, which is the shape of the defect above.
+
+    @brief `package_version()` agrees with pyproject, and is not the fallback.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server.freshness import code_identity, package_version
+    from clew.tomlcompat import require_toml_module
+
+    pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    declared = require_toml_module().loads(pyproject.read_text(encoding="utf-8"))
+    want = declared["project"]["version"]
+
+    reported = package_version()
+    assert reported != "unknown", (
+        "package_version() fell back to 'unknown'. Either the package is not installed in "
+        f"this environment, or {pyproject.name} renamed the distribution and "
+        "freshness._DISTRIBUTION was not updated with it — the exact defect that shipped."
+    )
+    assert reported == want, (
+        f"status would report package_version={reported!r} while pyproject declares {want!r}"
+    )
+
+    ## THROUGH `code_identity` TOO, because that is the payload `status` actually serves.
+    ## Asserting only on the helper would leave a wrapper free to drop or rename the field.
+    assert code_identity().get("package_version") == want, (
+        "code_identity() is what reaches a status reply; it must carry the same version"
+    )

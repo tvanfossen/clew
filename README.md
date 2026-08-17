@@ -211,15 +211,23 @@ recorded no statement exports a document that says so.
 
 ## Without an agent
 
-The same four capabilities are importable, returning JSON-serializable dataclasses. This is what
-the MCP server is a view over, so no query logic exists twice.
+`clew.query` is importable and returns JSON-serializable dataclasses. It is what the MCP server
+is a view over, so no query logic exists twice — and it is **wider than the four tools**, by
+design: `callers`, `callees`, `chain_trace`, `req_trace` and `thread_of` are functions here,
+folded into `dossier` at the tool layer to keep one call answering a whole question.
 
 ```python
 from clew.query import dossier, search
 
-dossier("clew.db", "sensor_poll")    # identity, reqs, both edge directions, locks, threads, liveness
-search("clew.db", "retry backoff")   # find the name when you do not have one
+dossier("clew.db", "sensor_poll")     # a function
+dossier("clew.db", "REQ-NAV-002")     # a requirement
+dossier("clew.db", "buf_mutex")       # a lock
+search("clew.db", "retry backoff")    # find the name when you do not have one
 ```
+
+`dossier` takes any indexed subject — function, variable, macro, class, lock, thread,
+requirement or Kconfig symbol — and its reply names which kind resolved. `function_dossier` is
+the narrower form that describes a function or macro and returns `None` for anything else.
 
 ## Layout
 

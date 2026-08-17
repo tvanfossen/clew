@@ -78,7 +78,7 @@ def test_a_dossier_on_an_overridden_function_names_its_implementors(overriding_d
     relation is found despite being recorded against the declaration while the dossier
     describes the definition, which is the identity resolution doing its job.
     """
-    doss = q.dossier(overriding_db, "sensor_poll")
+    doss = q.function_dossier(overriding_db, "sensor_poll")
     assert doss is not None
     assert doss.rowid == SENSOR_POLL_DEF, "the dossier describes the definition row"
 
@@ -98,8 +98,8 @@ def test_the_two_directions_are_not_the_same_question(overriding_db: Path) -> No
     `overrides` is EMPTY (it reimplements nothing) while an implementor's names it —
     asserted on the same database so a symmetric bug cannot satisfy both halves.
     """
-    base = q.dossier(overriding_db, "sensor_poll")
-    impl = q.dossier(overriding_db, "telemetry_report")
+    base = q.function_dossier(overriding_db, "sensor_poll")
+    impl = q.function_dossier(overriding_db, "telemetry_report")
     assert base is not None
     assert impl is not None
 
@@ -118,7 +118,7 @@ def test_a_non_virtual_function_gets_no_override_fields(rich_db: Path) -> None:
     the measurement "doxygen recorded no override relation", and no call edge claims an
     implementor.
     """
-    doss = q.dossier(rich_db, "sensor_poll")
+    doss = q.function_dossier(rich_db, "sensor_poll")
     assert doss is not None
     assert doss.overrides == []
     assert doss.overridden_by == []
@@ -189,7 +189,7 @@ def test_an_index_without_the_relation_degrades_to_empty(overriding_db: Path) ->
     finally:
         conn.close()
 
-    doss = q.dossier(overriding_db, "sensor_poll")
+    doss = q.function_dossier(overriding_db, "sensor_poll")
     assert doss is not None
     assert doss.overrides == []
     assert doss.overridden_by == []

@@ -59,7 +59,12 @@ import csv
 import json
 from pathlib import Path
 
-from bench_arms import MCP_TOOL_PREFIX
+## READ prefixes, not the launch prefix: this module inspects a RECORDED transcript, which
+## may have been recorded under an earlier server name. Matching only the current name made
+## `db_ids` empty for every committed artifact, and an empty `db_ids` means no reply is
+## examined — so the target check passed by having nothing to check, which is the vacuous
+## pass this module was written to prevent in the first place.
+from bench_arms import MCP_READ_PREFIXES
 
 ## The TOP-LEVEL keys under which a reply names the repository that answered it.
 ##
@@ -131,7 +136,7 @@ def served_targets(transcript: Path) -> list[str]:
     for event in events:
         for block in _blocks(event):
             if block.get("type") == "tool_use" and str(block.get("name", "")).startswith(
-                MCP_TOOL_PREFIX
+                MCP_READ_PREFIXES
             ):
                 db_ids.add(str(block.get("id", "")))
     seen: list[str] = []

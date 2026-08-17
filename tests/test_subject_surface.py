@@ -105,7 +105,7 @@ def test_an_unindexed_name_resolves_to_nothing(rich_db: Path) -> None:
 
 def test_a_file_row_in_compounddef_does_not_classify_as_a_class(tmp_path: Path) -> None:
     """MEASURED ON MBEDTLS: `resolve_subject("threading.c")` returned `('class',)` while
-    `subject_dossier` returned nothing at all. doxygen puts more than classes in
+    `dossier` returned nothing at all. doxygen puts more than classes in
     `compounddef` — it registers a row per FILE with `kind='file'` — and `_is_compound` did
     not filter on `CLASS_KINDS` while `lookup_class` did. So the probe said "class" and the
     builder found none.
@@ -145,7 +145,7 @@ def test_a_file_row_in_compounddef_does_not_classify_as_a_class(tmp_path: Path) 
     assert "class" not in q.resolve_subject(db, "threading.c")
     assert q.resolve_subject(db, "real_struct_t") == ("class",)
     ## THE TWO HALVES AGREE on the row that IS a class.
-    assert q.subject_dossier(db, "real_struct_t") is not None
+    assert q.dossier(db, "real_struct_t") is not None
 
 
 # ─── the variable subject: the defect that motivated the whole collapse ──────
@@ -587,4 +587,36 @@ async def test_the_registry_wide_actions_refuse_a_target_and_still_answer_withou
     reported = await state.index(_FakeCtx(), action="status")
     assert "error" in reported or reported.get("active") is True, (
         "status still reports on the derived target, or says plainly there is none"
+    )
+
+
+## @brief The exported `dossier` must be the any-kind form, and `function_dossier` the narrow one.
+## @param rich_db Session-scoped synthetic index.
+## @return None.
+## @version 1
+def test_the_exported_dossier_answers_about_a_non_function_subject(rich_db: Path) -> None:
+    """`clew.query.dossier` was the FUNCTION-ONLY form while the MCP tool of the same name
+    described any indexed kind, so the documented `from clew.query import dossier` returned
+    `None` for a requirement, lock, thread, class or variable — and `None` is also what "not
+    indexed" looks like, so the weaker function was indistinguishable from an empty index.
+
+    Both directions are asserted. Checking only that `dossier` handles a requirement would
+    still pass if `function_dossier` were quietly widened to the same thing, leaving two names
+    for one behaviour and nothing recording which the tool layer is a view over.
+
+    @brief `dossier` takes any subject kind; `function_dossier` takes functions.
+    @return None.
+    @version 1
+    """
+    req = next(iter(q.all_req_edges(rich_db)), None)
+    assert req is not None, "precondition: the fixture must hold at least one requirement edge"
+
+    wide = q.dossier(rich_db, req.req_id)
+    assert wide is not None and wide.kind == "requirement", (
+        f"the exported `dossier` returned {wide!r} for requirement {req.req_id!r}; it must be "
+        f"the any-kind form, matching the MCP tool that shares its name"
+    )
+    assert q.function_dossier(rich_db, req.req_id) is None, (
+        "`function_dossier` must stay the narrow form — if it answers about a requirement too, "
+        "the two exported names describe one behaviour and the distinction is undocumented"
     )

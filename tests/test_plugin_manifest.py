@@ -231,3 +231,38 @@ def test_manifest_field_types_match_the_published_schema() -> None:
             assert isinstance(author, dict) and isinstance(author.get("name"), str), (
                 "marketplace.json: a plugin entry's author has the same object shape"
             )
+
+
+## @brief No catalog entry may turn off strict mode while plugin.json owns the components.
+## @return None.
+## @version 1
+def test_no_catalog_entry_disables_strict_mode() -> None:
+    """A ONE-WORD CHANGE THAT WOULD SILENTLY UNREGISTER THE SERVER. `strict` is a per-entry
+    field defaulting to `true`, and `true` means `plugin.json` is the authority for the
+    plugin's components. `strict: false` makes the MARKETPLACE ENTRY the entire definition —
+    and this catalog's entry declares no `mcpServers` at all, because the plugin manifest is
+    where they live.
+
+    So flipping it would leave a plugin that installs, reports success, and registers nothing:
+    the same failure this file's second test exists for, reached from the opposite direction
+    and needing no edit to `plugin.json` to happen.
+
+    Asserted as ABSENT-OR-TRUE rather than required-present. The default is already what this
+    plugin wants, and writing it out would add a second place to keep in step for no gain —
+    which is the defect the first test in this file exists for.
+
+    @brief No entry sets strict false while plugin.json owns the components.
+    @return None.
+    @version 1
+    """
+    catalog = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text())
+    for entry in catalog["plugins"]:
+        assert entry.get("strict", True) is True, (
+            f"catalog entry {entry.get('name')!r} sets strict false, which makes this entry the "
+            f"whole plugin definition — and it declares no mcpServers, so the server would stop "
+            f"being registered while the install still reported success"
+        )
+        assert not (set(entry) & {"mcpServers", "commands", "agents", "hooks", "skills"}), (
+            "components belong in plugin.json, which is authoritative under strict mode; "
+            "declaring them here too makes one of the two silently win"
+        )

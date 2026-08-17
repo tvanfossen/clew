@@ -278,12 +278,12 @@ def test_r2_dossiers_is_positional_and_matches_the_single_symbol_function(
     @version 1
     """
     names = [INDEXED[0], MISSING, INDEXED[1]]
-    built = q.dossiers(rich_db, names)
+    built = q.function_dossiers(rich_db, names)
 
     assert len(built) == len(names)
     assert built[1] is None
     for name, doss in zip(names, built, strict=True):
-        assert doss == q.dossier(rich_db, name)
+        assert doss == q.function_dossier(rich_db, name)
 
 
 def test_the_chain_loses_its_outermost_ring_before_a_neighbour_list_is_trimmed() -> None:
