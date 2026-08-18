@@ -683,10 +683,27 @@ class DocsDbServer:
     ## @param repo_path Repo root to serve.
     ## @param source Which resolution source supplied it (a TARGET_SOURCE_* value).
     ## @return The newly-active Target.
-    ## @version 2
+    ## @version 3
     ## @req REQ-DDB-MCP-001
     def adopt(self, repo_path: str, source: str) -> Target:
-        """Register the repo, make it active, and bring tier-1 up.
+        """Make the repo active. Does NOT register it, and does NOT build.
+
+        RESOLUTION IS NOT REGISTRATION (gh#1). This called `registry.register`, which persists
+        the entry AND mkdirs its state directory — so merely LAUNCHING the server in a directory
+        registered it forever, before any database existed. A reporter found three targets listed
+        with `exists: false`, one of them their entire home directory, and `cull` could not clear
+        any of them: it removes aged-out or version-stale DATABASES, and these had none. The
+        registry could accumulate rows nothing could reach. Same root cause as the orphaned state
+        directories that had to be deleted by hand.
+
+        Registration now happens where it is earned: `_build_target`, because a build has to have
+        somewhere to write. So `$HOME` can only be registered by someone explicitly building it.
+
+        WHAT MADE THE EAGER REGISTRATION LOOK NECESSARY IS GONE. `_sync_tier1` used to gate on
+        `registry.targets()`, so a resolved target had to be in the registry for the query tools
+        to appear at all; tier-1 is unconditional now (gh#7). And an unbuilt target refuses with
+        `unbuilt_index_message` rather than a driver error, so nothing needs the directory to
+        pre-exist.
 
         Deliberately does NOT build. A doxygen run takes tens of seconds, so
         building here would hang the whole session on connect, on every editor
@@ -703,9 +720,9 @@ class DocsDbServer:
 
         @brief Adopt a target repo and register the query tools.
         @return The active Target.
-        @version 2
+        @version 3
         """
-        self.active = self.registry.register(repo_path)
+        self.active = target_for(repo_path, self.registry.home)
         self.target_source = source
         self._sync_tier1()
         status = db_status(self.active)

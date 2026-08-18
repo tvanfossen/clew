@@ -2791,9 +2791,12 @@ async def test_a_server_with_no_target_does_not_answer_from_a_previous_one(
     previous.mkdir()
 
     _mcp, state = build_server(reg)
-    ## A target is registered and built — exactly the residue a restart leaves behind.
-    target = state.adopt(str(previous), st.TARGET_SOURCE_FLAG)
+    ## A target is REGISTERED and BUILT — exactly the residue a restart leaves behind. Registered
+    ## explicitly because `adopt` no longer registers (gh#1): resolution is not registration, so
+    ## simulating a built target now means saying so rather than relying on adoption's side effect.
+    target = reg.register(str(previous))
     Path(target.db_path).write_bytes(rich_db.read_bytes())
+    state.adopt(str(previous), st.TARGET_SOURCE_FLAG)
     assert state.tools.dossier("sensor_poll")["target"] == str(previous)
 
     ## Now a FRESH server, same registry, no --repo, no env, a client with no roots.
@@ -3312,3 +3315,61 @@ async def test_every_served_tool_is_exempt_from_tool_search_deferral(server) -> 
         f"these tools would be deferred behind a ToolSearch round trip: {missing}. `grep` is one "
         f"call away; a deferred tool is two, and that asymmetry decides which gets reached for."
     )
+
+
+@pytest.mark.anyio
+## @req REQ-DDB-MCP-001
+async def test_resolving_a_target_registers_nothing(tmp_path: Path) -> None:
+    """gh#1. `adopt` called `registry.register`, which persists the entry AND mkdirs its state
+    directory — so merely LAUNCHING the server in a directory registered it forever, before any
+    database existed. A reporter found three targets listed with `exists: false`, one of them their
+    entire home directory. `cull` could clear none of them: it removes aged-out or version-stale
+    DATABASES and these had none, so the registry could accumulate rows nothing could reach. Same
+    root cause as the orphaned state directories that had to be deleted by hand.
+
+    ASSERTS THE DIRECTORY TOO, not only the registry row. The mkdir is the half that consumed disk,
+    and a fix that stopped persisting while still creating directories would pass a registry-only
+    check.
+
+    @brief Adopting a repo makes it active without registering or creating anything.
+    @return None.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    repo = tmp_path / "somewhere"
+    repo.mkdir()
+
+    _mcp, state = build_server(reg)
+    active = state.adopt(str(repo), st.TARGET_SOURCE_FLAG)
+
+    assert active is not None and active.repo_path == str(repo), "it must still become active"
+    assert reg.targets() == [], (
+        f"resolving a target registered it: {[t.repo_path for t in reg.targets()]}. Launching the "
+        f"server somewhere is not a statement that the directory should be indexed."
+    )
+    assert not Path(active.db_path).parent.exists(), (
+        "no state directory may be created for a target nothing has built"
+    )
+
+
+@pytest.mark.anyio
+## @req REQ-DDB-MCP-001
+async def test_building_a_target_does_register_it(tmp_path: Path) -> None:
+    """THE POSITIVE HALF, and without it the fix above is satisfied by never registering at all —
+    which would break `targets` and `cull` completely. Registration is EARNED by a build, because
+    a build has to have somewhere to write.
+
+    @brief An explicitly registered target is listed and has its directory.
+    @return None.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    repo = tmp_path / "real"
+    repo.mkdir()
+
+    target = reg.register(str(repo))
+
+    assert [t.repo_path for t in reg.targets()] == [str(repo)], (
+        "a registered target must be listed — this is what `targets` and `cull` operate on"
+    )
+    assert Path(target.db_path).parent.is_dir(), "a build needs its directory to exist"
