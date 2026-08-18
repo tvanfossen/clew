@@ -5,7 +5,9 @@ Every public query function in this package returns one of these (or a
 list of them), NEVER a raw sqlite row and NEVER rendered HTML. R3 (MCP)
 serializes them with `dataclasses.asdict`; R4 (HTML) renders them. Edge
 endpoints are always resolved to NAMES here — consumers want names, not
-rowids (the rowid rides along only as a convenience for re-lookup).
+rowids. The `rowid` field is INTERNAL and is stripped at the wire boundary: nothing
+on the tool surface accepts one as input, and published beside real line numbers it produced
+a fabricated `file:2244` citation in a graded answer.
 
 @brief Frozen dataclass return types for the R2 query library.
 @version 1

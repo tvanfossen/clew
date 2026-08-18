@@ -96,31 +96,56 @@ def _listed(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 ## @brief One row with its absent fields removed, recursing into nested rows.
 ## @param row A dict that appeared as an element of a list.
 ## @return The row without None/empty-sequence fields.
-## @version 2
+## @version 3
 ## @dg_internal
 def _pruned_row(row: dict[str, Any]) -> dict[str, Any]:
     """Split out from `_prune_rows` to name the rule: this is what "a row" means on
     the wire.
 
-    @brief Remove absent fields from a single row.
+    @brief Remove absent fields and internal-only keys from a single row.
     @return Pruned row.
-    @version 2
+    @version 4
     """
-    return {k: _prune_rows(v) for k, v in row.items() if not _absent(k, v)}
+    return {
+        k: _prune_rows(v) for k, v in row.items() if k not in _INTERNAL_ONLY and not _absent(k, v)
+    }
+
+
+## INTERNAL DATABASE ROW IDS, STRIPPED AT THE BOUNDARY (gh#1's sibling defect). `rowid` is an
+## opaque integer published beside `line_start` and `line_end`, which ARE locations, and it repeats
+## inside every `callers`/`callees` row — 15 occurrences in one measured dossier reply, each one an
+## integer beside a symbol name that has no line number of its own. That is exactly the slot a
+## reader fills with "line".
+##
+## IT PRODUCED A FABRICATED CITATION IN A GRADED ANSWER. An index-arm run published
+## `programs/ssl/ssl_pthread_server.c:2244` as a source location; the file is 484 lines and 2244
+## was a rowid. The answer even hedged "per index rowid", so the model half-knew and wrote it
+## anyway — which makes this a payload-shape defect, not a model slip.
+##
+## NOTHING ACCEPTS ONE AS INPUT. `dossier` takes a `subject` name and `qualified` for
+## disambiguation; there is no rowid-keyed call anywhere on the surface. `models.py` described it
+## as riding along "as a convenience for re-lookup" — a re-lookup that does not exist.
+##
+## STRIPPED HERE, NOT REMOVED FROM THE DATACLASSES. The Python API is a separate contract and
+## internal code joins on these ids; this is the one boundary every served payload crosses.
+_INTERNAL_ONLY = frozenset({"rowid"})
 
 
 ## @brief Prune absent fields from ROWS (dicts inside a list), leaving the envelope whole.
 ## @param obj Any already-serialized wire structure.
 ## @return The same structure with each list-of-dicts row pruned.
-## @version 1
+## @version 2
 ## @dg_internal
 def _prune_rows(obj: Any) -> Any:
-    """@brief Apply row-level elision throughout a structure.
-    @return Structure with rows pruned and the envelope intact.
-    @version 1
+    """Row elision throughout, plus internal-only keys dropped at EVERY level — a `rowid` is
+    equally misleading on an envelope and inside a row, so unlike elision it is not row-scoped.
+
+    @brief Apply row-level elision and strip internal-only keys.
+    @return Structure with rows pruned, internal ids gone, and the envelope intact.
+    @version 3
     """
     if isinstance(obj, dict):
-        return {k: _prune_rows(v) for k, v in obj.items()}
+        return {k: _prune_rows(v) for k, v in obj.items() if k not in _INTERNAL_ONLY}
     if isinstance(obj, list):
         return [_pruned_row(v) if isinstance(v, dict) else _prune_rows(v) for v in obj]
     return obj

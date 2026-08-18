@@ -38,7 +38,12 @@ class _Row:
     """
 
     name: str = "callee"
-    rowid: int = 7
+    ## `line_start`, not `rowid`. This field is only ever standing in for "an int field that
+    ## carries a value", and `rowid` is now STRIPPED at the wire boundary (an opaque internal id
+    ## published beside real line numbers produced a fabricated `file:2244` citation in a graded
+    ## answer). Using a stripped field here would make three tests about pruning, falsy values and
+    ## the rows helper fail for a reason that has nothing to do with any of them.
+    line_start: int = 7
     strength: str | None = None
     crosses_thread: bool | None = None
     implementors: tuple[str, ...] = ()
@@ -100,7 +105,7 @@ def test_rows_inside_an_envelope_are_pruned() -> None:
     """The measured saving: 54% of a real call row's fields were null by kind."""
     out = wire.one(_Envelope(callers=[_Row()]))
     assert out is not None
-    assert out["callers"] == [{"name": "callee", "rowid": 7}]
+    assert out["callers"] == [{"name": "callee", "line_start": 7}]
 
 
 ## @brief A false or zero value is kept, not treated as absent.
@@ -110,11 +115,11 @@ def test_false_and_zero_are_measurements_not_absences() -> None:
     """`crosses_thread: false` says "this edge stays on one thread", which is a
     different claim from the field being missing ("nobody looked"). Eliding falsy
     values instead of absent ones would silently turn the former into the latter."""
-    out = wire.one(_Envelope(callers=[_Row(crosses_thread=False, rowid=0)]))
+    out = wire.one(_Envelope(callers=[_Row(crosses_thread=False, line_start=0)]))
     assert out is not None
     row = out["callers"][0]
     assert row["crosses_thread"] is False
-    assert row["rowid"] == 0
+    assert row["line_start"] == 0
     assert "strength" not in row
 
 
@@ -178,10 +183,10 @@ def test_rows_helper_treats_its_items_as_rows() -> None:
     """The two entry points differ ONLY in whether the top level is a row, and calling
     the wrong one is a real mistake that the MCP parity test caught: `one` per element
     treats each as an envelope and prunes nothing."""
-    assert wire.rows([_Row()]) == [{"name": "callee", "rowid": 7}]
+    assert wire.rows([_Row()]) == [{"name": "callee", "line_start": 7}]
     assert wire.one(_Row()) == {
         "name": "callee",
-        "rowid": 7,
+        "line_start": 7,
         "strength": None,
         "crosses_thread": None,
         "implementors": [],
@@ -195,3 +200,56 @@ def test_none_serializes_to_none() -> None:
     """Every MCP wrapper over an optional R2 result depends on this: a missing symbol
     is a null payload, not an exception and not an empty dict."""
     assert wire.one(None) is None
+
+
+## @brief Internal database row ids must never reach a served payload.
+## @return None.
+## @version 1
+def test_internal_row_ids_are_stripped_from_envelope_and_rows() -> None:
+    """A GRADED ANSWER PUBLISHED ONE AS A SOURCE LOCATION. An index-arm run wrote
+    `programs/ssl/ssl_pthread_server.c:2244` as a citation; the file is 484 lines and 2244 was a
+    `rowid`. The answer even hedged "per index rowid", so the model half-knew and wrote it anyway —
+    which makes this a payload-shape defect rather than a model slip.
+
+    THE SHAPE IS WHY. `rowid` sat beside `line_start` and `line_end`, which ARE locations, and
+    repeated inside every `callers`/`callees` row — 15 occurrences in one measured reply, each an
+    integer next to a symbol name with no line number of its own. That is precisely the slot a
+    reader fills with "line". Nothing on the tool surface accepts a rowid as input, so it bought
+    nothing in exchange.
+
+    BOTH LEVELS, which is what distinguishes this from elision. Elision is row-scoped because an
+    envelope key must be present to read as "none"; a `rowid` misleads equally in either place.
+
+    @brief `rowid` is absent from both the envelope and its rows.
+    @return None.
+    @version 1
+    """
+
+    ## THE FIXTURE MUST ACTUALLY CARRY A rowid, and the first version of this test did not — the
+    ## shared `_Row` had been renamed to `line_start`, so `"rowid" not in row` was trivially true
+    ## and emptying `_INTERNAL_ONLY` left the test GREEN. The mutation control caught it. A fixture
+    ## that matches the detector rather than the world is this repo's standing failure.
+    @dataclass(frozen=True)
+    class _IdBearing:
+        """@brief A row and envelope that really do carry an internal id. @version 1"""
+
+        rowid: int = 99
+        name: str = "callee"
+        line_start: int = 7
+
+    @dataclass(frozen=True)
+    class _IdEnvelope:
+        """@brief Envelope carrying an id of its own plus id-bearing rows. @version 1"""
+
+        rowid: int = 42
+        subject: str = "thing"
+        callers: tuple[_IdBearing, ...] = (_IdBearing(),)
+
+    out = wire.one(_IdEnvelope())
+    assert out is not None
+    assert "rowid" not in out, "an internal row id must not be served on the envelope"
+    assert "rowid" not in out["callers"][0], "nor inside a neighbour row"
+    ## A strip that emptied everything would satisfy both assertions above.
+    assert out["subject"] == "thing", "stripping must not remove real envelope fields"
+    assert out["callers"][0]["name"] == "callee", "nor real row fields"
+    assert out["callers"][0]["line_start"] == 7, "a genuine int field must survive"
