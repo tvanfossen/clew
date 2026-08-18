@@ -1054,6 +1054,34 @@ def _many(
     return out
 
 
+## @brief The one message a caller gets when the database they need does not exist yet.
+## @param repo_path Repository the missing database would describe, or "" when unknown.
+## @return An actionable sentence naming the call that fixes it.
+## @version 1
+## @req REQ-DDB-MCP-003
+def unbuilt_index_message(repo_path: str = "") -> str:
+    """SPELLED ONCE, because it was spelled twice and neither copy covered the common path. The
+    ROUTED path checked `is_file()` and raised this; the DERIVED path did not, so a query against
+    a server whose target had no database raised `sqlite3.OperationalError: unable to open
+    database file` — naming neither the repository, nor that an index is missing, nor the call
+    that builds one.
+
+    That asymmetry is why `dossier` and `search` were REGISTERED conditionally: a tool that dies
+    with a driver error is worse than an absent one. A tool that says what to call next is better
+    than both, which is what lets the registration gate go away.
+
+    @brief The actionable message for an index that has not been built.
+    @return The message.
+    @version 1
+    """
+    where = f" for {repo_path}" if repo_path else ""
+    target = f", target={repo_path!r}" if repo_path else ""
+    return (
+        f"No database has been built{where} yet — call index(action='refresh'{target}) first. "
+        f"Nothing is wrong with this repository; it has simply not been indexed."
+    )
+
+
 ## @brief Tier-1 tool implementations, routed per call to any indexed repository.
 ## @version 2
 class QueryTools:
@@ -1113,7 +1141,7 @@ class QueryTools:
     ## @brief The database path this call reads.
     ## @param target Repository to read, or None for the one the server derived.
     ## @return Path to the clew.db the tools should read.
-    ## @version 3
+    ## @version 4
     ## @req REQ-DDB-MCP-003
     def db(self, target: str | None = None) -> Path:
         """Resolve the db path for this call: the routed target when one was named, else
@@ -1123,7 +1151,16 @@ class QueryTools:
         @return clew.db path.
         @version 3
         """
-        return self._db_provider() if target is None else self._route(target).db
+        if target is not None:
+            return self._route(target).db
+        ## GUARDED HERE, NOT ONLY ON THE ROUTED PATH. Every tier-1 tool funnels through this
+        ## method, so one check covers the whole surface; the routed branch above already refuses
+        ## inside `resolve_target`. Without this, a derived target with no database reached
+        ## sqlite3 and surfaced `unable to open database file`.
+        db = Path(self._db_provider())
+        if not db.is_file():
+            raise RuntimeError(unbuilt_index_message())
+        return db
 
     ## @brief The working-tree root this call reads source from.
     ## @param target Repository to read, or None for the one the server derived.

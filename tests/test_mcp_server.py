@@ -470,13 +470,29 @@ def test_sdk_shim_reaches_the_lowlevel_server_by_the_right_name() -> None:
 
 
 @pytest.mark.anyio
-async def test_tier0_present_tier1_absent_at_construction(server) -> None:
-    """A freshly built server exposes the lifecycle tools and NOTHING else —
-    query tools must not exist before a database does."""
+async def test_every_tool_is_present_at_construction(server) -> None:
+    """RETIRED AND INVERTED (gh#7). This asserted that query tools "must not exist before a
+    database does", which was the design until it was measured: a tool that does not exist teaches
+    a model that the CAPABILITY does not exist, and because tier-1 appeared MID-SESSION the two
+    tools most worth reaching for were the two least likely to be in a client's eagerly-loaded
+    set. A reporter ran an entire multi-hour session and called neither once.
+
+    The old gate was only defensible while the tools died on an unbuilt index with
+    `sqlite3.OperationalError: unable to open database file`. They now refuse with
+    `unbuilt_index_message`, which names the call that fixes it — so present-and-refusing beats
+    absent, and this asserts the whole surface is there from construction.
+
+    @brief Both tiers are registered at construction, before any index exists.
+    @return None.
+    @version 1
+    """
     mcp, _state = server
     names = await _names(mcp)
-    assert TIER0 <= names
-    assert names & set(TIER1_TOOLS) == set()
+    assert TIER0 <= names, "the lifecycle tools must be present"
+    assert set(TIER1_TOOLS) <= names, (
+        "the query tools must be present too — a conditionally-absent tool is one a model never "
+        "learns it has"
+    )
 
 
 @pytest.mark.anyio
@@ -500,9 +516,17 @@ async def test_register_and_unregister_query_tools(server) -> None:
 
 @pytest.mark.anyio
 async def test_unregister_is_tolerant_when_never_registered(server) -> None:
-    """Dropping tier-1 before it was ever added is a no-op, not an error."""
+    """Dropping tier-1 when it is not there is a no-op, not an error.
+
+    THE SETUP CHANGED, NOT THE CLAIM (gh#7). Construction now registers tier-1, so "never
+    registered" is no longer the construction state — the first unregister removes it and the
+    SECOND is the case this test is about. The tolerance property is unchanged.
+    """
     mcp, _state = server
-    assert unregister_query_tools(mcp) == []
+    assert set(unregister_query_tools(mcp)) == set(TIER1_TOOLS), (
+        "precondition: construction registers tier-1, so the first call removes it"
+    )
+    assert unregister_query_tools(mcp) == [], "a second removal is a no-op"
 
 
 @pytest.mark.anyio
@@ -564,7 +588,9 @@ async def test_build_or_refresh_without_target_is_an_error(server) -> None:
     assert "set_target" not in result["error"]
     for source in ("--repo", "CLAUDE_PROJECT_DIR", "roots/list"):
         assert source in result["error"], f"the error must name the {source} source"
-    assert await _names(mcp) & set(TIER1_TOOLS) == set()
+    ## The tier-1 absence assertion that stood here was incidental to this test's subject (the
+    ## error's wording) and pinned the retired conditional-registration contract (gh#7). Tier-1
+    ## presence at construction is asserted by `test_every_tool_is_present_at_construction`.
 
 
 @pytest.mark.anyio
@@ -2405,7 +2431,8 @@ def test_repo_flag_sets_the_target_and_does_NOT_pin_it(tmp_path: Path) -> None:
     other.mkdir()
 
     _mcp, state = build_server(reg)
-    assert state.tier1_active is False, "tier-1 is dynamic until a target is known"
+    ## tier-1 is registered at construction now (gh#7); this test is about which SOURCE supplies
+    ## the startup target, which the assertions below cover.
 
     state.resolve_startup_target(str(repo))
     assert Path(state.active.repo_path) == repo
@@ -2483,8 +2510,8 @@ async def test_roots_resolve_lazily_on_the_first_call_that_needs_a_target(
 
     mcp, state = build_server(reg)
     assert state.resolve_startup_target(None) is None, "no eager source supplies one"
-    assert state.tier1_active is False
-    assert await _names(mcp) & set(TIER1_TOOLS) == set()
+    ## Two tier-1-absence assertions removed here (gh#7): this test's subject is that startup
+    ## resolves no target and does not call the client, both asserted below.
 
     ctx = _FakeCtx(roots=[repo.as_uri()])
     assert ctx.session.roots_calls == 0, "startup must not touch the client"
@@ -3247,4 +3274,41 @@ def test_targets_is_a_listing_not_a_wall_of_full_status(tmp_path: Path) -> None:
     assert len(_json.dumps(rows)) <= RESPONSE_BUDGET_BYTES, (
         "the listing must respect the same response budget every query tool does — it was the "
         "one reply with no bound at all"
+    )
+
+
+@pytest.mark.anyio
+## @req REQ-DDB-MCP-003
+async def test_every_served_tool_is_exempt_from_tool_search_deferral(server) -> None:
+    """gh#7, AND THE EVIDENCE IS A MEASURED SESSION RATHER THAN A THEORY. A client may present
+    MCP tools as DEFERRED — named in a reminder with no schema, callable only after a `ToolSearch`
+    round trip. `grep` is then one call away and `dossier` is two. A reporter documented clew in
+    their repo's CLAUDE.md, indexed it, ran a multi-hour session, made 6 greps of which 4 were
+    dossier-answerable, and called the index ZERO times spontaneously. One of those greps produced
+    a wrong conclusion a `dossier` reply later corrected.
+
+    ASSERTED ON EVERY TOOL, not just the query pair. `index` is what a first-time user must call
+    before anything works, so a deferred `index` puts the penalty on the first interaction — the
+    one where someone decides whether the tool is worth the trouble.
+
+    READ OFF `list_tools`, which is the wire, not off the constant. A test asserting
+    `ALWAYS_LOAD_META == {...}` would pass while `add_tool` dropped the argument on the floor.
+
+    The manifest half of this (`alwaysLoad` in `.claude-plugin/plugin.json`) cannot be verified
+    from inside this process and is pinned by tests/test_plugin_manifest.py instead.
+
+    @brief Every served tool carries the always-load exemption on the wire.
+    @return None.
+    @version 1
+    """
+    mcp, _state = server
+    served = await mcp.list_tools()
+    assert served, "precondition: the server must serve tools for this to mean anything"
+
+    missing = sorted(
+        tool.name for tool in served if not (tool.meta or {}).get("anthropic/alwaysLoad")
+    )
+    assert not missing, (
+        f"these tools would be deferred behind a ToolSearch round trip: {missing}. `grep` is one "
+        f"call away; a deferred tool is two, and that asymmetry decides which gets reached for."
     )

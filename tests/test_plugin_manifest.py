@@ -266,3 +266,29 @@ def test_no_catalog_entry_disables_strict_mode() -> None:
             "components belong in plugin.json, which is authoritative under strict mode; "
             "declaring them here too makes one of the two silently win"
         )
+
+
+## @brief The plugin's MCP server must be exempt from tool-search deferral.
+## @return None.
+## @version 1
+def test_the_manifest_exempts_the_server_from_tool_search_deferral() -> None:
+    """gh#7's manifest half. `alwaysLoad: true` on the server entry makes every tool from it load
+    at session start instead of arriving as a DEFERRED tool that needs a `ToolSearch` round trip
+    before it can be called.
+
+    BOTH HALVES ARE DECLARED BECAUSE NEITHER CAN BE VERIFIED HERE. The server also stamps
+    `anthropic/alwaysLoad` into each tool's `_meta`, which travels over the wire; this covers a
+    client that decides before the server is asked. Either alone is a single point of failure, and
+    this process cannot observe which one a real client honoured.
+
+    @brief The manifest's server entry sets alwaysLoad.
+    @return None.
+    @version 1
+    """
+    servers = _manifest()["mcpServers"]
+    assert isinstance(servers, dict), "the object form is required to carry alwaysLoad"
+    for name, entry in servers.items():
+        assert entry.get("alwaysLoad") is True, (
+            f"server {name!r} does not set alwaysLoad, so its tools arrive deferred — one "
+            f"ToolSearch round trip behind grep, which is what gh#7 measured the cost of"
+        )

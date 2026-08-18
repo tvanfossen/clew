@@ -11,7 +11,8 @@
   "mcpServers": {
     "clew": {
       "type": "stdio",
-      "command": "clew-mcp"
+      "command": "clew-mcp",
+      "alwaysLoad": true
     }
   }
 }
