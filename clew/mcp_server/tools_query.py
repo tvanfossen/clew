@@ -607,7 +607,7 @@ def _candidates_capped(db: Path | None, payload: dict[str, Any]) -> dict[str, An
 ## @param db Active database path, for the function-subject ambiguity probe; omit to skip it.
 ## @param depth The depth the CALLER asked for, so an unhonoured one can be disclosed.
 ## @return The flat payload, or None when nothing resolved.
-## @version 4
+## @version 5
 ## @dg_internal
 def _flatten_subject(built: Any, db: Path | None = None, depth: int = 1) -> dict[str, Any] | None:
     """FLAT, NOT NESTED, and the reason is the budget rather than taste. Every trimmer on
@@ -626,7 +626,7 @@ def _flatten_subject(built: Any, db: Path | None = None, depth: int = 1) -> dict
 
     @brief Serialize a subject dossier to its flat wire form.
     @return Flat payload dict, or None.
-    @version 4
+    @version 5
     """
     if built is None:
         return None
@@ -643,9 +643,11 @@ def _flatten_subject(built: Any, db: Path | None = None, depth: int = 1) -> dict
     ambiguity = None if db is None else _ambiguity_block(db, built)
     if ambiguity:
         payload["ambiguous"] = ambiguity
-    gates = None if db is None else _gate_definitions(db, payload)
+    gates, gate_gaps = (None, None) if db is None else _gate_definitions(db, payload)
     if gates:
         payload["gate_definitions"] = gates
+    if gate_gaps:
+        payload["gate_definitions_limited"] = gate_gaps
     ## PRESENT ONLY WHEN IT APPLIES, like every other added key here — an annotation on every
     ## empty list is one a reader learns to skip.
     callers_note = _empty_callers_note(payload, built.also or ())
@@ -703,11 +705,59 @@ def _hoist_build_wide(entries: list[dict[str, Any]], out: dict[str, Any]) -> Non
             entry.pop(key, None)
 
 
+## @brief Disclose which gate symbols were not resolved, and why each was not.
+## @param no_sites Symbols looked up whose definition site the index does not hold.
+## @param not_attempted Symbols beyond the per-payload cap, never looked up.
+## @return The disclosure, or None when every gate resolved.
+## @version 1
+## @dg_internal
+def _gate_definition_gaps(no_sites: list[str], not_attempted: list[str]) -> dict[str, Any] | None:
+    """TWO GAPS THAT LOOKED IDENTICAL AND MEAN OPPOSITE THINGS.
+
+    `no_definition_site` is a FACT ABOUT THE REPOSITORY, and often it is the answer: a
+    `//#define MBEDTLS_THREADING_C` is a definition the preprocessor never sees, so it produces no
+    `memberdef` row and the index holds none. "This gate is nowhere actively defined" is exactly
+    what a reader asking about the shipped default needs.
+
+    `not_attempted` is a fact about THIS TOOL — the cap ran out. It promises more exists; it claims
+    nothing about the repository.
+
+    Collapsing both into one absent key made a real answer indistinguishable from a truncation.
+
+    NAMED, NEVER COUNTED. A count leaves a reader unable to ask for the one they care about, which
+    is exactly how the cap hurt: the symbol two graded marks ask about was tenth alphabetically and
+    silently vanished.
+
+    @brief Say which gates did not resolve and which were never tried.
+    @return The disclosure, or None.
+    @version 1
+    """
+    if not no_sites and not not_attempted:
+        return None
+    gaps: dict[str, Any] = {}
+    if no_sites:
+        gaps["no_definition_site"] = no_sites
+        gaps["no_definition_site_means"] = (
+            "The index holds NO definition site for these. That is usually a fact about the "
+            "repository rather than a gap: a commented-out `//#define` is not a definition the "
+            "preprocessor sees, so it produces no row. Read the header named in `config_header` "
+            "to confirm the shipped default."
+        )
+    if not_attempted:
+        gaps["not_attempted"] = not_attempted
+        gaps["not_attempted_means"] = (
+            f"More than {_GATE_DEFINITION_CAP} distinct gates guard this code, so these were not "
+            f"looked up. Ask `dossier` for one by name. Their absence above is this tool's cap, "
+            f"NOT a statement about the repository."
+        )
+    return gaps
+
+
 ## @brief Resolve the symbols a payload's `gated_by` rows NAME to where they are defined.
 ## @param db Index path for the same target the payload came from.
 ## @param payload The flattened dossier payload, read for its gate rows.
 ## @return Mapping of gate symbol to its definition sites, or {} when nothing resolves.
-## @version 1
+## @version 3
 ## @dg_internal
 def _gate_definitions(db: Any, payload: dict[str, Any]) -> dict[str, Any]:
     """A NAMED UNKNOWN IN A PAYLOAD IS AN INSTRUCTION TO GO LOOKING. `gated_by` said the code is
@@ -734,9 +784,9 @@ def _gate_definitions(db: Any, payload: dict[str, Any]) -> dict[str, Any]:
     among its gates, and echoing its definition sites back under a second key would be pure
     duplication of the payload it is already in.
 
-    @brief Attach each gate symbol's definition sites.
-    @return Gate symbol -> definition sites.
-    @version 1
+    @brief Attach each gate symbol's definition sites, and disclose what was not resolved.
+    @return (gate symbol -> definition sites, disclosure or None).
+    @version 3
     """
     rows = payload.get("gated_by") or []
     subject = payload.get("name") or payload.get("subject")
@@ -748,6 +798,11 @@ def _gate_definitions(db: Any, payload: dict[str, Any]) -> dict[str, Any]:
         }
     )
     out: dict[str, Any] = {}
+    ## ATTEMPTED-AND-EMPTY IS NOT NOT-ATTEMPTED. `if sites:` dropped the key for a symbol whose
+    ## definition site the index genuinely does not hold — a commented-out `//#define` produces no
+    ## `memberdef` row at all — so its absence from this map was indistinguishable from having been
+    ## capped out. Two different answers wearing one silence. Tracked separately below.
+    no_sites: list[str] = []
     for name in names[:_GATE_DEFINITION_CAP]:
         ## PROJECTED, NOT PASSED THROUGH. A full `MacroDef` carries its own `referenced_by`,
         ## `gated_by` and expansion per site, and three of those nested inside a block that exists
@@ -760,12 +815,24 @@ def _gate_definitions(db: Any, payload: dict[str, Any]) -> dict[str, Any]:
         ]
         if sites:
             out[name] = sites
-    return out
+        else:
+            no_sites.append(name)
+    return out, _gate_definition_gaps(no_sites, names[_GATE_DEFINITION_CAP:])
 
 
-## Gate symbols resolved per payload. A line is usually gated by one or two symbols; the cap is a
-## runaway guard on a deeply nested conditional, not a budget the ordinary case approaches.
-_GATE_DEFINITION_CAP = 6
+## Gate symbols resolved per payload.
+##
+## RAISED FROM 6, BECAUSE THE ORDINARY CASE DID APPROACH IT. The previous comment called this "a
+## runaway guard ... not a budget the ordinary case approaches"; mbedtls'
+## `programs/ssl/ssl_pthread_server.c` sits inside ONE conditional twelve macros wide, so half were
+## cut. Worse, the slice is over `sorted(names)`, so the survivors were chosen ALPHABETICALLY —
+## `MBEDTLS_THREADING_C` is tenth of twelve and never resolved, which is precisely the symbol two
+## graded marks ask about. A cap that silently prefers the first letters of the alphabet is not a
+## runaway guard, it is a lottery.
+##
+## Still capped, because a deeply nested conditional is real, but the omission is now DISCLOSED by
+## name rather than left to look like an absence.
+_GATE_DEFINITION_CAP = 24
 
 
 ## Nested lists inside a dossier, longest-first, that a budget may trim. Ordered so

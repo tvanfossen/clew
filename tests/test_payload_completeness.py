@@ -167,7 +167,9 @@ def test_a_named_gate_symbol_resolves_to_its_definition_sites(rich_db: Path) -> 
     @version 1
     """
     payload = {"name": "SOMETHING_ELSE", "gated_by": [{"symbol": "SOUND_FINDME"}]}
-    resolved = _gate_definitions(rich_db, payload)
+    ## Returns (resolved, disclosure) since the cap and the no-definition-site case had to
+    ## become distinguishable; this test is about the RESOLVED half.
+    resolved, _gaps = _gate_definitions(rich_db, payload)
     assert "SOUND_FINDME" in resolved, (
         "a gate symbol the index can place must come back placed — leaving it unresolved is the "
         "open loop that cost four greps in a measured cell"
@@ -176,12 +178,12 @@ def test_a_named_gate_symbol_resolves_to_its_definition_sites(rich_db: Path) -> 
 
     ## SELF-REFERENCE, and the payload is otherwise identical so nothing else can explain a change.
     itself = {"name": "SOUND_FINDME", "gated_by": [{"symbol": "SOUND_FINDME"}]}
-    assert _gate_definitions(rich_db, itself) == {}, (
+    assert _gate_definitions(rich_db, itself)[0] == {}, (
         "a subject listed among its own gates must not have its sites echoed back"
     )
 
     ## AND AN UNGATED PAYLOAD GAINS NOTHING, so the block cannot appear as noise on every reply.
-    assert _gate_definitions(rich_db, {"name": "X", "gated_by": []}) == {}
+    assert _gate_definitions(rich_db, {"name": "X", "gated_by": []})[0] == {}
 
 
 ## @brief The gate resolver is actually WIRED INTO the dossier payload, not merely importable.
@@ -213,7 +215,10 @@ def test_gate_definitions_are_attached_to_the_payload_not_just_computable(
     import clew.mcp_server.tools_query as tq
 
     sentinel = {"SENTINEL_GATE": [{"file": "x.h", "line": 1, "expansion": ""}]}
-    monkeypatch.setattr(tq, "_gate_definitions", lambda _db, _payload: sentinel)
+    ## Returns (resolved, disclosure) now — the cap and the no-definition-site case had to
+    ## become distinguishable. The stub returns no disclosure, so this stays a test of the
+    ## WIRING of the resolved half and nothing else.
+    monkeypatch.setattr(tq, "_gate_definitions", lambda _db, _payload: (sentinel, None))
     reply = tools.dossier("main")
     ## A MISS ENVELOPE NEVER REACHES `_flatten_subject`, so an unresolvable subject would make
     ## this test pass for the wrong reason under the very mutation it exists to catch. The first
@@ -263,4 +268,63 @@ def test_operator_stated_macros_are_distinguished_from_the_repos_own_defaults() 
     assert _stated_only(declared, ()) == (), (
         "with no header read there is no claim to make about the repository's defaults — "
         "asserting every stated macro ships OFF would invent a fact"
+    )
+
+
+## @brief An unresolved gate must say WHICH kind of unresolved it is.
+## @param rich_db Session-scoped synthetic index.
+## @return None.
+## @version 1
+def test_unresolved_gates_distinguish_no_definition_site_from_never_tried(rich_db: Path) -> None:
+    """TWO GAPS THAT LOOKED IDENTICAL AND MEAN OPPOSITE THINGS. `if sites:` dropped the key for a
+    gate the index cannot place, so its absence was indistinguishable from having been capped out.
+
+    `no_definition_site` is usually the ANSWER: a `//#define MBEDTLS_THREADING_C` is not a
+    definition the preprocessor sees, so it produces no `memberdef` row. "Nowhere actively defined"
+    is what a reader asking about the shipped default needs.
+
+    `not_attempted` is a fact about the TOOL. It promises more exists and claims nothing about the
+    repository.
+
+    AND THE CAP WAS A LOTTERY. It sliced `sorted(names)`, so with mbedtls' twelve-macro conditional
+    the survivors were chosen ALPHABETICALLY and `MBEDTLS_THREADING_C` — tenth of twelve, and the
+    symbol two graded marks ask about — silently vanished. The previous comment called 6 "not a
+    budget the ordinary case approaches"; twelve is the ordinary case.
+
+    @brief The two unresolved kinds are named separately, and neither fires when all resolve.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server.tools_query import _GATE_DEFINITION_CAP, _gate_definitions
+
+    ## A gate the index genuinely cannot place, beside one it can.
+    payload = {
+        "name": "subject_fn",
+        "gated_by": [{"symbol": "SOUND_FINDME"}, {"symbol": "NOWHERE_DEFINED_XYZ"}],
+    }
+    resolved, gaps = _gate_definitions(rich_db, payload)
+
+    assert "SOUND_FINDME" in resolved, "precondition: the placeable gate must still resolve"
+    assert gaps is not None, "an unplaceable gate must be disclosed, not silently dropped"
+    assert gaps["no_definition_site"] == ["NOWHERE_DEFINED_XYZ"], (
+        f"the unplaceable gate must be NAMED, not counted — a count leaves a reader unable to ask "
+        f"for the one they care about; got {gaps}"
+    )
+    assert "not_attempted" not in gaps, "nothing was capped here, so nothing may claim it was"
+
+    ## OVER THE CAP: the overflow is named as a TOOL limit, distinctly.
+    many = {
+        "name": "subject_fn",
+        "gated_by": [{"symbol": f"GATE_{i:03d}"} for i in range(_GATE_DEFINITION_CAP + 3)],
+    }
+    _resolved2, gaps2 = _gate_definitions(rich_db, many)
+    assert gaps2 is not None and len(gaps2["not_attempted"]) == 3, (
+        f"the three gates beyond the cap must be named as not attempted; got {gaps2}"
+    )
+
+    ## THE SILENCE CONTROL: every gate placed means no disclosure at all.
+    _r3, gaps3 = _gate_definitions(rich_db, {"name": "f", "gated_by": [{"symbol": "SOUND_FINDME"}]})
+    assert gaps3 is None, (
+        "when every gate resolves there is nothing to disclose — a block on every reply is one a "
+        "reader learns to skip"
     )
