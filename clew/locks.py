@@ -152,6 +152,21 @@ DEFAULT_LOCK_PATTERNS: list[LockPattern] = [
         "pthread_rwlock_rdlock", form="call", kind="shared_mutex", mode="shared", role="acquire"
     ),
     LockPattern("sem_wait", form="call", kind="semaphore", role="acquire"),
+    # Rust std::sync::{Mutex,RwLock}: the guard returned by .lock()/.read()/
+    # .write() (bare, or through .unwrap()/.expect()/`?` — parking_lot's
+    # Mutex::lock() returns the guard directly with no Result at all, which is
+    # why the bare-call shape is matched too) is dropped at end of scope
+    # exactly like a C++ RAII guard. form="raii" is therefore correct even
+    # though detection is a CALL, not a declared guard type — see
+    # _visit_rust_lock_binding, which is what actually finds these (Rust has
+    # no generic "declaration" node for _visit_declaration's type-name match
+    # to key on).
+    LockPattern("lock", form="raii", kind="mutex", mode="exclusive"),
+    LockPattern("try_lock", form="raii", kind="mutex", mode="exclusive"),
+    LockPattern("read", form="raii", kind="shared_mutex", mode="shared"),
+    LockPattern("try_read", form="raii", kind="shared_mutex", mode="shared"),
+    LockPattern("write", form="raii", kind="shared_mutex", mode="exclusive"),
+    LockPattern("try_write", form="raii", kind="shared_mutex", mode="exclusive"),
 ]
 
 # The release counterpart of each `call`-form primitive, so an extent can be
@@ -367,7 +382,7 @@ def _text(node: Any, src: bytes) -> str:
 ## @param node Node to locate.
 ## @param src Source bytes.
 ## @return "class:Foo", or SCOPE_UNKNOWN when there is no enclosing class.
-## @version 3
+## @version 4
 ## @dg_internal
 def _class_scope(node: Any, src: bytes) -> str:
     """A mutex named `mutex_` is meaningless on its own — a codebase has many. The
@@ -375,13 +390,21 @@ def _class_scope(node: Any, src: bytes) -> str:
     AST rather than assumed, and absence is reported as unknown rather than
     silently collapsing into a global.
 
+    Rust has no C++-style out-of-line member definition to fall back to
+    (`impl Foo { fn bar(&self) {...} }` always nests the method lexically
+    inside its `impl` block, unlike `void Foo::bar() {...}` in a .cpp file) —
+    so `impl_item`'s own `type` field is the whole answer for Rust, and
+    `_out_of_line_scope`'s qualified-name recovery correctly finds nothing
+    to do for it (Rust has no `function_definition` node either).
+
     @brief Resolve the enclosing class scope of a node.
     @return Scope string.
-    @version 3
+    @version 4
     """
-    holder = enclosing(node, ("class_specifier", "struct_specifier"))
+    holder = enclosing(node, ("class_specifier", "struct_specifier", "impl_item"))
     if holder is not None:
-        name = _text(holder.child_by_field_name("name"), src)
+        name_field = "type" if holder.type == "impl_item" else "name"
+        name = _text(holder.child_by_field_name(name_field), src)
         return f"class:{name}" if name else SCOPE_UNKNOWN
     return _out_of_line_scope(node, src)
 
@@ -674,6 +697,72 @@ def _visit_declaration(node: Any, src: bytes, patterns: dict, sites: list) -> No
         _append_site(node, src, pattern, operand, "scoped", sites, primitives)
 
 
+## Rust's `.unwrap()`/`.expect(msg)` and the `?` operator are the three ways a
+## `Result<Guard, _>` from `.lock()`/`.read()`/`.write()` gets down to the
+## guard itself; parking_lot's Mutex isn't fallible at all and needs no
+## unwrap. Capped like `call_edges._MAX_CALLEE_UNWRAP` so a pathological chain
+## cannot spin.
+_MAX_RUST_RESULT_UNWRAP = 4
+
+
+## @brief Peel .unwrap()/.expect()/`?` off a Rust expression down to its base call.
+## @param node A `let_declaration`'s value expression.
+## @return The innermost call_expression, or the original node if there was nothing to peel.
+## @version 1
+## @dg_internal
+def _unwrap_rust_result(node: Any) -> Any:
+    """@brief Unwrap Result/Option combinators to the call they wrap."""
+    for _ in range(_MAX_RUST_RESULT_UNWRAP):
+        if node is None:
+            return None
+        if node.type == "try_expression":
+            node = next(iter(node.named_children), None)
+            continue
+        if node.type == "call_expression":
+            func = node.child_by_field_name("function")
+            if func is not None and func.type == "field_expression":
+                field = func.child_by_field_name("field")
+                if field is not None and field.text in (b"unwrap", b"expect"):
+                    node = func.child_by_field_name("value")
+                    continue
+        return node
+    return None
+
+
+## @brief Record one Rust lock-guard binding, if the call names a lock method.
+## @param node A `let_declaration` node.
+## @param src Source bytes.
+## @param patterns Pattern lookup by name.
+## @param sites Accumulator.
+## @return None.
+## @version 1
+## @dg_internal
+def _visit_rust_let_binding(node: Any, src: bytes, patterns: dict, sites: list) -> None:
+    """Append a site for `let g = mutex.lock().unwrap();` and kin — the Rust
+    counterpart of `_visit_declaration`, keyed on a METHOD NAME
+    (`lock`/`read`/`write`/...) rather than a declared guard type, since
+    tree-sitter-rust names no node "declaration" for `_visit_declaration`'s
+    type-name match to ever fire on.
+
+    @brief Append a site for a Rust `let`-bound lock-guard acquisition.
+    @version 1
+    """
+    call = _unwrap_rust_result(node.child_by_field_name("value"))
+    if call is None or call.type != "call_expression":
+        return
+    func = call.child_by_field_name("function")
+    if func is None or func.type != "field_expression":
+        return
+    field = func.child_by_field_name("field")
+    method = _text(field, src) if field is not None else ""
+    pattern = patterns.get(method)
+    if pattern is None or pattern.form != "raii" or pattern.kind not in ("mutex", "shared_mutex"):
+        return
+    receiver = func.child_by_field_name("value")
+    operand = _text(receiver, src) if receiver is not None else ""
+    _append_site(call, src, pattern, operand, "scoped", sites, _primitive_names(patterns))
+
+
 ## @brief Record one call-form acquisition, if the callee names a lock pattern.
 ## @param node Call-expression node.
 ## @param src Source bytes.
@@ -698,16 +787,24 @@ def _visit_call(node: Any, src: bytes, patterns: dict, sites: list) -> None:
 ## @param src_bytes Source bytes.
 ## @param patterns Pattern lookup by name.
 ## @return Rowid-free site records.
-## @version 1
+## @version 2
 ## @dg_internal
 def _walk_lock_sites(tree: Any, src_bytes: bytes, patterns: dict) -> list[list[Any]]:
     """Rowid-free by design, like every other harvest payload, so the result
     caches against the file's content sha and re-resolves against whatever
     rowids the next build produces.
 
+    `let_declaration` is Rust-only (neither C/C++ nor Python ever produce it),
+    and `declaration`/`call_expression` are never produced by a Rust parse
+    (Rust's own `.lock()`/`.read()`/`.write()` calls ARE `call_expression`
+    nodes, but `_visit_call` only matches a pattern whose `form == "call"`,
+    and every Rust pattern is `form == "raii"` — so it harmlessly no-ops
+    there instead of double-recording the site `_visit_rust_let_binding`
+    already found).
+
     @brief Walk one file for lock sites.
     @return List of site records.
-    @version 1
+    @version 2
     """
     sites: list[list[Any]] = []
     stack = [tree.root_node]
@@ -716,6 +813,8 @@ def _walk_lock_sites(tree: Any, src_bytes: bytes, patterns: dict) -> list[list[A
         stack.extend(node.children)
         if node.type == "declaration":
             _visit_declaration(node, src_bytes, patterns, sites)
+        elif node.type == "let_declaration":
+            _visit_rust_let_binding(node, src_bytes, patterns, sites)
         elif node.type == "call_expression":
             _visit_call(node, src_bytes, patterns, sites)
     return sites

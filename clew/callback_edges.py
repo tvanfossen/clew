@@ -158,7 +158,7 @@ from .call_edges import (
     _ast_record_call_edge,
     _build_function_indexes,
 )
-from .harvest import Harvester, run_harvest, try_import_tree_sitter
+from .harvest import Harvester, enclosing, run_harvest, try_import_tree_sitter
 from .indexcache import IndexCache
 from .preprocessor import PreprocessorConfig, evaluate_condition
 from .pyast import node_text
@@ -378,6 +378,121 @@ def _harvest_registration(assign_node: Any, src_bytes: bytes) -> list[Any] | Non
     ]
 
 
+## @brief The struct/impl type name enclosing a node, for a Rust field's identity.
+## @param node Node to locate.
+## @param src_bytes The file's raw bytes.
+## @return The enclosing `impl`/`struct` literal's type name, or None.
+## @version 1
+## @dg_internal
+def _rust_enclosing_type(node: Any, src_bytes: bytes) -> str | None:
+    """A bare field name (`callback`) is meaningless on its own — many structs
+    can have one — so, exactly as `locks._class_scope` scope-qualifies a
+    mutex identity, a Rust registration/invocation is keyed on
+    `"Type::field"`, never the bare field name alone.
+
+    @brief Resolve the owning type name for a `self.field`/struct-literal site.
+    @return Type name, or None when there is no enclosing impl.
+    @version 1
+    """
+    holder = enclosing(node, ("impl_item",))
+    if holder is None:
+        return None
+    type_node = holder.child_by_field_name("type")
+    return node_text(type_node, src_bytes) if type_node is not None else None
+
+
+## @brief Harvest `self.field = param;` as a candidate registration (Rust).
+## @param assign_node An `assignment_expression` node.
+## @param src_bytes The file's raw bytes.
+## @return [line, "Type::field", rhs_name, []], or None when the shape doesn't match.
+## @version 1
+## @dg_internal
+def _harvest_rust_field_registration(assign_node: Any, src_bytes: bytes) -> list[Any] | None:
+    """The Rust analog of `_harvest_registration`'s `GLOBAL = identifier;`: Rust
+    has no free-standing mutable global for a closure/handler to live in, so
+    the equivalent site is an instance field, assigned through `self` inside
+    an `impl` method. Guard chain is always empty — Rust has no preprocessor,
+    so nothing here is ever conditional the way a C `#if` binding can be.
+
+    @brief Per-file Rust field-registration harvest.
+    @return Registration record, or None.
+    @version 1
+    """
+    left = assign_node.child_by_field_name("left")
+    right = assign_node.child_by_field_name("right")
+    if (
+        left is None
+        or right is None
+        or left.type != "field_expression"
+        or right.type != "identifier"
+    ):
+        return None
+    receiver = left.child_by_field_name("value")
+    field = left.child_by_field_name("field")
+    if receiver is None or field is None or node_text(receiver, src_bytes) != "self":
+        return None
+    owner = _rust_enclosing_type(assign_node, src_bytes)
+    if owner is None:
+        return None
+    global_name = f"{owner}::{node_text(field, src_bytes)}"
+    rhs_name = node_text(right, src_bytes)
+    return [assign_node.start_point[0] + 1, global_name, rhs_name, []]
+
+
+## @brief Harvest one `field: param` struct-literal initializer as a candidate registration.
+## @param field_init_node A `field_initializer` node.
+## @param src_bytes The file's raw bytes.
+## @return [line, "Type::field", rhs_name, []], or None when the value isn't a bare identifier.
+## @version 1
+## @dg_internal
+def _harvest_rust_struct_literal_field(field_init_node: Any, src_bytes: bytes) -> list[Any] | None:
+    """The MORE idiomatic Rust registration shape, alongside `self.field = param`:
+    a constructor built as `Self { field: handler, .. }` rather than assigning
+    after the fact. Resolution needs no separate case downstream —
+    `_fold_registrations` finds the record's enclosing function (`new`, say)
+    at this line exactly as it would an assignment, and checks the SAME
+    `rhs_name in sig.param_names` test.
+
+    @brief Per-file struct-literal field-registration harvest.
+    @return Registration record, or None.
+    @version 1
+    """
+    value = field_init_node.child_by_field_name("value")
+    field = field_init_node.child_by_field_name("field")
+    if value is None or field is None or value.type != "identifier":
+        return None
+    struct_lit = enclosing(field_init_node, ("struct_expression",))
+    if struct_lit is None:
+        return None
+    type_node = struct_lit.child_by_field_name("name")
+    if type_node is None:
+        return None
+    type_name = node_text(type_node, src_bytes)
+    ## `Self { field: ... }` is at least as common as naming the type explicitly
+    ## (every constructor written as `fn new(...) -> Self { Self { ... } }` uses
+    ## it) — resolved to the enclosing impl's REAL target type, so this site's
+    ## key matches `self.field`'s own key (`_rust_enclosing_type`) rather than
+    ## splitting one field's identity across two spellings ("Self::x" vs
+    ## "Widget::x") that would never union.
+    if type_name == "Self":
+        type_name = _rust_enclosing_type(field_init_node, src_bytes) or type_name
+    global_name = f"{type_name}::{node_text(field, src_bytes)}"
+    return [field_init_node.start_point[0] + 1, global_name, node_text(value, src_bytes), []]
+
+
+## @brief Try the C/C++ assignment-registration shape, then the Rust one.
+## @param assign_node An `assignment_expression` node.
+## @param src_bytes The file's raw bytes.
+## @return A registration record, or None when neither shape matches.
+## @version 1
+## @dg_internal
+def _harvest_assignment_registration(assign_node: Any, src_bytes: bytes) -> list[Any] | None:
+    """@brief Dispatch one assignment to the C or Rust registration harvester."""
+    return _harvest_registration(assign_node, src_bytes) or _harvest_rust_field_registration(
+        assign_node, src_bytes
+    )
+
+
 ## @brief Harvest one `TYPE (*name)(...) = identifier;` initializer as a candidate binding.
 ## @param decl_node An `init_declarator` node.
 ## @param src_bytes The file's bytes, for slicing.
@@ -539,24 +654,174 @@ def _harvest_call_site(call_node: Any, src_bytes: bytes) -> list[Any] | None:
     return [call_node.start_point[0] + 1, callee_name, arg_texts]
 
 
+## @brief Argument identifiers of a call's `arguments` node, None for non-identifiers.
+## @param args_node A call's `arguments` node, or None.
+## @param src_bytes The file's raw bytes.
+## @return One entry per argument: its text if a bare identifier, else None.
+## @version 1
+## @dg_internal
+def _rust_arg_texts(args_node: Any, src_bytes: bytes) -> list[str | None]:
+    """@brief Shared arg-list reader for both Rust call-site harvesters below."""
+    arg_texts: list[str | None] = []
+    for arg in args_node.named_children if args_node is not None else []:
+        arg_texts.append(node_text(arg, src_bytes) if arg.type == "identifier" else None)
+    return arg_texts
+
+
+## @brief Harvest a Rust call site: a call to a named function, or a field invocation.
+## @param call_node A `call_expression` node.
+## @param src_bytes The file's raw bytes.
+## @return [line, callee_name, arg_texts], or None when neither shape matches.
+## @version 1
+## @dg_internal
+def _harvest_rust_call_site(call_node: Any, src_bytes: bytes) -> list[Any] | None:
+    """Two shapes, both needed by the SAME downstream resolution
+    (`collector.call_sites`, keyed by name, serves both "calls to the
+    registering function" and "invocations of the bound field" identically —
+    see `_emit_resolved_edges`):
+
+      - `Type::method(args)` (a `scoped_identifier` callee) — how a Rust
+        constructor like `Widget::new(handler)` is called, the site
+        `_resolve_binding` walks to learn what a forwarded parameter
+        actually was. Recorded under the method's BARE name ("new"),
+        matching `_harvest_rust_signature`'s own bare-name recording.
+      - `(self.field)(args)` (a parenthesized `field_expression` callee,
+        receiver `self`) — the ONLY valid Rust syntax for calling a field
+        directly (`self.field(args)` would parse as a method call instead).
+        Recorded under `"Type::field"`, the same qualified key
+        `_harvest_rust_field_registration` registers against.
+
+    @brief Per-file Rust call-site harvest.
+    @return Call-site record, or None.
+    @version 1
+    """
+    callee = call_node.child_by_field_name("function")
+    args_node = call_node.child_by_field_name("arguments")
+    if callee is None:
+        return None
+    if callee.type == "scoped_identifier":
+        name_node = callee.child_by_field_name("name")
+        if name_node is None:
+            return None
+        callee_name = node_text(name_node, src_bytes)
+    elif callee.type == "parenthesized_expression":
+        inner = next(iter(callee.named_children), None)
+        if inner is None or inner.type != "field_expression":
+            return None
+        receiver = inner.child_by_field_name("value")
+        field = inner.child_by_field_name("field")
+        if receiver is None or field is None or node_text(receiver, src_bytes) != "self":
+            return None
+        owner = _rust_enclosing_type(call_node, src_bytes)
+        if owner is None:
+            return None
+        callee_name = f"{owner}::{node_text(field, src_bytes)}"
+    else:
+        return None
+    return [call_node.start_point[0] + 1, callee_name, _rust_arg_texts(args_node, src_bytes)]
+
+
+## @brief Try the C/C++ call-site shape, then the Rust ones.
+## @param call_node A `call_expression` node.
+## @param src_bytes The file's raw bytes.
+## @return A call-site record, or None when no shape matches.
+## @version 1
+## @dg_internal
+def _harvest_call(call_node: Any, src_bytes: bytes) -> list[Any] | None:
+    """@brief Dispatch one call_expression to the C or Rust call-site harvester."""
+    return _harvest_call_site(call_node, src_bytes) or _harvest_rust_call_site(call_node, src_bytes)
+
+
+## @brief Extract a Rust `function_item`'s name + non-`self` parameter names.
+## @param func_item A `function_item` node.
+## @param src_bytes The file's raw bytes.
+## @return (name, ordered param-name list), or None when the name is unreadable.
+## @version 1
+## @dg_internal
+def _rust_function_signature(
+    func_item: Any, src_bytes: bytes
+) -> tuple[str, list[str | None]] | None:
+    """`self`/`&self`/`&mut self` is DELIBERATELY EXCLUDED from `param_names`
+    rather than recorded as a `None` placeholder: a method call written
+    `receiver.method(args)` never lists the receiver among `args` either (the
+    receiver is the `field_expression`'s own `value`, not an `arguments`
+    entry), so excluding `self_parameter` here is what keeps this list's
+    indices aligned with a real call site's argument positions. An
+    associated-function call written as `Type::method(&instance, args)`
+    (rare, non-idiomatic UFCS) would misalign — accepted, matching this
+    module's existing best-effort-never-guessed posture elsewhere.
+
+    Only a plain-identifier pattern resolves a parameter's name; anything
+    else (a tuple/struct destructuring pattern) records None, exactly like
+    the C path's own best-effort parameter-name reader.
+
+    @brief Resolve one Rust function's name + parameter names.
+    @return (name, param names) or None.
+    @version 1
+    """
+    name_node = func_item.child_by_field_name("name")
+    if name_node is None:
+        return None
+    name = node_text(name_node, src_bytes)
+    params_node = func_item.child_by_field_name("parameters")
+    param_names: list[str | None] = []
+    for param in params_node.named_children if params_node is not None else []:
+        if param.type == "self_parameter":
+            continue
+        pattern = param.child_by_field_name("pattern")
+        param_names.append(
+            node_text(pattern, src_bytes)
+            if pattern is not None and pattern.type == "identifier"
+            else None
+        )
+    return name, param_names
+
+
+## @brief Harvest one Rust `function_item`'s body line + name + parameter names.
+## @param func_item A `function_item` node.
+## @param src_bytes The file's raw bytes.
+## @return [body_line, name, param_names], or None when the shape isn't recognized.
+## @version 1
+## @dg_internal
+def _harvest_rust_signature(func_item: Any, src_bytes: bytes) -> list[Any] | None:
+    """@brief Per-file Rust signature harvest (mirrors `_harvest_signature`)."""
+    body = func_item.child_by_field_name("body")
+    if body is None:
+        return None
+    sig = _rust_function_signature(func_item, src_bytes)
+    if sig is None:
+        return None
+    name, param_names = sig
+    return [body.start_point[0] + 1, name, param_names]
+
+
 ## @brief Route one AST node into the matching harvest bucket.
-## @version 3
+## @version 4
 ## @dg_internal
 def _harvest_callback_node(node: Any, src_bytes: bytes, out: dict[str, list]) -> None:
     """Dispatch by node type — extracted from `_harvest_callback_file` to keep
     that function's complexity low.
 
+    Rust adds `function_item` (its own function node, distinct from C/C++/
+    Python's `function_definition`) and `field_initializer` (a struct-literal
+    registration site with no C/C++ analog at all). `assignment_expression`
+    and `call_expression` stay ONE dispatch entry each — `_harvest_assignment_
+    registration`/`_harvest_call` try the C/C++ shape first, then the Rust
+    one, so this table needs no per-language branch of its own.
+
     @brief Dispatch one node in the callback-edge harvest.
-    @version 3
+    @version 4
     """
     handlers = {
         "function_definition": ("sigs", _harvest_signature),
-        "assignment_expression": ("regs", _harvest_registration),
+        "function_item": ("sigs", _harvest_rust_signature),
+        "assignment_expression": ("regs", _harvest_assignment_registration),
         ## gh#1: a file-scope `int (*cb)(void) = impl;` is a `declaration`, not an
         ## assignment. Same `[line, bound_name, rhs_name, guards]` payload shape, so it
         ## shares the `regs` bucket and the cached-payload format does not change.
         "init_declarator": ("regs", _harvest_init_binding),
-        "call_expression": ("calls", _harvest_call_site),
+        "field_initializer": ("regs", _harvest_rust_struct_literal_field),
+        "call_expression": ("calls", _harvest_call),
     }
     entry = handlers.get(node.type)
     if entry is None:
@@ -605,7 +870,11 @@ class _CallbackHarvester(Harvester):
     #    GUARD CHAIN. A payload cached at 2 has no branch information at all, so every
     #    conditional binding in it would read as unconditional and keep grading
     #    'resolved' — the exact defect, served out of cache.
-    stage_version = 3
+    # 4: Rust support — new node types (`function_item`, `field_initializer`) and new
+    #    shapes for the two existing dispatch entries (`assignment_expression`,
+    #    `call_expression`). A payload cached at 3 was walked before any of that
+    #    existed, so it is missing every Rust registration/call site outright.
+    stage_version = 4
     label = "callback edges"
 
     ## @brief Harvest one file's callback-edge source material.

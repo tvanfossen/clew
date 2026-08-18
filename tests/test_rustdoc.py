@@ -140,7 +140,7 @@ def _item(
 
 def test_symbols_from_json_extracts_a_public_function():
     doc = {"index": {"0": _item(name="add", kind="function")}, "paths": {}}
-    symbols = _symbols_from_json(doc)
+    symbols = _symbols_from_json(doc, "0")
     assert len(symbols) == 1
     sym = symbols[0]
     assert sym.name == "add"
@@ -151,12 +151,12 @@ def test_symbols_from_json_extracts_a_public_function():
 
 def test_symbols_from_json_private_item_is_marked_static():
     doc = {"index": {"0": _item(name="helper", kind="function", visibility="default")}, "paths": {}}
-    assert _symbols_from_json(doc)[0].static == 1
+    assert _symbols_from_json(doc, "0")[0].static == 1
 
 
 def test_symbols_from_json_skips_items_with_no_span():
     doc = {"index": {"0": _item(name="from", kind="function", span=None)}, "paths": {}}
-    assert _symbols_from_json(doc) == []
+    assert _symbols_from_json(doc, "0") == []
 
 
 def test_symbols_from_json_skips_unmodeled_kinds():
@@ -172,7 +172,7 @@ def test_symbols_from_json_skips_unmodeled_kinds():
         },
         "paths": {},
     }
-    assert _symbols_from_json(doc) == []
+    assert _symbols_from_json(doc, "0") == []
 
 
 def test_symbols_from_json_maps_static_and_constant_to_variable_kind():
@@ -183,7 +183,7 @@ def test_symbols_from_json_maps_static_and_constant_to_variable_kind():
         },
         "paths": {},
     }
-    symbols = {s.name: s for s in _symbols_from_json(doc)}
+    symbols = {s.name: s for s in _symbols_from_json(doc, "0")}
     assert symbols["MAX"].kind == "variable"
     assert symbols["MIN"].kind == "variable"
 

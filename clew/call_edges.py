@@ -489,8 +489,16 @@ def _narrow_by_qualifier(
 # to resolve later, exactly as an unknown free function already does.
 _CALLEE_TERMINAL = ("identifier", "field_identifier", "destructor_name", "operator_name")
 _CALLEE_UNWRAP = {
-    "field_expression": "field",  # obj.method() / ptr->method()
+    "field_expression": "field",  # obj.method() / ptr->method() / rust: obj.method()
     "qualified_identifier": "name",  # Ns::Class::method()
+    # tree-sitter-rust's node for a qualified path call (`Type::method()`,
+    # `module::func()`, `std::thread::spawn()`) — the direct Rust analogue of
+    # C++'s qualified_identifier, and it happens to use the SAME field name
+    # ("name"), so this is the only entry Rust's call-site harvest needed: the
+    # walk below is driven entirely by tree-sitter node TYPE names, not by a
+    # language flag, and `call_expression`/`field_expression`/`identifier` are
+    # spelled identically in both grammars.
+    "scoped_identifier": "name",  # rust: Type::method() / module::func()
     "template_function": "name",  # f<T>()
     "template_method": "name",  # obj.f<T>()
     "parenthesized_expression": None,  # (f)() — unwrap the sole child
@@ -537,7 +545,7 @@ def _sole_child(node: Any) -> Any:
 
 ## @brief Harvest one file's rowid-free (callee_name, call_line, source) call sites.
 ## @return List of [callee_name, call_line, source] triples in walk order.
-## @version 6
+## @version 7
 ## @dg_internal
 def _ast_harvest_calls(tree: Any, src_bytes: bytes) -> list[list[Any]]:
     """Walk the parse tree iteratively, recording every direct call's callee
@@ -554,8 +562,16 @@ def _ast_harvest_calls(tree: Any, src_bytes: bytes) -> list[list[Any]]:
     the C path never needs to know about, and the C path's output is pinned by
     test precisely so this addition cannot perturb it.
 
-    @brief Per-file call-site harvest (C/C++ here, Python via pyast).
-    @version 5
+    RUST NEEDS NO SEPARATE BRANCH. tree-sitter-rust spells calls/method-calls/
+    identifiers identically to C++ (`call_expression`, `field_expression` with a
+    `field` field, bare `identifier`) — the one node type it names differently is
+    a qualified path (`scoped_identifier` where C++ has `qualified_identifier`),
+    which `_CALLEE_UNWRAP` already maps to the same "name" field. So this walker
+    falls through to the C/C++ path below for a Rust tree and produces the same
+    `[name, line, source]` shape with no Rust-specific code here at all.
+
+    @brief Per-file call-site harvest (C/C++/Rust here, Python via pyast).
+    @version 6
     """
     if is_python_tree(tree):
         return harvest_calls(tree, src_bytes, SOURCE_AST, SOURCE_AST_MEMBER, SOURCE_BINDING)
@@ -593,24 +609,26 @@ def _ast_harvest_calls(tree: Any, src_bytes: bytes) -> list[list[Any]]:
 ## @param raw_callee The call_expression's `function` child.
 ## @param src_bytes The file's bytes, for slicing.
 ## @return e.g. 'Ns::Class::method', or '' when the callee carries no qualifier.
-## @version 2
+## @version 3
 ## @dg_internal
 def _qualifier_text(raw_callee: Any, src_bytes: bytes) -> str:
-    """Only a `qualified_identifier` is reported. A `field_expression` (`obj.method()`)
-    names a RECEIVER, not a type — resolving those needs the receiver's declared type,
-    which is 79% of the member-ish sites and a much larger job.
+    """Only a `qualified_identifier` (or, for Rust, its `scoped_identifier`
+    analogue — `Type::method`/`module::func`) is reported. A `field_expression`
+    (`obj.method()`) names a RECEIVER, not a type — resolving those needs the
+    receiver's declared type, which is 79% of the member-ish sites and a much
+    larger job.
 
     A `template_function` is unwrapped one level first, because `Class::method<T>()` puts
     the qualified name inside the template node.
 
     @brief Extract the qualified callee text when present.
     @return Qualified name, or ''.
-    @version 2
+    @version 3
     """
     node = raw_callee
     if node is not None and node.type == "template_function":
         node = node.child_by_field_name("name")
-    if node is None or node.type != "qualified_identifier":
+    if node is None or node.type not in ("qualified_identifier", "scoped_identifier"):
         return ""
     return src_bytes[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
 
