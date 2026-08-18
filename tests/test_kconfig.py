@@ -1123,3 +1123,63 @@ def test_the_config_inventory_lists_symbols_and_honours_text(tmp_path: Path) -> 
     assert gates_meaning(3, 3, False) and "not shown" not in gates_meaning(3, 3, False)
     ## Nothing measured stays silent rather than describing an absent layer.
     assert gates_meaning(0, 0, False) == ""
+
+
+## @brief The stated/default split must reach the SERVED reply, not just `macros_meaning`.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_the_stated_macro_split_reaches_the_served_reply(tmp_path: Path) -> None:
+    """THREE DEFECTS IN ONE SENTENCE, AND THE SUITE COULD NOT SEE ANY OF THEM, because every
+    existing test calls `macros_meaning` DIRECTLY. This one goes through `kconfig_space`, which is
+    what a consumer reaches, and that is the whole point of it.
+
+      D1 — `_PREPROCESSOR_STATED_ONLY` was defined, documented with a five-line rationale, and
+           passed at the call site, but never added to `_meta`'s fetch tuple. It therefore
+           resolved to "" on every index ever built and the branch reading it was DEAD CODE. The
+           reply fell through to "this build did not record which came from which" while the split
+           sat in `build_meta`.
+      D2 — `', '.join(stated_only)` over a value `as_meta` had already joined, so the answer
+           rendered per character: "M, B, E, D, T, L, S, _, T, H, R, E, A, D, I, N, G, _, C, ...".
+      D3 — `resolve_preprocessor` returned early on `if explicit:` and discarded the
+           `config_header` declared in the same section, so the acceptance build — which promotes
+           a declared `predefined:` to that argument — threw away its own header every run.
+
+    The stamped shape is the one D3 now produces: `source: flag` WITH a known header and a split.
+
+    ASSERTS THE NAMES AND THE WORD OFF, not the whole sentence. Pinning the prose would fail on
+    every rewording; pinning the two load-bearing facts fails only when the answer is lost.
+
+    @brief The served reply names the OFF macros and does not garble them.
+    @return None.
+    @version 1
+    """
+    db = tmp_path / "split.db"
+    conn = sqlite3.connect(str(db))
+    conn.execute("CREATE TABLE build_meta (key TEXT PRIMARY KEY, value TEXT)")
+    conn.executemany(
+        "INSERT INTO build_meta(key, value) VALUES(?, ?)",
+        [
+            ("preprocessor.source", "flag"),
+            ("preprocessor.predefined", '"A_MACRO" "B_MACRO"'),
+            ("preprocessor.config_header", "include/proj/config.h"),
+            ("preprocessor.stated_only", "A_MACRO, B_MACRO"),
+        ],
+    )
+    conn.commit()
+    conn.close()
+
+    served = kconfig_space(db, include_gates=False).macros_meaning
+
+    assert "A_MACRO, B_MACRO" in served, (
+        f"the served reply does not name the macros that ship OFF, so the split never reached a "
+        f"consumer. Check that _PREPROCESSOR_STATED_ONLY is in _meta's fetch tuple. Got: {served}"
+    )
+    assert "OFF" in served, "the reply must say those macros ship OFF, not merely that they differ"
+    assert "A, _, M" not in served and "A, _" not in served, (
+        f"the names are being re-joined character by character — `stated_only` arrives already "
+        f"comma-joined from `as_meta`. Got: {served}"
+    )
+    assert "did not record which came from which" not in served, (
+        "the reply fell through to the unrecorded-split wording while the split was present"
+    )

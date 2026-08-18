@@ -154,6 +154,21 @@ def stub_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         script.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
         script.chmod(0o755)
 
+    ## THE STUB MUST MODEL A CAPABLE doxygen, not merely a present one (gh#3). The doctor now
+    ## probes `doxygen -g -` for GENERATE_SQLITE3, because Ubuntu 22.04 ships a doxygen that
+    ## satisfies a which() check and cannot write the database. An `exit 0` stub emits nothing,
+    ## which the probe correctly reads as UNSUPPORTED — so without this the fixture would model
+    ## the broken environment and fourteen tests about unrelated things would fail on it.
+    ##
+    ## The standing lesson applies in reverse here: a fixture that matches the detector rather
+    ## than the world is the failure. `write_incapable_doxygen` below models the OTHER world, so
+    ## both are represented by choice instead of by accident.
+    (bindir / "doxygen").write_text(
+        '#!/bin/sh\nif [ "$1" = "-g" ]; then echo "GENERATE_SQLITE3 = NO"; fi\nexit 0\n',
+        encoding="utf-8",
+    )
+    (bindir / "doxygen").chmod(0o755)
+
     def fake_which(cmd: str, *args: object, **kwargs: object) -> str | None:
         candidate = bindir / cmd
         return str(candidate) if candidate.is_file() else None
@@ -1335,3 +1350,104 @@ def _named(checks: list[init_command.Check], name: str) -> init_command.Check:
     match = [c for c in checks if c.name == name]
     assert len(match) == 1, f"expected exactly one {name} check, got {len(match)}"
     return match[0]
+
+
+## @brief A doxygen present but built WITHOUT sqlite3 must FAIL the doctor, not pass it.
+## @param stub_env Fake bin directory.
+## @return None.
+## @version 1
+def test_doxygen_without_sqlite3_support_fails_the_doctor(stub_env: Path) -> None:
+    """gh#3, REPORTED FROM A STOCK UBUNTU 22.04 BOX. The distro's doxygen 1.9.1 is built without
+    sqlite3 output; `apt install doxygen` therefore satisfies a `which()` check and every build
+    still fails. doxygen IGNORES the unsupported tag rather than refusing it — it warns, buries
+    that among thousands of suppressed warnings, exits ZERO and writes nothing — so the first
+    observable symptom was "Expected database not found: <path>", naming neither doxygen nor
+    sqlite3 nor anything the reader could act on.
+
+    A DOCTOR THAT REPORTS [ok] HERE IS WORSE THAN NO DOCTOR, because it certifies the broken
+    environment. That is what this pins.
+
+    A BUILD OPTION, NOT A VERSION: the generator is gated behind `-Dbuild_sqlite3=ON`, so the
+    message must not tell anyone to upgrade — the same version exists both ways. Asserted below,
+    because "install a newer doxygen" is the advice a reader would otherwise infer and it does
+    not necessarily work.
+
+    @brief An incapable doxygen fails the check and the message names the real cause.
+    @return None.
+    @version 1
+    """
+    ## An `exit 0` binary that prints no config template — exactly what the probe reads as
+    ## unsupported, and what the real 1.9.1 does (the tag is absent from its own template).
+    incapable = stub_env / "doxygen"
+    incapable.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    incapable.chmod(0o755)
+
+    check = init_command._check_doxygen()
+
+    assert check.status == CHECK_FAIL, (
+        f"a doxygen that cannot write the database must not report {check.status!r} — the doctor "
+        f"would then certify an environment in which every build fails"
+    )
+    assert "sqlite3" in check.detail, "the message must name sqlite3, which is the actual cause"
+    assert "build" in check.detail.lower(), (
+        "the message must say this is a BUILD option; telling someone to upgrade the version "
+        "does not necessarily fix it and 22.04's 1.9.1 is not a version problem"
+    )
+
+
+## @brief A capable doxygen still passes, and says so.
+## @param stub_env Fake bin directory.
+## @return None.
+## @version 1
+def test_doxygen_with_sqlite3_support_passes_the_doctor(stub_env: Path) -> None:
+    """THE POSITIVE HALF, and the half whose absence has shipped a broken check in this repo
+    before: a suite with a test for the failure path and none for the success path let a
+    completely broken install path stay green. Without this, narrowing the probe until it
+    rejected everything would pass the test above.
+
+    @brief A doxygen implementing GENERATE_SQLITE3 passes.
+    @return None.
+    @version 1
+    """
+    check = init_command._check_doxygen()
+
+    assert check.status == CHECK_OK, (
+        f"the fixture's doxygen advertises GENERATE_SQLITE3 and must pass; got "
+        f"{check.status!r}: {check.detail}"
+    )
+
+
+## @brief A probe that cannot RUN must warn, never report unsupported.
+## @param stub_env Fake bin directory.
+## @param monkeypatch pytest's patcher.
+## @return None.
+## @version 1
+def test_an_unrunnable_doxygen_probe_warns_rather_than_claiming_no_support(
+    stub_env: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """FAIL OPEN ON THE MEASUREMENT, FAIL CLOSED ON THE ANSWER. A timeout or an OSError is not
+    evidence that sqlite3 support is missing, and reporting it as missing would send someone
+    rebuilding doxygen to fix what is actually a PATH or permissions problem. This is the same
+    discipline as `source_fingerprint` returning "" for "cannot tell" rather than a digest of
+    zero files.
+
+    @brief An unrunnable probe warns instead of asserting absence.
+    @return None.
+    @version 1
+    """
+    import subprocess as sp
+
+    from clew import doxygen as dox
+
+    def boom(*_args: object, **_kwargs: object) -> object:
+        raise OSError("cannot exec")
+
+    monkeypatch.setattr(dox.subprocess, "run", boom)
+
+    check = init_command._check_doxygen()
+
+    assert check.status == CHECK_WARN, (
+        f"an unrunnable probe must WARN, not fail — absence of a measurement is not a "
+        f"measurement of absence; got {check.status!r}"
+    )
+    assert sp is not None

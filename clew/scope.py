@@ -80,6 +80,25 @@ SOURCE_DECLARED = "clew-declaration"
 ## Declaration section naming the index roots/excludes.
 INDEX_SCOPE_SECTION = "index_scope"
 
+## The keys an `index_scope:` block may carry. Spelled once so the validator below and the
+## message it emits cannot disagree about what is accepted.
+_INDEX_SCOPE_KEYS = frozenset({"roots", "excludes"})
+
+
+## @brief A declaration that WAS present and could not be used, carrying why.
+## @version 1
+## @dg_internal
+class _Rejected(str):
+    """A `str` subclass so it is the reason itself, not a wrapper something must unpack.
+
+    THE POINT IS THAT IT IS TRUTHY AND DISTINGUISHABLE. `_declared_index_scope` previously
+    returned None for both "no section" and "a section I could not use", and `derive_scope`'s
+    `A or B` collapsed them into the same whole-repo reason. A truthy sentinel keeps the
+    existing `or` idiom working for the genuinely-absent case while letting the caller tell the
+    two apart with one isinstance check.
+    """
+
+
 # `--scope` choices: the Doxyfile's own INPUT, or the repo's own declarations.
 SCOPE_DOXYFILE = "doxyfile"
 SCOPE_FROM_GUARD = "from-guard"
@@ -161,7 +180,7 @@ def _declaration_advice() -> str:
 ## @param repo_root Repo root to resolve scope for.
 ## @param guard_config Explicit guard-config path overriding discovery, or None.
 ## @return DerivedScope; the whole-repo tier when no usable declaration exists.
-## @version 7
+## @version 8
 ## @req REQ-DDB-CONFIG-001
 def derive_scope(
     repo_root: Path, guard_config: Path | str | None = None, stated: dict | None = None
@@ -185,10 +204,17 @@ def derive_scope(
 
     @brief Resolve INPUT roots from the repo's own index-scope declaration.
     @return The declared scope, or the whole-repo tier.
-    @version 7
+    @version 8
     """
     root = Path(repo_root).expanduser().resolve()
-    return _declared_index_scope(root, guard_config, stated) or whole_repo_scope(root, guard_config)
+    declared = _declared_index_scope(root, guard_config, stated)
+    if isinstance(declared, _Rejected):
+        ## SAID OUT LOUD, not only returned. The contradiction gh#5 reports is between two LOG
+        ## lines, so the correction has to reach the log too — a reason carried only in the
+        ## payload leaves the WARNING still claiming absence.
+        logger.warning("index_scope: %s", declared)
+        return whole_repo_scope(root, guard_config, rejected=str(declared))
+    return declared or whole_repo_scope(root, guard_config)
 
 
 ## @brief The whole repository as one INPUT root, less only what git ignores.
@@ -197,7 +223,9 @@ def derive_scope(
 ## @return A DerivedScope rooted at the repo, nested git trees INCLUDED.
 ## @version 2
 ## @req REQ-DDB-CONFIG-001
-def whole_repo_scope(repo_root: Path, guard_config: Path | str | None = None) -> DerivedScope:
+def whole_repo_scope(
+    repo_root: Path, guard_config: Path | str | None = None, rejected: str = ""
+) -> DerivedScope:
     """THE DEFAULT TIER since gh#333, not the last resort: reached whenever a repo
     declares no `index_scope:`, whether or not it ships a Doxyfile.
 
@@ -229,9 +257,15 @@ def whole_repo_scope(repo_root: Path, guard_config: Path | str | None = None) ->
     excludes = [*ignored, *_pruned_dirs(root, set(ignored))]
     return DerivedScope(
         source=SOURCE_WHOLE_REPO,
+        ## PRESENT-BUT-UNUSABLE IS NOT ABSENT (gh#5). A declaration carrying an `index_scope:`
+        ## that yields no roots used to land here and report "no index_scope is declared" — while
+        ## the loader had already logged "<file> declares index_scope" seconds earlier. A reporter
+        ## got both lines from one build and could not tell whether to fix their YAML or file a
+        ## bug; only `propose_declaration` settled it, and nobody reaches for that after a build
+        ## reports success. `rejected` REPLACES the absence clause, never appends to it.
         reason=(
-            f"no {INDEX_SCOPE_SECTION} is declared for this repo — "
-            f"{_guard_config_note(root, guard_config)} — so the whole repository is the "
+            (rejected if rejected else f"no {INDEX_SCOPE_SECTION} is declared for this repo")
+            + f" — {_guard_config_note(root, guard_config)} — so the whole repository is the "
             f"index scope, INCLUDING any nested git trees, less the paths git ignores "
             f"and the dot/cache directories. A Doxyfile, if the repo ships one, still "
             f"supplies ALIASES and PREDEFINED but no longer supplies the INPUT: that is "
@@ -409,7 +443,7 @@ def _descendable(
 ## @param root Resolved repo root.
 ## @param guard_config Explicit guard-config path overriding discovery, or None.
 ## @return A DerivedScope when `index_scope:` is declared and usable, else None.
-## @version 8
+## @version 9
 ## @dg_internal
 def _declared_index_scope(
     root: Path, guard_config: Path | str | None = None, stated: dict | None = None
@@ -441,7 +475,7 @@ def _declared_index_scope(
 
     @brief Load a declared index scope.
     @return DerivedScope or None.
-    @version 8
+    @version 9
     """
     from .declaration import (
         DECLARATION_NAME,
@@ -459,11 +493,35 @@ def _declared_index_scope(
     else:
         declaration, source_path = load_declaration_located(root, guard_config)
     section = declaration.get(INDEX_SCOPE_SECTION)
-    if not isinstance(section, dict):
+    if section is None:
         return None
+    where = str(source_path) if source_path else "the stated declaration"
+    if not isinstance(section, dict):
+        return _Rejected(
+            f"{where} carries an {INDEX_SCOPE_SECTION} that is "
+            f"{type(section).__name__}, not a mapping"
+        )
+
+    ## FAIL CLOSED AT THE ENTRY LEVEL, WHICH IS THE QUIETER ONE. The section name is validated
+    ## against KNOWN_SECTIONS; the keys INSIDE it were not, so `exclude:` for `excludes:` parsed
+    ## to a perfectly valid mapping that no consumer read. gh#5's reporter wrote exactly that,
+    ## got "no index_scope is declared", and could not tell a schema slip from a bug. An
+    ## accepted-but-unread key is this project's most repeated defect; this closes one more.
+    unknown = sorted(str(k) for k in section if str(k) not in _INDEX_SCOPE_KEYS)
+    if unknown:
+        return _Rejected(
+            f"{where} declares {INDEX_SCOPE_SECTION} with unknown key(s) "
+            f"{', '.join(unknown)} — the accepted keys are "
+            f"{', '.join(sorted(_INDEX_SCOPE_KEYS))}"
+        )
+
     roots = _existing_paths(root, section.get("roots") or [], "root")
     if not roots:
-        return None
+        return _Rejected(
+            f"{where} declares {INDEX_SCOPE_SECTION} but no usable `roots:` — `roots` REPLACES "
+            f"the index scope and is REQUIRED; `excludes` alone does nothing, and a root that "
+            f"does not exist on disk is dropped"
+        )
     excludes = _existing_paths(root, section.get("excludes") or [], "exclude")
     return DerivedScope(
         source=SOURCE_DECLARED,

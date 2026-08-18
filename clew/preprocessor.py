@@ -693,7 +693,7 @@ def _declared_macros(section: dict[str, Any]) -> tuple[str, ...]:
 ## @param declaration The repo's parsed declaration (from load_declaration).
 ## @param explicit An operator-supplied macro list that wins outright, or None.
 ## @return The resolved PreprocessorConfig; an empty one when nothing was declared.
-## @version 3
+## @version 4
 ## @req REQ-DDB-CONFIG-004
 def resolve_preprocessor(
     repo_root: Path | str | None,
@@ -718,12 +718,41 @@ def resolve_preprocessor(
 
     @brief Resolve the build's preprocessor configuration with its provenance.
     @return The resolved configuration.
-    @version 3
+    @version 4
     """
-    if explicit:
-        macros = tuple(_token(*(m.split("=", 1) if "=" in m else (m, ""))) for m in explicit)
-        return PreprocessorConfig(macros=macros, source=SOURCE_FLAG)
     section = (declaration or {}).get(SECTION_PREPROCESSOR)
+    if explicit:
+        ## THE MACRO LIST IS REPLACED; THE REPOSITORY'S OWN HEADER IS NOT A MACRO LIST. This branch
+        ## used to `return` before reading `section` at all, so a declaration stating
+        ## `config_header:` beside `predefined:` had that header silently discarded the moment a
+        ## flag was passed — and `clew/cli.py` promotes a declared `predefined:` to this very
+        ## `explicit` argument, so the acceptance build discarded its own declared header on every
+        ## run. An accepted-but-unread key is this project's most repeated defect; this was one.
+        ##
+        ## What the flag legitimately overrides is WHICH VARIANT gets indexed. Where the repository
+        ## states its own default is a fact ABOUT THE REPOSITORY and survives the override, which
+        ## is what lets `stated_only` be computed: the overridden names the header does NOT define
+        ## are exactly the ones that ship OFF.
+        macros = tuple(_token(*(m.split("=", 1) if "=" in m else (m, ""))) for m in explicit)
+        header, searched = (
+            _resolve_config_header(
+                Path(repo_root).expanduser().resolve(), section.get(KEY_CONFIG_HEADER)
+            )
+            if repo_root is not None and isinstance(section, dict) and section
+            else (None, ())
+        )
+        root = Path(repo_root).expanduser().resolve() if repo_root is not None else None
+        harvested = macros_from_header(header) if header is not None else ()
+        return PreprocessorConfig(
+            macros=macros,
+            source=SOURCE_FLAG,
+            config_header=str(header.relative_to(root)) if header is not None and root else None,
+            searched=searched,
+            ## Computed against the OVERRIDDEN list, not the declared one: the question a reader
+            ## has is "of the macros this index was built with, which does the repo not ship?"
+            ## `_stated_only` bare-names both sides itself, so the rendered tokens go in as-is.
+            stated_only=_stated_only(macros, harvested),
+        )
     if repo_root is None or not isinstance(section, dict) or not section:
         return PreprocessorConfig()
     root = Path(repo_root).expanduser().resolve()

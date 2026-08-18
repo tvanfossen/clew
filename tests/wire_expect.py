@@ -34,6 +34,14 @@ from typing import Any
 ## elided `crosses_thread = NULL`, which is informative when known — exactly inverted.
 UNKNOWN_MEANS_ABSENT = frozenset({"dispatch_mode", "edge_kind"})
 
+## Internal database row ids, never served. Written out here independently for the same reason as
+## the set above: a reference that imports the code under test moves with it and asserts nothing.
+##
+## `rowid` is an opaque integer that sat beside `line_start`/`line_end` and repeated inside every
+## neighbour row. A graded answer published `ssl_pthread_server.c:2244` as a source citation — the
+## file is 484 lines and 2244 was a rowid. Nothing on the tool surface accepts one as input.
+INTERNAL_ONLY = frozenset({"rowid"})
+
 
 ## @brief True when a value carries nothing a consumer could read.
 ## @param name Field name, for the `'unknown'`-means-absent exceptions.
@@ -65,14 +73,15 @@ def absent(name: str, value: Any) -> bool:
 ## @version 1
 def expected_wire(obj: Any) -> Any:
     """Recurses the envelope untouched (every key survives, absent or not) and
-    prunes only dicts that appear as elements of a list.
+    prunes only dicts that appear as elements of a list. Internal-only keys are dropped at
+    EVERY level, unlike elision: a `rowid` misleads equally on an envelope and in a row.
 
     @brief Compute the sanctioned wire form of a payload.
     @return Transformed structure.
     @version 1
     """
     if isinstance(obj, dict):
-        return {k: expected_wire(v) for k, v in obj.items()}
+        return {k: expected_wire(v) for k, v in obj.items() if k not in INTERNAL_ONLY}
     if isinstance(obj, tuple | list):
         return [_expected_row(v) if isinstance(v, dict) else expected_wire(v) for v in obj]
     return obj
@@ -87,4 +96,6 @@ def _expected_row(row: dict[str, Any]) -> dict[str, Any]:
     @return Pruned row.
     @version 1
     """
-    return {k: expected_wire(v) for k, v in row.items() if not absent(k, v)}
+    return {
+        k: expected_wire(v) for k, v in row.items() if k not in INTERNAL_ONLY and not absent(k, v)
+    }

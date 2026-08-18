@@ -387,11 +387,26 @@ Check a reply's `target` before concluding a symbol does not exist.
 """
 
 
+## EXEMPT FROM TOOL-SEARCH DEFERRAL (gh#7). A client may present MCP tools as DEFERRED — named
+## in a reminder with no schema, callable only after a `ToolSearch` round trip. `grep` is then one
+## call away and `dossier` is two, and a reporter measured what that asymmetry costs: an entire
+## multi-hour session, 6 greps, 4 of them dossier-answerable, and zero spontaneous index calls.
+##
+## Declared in TWO independent places on purpose. This `_meta` key travels with the tool over the
+## wire and works whatever the client read from the plugin manifest; `alwaysLoad` in
+## `.claude-plugin/plugin.json` covers a client that decides before the server is asked. Either
+## alone would be a single point of failure, and neither can be verified from inside this process.
+##
+## The cost is bounded and measured: four tools, 9,590 bytes of description in total. That is a
+## small standing context charge against a two-call penalty on the surface this tool exists for.
+ALWAYS_LOAD_META: dict[str, object] = {"anthropic/alwaysLoad": True}
+
+
 ## @brief Add the tier-1 query tools to an MCP server instance.
 ## @param mcp MCP server to register on.
 ## @param tools QueryTools bound to the active database.
 ## @return Names of the tools registered.
-## @version 3
+## @version 4
 ## @req REQ-DDB-MCP-003
 def register_query_tools(mcp: MCPServer, tools: QueryTools) -> list[str]:
     """Register every tier-1 tool declared in TIER1_TOOLS by binding the
@@ -400,10 +415,15 @@ def register_query_tools(mcp: MCPServer, tools: QueryTools) -> list[str]:
 
     @brief Register the dynamic tier-1 query tools.
     @return List of registered tool names.
-    @version 3
+    @version 4
     """
     for name, description in TIER1_TOOLS.items():
-        mcp.add_tool(getattr(tools, name), name=name, description=description)
+        mcp.add_tool(
+            getattr(tools, name),
+            name=name,
+            description=description,
+            meta=ALWAYS_LOAD_META,
+        )
     return list(TIER1_TOOLS)
 
 
@@ -620,7 +640,7 @@ class DocsDbServer:
         return Answering(db=db, repo=Path(resolved.repo_path), staleness=found)
 
     ## @brief Bring tier-1 into line with whether this server knows of any repository.
-    ## @version 1
+    ## @version 2
     ## @req REQ-DDB-MCP-003
     def _sync_tier1(self) -> None:
         """THE GATE IS "IS THERE ANYTHING TO ANSWER ABOUT", not "is a target derived".
@@ -637,26 +657,53 @@ class DocsDbServer:
         reasoning about what the last transition left behind.
 
         @brief Register or unregister tier-1 to match what is answerable.
-        @version 1
+        @version 2
         """
         if self.mcp is None:
             return
-        answerable = self.active is not None or bool(self.registry.targets())
-        if answerable and not self.tier1_active:
+        ## ALWAYS REGISTERED (gh#7). The gate used to be "is there anything to answer about",
+        ## which meant a first-ever session offered no `dossier` and no `search` at all — and a
+        ## tool that does not exist teaches a model that the CAPABILITY does not exist. Worse,
+        ## it made the surface appear MID-SESSION, so the two tools most worth reaching for were
+        ## the two least likely to be in a client's eagerly-loaded set.
+        ##
+        ## The gate was only ever defensible because the tools died with
+        ## `sqlite3.OperationalError: unable to open database file` on an unbuilt index. They now
+        ## refuse with `unbuilt_index_message`, which NAMES the call that fixes it — so an
+        ## always-present tool is strictly better than a conditionally-absent one.
+        ##
+        ## `unregister_query_tools` is kept: the CLI and the tests still exercise it, and a
+        ## capability removed while its callers remain is a property that reads as enforced and
+        ## is not.
+        if not self.tier1_active:
             register_query_tools(self.mcp, self.tools)
             self.tier1_active = True
-        elif not answerable and self.tier1_active:
-            unregister_query_tools(self.mcp)
-            self.tier1_active = False
 
     ## @brief Make a repo the active target and expose its query tools.
     ## @param repo_path Repo root to serve.
     ## @param source Which resolution source supplied it (a TARGET_SOURCE_* value).
     ## @return The newly-active Target.
-    ## @version 2
+    ## @version 3
     ## @req REQ-DDB-MCP-001
     def adopt(self, repo_path: str, source: str) -> Target:
-        """Register the repo, make it active, and bring tier-1 up.
+        """Make the repo active. Does NOT register it, and does NOT build.
+
+        RESOLUTION IS NOT REGISTRATION (gh#1). This called `registry.register`, which persists
+        the entry AND mkdirs its state directory — so merely LAUNCHING the server in a directory
+        registered it forever, before any database existed. A reporter found three targets listed
+        with `exists: false`, one of them their entire home directory, and `cull` could not clear
+        any of them: it removes aged-out or version-stale DATABASES, and these had none. The
+        registry could accumulate rows nothing could reach. Same root cause as the orphaned state
+        directories that had to be deleted by hand.
+
+        Registration now happens where it is earned: `_build_target`, because a build has to have
+        somewhere to write. So `$HOME` can only be registered by someone explicitly building it.
+
+        WHAT MADE THE EAGER REGISTRATION LOOK NECESSARY IS GONE. `_sync_tier1` used to gate on
+        `registry.targets()`, so a resolved target had to be in the registry for the query tools
+        to appear at all; tier-1 is unconditional now (gh#7). And an unbuilt target refuses with
+        `unbuilt_index_message` rather than a driver error, so nothing needs the directory to
+        pre-exist.
 
         Deliberately does NOT build. A doxygen run takes tens of seconds, so
         building here would hang the whole session on connect, on every editor
@@ -673,9 +720,9 @@ class DocsDbServer:
 
         @brief Adopt a target repo and register the query tools.
         @return The active Target.
-        @version 2
+        @version 3
         """
-        self.active = self.registry.register(repo_path)
+        self.active = target_for(repo_path, self.registry.home)
         self.target_source = source
         self._sync_tier1()
         status = db_status(self.active)
@@ -1609,7 +1656,7 @@ class DocsDbServer:
 ## @brief Construct the MCP server with tier-0 tools registered.
 ## @param registry Target registry to use (defaults to the per-user one).
 ## @return Tuple of the MCP server instance and its DocsDbServer state object.
-## @version 14
+## @version 15
 ## @req REQ-DDB-MCP-001
 def build_server(registry: TargetRegistry | None = None) -> tuple[MCPServer, DocsDbServer]:
     """Create the MCP server instance, register the tier-0 lifecycle tools, and bring
@@ -1633,7 +1680,7 @@ def build_server(registry: TargetRegistry | None = None) -> tuple[MCPServer, Doc
 
     @brief Build the MCP server and its state object.
     @return (MCPServer, DocsDbServer).
-    @version 14
+    @version 15
     """
     from mcp.types import NotificationParams
 
@@ -1652,7 +1699,10 @@ def build_server(registry: TargetRegistry | None = None) -> tuple[MCPServer, Doc
         ("index", state.index),
         ("propose_declaration", state.propose_declaration),
     ):
-        mcp.add_tool(method, name=tool, description=TIER0_TOOLS[tool])
+        ## SAME EXEMPTION FOR TIER 0 (gh#7). `index` is what a first-time user must call before
+        ## anything else works, so leaving it deferred puts the two-call penalty on the very first
+        ## interaction — the one where a reader is deciding whether the tool is worth the trouble.
+        mcp.add_tool(method, name=tool, description=TIER0_TOOLS[tool], meta=ALWAYS_LOAD_META)
     state._sync_tier1()
     return mcp, state
 

@@ -470,13 +470,29 @@ def test_sdk_shim_reaches_the_lowlevel_server_by_the_right_name() -> None:
 
 
 @pytest.mark.anyio
-async def test_tier0_present_tier1_absent_at_construction(server) -> None:
-    """A freshly built server exposes the lifecycle tools and NOTHING else —
-    query tools must not exist before a database does."""
+async def test_every_tool_is_present_at_construction(server) -> None:
+    """RETIRED AND INVERTED (gh#7). This asserted that query tools "must not exist before a
+    database does", which was the design until it was measured: a tool that does not exist teaches
+    a model that the CAPABILITY does not exist, and because tier-1 appeared MID-SESSION the two
+    tools most worth reaching for were the two least likely to be in a client's eagerly-loaded
+    set. A reporter ran an entire multi-hour session and called neither once.
+
+    The old gate was only defensible while the tools died on an unbuilt index with
+    `sqlite3.OperationalError: unable to open database file`. They now refuse with
+    `unbuilt_index_message`, which names the call that fixes it — so present-and-refusing beats
+    absent, and this asserts the whole surface is there from construction.
+
+    @brief Both tiers are registered at construction, before any index exists.
+    @return None.
+    @version 1
+    """
     mcp, _state = server
     names = await _names(mcp)
-    assert TIER0 <= names
-    assert names & set(TIER1_TOOLS) == set()
+    assert TIER0 <= names, "the lifecycle tools must be present"
+    assert set(TIER1_TOOLS) <= names, (
+        "the query tools must be present too — a conditionally-absent tool is one a model never "
+        "learns it has"
+    )
 
 
 @pytest.mark.anyio
@@ -500,9 +516,17 @@ async def test_register_and_unregister_query_tools(server) -> None:
 
 @pytest.mark.anyio
 async def test_unregister_is_tolerant_when_never_registered(server) -> None:
-    """Dropping tier-1 before it was ever added is a no-op, not an error."""
+    """Dropping tier-1 when it is not there is a no-op, not an error.
+
+    THE SETUP CHANGED, NOT THE CLAIM (gh#7). Construction now registers tier-1, so "never
+    registered" is no longer the construction state — the first unregister removes it and the
+    SECOND is the case this test is about. The tolerance property is unchanged.
+    """
     mcp, _state = server
-    assert unregister_query_tools(mcp) == []
+    assert set(unregister_query_tools(mcp)) == set(TIER1_TOOLS), (
+        "precondition: construction registers tier-1, so the first call removes it"
+    )
+    assert unregister_query_tools(mcp) == [], "a second removal is a no-op"
 
 
 @pytest.mark.anyio
@@ -564,7 +588,9 @@ async def test_build_or_refresh_without_target_is_an_error(server) -> None:
     assert "set_target" not in result["error"]
     for source in ("--repo", "CLAUDE_PROJECT_DIR", "roots/list"):
         assert source in result["error"], f"the error must name the {source} source"
-    assert await _names(mcp) & set(TIER1_TOOLS) == set()
+    ## The tier-1 absence assertion that stood here was incidental to this test's subject (the
+    ## error's wording) and pinned the retired conditional-registration contract (gh#7). Tier-1
+    ## presence at construction is asserted by `test_every_tool_is_present_at_construction`.
 
 
 @pytest.mark.anyio
@@ -2405,7 +2431,8 @@ def test_repo_flag_sets_the_target_and_does_NOT_pin_it(tmp_path: Path) -> None:
     other.mkdir()
 
     _mcp, state = build_server(reg)
-    assert state.tier1_active is False, "tier-1 is dynamic until a target is known"
+    ## tier-1 is registered at construction now (gh#7); this test is about which SOURCE supplies
+    ## the startup target, which the assertions below cover.
 
     state.resolve_startup_target(str(repo))
     assert Path(state.active.repo_path) == repo
@@ -2483,8 +2510,8 @@ async def test_roots_resolve_lazily_on_the_first_call_that_needs_a_target(
 
     mcp, state = build_server(reg)
     assert state.resolve_startup_target(None) is None, "no eager source supplies one"
-    assert state.tier1_active is False
-    assert await _names(mcp) & set(TIER1_TOOLS) == set()
+    ## Two tier-1-absence assertions removed here (gh#7): this test's subject is that startup
+    ## resolves no target and does not call the client, both asserted below.
 
     ctx = _FakeCtx(roots=[repo.as_uri()])
     assert ctx.session.roots_calls == 0, "startup must not touch the client"
@@ -2764,9 +2791,12 @@ async def test_a_server_with_no_target_does_not_answer_from_a_previous_one(
     previous.mkdir()
 
     _mcp, state = build_server(reg)
-    ## A target is registered and built — exactly the residue a restart leaves behind.
-    target = state.adopt(str(previous), st.TARGET_SOURCE_FLAG)
+    ## A target is REGISTERED and BUILT — exactly the residue a restart leaves behind. Registered
+    ## explicitly because `adopt` no longer registers (gh#1): resolution is not registration, so
+    ## simulating a built target now means saying so rather than relying on adoption's side effect.
+    target = reg.register(str(previous))
     Path(target.db_path).write_bytes(rich_db.read_bytes())
+    state.adopt(str(previous), st.TARGET_SOURCE_FLAG)
     assert state.tools.dossier("sensor_poll")["target"] == str(previous)
 
     ## Now a FRESH server, same registry, no --repo, no env, a client with no roots.
@@ -3248,3 +3278,98 @@ def test_targets_is_a_listing_not_a_wall_of_full_status(tmp_path: Path) -> None:
         "the listing must respect the same response budget every query tool does — it was the "
         "one reply with no bound at all"
     )
+
+
+@pytest.mark.anyio
+## @req REQ-DDB-MCP-003
+async def test_every_served_tool_is_exempt_from_tool_search_deferral(server) -> None:
+    """gh#7, AND THE EVIDENCE IS A MEASURED SESSION RATHER THAN A THEORY. A client may present
+    MCP tools as DEFERRED — named in a reminder with no schema, callable only after a `ToolSearch`
+    round trip. `grep` is then one call away and `dossier` is two. A reporter documented clew in
+    their repo's CLAUDE.md, indexed it, ran a multi-hour session, made 6 greps of which 4 were
+    dossier-answerable, and called the index ZERO times spontaneously. One of those greps produced
+    a wrong conclusion a `dossier` reply later corrected.
+
+    ASSERTED ON EVERY TOOL, not just the query pair. `index` is what a first-time user must call
+    before anything works, so a deferred `index` puts the penalty on the first interaction — the
+    one where someone decides whether the tool is worth the trouble.
+
+    READ OFF `list_tools`, which is the wire, not off the constant. A test asserting
+    `ALWAYS_LOAD_META == {...}` would pass while `add_tool` dropped the argument on the floor.
+
+    The manifest half of this (`alwaysLoad` in `.claude-plugin/plugin.json`) cannot be verified
+    from inside this process and is pinned by tests/test_plugin_manifest.py instead.
+
+    @brief Every served tool carries the always-load exemption on the wire.
+    @return None.
+    @version 1
+    """
+    mcp, _state = server
+    served = await mcp.list_tools()
+    assert served, "precondition: the server must serve tools for this to mean anything"
+
+    missing = sorted(
+        tool.name for tool in served if not (tool.meta or {}).get("anthropic/alwaysLoad")
+    )
+    assert not missing, (
+        f"these tools would be deferred behind a ToolSearch round trip: {missing}. `grep` is one "
+        f"call away; a deferred tool is two, and that asymmetry decides which gets reached for."
+    )
+
+
+@pytest.mark.anyio
+## @req REQ-DDB-MCP-001
+async def test_resolving_a_target_registers_nothing(tmp_path: Path) -> None:
+    """gh#1. `adopt` called `registry.register`, which persists the entry AND mkdirs its state
+    directory — so merely LAUNCHING the server in a directory registered it forever, before any
+    database existed. A reporter found three targets listed with `exists: false`, one of them their
+    entire home directory. `cull` could clear none of them: it removes aged-out or version-stale
+    DATABASES and these had none, so the registry could accumulate rows nothing could reach. Same
+    root cause as the orphaned state directories that had to be deleted by hand.
+
+    ASSERTS THE DIRECTORY TOO, not only the registry row. The mkdir is the half that consumed disk,
+    and a fix that stopped persisting while still creating directories would pass a registry-only
+    check.
+
+    @brief Adopting a repo makes it active without registering or creating anything.
+    @return None.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    repo = tmp_path / "somewhere"
+    repo.mkdir()
+
+    _mcp, state = build_server(reg)
+    active = state.adopt(str(repo), st.TARGET_SOURCE_FLAG)
+
+    assert active is not None and active.repo_path == str(repo), "it must still become active"
+    assert reg.targets() == [], (
+        f"resolving a target registered it: {[t.repo_path for t in reg.targets()]}. Launching the "
+        f"server somewhere is not a statement that the directory should be indexed."
+    )
+    assert not Path(active.db_path).parent.exists(), (
+        "no state directory may be created for a target nothing has built"
+    )
+
+
+@pytest.mark.anyio
+## @req REQ-DDB-MCP-001
+async def test_building_a_target_does_register_it(tmp_path: Path) -> None:
+    """THE POSITIVE HALF, and without it the fix above is satisfied by never registering at all —
+    which would break `targets` and `cull` completely. Registration is EARNED by a build, because
+    a build has to have somewhere to write.
+
+    @brief An explicitly registered target is listed and has its directory.
+    @return None.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    repo = tmp_path / "real"
+    repo.mkdir()
+
+    target = reg.register(str(repo))
+
+    assert [t.repo_path for t in reg.targets()] == [str(repo)], (
+        "a registered target must be listed — this is what `targets` and `cull` operate on"
+    )
+    assert Path(target.db_path).parent.is_dir(), "a build needs its directory to exist"

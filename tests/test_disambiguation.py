@@ -376,3 +376,73 @@ def test_chain_trace_does_not_accept_the_selector() -> None:
         "chain_trace must not accept `qualified` until its traversal resolves hops by "
         "identity rather than by bare name -- see its docstring"
     )
+
+
+## @brief A capped candidate list must disclose how many identities really exist.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_a_capped_candidate_list_discloses_the_real_total(tmp_path: Path) -> None:
+    """SILENT TRUNCATION ON THE ONE FIELD WHOSE JOB IS DISAMBIGUATION. `MAX_CANDIDATES` is 8 and
+    `candidate_rows` sliced to it with no disclosure, so `dossier("main")` on mbedtls returned 8 of
+    143 `main` rows — and the one that mattered, the stub `main` a non-threading build compiles, was
+    not among them. No `_limited` entry, no count, nothing saying a choice had been made, while
+    `candidates` reads as "the identities this name has".
+
+    NOT REUSING `_limited_block`: that states "the full response exceeded the 65,536-byte cap",
+    which here is false. This list is capped by policy regardless of size, and a disclosure that
+    misattributes its cause sends a reader to shrink a payload that was never too big.
+
+    BOTH HALVES. Below the cap it must stay SILENT — a disclosure on every reply is one nobody
+    reads, and this repo's record is that a warning firing on the ordinary case gets switched off.
+
+    @brief Over the cap discloses the total; under the cap says nothing.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server.tools_query import (
+        _MAX_CANDIDATES,
+        _candidates_capped,
+        _distinct_identities,
+    )
+
+    db = tmp_path / "many.db"
+    conn = sqlite3.connect(str(db))
+    conn.execute(
+        "CREATE TABLE memberdef (rowid_ INTEGER, name TEXT, kind TEXT, definition TEXT, "
+        "file_id INTEGER, bodyfile_id INTEGER, bodystart INTEGER)"
+    )
+    over = _MAX_CANDIDATES + 5
+    conn.executemany(
+        "INSERT INTO memberdef(name, kind, definition, file_id, bodyfile_id, bodystart) "
+        "VALUES('main', 'function', ?, ?, ?, 1)",
+        [(f"int main{i}(void)", i, i) for i in range(over)],
+    )
+    conn.execute(
+        "INSERT INTO memberdef(name, kind, definition, file_id, bodyfile_id, bodystart) "
+        "VALUES('solo', 'function', 'int solo(void)', 1, 1, 1)"
+    )
+    conn.commit()
+    conn.close()
+
+    assert _distinct_identities(db, "main") == over, "the total must be counted, not estimated"
+
+    capped = _candidates_capped(db, {"subject": "main", "candidates": [{}] * _MAX_CANDIDATES})
+    assert capped is not None, "a list AT the cap with more rows behind it must disclose"
+    assert capped["total_available"] == over, f"the total must be the real count; got {capped}"
+    assert "policy" in capped["reason"], (
+        "the reason must say it is a policy cap — attributing it to response size sends a reader "
+        "to shrink a payload that was never too big"
+    )
+    assert "SAMPLE" in capped["how_to_narrow"], "it must say the rows are a sample, not the set"
+
+    ## THE SILENCE HALF, three ways:
+    assert _candidates_capped(db, {"subject": "main", "candidates": [{}] * 2}) is None, (
+        "below the cap nothing was dropped, so nothing may be disclosed"
+    )
+    assert (
+        _candidates_capped(db, {"subject": "solo", "candidates": [{}] * _MAX_CANDIDATES}) is None
+    ), "a name AT the cap with no further rows behind it has lost nothing"
+    assert (
+        _candidates_capped(None, {"subject": "main", "candidates": [{}] * _MAX_CANDIDATES}) is None
+    ), "with no database the total is unknowable and must not be invented"

@@ -790,8 +790,57 @@ def doxygen_db_path(doxyfile: Path, work_dir: Path, output_dir: Path | None = No
     )
 
 
+##
+# @brief Whether the doxygen on PATH was BUILT with sqlite3 output support.
+# @param binary Doxygen executable to probe; defaults to whatever is on PATH.
+# @return True when the binary implements GENERATE_SQLITE3, False when it does not.
+# @version 1
+# @req REQ-DDB-CLI-002
+def doxygen_supports_sqlite3(binary: str = "doxygen") -> bool | None:
+    """A BUILD-TIME OPTION, NOT A VERSION. doxygen's sqlite3 generator is gated behind
+    `-Dbuild_sqlite3=ON`, and Ubuntu ships it OFF — so `apt install doxygen` on 22.04 yields
+    1.9.1 with no sqlite3 support, and upgrading the version does not necessarily fix it.
+    Every stock 22.04 user hits this (gh#3).
+
+    THE SYMPTOM IS SEVERAL LAYERS FROM THE CAUSE, which is why this exists. An unsupported
+    tag is IGNORED rather than refused: doxygen warns "ignoring unsupported tag
+    'GENERATE_SQLITE3'", buries it among thousands of suppressed warnings, exits ZERO, and
+    writes no database. The pipeline then reports "Expected database not found: <path>",
+    naming neither doxygen nor sqlite3 nor anything actionable.
+
+    PROBED FROM THE BINARY'S OWN CONFIG TEMPLATE. `doxygen -g -` writes a default Doxyfile to
+    stdout listing every tag the binary implements, so the tag's ABSENCE there is the binary
+    telling us it cannot do this. Measured: 4 occurrences on a 1.9.8 build with support, 0 on
+    Ubuntu's 1.9.1 without it. Parsing `--version` would be wrong — the same version number
+    exists both ways.
+
+    RETURNS None WHEN THE PROBE ITSELF COULD NOT RUN, never False. A missing binary or a
+    timeout is not evidence of missing support, and reporting it as such would send someone
+    rebuilding doxygen to fix a PATH problem.
+
+    @brief Probe whether doxygen implements GENERATE_SQLITE3.
+    @return True/False, or None when the probe could not be run.
+    @version 1
+    """
+    if shutil.which(binary) is None:
+        return None
+    try:
+        proc = subprocess.run(
+            [binary, "-g", "-"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=clean_subprocess_env(),
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if proc.returncode != 0:
+        return None
+    return "GENERATE_SQLITE3" in proc.stdout
+
+
 ## @brief Run doxygen with GENERATE_SQLITE3 and return the database path.
-## @version 7
+## @version 9
 ## @req REQ-DDB-INDEX-001
 def run_doxygen(
     doxyfile: Path,
@@ -829,7 +878,7 @@ def run_doxygen(
 
     @brief Run doxygen and return path to generated sqlite3 database.
     @raises DoxygenUnavailableError When the doxygen binary is not on PATH.
-    @version 8
+    @version 9
     """
     if shutil.which("doxygen") is None:
         raise DoxygenUnavailableError(
@@ -871,7 +920,23 @@ def run_doxygen(
 
     db_path = doxygen_db_path(doxyfile, work_dir, output_dir)
     if not db_path.exists():
-        logger.error("Expected database not found: %s", db_path)
+        ## NAME THE CAUSE, NOT THE MISSING FILE (gh#3). doxygen exits ZERO when it does not
+        ## implement GENERATE_SQLITE3 — it warns that the tag is unsupported, buries that among
+        ## thousands of suppressed warnings, and writes nothing. So the first observable symptom
+        ## is an absent database, and reporting only the path sends the reader looking for a
+        ## permissions or disk problem in the one case where the binary is simply incapable.
+        ##
+        ## Probed HERE rather than trusted from the doctor: `clew init` is optional, the MCP
+        ## build path never runs it, and a machine can change under a long-lived install.
+        if doxygen_supports_sqlite3() is False:
+            logger.error(
+                "doxygen was built WITHOUT sqlite3 support, so it ignored GENERATE_SQLITE3 and "
+                "wrote no database. This is a build option (-Dbuild_sqlite3=ON), not a version — "
+                "Ubuntu 22.04's doxygen 1.9.1 lacks it. Install a build that has it, then "
+                "confirm with: doxygen -g - | grep GENERATE_SQLITE3"
+            )
+        else:
+            logger.error("Expected database not found: %s", db_path)
         sys.exit(1)
     return db_path
 
