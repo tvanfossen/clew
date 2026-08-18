@@ -347,6 +347,49 @@ def resolve_subject(db: DbSource, name: str) -> tuple[str, ...]:
         return tuple(k for k in SUBJECT_KINDS if _PROBES[k](conn, name))
 
 
+## @brief Kinds this index holds for a name that `dossier` cannot yet describe.
+## @param db Path, str or open connection to a built index.
+## @param name The bare name that failed to resolve as a subject.
+## @return The unsupported `memberdef` kinds present for it, sorted; empty when there are none.
+## @version 1
+## @req REQ-DDB-QUERY-004
+def unresolved_kinds(db: DbSource, name: str) -> tuple[str, ...]:
+    """WHY A MISS IS NOT ALWAYS AN ABSENCE (gh#6). `SUBJECT_KINDS` does not include
+    `enumeration`, so a C enum type, its enumerators and a C++ `enum class` all resolve to
+    NOTHING through `dossier` — while `SEARCHED_MEMBERDEF_KINDS` does include it, so `search`
+    finds the very same names. A reporter asked for four enum symbols they knew existed and got
+    "Not indexed in this repository. A definitive negative from the database" on all four.
+
+    THE DAMAGE IS THE CONFIDENCE, NOT THE GAP. A missing row worded as a limitation costs a
+    follow-up call; a missing row worded as a definitive negative reads as "this tool is wrong
+    about my repo", and on a codebase whose authoritative definitions are C enums it is wrong
+    about the thing that matters most. Their words: the negative "reads as 'this tool isn't
+    right about my repo' rather than 'this kind isn't indexed yet'".
+
+    So this answers the question the miss note needs: is the name ABSENT, or merely of a kind
+    this surface does not describe? Those are different answers and only one of them is a
+    negative.
+
+    ONE INDEXED LOOKUP over `memberdef`, and it runs only on the miss path — the hot path never
+    reaches it.
+
+    @brief The unsupported kinds an unresolvable name is nevertheless indexed under.
+    @return Sorted kinds, or () when the name is genuinely not in the index.
+    @version 1
+    """
+    with connect(db) as conn:
+        if not table_exists(conn, "memberdef"):
+            return ()
+        rows = conn.execute(
+            "SELECT DISTINCT kind FROM memberdef WHERE name = ? AND kind IS NOT NULL",
+            (name,),
+        ).fetchall()
+    ## `macro definition` is the memberdef spelling of the `macro` SUBJECT kind, so it must not
+    ## be reported as unsupported — it resolves fine and would send a reader chasing a phantom.
+    supported = set(SUBJECT_KINDS) | {"macro definition"}
+    return tuple(sorted({str(k) for (k,) in rows if str(k) not in supported}))
+
+
 ## @brief Build the variable section for a name.
 ## @param conn Open connection.
 ## @param name Bare variable name.

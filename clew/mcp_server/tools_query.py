@@ -477,12 +477,55 @@ _NO_SEED_NOTE = (
 )
 
 
+## @brief Warn when an empty `callers` is a modelling gap rather than a real absence.
+## @param payload The flat subject payload, already built.
+## @param also The other kinds this same name resolves to.
+## @return A note string, or "" when the empty list can be trusted.
+## @version 1
+## @dg_internal
+def _empty_callers_note(payload: dict[str, Any], also: tuple[str, ...]) -> str:
+    """gh#4, AND IT CHANGED A REAL DECISION. A reporter asked `dossier("ProgressBar")`, got the
+    constructor with `callers: []`, and reported the class as having two production callers in a
+    commit message. It has one. Four brace-initialised construction sites existed; none was a call
+    edge.
+
+    "HOW MANY CALLERS DOES THIS HAVE" IS THE QUESTION THAT DECIDES WHETHER A SHARED PRIMITIVE CAN
+    BE CHANGED, so an empty list there is not a neutral fact — it is a green light. Everything else
+    in that same reply was right: free functions returned their callers at `confidence: "exact"`,
+    a constexpr variable returned its declaration site. It is specifically the CONSTRUCTOR edge
+    that is absent.
+
+    THE SIGNAL IS `also`. A name that resolves as BOTH a function and a class is a constructor in
+    every case this can see, and that is a fact already on the payload rather than a new
+    extraction — which is why this is a wording fix and not a pipeline change.
+
+    NOT A DISCLAIMER ON EVERY EMPTY LIST. A free function with no callers genuinely has none, and
+    annotating that would train a reader to ignore the annotation. The reporter's own words: option
+    (3) alone would have prevented the error.
+
+    @brief Say that an empty caller list may be a missing construction edge.
+    @return The note, or "".
+    @version 1
+    """
+    if payload.get("subject_kind") != "function" or "class" not in also:
+        return ""
+    if payload.get("callers"):
+        return ""
+    return (
+        "`callers` is EMPTY and this name also resolves to a class, so this is very likely a "
+        "constructor. Construction sites are NOT modelled as call edges — brace-initialised "
+        "locals in particular produce none — so an empty list here does NOT mean nothing "
+        "constructs this type. Ask `dossier` for the CLASS (kind='class') and read `candidates`, "
+        "or `search` the type name, before concluding it has no users."
+    )
+
+
 ## @brief Flatten a SubjectDossier to the wire shape: envelope keys plus the one section.
 ## @param built The resolved subject dossier, or None.
 ## @param db Active database path, for the function-subject ambiguity probe; omit to skip it.
 ## @param depth The depth the CALLER asked for, so an unhonoured one can be disclosed.
 ## @return The flat payload, or None when nothing resolved.
-## @version 2
+## @version 3
 ## @dg_internal
 def _flatten_subject(built: Any, db: Path | None = None, depth: int = 1) -> dict[str, Any] | None:
     """FLAT, NOT NESTED, and the reason is the budget rather than taste. Every trimmer on
@@ -501,7 +544,7 @@ def _flatten_subject(built: Any, db: Path | None = None, depth: int = 1) -> dict
 
     @brief Serialize a subject dossier to its flat wire form.
     @return Flat payload dict, or None.
-    @version 2
+    @version 3
     """
     if built is None:
         return None
@@ -521,6 +564,11 @@ def _flatten_subject(built: Any, db: Path | None = None, depth: int = 1) -> dict
     gates = None if db is None else _gate_definitions(db, payload)
     if gates:
         payload["gate_definitions"] = gates
+    ## PRESENT ONLY WHEN IT APPLIES, like every other added key here — an annotation on every
+    ## empty list is one a reader learns to skip.
+    callers_note = _empty_callers_note(payload, built.also or ())
+    if callers_note:
+        payload["callers_note"] = callers_note
     return payload
 
 
@@ -899,12 +947,45 @@ def _budget_batch(entries: list[dict[str, Any]], overhead: int) -> dict[str, Any
     }
 
 
-## @brief The reply for a batched name that resolves to nothing.
-## @param name The unresolved function name.
-## @return A per-symbol miss envelope.
+## @brief The clause that turns a bare miss into a KIND limitation when it is one.
+## @param unresolved Unsupported kinds the index nevertheless holds for the name.
+## @return A sentence to append, or "" when the name is genuinely absent.
 ## @version 1
 ## @dg_internal
-def _batch_miss(name: str) -> dict[str, Any]:
+def _kind_limitation_clause(unresolved: tuple[str, ...]) -> str:
+    """gh#6. `SUBJECT_KINDS` has no `enumeration`, while `SEARCHED_MEMBERDEF_KINDS` does — so
+    `search` finds a C enum, its enumerators and a C++ `enum class`, and `dossier` calls the same
+    names "a definitive negative from the database". A reporter asked about four enum symbols they
+    knew existed and got that on all four.
+
+    THE WORDING WAS THE DAMAGE. A gap described as a gap costs one follow-up call; a gap worded as
+    a definitive negative reads as "this tool is wrong about my repo" — and on a codebase whose
+    authoritative definitions are C enums, wrong about the thing that matters most.
+
+    ONE SENTENCE, AND IT ROUTES: it names the kind, says this surface does not describe it yet, and
+    names the tool that can. Route, do not disclaim.
+
+    @brief Say the name is indexed under a kind this surface cannot describe.
+    @return The clause, or "" when nothing was found under any kind.
+    @version 1
+    """
+    if not unresolved:
+        return ""
+    kinds = ", ".join(f"`{k}`" for k in unresolved)
+    return (
+        f" HOWEVER this name IS in the index, as {kinds} — a kind `dossier` does not describe "
+        f"yet. So this is a COVERAGE LIMITATION of this tool, not a statement that the symbol "
+        f"does not exist. Use `search` to see it."
+    )
+
+
+## @brief The reply for a batched name that resolves to nothing.
+## @param name The unresolved function name.
+## @param unresolved Unsupported kinds the index holds for it, from `unresolved_kinds`.
+## @return A per-symbol miss envelope.
+## @version 2
+## @dg_internal
+def _batch_miss(name: str, unresolved: tuple[str, ...] = ()) -> dict[str, Any]:
     """PER SYMBOL, NEVER PER CALL. One unresolvable name in a batch of five must not
     fail the other four, and it must not vanish either: a dropped entry would silently
     re-align the reader's mapping from names to answers, which is a worse error than the
@@ -916,7 +997,7 @@ def _batch_miss(name: str) -> dict[str, Any]:
 
     @brief Miss envelope for one name in a batch.
     @return The miss entry.
-    @version 1
+    @version 2
     """
     return {
         "name": name,
@@ -924,7 +1005,7 @@ def _batch_miss(name: str) -> dict[str, Any]:
         "note": (
             "Not indexed in this repository. A definitive negative from the database, "
             "not an error — check the envelope's `target` before concluding it does not "
-            "exist."
+            "exist." + _kind_limitation_clause(unresolved)
         ),
     }
 
@@ -1232,13 +1313,37 @@ class QueryTools:
         provider = self._repo_provider if self._repo_provider is not None else self._db_provider
         return str(provider())
 
+    ## @brief Unsupported kinds this index holds for a name that failed to resolve.
+    ## @param subject The name that missed, or None.
+    ## @param target Repository the call named, or None for the derived one.
+    ## @return The unsupported kinds, or () when there are none or nothing can be read.
+    ## @version 1
+    ## @dg_internal
+    def _unresolved_for(self, subject: str | None, target: str | None) -> tuple[str, ...]:
+        """NEVER RAISES ON THE MISS PATH. This runs while building an answer that has already
+        failed to find something, so a database that cannot be opened — the very case
+        `unbuilt_index_message` exists for — must not turn a clean negative into a traceback.
+        A probe that cannot run contributes no clause, which is the same discipline as
+        `doxygen_supports_sqlite3` returning None rather than False.
+
+        @brief Probe the unsupported kinds behind a miss, tolerating any failure.
+        @return The kinds, or ().
+        @version 1
+        """
+        if not subject:
+            return ()
+        try:
+            return q.unresolved_kinds(self.db(target), subject)
+        except Exception:
+            return ()
+
     ## @brief Stamp a reply with the target it came from, making a miss self-describing.
     ## @param payload The serialized reply, or None for "not found".
     ## @param kind What was looked for (e.g. "dossier").
     ## @param subject What it was looked for by (e.g. a function name).
     ## @param target Repository the call named, or None when the derived one answered.
     ## @return The reply, always a dict, always carrying `target` and any staleness.
-    ## @version 4
+    ## @version 5
     ## @dg_internal
     def _answered(
         self,
@@ -1281,7 +1386,7 @@ class QueryTools:
 
         @brief Stamp the answering target, and any staleness, onto a reply.
         @return The reply as a dict carrying `target`.
-        @version 4
+        @version 5
         """
         answering = None if target is None else self._route(target)
         out = (
@@ -1297,6 +1402,10 @@ class QueryTools:
                     "Before concluding the symbol does not exist, check `target` below "
                     "names the repository you meant, and call status to see whether the "
                     "index is stale."
+                    ## gh#6: and if the name IS indexed under a kind this surface cannot
+                    ## describe, the sentence above is FALSE as a negative — so it is
+                    ## qualified here rather than left to mislead.
+                    + _kind_limitation_clause(self._unresolved_for(subject, target))
                 ),
             }
         )
@@ -1349,7 +1458,7 @@ class QueryTools:
     ## @param max_body_lines Cap on each body excerpt.
     ## @param depth Hops to traverse per subject.
     ## @return The batch envelope: one entry per requested name, in request order.
-    ## @version 4
+    ## @version 5
     ## @dg_internal
     def _batched_dossiers(
         self,
@@ -1377,7 +1486,7 @@ class QueryTools:
 
         @brief Batch dossier envelope for several subjects of any kind.
         @return The serialized batch.
-        @version 4
+        @version 5
         """
         built = q.dossiers(
             self.db(target),
@@ -1388,10 +1497,14 @@ class QueryTools:
             depth=depth,
         )
         db = self.db(target)
+        ## PROBED ONLY ON A MISS (gh#6). `unresolved_kinds` is one indexed lookup, and running it
+        ## for every hit would charge the hot path for a question only a miss asks.
         entries = [
-            _batch_miss(name)
+            _batch_miss(name, q.unresolved_kinds(db, name))
             if doss is None
-            else (_flatten_subject(doss, db, depth) or _batch_miss(name))
+            else (
+                _flatten_subject(doss, db, depth) or _batch_miss(name, q.unresolved_kinds(db, name))
+            )
             for name, doss in zip(subjects, built, strict=True)
         ]
         out: dict[str, Any] = {

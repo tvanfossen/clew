@@ -620,3 +620,116 @@ def test_the_exported_dossier_answers_about_a_non_function_subject(rich_db: Path
         "`function_dossier` must stay the narrow form — if it answers about a requirement too, "
         "the two exported names describe one behaviour and the distinction is undocumented"
     )
+
+
+## @brief A name indexed under an unsupported kind must not be called a definitive negative.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_a_miss_on_an_indexed_enum_says_it_is_a_kind_gap_not_an_absence(tmp_path: Path) -> None:
+    """gh#6. `SUBJECT_KINDS` has no `enumeration` while `SEARCHED_MEMBERDEF_KINDS` does, so
+    `search` finds a C enum and `dossier` answered "Not indexed in this repository. A definitive
+    negative from the database" for the same name. A reporter asked about four enum symbols they
+    knew existed and got that on all four; on a codebase whose architecture rule is "pure C at all
+    `.so` boundaries", the authoritative definitions were invisible while the generated Python
+    mirror was not.
+
+    THE CONFIDENCE WAS THE DAMAGE. Their words: it "reads as 'this tool is wrong about my repo'
+    rather than 'this kind isn't indexed yet'".
+
+    @brief An unresolvable-but-indexed kind is reported as a coverage limitation.
+    @return None.
+    @version 1
+    """
+    db = tmp_path / "e.db"
+    conn = sqlite3.connect(str(db))
+    conn.execute("CREATE TABLE memberdef (rowid_ INTEGER, name TEXT, kind TEXT)")
+    conn.executemany(
+        "INSERT INTO memberdef(name, kind) VALUES(?, ?)",
+        [("MY_ENUM", "enumeration"), ("a_fn", "function")],
+    )
+    conn.commit()
+    conn.close()
+
+    assert q.unresolved_kinds(db, "MY_ENUM") == ("enumeration",), (
+        "an enumeration the index holds must be reported as an unsupported KIND"
+    )
+    assert q.unresolved_kinds(db, "a_fn") == (), (
+        "a function is a supported kind and must not be reported as unresolvable"
+    )
+    assert q.unresolved_kinds(db, "nothing_at_all") == (), (
+        "a genuinely absent name has no unsupported kinds either — this is the control that "
+        "stops the clause firing on every miss and training a reader to ignore it"
+    )
+
+
+## @brief `macro definition` is the memberdef spelling of a SUPPORTED kind and must not be flagged.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_a_macro_is_not_reported_as_an_unsupported_kind(tmp_path: Path) -> None:
+    """THE FALSE-POSITIVE HALF, and it is a real trap rather than a hypothetical: `SUBJECT_KINDS`
+    spells it `macro` and `memberdef.kind` spells it `macro definition`, so a naive set difference
+    reports every macro in the index as a kind `dossier` cannot describe — while `dossier` resolves
+    macros perfectly well. That clause would send a reader chasing a phantom limitation.
+
+    @brief A macro definition row is not reported as unsupported.
+    @return None.
+    @version 1
+    """
+    db = tmp_path / "m.db"
+    conn = sqlite3.connect(str(db))
+    conn.execute("CREATE TABLE memberdef (rowid_ INTEGER, name TEXT, kind TEXT)")
+    conn.execute("INSERT INTO memberdef(name, kind) VALUES('WRAP', 'macro definition')")
+    conn.commit()
+    conn.close()
+
+    assert q.unresolved_kinds(db, "WRAP") == (), (
+        "`macro definition` is how memberdef spells the supported `macro` subject kind"
+    )
+
+
+## @brief An empty `callers` on a constructor must not read as "nothing constructs this".
+## @return None.
+## @version 1
+def test_an_empty_caller_list_on_a_constructor_is_qualified() -> None:
+    """gh#4, AND IT CHANGED A REAL DECISION. A reporter asked `dossier("ProgressBar")`, got the
+    constructor with `callers: []`, and wrote in a commit message that the class had two production
+    callers. It has one. Four brace-initialised construction sites existed; none of them is a call
+    edge, so the list was empty and read as a green light.
+
+    "How many callers does this have" is the question that decides whether a shared primitive can
+    be changed, so an empty list there is not a neutral fact.
+
+    THE SIGNAL IS `also`, already on the payload — a name resolving as BOTH function and class is a
+    constructor in every case this can see. That is why this is a wording fix rather than a
+    pipeline change, and why it cannot fire on a free function.
+
+    TESTED THROUGH THE PRIVATE HELPER because building a real C++ index with a brace-initialised
+    local is an integration-tier fixture; the decision this pins is entirely in the wording rule.
+
+    @brief The constructor case is qualified and the ordinary cases are not.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server.tools_query import _empty_callers_note
+
+    ctor = {"subject_kind": "function", "callers": []}
+    note = _empty_callers_note(ctor, ("class",))
+    assert note, "a constructor with no callers must be qualified"
+    assert "constructor" in note and "NOT modelled" in note, (
+        f"the note must name what is missing and why; got {note!r}"
+    )
+
+    ## THE THREE NEGATIVES, each one a way to make this annotation worthless:
+    assert _empty_callers_note({"subject_kind": "function", "callers": []}, ()) == "", (
+        "a FREE function with no callers genuinely has none — annotating that trains a reader to "
+        "ignore the annotation, which is worse than no annotation"
+    )
+    assert (
+        _empty_callers_note({"subject_kind": "function", "callers": [{"name": "x"}]}, ("class",))
+        == ""
+    ), "a constructor that DOES have caller rows needs no caveat"
+    assert _empty_callers_note({"subject_kind": "class", "callers": []}, ("function",)) == "", (
+        "the class view has no callers field by design; a note there would describe nothing"
+    )

@@ -93,7 +93,13 @@ from .models import (
     ThreadInventory,
 )
 from .source import DECLARATION_MAX_LINES, DEFAULT_BODY_LINES, declaration_excerpt, source
-from .subject import MAX_SUBJECT_DEPTH, dossier, dossiers, resolve_subject
+from .subject import (
+    MAX_SUBJECT_DEPTH,
+    dossier,
+    dossiers,
+    resolve_subject,
+    unresolved_kinds,
+)
 from .symbols import (
     MAX_DIAGNOSED_TOKENS,
     SEARCHED_MEMBERDEF_KINDS,
@@ -174,6 +180,9 @@ __all__ = [
     "VariableSubject",
     "MAX_SUBJECT_DEPTH",
     "resolve_subject",
+    ## Answers "is this miss an ABSENCE or a kind I cannot describe?" — exported because the
+    ## honest wording of a negative depends on it (gh#6).
+    "unresolved_kinds",
     ## Returns None for any subject that is not a function; `dossier` takes any kind.
     "function_dossier",
     "function_dossiers",
