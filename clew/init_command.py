@@ -279,24 +279,51 @@ def _check_mcp_sdk() -> Check:
 
 ## @brief Whether the external doxygen binary is available.
 ## @return The doxygen check.
-## @version 1
+## @version 2
 ## @dg_internal
 def _check_doxygen() -> Check:
     """doxygen is a SUBPROCESS dependency, invisible to pip, so nothing else in
     the install path notices it is missing — the first `build_or_refresh` does.
 
-    @brief Verify the doxygen binary is on PATH.
+    @brief Verify doxygen is on PATH and was built with sqlite3 output.
     @return The doxygen check.
-    @version 1
+    @version 2
     """
     found = shutil.which("doxygen")
-    if found:
-        return Check(CHECK_DOXYGEN, CHECK_OK, found)
-    return Check(
-        CHECK_DOXYGEN,
-        CHECK_FAIL,
-        "doxygen is not on PATH — no database can be built until it is (e.g. apt install doxygen)",
-    )
+    if not found:
+        return Check(
+            CHECK_DOXYGEN,
+            CHECK_FAIL,
+            "doxygen is not on PATH — no database can be built until it is "
+            "(e.g. apt install doxygen)",
+        )
+
+    ## PRESENT IS NOT ENOUGH (gh#3). doxygen's sqlite3 generator is a BUILD-time option and
+    ## Ubuntu 22.04 ships it OFF, so `apt install doxygen` satisfies the check above and every
+    ## build still fails — with "Expected database not found", which names neither doxygen nor
+    ## sqlite3. A doctor that reports [ok] on a binary that cannot do the one thing the pipeline
+    ## needs is worse than no check: it actively certifies the broken environment.
+    from .doxygen import doxygen_supports_sqlite3
+
+    supported = doxygen_supports_sqlite3(found)
+    if supported is False:
+        return Check(
+            CHECK_DOXYGEN,
+            CHECK_FAIL,
+            f"{found} was built WITHOUT sqlite3 support, which clew requires — it will ignore "
+            f"GENERATE_SQLITE3, exit 0 and write no database. This is a build option "
+            f"(-Dbuild_sqlite3=ON), not a version: Ubuntu 22.04's doxygen 1.9.1 lacks it. "
+            f"Install a build that has it (conda-forge, homebrew, or build from source), then "
+            f"confirm with: doxygen -g - | grep GENERATE_SQLITE3",
+        )
+    if supported is None:
+        return Check(
+            CHECK_DOXYGEN,
+            CHECK_WARN,
+            f"{found} — could not probe whether it supports sqlite3 output; if a build fails "
+            f"with 'Expected database not found', check: doxygen -g - | grep GENERATE_SQLITE3",
+        )
+    return Check(CHECK_DOXYGEN, CHECK_OK, f"{found} (sqlite3 output supported)")
 
 
 ## @brief Whether this repo can be indexed at all.
