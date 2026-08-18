@@ -505,3 +505,107 @@ def test_empty_or_absent_index_scope_falls_back_to_the_whole_repo(tmp_path: Path
     (root / ".clew.yaml").write_text("index_scope:\n  roots: []\n", encoding="utf-8")
     assert sc.derive_scope(root).source == sc.SOURCE_WHOLE_REPO
     assert sc.derive_scope(root).roots == (root.resolve(),)
+
+
+## @brief A present-but-unusable index_scope must not report as an ABSENT one.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_an_index_scope_with_no_roots_says_so_rather_than_claiming_none_is_declared(
+    tmp_path: Path,
+) -> None:
+    """gh#5, AND THE DEFECT IS A CONTRADICTION RATHER THAN A WRONG SCOPE. The reporter wrote an
+    `index_scope:` block, and one build told them both things at once:
+
+        INFO    declaration: <file> declares index_scope
+        WARNING scope: indexing the WHOLE repository — no index_scope is declared for this repo
+
+    The behaviour was right — `roots` REPLACES the scope and is required, so a block carrying
+    only exclusions is not a usable scope — but nothing distinguished found-but-rejected from
+    absent. They spent a round trip deciding whether to fix their YAML or file a bug, and only
+    `propose_declaration` settled it: a tool nobody reaches for after a build reports success.
+
+    ASSERTS THE ABSENCE CLAUSE IS GONE, not merely that a reason exists. Appending the real cause
+    while still saying "no index_scope is declared" would leave the contradiction in place, which
+    is why `rejected` REPLACES that clause instead of adding to it.
+
+    @brief A rootless index_scope is reported as rejected, not as absent.
+    @return None.
+    @version 1
+    """
+    root = tmp_path / "repo"
+    (root / "src").mkdir(parents=True)
+    (root / ".clew.yaml").write_text("index_scope:\n  excludes:\n    - src\n", encoding="utf-8")
+
+    derived = sc.derive_scope(root)
+
+    assert derived.source == sc.SOURCE_WHOLE_REPO, "a rootless scope must still fall back"
+    assert "no index_scope is declared" not in derived.reason, (
+        f"the reason still claims the declaration is ABSENT while the loader logged that it was "
+        f"read — that is the contradiction this test exists for. Got: {derived.reason}"
+    )
+    assert "roots" in derived.reason and "REPLACES" in derived.reason, (
+        f"the reason must say WHY it was unusable and that `roots` replaces the scope, which is "
+        f"the sharp edge; got: {derived.reason}"
+    )
+
+
+## @brief A misspelled key INSIDE index_scope must refuse by name, not be silently ignored.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_an_unknown_key_inside_index_scope_refuses_by_name(tmp_path: Path) -> None:
+    """FOUND WHILE FIXING gh#5 AND IT IS THE WORSE HALF. Section NAMES were validated against
+    KNOWN_SECTIONS; the keys inside a section were not. So `exclude:` for `excludes:` parsed to a
+    valid mapping that no consumer ever read — the reporter's own YAML used the singular, and
+    even with `roots` supplied it would have excluded nothing while reporting success.
+
+    That is precisely the shape this project has shipped most often: an accepted-but-unread key.
+    `key_arg_idx` for `key_arg_index` silently keyed dataflow off argument 0; a `--declare`'d
+    `preprocessor:` section validated, logged as applied, and resolved as though nobody had
+    stated it. Fail closed at the ENTRY level, and name the accepted keys so the fix is one edit.
+
+    @brief An unknown inner key is refused and both it and the accepted set are named.
+    @return None.
+    @version 1
+    """
+    root = tmp_path / "repo"
+    (root / "src").mkdir(parents=True)
+    (root / ".clew.yaml").write_text(
+        "index_scope:\n  roots:\n    - src\n  exclude:\n    - src/gen\n", encoding="utf-8"
+    )
+
+    derived = sc.derive_scope(root)
+
+    assert derived.source == sc.SOURCE_WHOLE_REPO, (
+        "a declaration carrying an unread key must NOT be applied as though it were understood — "
+        "silently honouring `roots` while dropping `exclude` is the half-applied scope change "
+        "that reads as success"
+    )
+    assert "exclude" in derived.reason, "the reason must name the offending key"
+    assert "excludes" in derived.reason, "and the accepted spelling, so the fix is one edit"
+
+
+## @brief A genuinely absent declaration keeps its original wording.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_repo_declaring_nothing_still_reports_absence(tmp_path: Path) -> None:
+    """THE CONTROL. Every message above is a REPLACEMENT for the absence clause, so a check that
+    only looked for the new wording would pass a version that had deleted the old one — and a
+    repo that declares nothing genuinely has no index_scope, which is the common case and must
+    keep saying so.
+
+    @brief With no declaration at all, the reason still says none is declared.
+    @return None.
+    @version 1
+    """
+    root = tmp_path / "repo"
+    (root / "src").mkdir(parents=True)
+
+    derived = sc.derive_scope(root)
+
+    assert derived.source == sc.SOURCE_WHOLE_REPO
+    assert "no index_scope is declared" in derived.reason, (
+        f"a repo that declares nothing must still report absence; got: {derived.reason}"
+    )
