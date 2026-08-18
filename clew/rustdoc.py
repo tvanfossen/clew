@@ -51,8 +51,15 @@ method bodies inherited (rather than overridden) by an implementor, and
 `compoundref` (base/derived inheritance) — Rust has no class inheritance, so
 that table stays empty by construction, not by gap.
 
+TARGET SELECTION. A package's lib and every bin target are BOTH documented
+(v3) — a `main.rs` binary is not reliably a thin wrapper around a sibling lib
+of the same name; `knots` and `tools_sqc` both pair a `[lib]` with a
+same-named `[[bin]]` where the bin owns real modules (CLI parsing, config
+loading, output formatting) that a lib-only pass silently dropped from the
+index with no error. See `_discover_targets`.
+
 @brief Synthesize a doxygen-shaped SQLite database from rustdoc JSON.
-@version 2
+@version 3
 """
 
 from __future__ import annotations
@@ -109,6 +116,31 @@ def has_cargo_manifest(repo_root: Path) -> bool:
     return (Path(repo_root) / "Cargo.toml").is_file()
 
 
+## @brief Whether `repo_root`'s build routes through rustdoc instead of doxygen.
+## @param repo_root Candidate repository root.
+## @return True when `repo_root` has a Cargo.toml and no discoverable Doxyfile.
+## @version 1
+## @utility
+def uses_rustdoc(repo_root: Path) -> bool:
+    """Doxygen has no Rust parser, so a cargo repo's structural index comes from
+    this module instead — UNLESS the repo already ships its own Doxyfile, which
+    means an owner deliberately configured a doxygen build (a C/C++ project
+    that happens to vendor a small Rust tool, say) and that configuration
+    should win rather than being silently overridden by Cargo.toml's mere
+    presence. Shared by `cli.py`'s build-routing decision and `init_command.py`'s
+    doxygen doctor check — both need the same answer to "will this repo ever
+    invoke doxygen at all", so it lives once, here, rather than being
+    reimplemented per caller.
+
+    @brief Decide whether this repo's build uses rustdoc instead of doxygen.
+    @return True when `repo_root` has a Cargo.toml and no discoverable Doxyfile.
+    @version 1
+    """
+    from .doxygen import discover_doxyfile
+
+    return has_cargo_manifest(repo_root) and discover_doxyfile(repo_root) is None
+
+
 ## @brief Refuse before spawning cargo, naming exactly what is missing.
 ## @version 1
 ## @dg_internal
@@ -151,26 +183,30 @@ def _require_nightly_rustdoc() -> None:
         )
 
 
-## @brief The lib-or-bin targets `cargo metadata` reports for this repo.
+## @brief The lib and bin targets `cargo metadata` reports for this repo.
 ## @param repo_root Repository root (a package or a workspace).
-## @return One target per package: its lib target if it has one, else every bin target.
-## @version 1
+## @return One target per package lib (if any) plus one per bin target.
+## @version 2
 ## @dg_internal
 def _discover_targets(repo_root: Path) -> list[_CargoTarget]:
     """Only `--no-deps` packages — the workspace's OWN crates, never a
     dependency — matching doxygen's own INPUT scoping, which never reaches into
     a vendored/`cargo`-fetched tree either.
 
-    A package's LIB TARGET IS PREFERRED over its bins: a lib is a package's
-    public surface and a `main.rs` binary is usually a thin wrapper around it
-    (`windchill-connector` is exactly this shape — one lib, two bins). A
-    package with no lib (a pure CLI crate) gets every bin target instead, so
-    a repo like `todo-sqlite-cli` still gets indexed.
+    A package's lib AND every bin target are BOTH documented — a `main.rs`
+    binary is not reliably a thin wrapper around its sibling lib (`knots` and
+    `tools_sqc` both pair a `[lib]` with a same-named `[[bin]]` where the bin
+    owns real, non-reexported modules — CLI arg parsing, config loading,
+    output formatting — that a lib-only pass silently drops from the index
+    with no error, since `cargo metadata` succeeds either way). rustdoc JSON
+    numbers items per-invocation, so the caller prefixes ids per target to
+    avoid collisions; a bin's rows never collide with its sibling lib's rows
+    in the shared `path`/`refid`/`memberdef` tables.
 
     @brief Resolve which cargo targets to run rustdoc against.
-    @return One `_CargoTarget` per package.
+    @return One `_CargoTarget` per package target (lib and/or bins).
     @raises RustdocUnavailableError when `cargo metadata` itself fails.
-    @version 1
+    @version 2
     """
     proc = subprocess.run(
         ["cargo", "metadata", "--no-deps", "--format-version", "1"],
@@ -190,7 +226,6 @@ def _discover_targets(repo_root: Path) -> list[_CargoTarget]:
         lib = next((t for t in pkg_targets if "lib" in t.get("kind", ())), None)
         if lib is not None:
             targets.append(_CargoTarget(pkg["name"], lib["name"], "lib"))
-            continue
         for bin_target in (t for t in pkg_targets if "bin" in t.get("kind", ())):
             targets.append(_CargoTarget(pkg["name"], bin_target["name"], "bin"))
     return targets

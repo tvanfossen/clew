@@ -25,6 +25,7 @@ import pytest
 from clew.errors import RustdocUnavailableError
 from clew.rustdoc import (
     _brief,
+    _discover_targets,
     _render_argsstring,
     _render_type,
     _symbols_from_json,
@@ -186,6 +187,38 @@ def test_symbols_from_json_maps_static_and_constant_to_variable_kind():
     symbols = {s.name: s for s in _symbols_from_json(doc, "0")}
     assert symbols["MAX"].kind == "variable"
     assert symbols["MIN"].kind == "variable"
+
+
+def test_discover_targets_documents_both_lib_and_same_named_bin(tmp_path: Path) -> None:
+    """RUSTDOC_INTEGRATION_FEEDBACK.md, finding 1: `knots` and `tools_sqc` both pair a
+    `[lib]` with a same-named `[[bin]]`, and the old lib-instead-of-bin selection silently
+    dropped every module reachable only from the bin (`main.rs`, CLI parsing, config
+    loading, output formatting) with no error — `cargo metadata` succeeds either way, so
+    nothing in the build log said a target was skipped. This crate reproduces that exact
+    shape and asserts both targets come back.
+
+    @brief A package with both a lib and a same-named bin documents both, not just the lib.
+    @return None.
+    @version 1
+    """
+    if shutil.which("cargo") is None:
+        pytest.skip("needs cargo")
+    (tmp_path / "Cargo.toml").write_text(
+        '[package]\nname = "dual"\nversion = "0.1.0"\nedition = "2021"\n\n'
+        '[lib]\nname = "dual"\n\n[[bin]]\nname = "dual"\npath = "src/main.rs"\n',
+        encoding="utf-8",
+    )
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "lib.rs").write_text("pub fn helper() {}\n", encoding="utf-8")
+    (src / "main.rs").write_text("fn main() {}\n", encoding="utf-8")
+
+    targets = _discover_targets(tmp_path)
+
+    kinds = {(t.name, t.kind) for t in targets}
+    assert kinds == {("dual", "lib"), ("dual", "bin")}, (
+        f"a package with both a lib and a same-named bin must document both; got {kinds}"
+    )
 
 
 def test_run_rustdoc_refuses_a_non_cargo_repo(tmp_path: Path) -> None:

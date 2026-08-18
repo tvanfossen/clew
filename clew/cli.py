@@ -153,7 +153,7 @@ from .requirements import (
     load_guard_config,
     resolve_req_id_pattern,
 )
-from .rustdoc import has_cargo_manifest, run_rustdoc
+from .rustdoc import run_rustdoc, uses_rustdoc
 from .scope import (
     INDEX_SCOPE_SECTION,
     SCOPE_FROM_GUARD,
@@ -1223,21 +1223,19 @@ def _doxygen_out_dir(args: argparse.Namespace) -> Path:
 ## @brief Whether this build should use rustdoc instead of doxygen.
 ## @param repo_root Repository root.
 ## @return True when `repo_root` has a Cargo.toml and no discoverable Doxyfile.
-## @version 1
+## @version 2
 ## @dg_internal
 def _is_rust_only_repo(repo_root: Path) -> bool:
-    """Doxygen has no Rust parser, so a cargo repo's structural index comes from
-    `clew/rustdoc.py` instead — UNLESS the repo already ships its own Doxyfile,
-    which means an owner deliberately configured a doxygen build (a C/C++
-    project that happens to vendor a small Rust tool, say) and that
-    configuration should win rather than being silently overridden by
-    Cargo.toml's mere presence.
+    """Thin alias over `rustdoc.uses_rustdoc` — kept so callers in this module
+    read as a build-routing decision rather than reaching into `rustdoc.py`
+    directly. `init_command.py`'s doxygen doctor check shares the same
+    underlying helper, so the two never drift on what "rust-only" means.
 
     @brief Decide whether this build should use rustdoc instead of doxygen.
     @return True when `repo_root` has a Cargo.toml and no discoverable Doxyfile.
-    @version 1
+    @version 2
     """
-    return has_cargo_manifest(repo_root) and discover_doxyfile(repo_root) is None
+    return uses_rustdoc(repo_root)
 
 
 ## @brief Scan the indexed tree and reuse the cached doxygen output if it matches.

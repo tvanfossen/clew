@@ -3,11 +3,11 @@
 > *A **clew** is the ball of thread Ariadne gave Theseus — the thing you follow to find your way
 > out of the labyrinth. It is the archaic spelling, and the direct ancestor, of the word "clue".*
 
-**Give an agent the thread, not a map of the whole maze.** `clew` runs doxygen and tree-sitter
-over a C, C++ or Python repository and compiles the result into a SQLite graph — symbols, call
-edges, callbacks, threads, locks, dataflow, requirement links, file inventory, prose — then
-serves it over MCP. Pull on one symbol and you get its callers, its locks, the thread it runs on
-and the requirement it satisfies.
+**Give an agent the thread, not a map of the whole maze.** `clew` runs doxygen (or, for a Rust
+repo, `rustdoc`) and tree-sitter over a C, C++, Python or Rust repository and compiles the result
+into a SQLite graph — symbols, call edges, callbacks, threads, locks, dataflow, requirement
+links, file inventory, prose — then serves it over MCP. Pull on one symbol and you get its
+callers, its locks, the thread it runs on and the requirement it satisfies.
 
 **What it is for is aggregation, not capability.** Nothing here is a question `grep` cannot
 answer. The difference is that "who calls this, transitively, across a function-pointer
@@ -208,6 +208,27 @@ It emits **only what was stated** — never the built-in defaults. That is delib
 asserting you declared every default would freeze those defaults into your repo, so a later
 improvement to one would be shadowed by a value nobody remembers committing. An index that
 recorded no statement exports a document that says so.
+
+## Rust support
+
+A repo with a `Cargo.toml` and no Doxyfile is indexed with `cargo +nightly rustdoc
+--output-format json` instead of doxygen — doxygen has no Rust parser, and would otherwise
+silently produce zero symbol rows rather than an error. This needs a nightly toolchain on
+`PATH` (`cargo +nightly --version`); `clew init` does not check for it today, so its absence
+surfaces as a build-time `RustdocUnavailableError` instead. Every package's `[lib]` **and**
+every `[[bin]]` target are documented — a `main.rs` binary is not assumed to be a thin wrapper
+around its lib; a package that pairs a same-named lib and bin (a common shape) has both
+indexed, not just one.
+
+**Doc comments are not required.** An undocumented, non-`pub` function is indexed with its full
+signature, body, callers, callees and liveness — `///`/`//!` only fill in the `brief`/`detail`
+prose fields, they gate nothing else. Do not write doc comments just to make indexing "work."
+
+**`//!` module docs are still worth writing**, for the same reason a C file benefits from a
+leading `/*! ... */` block: `search`'s conceptual-query path matches on file-level prose (see
+`filedocs.py`), separately from any per-symbol `///`. A `//!` at the top of a module whose value
+is conceptual — a metrics formula, a dispatch table, a locking-order convention — makes that
+module findable by a query naming the concept rather than a function name.
 
 ## Without an agent
 
