@@ -27,6 +27,7 @@ from typing import Any
 
 from .. import query as q
 from .. import wire
+from ..query import _common
 from .descriptions import load_descriptions
 from .emptiness import prose_emptiness, search_emptiness
 from .state import Answering
@@ -520,12 +521,93 @@ def _empty_callers_note(payload: dict[str, Any], also: tuple[str, ...]) -> str:
     )
 
 
+## The candidate cap, read from the query layer rather than restated — one source for "how many
+## identities is a sample".
+_MAX_CANDIDATES = _common.MAX_CANDIDATES
+
+
+## @brief How many distinct function identities a bare name really has.
+## @param db Active database path.
+## @param name The bare name.
+## @return The count, or 0 when it cannot be read.
+## @version 1
+## @dg_internal
+def _distinct_identities(db: Path, name: str) -> int:
+    """COUNTED FROM THE SAME PREDICATE `candidate_rows` SLICES, so the total and the sample cannot
+    describe different sets. Tolerates any failure with 0, because this runs while decorating an
+    answer that already succeeded and a disclosure must never be the thing that breaks a reply.
+
+    @brief Count same-named function rows.
+    @return The count, or 0.
+    @version 1
+    """
+    if not name:
+        return 0
+    try:
+        with _common.connect(db) as conn:
+            if not _common.table_exists(conn, "memberdef"):
+                return 0
+            row = conn.execute(
+                "SELECT COUNT(*) FROM memberdef WHERE name=? AND kind='function'", (name,)
+            ).fetchone()
+    except Exception:
+        return 0
+    return int(row[0]) if row else 0
+
+
+## @brief Disclose that the candidate list hit its cap, and how many identities really exist.
+## @param db Active database path.
+## @param payload The flat subject payload, already built.
+## @return A disclosure dict, or None when the list was not capped.
+## @version 1
+## @dg_internal
+def _candidates_capped(db: Path | None, payload: dict[str, Any]) -> dict[str, Any] | None:
+    """SILENT TRUNCATION ON THE ONE FIELD WHOSE JOB IS DISAMBIGUATION. `MAX_CANDIDATES` is 8 and
+    `candidate_rows` slices to it with no disclosure, so `dossier("main")` on mbedtls returned 8 of
+    **143** `main` rows and the one that mattered — the stub `main` in `ssl_pthread_server.c` that
+    a non-threading build compiles — was not among them. There was no `_limited` entry, no count,
+    nothing to say a choice had been made: `candidates` reads as "the identities this name has".
+    That is the failure every other cap on this surface refuses or discloses to avoid.
+
+    NOT `_limited_block`, deliberately. That block states "the full response exceeded the
+    65,536-byte cap", which is a different and here FALSE reason — this list is capped by policy
+    regardless of size, and a disclosure that misattributes its own cause sends a reader to shrink
+    a payload that was never too big.
+
+    COUNTED, NOT ESTIMATED. `total_available` is the whole point: "this name has 143 signatures" is
+    more useful than the eight rows, and it is what tells a reader that `qualified=` is now
+    mandatory rather than optional.
+
+    @brief Say the candidate list was capped and how many identities exist.
+    @return The disclosure, or None.
+    @version 1
+    """
+    shown = payload.get("candidates")
+    if db is None or not isinstance(shown, list) or len(shown) < _MAX_CANDIDATES:
+        return None
+    total = _distinct_identities(db, str(payload.get("subject") or ""))
+    if total <= len(shown):
+        return None
+    return {
+        "reason": (
+            f"`candidates` is capped at {_MAX_CANDIDATES} identities by policy, not by response "
+            f"size"
+        ),
+        "adjusted": {"candidates": f"{total} -> {len(shown)}"},
+        "total_available": total,
+        "how_to_narrow": (
+            "The listed rows are a SAMPLE, not the identity set. Narrow by file or re-ask with "
+            "`qualified=` set to the signature you mean; `search` can enumerate the rest."
+        ),
+    }
+
+
 ## @brief Flatten a SubjectDossier to the wire shape: envelope keys plus the one section.
 ## @param built The resolved subject dossier, or None.
 ## @param db Active database path, for the function-subject ambiguity probe; omit to skip it.
 ## @param depth The depth the CALLER asked for, so an unhonoured one can be disclosed.
 ## @return The flat payload, or None when nothing resolved.
-## @version 3
+## @version 4
 ## @dg_internal
 def _flatten_subject(built: Any, db: Path | None = None, depth: int = 1) -> dict[str, Any] | None:
     """FLAT, NOT NESTED, and the reason is the budget rather than taste. Every trimmer on
@@ -544,7 +626,7 @@ def _flatten_subject(built: Any, db: Path | None = None, depth: int = 1) -> dict
 
     @brief Serialize a subject dossier to its flat wire form.
     @return Flat payload dict, or None.
-    @version 3
+    @version 4
     """
     if built is None:
         return None
@@ -569,6 +651,9 @@ def _flatten_subject(built: Any, db: Path | None = None, depth: int = 1) -> dict
     callers_note = _empty_callers_note(payload, built.also or ())
     if callers_note:
         payload["callers_note"] = callers_note
+    capped = _candidates_capped(db, payload)
+    if capped:
+        payload["candidates_limited"] = capped
     return payload
 
 
