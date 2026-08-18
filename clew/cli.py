@@ -126,7 +126,7 @@ from .doxygen import (
 )
 from .diagnostics import collect as collect_diagnostics
 from .enrichment import enrich_database
-from .errors import DoxygenUnavailableError
+from .errors import DoxygenUnavailableError, RustdocUnavailableError
 from .event_edges import import_event_edges
 from .filedocs import ingest_file_docs
 from .harvest_plan import build_harvest_plan, warm_harvest_plan
@@ -153,6 +153,7 @@ from .requirements import (
     load_guard_config,
     resolve_req_id_pattern,
 )
+from .rustdoc import has_cargo_manifest, run_rustdoc
 from .scope import (
     INDEX_SCOPE_SECTION,
     SCOPE_FROM_GUARD,
@@ -1219,6 +1220,26 @@ def _doxygen_out_dir(args: argparse.Namespace) -> Path:
     return base.parent / (base.stem + ".doxygen")
 
 
+## @brief Whether this build should use rustdoc instead of doxygen.
+## @param repo_root Repository root.
+## @return True when `repo_root` has a Cargo.toml and no discoverable Doxyfile.
+## @version 1
+## @dg_internal
+def _is_rust_only_repo(repo_root: Path) -> bool:
+    """Doxygen has no Rust parser, so a cargo repo's structural index comes from
+    `clew/rustdoc.py` instead — UNLESS the repo already ships its own Doxyfile,
+    which means an owner deliberately configured a doxygen build (a C/C++
+    project that happens to vendor a small Rust tool, say) and that
+    configuration should win rather than being silently overridden by
+    Cargo.toml's mere presence.
+
+    @brief Decide whether this build should use rustdoc instead of doxygen.
+    @return True when `repo_root` has a Cargo.toml and no discoverable Doxyfile.
+    @version 1
+    """
+    return has_cargo_manifest(repo_root) and discover_doxyfile(repo_root) is None
+
+
 ## @brief Scan the indexed tree and reuse the cached doxygen output if it matches.
 ## @param cache Live index cache, or None when caching is disabled.
 ## @param preprocessor The resolved preprocessor configuration this index represents.
@@ -1290,7 +1311,7 @@ def _doxygen_stage(
 
 ## @brief Run every build stage against one (temp) output DB path.
 ## @param timer Stage timer; one `mark` closes each stage below. A fresh one when omitted.
-## @version 47
+## @version 48
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -1320,7 +1341,7 @@ def _build_stages(
     per file. It changes no stage's position and emits nothing — see harvest.py.
 
     @brief Execute every augmentation stage against one output database.
-    @version 42
+    @version 43
     """
     timer = timer or StageTimer()
     repo_root = Path(args.repo_root).resolve() if args.repo_root else doxyfile.parent
@@ -1337,14 +1358,24 @@ def _build_stages(
     _apply_declared_paths(args, decl, repo_root)
     preprocessor = resolve_preprocessor(repo_root, decl, getattr(args, "predefined", None))
     timer.mark("declaration")
-    generated_db = _doxygen_stage(doxyfile, repo_root, args, cache, preprocessor, timer)
-    timer.mark("doxygen")
-    copy_database(generated_db, output)
-    timer.mark("copy")
-    # Repair any non-UTF-8 bytes doxygen wrote into description columns
-    # BEFORE augmentation / shipping — see sanitize_doxygen_text.
-    sanitize_doxygen_text(output)
-    timer.mark("sanitize")
+    if _is_rust_only_repo(repo_root):
+        # Doxygen has no Rust parser — clew/rustdoc.py fills the same
+        # path/refid/memberdef tables from `cargo +nightly rustdoc` JSON
+        # instead, writing straight to `output` rather than a scratch db a
+        # doxygen-style copy_database step would then relocate.
+        run_rustdoc(repo_root, output)
+        timer.mark("doxygen")
+        timer.mark("copy")
+        timer.mark("sanitize")
+    else:
+        generated_db = _doxygen_stage(doxyfile, repo_root, args, cache, preprocessor, timer)
+        timer.mark("doxygen")
+        copy_database(generated_db, output)
+        timer.mark("copy")
+        # Repair any non-UTF-8 bytes doxygen wrote into description columns
+        # BEFORE augmentation / shipping — see sanitize_doxygen_text.
+        sanitize_doxygen_text(output)
+        timer.mark("sanitize")
 
     if args.enrich:
         enrich_path = Path(args.enrich).resolve()
@@ -2397,7 +2428,7 @@ def _stamp_refresh_metrics(
 
 
 ## @brief Entry point — dispatch a subcommand, else parse args and build.
-## @version 14
+## @version 15
 ## @req REQ-DDB-CLI-001
 def main() -> None:
     """Entry point — parse args, run doxygen, optionally enrich.
@@ -2455,10 +2486,13 @@ def main() -> None:
     except (DeclarationError, BuildOptionError) as exc:
         logger.error("invalid declaration — %s", exc)
         sys.exit(2)
-    except DoxygenUnavailableError as exc:
+    except (DoxygenUnavailableError, RustdocUnavailableError) as exc:
         # Same treatment as a bad declaration, for the same reason: this is the
         # environment being wrong, not clew failing. It used to surface as a
         # twelve-frame FileNotFoundError naming 'doxygen', which reads as a crash
         # in this tool and is the first thing a new user on a clean machine sees.
+        # RustdocUnavailableError is the Rust-repo analog — same refusal shape,
+        # different missing prerequisite (a nightly toolchain instead of a
+        # system package).
         logger.error("cannot build — %s", exc)
         sys.exit(2)
