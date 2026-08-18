@@ -1,8 +1,13 @@
 -- SPDX-License-Identifier: MIT
 --
 -- Doxygen's OWN schema, captured verbatim from a real build (doxygen 1.9.8,
--- sqlite3 output). These are the only tables clew does not create itself, so
--- they are the only ones the synthetic `rich_db` fixture has to hand-make.
+-- sqlite3 output). For a C/C++/Python repo, these are the only tables clew
+-- does not create itself — they are the only ones the synthetic `rich_db`
+-- test fixture (tests/richdb.py) has to hand-make. For a Rust repo, doxygen
+-- never runs at all: clew/rustdoc.py loads this SAME schema and populates
+-- `path`/`refid`/`memberdef` from rustdoc's JSON output instead, so every
+-- downstream stage sees an identically-shaped database regardless of which
+-- front end produced it.
 --
 -- Dumped rather than retyped, and dumped WHOLE (tables + indexes + the eight
 -- convenience views) for one reason: the fixture's table set is compared against

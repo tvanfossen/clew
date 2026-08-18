@@ -1,0 +1,233 @@
+# SPDX-License-Identifier: MIT
+"""Tests for clew/rustdoc.py — the rustdoc-JSON analog of doxygen.py.
+
+The unit tests below exercise the pure functions (type rendering, brief
+extraction, JSON-to-symbol resolution) against hand-built rustdoc JSON
+fragments, no subprocess involved. `test_run_rustdoc_against_real_crate`
+is the one integration test: it actually shells out to `cargo +nightly
+rustdoc` against `tests/data/rustsample/`, and is skipped when that
+toolchain isn't available — mirroring how `test_ast_symbols.py` skips
+when tree_sitter's C/C++ grammars aren't importable.
+
+@brief Tests for rustdoc JSON ingestion.
+@version 1
+"""
+
+from __future__ import annotations
+
+import shutil
+import sqlite3
+import subprocess
+from pathlib import Path
+
+import pytest
+
+from clew.errors import RustdocUnavailableError
+from clew.rustdoc import (
+    _brief,
+    _render_argsstring,
+    _render_type,
+    _symbols_from_json,
+    has_cargo_manifest,
+    run_rustdoc,
+)
+
+RUSTSAMPLE = Path(__file__).resolve().parent / "data" / "rustsample"
+
+
+def _nightly_rustdoc_available() -> bool:
+    if shutil.which("cargo") is None:
+        return False
+    proc = subprocess.run(["cargo", "+nightly", "--version"], capture_output=True, text=True)
+    return proc.returncode == 0
+
+
+pytestmark_nightly = pytest.mark.skipif(
+    not _nightly_rustdoc_available(),
+    reason="needs cargo + a nightly toolchain (rustup toolchain install nightly)",
+)
+
+
+def test_has_cargo_manifest_true_for_a_cargo_repo(tmp_path: Path) -> None:
+    (tmp_path / "Cargo.toml").write_text("[package]\nname='x'\n", encoding="utf-8")
+    assert has_cargo_manifest(tmp_path) is True
+
+
+def test_has_cargo_manifest_false_without_one(tmp_path: Path) -> None:
+    assert has_cargo_manifest(tmp_path) is False
+
+
+def test_render_type_primitive():
+    assert _render_type({"primitive": "i32"}) == "i32"
+
+
+def test_render_type_none_is_unit():
+    assert _render_type(None) == "()"
+
+
+def test_render_type_borrowed_ref():
+    inner = {"borrowed_ref": {"is_mutable": False, "type": {"primitive": "str"}}}
+    assert _render_type(inner) == "&str"
+
+
+def test_render_type_borrowed_mut_ref():
+    inner = {"borrowed_ref": {"is_mutable": True, "type": {"primitive": "i32"}}}
+    assert _render_type(inner) == "&mut i32"
+
+
+def test_render_type_resolved_path():
+    inner = {"resolved_path": {"path": "std::collections::HashMap"}}
+    assert _render_type(inner) == "std::collections::HashMap"
+
+
+def test_render_type_unrecognized_shape_is_a_placeholder_not_an_error():
+    assert _render_type({"impl_trait": []}) == "?"
+
+
+def test_render_argsstring_joins_named_params():
+    sig = {"inputs": [["left", {"primitive": "i32"}], ["right", {"primitive": "i32"}]]}
+    assert _render_argsstring(sig) == "(i32 left, i32 right)"
+
+
+def test_render_argsstring_empty_for_no_params():
+    assert _render_argsstring({"inputs": []}) == "()"
+
+
+def test_brief_is_the_first_nonblank_line():
+    assert _brief("Adds two numbers.\n\nMore detail here.") == "Adds two numbers."
+
+
+def test_brief_skips_leading_blank_lines():
+    assert _brief("\n\nActual brief.\nrest") == "Actual brief."
+
+
+def test_brief_none_docs_is_empty_string():
+    assert _brief(None) == ""
+
+
+def _item(
+    *,
+    name,
+    kind,
+    span=("src/lib.rs", 1, 1, 3, 2),
+    visibility="public",
+    docs=None,
+    sig=None,
+):
+    inner: dict = {}
+    if kind == "function":
+        inner["function"] = {"sig": sig or {"inputs": [], "output": None}}
+    elif kind == "static":
+        inner["static"] = {"type": {"primitive": "i32"}, "expr": "3"}
+    elif kind == "constant":
+        inner["constant"] = {"type": {"primitive": "i32"}, "expr": "0"}
+    return {
+        "name": name,
+        "visibility": visibility,
+        "docs": docs,
+        "span": (
+            None
+            if span is None
+            else {
+                "filename": span[0],
+                "begin": [span[1], span[2]],
+                "end": [span[3], span[4]],
+            }
+        ),
+        "inner": inner,
+    }
+
+
+def test_symbols_from_json_extracts_a_public_function():
+    doc = {"index": {"0": _item(name="add", kind="function")}, "paths": {}}
+    symbols = _symbols_from_json(doc)
+    assert len(symbols) == 1
+    sym = symbols[0]
+    assert sym.name == "add"
+    assert sym.kind == "function"
+    assert sym.file == "src/lib.rs"
+    assert sym.static == 0
+
+
+def test_symbols_from_json_private_item_is_marked_static():
+    doc = {"index": {"0": _item(name="helper", kind="function", visibility="default")}, "paths": {}}
+    assert _symbols_from_json(doc)[0].static == 1
+
+
+def test_symbols_from_json_skips_items_with_no_span():
+    doc = {"index": {"0": _item(name="from", kind="function", span=None)}, "paths": {}}
+    assert _symbols_from_json(doc) == []
+
+
+def test_symbols_from_json_skips_unmodeled_kinds():
+    doc = {
+        "index": {
+            "0": {
+                "name": "Counter",
+                "visibility": "public",
+                "docs": None,
+                "span": {"filename": "src/lib.rs", "begin": [1, 1], "end": [3, 2]},
+                "inner": {"struct": {}},
+            }
+        },
+        "paths": {},
+    }
+    assert _symbols_from_json(doc) == []
+
+
+def test_symbols_from_json_maps_static_and_constant_to_variable_kind():
+    doc = {
+        "index": {
+            "0": _item(name="MAX", kind="static"),
+            "1": _item(name="MIN", kind="constant"),
+        },
+        "paths": {},
+    }
+    symbols = {s.name: s for s in _symbols_from_json(doc)}
+    assert symbols["MAX"].kind == "variable"
+    assert symbols["MIN"].kind == "variable"
+
+
+def test_run_rustdoc_refuses_a_non_cargo_repo(tmp_path: Path) -> None:
+    if not _nightly_rustdoc_available():
+        pytest.skip("needs cargo + a nightly toolchain")
+    with pytest.raises(RustdocUnavailableError):
+        run_rustdoc(tmp_path, tmp_path / "out.db")
+
+
+@pytestmark_nightly
+def test_run_rustdoc_against_real_crate(tmp_path: Path) -> None:
+    """The end-to-end contract: a real `cargo +nightly rustdoc` run against a
+    real crate lands a doxygen-shaped database with the right path/memberdef
+    rows — the same shape `tests/richdb.py` hand-makes for the C fixture.
+    """
+    db_path = tmp_path / "rustdoc.db"
+    result = run_rustdoc(RUSTSAMPLE, db_path)
+    assert result == db_path
+    conn = sqlite3.connect(str(db_path))
+    try:
+        names = {row[0] for row in conn.execute("SELECT name FROM memberdef")}
+        assert {"add", "helper", "MAX_RETRIES"} <= names
+
+        brief = conn.execute(
+            "SELECT briefdescription FROM memberdef WHERE name = 'add'"
+        ).fetchone()[0]
+        assert brief == "Adds two numbers together."
+
+        add_static, helper_static = (
+            conn.execute("SELECT static FROM memberdef WHERE name = ?", (name,)).fetchone()[0]
+            for name in ("add", "helper")
+        )
+        assert add_static == 0  # pub fn
+        assert helper_static == 1  # private fn
+
+        path_row = conn.execute(
+            "SELECT p.name FROM memberdef m JOIN path p ON p.rowid = m.file_id WHERE m.name = 'add'"
+        ).fetchone()
+        assert path_row[0] == "src/main.rs"
+
+        # Every downstream stage that guards with _table_exists (dispatch_edges.py)
+        # still gets a real, empty compounddef table rather than a missing one.
+        assert conn.execute("SELECT COUNT(*) FROM compounddef").fetchone()[0] == 0
+    finally:
+        conn.close()

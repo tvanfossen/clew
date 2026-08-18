@@ -43,6 +43,30 @@ class DoxygenUnavailableError(RuntimeError):
     """
 
 
+## @brief `cargo`, or a nightly toolchain capable of `rustdoc --output-format json`,
+## is not available.
+## @version 1
+class RustdocUnavailableError(RuntimeError):
+    """Raised before the pipeline spawns `cargo rustdoc`, when cargo is missing or
+    no nightly toolchain is installed.
+
+    Doxygen has no Rust parser, so a Rust repo's structural layer (`clew/rustdoc.py`)
+    comes from `cargo +nightly rustdoc -- -Z unstable-options --output-format json`
+    instead — rustdoc's JSON output has been nightly-gated since it was introduced and
+    remains so. This is the SAME kind of refusal `DoxygenUnavailableError` makes for the
+    `doxygen` binary: fail before spawning, with a message naming the missing
+    prerequisite, rather than let a bare `FileNotFoundError` or a nightly-feature
+    compiler error read as a bug in clew.
+
+    Unlike doxygen, `cargo`/`rustup` ARE how most Rust developers already manage their
+    toolchain, so the fix named here is `rustup toolchain install nightly` rather than a
+    system package manager invocation.
+
+    @brief Missing cargo or nightly rustdoc — refuse before spawning.
+    @version 1
+    """
+
+
 ## @brief Neither `tomllib` (3.11+) nor the `tomli` backport is importable.
 ## @version 1
 class TomlParserUnavailableError(RuntimeError):
