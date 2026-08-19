@@ -9,6 +9,12 @@ into a SQLite graph — symbols, call edges, callbacks, threads, locks, dataflow
 links, file inventory, prose — then serves it over MCP. Pull on one symbol and you get its
 callers, its locks, the thread it runs on and the requirement it satisfies.
 
+Per-language setup, what each front end populates, and what it cannot:
+[C](docs/languages/C_INTEGRATION.md) ·
+[C++](docs/languages/CPP_INTEGRATION.md) ·
+[Rust](docs/languages/RUST_INTEGRATION.md) ·
+[Python](docs/languages/PYTHON_INTEGRATION.md).
+
 **What it is for is aggregation, not capability.** Nothing here is a question `grep` cannot
 answer. The difference is that "who calls this, transitively, across a function-pointer
 boundary, and which of those run on another thread" is one query instead of a dozen searches

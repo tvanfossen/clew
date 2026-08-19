@@ -339,7 +339,7 @@ def _listing_row(status: dict[str, Any]) -> dict[str, Any]:
     return {key: status[key] for key in _LISTING_FIELDS if key in status}
 
 
-INSTRUCTIONS = """Queryable knowledge graph over a C, C++ or Python repository.
+INSTRUCTIONS = """Queryable knowledge graph over a C, C++, Rust or Python repository.
 
 A `clew` is the ball of thread Ariadne gave Theseus: the thing you follow to find your way out of
 the labyrinth. It is the archaic spelling and the direct ancestor of the word "clue". That is the

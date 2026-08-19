@@ -1008,16 +1008,16 @@ def _self_rooted_name(callee: Any, src_bytes: bytes) -> str | None:
 
 
 ## @brief Every self-directed call site in one parsed file.
-## @param tree The file's tree-sitter tree (C, C++ or Python).
+## @param tree The file's tree-sitter tree (C, C++, Rust or Python).
 ## @param src_bytes The file's raw bytes.
 ## @return (callee name, 1-based line) for each bare or self-rooted call.
-## @version 1
+## @version 2
 ## @dg_internal
 def _self_directed_sites(tree: Any, src_bytes: bytes) -> list[tuple[str, int]]:
     """@brief Collect a file's bare and self-rooted call sites.
 
     @return List of (name, line).
-    @version 1
+    @version 2
     """
     sites: list[tuple[str, int]] = []
     stack = [tree.root_node]
