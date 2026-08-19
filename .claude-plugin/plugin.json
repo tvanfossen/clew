@@ -1,7 +1,7 @@
 {
   "name": "clew",
-  "version": "1.0.4",
-  "description": "Queryable, layered symbol database for C, C++ and Python codebases: doxygen + tree-sitter call graph, threads, locks and dataflow edges, served to AI agents over MCP. Requires the clew-trace package on PATH (pip install clew-trace, which installs the `clew` and `clew-mcp` commands) and the doxygen binary.",
+  "version": "1.0.5",
+  "description": "Index a C, C++ or Python repository into a queryable graph \u2014 symbols, call edges, callbacks, threads, locks, dataflow, requirement links and prose \u2014 and serve it over MCP. Installs four tools AND one PostToolUse hook that prints a constant one-line reminder after Bash/Grep/Glob while the index goes unused, and stops once it is used (disable with CLEW_HOOK_DISABLE=1). Requires the clew-trace package on PATH and the doxygen binary.",
   "author": {
     "name": "tvanfossen",
     "url": "https://github.com/tvanfossen"

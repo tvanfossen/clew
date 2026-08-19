@@ -24,10 +24,10 @@ from pathlib import Path
 
 import pytest
 
-from clew import hook
+import clew_hook as hook
 
 REPO = Path(__file__).resolve().parent.parent
-HOOK_SOURCE = REPO / "clew" / "hook.py"
+HOOK_SOURCE = REPO / "clew_hook.py"
 
 ## An event shaped like a real one, carrying content a hostile repository could supply in both
 ## attacker-reachable fields. Every behavioural test feeds this.
@@ -66,7 +66,7 @@ def _run(
     environ = {**os.environ, "TMPDIR": str(tmpdir)}
     environ.update(env or {})
     return subprocess.run(
-        [sys.executable, "-m", "clew.hook"],
+        [sys.executable, "-m", "clew_hook"],
         input=event,
         capture_output=True,
         text=True,
@@ -159,33 +159,115 @@ def test_hostile_event_content_is_not_echoed(tmp_path: Path) -> None:
         assert needle not in result.stderr, f"event content {needle!r} reached stderr"
 
 
-## @brief The hook fires once and then stays silent.
-## @param tmp_path Pytest temp dir.
+## @brief The escalation policy: quiet at first, then periodic, then every call.
 ## @return None.
 ## @version 1
-def test_it_fires_once_per_session_then_stays_silent(tmp_path: Path) -> None:
-    """A reminder on every `Grep` is one a reader learns to skip — this project's standing lesson
-    about a warning that fires on the ordinary case. No debounce exists in the hook system, so the
-    marker provides it.
+def test_the_policy_is_quiet_then_periodic_then_loud() -> None:
+    """THE SHAPE THE OWNER SPECIFIED. A session that never reaches for the index in spite of it
+    being installed is the case worth interrupting, and it should be interrupted MORE as it goes
+    on. A session already using it must hear nothing at all.
 
-    BOTH HALVES: it must actually fire the first time, or a hook that never speaks would pass a
-    silence-only assertion.
+    Asserted on the policy function so the thresholds are pinned independently of the tallying —
+    a change to either shows up here as a change in shape rather than as a passing test with
+    different behaviour.
 
-    @brief One emission per session, then nothing.
+    @brief Pressure maps to notes as specified.
     @return None.
     @version 1
     """
-    first = _run(HOSTILE_EVENT, tmp_path)
-    assert first.returncode == 0
-    assert first.stdout.strip(), "the hook must emit on the first matching call"
-    parsed = json.loads(first.stdout)
-    assert parsed["hookSpecificOutput"]["hookEventName"] == "PostToolUse"
-    assert parsed["hookSpecificOutput"]["additionalContext"], "the note must carry content"
+    ## Below the floor: a few searches are ordinary and need no comment.
+    assert not any(hook._is_due(p) for p in range(hook._QUIET_BELOW)), (
+        "the hook must say nothing about a handful of ordinary searches"
+    )
+    ## Between the floor and the loud threshold: one note per interval, not per search.
+    periodic = [p for p in range(hook._QUIET_BELOW, hook._LOUD_AT) if hook._is_due(p)]
+    assert periodic == list(range(hook._QUIET_BELOW, hook._LOUD_AT, hook._INTERVAL)), (
+        f"expected one note every {hook._INTERVAL}; got notes at {periodic}"
+    )
+    ## At and above the loud threshold: every search, because the index is being ignored.
+    assert all(hook._is_due(p) for p in range(hook._LOUD_AT, hook._LOUD_AT + 8)), (
+        "a session ignoring the index this long must be told on every search"
+    )
 
-    for _ in range(3):
-        again = _run(HOSTILE_EVENT, tmp_path)
-        assert again.returncode == 0
-        assert again.stdout == "", "the hook repeated within one session"
+
+## @brief Using a clew tool must credit down harder than a search pushes up.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_using_the_index_keeps_the_hook_silent(tmp_path: Path) -> None:
+    """THE WHOLE POINT OF THE CREDIT. A model reaching for the index regularly must never hear
+    from this — both to keep one plugin out of the context window, and because a model pushed
+    hard enough reaches for the index where `grep` is genuinely right, which degrades the agent
+    and corrupts any later measurement of whether the index helps.
+
+    A clew call credits `_CLEW_CREDIT` searches, so it pops the pressure down faster than
+    searching pushes it up and steady use parks it at zero.
+
+    Runs the real subprocess for both paths, because the credit is delivered by an ARGV FLAG the
+    manifest passes — the mechanism that lets the hook know which tool ran without reading its
+    untrusted stdin.
+
+    @brief Interleaved index use silences the hook entirely.
+    @return None.
+    @version 1
+    """
+    env = {**os.environ, "TMPDIR": str(tmp_path), "CLEW_CODE_SESSION": "x"}
+    env["CLAUDE_CODE_SESSION_ID"] = "credit-session"
+
+    def call(used: bool) -> bool:
+        argv = [sys.executable, "-m", "clew_hook"] + ([hook.USED_FLAG] if used else [])
+        out = subprocess.run(
+            argv, input=HOSTILE_EVENT, capture_output=True, text=True, env=env
+        ).stdout
+        return bool(out.strip())
+
+    ## Two searches per index call: pressure never accumulates, so nothing is ever said.
+    spoke = [call(used=(i % 3 == 2)) for i in range(18)]
+    assert not any(spoke), (
+        f"the hook spoke to a session that is using the index, at calls "
+        f"{[i for i, s in enumerate(spoke) if s]}"
+    )
+
+
+## @brief A session that never uses the index must be told, and told more as it continues.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_a_session_ignoring_the_index_is_escalated(tmp_path: Path) -> None:
+    """THE OTHER HALF, and without it the credit test is satisfied by a hook that never speaks.
+    gh#7 measured a real session making six searches, four of them index-answerable, and calling
+    the index zero times. That session is this one.
+
+    @brief Searching without ever using the index produces escalating notes.
+    @return None.
+    @version 1
+    """
+    env = {
+        **os.environ,
+        "TMPDIR": str(tmp_path),
+        "CLAUDE_CODE_SESSION_ID": "ignoring-session",
+    }
+    spoke = [
+        bool(
+            subprocess.run(
+                [sys.executable, "-m", "clew_hook"],
+                input=HOSTILE_EVENT,
+                capture_output=True,
+                text=True,
+                env=env,
+            ).stdout.strip()
+        )
+        for _ in range(hook._LOUD_AT + 4)
+    ]
+
+    assert not any(spoke[: hook._QUIET_BELOW - 1]), "the first few searches must pass in silence"
+    assert spoke[hook._QUIET_BELOW - 1], f"a note is due at {hook._QUIET_BELOW} unanswered searches"
+    assert all(spoke[hook._LOUD_AT - 1 :]), (
+        "past the loud threshold every search must carry the note — this is the session the hook "
+        "exists for"
+    )
+    middle = spoke[hook._QUIET_BELOW : hook._LOUD_AT - 1]
+    assert not all(middle), "between the thresholds the note must be periodic, not every call"
 
 
 ## @brief The kill switch must silence it completely.
@@ -283,20 +365,91 @@ def test_a_failing_marker_write_fails_silently(
     assert captured.err == "", "nothing may reach stderr, which the model would see"
 
 
-## @brief The marker path must be built only from literals and an integer.
+## @brief The marker path must be a digest, immune to whatever the session id contains.
+## @param monkeypatch Pytest patcher.
 ## @return None.
-## @version 1
-def test_the_marker_path_takes_nothing_from_untrusted_input() -> None:
-    """A session id would be the natural key and is refused: it arrives on stdin, and a value from
-    there reaching a filesystem path is a traversal waiting to happen. The event above carries
-    `session_id: "../../../../etc/passwd"` for exactly that reason.
+## @version 2
+def test_the_marker_path_cannot_be_shaped_by_the_session_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A session id is an arbitrary string and it reaches a filesystem path, so it is hashed
+    rather than filtered — a filter is a blocklist, and blocklists are wrong by default.
 
-    @brief The marker name is literals plus `int(os.getppid())`.
+    THE PID VERSION WAS WRONG IN PRODUCTION, which is why this key exists at all. Each hook
+    invocation gets a fresh parent, so `os.getppid()` differed every time and the note fired on
+    EVERY tool call. The old test passed because pytest is one long-lived parent: the fixture was
+    stable in a way the real caller is not. It was caught by watching the note repeat in a live
+    session.
+
+    @brief A hostile session id yields a safe, stable, in-tmp path.
     @return None.
-    @version 1
+    @version 2
     """
-    marker = hook._marker_path()
-    assert marker.name == f"clew-hook-seen-{os.getppid()}", (
-        f"the marker name must be a literal prefix plus the parent pid; got {marker.name!r}"
+    monkeypatch.setenv("TMPDIR", "/tmp")
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "../../../../etc/passwd")
+    tmp = "/tmp"
+    hostile = hook._marker_path()
+
+    name = os.path.basename(hostile)
+    assert ".." not in name and "/" not in name, f"the session id shaped the filename: {name!r}"
+    assert re.fullmatch(r"clew-hook-seen-[A-Za-z0-9-]+", name), (
+        f"the marker name must be the literal prefix plus allowlisted characters only; got {name!r}"
     )
-    assert marker.name.replace("clew-hook-seen-", "").isdigit(), "the suffix must be an integer"
+    assert os.path.dirname(hostile) == tmp, "the marker must stay in the temp directory"
+    assert hook._marker_path() == hostile, "the same session must map to the same marker"
+
+    ## A DIFFERENT session must map elsewhere, or every session on the machine would share one
+    ## marker and only the first would ever see the note.
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "a-different-session")
+    assert hook._marker_path() != hostile, "distinct sessions must not collide"
+
+    ## AN EMPTY OR FULLY-FILTERED ID must still produce a usable name rather than the bare prefix,
+    ## which would make every such session share one marker.
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "///...///")
+    assert os.path.basename(hook._marker_path()) != "clew-hook-seen-", (
+        "an id with nothing allowlistable must fall back, not collapse to the bare prefix"
+    )
+
+
+## @brief The tally must survive a changing parent process, which production has.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 2
+def test_the_tally_holds_across_different_parent_processes(tmp_path: Path) -> None:
+    """THE BUG THE SUITE MISSED. Keyed on `os.getppid()`, the note fired on every tool call in a
+    real session because each invocation had a fresh parent — while the old test passed, because
+    every `subprocess.run` from one pytest process shares a parent.
+
+    So this runs each invocation under a DIFFERENT parent, via an intermediate shell, which is the
+    shape production has. Keyed on the session the tally accumulates across them and the first
+    notes land where the policy says; keyed on the pid every call would start from zero and none
+    would ever reach the threshold.
+
+    @brief One session, many parents, one accumulating tally.
+    @return None.
+    @version 2
+    """
+    env = {**os.environ, "TMPDIR": str(tmp_path), "CLAUDE_CODE_SESSION_ID": "fixed-session-key"}
+
+    def once() -> bool:
+        ## `sh -c` gives each invocation its own short-lived parent, so getppid differs per call.
+        return bool(
+            subprocess.run(
+                [
+                    "sh",
+                    "-c",
+                    f'echo {json.dumps(HOSTILE_EVENT)!r} | "$0" -m clew_hook',
+                    sys.executable,
+                ],
+                capture_output=True,
+                text=True,
+                env=env,
+            ).stdout.strip()
+        )
+
+    spoke = [once() for _ in range(hook._QUIET_BELOW)]
+    assert spoke[-1], (
+        "the tally did not accumulate across parent processes — it is keyed on something that is "
+        "not stable across invocations, which is what production does"
+    )
+    assert not any(spoke[:-1]), "and the earlier searches must still have passed in silence"

@@ -131,6 +131,34 @@ clew init                        # writes ./.mcp.json  (--scope global for user-
 Pick one. Both register a server named `clew`, so doing both leaves two sources for one entry —
 run `claude mcp remove clew` first if you have already used `clew init`.
 
+### What the plugin installs, including a hook
+
+The plugin registers the MCP server **and one `PostToolUse` hook**. Installing a Claude Code
+plugin does not prompt you about hooks, so it is stated here instead:
+
+- **What it does.** After a `Bash`, `Grep` or `Glob` call it prints one line of context saying the
+  index is available and what `dossier` and `search` answer. It exists because `grep` has an
+  enormous training prior and an index tool has none — the tool being correct does not make it
+  reached for.
+- **It escalates only when ignored, and using the index silences it.** Each search adds one to a
+  per-session count and each clew call subtracts three. Below five it says nothing; from five it
+  speaks every fifth search; from twenty it speaks every time. A session that uses the index even
+  occasionally never reaches the floor and hears nothing at all.
+- **~46 ms per matching call**, almost all of it Python starting. It imports nothing from the
+  `clew` package and nothing outside `os`/`sys`, for that reason.
+- **It is registered twice** — once for `Bash`/`Grep`/`Glob` and once for the clew tools, which is
+  how it learns which ran without reading anything. The second registration passes `--used` from
+  the manifest; it is the only argument it accepts.
+- **It reads nothing.** Its output is a compile-time constant in
+  [`clew_hook.py`](https://github.com/tvanfossen/clew/blob/main/clew_hook.py) — the hook drains
+  its stdin without parsing it, so no file name, matched line or tool result can reach your
+  model's context through it. It never exits non-zero, because a non-zero exit would send its
+  stderr to the model.
+
+**To turn it off**, set `CLEW_HOOK_DISABLE=1` in the environment Claude Code runs in, or delete
+`hooks/hooks.json` from the installed plugin. Registering the server by hand with `clew init`
+installs no hook at all.
+
 `doxygen` is a C++ binary, so it cannot be a Python dependency — `clew init` checks for it and
 tells you if it is missing. Everything else, including the MCP SDK, comes with the package.
 
