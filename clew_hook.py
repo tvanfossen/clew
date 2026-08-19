@@ -36,6 +36,17 @@ standing lesson about warnings on the ordinary case. The marker's name is derive
 process id coerced through `int()` — never from a session id, a path, or anything else off stdin,
 so no value under a repository's control reaches the filesystem.
 
+**IT LIVES OUTSIDE THE `clew` PACKAGE, AND THAT IS A PERFORMANCE PROPERTY.** This module was
+`clew/hook.py`, and a console script pointing into the package imports `clew/__init__.py` — which
+eagerly pulls the whole pipeline (`cli`, `doxygen`, `call_edges`, ...). MEASURED: 202 ms per
+invocation against 45 ms for the stdlib this file actually uses, on a hook that fires after EVERY
+matching tool call. 157 ms of that was the package import, for a component that needs `os`, `sys`,
+`tempfile` and `pathlib`.
+
+So it imports nothing from `clew` and must keep importing nothing: the gate asserts it. 25 ms of
+the remaining 45 is the interpreter itself, which is the floor for any subprocess hook and the
+reason this does as little as it possibly can.
+
 **IT CAN BE TURNED OFF.** `CLEW_HOOK_DISABLE=1` exits immediately. The acceptance harness sets it,
 because a standing "prefer the index" nudge would make the one arm that measures UNPROMPTED
 reach-for-it unmeasurable — and that arm is worth roughly nine points by this project's own union
@@ -47,6 +58,7 @@ analysis. Shipping the mitigation must not destroy the measurement that would ju
 
 from __future__ import annotations
 
+import hashlib
 import os
 import sys
 import tempfile
@@ -56,10 +68,14 @@ from pathlib import Path
 ## is never used, so it cannot carry content.
 DISABLE_ENV = "CLEW_HOOK_DISABLE"
 
-## Marker filename prefix. The suffix is `os.getppid()` coerced through `int()`, so the complete
-## path is this module's own literals plus an integer — no string from stdin, the environment, or
-## the repository can influence where this writes.
+## Marker filename prefix. The suffix is a HEX DIGEST, so the complete path is this module's own
+## literals plus 16 hex characters and nothing else can shape it.
 _MARKER_PREFIX = "clew-hook-seen-"
+
+## The session key, read from the ENVIRONMENT — Claude Code's own, the same trust level as TMPDIR,
+## and NOT from stdin, which is where repository-controlled text arrives. Verified present in a
+## real hook process before being relied on.
+_SESSION_ENV = "CLAUDE_CODE_SESSION_ID"
 
 ## THE ENTIRE INJECTION SURFACE, AS ONE LITERAL. The complete `PostToolUse` reply, message
 ## included, written out rather than built. Nothing at run time can alter it, which is the whole
@@ -73,27 +89,38 @@ _PAYLOAD = '{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalC
 
 ##
 # @brief The once-per-session marker path for this hook invocation.
-# @return Path under the system temp directory, named only from literals and an integer.
-# @version 1
+# @return Path under the system temp directory, named from literals and a hex digest.
+# @version 2
 # @dg_internal
 def _marker_path() -> Path:
-    """PARENT PID, COERCED THROUGH `int()`, AND NOTHING ELSE. A session id would be the natural
-    key and is refused: it arrives on stdin, which is the untrusted channel, and a value from
-    there reaching a filesystem path is a traversal waiting to happen. `os.getppid()` is an
-    integer the OS supplies, and `int()` makes that a guarantee rather than an assumption.
+    """KEYED ON THE SESSION, HASHED. The first version used `os.getppid()` and it was WRONG in
+    production: each hook invocation gets a fresh parent, so every call wrote a different marker
+    and the note fired on EVERY tool call. It passed its test because pytest is one long-lived
+    parent — the fixture was stable in a way the real caller is not, which is this project's
+    standing failure written again. It was caught by watching the note repeat in a live session,
+    not by the suite.
 
-    `tempfile.gettempdir()` honours TMPDIR, which is the user's own environment rather than the
-    repository's. MEASURED, because the first version of this docstring guessed wrong: it does not
-    simply take TMPDIR, it PROBES for a writable directory and falls back to `/tmp` when TMPDIR is
-    not one. So a hostile or broken TMPDIR degrades to "the marker lands somewhere else", never to
-    a failure — which is also why the unwritable-directory test has to force the failure path
-    directly rather than trusting TMPDIR to produce it.
+    `CLAUDE_CODE_SESSION_ID` is the correct key and was CONFIRMED present in a real hook process
+    before being relied on. It comes from the environment — Claude Code's own, the same trust
+    level as TMPDIR — and not from stdin, where repository-controlled text arrives.
 
-    @brief Build the marker path from literals and an integer.
+    HASHED RATHER THAN SANITISED. A session id is an arbitrary string, and an arbitrary string
+    reaching a filesystem path is a traversal waiting to happen; a filter is a blocklist and
+    blocklists are wrong by default. A digest is fixed-length, hex-only, and cannot escape the
+    directory whatever it is given. `usedforsecurity=False` says plainly this is a naming device,
+    not a security primitive.
+
+    FALLS BACK TO THE PARENT PID when the variable is absent, so the hook still debounces under a
+    harness that does not set it — at worst per-parent instead of per-session, which is the
+    behaviour it had before and is strictly better than firing every time.
+
+    @brief Build the marker path from literals and a hex digest.
     @return The marker path.
-    @version 1
+    @version 2
     """
-    return Path(tempfile.gettempdir()) / f"{_MARKER_PREFIX}{int(os.getppid())}"
+    session = os.environ.get(_SESSION_ENV) or str(int(os.getppid()))
+    digest = hashlib.sha256(session.encode("utf-8", "replace"), usedforsecurity=False).hexdigest()
+    return Path(tempfile.gettempdir()) / f"{_MARKER_PREFIX}{digest[:16]}"
 
 
 ##

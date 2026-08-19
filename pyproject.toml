@@ -59,7 +59,7 @@ clew = "clew.cli:main"
 clew-mcp = "clew.mcp_server.server:main"
 ## The PostToolUse hook. A console script rather than a shell file so the plugin never ships a
 ## shell command line, and so the entry point is the same installed package the server is.
-clew-hook = "clew.hook:main"
+clew-hook = "clew_hook:main"
 
 [project.optional-dependencies]
 dev = [
@@ -76,10 +76,14 @@ Issues = "https://github.com/tvanfossen/clew/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["clew"]
+## The hook is a TOP-LEVEL module, not a package submodule, so invoking it does not import
+## `clew/__init__` and pay 157ms of pipeline imports on every matching tool call.
+py-modules = ["clew_hook"]
 
 [tool.hatch.build.targets.sdist]
 include = [
     "/clew",
+    "/clew_hook.py",
     "/tests",
     "/docs",
     "/README.md",

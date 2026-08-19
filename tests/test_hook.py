@@ -20,14 +20,15 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
 
-from clew import hook
+import clew_hook as hook
 
 REPO = Path(__file__).resolve().parent.parent
-HOOK_SOURCE = REPO / "clew" / "hook.py"
+HOOK_SOURCE = REPO / "clew_hook.py"
 
 ## An event shaped like a real one, carrying content a hostile repository could supply in both
 ## attacker-reachable fields. Every behavioural test feeds this.
@@ -66,7 +67,7 @@ def _run(
     environ = {**os.environ, "TMPDIR": str(tmpdir)}
     environ.update(env or {})
     return subprocess.run(
-        [sys.executable, "-m", "clew.hook"],
+        [sys.executable, "-m", "clew_hook"],
         input=event,
         capture_output=True,
         text=True,
@@ -283,20 +284,76 @@ def test_a_failing_marker_write_fails_silently(
     assert captured.err == "", "nothing may reach stderr, which the model would see"
 
 
-## @brief The marker path must be built only from literals and an integer.
+## @brief The marker path must be a digest, immune to whatever the session id contains.
+## @param monkeypatch Pytest patcher.
+## @return None.
+## @version 2
+def test_the_marker_path_cannot_be_shaped_by_the_session_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A session id is an arbitrary string and it reaches a filesystem path, so it is hashed
+    rather than filtered — a filter is a blocklist, and blocklists are wrong by default.
+
+    THE PID VERSION WAS WRONG IN PRODUCTION, which is why this key exists at all. Each hook
+    invocation gets a fresh parent, so `os.getppid()` differed every time and the note fired on
+    EVERY tool call. The old test passed because pytest is one long-lived parent: the fixture was
+    stable in a way the real caller is not. It was caught by watching the note repeat in a live
+    session.
+
+    @brief A hostile session id yields a safe, stable, in-tmp path.
+    @return None.
+    @version 2
+    """
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "../../../../etc/passwd")
+    hostile = hook._marker_path()
+
+    assert hostile.parent == Path(tempfile.gettempdir()), "the marker must stay in the temp dir"
+    assert ".." not in hostile.name and "/" not in hostile.name, (
+        f"the session id shaped the filename: {hostile.name!r}"
+    )
+    assert re.fullmatch(r"clew-hook-seen-[0-9a-f]{16}", hostile.name), (
+        f"the marker name must be a literal prefix plus a hex digest; got {hostile.name!r}"
+    )
+    assert hook._marker_path() == hostile, "the same session must map to the same marker"
+
+    ## A DIFFERENT session must map elsewhere, or every session on the machine would share one
+    ## marker and only the first would ever see the note.
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "a-different-session")
+    assert hook._marker_path() != hostile, "distinct sessions must not collide"
+
+
+## @brief The debounce must survive a changing parent process, which production has.
+## @param tmp_path Pytest temp dir.
 ## @return None.
 ## @version 1
-def test_the_marker_path_takes_nothing_from_untrusted_input() -> None:
-    """A session id would be the natural key and is refused: it arrives on stdin, and a value from
-    there reaching a filesystem path is a traversal waiting to happen. The event above carries
-    `session_id: "../../../../etc/passwd"` for exactly that reason.
+def test_the_debounce_holds_across_different_parent_processes(tmp_path: Path) -> None:
+    """THE BUG THE SUITE MISSED. Keyed on `os.getppid()`, the note fired on every tool call in a
+    real session because each invocation had a fresh parent — while the old test passed, because
+    every `subprocess.run` from one pytest process shares a parent.
 
-    @brief The marker name is literals plus `int(os.getppid())`.
+    So this runs each invocation under a DIFFERENT parent, via an intermediate shell, which is the
+    shape production actually has. With a session key it stays silent; with a pid key it would
+    speak every time.
+
+    @brief One session, many parents, one note.
     @return None.
     @version 1
     """
-    marker = hook._marker_path()
-    assert marker.name == f"clew-hook-seen-{os.getppid()}", (
-        f"the marker name must be a literal prefix plus the parent pid; got {marker.name!r}"
-    )
-    assert marker.name.replace("clew-hook-seen-", "").isdigit(), "the suffix must be an integer"
+    env = {**os.environ, "TMPDIR": str(tmp_path), "CLAUDE_CODE_SESSION_ID": "fixed-session-key"}
+
+    def once() -> str:
+        ## `sh -c` gives each invocation its own short-lived parent, so getppid differs per call.
+        return subprocess.run(
+            ["sh", "-c", f'echo {json.dumps(HOSTILE_EVENT)!r} | "$0" -m clew_hook', sys.executable],
+            capture_output=True,
+            text=True,
+            env=env,
+        ).stdout
+
+    first = once()
+    assert first.strip(), "the note must appear the first time"
+    for _ in range(3):
+        assert once() == "", (
+            "the note repeated under a new parent process — the debounce is keyed on something "
+            "that is not stable across invocations, which is what production does"
+        )
