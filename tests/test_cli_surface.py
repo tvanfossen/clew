@@ -34,6 +34,7 @@ fine. Only `dg_source = 'doxygen'` can tell the two apart.
 
 from __future__ import annotations
 
+import argparse
 import shutil
 import sqlite3
 from pathlib import Path
@@ -482,3 +483,77 @@ def test_a_stated_predefined_reaches_doxygen_through_declare(tmp_path: Path) -> 
         "be seen through dg_source='doxygen': the AST recovery puts the symbol in memberdef "
         "either way, with no brief and no params"
     )
+
+
+## @brief An omitted --output lands exactly where the MCP server looks.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_omitted_output_resolves_to_the_servers_own_path(tmp_path: Path) -> None:
+    """THE INVARIANT IS AGREEMENT, NOT THE FORMAT OF THE PATH. Asserting a literal shape here
+    would pass while the two surfaces drifted apart; the only thing worth pinning is that the
+    CLI writes where `target_for` — the function the server itself calls — says to read.
+
+    The failure this prevents is SILENT: the build succeeds, prints a path, and the server
+    reports the repository unindexed, because each computed its own slug.
+
+    @brief An omitted --output equals target_for(repo).db_path.
+    @return None.
+    @version 1
+    """
+    from clew.cli import _resolve_output
+    from clew.mcp_server.state import target_for
+
+    args = argparse.Namespace(output=None, repo_root=str(tmp_path), verbose=False)
+    _resolve_output(args)
+
+    assert args.output == target_for(tmp_path).db_path, (
+        "the CLI's derived output path and the path the MCP server reads have diverged; a build "
+        "would succeed and then be invisible to dossier/search"
+    )
+
+
+## @brief An explicit --output is never overridden.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_explicit_output_is_left_alone(tmp_path: Path) -> None:
+    """THE NEGATIVE HALF. A default that also overwrote an explicit value would silently move
+    every existing caller's database, including the acceptance harness's.
+
+    @brief A given --output survives resolution unchanged.
+    @return None.
+    @version 1
+    """
+    from clew.cli import _resolve_output
+
+    chosen = str(tmp_path / "mine.db")
+    args = argparse.Namespace(output=chosen, repo_root=str(tmp_path), verbose=False)
+    _resolve_output(args)
+
+    assert args.output == chosen
+
+
+## @brief Every dispatched subcommand is named in --help.
+## @return None.
+## @version 1
+def test_help_names_every_subcommand() -> None:
+    """THEY ARE NOT SUBPARSERS, so argparse cannot list them and nothing failed when they were
+    absent — three working commands were discoverable only by already knowing they existed.
+    Asserted against the constants `main` actually dispatches on, so renaming one fails here
+    instead of quietly dropping it from the help again.
+
+    @brief --help lists init, propose and export.
+    @return None.
+    @version 1
+    """
+    from clew.cli import (
+        EXPORT_COMMAND,
+        INIT_COMMAND,
+        PROPOSE_COMMAND,
+        _build_argparser,
+    )
+
+    text = _build_argparser().format_help()
+    missing = [c for c in (INIT_COMMAND, PROPOSE_COMMAND, EXPORT_COMMAND) if c not in text]
+    assert not missing, f"--help does not mention {missing}, which main() dispatches on"
