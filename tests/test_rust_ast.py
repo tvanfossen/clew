@@ -138,6 +138,35 @@ def test_lock_site_detects_mutex_lock_binding():
     assert confidence == "high"
 
 
+def test_lock_site_detects_mutex_lock_with_poison_recovery():
+    """`.lock().unwrap_or_else(|e| e.into_inner())` is the standard
+    poison-recovery idiom (vs. plain `.unwrap()`) and must still be
+    recognized as a lock acquisition — found missing against a real
+    codebase (tools_sqc/src/progress.rs), where every guard used this form
+    and none were detected."""
+    from clew.locks import _walk_lock_sites, load_lock_patterns
+
+    tree, src = _parse(
+        "struct Counter { mutex: std::sync::Mutex<i32> }\n"
+        "impl Counter {\n"
+        "    fn bump(&self) {\n"
+        "        let mut g = self.mutex.lock().unwrap_or_else(|e| e.into_inner());\n"
+        "        *g += 1;\n"
+        "    }\n"
+        "}\n"
+    )
+    patterns = {p.name: p for p in load_lock_patterns(None)}
+    sites = _walk_lock_sites(tree, src, patterns)
+    assert len(sites) == 1
+    name, operand, _scope, _line, _end_line, form, kind, _mode, _role, _confidence, _calls = sites[
+        0
+    ]
+    assert name == "lock"
+    assert operand == "self.mutex"
+    assert form == "raii"
+    assert kind == "mutex"
+
+
 def test_lock_site_detects_rwlock_read_and_write():
     from clew.locks import _walk_lock_sites, load_lock_patterns
 

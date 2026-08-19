@@ -697,18 +697,29 @@ def _visit_declaration(node: Any, src: bytes, patterns: dict, sites: list) -> No
         _append_site(node, src, pattern, operand, "scoped", sites, primitives)
 
 
-## Rust's `.unwrap()`/`.expect(msg)` and the `?` operator are the three ways a
-## `Result<Guard, _>` from `.lock()`/`.read()`/`.write()` gets down to the
-## guard itself; parking_lot's Mutex isn't fallible at all and needs no
-## unwrap. Capped like `call_edges._MAX_CALLEE_UNWRAP` so a pathological chain
-## cannot spin.
+## Rust's `.unwrap()`/`.expect(msg)`/`.unwrap_or_else(recover)` and the `?`
+## operator are how a `Result<Guard, _>` from `.lock()`/`.read()`/`.write()`
+## gets down to the guard itself; parking_lot's Mutex isn't fallible at all
+## and needs no unwrap. `.unwrap_or_else` is the standard poison-recovery
+## idiom (`m.lock().unwrap_or_else(|e| e.into_inner())`) — verified missing
+## against `tools_sqc/src/progress.rs`, whose `Mutex` guard acquisitions all
+## use this form and were silently absent from the `locks` table (0 rows)
+## because this function returned the `unwrap_or_else` call itself, whose
+## `field` name matches no lock-method pattern, rather than peeling to the
+## `.lock()` call beneath it. Capped like `call_edges._MAX_CALLEE_UNWRAP` so
+## a pathological chain cannot spin.
 _MAX_RUST_RESULT_UNWRAP = 4
 
+## Method names that consume a `Result`/`Option` down to its `Ok`/`Some`
+## value (discarding the error/recovery-closure side) without changing
+## whether the receiver was a lock acquisition.
+_RUST_RESULT_UNWRAP_METHODS = (b"unwrap", b"expect", b"unwrap_or_else")
 
-## @brief Peel .unwrap()/.expect()/`?` off a Rust expression down to its base call.
+
+## @brief Peel .unwrap()/.expect()/.unwrap_or_else()/`?` off a Rust expression down to its base call.
 ## @param node A `let_declaration`'s value expression.
 ## @return The innermost call_expression, or the original node if there was nothing to peel.
-## @version 1
+## @version 2
 ## @dg_internal
 def _unwrap_rust_result(node: Any) -> Any:
     """@brief Unwrap Result/Option combinators to the call they wrap."""
@@ -722,7 +733,7 @@ def _unwrap_rust_result(node: Any) -> Any:
             func = node.child_by_field_name("function")
             if func is not None and func.type == "field_expression":
                 field = func.child_by_field_name("field")
-                if field is not None and field.text in (b"unwrap", b"expect"):
+                if field is not None and field.text in _RUST_RESULT_UNWRAP_METHODS:
                     node = func.child_by_field_name("value")
                     continue
         return node
