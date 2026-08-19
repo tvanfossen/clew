@@ -1216,3 +1216,59 @@ def test_search_discloses_a_dropped_row_only_when_provenance_DIFFERS(
         "a decl/def pair is BOTH doxygen's — `documented_first` decided nothing across "
         "provenance, so there is nothing to disclose and firing here is pure noise"
     )
+
+
+## @brief A reference-returning definition must be recovered, not silently skipped.
+## @return None.
+## @version 1
+def test_reference_returning_definitions_are_recovered() -> None:
+    """FOUND WHILE FIXING gh#9, AND IT IS THE LARGER OF THE TWO BUGS. `_function_declarator`
+    followed `child_by_field_name("declarator")` only, and a `reference_declarator` does NOT
+    expose its inner declarator under that field — so the walk returned None and EVERY
+    reference-returning definition was absent from the recovery layer whose whole job is
+    recovering what doxygen did not emit.
+
+    In C++ that is not an edge case. `const T& accessor()`, `T& operator[]()`, `begin()`/`end()`
+    — the shape is everywhere, and all of it was being dropped in silence. The helper's own
+    docstring said "pointer/parenthesized"; reference was never in the set.
+
+    HOW IT SURFACED IS THE PART WORTH KEEPING. The macro-reference recovery reused this helper,
+    passed five of six measured cases, and failed the ONE that had been reported. A test asserting
+    "recovery works" on any single non-reference case would have passed throughout.
+
+    Both the plain and the `const` reference shapes are asserted, plus a pointer return as the
+    control that the original behaviour is intact.
+
+    @brief Reference-returning functions reach the recovery layer.
+    @return None.
+    @version 1
+    """
+    import tree_sitter_cpp
+
+    from clew.harvest import try_import_tree_sitter
+
+    ts = try_import_tree_sitter()
+    assert ts is not None, "precondition: tree-sitter must be importable"
+    language_cls, parser_cls = ts
+
+    src = (
+        b"#include <array>\n"
+        b"struct Row { int a; };\n"
+        b"static Row g_row;\n"
+        b"static Row g_rows[4];\n"
+        b"const std::array<Row, 4>& const_ref_return() { static std::array<Row, 4> k{}; return k; }\n"
+        b"Row& plain_ref_return() { return g_row; }\n"
+        b"Row* ptr_return() { return &g_row; }\n"
+        b"int value_return() { return 1; }\n"
+    )
+    tree = parser_cls(language_cls(tree_sitter_cpp.language())).parse(src)
+    found = {f.name for f in harvest_function_definitions(tree, src)}
+
+    assert "const_ref_return" in found, (
+        f"a `const T&`-returning definition was skipped — this is the reported shape; got {found}"
+    )
+    assert "plain_ref_return" in found, f"a `T&`-returning definition was skipped; got {found}"
+    ## THE CONTROLS: the shapes that already worked must keep working, or a fix that recovered
+    ## references by loosening the walk into accepting anything would pass the two above.
+    assert "ptr_return" in found, "pointer returns were already recovered and must remain so"
+    assert "value_return" in found, "plain value returns must remain so"

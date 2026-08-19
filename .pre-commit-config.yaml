@@ -52,7 +52,17 @@ repos:
         ## `cache_dir` is set once, in pyproject's `[tool.pytest.ini_options]`. It used to be
         ## overridden here as well, which is two places for one setting and therefore one place
         ## to forget when it changes.
-        entry: .venv/bin/python -m pytest tests/ -q
+        ## BOTH TIERS, and the unit tier alone is why a red test survived a release. The
+        ## integration tier was opt-in behind `--integration`, so nothing in the gate ever ran
+        ## it: `test_a_stated_preprocessor_section_reaches_the_stage_through_the_declaration`
+        ## was failing at the 1.0.1 release point and stayed invisible through 1.0.2. A tier
+        ## that vets source before release has to run before release.
+        ##
+        ## `acceptance/bench/` stays OUT deliberately — those are matrix/harness tests about a
+        ## measurement, not about this source, and they are gated separately.
+        ##
+        ## The cost is real and accepted: ~59s unit + ~124s integration.
+        entry: .venv/bin/python -m pytest tests/ -q --integration
         language: system
         pass_filenames: false
         always_run: true

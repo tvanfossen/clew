@@ -78,6 +78,7 @@ from .buildoptions import (
     BuildOptionError,
     apply_options,
 )
+from .macro_refs import import_ast_macro_refs
 from .call_edges import (
     build_call_edges,
     import_ast_call_edges,
@@ -999,7 +1000,7 @@ def _apply_declared_paths(args: argparse.Namespace, decl: dict, repo_root: Path)
 ## @param args Parsed CLI arguments; `predefined` is None when unstated this run.
 ## @param output Live database path, still holding the PREVIOUS build's record.
 ## @return The explicit macro list, or None when none is in force.
-## @version 2
+## @version 3
 ## @req REQ-DDB-CONFIG-006
 ## @req REQ-DDB-CONFIG-008
 def _recorded_predefined(args: argparse.Namespace, output: Path) -> list[str] | None:
@@ -1026,7 +1027,7 @@ def _recorded_predefined(args: argparse.Namespace, output: Path) -> list[str] | 
 
     @brief Resolve the tier-1 predefined statement for this build.
     @return The explicit macro list, or None.
-    @version 2
+    @version 3
     """
     stated = getattr(args, "predefined", None)
     ## BOTH DOCUMENTED SPELLINGS, and only one of them was wired. `predefined` is the alias;
@@ -1050,14 +1051,26 @@ def _recorded_predefined(args: argparse.Namespace, output: Path) -> list[str] | 
     ## the file lives OUTSIDE the target, tier 2 means "the target's own file says so", and the
     ## next build re-reads a file that is not there. For `predefined` the cost is the
     ## macro-guarded half of a codebase dropping out of the index while the build reports success.
-    if stated is None:
-        section_form = getattr(args, "preprocessor", None)
-        if isinstance(section_form, dict):
-            stated = section_form.get(OPTION_PREDEFINED)
+    ## AN EMPTY SECTION IS A WITHDRAWAL, AND IT WAS READ AS SILENCE. `{}` and `[]` are both the
+    ## withdrawal spelling — but only `[]` was implemented. A stated `preprocessor: {}` left
+    ## `section_form.get(OPTION_PREDEFINED)` as None, which is exactly what "the caller said
+    ## nothing" looks like, so the replay below fired and restored the macro the caller had just
+    ## withdrawn. The build then reported success while indexing the variant that was revoked.
+    ##
+    ## The three states are distinguished by whether the SECTION is present, not by what is
+    ## inside it: absent inherits the record, PRESENT withdraws or replaces, and only a present
+    ## non-empty statement replaces.
+    section_form = getattr(args, "preprocessor", None)
+    section_stated = isinstance(section_form, dict)
+    if stated is None and section_stated:
+        stated = section_form.get(OPTION_PREDEFINED)
     if stated is not None:
-        ## An empty statement is NOT promoted: `{}` and `[]` are the withdrawal spelling, and
-        ## fabricating an empty tier-1 record here would replay a withdrawal as a statement.
+        ## An empty statement is NOT promoted: fabricating an empty tier-1 record here would
+        ## replay a withdrawal as a statement.
         return [str(macro) for macro in stated] or None
+    if section_stated:
+        ## Stated, and carrying no macros: a withdrawal. Do NOT consult the record.
+        return None
     recorded = recorded_explicit(meta_section(output, OPTIONS_META_PREFIX), OPTION_PREDEFINED)
     return list(recorded) or None
 
@@ -1290,7 +1303,7 @@ def _doxygen_stage(
 
 ## @brief Run every build stage against one (temp) output DB path.
 ## @param timer Stage timer; one `mark` closes each stage below. A fresh one when omitted.
-## @version 47
+## @version 49
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -1320,7 +1333,7 @@ def _build_stages(
     per file. It changes no stage's position and emits nothing — see harvest.py.
 
     @brief Execute every augmentation stage against one output database.
-    @version 42
+    @version 44
     """
     timer = timer or StageTimer()
     repo_root = Path(args.repo_root).resolve() if args.repo_root else doxyfile.parent
@@ -1471,6 +1484,10 @@ def _build_stages(
     timer.mark("macro_hop_edges")
     import_ast_call_edges(output, repo_root, cache)
     timer.mark("ast_call_edges")
+    ## AFTER the call-edge stages, because it joins recovered identifiers against `memberdef`
+    ## and a macro recovered by `ast_symbols` must already have its row (gh#9).
+    import_ast_macro_refs(output, repo_root, cache)
+    timer.mark("macro_refs")
     ## `preprocessor` is passed for gh#35: Layer 4 needs it to choose which `#if` branch a
     ## conditional function-pointer binding belongs to. It was resolved 60-odd lines above
     ## and reached only the Doxyfile and `build_meta`, so branch selection was making its
