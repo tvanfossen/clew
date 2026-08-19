@@ -1356,7 +1356,7 @@ def _named(checks: list[init_command.Check], name: str) -> init_command.Check:
 ## @param stub_env Fake bin directory.
 ## @return None.
 ## @version 1
-def test_doxygen_without_sqlite3_support_fails_the_doctor(stub_env: Path) -> None:
+def test_doxygen_without_sqlite3_support_fails_the_doctor(stub_env: Path, repo: Path) -> None:
     """gh#3, REPORTED FROM A STOCK UBUNTU 22.04 BOX. The distro's doxygen 1.9.1 is built without
     sqlite3 output; `apt install doxygen` therefore satisfies a `which()` check and every build
     still fails. doxygen IGNORES the unsupported tag rather than refusing it — it warns, buries
@@ -1382,7 +1382,7 @@ def test_doxygen_without_sqlite3_support_fails_the_doctor(stub_env: Path) -> Non
     incapable.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
     incapable.chmod(0o755)
 
-    check = init_command._check_doxygen()
+    check = init_command._check_doxygen(repo)
 
     assert check.status == CHECK_FAIL, (
         f"a doxygen that cannot write the database must not report {check.status!r} — the doctor "
@@ -1399,7 +1399,7 @@ def test_doxygen_without_sqlite3_support_fails_the_doctor(stub_env: Path) -> Non
 ## @param stub_env Fake bin directory.
 ## @return None.
 ## @version 1
-def test_doxygen_with_sqlite3_support_passes_the_doctor(stub_env: Path) -> None:
+def test_doxygen_with_sqlite3_support_passes_the_doctor(stub_env: Path, repo: Path) -> None:
     """THE POSITIVE HALF, and the half whose absence has shipped a broken check in this repo
     before: a suite with a test for the failure path and none for the success path let a
     completely broken install path stay green. Without this, narrowing the probe until it
@@ -1409,7 +1409,7 @@ def test_doxygen_with_sqlite3_support_passes_the_doctor(stub_env: Path) -> None:
     @return None.
     @version 1
     """
-    check = init_command._check_doxygen()
+    check = init_command._check_doxygen(repo)
 
     assert check.status == CHECK_OK, (
         f"the fixture's doxygen advertises GENERATE_SQLITE3 and must pass; got "
@@ -1423,7 +1423,7 @@ def test_doxygen_with_sqlite3_support_passes_the_doctor(stub_env: Path) -> None:
 ## @return None.
 ## @version 1
 def test_an_unrunnable_doxygen_probe_warns_rather_than_claiming_no_support(
-    stub_env: Path, monkeypatch: pytest.MonkeyPatch
+    stub_env: Path, repo: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """FAIL OPEN ON THE MEASUREMENT, FAIL CLOSED ON THE ANSWER. A timeout or an OSError is not
     evidence that sqlite3 support is missing, and reporting it as missing would send someone
@@ -1444,10 +1444,37 @@ def test_an_unrunnable_doxygen_probe_warns_rather_than_claiming_no_support(
 
     monkeypatch.setattr(dox.subprocess, "run", boom)
 
-    check = init_command._check_doxygen()
+    check = init_command._check_doxygen(repo)
 
     assert check.status == CHECK_WARN, (
         f"an unrunnable probe must WARN, not fail — absence of a measurement is not a "
         f"measurement of absence; got {check.status!r}"
     )
     assert sp is not None
+
+
+## @brief A pure-Rust repo's doctor must not fail on a broken/absent doxygen.
+## @param repo Empty temporary repo.
+## @return None.
+## @version 1
+def test_doxygen_check_is_informational_for_a_rustdoc_repo(repo: Path) -> None:
+    """RUSTDOC_INTEGRATION_FEEDBACK.md, finding 4: `clew init` against a pure-Rust repo
+    (no Doxyfile) reported `[fail] doxygen ... built WITHOUT sqlite3 support` and exited 1,
+    even though that repo's build path (`run_rustdoc`) never shells out to doxygen at all.
+    Confirmed live against `knots` before this fix — no doxygen binary needs to be present,
+    broken, or even on PATH for the false failure to fire, since a `Cargo.toml` with no
+    Doxyfile is enough to select `run_rustdoc` regardless of what `_check_doxygen` finds.
+
+    @brief A Cargo.toml with no Doxyfile downgrades the doxygen check to OK, not fail.
+    @return None.
+    @version 1
+    """
+    (repo / "Cargo.toml").write_text('[package]\nname = "x"\n', encoding="utf-8")
+
+    check = init_command._check_doxygen(repo)
+
+    assert check.status == CHECK_OK, (
+        f"a repo with no C/C++ build path must not fail on doxygen; got {check.status!r}: "
+        f"{check.detail}"
+    )
+    assert "rustdoc" in check.detail.lower()

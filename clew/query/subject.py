@@ -492,6 +492,10 @@ _KIND_ALIASES: dict[str, str] = {
     "struct": "class",
     "union": "class",
     "interface": "class",
+    # A `compounddef` row with `kind='enum'` — an enum that owns members (Rust's
+    # `impl EnumName { ... }`, a C++ scoped `enum class`), not `memberdef`'s
+    # `'enumeration'` (a bare value list, refused via `_KIND_NO_SUBJECT` below).
+    "enum": "class",
     CONFIG_SYMBOL_KIND: "config",
 }
 

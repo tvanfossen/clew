@@ -57,6 +57,12 @@ _C_EXTS = (".c", ".h")
 # real signatures; it contributes no call sites, which is correct rather than a
 # gap.
 _PY_EXTS = (".py", ".pyi")
+# Doxygen has no Rust parser at all, so `.rs` files get zero doxygen coverage
+# regardless of this router — clew/rustdoc.py fills that gap from rustdoc JSON
+# instead (see its module docstring). This grammar entry is what gives a Rust
+# repo the SAME tree-sitter richness layers (call edges, threads, locks) a
+# doxygen-sourced C/C++/Python repo already gets.
+_RUST_EXTS = (".rs",)
 # Extension group → grammar module, in PRECEDENCE order: the C++ suffixes are
 # tried first so `.hpp`/`.h++` never fall through to the C grammar. A table
 # rather than an if-chain because the house limit is three returns per function
@@ -65,6 +71,7 @@ _TS_GRAMMARS: tuple[tuple[tuple[str, ...], str], ...] = (
     (_CPP_EXTS, "tree_sitter_cpp"),
     (_C_EXTS, "tree_sitter_c"),
     (_PY_EXTS, "tree_sitter_python"),
+    (_RUST_EXTS, "tree_sitter_rust"),
 )
 
 
@@ -79,9 +86,9 @@ def _try_import_ts_module(modname: str):
         return None
 
 
-## @brief Select the C, C++ or Python tree-sitter language by extension.
+## @brief Select the C, C++, Python or Rust tree-sitter language by extension.
 ## @return The grammar module for the path's extension, or None if unhandled.
-## @version 3
+## @version 4
 ## @dg_internal
 def _ts_language_for(path: str):
     """Select the tree-sitter grammar for one path's extension.

@@ -1,8 +1,13 @@
 -- SPDX-License-Identifier: MIT
 --
 -- Doxygen's OWN schema, captured verbatim from a real build (doxygen 1.9.8,
--- sqlite3 output). These are the only tables clew does not create itself, so
--- they are the only ones the synthetic `rich_db` fixture has to hand-make.
+-- sqlite3 output). For a C/C++/Python repo, these are the only tables clew
+-- does not create itself — they are the only ones the synthetic `rich_db`
+-- test fixture (tests/richdb.py) has to hand-make. For a Rust repo, doxygen
+-- never runs at all: clew/rustdoc.py loads this SAME schema and populates
+-- `path`/`refid`/`memberdef` from rustdoc's JSON output instead, so every
+-- downstream stage sees an identically-shaped database regardless of which
+-- front end produced it.
 --
 -- Dumped rather than retyped, and dumped WHOLE (tables + indexes + the eight
 -- convenience views) for one reason: the fixture's table set is compared against
@@ -203,7 +208,7 @@ CREATE VIEW argument_xrefs (
 	src_rowid,
 	dst_rowid
 )
-as SELECT 
+as SELECT
 	xrefs.rowid,
 	xrefs.src_rowid,
 	xrefs.dst_rowid
@@ -215,26 +220,26 @@ CREATE VIEW def (
 	kind,
 	name,
 	summary)
-as SELECT 
+as SELECT
 	refid.rowid,
 	refid.refid,
 	memberdef.kind,
 	memberdef.name,
-	memberdef.briefdescription 
-FROM refid 
-JOIN memberdef ON refid.rowid=memberdef.rowid 
-UNION ALL 
-SELECT 
+	memberdef.briefdescription
+FROM refid
+JOIN memberdef ON refid.rowid=memberdef.rowid
+UNION ALL
+SELECT
 	refid.rowid,
 	refid.refid,
 	compounddef.kind,
 	compounddef.name,
-	CASE 
-		WHEN briefdescription IS NOT NULL 
-		THEN briefdescription 
-		ELSE title 
+	CASE
+		WHEN briefdescription IS NOT NULL
+		THEN briefdescription
+		ELSE title
 	END summary
-FROM refid 
+FROM refid
 JOIN compounddef ON refid.rowid=compounddef.rowid;
 CREATE VIEW external_file (
 	-- File paths outside the project (found or not).
@@ -242,7 +247,7 @@ CREATE VIEW external_file (
 	found,
 	name
 )
-as SELECT 
+as SELECT
 	path.rowid,
 	path.found,
 	path.name
@@ -253,7 +258,7 @@ CREATE VIEW initializer_xrefs (
 	src_rowid,
 	dst_rowid
 )
-as SELECT 
+as SELECT
 	xrefs.rowid,
 	xrefs.src_rowid,
 	xrefs.dst_rowid
@@ -264,14 +269,14 @@ CREATE VIEW inline_xrefs (
 	src_rowid,
 	dst_rowid
 )
-as SELECT 
+as SELECT
 	xrefs.rowid,
 	xrefs.src_rowid,
 	xrefs.dst_rowid
 FROM xrefs WHERE xrefs.context='inline';
 CREATE VIEW inner_outer
 	-- Joins 'contains' relations to simplify inner/outer 'rel' queries.
-as SELECT 
+as SELECT
 	inner.*,
 	outer.*
 FROM def as inner
@@ -283,7 +288,7 @@ CREATE VIEW local_file (
 	found,
 	name
 )
-as SELECT 
+as SELECT
 	path.rowid,
 	path.found,
 	path.name
@@ -319,7 +324,7 @@ CREATE VIEW rel (
 	initializer_links_in,
 	initializer_links_out
 )
-as SELECT 
+as SELECT
 	def.rowid,
 	EXISTS (SELECT rowid FROM reimplements WHERE reimplemented_rowid=def.rowid),
 	EXISTS (SELECT rowid FROM reimplements WHERE memberdef_rowid=def.rowid),

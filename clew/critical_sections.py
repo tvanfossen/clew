@@ -106,15 +106,30 @@ from .vocabulary import (
     check,
 )
 
-## The one node type that introduces a scope in C/C++. Both the RAII extent and
-## the shadowing chain are expressed entirely in terms of it.
-BLOCK_TYPES = ("compound_statement",)
+## The node type(s) that introduce a scope. Both the RAII extent and the
+## shadowing chain are expressed entirely in terms of these. `block` is
+## tree-sitter-rust's own name for the same construct C/C++ calls
+## `compound_statement` — verified against a real parse (Rust has no
+## `compound_statement` node at all), not assumed from the language spec.
+BLOCK_TYPES = ("compound_statement", "block")
 
 ## Statements that leave the enclosing block. A conditional release sealed behind
 ## one of these cannot reach the code that follows the branch, which is what
 ## makes the ubiquitous `if (bad) { unlock; return; }` guard safe to walk past
 ## instead of treating as an unknown lock state.
-_JUMPS = ("return_statement", "break_statement", "continue_statement", "goto_statement")
+##
+## Rust spells the same three as EXPRESSIONS, not statements (`break_expression`,
+## `continue_expression`, `return_expression` — confirmed against a real parse),
+## and has no `goto` at all.
+_JUMPS = (
+    "return_statement",
+    "break_statement",
+    "continue_statement",
+    "goto_statement",
+    "return_expression",
+    "break_expression",
+    "continue_expression",
+)
 
 ## Extent-confidence tiers, spelled against `ACQ_STRENGTH`'s documented meaning —
 ## "confidence that the acquisition's extent was resolved". L1 used to write this

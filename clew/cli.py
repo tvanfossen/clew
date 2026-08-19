@@ -127,7 +127,7 @@ from .doxygen import (
 )
 from .diagnostics import collect as collect_diagnostics
 from .enrichment import enrich_database
-from .errors import DoxygenUnavailableError
+from .errors import DoxygenUnavailableError, RustdocUnavailableError
 from .event_edges import import_event_edges
 from .filedocs import ingest_file_docs
 from .harvest_plan import build_harvest_plan, warm_harvest_plan
@@ -154,6 +154,7 @@ from .requirements import (
     load_guard_config,
     resolve_req_id_pattern,
 )
+from .rustdoc import run_rustdoc, uses_rustdoc
 from .scope import (
     INDEX_SCOPE_SECTION,
     SCOPE_FROM_GUARD,
@@ -345,8 +346,51 @@ _FOLDED_BUILD_DEFAULTS: dict[str, Any] = {
 }
 
 
+##
+# @brief Default `--output` to the path the MCP server derives for `--repo-root`.
+# @param args Parsed arguments, mutated in place.
+# @return None.
+# @version 1
+# @dg_internal
+def _resolve_output(args: argparse.Namespace) -> None:
+    """THE TWO SURFACES DISAGREED ON WHERE AN INDEX LIVES. The MCP tools name a REPOSITORY and
+    derive the database path from it; the CLI demanded a FILE and knew nothing about that
+    derivation. So a CLI build landed wherever the caller said and was invisible to `dossier`
+    and `search` unless they had independently computed the same path — and nothing in the CLI
+    offered to. This repository's own acceptance notes worked around it by pasting a `python -c`
+    one-liner into a comment, which is the shape of a missing feature rather than a recipe.
+
+    IT IS THE ONLY BUILD ROUTE THAT MATTERS FOR PIPELINE WORK. A build through the server is
+    refused whenever the server process predates the source, so anyone changing a stage must use
+    this CLI — the one surface that could not write where the server reads.
+
+    DERIVED THROUGH `target_for`, NEVER REIMPLEMENTED. The slug is a name plus a hash of the
+    resolved path; a second copy of that rule here would be a second place for it to drift, and
+    the failure would be silent — the index builds, the server looks elsewhere, and the repo
+    reports as unindexed. Imported inside the function because `mcp_server` is a VIEW over this
+    pipeline, so importing it at module scope would point the dependency backwards.
+
+    NO EXISTING INVOCATION CHANGES. `--output` was `required=True`, so the branch below was
+    unreachable until now; defaulting `--repo-root` to the working directory therefore cannot
+    alter what any current caller builds.
+
+    @brief Fill in `--output` from `--repo-root` when the caller named no file.
+    @return None.
+    @version 1
+    """
+    if args.output:
+        return
+
+    from .mcp_server.state import target_for
+
+    repo = Path(args.repo_root).expanduser().resolve() if args.repo_root else Path.cwd()
+    args.repo_root = str(repo)
+    args.output = target_for(repo).db_path
+    logger.info("output: none given — writing where the MCP server reads %s: %s", repo, args.output)
+
+
 ## @brief Construct the argparse.ArgumentParser for the build script.
-## @version 17
+## @version 18
 ## @req REQ-DDB-CLI-001
 ## @return Configured ArgumentParser with all build-script CLI arguments registered.
 def _build_argparser() -> argparse.ArgumentParser:
@@ -381,16 +425,35 @@ def _build_argparser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         description="Build doxygen SQLite knowledge database",
+        ## THE SUBCOMMANDS ARE NOT SUBPARSERS, so argparse cannot list them itself: `main`
+        ## dispatches them by inspecting `sys.argv[1:2]` before this parser is built, which is
+        ## what lets each one own its own flag set. The cost is that three working commands were
+        ## absent from `--help` and discoverable only by already knowing they existed.
+        epilog=(
+            f"commands:\n"
+            f"  {INIT_COMMAND:<10}register the MCP server and check it can run\n"
+            f"  {PROPOSE_COMMAND:<10}propose a .clew.yaml declaration for a repository\n"
+            f"  {EXPORT_COMMAND:<10}export an index\n"
+            f"\nRun `clew <command> --help` for a command's own options.\n"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.set_defaults(**_FOLDED_BUILD_DEFAULTS)
     parser.add_argument(
         "--output",
-        required=True,
-        help="Output database path",
+        help=(
+            "Output database path. OPTIONAL: when omitted the index is written to the same "
+            "location the MCP server derives for --repo-root, so a CLI build is visible to "
+            "`dossier`/`search` without the caller computing a path."
+        ),
     )
     parser.add_argument(
         "--repo-root",
-        help="Repository root for supplementary docs ingestion (README, CHANGELOG, docs/*.md)",
+        help=(
+            "Repository to index (default: the current directory). It is the discovery root "
+            "for the repo's own `.clew.yaml` and doxygen-guard config, the source of "
+            "supplementary docs (README, CHANGELOG, docs/*.md), and what --output defaults from."
+        ),
     )
     parser.add_argument(
         "--declare",
@@ -1232,6 +1295,24 @@ def _doxygen_out_dir(args: argparse.Namespace) -> Path:
     return base.parent / (base.stem + ".doxygen")
 
 
+## @brief Whether this build should use rustdoc instead of doxygen.
+## @param repo_root Repository root.
+## @return True when `repo_root` has a Cargo.toml and no discoverable Doxyfile.
+## @version 2
+## @dg_internal
+def _is_rust_only_repo(repo_root: Path) -> bool:
+    """Thin alias over `rustdoc.uses_rustdoc` — kept so callers in this module
+    read as a build-routing decision rather than reaching into `rustdoc.py`
+    directly. `init_command.py`'s doxygen doctor check shares the same
+    underlying helper, so the two never drift on what "rust-only" means.
+
+    @brief Decide whether this build should use rustdoc instead of doxygen.
+    @return True when `repo_root` has a Cargo.toml and no discoverable Doxyfile.
+    @version 2
+    """
+    return uses_rustdoc(repo_root)
+
+
 ## @brief Scan the indexed tree and reuse the cached doxygen output if it matches.
 ## @param cache Live index cache, or None when caching is disabled.
 ## @param preprocessor The resolved preprocessor configuration this index represents.
@@ -1303,7 +1384,7 @@ def _doxygen_stage(
 
 ## @brief Run every build stage against one (temp) output DB path.
 ## @param timer Stage timer; one `mark` closes each stage below. A fresh one when omitted.
-## @version 49
+## @version 50
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -1333,7 +1414,7 @@ def _build_stages(
     per file. It changes no stage's position and emits nothing — see harvest.py.
 
     @brief Execute every augmentation stage against one output database.
-    @version 44
+    @version 45
     """
     timer = timer or StageTimer()
     repo_root = Path(args.repo_root).resolve() if args.repo_root else doxyfile.parent
@@ -1350,14 +1431,24 @@ def _build_stages(
     _apply_declared_paths(args, decl, repo_root)
     preprocessor = resolve_preprocessor(repo_root, decl, getattr(args, "predefined", None))
     timer.mark("declaration")
-    generated_db = _doxygen_stage(doxyfile, repo_root, args, cache, preprocessor, timer)
-    timer.mark("doxygen")
-    copy_database(generated_db, output)
-    timer.mark("copy")
-    # Repair any non-UTF-8 bytes doxygen wrote into description columns
-    # BEFORE augmentation / shipping — see sanitize_doxygen_text.
-    sanitize_doxygen_text(output)
-    timer.mark("sanitize")
+    if _is_rust_only_repo(repo_root):
+        # Doxygen has no Rust parser — clew/rustdoc.py fills the same
+        # path/refid/memberdef tables from `cargo +nightly rustdoc` JSON
+        # instead, writing straight to `output` rather than a scratch db a
+        # doxygen-style copy_database step would then relocate.
+        run_rustdoc(repo_root, output)
+        timer.mark("doxygen")
+        timer.mark("copy")
+        timer.mark("sanitize")
+    else:
+        generated_db = _doxygen_stage(doxyfile, repo_root, args, cache, preprocessor, timer)
+        timer.mark("doxygen")
+        copy_database(generated_db, output)
+        timer.mark("copy")
+        # Repair any non-UTF-8 bytes doxygen wrote into description columns
+        # BEFORE augmentation / shipping — see sanitize_doxygen_text.
+        sanitize_doxygen_text(output)
+        timer.mark("sanitize")
 
     if args.enrich:
         enrich_path = Path(args.enrich).resolve()
@@ -2414,7 +2505,7 @@ def _stamp_refresh_metrics(
 
 
 ## @brief Entry point — dispatch a subcommand, else parse args and build.
-## @version 14
+## @version 16
 ## @req REQ-DDB-CLI-001
 def main() -> None:
     """Entry point — parse args, run doxygen, optionally enrich.
@@ -2445,7 +2536,7 @@ def main() -> None:
     have been worse.
 
     @brief Parse CLI arguments and run the build pipeline.
-    @version 14
+    @version 15
     """
     if sys.argv[1:2] == [PROPOSE_COMMAND]:
         from .propose.command import (
@@ -2467,15 +2558,19 @@ def main() -> None:
         sys.exit(init_main(sys.argv[2:]))
     args = _build_argparser().parse_args()
     _configure_logging(args.verbose)
+    _resolve_output(args)
     try:
         _run_pipeline(args)
     except (DeclarationError, BuildOptionError) as exc:
         logger.error("invalid declaration — %s", exc)
         sys.exit(2)
-    except DoxygenUnavailableError as exc:
+    except (DoxygenUnavailableError, RustdocUnavailableError) as exc:
         # Same treatment as a bad declaration, for the same reason: this is the
         # environment being wrong, not clew failing. It used to surface as a
         # twelve-frame FileNotFoundError naming 'doxygen', which reads as a crash
         # in this tool and is the first thing a new user on a clean machine sees.
+        # RustdocUnavailableError is the Rust-repo analog — same refusal shape,
+        # different missing prerequisite (a nightly toolchain instead of a
+        # system package).
         logger.error("cannot build — %s", exc)
         sys.exit(2)

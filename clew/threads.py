@@ -157,6 +157,17 @@ DEFAULT_SPAWN_PATTERNS: list[SpawnPattern] = [
     # direct-init call form; entry is arg 0, no name argument.
     SpawnPattern("std::thread", entry_arg_index=0, name_arg_index=None, kind="pthread"),
     SpawnPattern("std::jthread", entry_arg_index=0, name_arg_index=None, kind="pthread"),
+    # Rust: std::thread::spawn(entry_fn_or_closure) — a real OS thread, entry
+    # arg 0, no name argument (`Builder::name` is a separate, declarable
+    # convention if a repo uses it — not modeled here, same "language
+    # primitive only" scope as the C/C++ entries above). BOTH spellings are
+    # matched, keyed by the callee's FULL qualified text exactly as
+    # "std::thread" is above: `use std::thread;` then `thread::spawn(...)` is
+    # at least as common as writing the fully-qualified path, and this
+    # matcher does no import-alias resolution (same limitation the C/C++
+    # entries already accept — see _walk_spawn_sites).
+    SpawnPattern("std::thread::spawn", entry_arg_index=0, name_arg_index=None, kind="pthread"),
+    SpawnPattern("thread::spawn", entry_arg_index=0, name_arg_index=None, kind="pthread"),
     # WINDOWS. Absent entirely until now, which is not a small gap: a Win32 codebase's threads
     # were invisible while `_roster_meaning` told the reader to quote the count as the
     # repository's thread count. Measured on Mbed-TLS/mbedtls — 1 reported against 2 real, the
@@ -519,36 +530,42 @@ def _tail_identifier(node: Any, src_bytes: bytes) -> str | None:
 ## @brief The node holding the trailing simple name, for the shapes we accept.
 ## @param node Candidate identifier / field_expression / qualified_identifier.
 ## @return The node whose text is the bare name, or None when there is none.
-## @version 1
+## @version 2
 ## @dg_internal
 def _tail_identifier_node(node: Any) -> Any:
     """`this->run_loop` puts the name in the `field` child; `a::b::c` nests
     qualified_identifier until the final segment. Anything else has no simple
     trailing name and is refused rather than guessed at.
 
+    `scoped_identifier` is Rust's own qualified-path node (`Type::method`,
+    `module::func`) — its tail field is spelled the same ("name") as C++'s
+    `qualified_identifier`, so `_qualified_tail` (generalized to walk either
+    node type) handles both.
+
     @brief Locate the node carrying a trailing simple name.
     @return The naming node, or None.
-    @version 1
+    @version 2
     """
     handlers = {
         "identifier": lambda n: n,
         "field_identifier": lambda n: n,
         "field_expression": lambda n: n.child_by_field_name("field"),
         "qualified_identifier": _qualified_tail,
+        "scoped_identifier": _qualified_tail,
     }
     handler = handlers.get(node.type)
     return handler(node) if handler is not None else None
 
 
-## @brief Walk a nested qualified_identifier down to its final segment.
-## @param node A `qualified_identifier` node (`a::b::c`).
+## @brief Walk a nested qualified_identifier/scoped_identifier to its final segment.
+## @param node A `qualified_identifier` (`a::b::c`) or Rust `scoped_identifier` node.
 ## @return The trailing identifier node, or None when it is not a simple name.
-## @version 1
+## @version 2
 ## @dg_internal
 def _qualified_tail(node: Any) -> Any:
     """@brief Descend `a::b::c` to `c`, refusing anything not a simple name."""
     cur = node
-    while cur is not None and cur.type == "qualified_identifier":
+    while cur is not None and cur.type in ("qualified_identifier", "scoped_identifier"):
         nxt = cur.child_by_field_name("name")
         if nxt is None:
             break
@@ -604,24 +621,30 @@ def _lambda_body_calls(lambda_node: Any) -> list[Any]:
 
 
 ## @brief Resolve an entry argument to (qualified, bare-tail) function names.
-## @return (qualified_text, tail_name) for identifier / qualified_identifier / &-member-pointer / single-call lambda, else None.
-## @version 4
+## @return (qualified_text, tail_name) for identifier / qualified_identifier / &-member-pointer / single-call lambda or closure, else None.
+## @version 5
 ## @dg_internal
 def _entry_names(call_node: Any, index: int, src_bytes: bytes) -> tuple[str, str] | None:
     """Read the entry-function argument, unwrapping a `pointer_expression`
     (`&Class::method`) and reading a `qualified_identifier` down to its tail, OR
-    a `lambda_expression` whose body is a single call (`[this]{ poll_loop(); }`,
-    the ubiquitous modern-C++ thread idiom) down to that callee. Returns the
-    qualified text (`Class::method`, used to name the thread and resolve the
-    exact overload) and the bare tail (`method`, the name-index fallback); for a
-    lambda both are the called function's name. Anything else — a bare name it
-    is not, a multi-call lambda body — is not AST-resolvable, fail-closed None.
+    a `lambda_expression`/Rust `closure_expression` whose body is a single call
+    (`[this]{ poll_loop(); }`, `|| { poll_loop(); }` — the ubiquitous
+    modern-C++/Rust thread idiom) down to that callee. Returns the qualified
+    text (`Class::method`, used to name the thread and resolve the exact
+    overload) and the bare tail (`method`, the name-index fallback); for a
+    lambda/closure both are the called function's name. Anything else — a bare
+    name it is not, a multi-call body — is not AST-resolvable, fail-closed None.
+
+    Rust's `closure_expression` shares `lambda_expression`'s field name
+    ("body") for its body, so `_lambda_single_call_entry`/`_lambda_body_calls`
+    need no separate Rust path — only this dispatch needed to recognize the
+    node type.
 
     @brief Extract (qualified, tail) entry-function names from a spawn arg.
-    @version 3
+    @version 4
     """
     arg = _nth_call_argument(call_node, index)
-    if arg is not None and arg.type == "lambda_expression":
+    if arg is not None and arg.type in ("lambda_expression", "closure_expression"):
         name = _lambda_single_call_entry(arg, src_bytes)
         return (name, name) if name else None
     return _named_entry(arg, src_bytes)
@@ -691,7 +714,7 @@ def _resolve_spawn_site(
 ## @param node The AST node to walk up from.
 ## @param src The file's raw bytes.
 ## @return The enclosing function's declarator name, or "" when there is none.
-## @version 1
+## @version 2
 ## @dg_internal
 def _enclosing_function_name(node: Any, src: bytes) -> str:
     """REUSES `harvest.enclosing` and `locks.py`'s declarator-text reading rather than adding a
@@ -707,11 +730,16 @@ def _enclosing_function_name(node: Any, src: bytes) -> str:
     EMPTY AT FILE SCOPE rather than a placeholder, so a spawn in a static initialiser reads as
     "no enclosing function" instead of naming one that does not exist.
 
+    `function_item` is Rust's own function node (tree-sitter-rust never uses
+    `function_definition`), with its name under the same "name" field
+    `function_definition` uses in Python — so it needs only adding to the
+    search set, not a second name-reader.
+
     @brief Name the function containing a node.
     @return The name, or "".
-    @version 1
+    @version 2
     """
-    fn = enclosing(node, ("function_definition",))
+    fn = enclosing(node, ("function_definition", "function_item"))
     if fn is None:
         return ""
     ## BOTH GRAMMARS THROUGH ONE HELPER. `function_definition` is the node type in
@@ -728,7 +756,7 @@ def _enclosing_function_name(node: Any, src: bytes) -> str:
 
 ## @brief Walk one parsed file, harvesting spawn call sites.
 ## @return List of [thread_name, entry_name, kind, qualified_entry, separator, spawn_line, spawn_function] septets.
-## @version 6
+## @version 7
 ## @dg_internal
 def _walk_spawn_sites(
     tree: Any,
@@ -762,9 +790,15 @@ def _walk_spawn_sites(
             continue
         callee = node.child_by_field_name("function")
         # A plain-identifier callee (`pthread_create`) OR a qualified one
-        # (`std::thread`) — the latter is matched by its full text so a pattern
-        # keys on "std::thread", never a bare "thread" that would false-match.
-        if callee is None or callee.type not in ("identifier", "qualified_identifier"):
+        # (`std::thread`, or Rust's `scoped_identifier` for `std::thread::spawn`
+        # / `thread::spawn`) — the latter is matched by its full text so a
+        # pattern keys on "std::thread", never a bare "thread" that would
+        # false-match.
+        if callee is None or callee.type not in (
+            "identifier",
+            "qualified_identifier",
+            "scoped_identifier",
+        ):
             continue
         callee_name = src_bytes[callee.start_byte : callee.end_byte].decode(
             "utf-8",

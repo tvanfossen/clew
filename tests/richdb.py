@@ -48,8 +48,12 @@ DATA = Path(__file__).resolve().parent / "data"
 ## that EXISTS here, so `source()` returns verbatim text and the AST stages have
 ## something to parse.
 CSAMPLE = DATA / "csample"
-## Doxygen's own schema, captured from a real build. Never hand-edited.
-DOXYGEN_SCHEMA = DATA / "doxygen_schema.sql"
+## Doxygen's own schema, captured from a real build. Never hand-edited. Lives under
+## the package (clew/data/) rather than tests/data/ so clew/rustdoc.py — which has
+## to synthesize the same tables from rustdoc JSON for a language doxygen cannot
+## parse — can load the identical schema without a second copy to drift from this
+## one.
+DOXYGEN_SCHEMA = Path(__file__).resolve().parent.parent / "clew" / "data" / "doxygen_schema.sql"
 
 ## doxygen's `path.type` discriminator.
 _TYPE_FILE = 1
