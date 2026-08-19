@@ -430,25 +430,54 @@ def _is_static(node: Any, src_bytes: bytes) -> bool:
     )
 
 
-## @brief The declarator's name node, unwrapping pointer/parenthesized declarators.
+## Declarator node types that can wrap or be an inner declarator. Used when the `declarator`
+## FIELD is absent, which is the case for `reference_declarator`.
+_DECLARATOR_NODES = frozenset(
+    {
+        "function_declarator",
+        "pointer_declarator",
+        "reference_declarator",
+        "parenthesized_declarator",
+    }
+)
+
+
+## @brief The declarator's name node, unwrapping pointer/reference/parenthesized declarators.
 ## @param node A `function_definition` node.
 ## @return The `function_declarator` node, or None when the shape is not one.
-## @version 1
+## @version 2
 ## @dg_internal
 def _function_declarator(node: Any) -> Any | None:
-    """A pointer-returning definition nests the declarator
+    """A pointer- OR reference-returning definition nests the declarator
     (`Slot* Owner::acquire()` puts the sigil INSIDE the declarator, which is the
     same shape that split entropic's lock scopes), so unwrap until a
     `function_declarator` is reached or the chain runs out.
 
     @brief Find the `function_declarator` under a definition node.
     @return The declarator node, or None.
-    @version 1
+    @version 2
     """
+    ## DESCEND BY CHILD WHEN THE FIELD IS ABSENT. A `reference_declarator` does NOT expose its
+    ## inner declarator under the `declarator` field, so the field-only walk below returned None
+    ## for every reference-returning definition — `const std::array<Row, N>& bold_table()`,
+    ## `T& operator[]()`, `begin()`/`end()`, every `const T&` accessor. Those were silently absent
+    ## from the recovery layer whose whole job is recovering what doxygen did not emit.
+    ##
+    ## Found while fixing gh#9: the macro-reference recovery reused this helper, recovered five of
+    ## six measured cases, and missed the ONE that was reported. The docstring above says
+    ## "pointer/parenthesized"; reference was never in the set.
     current = node.child_by_field_name("declarator")
-    while current is not None and current.type != "function_declarator":
-        current = current.child_by_field_name("declarator")
-    return current
+    seen = 0
+    while current is not None and current.type != "function_declarator" and seen < 16:
+        seen += 1
+        nxt = current.child_by_field_name("declarator")
+        if nxt is None:
+            nxt = next(
+                (c for c in current.children if c.type in _DECLARATOR_NODES),
+                None,
+            )
+        current = nxt
+    return current if current is not None and current.type == "function_declarator" else None
 
 
 ## @brief Bare and qualified names for one function declarator.

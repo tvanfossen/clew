@@ -28,6 +28,7 @@ from pathlib import Path
 ## the oldest supported interpreter — and `tomlcompat` exists precisely to stop that, its
 ## docstring recording an earlier instance where one call site had the fallback and another did
 ## not. A test is a call site.
+import clew_hook
 from clew.tomlcompat import require_toml_module
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -292,3 +293,152 @@ def test_the_manifest_exempts_the_server_from_tool_search_deferral() -> None:
             f"server {name!r} does not set alwaysLoad, so its tools arrive deferred — one "
             f"ToolSearch round trip behind grep, which is what gh#7 measured the cost of"
         )
+
+
+## @brief The shipped hook must be the packaged console script, never a shell command line.
+## @return None.
+## @version 1
+def test_the_plugin_hook_is_a_packaged_console_script() -> None:
+    """A HOOK IS AN INVISIBLE EXECUTABLE ON A CONSUMER'S MACHINE, so what the plugin asks to run
+    matters as much as what that program does. A shell command line in the manifest would put an
+    unreviewed string on the far side of a shell, where quoting and expansion are somebody else's
+    problem; a console script is the same installed package the server already is, reviewable in
+    this repository.
+
+    Asserted against `[project.scripts]` rather than a literal, so renaming the entry point fails
+    here instead of failing silently for whoever installs the plugin next — the same discipline
+    the mcpServers check above uses.
+
+    @brief The hook command is a declared console script.
+    @return None.
+    @version 1
+    """
+    hooks_path = REPO_ROOT / "hooks" / "hooks.json"
+    assert hooks_path.is_file(), "the plugin ships no hooks/hooks.json"
+    hooks = json.loads(hooks_path.read_text(encoding="utf-8"))
+
+    scripts = set(_pyproject()["project"]["scripts"])
+    ## The only arguments the manifest may pass. They are how the hook learns WHICH tool ran
+    ## without reading its untrusted stdin, so they are part of the security design and are
+    ## enumerated here rather than waved through — an unknown flag reaching the hook would mean
+    ## the manifest and the program disagree about what is being said.
+    allowed_args = {clew_hook.USED_FLAG}
+    commands = [
+        entry["command"]
+        for group in hooks["hooks"].values()
+        for matcher in group
+        for entry in matcher["hooks"]
+    ]
+    assert commands, "a hooks.json registering nothing is worse than absent"
+    for command in commands:
+        for metachar in ("|", ";", "&", "$", "`", ">", "<", "\n"):
+            assert metachar not in command, (
+                f"{command!r} contains {metachar!r} — no shell metacharacter may reach a "
+                f"consumer's machine from this manifest"
+            )
+        program, *args = command.split()
+        assert program in scripts, (
+            f"the hook runs {program!r}, which this package does not install; declared console "
+            f"scripts are {sorted(scripts)}"
+        )
+        unknown = set(args) - allowed_args
+        assert not unknown, (
+            f"{command!r} passes {sorted(unknown)}, which the hook does not define. The manifest's "
+            f"arguments are how the hook learns which tool ran; an unrecognised one means the two "
+            f"have drifted."
+        )
+
+
+## @brief The hook must be registered on PostToolUse only, never on a blocking event.
+## @return None.
+## @version 1
+def test_the_hook_is_registered_only_on_a_non_blocking_event() -> None:
+    """`PreToolUse` can DENY a tool call. This hook exists to add one line of context, and a
+    context-adding component registered on a gate is one bug away from blocking a consumer's
+    `Grep` — a failure mode entirely out of proportion to what it is for.
+
+    `PostToolUse` cannot block: the tool has already run.
+
+    @brief Only non-blocking events carry this hook.
+    @return None.
+    @version 1
+    """
+    hooks = json.loads((REPO_ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))
+    blocking = {"PreToolUse", "UserPromptSubmit", "Stop", "SubagentStop", "PreCompact"}
+    registered = set(hooks["hooks"])
+    assert registered <= {"PostToolUse"}, (
+        f"the hook is registered on {sorted(registered - {'PostToolUse'})}; only PostToolUse is "
+        f"non-blocking, and {sorted(blocking & registered)} can interfere with the consumer's work"
+    )
+
+
+## @brief Both halves of the counter must be registered, and their matchers must not overlap.
+## @return None.
+## @version 1
+def test_both_halves_of_the_pressure_counter_are_registered() -> None:
+    """MEASURED LIVE, ON A SHIPPED ARTIFACT. A `hooks.json` carrying only the search matcher
+    passes every other test in this file — the command is a declared console script, it sits on
+    a non-blocking event, it holds no metacharacter — and it silently breaks the hook, because
+    the counter then only ever RISES. A session that used the index on every single call would
+    escalate to speaking on every call, which is the precise opposite of the policy. That
+    artifact reached a pushed release branch and was found by running the product, not the suite.
+
+    THE MATCHERS ARE TESTED AS REGEXES AGAINST REAL TOOL NAMES, not compared to literals. Both
+    install shapes must credit: a directly-registered server serves `mcp__clew__dossier` while a
+    plugin-scoped one serves `mcp__plugin_clew_clew__dossier`. A matcher of `mcp__clew__.*` looks
+    obviously right, matches the first, and misses the second — so every plugin user, which is
+    everyone this manifest is for, would earn no credit at all.
+
+    NON-OVERLAP IS THE OTHER HALF. A matcher that caught both a search and a clew call would
+    make one Bash call record a miss AND a credit, and the counter would measure nothing.
+
+    @brief The search and credit matchers are both present and disjoint.
+    @return None.
+    @version 1
+    """
+    import re
+
+    hooks = json.loads((REPO_ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))
+    registrations = [
+        (matcher["matcher"], entry["command"])
+        for group in hooks["hooks"].values()
+        for matcher in group
+        for entry in matcher["hooks"]
+    ]
+
+    credit = [pattern for pattern, command in registrations if clew_hook.USED_FLAG in command]
+    search = [pattern for pattern, command in registrations if clew_hook.USED_FLAG not in command]
+    assert credit, (
+        f"no registration passes {clew_hook.USED_FLAG!r}, so using the index never subtracts from "
+        f"the pressure counter and the hook escalates no matter how the session behaves"
+    )
+    assert search, "no registration counts searches, so the hook has nothing to escalate on"
+
+    ## Both spellings a real client serves. Neither is hypothetical: this repository is consumed
+    ## as a plugin, and `clew init` registers the same server directly.
+    clew_tools = ("mcp__clew__dossier", "mcp__plugin_clew_clew__dossier")
+    searches = ("Bash", "Grep", "Glob")
+
+    for pattern in credit:
+        for tool in clew_tools:
+            assert re.match(pattern, tool), (
+                f"credit matcher {pattern!r} does not match {tool!r} — that install shape would "
+                f"earn no credit, so the index could be used constantly and still escalate"
+            )
+        for tool in searches:
+            assert not re.match(pattern, tool), (
+                f"credit matcher {pattern!r} also matches {tool!r}, so a search would credit "
+                f"itself and the counter would measure nothing"
+            )
+
+    for pattern in search:
+        for tool in searches:
+            assert re.match(pattern, tool), (
+                f"search matcher {pattern!r} does not match {tool!r}, so that tool adds no "
+                f"pressure and the hook stays silent through exactly the sessions it is for"
+            )
+        for tool in clew_tools:
+            assert not re.match(pattern, tool), (
+                f"search matcher {pattern!r} also matches {tool!r}, so an index call would "
+                f"count as a miss against itself"
+            )
