@@ -310,8 +310,8 @@ def test_the_marker_path_cannot_be_shaped_by_the_session_id(
 
     name = os.path.basename(hostile)
     assert ".." not in name and "/" not in name, f"the session id shaped the filename: {name!r}"
-    assert re.fullmatch(r"clew-hook-seen-[0-9a-f]{8}", name), (
-        f"the marker name must be a literal prefix plus a hex digest; got {name!r}"
+    assert re.fullmatch(r"clew-hook-seen-[A-Za-z0-9-]+", name), (
+        f"the marker name must be the literal prefix plus allowlisted characters only; got {name!r}"
     )
     assert os.path.dirname(hostile) == tmp, "the marker must stay in the temp directory"
     assert hook._marker_path() == hostile, "the same session must map to the same marker"
@@ -320,6 +320,13 @@ def test_the_marker_path_cannot_be_shaped_by_the_session_id(
     ## marker and only the first would ever see the note.
     monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "a-different-session")
     assert hook._marker_path() != hostile, "distinct sessions must not collide"
+
+    ## AN EMPTY OR FULLY-FILTERED ID must still produce a usable name rather than the bare prefix,
+    ## which would make every such session share one marker.
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "///...///")
+    assert os.path.basename(hook._marker_path()) != "clew-hook-seen-", (
+        "an id with nothing allowlistable must fall back, not collapse to the bare prefix"
+    )
 
 
 ## @brief The debounce must survive a changing parent process, which production has.

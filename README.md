@@ -141,8 +141,8 @@ plugin does not prompt you about hooks, so it is stated here instead:
   enormous training prior and an index tool has none — the tool being correct does not make it
   reached for.
 - **Once per session.** Keyed on the session id; after the first note it stays silent.
-- **~46 ms per matching call**, of which ~28 ms is Python starting. It imports nothing from the
-  `clew` package for that reason.
+- **~46 ms per matching call**, almost all of it Python starting. It imports nothing from the
+  `clew` package and nothing outside `os`/`sys`, for that reason.
 - **It reads nothing.** Its output is a compile-time constant in
   [`clew_hook.py`](https://github.com/tvanfossen/clew/blob/main/clew_hook.py) — the hook drains
   its stdin without parsing it, so no file name, matched line or tool result can reach your

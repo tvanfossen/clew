@@ -60,7 +60,6 @@ from __future__ import annotations
 
 import os
 import sys
-import zlib
 
 ## Set to anything non-empty to disable the hook entirely. Read for its PRESENCE only; the value
 ## is never used, so it cannot carry content.
@@ -70,12 +69,15 @@ DISABLE_ENV = "CLEW_HOOK_DISABLE"
 ## literals plus 16 hex characters and nothing else can shape it.
 _MARKER_PREFIX = "clew-hook-seen-"
 
-## Temp-directory environment variables, in the order the platform conventions put them, with a
-## literal fallback. `tempfile.gettempdir()` would do this better — it PROBES for a writable
-## directory — and costs 18ms of import on a component that runs after every matching tool call.
-## The worst case here is a marker written somewhere unwritable, which the failure path already
-## handles by going silent.
+## Where the marker goes. `tempfile` costs 18ms of import on a component that runs after every
+## matching tool call, and all it is needed for here is this lookup.
 _TMP_ENV = ("TMPDIR", "TMP", "TEMP")
+
+## The only characters allowed into the marker's filename. An ALLOWLIST, not a filter of bad
+## characters: everything outside this set is dropped, so no separator, dot or control character
+## can reach the path whatever the session id contains. Session ids are UUID-shaped, so filtering
+## one leaves it intact and unique.
+_SAFE = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-")
 
 ## The session key, read from the ENVIRONMENT — Claude Code's own, the same trust level as TMPDIR,
 ## and NOT from stdin, which is where repository-controlled text arrives. Verified present in a
@@ -94,37 +96,32 @@ _PAYLOAD = '{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalC
 
 ##
 # @brief The once-per-session marker path for this hook invocation.
-# @return Path string under the temp directory, named from literals and a hex digest.
-# @version 3
+# @return Path string under the temp directory.
+# @version 4
 # @dg_internal
 def _marker_path() -> str:
-    """KEYED ON THE SESSION, DIGESTED, AND BUILT WITHOUT `pathlib` OR `tempfile`.
+    """The marker gives "once per session" its memory: the hook is a fresh process every time, so
+    the fact that it has already spoken has to live somewhere.
 
-    `CLAUDE_CODE_SESSION_ID` is the key and was confirmed present in a real hook process before
-    being relied on. It comes from the environment — Claude Code's own, the same trust level as
-    TMPDIR — and not from stdin, where repository-controlled text arrives. An earlier version
+    KEYED ON THE SESSION. `CLAUDE_CODE_SESSION_ID` comes from the environment — Claude Code's own,
+    the same trust level as TMPDIR — and NOT from stdin, where repository-controlled text arrives.
+    It was confirmed present in a real hook process before being relied on. An earlier version
     keyed on `os.getppid()` and fired on EVERY tool call in production, because each invocation
     gets a fresh parent.
 
-    DIGESTED RATHER THAN FILTERED. A session id is an arbitrary string reaching a filesystem path;
-    a filter is a blocklist and blocklists are wrong by default. `crc32` is a NAMING device, not a
-    security primitive — what it provides is a fixed-length, hex-only output that cannot escape
-    the directory whatever it is given. A collision would mean one session silencing another,
-    which is a nuisance and not a vulnerability.
+    FILTERED THROUGH AN ALLOWLIST. The session id is arbitrary text going into a filename, so
+    everything outside `_SAFE` is dropped — no separator, dot or control character can reach the
+    path. That is an allowlist rather than a search for bad characters, because a list of bad
+    characters is always incomplete.
 
-    THE IMPORTS ARE THE POINT. Measured, per invocation: `pathlib` +16ms, `tempfile` +18ms,
-    `hashlib` +4ms, against a 28ms interpreter floor — on a component that runs after every Bash,
-    Grep and Glob. `zlib` is free by comparison and `os.path` needs nothing. The whole module now
-    costs about what starting Python costs, which is the floor for a subprocess hook.
-
-    @brief Build the marker path from literals and a hex digest.
+    @brief Build the marker path from literals and a filtered session key.
     @return The marker path.
-    @version 3
+    @version 4
     """
     session = os.environ.get(_SESSION_ENV) or str(int(os.getppid()))
-    digest = format(zlib.crc32(session.encode("utf-8", "replace")) & 0xFFFFFFFF, "08x")
+    safe = "".join(c for c in session if c in _SAFE)[:64] or "nosession"
     tmp = next((os.environ[k] for k in _TMP_ENV if os.environ.get(k)), "/tmp")
-    return os.path.join(tmp, _MARKER_PREFIX + digest)
+    return os.path.join(tmp, _MARKER_PREFIX + safe)
 
 
 ##
