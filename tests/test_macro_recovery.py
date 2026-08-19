@@ -371,3 +371,108 @@ def test_the_include_guard_is_not_reported_as_a_configuration_gate(
         assert "MBEDTLS_PRIVATE_ACCESS_H" not in {g.macro for g in site.gated_by}, (
             f"site at line {line} reports the include guard as a configuration gate"
         )
+
+
+## @brief A macro used as a non-type template argument must appear in `referenced_by`.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+@pytest.mark.integration
+def test_a_template_argument_macro_use_is_recovered_into_referenced_by(tmp_path: Path) -> None:
+    """gh#9. `referenced_by` answers "I am about to change this constant — what else is baked
+    against it", and it was answering INCOMPLETELY: doxygen's xref pass does not record a macro
+    used as a NON-TYPE TEMPLATE ARGUMENT.
+
+    MEASURED, six uses of one macro each inside a documented body, before the fix:
+
+        int n = MACRO;                      xref emitted
+        int buf[MACRO];                     xref emitted
+        static const int k = MACRO;         xref emitted
+        std::array<Row, MACRO> kRows{};     NO XREF
+        std::array<int, MACRO> a{};         NO XREF
+        Box<int, MACRO> b{};                NO XREF   (user template)
+
+    So the discriminator is template-argument POSITION — not "inside a body", which was the
+    reporter's first reading, and not `std::array` specifically, since a user-defined template
+    misses too.
+
+    A PARTIAL LIST IS WORSE THAN AN EMPTY ONE. The existing disclosure covers empty — on mbedtls
+    871 of 2,504 macros have any inbound reference — and says nothing about present-and-short,
+    which reads as complete. The reporter found two of three sites and would have learned about
+    the third from a compiler error.
+
+    ALL SIX ARE ASSERTED, and that is what makes this test worth having: the first fix recovered
+    five and missed `bold_table`, the exact reported shape, because its `reference_declarator`
+    defeated the shared declarator walk. Any single-case assertion would have passed.
+
+    @brief Every measured macro use reaches `referenced_by`.
+    @return None.
+    @version 1
+    """
+    import subprocess
+
+    from clew.query import macro_definitions
+
+    root = tmp_path / "repo"
+    (root / "src").mkdir(parents=True)
+    (root / "src" / "m.h").write_text(
+        "#pragma once\n/** @brief Face count. */\n#define FACE_COUNT 20\n", encoding="utf-8"
+    )
+    (root / "src" / "m.cpp").write_text(
+        '#include "m.h"\n#include <array>\n'
+        "template <typename T, int N> struct Box { T v[N]; };\n"
+        "struct Row { int a; };\n"
+        "/** @brief return-type AND body use. */\n"
+        "const std::array<Row, FACE_COUNT>& bold_table() {\n"
+        "    static const std::array<Row, FACE_COUNT> kRows{};\n    return kRows;\n}\n"
+        "/** @brief plain statement. */\nint plain_use() { int n = FACE_COUNT; return n; }\n"
+        "/** @brief C array size. */\nint array_size_use() { int b[FACE_COUNT]; return b[0]; }\n"
+        "/** @brief static scalar. */\n"
+        "int static_scalar() { static const int k = FACE_COUNT; return k; }\n"
+        "/** @brief std::array, no static. */\n"
+        "int std_array_plain() { std::array<int, FACE_COUNT> a{}; return a[0]; }\n"
+        "/** @brief user template. */\n"
+        "int user_template_use() { Box<int, FACE_COUNT> b{}; return b.v[0]; }\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "init", "-q", str(root)], check=True)
+    subprocess.run(["git", "-C", str(root), "add", "-A"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(root),
+            "-c",
+            "user.email=t@t",
+            "-c",
+            "user.name=t",
+            "commit",
+            "-qm",
+            "init",
+        ],
+        check=True,
+    )
+
+    db = tmp_path / "out.db"
+    subprocess.run(
+        ["python", "-m", "clew", "--repo-root", str(root), "--output", str(db)],
+        check=True,
+        capture_output=True,
+    )
+
+    macro = macro_definitions(db, "FACE_COUNT")
+    assert macro, "precondition: the macro must be indexed at all"
+    referenced = set(macro[0].referenced_by)
+
+    expected = {
+        "plain_use",
+        "array_size_use",
+        "static_scalar",
+        "bold_table",
+        "std_array_plain",
+        "user_template_use",
+    }
+    assert expected <= referenced, (
+        f"macro uses missing from referenced_by: {sorted(expected - referenced)}. "
+        f"`bold_table` is gh#9's reported shape; the others are the measured control set."
+    )

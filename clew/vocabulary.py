@@ -593,6 +593,10 @@ STAGE_AST_SYMBOLS = "ast_symbols"
 ## a gate-harvest change re-parse every call site in the repo.
 STAGE_KCONFIG_GATES = "kconfig_gates"
 
+## Macro references recovered from the AST. doxygen's xref pass does not record a macro used as
+## a non-type template argument (gh#9), so a `referenced_by` list built from it alone is partial.
+STAGE_MACRO_REFS = "macro_refs"
+
 STAGE = Vocabulary(
     id="stage",
     values=(
@@ -606,6 +610,7 @@ STAGE = Vocabulary(
         STAGE_DISPATCH,
         STAGE_AST_SYMBOLS,
         STAGE_KCONFIG_GATES,
+        STAGE_MACRO_REFS,
     ),
     means="extract_cache partition key — a typo is a permanent silent cache miss, not an error",
     rank={
@@ -619,6 +624,7 @@ STAGE = Vocabulary(
         STAGE_DISPATCH: 0,
         STAGE_AST_SYMBOLS: 0,
         STAGE_KCONFIG_GATES: 0,
+        STAGE_MACRO_REFS: 0,
     },
 )
 
