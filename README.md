@@ -140,9 +140,15 @@ plugin does not prompt you about hooks, so it is stated here instead:
   index is available and what `dossier` and `search` answer. It exists because `grep` has an
   enormous training prior and an index tool has none — the tool being correct does not make it
   reached for.
-- **Once per session.** Keyed on the session id; after the first note it stays silent.
+- **It escalates only when ignored, and using the index silences it.** Each search adds one to a
+  per-session count and each clew call subtracts three. Below five it says nothing; from five it
+  speaks every fifth search; from twenty it speaks every time. A session that uses the index even
+  occasionally never reaches the floor and hears nothing at all.
 - **~46 ms per matching call**, almost all of it Python starting. It imports nothing from the
   `clew` package and nothing outside `os`/`sys`, for that reason.
+- **It is registered twice** — once for `Bash`/`Grep`/`Glob` and once for the clew tools, which is
+  how it learns which ran without reading anything. The second registration passes `--used` from
+  the manifest; it is the only argument it accepts.
 - **It reads nothing.** Its output is a compile-time constant in
   [`clew_hook.py`](https://github.com/tvanfossen/clew/blob/main/clew_hook.py) — the hook drains
   its stdin without parsing it, so no file name, matched line or tool result can reach your

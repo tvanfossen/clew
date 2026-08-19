@@ -9,6 +9,15 @@
             "command": "clew-hook"
           }
         ]
+      },
+      {
+        "matcher": "mcp__.*clew.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "clew-hook --used"
+          }
+        ]
       }
     ]
   }

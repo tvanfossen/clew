@@ -28,6 +28,7 @@ from pathlib import Path
 ## the oldest supported interpreter — and `tomlcompat` exists precisely to stop that, its
 ## docstring recording an earlier instance where one call site had the fallback and another did
 ## not. A test is a call site.
+import clew_hook
 from clew.tomlcompat import require_toml_module
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -317,6 +318,11 @@ def test_the_plugin_hook_is_a_packaged_console_script() -> None:
     hooks = json.loads(hooks_path.read_text(encoding="utf-8"))
 
     scripts = set(_pyproject()["project"]["scripts"])
+    ## The only arguments the manifest may pass. They are how the hook learns WHICH tool ran
+    ## without reading its untrusted stdin, so they are part of the security design and are
+    ## enumerated here rather than waved through — an unknown flag reaching the hook would mean
+    ## the manifest and the program disagree about what is being said.
+    allowed_args = {clew_hook.USED_FLAG}
     commands = [
         entry["command"]
         for group in hooks["hooks"].values()
@@ -325,13 +331,21 @@ def test_the_plugin_hook_is_a_packaged_console_script() -> None:
     ]
     assert commands, "a hooks.json registering nothing is worse than absent"
     for command in commands:
-        assert command in scripts, (
-            f"the hook runs {command!r}, which this package does not install; declared console "
+        for metachar in ("|", ";", "&", "$", "`", ">", "<", "\n"):
+            assert metachar not in command, (
+                f"{command!r} contains {metachar!r} — no shell metacharacter may reach a "
+                f"consumer's machine from this manifest"
+            )
+        program, *args = command.split()
+        assert program in scripts, (
+            f"the hook runs {program!r}, which this package does not install; declared console "
             f"scripts are {sorted(scripts)}"
         )
-        assert " " not in command and "|" not in command and ";" not in command, (
-            f"{command!r} is a command LINE, not a console script — no shell metacharacters may "
-            f"reach a consumer's machine from this manifest"
+        unknown = set(args) - allowed_args
+        assert not unknown, (
+            f"{command!r} passes {sorted(unknown)}, which the hook does not define. The manifest's "
+            f"arguments are how the hook learns which tool ran; an unrecognised one means the two "
+            f"have drifted."
         )
 
 
