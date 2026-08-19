@@ -200,13 +200,15 @@ def test_ts_language_for_routes_python() -> None:
     """Python now routes to a grammar. This REPLACES the previous assertion that
     `.py` returned None: that was a statement of the C/C++-only limitation task
     #58 exists to remove, not a behaviour to preserve. C/C++ routing is asserted
-    alongside it so the addition is visibly additive."""
+    alongside it so the addition is visibly additive. `.rs` now routes too
+    (Rust support) — see tests/test_rust_ast.py for its own routing/dialect
+    tests, pinned separately the way Python's are."""
     assert _ts_language_for("dir/file.py") is not None
     assert _ts_language_for("dir/stub.pyi") is not None
     assert _ts_language_for("dir/file.c") is not None
     assert _ts_language_for("dir/file.cpp") is not None
+    assert _ts_language_for("dir/file.rs") is not None
     assert _ts_language_for("foo.txt") is None
-    assert _ts_language_for("foo.rs") is None
 
 
 def test_is_python_tree_discriminates_by_root_type() -> None:

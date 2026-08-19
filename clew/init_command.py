@@ -278,17 +278,35 @@ def _check_mcp_sdk() -> Check:
 
 
 ## @brief Whether the external doxygen binary is available.
+## @param repo_root Repo being registered.
 ## @return The doxygen check.
-## @version 2
+## @version 3
 ## @dg_internal
-def _check_doxygen() -> Check:
+def _check_doxygen(repo_root: Path) -> Check:
     """doxygen is a SUBPROCESS dependency, invisible to pip, so nothing else in
     the install path notices it is missing — the first `build_or_refresh` does.
 
+    A repo whose build routes through rustdoc instead (see `rustdoc.uses_rustdoc`)
+    never shells out to doxygen at all — a broken or absent doxygen there is not
+    a blocker, and reporting it as [fail] (confirmed live: exit 1, on a pure-Rust
+    repo with no Doxyfile) reads as "clew is broken" when nothing on that repo's
+    actual build path is. Downgraded to informational for that case rather than
+    dropped outright, so a repo that LATER grows a C/C++ component still has the
+    evidence on record.
+
     @brief Verify doxygen is on PATH and was built with sqlite3 output.
     @return The doxygen check.
-    @version 2
+    @version 3
     """
+    from .rustdoc import uses_rustdoc
+
+    if uses_rustdoc(repo_root):
+        return Check(
+            CHECK_DOXYGEN,
+            CHECK_OK,
+            "not required — this repo's structural index is built with rustdoc, not doxygen "
+            "(no Cargo.toml-adjacent Doxyfile found)",
+        )
     found = shutil.which("doxygen")
     if not found:
         return Check(
@@ -414,7 +432,7 @@ def _check_declaration(repo_root: Path) -> Check:
 ## @param repo_root Repo being registered.
 ## @param scope Registration scope being used.
 ## @return The checks, in reporting order.
-## @version 3
+## @version 4
 ## @req REQ-DDB-CLI-001
 ## @req REQ-DDB-CLI-002
 def diagnose(repo_root: Path, scope: str) -> list[Check]:
@@ -423,13 +441,13 @@ def diagnose(repo_root: Path, scope: str) -> list[Check]:
 
     @brief Produce the full diagnostic report.
     @return List of checks in reporting order.
-    @version 3
+    @version 4
     """
     return [
         _check_client_config(scope),
         _check_server_command(repo_root, scope),
         _check_mcp_sdk(),
-        _check_doxygen(),
+        _check_doxygen(repo_root),
         _check_indexable(repo_root),
         _check_declaration(repo_root),
     ]

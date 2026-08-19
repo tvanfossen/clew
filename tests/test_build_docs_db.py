@@ -409,13 +409,13 @@ def test_ts_language_for_recognizes_extensions() -> None:
     thread spawns, reachability seeds) was silently empty on a Python codebase —
     including clew itself, which is a pinned MCP target of itself.
 
-    `.py` now resolves; `.txt` and `.rs` still must not, because a grammar this
-    pipeline does not ship must fail closed rather than fall back to some other
-    language's parser and FABRICATE structure (#50 is the C-grammar-on-a-C++-header
-    version of exactly that mistake)."""
+    `.py` and (Rust support) `.rs` now resolve; `.txt` still must not, because a
+    grammar this pipeline does not ship must fail closed rather than fall back to
+    some other language's parser and FABRICATE structure (#50 is the
+    C-grammar-on-a-C++-header version of exactly that mistake)."""
     assert _ts_language_for("foo.txt") is None
-    assert _ts_language_for("foo.rs") is None
     assert _ts_language_for("dir/file.py") is not None
+    assert _ts_language_for("dir/file.rs") is not None
 
 
 # ─── call_edges._ast_caller_at_line ─────────────────────────────────────────

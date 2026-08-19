@@ -41,6 +41,10 @@ dependencies = [
     # Declared, not left transitive: the importer swallows ImportError, so losing
     # this takes the whole Python AST layer to zero rows with no error.
     "tree-sitter-python>=0.23,<0.23.5",
+    # <0.23.3, not <0.23.5 like the sibling pins above: 0.23.3 ships a newer
+    # ABI (language version 15) than this project's pinned tree-sitter 0.23.2
+    # python binding accepts (13-14) — verified empirically, not assumed.
+    "tree-sitter-rust>=0.23,<0.23.3",
     "doxygen-guard>=1.4.2,<2",
     # Pinned <15: reads Kconfig.unique_defined_syms, unique_choices,
     # Symbol.orig_type, MenuNode.prompt/help/filename/linenr, expr_str.

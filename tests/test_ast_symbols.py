@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
 """gh#11 — the function definitions doxygen never emitted, and their provenance.
 
-Built on doxygen's OWN verbatim schema (`tests/data/doxygen_schema.sql`, the same
-file `richdb` loads) rather than a hand-simplified `memberdef`, because the whole
+Built on doxygen's OWN verbatim schema (`clew/data/doxygen_schema.sql`, the same
+file `richdb` and `clew/rustdoc.py` load) rather than a hand-simplified `memberdef`, because the whole
 change hinges on altering a table this package does not create: a fixture with a
 convenient two-column `memberdef` could not catch a `NOT NULL` column we forgot
 to fill, or a `column` identifier that needs quoting. Both were real.
@@ -48,7 +48,7 @@ pytestmark = pytest.mark.skipif(
     reason="gh#11 recovery needs tree_sitter + its C/C++ grammars",
 )
 
-DOXYGEN_SCHEMA = Path(__file__).resolve().parent / "data" / "doxygen_schema.sql"
+DOXYGEN_SCHEMA = Path(__file__).resolve().parent.parent / "clew" / "data" / "doxygen_schema.sql"
 
 ## The canonical gh#11 shape, modelled on mbedtls `library/threading.c`: the whole
 ## body of the file sits inside a feature macro the build never defined, so doxygen

@@ -44,7 +44,16 @@ from .models import (
 # so the shape — not any one literal — is what gets filtered.
 SYNTHETIC_PATH = re.compile(r"^\[.*\]$")
 PATH_TYPE_FILE = 1
-CLASS_KINDS = ("class", "struct", "union", "interface")
+# `compounddef.kind = 'enum'` is a doxygen-schema value in its own right (see
+# clew/data/doxygen_schema.sql's comment on the column) distinct from
+# `memberdef.kind = 'enumeration'` — a plain value-list enum with no dossier-worthy
+# structure, correctly refused by `_KIND_NO_SUBJECT` in query/subject.py. A `compounddef`
+# row means the enum owns members: Rust's `impl EnumName { ... }` inherent/trait methods,
+# or a C++ scoped `enum class`'s own scope. That is exactly the shape `struct`/`union`
+# already get a dossier for, so excluding `enum` here was an oversight, not a deliberate
+# parity gap — confirmed on `knots::ExplainMetric`, a `compounddef` row `lookup_class`
+# could not find until this was added.
+CLASS_KINDS = ("class", "struct", "union", "interface", "enum")
 
 
 ## @brief Whether a repo-relative path matches a `*`-glob pattern.
