@@ -26,6 +26,7 @@ from clew.errors import RustdocUnavailableError
 from clew.rustdoc import (
     _brief,
     _discover_targets,
+    _find_rustdoc_json,
     _render_argsstring,
     _render_type,
     _symbols_from_json,
@@ -264,3 +265,77 @@ def test_run_rustdoc_against_real_crate(tmp_path: Path) -> None:
         assert conn.execute("SELECT COUNT(*) FROM compounddef").fetchone()[0] == 0
     finally:
         conn.close()
+
+
+## @brief The native target-dir layout is found.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_find_rustdoc_json_native_layout(tmp_path: Path) -> None:
+    """@brief A host-target build writes to <target-dir>/doc/. @return None. @version 1"""
+    doc = tmp_path / "doc"
+    doc.mkdir(parents=True)
+    (doc / "my_crate.json").write_text("{}", encoding="utf-8")
+    assert _find_rustdoc_json(tmp_path, "my_crate") == doc / "my_crate.json"
+
+
+## @brief A cross-compiled crate's JSON is found under the target triple.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_find_rustdoc_json_cross_compiled_layout(tmp_path: Path) -> None:
+    """THE CASE THAT MADE THE FRONT END UNUSABLE FOR EMBEDDED RUST. cargo writes to
+    `<target-dir>/<triple>/doc/` whenever it is building for a triple other than the
+    host, and a crate that sets `[build] target` in `.cargo/config.toml` is doing that
+    on every plain `cargo` invocation. Looking only in `<target-dir>/doc/` reported the
+    output missing AFTER cargo had exited 0 and written it.
+
+    The triple here is a real one but nothing depends on which: the layout rule is
+    cargo's, not any project's.
+
+    @brief A cross-compiled build writes under <target-dir>/<triple>/doc/.
+    @return None.
+    @version 1
+    """
+    doc = tmp_path / "thumbv7em-none-eabihf" / "doc"
+    doc.mkdir(parents=True)
+    (doc / "my_crate.json").write_text("{}", encoding="utf-8")
+    assert _find_rustdoc_json(tmp_path, "my_crate") == doc / "my_crate.json"
+
+
+## @brief Absent output refuses and names both layouts it looked in.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_find_rustdoc_json_refuses_when_absent(tmp_path: Path) -> None:
+    """NAMING BOTH CANDIDATES IS THE POINT. The previous message named one path and sent
+    a reader looking for a bug in cargo rather than in where we searched.
+
+    @brief An absent JSON raises and names both layouts.
+    @return None.
+    @version 1
+    """
+    with pytest.raises(RustdocUnavailableError) as caught:
+        _find_rustdoc_json(tmp_path, "my_crate")
+    assert "target-triple" in str(caught.value)
+
+
+## @brief Two candidates refuse rather than picking one.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_find_rustdoc_json_refuses_ambiguity(tmp_path: Path) -> None:
+    """FAIL CLOSED. Two triples under one target-dir means an assumption here is wrong;
+    taking the first would bury that under an index that looks fine.
+
+    @brief Ambiguous candidates raise instead of resolving arbitrarily.
+    @return None.
+    @version 1
+    """
+    for triple in ("thumbv7em-none-eabihf", "riscv32imac-unknown-none-elf"):
+        doc = tmp_path / triple / "doc"
+        doc.mkdir(parents=True)
+        (doc / "my_crate.json").write_text("{}", encoding="utf-8")
+    with pytest.raises(RustdocUnavailableError) as caught:
+        _find_rustdoc_json(tmp_path, "my_crate")
+    assert "2 candidates" in str(caught.value)

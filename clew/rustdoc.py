@@ -240,15 +240,18 @@ def _discover_targets(repo_root: Path) -> list[_CargoTarget]:
 ## @param scratch_dir A `--target-dir` outside the repo, so a build never writes
 ##        into the tree it is indexing (mirrors `_doxygen_out_dir`'s rule for doxygen).
 ## @return Path to the generated `<target>.json`.
-## @version 1
+## @version 2
 ## @dg_internal
 def _run_rustdoc_json(repo_root: Path, target: _CargoTarget, scratch_dir: Path) -> Path:
     """Invoke `cargo +nightly rustdoc --output-format json` for one target.
 
+    Locating the result is `_find_rustdoc_json`'s job, because cargo's output path
+    depends on whether the crate cross-compiles and this function should not care.
+
     @brief Invoke `cargo +nightly rustdoc --output-format json` for one target.
     @raises RustdocUnavailableError when the invocation fails or the expected
         file is absent.
-    @version 1
+    @version 2
     """
     kind_flag = "--lib" if target.kind == "lib" else f"--bin={target.name}"
     cmd = [
@@ -280,11 +283,58 @@ def _run_rustdoc_json(repo_root: Path, target: _CargoTarget, scratch_dir: Path) 
             f"'cargo +nightly rustdoc' failed for package {target.package!r} "
             f"({target.kind} {target.name!r}):\n{proc.stderr.strip()}"
         )
-    json_name = target.name.replace("-", "_")
-    json_path = scratch_dir / "doc" / f"{json_name}.json"
-    if not json_path.exists():
-        raise RustdocUnavailableError(f"expected rustdoc JSON output not found: {json_path}")
-    return json_path
+    return _find_rustdoc_json(scratch_dir, target.name.replace("-", "_"))
+
+
+##
+# @brief Locate the JSON rustdoc wrote, whichever target-dir layout cargo used.
+# @param scratch_dir The `--target-dir` cargo was given.
+# @param json_name The crate's name with hyphens replaced by underscores.
+# @return Path to the generated JSON.
+# @version 1
+# @dg_internal
+def _find_rustdoc_json(scratch_dir: Path, json_name: str) -> Path:
+    """CARGO MOVES THE OUTPUT WHEN CROSS-COMPILING. A crate built for the host lands in
+    `<target-dir>/doc/`, but one built for another triple lands in
+    `<target-dir>/<triple>/doc/` — and a Rust project that sets `[build] target` in
+    `.cargo/config.toml` is cross-compiling by default, which is EVERY embedded project.
+    Hardcoding the native layout made this front end unusable for exactly the repositories
+    a structural index helps most.
+
+    IT FAILS AFTER A SUCCESSFUL CARGO RUN, which is why it reads as a missing file rather
+    than a wrong path: cargo exits 0, the documentation exists, and the only thing wrong is
+    where we looked. That is the worst shape for a diagnostic, because the message names a
+    path nobody was ever going to write to.
+
+    THE TRIPLE IS DELIBERATELY NOT RECOMPUTED. Deriving it means honouring `--target`,
+    `CARGO_BUILD_TARGET`, and `.cargo/config.toml` with its directory inheritance — a
+    reimplementation of cargo's own precedence rules that would drift from them, and the
+    exact shape of hardcoding this project forbids elsewhere. The filesystem already knows
+    where cargo wrote; one bounded glob asks it.
+
+    FAIL CLOSED ON AMBIGUITY rather than taking the first hit. More than one candidate means
+    an assumption here is wrong, and picking one would bury that under a plausible index.
+
+    @brief Find rustdoc's JSON under either the native or the cross-compiled layout.
+    @raises RustdocUnavailableError when no candidate exists, or more than one does.
+    @return Path to the generated JSON.
+    @version 1
+    """
+    native = scratch_dir / "doc" / f"{json_name}.json"
+    ## One level deep ONLY: `<target-dir>/<triple>/doc/` is where cargo puts a
+    ## cross-compiled crate's docs, and a wider glob would start matching dependencies'
+    ## output under `debug/`.
+    candidates = (
+        [native] if native.exists() else sorted(scratch_dir.glob(f"*/doc/{json_name}.json"))
+    )
+    if len(candidates) != 1:
+        detail = (
+            f"{len(candidates)} candidates: {[str(path) for path in candidates]}"
+            if candidates
+            else f"looked for {native} and {scratch_dir}/<target-triple>/doc/{json_name}.json"
+        )
+        raise RustdocUnavailableError(f"expected rustdoc JSON output not found — {detail}")
+    return candidates[0]
 
 
 ## @brief Render a rustdoc type descriptor as a best-effort argument type string.
