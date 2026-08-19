@@ -195,8 +195,8 @@ class PythonFileDoc(FileDocExtractor):
             return ""
 
 
-## @brief Leading doxygen-comment extractor for C-family sources.
-## @version 1
+## @brief Leading doxygen-comment extractor for C-family sources, plus Rust.
+## @version 2
 class CFamilyFileDoc(FileDocExtractor):
     """Accepts ONLY a doxygen-marked comment (`/**`, `/*!`, `///`, `//!`). The
     exclusion of a bare `/*` block is the whole license-header defence: a
@@ -204,8 +204,16 @@ class CFamilyFileDoc(FileDocExtractor):
     is which by content would need a heuristic about what a license looks like.
     The marker the author already wrote answers it exactly.
 
-    @brief C/C++ file-level doxygen-comment extractor.
-    @version 1
+    RUST'S `//!` IS THE SAME SYNTAX, not a lookalike: `//!`/`///` and
+    `/*!`/`/**` are Rust's own module- and item-doc-comment markers, spelled
+    identically to doxygen's, so `_CXX_LINE_DOC`/`_CXX_BLOCK_DOC` need no
+    Rust-specific branch — only `.rs` needed adding to this list. (Confirmed
+    against `knots`, whose `coupling.rs`/`config.rs`/`duplicate_diff.rs`/
+    `duplicates.rs` already carry real `//!` module docs that `file_docs`
+    was silently not ingesting before this.)
+
+    @brief C/C++/Rust file-level leading-doc-comment extractor.
+    @version 2
     """
 
     EXTENSIONS: ClassVar[tuple[str, ...]] = (
@@ -217,6 +225,7 @@ class CFamilyFileDoc(FileDocExtractor):
         ".hh",
         ".hpp",
         ".hxx",
+        ".rs",
     )
 
     ## @brief The leading doxygen comment, block form or line-run form.

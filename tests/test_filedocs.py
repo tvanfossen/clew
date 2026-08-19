@@ -105,6 +105,25 @@ def test_c_family_line_comment_run_is_extracted() -> None:
     assert "lock-free ring buffer" in doc
 
 
+## @brief A leading `//!` run is the file documentation for a Rust source too.
+## @return None.
+## @version 1
+def test_rust_module_doc_comment_is_extracted() -> None:
+    """Rust's `//!` is not a lookalike of doxygen's line-comment marker — it is the
+    same syntax, reused by rustc for module docs. `CFamilyFileDoc` needs no
+    Rust-specific branch, only `.rs` in its claimed suffixes; this pins that it
+    stays claimed."""
+    doc = extract_file_doc(
+        "src/coupling.rs",
+        "//! File-level import coupling: Efferent (Ce) and Afferent (Ca).\n"
+        "//!\n"
+        "//! Resolution is a best-effort heuristic, not real module resolution.\n"
+        "use std::path::Path;\n",
+    )
+    assert "Efferent" in doc
+    assert "best-effort heuristic" in doc
+
+
 ## @brief A license-only header never becomes searchable documentation.
 ## @return None.
 ## @version 1
