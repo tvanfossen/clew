@@ -20,7 +20,6 @@ import os
 import re
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -304,16 +303,17 @@ def test_the_marker_path_cannot_be_shaped_by_the_session_id(
     @return None.
     @version 2
     """
+    monkeypatch.setenv("TMPDIR", "/tmp")
     monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "../../../../etc/passwd")
+    tmp = "/tmp"
     hostile = hook._marker_path()
 
-    assert hostile.parent == Path(tempfile.gettempdir()), "the marker must stay in the temp dir"
-    assert ".." not in hostile.name and "/" not in hostile.name, (
-        f"the session id shaped the filename: {hostile.name!r}"
+    name = os.path.basename(hostile)
+    assert ".." not in name and "/" not in name, f"the session id shaped the filename: {name!r}"
+    assert re.fullmatch(r"clew-hook-seen-[0-9a-f]{8}", name), (
+        f"the marker name must be a literal prefix plus a hex digest; got {name!r}"
     )
-    assert re.fullmatch(r"clew-hook-seen-[0-9a-f]{16}", hostile.name), (
-        f"the marker name must be a literal prefix plus a hex digest; got {hostile.name!r}"
-    )
+    assert os.path.dirname(hostile) == tmp, "the marker must stay in the temp directory"
     assert hook._marker_path() == hostile, "the same session must map to the same marker"
 
     ## A DIFFERENT session must map elsewhere, or every session on the machine would share one

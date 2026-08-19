@@ -58,11 +58,9 @@ analysis. Shipping the mitigation must not destroy the measurement that would ju
 
 from __future__ import annotations
 
-import hashlib
 import os
 import sys
-import tempfile
-from pathlib import Path
+import zlib
 
 ## Set to anything non-empty to disable the hook entirely. Read for its PRESENCE only; the value
 ## is never used, so it cannot carry content.
@@ -71,6 +69,13 @@ DISABLE_ENV = "CLEW_HOOK_DISABLE"
 ## Marker filename prefix. The suffix is a HEX DIGEST, so the complete path is this module's own
 ## literals plus 16 hex characters and nothing else can shape it.
 _MARKER_PREFIX = "clew-hook-seen-"
+
+## Temp-directory environment variables, in the order the platform conventions put them, with a
+## literal fallback. `tempfile.gettempdir()` would do this better — it PROBES for a writable
+## directory — and costs 18ms of import on a component that runs after every matching tool call.
+## The worst case here is a marker written somewhere unwritable, which the failure path already
+## handles by going silent.
+_TMP_ENV = ("TMPDIR", "TMP", "TEMP")
 
 ## The session key, read from the ENVIRONMENT — Claude Code's own, the same trust level as TMPDIR,
 ## and NOT from stdin, which is where repository-controlled text arrives. Verified present in a
@@ -89,38 +94,37 @@ _PAYLOAD = '{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalC
 
 ##
 # @brief The once-per-session marker path for this hook invocation.
-# @return Path under the system temp directory, named from literals and a hex digest.
-# @version 2
+# @return Path string under the temp directory, named from literals and a hex digest.
+# @version 3
 # @dg_internal
-def _marker_path() -> Path:
-    """KEYED ON THE SESSION, HASHED. The first version used `os.getppid()` and it was WRONG in
-    production: each hook invocation gets a fresh parent, so every call wrote a different marker
-    and the note fired on EVERY tool call. It passed its test because pytest is one long-lived
-    parent — the fixture was stable in a way the real caller is not, which is this project's
-    standing failure written again. It was caught by watching the note repeat in a live session,
-    not by the suite.
+def _marker_path() -> str:
+    """KEYED ON THE SESSION, DIGESTED, AND BUILT WITHOUT `pathlib` OR `tempfile`.
 
-    `CLAUDE_CODE_SESSION_ID` is the correct key and was CONFIRMED present in a real hook process
-    before being relied on. It comes from the environment — Claude Code's own, the same trust
-    level as TMPDIR — and not from stdin, where repository-controlled text arrives.
+    `CLAUDE_CODE_SESSION_ID` is the key and was confirmed present in a real hook process before
+    being relied on. It comes from the environment — Claude Code's own, the same trust level as
+    TMPDIR — and not from stdin, where repository-controlled text arrives. An earlier version
+    keyed on `os.getppid()` and fired on EVERY tool call in production, because each invocation
+    gets a fresh parent.
 
-    HASHED RATHER THAN SANITISED. A session id is an arbitrary string, and an arbitrary string
-    reaching a filesystem path is a traversal waiting to happen; a filter is a blocklist and
-    blocklists are wrong by default. A digest is fixed-length, hex-only, and cannot escape the
-    directory whatever it is given. `usedforsecurity=False` says plainly this is a naming device,
-    not a security primitive.
+    DIGESTED RATHER THAN FILTERED. A session id is an arbitrary string reaching a filesystem path;
+    a filter is a blocklist and blocklists are wrong by default. `crc32` is a NAMING device, not a
+    security primitive — what it provides is a fixed-length, hex-only output that cannot escape
+    the directory whatever it is given. A collision would mean one session silencing another,
+    which is a nuisance and not a vulnerability.
 
-    FALLS BACK TO THE PARENT PID when the variable is absent, so the hook still debounces under a
-    harness that does not set it — at worst per-parent instead of per-session, which is the
-    behaviour it had before and is strictly better than firing every time.
+    THE IMPORTS ARE THE POINT. Measured, per invocation: `pathlib` +16ms, `tempfile` +18ms,
+    `hashlib` +4ms, against a 28ms interpreter floor — on a component that runs after every Bash,
+    Grep and Glob. `zlib` is free by comparison and `os.path` needs nothing. The whole module now
+    costs about what starting Python costs, which is the floor for a subprocess hook.
 
     @brief Build the marker path from literals and a hex digest.
     @return The marker path.
-    @version 2
+    @version 3
     """
     session = os.environ.get(_SESSION_ENV) or str(int(os.getppid()))
-    digest = hashlib.sha256(session.encode("utf-8", "replace"), usedforsecurity=False).hexdigest()
-    return Path(tempfile.gettempdir()) / f"{_MARKER_PREFIX}{digest[:16]}"
+    digest = format(zlib.crc32(session.encode("utf-8", "replace")) & 0xFFFFFFFF, "08x")
+    tmp = next((os.environ[k] for k in _TMP_ENV if os.environ.get(k)), "/tmp")
+    return os.path.join(tmp, _MARKER_PREFIX + digest)
 
 
 ##
