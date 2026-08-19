@@ -370,3 +370,75 @@ def test_the_hook_is_registered_only_on_a_non_blocking_event() -> None:
         f"the hook is registered on {sorted(registered - {'PostToolUse'})}; only PostToolUse is "
         f"non-blocking, and {sorted(blocking & registered)} can interfere with the consumer's work"
     )
+
+
+## @brief Both halves of the counter must be registered, and their matchers must not overlap.
+## @return None.
+## @version 1
+def test_both_halves_of_the_pressure_counter_are_registered() -> None:
+    """MEASURED LIVE, ON A SHIPPED ARTIFACT. A `hooks.json` carrying only the search matcher
+    passes every other test in this file — the command is a declared console script, it sits on
+    a non-blocking event, it holds no metacharacter — and it silently breaks the hook, because
+    the counter then only ever RISES. A session that used the index on every single call would
+    escalate to speaking on every call, which is the precise opposite of the policy. That
+    artifact reached a pushed release branch and was found by running the product, not the suite.
+
+    THE MATCHERS ARE TESTED AS REGEXES AGAINST REAL TOOL NAMES, not compared to literals. Both
+    install shapes must credit: a directly-registered server serves `mcp__clew__dossier` while a
+    plugin-scoped one serves `mcp__plugin_clew_clew__dossier`. A matcher of `mcp__clew__.*` looks
+    obviously right, matches the first, and misses the second — so every plugin user, which is
+    everyone this manifest is for, would earn no credit at all.
+
+    NON-OVERLAP IS THE OTHER HALF. A matcher that caught both a search and a clew call would
+    make one Bash call record a miss AND a credit, and the counter would measure nothing.
+
+    @brief The search and credit matchers are both present and disjoint.
+    @return None.
+    @version 1
+    """
+    import re
+
+    hooks = json.loads((REPO_ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))
+    registrations = [
+        (matcher["matcher"], entry["command"])
+        for group in hooks["hooks"].values()
+        for matcher in group
+        for entry in matcher["hooks"]
+    ]
+
+    credit = [pattern for pattern, command in registrations if clew_hook.USED_FLAG in command]
+    search = [pattern for pattern, command in registrations if clew_hook.USED_FLAG not in command]
+    assert credit, (
+        f"no registration passes {clew_hook.USED_FLAG!r}, so using the index never subtracts from "
+        f"the pressure counter and the hook escalates no matter how the session behaves"
+    )
+    assert search, "no registration counts searches, so the hook has nothing to escalate on"
+
+    ## Both spellings a real client serves. Neither is hypothetical: this repository is consumed
+    ## as a plugin, and `clew init` registers the same server directly.
+    clew_tools = ("mcp__clew__dossier", "mcp__plugin_clew_clew__dossier")
+    searches = ("Bash", "Grep", "Glob")
+
+    for pattern in credit:
+        for tool in clew_tools:
+            assert re.match(pattern, tool), (
+                f"credit matcher {pattern!r} does not match {tool!r} — that install shape would "
+                f"earn no credit, so the index could be used constantly and still escalate"
+            )
+        for tool in searches:
+            assert not re.match(pattern, tool), (
+                f"credit matcher {pattern!r} also matches {tool!r}, so a search would credit "
+                f"itself and the counter would measure nothing"
+            )
+
+    for pattern in search:
+        for tool in searches:
+            assert re.match(pattern, tool), (
+                f"search matcher {pattern!r} does not match {tool!r}, so that tool adds no "
+                f"pressure and the hook stays silent through exactly the sessions it is for"
+            )
+        for tool in clew_tools:
+            assert not re.match(pattern, tool), (
+                f"search matcher {pattern!r} also matches {tool!r}, so an index call would "
+                f"count as a miss against itself"
+            )
