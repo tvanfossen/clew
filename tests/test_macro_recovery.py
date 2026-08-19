@@ -410,6 +410,7 @@ def test_a_template_argument_macro_use_is_recovered_into_referenced_by(tmp_path:
     @version 1
     """
     import subprocess
+    import sys
 
     from clew.query import macro_definitions
 
@@ -454,10 +455,17 @@ def test_a_template_argument_macro_use_is_recovered_into_referenced_by(tmp_path:
     )
 
     db = tmp_path / "out.db"
-    subprocess.run(
-        ["python", "-m", "clew", "--repo-root", str(root), "--output", str(db)],
-        check=True,
+    ## `sys.executable`, NEVER a bare "python". CI runs pytest from the venv while bare
+    ## `python` resolves to the hosted-tool interpreter, which has no `clew` installed — so this
+    ## passed locally (the venv is on this shell's PATH) and failed on all three CI versions.
+    ## The house rule against bare interpreter invocations exists for exactly this.
+    result = subprocess.run(
+        [sys.executable, "-m", "clew", "--repo-root", str(root), "--output", str(db)],
         capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, (
+        f"the build failed, so the recovery cannot be under test:\n{result.stderr[-2000:]}"
     )
 
     macro = macro_definitions(db, "FACE_COUNT")
