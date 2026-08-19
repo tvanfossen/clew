@@ -292,3 +292,67 @@ def test_the_manifest_exempts_the_server_from_tool_search_deferral() -> None:
             f"server {name!r} does not set alwaysLoad, so its tools arrive deferred — one "
             f"ToolSearch round trip behind grep, which is what gh#7 measured the cost of"
         )
+
+
+## @brief The shipped hook must be the packaged console script, never a shell command line.
+## @return None.
+## @version 1
+def test_the_plugin_hook_is_a_packaged_console_script() -> None:
+    """A HOOK IS AN INVISIBLE EXECUTABLE ON A CONSUMER'S MACHINE, so what the plugin asks to run
+    matters as much as what that program does. A shell command line in the manifest would put an
+    unreviewed string on the far side of a shell, where quoting and expansion are somebody else's
+    problem; a console script is the same installed package the server already is, reviewable in
+    this repository.
+
+    Asserted against `[project.scripts]` rather than a literal, so renaming the entry point fails
+    here instead of failing silently for whoever installs the plugin next — the same discipline
+    the mcpServers check above uses.
+
+    @brief The hook command is a declared console script.
+    @return None.
+    @version 1
+    """
+    hooks_path = REPO_ROOT / "hooks" / "hooks.json"
+    assert hooks_path.is_file(), "the plugin ships no hooks/hooks.json"
+    hooks = json.loads(hooks_path.read_text(encoding="utf-8"))
+
+    scripts = set(_pyproject()["project"]["scripts"])
+    commands = [
+        entry["command"]
+        for group in hooks["hooks"].values()
+        for matcher in group
+        for entry in matcher["hooks"]
+    ]
+    assert commands, "a hooks.json registering nothing is worse than absent"
+    for command in commands:
+        assert command in scripts, (
+            f"the hook runs {command!r}, which this package does not install; declared console "
+            f"scripts are {sorted(scripts)}"
+        )
+        assert " " not in command and "|" not in command and ";" not in command, (
+            f"{command!r} is a command LINE, not a console script — no shell metacharacters may "
+            f"reach a consumer's machine from this manifest"
+        )
+
+
+## @brief The hook must be registered on PostToolUse only, never on a blocking event.
+## @return None.
+## @version 1
+def test_the_hook_is_registered_only_on_a_non_blocking_event() -> None:
+    """`PreToolUse` can DENY a tool call. This hook exists to add one line of context, and a
+    context-adding component registered on a gate is one bug away from blocking a consumer's
+    `Grep` — a failure mode entirely out of proportion to what it is for.
+
+    `PostToolUse` cannot block: the tool has already run.
+
+    @brief Only non-blocking events carry this hook.
+    @return None.
+    @version 1
+    """
+    hooks = json.loads((REPO_ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))
+    blocking = {"PreToolUse", "UserPromptSubmit", "Stop", "SubagentStop", "PreCompact"}
+    registered = set(hooks["hooks"])
+    assert registered <= {"PostToolUse"}, (
+        f"the hook is registered on {sorted(registered - {'PostToolUse'})}; only PostToolUse is "
+        f"non-blocking, and {sorted(blocking & registered)} can interfere with the consumer's work"
+    )

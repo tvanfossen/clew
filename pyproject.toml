@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "clew-trace"
-version = "1.0.3"
+version = "1.0.4"
 description = "Queryable, layered symbol database for C, C++ and Python codebases: doxygen + tree-sitter call graph, threads, locks and dataflow edges, served to AI agents over MCP."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -57,6 +57,9 @@ dependencies = [
 [project.scripts]
 clew = "clew.cli:main"
 clew-mcp = "clew.mcp_server.server:main"
+## The PostToolUse hook. A console script rather than a shell file so the plugin never ships a
+## shell command line, and so the entry point is the same installed package the server is.
+clew-hook = "clew.hook:main"
 
 [project.optional-dependencies]
 dev = [
