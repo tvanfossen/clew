@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 #
-# THE GRADING KEY, AS DATA. Generated from questions.md by scripts/rubric_to_yaml.py and
-# then corrected by hand; the markdown is kept for its prose and is no longer the key.
+# THE GRADING KEY, AS DATA.
 #
 # A mark's `symbols` and `refs` are DECLARED here rather than guessed from its prose. The
 # markdown reader inferred them with regexes, so a mark's punctuation decided whether it
