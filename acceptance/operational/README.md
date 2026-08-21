@@ -92,11 +92,48 @@ report explicitly called a bad surprise." **That rejection was made at the curre
 where the doxygen stage re-runs whole-scope on any single changed file. It is conditional on that
 floor, not permanent: below the threshold in §3 the objection evaporates.
 
+## 4. Judge variance — a property of the instrument, not of the hypothesis
+
+How often does the LLM judge change its mind about the same (mark, answer) pair? It decides how
+much deterministic structure the rubric schema has to carry, and it was unknown — n=1 per mark
+with no vote, bounded only at ≤~6% by the falsity trios.
+
+**Measured 2026-08-21** with `scripts/judge_variance.py`, against answers already committed — no
+agent runs, judge calls only. 40 pairs stratified 20/20 by mark shape, 3 independent reps each,
+120 calls:
+
+| shape | pairs | flipped | flip rate | disagrees with the recorded verdict |
+|---|---:|---:|---:|---:|
+| conceptual | 20 | 0 | **0.0%** | 5.0% (1 pair, MISS→HIT) |
+| objective | 20 | 0 | **0.0%** | 0.0% |
+
+Transport/parse errors: **0 of 120**.
+
+**Read the bound, not the point estimate.** Zero events in 40 pairs bounds the flip rate at
+roughly **≤7.5% of pairs at 95% confidence** (rule of three) — it does not establish that it is
+zero. And k=3 only detects flips that surface within three draws: a pair with a 5% per-call flip
+probability shows a split about 14% of the time at k=3, so 0/40 is consistent with a small
+non-zero rate. Tightening the bound costs proportionally more calls and would not change the
+decision it was run to inform.
+
+**What it does establish:** the judge is far more stable than the architecture discussion assumed,
+and the flakiness that once cost 102 unruled marks was a *session-capacity condition*, not a
+baseline property of the judge — 120 calls at four workers produced no errors at all.
+
+**One caveat that cannot be measured away:** the judge model is named by the alias `sonnet`, so
+the model behind it can move without the rubric or the pin changing. Pinning a commit does not pin
+a judge. The single MISS→HIT disagreement is consistent with little or no drift, but that is one
+observation, not a control.
+
 ## Layout
 
 ```
 operational/
   README.md                      this file — what is measured and why it is not in the matrix
+  judge-variance/
+    sample.json                  the stratified sample, with its seed — regenerable, and the
+                                 seed is what makes the measurement repeatable
+    verdicts.jsonl               one row per judge call: cell, mark, rep, verdict, error
   <machine>/                     one directory per machine; a figure without a machine is not a
                                  measurement
     machine.md                   CPU, cores, RAM, storage, OS — enough to reproduce
