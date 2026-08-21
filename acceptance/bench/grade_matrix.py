@@ -419,15 +419,9 @@ def _refuse_unscorable(results: list[dict], weight: dict[str, float]) -> None:
 ## @version 4
 def summarise(results: list[dict], arm: str = "", falsity: dict | None = None) -> dict:
     """A MARK IS A MARK — hit or miss, never a half point (owner, 2026-08-13).
-    `questions-TEMPLATE.md` had said exactly that all along while the code disagreed,
-    weighting PARTIAL 0.5 in the weight map and again through a SEPARATE hardcoded 0.5 in the
-    score expression. Nothing tested either number, so the two could have drifted apart
-    unnoticed as easily as they could both be wrong.
 
-    Under atomic marks the middle verdict is not a finer measurement, it is a refusal to
-    decide that then gets averaged into a headline. So PARTIAL is not re-weighted to 0 — it is
-    removed from the countable set, which makes the anti-vacuity check below reject it rather
-    than score it silently.
+    PARTIAL is not re-weighted to 0, it is removed from the countable set, so the anti-vacuity
+    check below REJECTS it rather than scoring it silently.
 
     FENCED MARKS ARE EXCLUDED FROM THE ARM THAT CANNOT REACH THEM, rather than scored zero.
     `arm_only` names the arm that CAN reach a mark, so a mark tagged `db` is dropped from the

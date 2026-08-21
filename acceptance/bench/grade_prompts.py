@@ -38,15 +38,10 @@ _ARM_WORD = re.compile(r"\b(mcp arm|src arm|db arm|raw arm)\b", re.IGNORECASE)
 ## So a prompt/parser disagreement would have presented as the ANSWER being wrong rather than
 ## as the GRADER being broken.
 ##
-## PARTIAL IS GONE (owner, 2026-08-13): "No partial grades, no half points, a mark is a mark."
-## `questions-TEMPLATE.md` had said the same thing all along; the code disagreed with the
-## written rule, weighting it 0.5 in one place and again via a separate hardcoded 0.5 in
-## another, neither of them read by any test.
-##
-## Under atomic marks a half point is not a finer measurement — it is a refusal to decide,
-## averaged into a headline. So the rule below is deliberately STRICT: an answer that gestures
-## at the item without stating it is a MISS, and the prompt says so rather than leaving the
-## judge to invent its own tie-break now that the middle option is absent.
+## TWO VERDICTS ONLY: a mark is a mark (owner, 2026-08-13). Under atomic marks a half point is
+## not a finer measurement, it is a refusal to decide averaged into a headline. So the rules
+## below are deliberately STRICT — an answer that gestures at the item without stating it is a
+## MISS — rather than leaving the judge to invent its own tie-break.
 MARK_VERDICTS: tuple[str, ...] = ("HIT", "MISS")
 
 _VERDICT_RULES: dict[str, str] = {

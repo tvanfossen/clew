@@ -96,17 +96,9 @@ def test_fenced_marks_are_excluded_not_failed() -> None:
 ## @return None.
 ## @version 1
 def test_partial_is_not_a_verdict_the_harness_can_score() -> None:
-    """`questions-TEMPLATE.md` has said "A mark is a mark; hit or miss; never past 100%" all
-    along, and `PARTIAL` contradicted it in code — weighted 0.5 in `score` and again by a
-    SEPARATE hardcoded 0.5 in the summary expression, neither of which any test read.
-
-    The owner's rule makes the contradiction consequential rather than cosmetic. Under atomic
-    marks a fact is stated or it is not, so a half point is not a finer measurement, it is a
-    refusal to decide that then gets averaged into a headline.
-
-    Asserted as a REFUSAL rather than as "weighs 0.0", because a verdict that scores zero is
-    still a verdict the judge can emit and a reader can see in a sidecar. The anti-vacuity
-    check is what must catch it, so the whole path is closed rather than re-weighted.
+    """Asserted as a REFUSAL rather than as "weighs 0.0". A verdict that scores zero is still a
+    verdict the judge can emit and a reader can see in a sidecar, so the whole path is closed
+    rather than re-weighted.
 
     @brief Feeding a PARTIAL verdict raises rather than scoring a fraction.
     @version 1
