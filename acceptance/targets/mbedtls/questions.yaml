@@ -1,0 +1,222 @@
+# SPDX-License-Identifier: MIT
+#
+# THE GRADING KEY, AS DATA. Schema and rules: acceptance/DESIGN.md.
+#
+# Every mark below was verified by reading mbedtls source at the pinned commit. A mark is an
+# ANSWER COMPONENT — what a complete answer to the question contains — not an artifact that some
+# tool happens to surface. That cuts both ways: a component does not earn a mark because the
+# index has a layer for it, and it does not earn one because a grep found it.
+
+schema: 1
+
+target: Mbed-TLS/mbedtls
+commit: 068ff080b369adfac81509f9b57b2afabaf82dc5
+ref: mbedtls-3.6.7
+version: 2.0.0
+
+ground_truth: |
+  mbedtls source at the commit above, read directly. Every count and line number was taken from
+  a working tree at that commit with no modifications.
+
+judge:
+  model: claude-sonnet-4-5-20250929
+  samples_when_weight_at_least: 2
+
+index:
+  declare:
+    preprocessor:
+      predefined: [MBEDTLS_THREADING_C, MBEDTLS_THREADING_PTHREAD]
+  variant_note: |
+    THE INDEX UNDER TEST IS BUILT WITH BOTH THREADING MACROS DEFINED — the inverse of what
+    mbedtls ships. That is deliberate: with them undefined the preprocessor never reaches the
+    threaded code and the guarded functions are invisible to the index, so the build would
+    differ from the source in a way that makes the target uninterestingly small.
+
+    Q1 asks what the SHIPPED default does, and its answer is the opposite of what the index was
+    built with. That is stated here so a reader knows the divergence is intended rather than a
+    contamination, and so nobody later reads a Q1 result as evidence about the build.
+
+questions:
+  - id: Q1
+    intent: |
+      Probes whether the agent stops at "there are threads and mutexes" — which is a ctrl-F away
+      and which both arms reach in one step — or continues to "nothing runs concurrently as
+      shipped". The recorded failure on the previous rubric generation was exactly that stop:
+      answers named the spawn site and the entry function, and concluded mbedtls is threaded.
+      The surface rung is worth 1 point and the conclusion rungs are worth 3, so an answer that
+      stops early scores badly however much detail it gives about the site it did find.
+
+    prompt: |
+      mbedtls ships mutex and thread code. As the library is configured by default, what
+      actually runs concurrently, and what protects what?
+
+    marks:
+      - text: names MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the gating macros
+        type: retrieval
+        weight: 1
+        evidence: |
+          Declared in include/mbedtls/mbedtls_config.h. Both are the config-level switches for
+          the whole threading layer.
+        refs:
+          - ["include/mbedtls/mbedtls_config.h", 2188, 2196]
+          - ["include/mbedtls/mbedtls_config.h", 3740, 3787]
+
+      - text: >-
+          states that both threading macros are commented out in the shipped mbedtls_config.h,
+          so a default build defines neither
+        type: conclusion
+        weight: 3
+        evidence: |
+          Line 2196 is `//#define MBEDTLS_THREADING_PTHREAD` and line 3787 is
+          `//#define MBEDTLS_THREADING_C`. Both commented, verified at the pinned commit.
+        refs:
+          - ["include/mbedtls/mbedtls_config.h", 2196]
+          - ["include/mbedtls/mbedtls_config.h", 3787]
+
+      - text: >-
+          concludes that a default build of mbedtls creates no threads at all, and that the
+          pthread example compiles to a stub main under that condition
+        type: conclusion
+        weight: 3
+        evidence: |
+          programs/ssl/ssl_pthread_server.c:24 is
+          `#elif !defined(MBEDTLS_THREADING_C) || !defined(MBEDTLS_THREADING_PTHREAD)`, whose
+          body is a main() that prints "MBEDTLS_THREADING_PTHREAD not defined." and exits. The
+          threaded body begins at the `#else` on line 30.
+        refs:
+          - ["programs/ssl/ssl_pthread_server.c", 24, 30]
+
+      - text: >-
+          places every thread-creation site outside library/ — the threading in this repository
+          belongs to example programs, not to the library itself
+        type: conclusion
+        weight: 3
+        evidence: |
+          Both creation sites are under programs/. Nothing in library/ creates a thread;
+          library/threading.c supplies the mutex abstraction used BY threaded callers.
+        refs:
+          - ["programs/ssl/ssl_pthread_server.c", 277]
+          - ["programs/test/benchmark.c", 430]
+
+      - text: every source file containing a thread-creation site
+        type: set
+        weight: 2
+        extract: |
+          List every file path the answer names as containing a site where a thread is created.
+          Paths only, one per line, exactly as the answer writes them. If the answer names none,
+          reply NONE.
+        members:
+          - value: programs/ssl/ssl_pthread_server.c
+            evidence: "pthread_create at :277, entry handle_ssl_connection (:98)"
+          - value: programs/test/benchmark.c
+            evidence: "_beginthread(TimerProc, 0, NULL) at :430; TimerProc at :410"
+
+      - text: >-
+          identifies the benchmark timer thread as Windows-only, gated on a platform condition
+          rather than on the threading config
+        type: conclusion
+        weight: 2
+        evidence: |
+          programs/test/benchmark.c:430 uses _beginthread, a Windows CRT call. It is gated by a
+          platform condition, NOT by MBEDTLS_THREADING_*. An answer that says "no threads,
+          because the threading macros are off" has the right conclusion by an incomplete
+          argument — this mark is what separates the two.
+        refs:
+          - ["programs/test/benchmark.c", 410, 430]
+
+      - text: >-
+          identifies debug_mutex as serialising debug output so that concurrent connections do
+          not interleave their logging
+        type: conclusion
+        weight: 2
+        evidence: |
+          Declared programs/ssl/ssl_pthread_server.c:65; locked :73 and unlocked :80 around the
+          debug callback body; init :321; free :483.
+        refs:
+          - ["programs/ssl/ssl_pthread_server.c", 65]
+          - ["programs/ssl/ssl_pthread_server.c", 73, 80]
+
+  - id: Q2
+    intent: |
+      Probes the difference between naming a macro and explaining what it does to a consumer.
+      The surface fact — MBEDTLS_PRIVATE exists — is one lookup. The components that matter are
+      the DIRECTION of the default and WHICH consumer gets which expansion, both of which need
+      the two-branch body read rather than a name resolved. The set mark measures how much of
+      the distribution the agent established before stopping.
+
+    prompt: |
+      mbedtls wraps struct members in MBEDTLS_PRIVATE. What does that accomplish, for whom, and
+      how widely is it applied?
+
+    marks:
+      - text: locates the macro's definition in include/mbedtls/private_access.h
+        type: retrieval
+        weight: 1
+        evidence: |
+          The whole definition is a single #ifndef/#else/#endif in that header.
+        refs:
+          - ["include/mbedtls/private_access.h", 14, 18]
+
+      - text: >-
+          states that by default the macro RENAMES the member to private_<member>, and that
+          defining MBEDTLS_ALLOW_PRIVATE_ACCESS makes it expand to the member name unchanged
+        type: conclusion
+        weight: 3
+        evidence: |
+          #ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS -> `private_##member`; #else -> `member`. The
+          DEFAULT branch is the renaming one, which is the direction an answer most often gets
+          backwards.
+        refs:
+          - ["include/mbedtls/private_access.h", 14, 18]
+
+      - text: >-
+          explains that the two branches give different consumers different views — code that
+          defines MBEDTLS_ALLOW_PRIVATE_ACCESS sees plain member names while an ordinary
+          consumer of the public headers sees the renamed ones
+        type: conclusion
+        weight: 3
+        evidence: |
+          The single macro serves both audiences from one header; which expansion you get is
+          decided entirely by whether you defined the opt-in before including it.
+        refs:
+          - ["include/mbedtls/private_access.h", 14, 18]
+
+      - text: >-
+          concludes that this enforces API opacity at COMPILE time by breaking the member name,
+          rather than by hiding the struct layout — the fields remain visible and sized
+        type: conclusion
+        weight: 3
+        evidence: |
+          The macro only rewrites the identifier. The struct stays fully defined in the public
+          header, so its layout and size are unchanged and it remains stack-allocatable; what
+          breaks is source that names a member directly.
+        refs:
+          - ["include/mbedtls/private_access.h", 14, 18]
+
+      - text: >-
+          conveys that the macro is applied at a scale of many hundreds of sites, overwhelmingly
+          in the public headers rather than in library implementation
+        type: conclusion
+        weight: 2
+        evidence: |
+          875 occurrences of `MBEDTLS_PRIVATE(` across .h and .c at the pinned commit, spread
+          over 66 files: 59 under include/, 5 under library/, 2 under programs/. An answer
+          conveying the right order of magnitude and the right skew earns this; an exact count
+          is not required and must not be, since it is an artifact of how one counts.
+        refs:
+          - ["include/mbedtls/private_access.h", 14, 18]
+
+      - text: the top-level directories where MBEDTLS_PRIVATE is used
+        type: set
+        weight: 2
+        extract: |
+          List every top-level directory the answer says contains uses of MBEDTLS_PRIVATE. One
+          per line, bare directory names as the answer writes them. If the answer names none,
+          reply NONE.
+        members:
+          - value: include
+            evidence: "59 files"
+          - value: library
+            evidence: "5 files"
+          - value: programs
+            evidence: "2 files"
