@@ -1,7 +1,0 @@
-{
-  "status": "ok",
-  "reason": "1 distinct index reply target(s), all ~/ddb-targets/entropic",
-  "observed": [
-    "~/ddb-targets/entropic"
-  ]
-}

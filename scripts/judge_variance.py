@@ -69,7 +69,9 @@ def _bench():
     @return (bench_judge, grade_prompts).
     @version 1
     """
-    sys.path.insert(0, str(REPO / "acceptance" / "bench"))
+    sys.path.insert(
+        0, str(REPO / "acceptance" / "bench")
+    )  # NOTE: bench/ was deleted in the 002 overhaul; rewire to the new grader
     import bench_judge
     import grade_prompts
 

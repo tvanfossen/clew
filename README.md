@@ -23,8 +23,8 @@ and a mental model you rebuild every session. It is a cache for work you would o
 **doxygen-guard is optional.** [It](https://github.com/tvanfossen/doxygen-guard) is a
 pre-commit gate that keeps a repo's doxygen accurate, and a repo that uses it gets a richer
 index — briefs, requirement tags, versioned comments. But `clew` needs neither the gate nor a
-Doxyfile: a repo that declares nothing gets its whole tree indexed, and three of the four repos
-in `acceptance/targets/` are measured that way. If you want the gate, it is a separate tool with
+Doxyfile: a repo that declares nothing gets its whole tree indexed, and three of the four
+reference repositories are measured that way. If you want the gate, it is a separate tool with
 one job; if you do not, this still works.
 
 ## The four tools
@@ -69,13 +69,16 @@ as a single query, not a manual archaeology session.
 
 ## Measured
 
-Answering from the index is compared against an agent with only `Read`/`Grep`/`Glob`/`Bash` —
-same repository, same model, same sitting, same frozen questions. Four repositories, both arms,
-two model tiers. Every transcript, metric and per-mark grade is committed beside its rubric in
-[`acceptance/targets/`](https://github.com/tvanfossen/clew/tree/main/acceptance/targets); the results are in each target's `result.md`.
+Answering from the index is compared against the same agentic harness without it — same
+repository, same model, same sitting, same frozen questions.
 
-Run it on yours: [`acceptance/targets/TEMPLATE/`](https://github.com/tvanfossen/clew/tree/main/acceptance/targets/TEMPLATE) has the rubric
-template and the runbook.
+**The instrument is being rebuilt.** The previous generation's rubrics graded lexical retrieval
+rather than answer completeness, so they measured which tool was used instead of whether the
+question was answered. They have been deleted rather than migrated; git history holds them.
+[`acceptance/DESIGN.md`](https://github.com/tvanfossen/clew/blob/main/acceptance/DESIGN.md) is the
+replacement's schema and grading routine, and
+[`docs/CORE_HYPOTHESIS.md`](https://github.com/tvanfossen/clew/blob/main/docs/CORE_HYPOTHESIS.md)
+is the claim it tests. No measured figures are published until it has run.
 
 ## What semver covers
 
@@ -291,8 +294,8 @@ the narrower form that describes a function or macro and returns `None` for anyt
 | `clew/` | The pipeline (`python -m clew`) |
 | `clew/query/` | The stable query API the MCP server is a view over |
 | `tests/` | `.venv/bin/python -m pytest tests/ -q` (add `--integration` for the tier that builds real repos) |
-| `acceptance/targets/<t>/<version>/` | Frozen rubrics and the committed results of every grid run against them |
-| `acceptance/bench/` | The harness. Acceptance-only by design — deliberately NOT in the pre-commit gate |
+| `acceptance/DESIGN.md` | The schema and grading routine for the instrument being rebuilt |
+| `acceptance/operational/` | Build and refresh cost, and judge variance — measured beside the matrix, never inside it |
 
 ## Dogfooding
 
