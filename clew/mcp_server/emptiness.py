@@ -108,15 +108,16 @@ _SEARCHED = (
     "Searched: names + @brief of "
     + ", ".join(kind for kind, _tier in q.SEARCHED_MEMBERDEF_KINDS)
     + "; macro expansions; class/struct/union; the configuration symbols this repo gates "
-    "code on; file docs. NOT searched: markdown or Kconfig prose — that is search_prose's "
-    "corpus, where a conceptual phrase often lands."
+    "code on; file docs. NOT searched: markdown or Kconfig prose — that is "
+    "search(corpus='prose'), where a conceptual phrase often lands."
 )
 
 ## Said when the index predates the file-level documentation corpus. An absent corpus
 ## is not an absent answer, and an index that cannot look must not report a negative.
 _NO_FILE_DOCS = (
     "This index carries NO file-level documentation corpus, so a conceptual query had "
-    "nowhere to match: NOT definitive. Rebuild with build_or_refresh, or use search_prose."
+    "nowhere to match: NOT definitive. Rebuild with index(action='refresh'), or use "
+    "search(corpus='prose')."
 )
 
 ## NO SECOND ABSENT-CORPUS DOWNGRADE. A `_NO_GATE_LAYER` constant lived here for gh#393 and
@@ -138,7 +139,7 @@ _DEFINITIVE = (
 _UNREAD_CORPUS = (
     "NOT DEFINITIVE — this index HOLDS matching rows that search does not read: {hits}. "
     "The name exists; search's corpora just do not include that kind. Ask for it by "
-    "name with dossier, lookup_class or source rather than rephrasing this query."
+    "name with dossier, which returns the row and its body, rather than rephrasing this query."
 )
 
 ## Said for a graded-down empty result. It keeps the "NOT an error, NOT a malformed
@@ -223,7 +224,7 @@ def _render_counts(counts: dict[str, int]) -> str:
 ## @param text The caller's query.
 ## @param counts Per-token independent hit counts.
 ## @return The note text.
-## @version 2
+## @version 3
 ## @dg_internal
 def _conjunction_note(text: str, counts: dict[str, int]) -> str:
     """gh#31's actual finding: ranking behaved exactly as documented and the NOTE
@@ -236,7 +237,7 @@ def _conjunction_note(text: str, counts: dict[str, int]) -> str:
 
     @brief Word an over-specified-conjunction empty result.
     @return Note text.
-    @version 2
+    @version 3
     """
     dead = [token for token, count in counts.items() if count == 0]
     if dead:
@@ -248,8 +249,8 @@ def _conjunction_note(text: str, counts: dict[str, int]) -> str:
     else:
         blame = (
             "Every token matches alone but no one symbol or file carries all of them. "
-            "RETRY WITH FEWER TOKENS — the two most distinctive — or use search_prose, "
-            "which ranks rather than requiring all."
+            "RETRY WITH FEWER TOKENS — the two most distinctive — or use "
+            "search(corpus='prose'), which ranks rather than requiring all."
         )
     return (
         f"No matching symbols for {text!r}. {_NOT_DEFINITIVE} Matching is a CONJUNCTION: "
@@ -396,7 +397,7 @@ _PROSE_ELSEWHERE = (
 ## negative — the same rule `_NO_FILE_DOCS` states one corpus over.
 _NO_PROSE_CORPUS = (
     "This index carries NO ingested markdown corpus, so a documentation query had nowhere to "
-    "match: NOT definitive. Rebuild with build_or_refresh to ingest the repo's docs."
+    "match: NOT definitive. Rebuild with index(action='refresh') to ingest the repo's docs."
 )
 
 

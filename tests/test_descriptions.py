@@ -361,58 +361,117 @@ def test_a_bare_string_description_is_accepted(
     assert d.load_descriptions() == {"dossier": "Just the one line."}
 
 
-## @brief Every tool a served string tells a client to call must be a registered tool.
+## @brief Load the served-text audit, which is the single implementation of this rule.
+## @return The `scripts/served_text_audit` module.
+## @version 1
+def _audit():
+    """Import the audit from `scripts/` rather than restating its rules here.
+
+    Two copies of a rule drift, and the drift is invisible because both stay green. The
+    script exists because the BLAST RADIUS had to be readable before the gate was written;
+    this test is the gate over the same code.
+
+    @brief The served-text audit module.
+    @return Module object.
+    @version 1
+    """
+    import importlib.util
+
+    path = Path(__file__).resolve().parent.parent / "scripts" / "served_text_audit.py"
+    spec = importlib.util.spec_from_file_location("served_text_audit", path)
+    assert spec and spec.loader, f"cannot load {path}"
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+## @brief No served string may tell a client to call something that is not callable.
+## @return None.
+## @version 2
+def test_served_text_names_only_registered_tools() -> None:
+    """THE HIGHEST-SEVERITY DEFECT AN OUTSIDE CONSUMER COULD HIT — and version 1 of this
+    test was green while THIRTEEN instances of it shipped.
+
+    Version 1 checked `INSTRUCTIONS` plus the rendered tool descriptions, matching
+    ``` `name( ``` — backtick REQUIRED. It missed every live defect for two independent
+    reasons, and either one alone would have been enough:
+
+      * IT SCANNED THE WRONG SURFACE. The emptiness notes, the staleness prose and the
+        dossier truncation hints are a separate served surface it never read. Those fire on
+        exactly the events a struggling reader hits — an empty search, a trimmed panel, an
+        ambiguous name — which is when a wrong instruction costs the most.
+      * THE BACKTICK NARROWED IT TO NOTHING. Four of the five worst instances were BARE
+        names in ordinary prose: "Rebuild with build_or_refresh, or use search_prose."
+
+    What actually shipped, all of it green under version 1: `build_or_refresh` (×2),
+    `search_prose` (×4), `lock_roster()` (×2), `runs_under_lock` (×3), `kconfig()`,
+    `lookup_class`, and `resolve_symbol()`.
+
+    THE RULE IS NOW TWO RULES, because the shipped one's stated principle — "shape, not a
+    blocklist" — is right for renames and cannot reach a bare name, which has no shape:
+
+      A. CALL SHAPE, FULLY DERIVED. Anything matching `name(` must be a registered TOOL, an
+         `index` ACTION or a `search` CORPUS. All three sets are imported, never restated,
+         so a rename cannot leave this checking a stale list. This is the half that catches
+         names nobody thought to write down.
+      B. BARE MENTIONS of names that were once callable — a named set, and the audit says so
+         rather than pretending to be complete. Rule A backstops it.
+
+    The first version of rule A's allowed set knew only about tools and flagged three correct
+    lines saying `action='cull'`; the first version of rule B was a denylist and MISSED
+    `lock_roster` because the name was not on it. Both failures are why the sets are derived.
+
+    @brief Served text names only callable things.
+    @return None.
+    @version 2
+    """
+    audit = _audit()
+
+    registered, allowed = audit._allowed()
+    assert registered, "no tools registered — the check would pass vacuously"
+    assert allowed >= registered, "the allowed set must contain every registered tool"
+
+    surfaces = audit.served_surfaces()
+    assert len(surfaces) > 100, (
+        f"only {len(surfaces)} served strings found — the scan is not reaching the "
+        "runtime payload constants, which is exactly how version 1 of this test passed"
+    )
+
+    findings = audit.collect()
+    assert not findings, (
+        "served text tells a client to reach for something that is not a registered tool, "
+        f"an index action or a search corpus {sorted(allowed)}:\n"
+        + "\n".join(f"  {f['kind']:<5} {f['name']:<18} {f['where']}" for f in findings)
+    )
+
+
+## @brief A `NEGATED` exemption whose justifying phrase is gone must be reported.
 ## @return None.
 ## @version 1
-def test_served_text_names_only_registered_tools() -> None:
-    """THE HIGHEST-SEVERITY DEFECT AN OUTSIDE CONSUMER COULD HIT, and nothing guarded it.
+def test_no_negation_exemption_has_gone_stale() -> None:
+    """THE OTHER HALF OF THE ALLOWLIST, and the half normally forgotten.
 
-    `INSTRUCTIONS` is delivered to every client at connect and told a model to call
-    `build_or_refresh()`, `list_targets` and `status` — seven references across four paragraphs,
-    none of them a registered tool. All three were folded into `index(action=...)` and the served
-    text was never updated. The worst instance was the FIRST-RUN path: "if the tool list looks
-    short, call build_or_refresh() and re-read it" is exactly what a stranger with no index reads,
-    and it names a tool that 404s.
+    `NEGATED` exempts one bare mention — `INSTRUCTIONS` saying "There is no set_target tool",
+    which is a NEGATIVE statement and the only honest answer to a reader who remembers the
+    old surface. The exemption is keyed to that exact phrase, not to the bare name, so a
+    reword re-reports the mention instead of silently widening the hole.
 
-    `tests/test_init.py` already asserts that no digit appears in the guidance block, on the
-    reasoning that measured figures belong in `INSTRUCTIONS` instead. That reasoning is sound and
-    the guard is good — and it left the file it nominated as the safe home with no guard of its
-    own. Zero tests referenced `INSTRUCTIONS` before this one.
+    This test closes the reverse direction: an entry whose phrase appears NOWHERE is dead
+    weight exempting a name for no reason.
 
-    THE RULE IS SHAPE, NOT A BLOCKLIST. A `name(` or `name(action=` occurrence inside backticks is
-    a call the reader is being told to make; anything matching that shape must be a registered
-    tool. A list of currently-wrong names would need updating at the next rename, which is the
-    failure being prevented.
+    NOTE THE BUG THIS ALREADY CAUGHT. The phrase wraps across a line break in its source
+    constant, so a substring match against the raw literal failed — the exemption reported
+    STALE while the mention it exempts reported LIVE, one edit looking like two unrelated
+    defects. Whitespace is now collapsed before any rule sees the text, which is also what a
+    client actually receives.
 
-    METHOD NAMES ARE STILL FINE IN CODE. `build_or_refresh` and `list_targets` remain bound
-    methods and internal docstrings may name them. This checks only the strings a CLIENT receives.
-
-    @brief Served text names only registered tools.
+    @brief No stale negation exemptions.
     @return None.
     @version 1
     """
-    import re
-
-    from clew.mcp_server.server import INSTRUCTIONS, TIER0_TOOLS
-    from clew.mcp_server.tools_query import TIER1_TOOLS
-
-    registered = set(TIER0_TOOLS) | set(TIER1_TOOLS)
-    assert registered, "no tools registered — the check would pass vacuously"
-
-    served = {"INSTRUCTIONS": INSTRUCTIONS}
-    served.update({f"description:{name}": text for name, text in TIER0_TOOLS.items()})
-    served.update({f"description:{name}": text for name, text in TIER1_TOOLS.items()})
-
-    ## A backticked call: `name(` or `name()`. Bare mentions are prose and are not checked,
-    ## because "the index" and "a dossier" are ordinary English in this text.
-    call = re.compile(r"`([a-z_][a-z0-9_]*)\(")
-    offenders = [
-        (where, name)
-        for where, text in served.items()
-        for name in call.findall(text)
-        if name not in registered
-    ]
-    assert not offenders, (
-        f"served text tells a client to call something that is not a registered tool "
-        f"{sorted(registered)}: {offenders}"
+    audit = _audit()
+    stale = audit.stale_negations()
+    assert not stale, (
+        "a NEGATED exemption's justifying phrase no longer appears in any served string, "
+        f"so it exempts a name for no reason: {stale}"
     )

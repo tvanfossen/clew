@@ -909,8 +909,8 @@ _DOSSIER_OPTIONAL = (
 ## lock panels that is the LOCK-KEYED inventory, which is a different question class and
 ## survives; for a body it is raising the cap on this same call.
 _DOSSIER_HINTS = {
-    "sections": "call lock_roster() then runs_under_lock() for the unabridged holds",
-    "locks_held": "call lock_roster() then runs_under_lock() for the unabridged holds",
+    "sections": "call search(corpus='locks') for the unabridged lock-keyed inventory",
+    "locks_held": "call search(corpus='locks') for the unabridged lock-keyed inventory",
     "external_callees": (
         "no focused tool returns these — read the body at the reported line range for the remainder"
     ),
@@ -924,7 +924,8 @@ _DOSSIER_HINTS = {
     ## down"). What it still routes for is the question a single payload genuinely cannot hold.
     "gated_by": (
         "each gate symbol's own definition sites are in `gate_definitions` on this reply; call "
-        "kconfig() for the full configuration space — the gates shown are the innermost by line"
+        "search(corpus='config') for the full configuration space — the gates shown are the "
+        "innermost by line"
     ),
     "macros": (
         "no tool enumerates definition sites — search() collapses a name to one row; "
@@ -936,7 +937,7 @@ _DOSSIER_HINTS = {
 ## @brief Trim a serialized dossier's nested lists to the response budget.
 ## @param doss Serialized dossier, or None.
 ## @return The dossier, trimmed and annotated when it exceeded the budget.
-## @version 3
+## @version 4
 ## @dg_internal
 def _budgeted_dossier(doss: dict[str, Any] | None) -> dict[str, Any] | None:
     """`dossier` is the tool a model is told to CALL FIRST, and it was the largest
@@ -977,8 +978,8 @@ def _budgeted_dossier(doss: dict[str, Any] | None) -> dict[str, Any] | None:
                 len(doss.get(field_name) or []),
                 _DOSSIER_HINTS.get(
                     field_name,
-                    f"call {field_name}() directly for a focused view, or resolve_symbol() "
-                    f"first if the name is overloaded",
+                    f"re-ask dossier for a focused view of `{field_name}`, passing "
+                    f"`qualified` first if the name is overloaded",
                 ),
             )
             for field_name, was in cut.items()
@@ -1803,7 +1804,7 @@ class QueryTools:
     ## @brief The whole lock layer: every lock, the mutex count, the origin split, the nestings.
     ## @param target Repo root or slug to answer from; omit for the server's derived target.
     ## @return Serialized LockInventory, always present so an empty layer says why.
-    ## @version 5
+    ## @version 6
     ## @req REQ-DDB-MCP-003
     ## @dg_internal
     def _lock_inventory(self, target: str | None = None) -> dict[str, Any]:
@@ -1847,7 +1848,7 @@ class QueryTools:
                     cut["nestings"],
                     len(out["nestings"]),
                     "the locks themselves are complete and untrimmed; only the nesting "
-                    "pairs were reduced. Ask runs_under_lock for a named lock's sections, "
+                    "pairs were reduced. Ask dossier for a named lock's sections, "
                     "or read the full set from the query library's lock_nestings",
                 )
         return self._answered(out, target=target)
