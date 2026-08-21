@@ -31,15 +31,32 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 
-## Modules whose string literals reach a client. Not the whole package: `state.py` and
-## `_sdk.py` are plumbing. Listed rather than globbed so adding a served surface is a
-## deliberate act with a name attached.
+## Modules whose string literals reach a client. Listed rather than globbed so adding a
+## served surface is a deliberate act with a name attached.
+##
+## THE LIST IS NOT THE GUARD — `PLUMBING_MODULES` is. A mutation control removed three
+## entries here, which is EXACTLY how version 1 of the shipped test stayed green while
+## thirteen defects shipped, and it was NOT caught: the anti-vacuity assertion was
+## `len(surfaces) > 100`, and `server.py` alone clears 100. A count cannot detect a blinded
+## scan. The partition below can, because a module in neither tuple is an error.
 RUNTIME_SERVED_MODULES = (
     "clew/mcp_server/emptiness.py",
     "clew/mcp_server/freshness.py",
     "clew/mcp_server/tools_query.py",
     "clew/mcp_server/server.py",
 )
+
+## The other half of the partition: package modules that serve NO text, each excluded for a
+## stated reason rather than by being left out. Together with `RUNTIME_SERVED_MODULES` this
+## must exactly cover `clew/mcp_server/*.py`, so a new module is a decision and a deleted
+## entry is a failure instead of a silent narrowing.
+PLUMBING_MODULES = {
+    "clew/mcp_server/__init__.py": "re-exports only",
+    "clew/mcp_server/__main__.py": "entry point",
+    "clew/mcp_server/_sdk.py": "SDK compatibility shims",
+    "clew/mcp_server/descriptions.py": "loads the JSON; the text lives in the JSON",
+    "clew/mcp_server/state.py": "target resolution and registry bookkeeping",
+}
 
 DESCRIPTIONS_DIR = REPO / "clew/mcp_server/descriptions"
 
@@ -179,6 +196,30 @@ def _allowed() -> tuple[set[str], set[str]]:
 
     tools = set(TIER0_TOOLS) | set(TIER1_TOOLS)
     return tools, tools | set(INDEX_ACTIONS) | set(CORPORA)
+
+
+## @brief Package modules classified as neither served nor plumbing.
+## @return Sorted list of unclassified repo-relative paths.
+## @version 1
+def unclassified_modules() -> list[str]:
+    """THE ANTI-BLINDING CHECK, and the reason it is a partition rather than a count.
+
+    A mutation that deletes entries from `RUNTIME_SERVED_MODULES` reproduces the exact
+    failure this whole audit exists to fix — a scan that reads a narrower surface than it
+    claims — and a `len(surfaces) > threshold` assertion CANNOT see it, because one large
+    module clears any threshold a reader would pick. Measured: commenting out three of the
+    four served modules left the count above 100 and both tests green.
+
+    So every `clew/mcp_server/*.py` must appear in exactly one of the two tuples. Removing a
+    served module fails here rather than quietly shrinking what is checked, and a NEW module
+    fails here too, which is the case nobody remembers to write a test for.
+
+    @brief Unclassified package modules.
+    @return Sorted repo-relative paths.
+    @version 1
+    """
+    on_disk = {str(p.relative_to(REPO)) for p in (REPO / "clew/mcp_server").glob("*.py")}
+    return sorted(on_disk - set(RUNTIME_SERVED_MODULES) - set(PLUMBING_MODULES))
 
 
 ## @brief Every served surface as (where, text) pairs.

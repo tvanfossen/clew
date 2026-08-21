@@ -431,11 +431,20 @@ def test_served_text_names_only_registered_tools() -> None:
     assert registered, "no tools registered — the check would pass vacuously"
     assert allowed >= registered, "the allowed set must contain every registered tool"
 
-    surfaces = audit.served_surfaces()
-    assert len(surfaces) > 100, (
-        f"only {len(surfaces)} served strings found — the scan is not reaching the "
-        "runtime payload constants, which is exactly how version 1 of this test passed"
+    ## STRUCTURAL, NOT A COUNT. The first version of this assertion was
+    ## `len(surfaces) > 100`, and a mutation control removed three of the four served
+    ## modules — reproducing exactly how version 1 of this test stayed green — WITHOUT
+    ## being caught, because `server.py` alone clears 100. A threshold cannot detect a
+    ## blinded scan. The partition can: a module in neither tuple is an error.
+    unclassified = audit.unclassified_modules()
+    assert not unclassified, (
+        "these clew/mcp_server modules are in neither RUNTIME_SERVED_MODULES nor "
+        f"PLUMBING_MODULES, so nothing decided whether they serve text: {unclassified}"
     )
+    surfaces = audit.served_surfaces()
+    contributing = {w.split(":")[0] for w, _t in surfaces}
+    missing = [m for m in audit.RUNTIME_SERVED_MODULES if m not in contributing]
+    assert not missing, f"declared served modules contributed no strings at all: {missing}"
 
     findings = audit.collect()
     assert not findings, (
