@@ -1,10 +1,10 @@
 {
   "cell": "Q2_sonnet_index_r1",
   "arm": "index",
-  "rubric_version": "3.0.0",
-  "rubric_digest": "893a8b8ce7c69215",
+  "rubric_version": "3.0.1",
+  "rubric_digest": "3e69ca942f204b30",
   "judge_model": "claude-sonnet-4-5-20250929",
-  "score": 0.696969696969697,
+  "score": 0.5757575757575758,
   "unmarked_pct": 0.0,
   "decisions": [
     {
@@ -121,8 +121,8 @@
       "mark": "the top-level directories where MBEDTLS_PRIVATE is used \u2014 include",
       "kind": "set_member",
       "weight": 2,
-      "hit": true,
-      "detail": "named",
+      "hit": false,
+      "detail": "not named",
       "agreement": 0.0,
       "samples": 0,
       "errors": 0
@@ -151,8 +151,8 @@
       "mark": "the top-level directories where MBEDTLS_PRIVATE is used \u2014 precision",
       "kind": "set_precision",
       "weight": 2,
-      "hit": true,
-      "detail": "clean",
+      "hit": false,
+      "detail": "named 2 not in the set: ['include/mbedtls', 'include/psa']",
       "agreement": 0.0,
       "samples": 0,
       "errors": 0

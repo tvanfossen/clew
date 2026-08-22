@@ -71,6 +71,33 @@ class QuestionResult:
         unruled = sum(d.weight for d in self.decisions if d.hit is None)
         return earned / total, unruled / total
 
+    ## @brief Decisions where the judge's samples did not agree.
+    ## @return Count of split verdicts.
+    ## @version 2
+    def split_decisions(self) -> int:
+        """A SPLIT VERDICT IS A DECISION THE JUDGE WAS NOT SURE OF, and that is all this counts.
+
+        IT DOES NOT PREDICT DRIFT, and an earlier version of this docstring claimed it did.
+        Measured on five cells regraded against an unchanged rubric: three cells carrying a
+        split verdict reproduced to the decimal, while the two that moved were a split cell
+        (+10.0pt) and a cell with NO split verdicts at all (-12.1pt). The largest movement came
+        from a cell where every sampled verdict was unanimous — so a mark can be decided 3-0 one
+        way and 3-0 the other on the next pass, which is a worse failure than a visible split
+        and one this number cannot see.
+
+        Kept because an uncertain decision is worth flagging on its own terms, and because a
+        real noise floor needs replicates rather than one regrade of n=5.
+
+        SET DECISIONS ARE EXCLUDED. They carry agreement 0.0 with samples 0 because it was the
+        EXTRACTION that was voted, not the verdict; counting them would mark every set member
+        uncertain.
+
+        @brief Count split verdicts.
+        @return Number of decisions whose samples disagreed.
+        @version 2
+        """
+        return sum(1 for d in self.decisions if d.samples > 0 and 0.0 < d.agreement < 1.0)
+
 
 ## @brief Normalise a path or name for set comparison.
 ## @param value Raw item text.

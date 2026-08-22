@@ -12,6 +12,7 @@ weight is not four measurements of one thing.
 
 from __future__ import annotations
 
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -177,6 +178,74 @@ def _missing_refs(rubric: Rubric, checkout: Path | None, where: str) -> list[str
     return out
 
 
+## @brief Files a rubric cites that the target's built index does not contain.
+## @param rubric The rubric.
+## @param db Path to a built clew.db, or None to skip.
+## @param where Target name.
+## @return List of note strings.
+## @version 1
+def _unreachable_refs(rubric: Rubric, db: Path | None, where: str) -> list[str]:
+    """HOW TO READ THE index_only ARM'S MISSES, computed before the cells are spent.
+
+    That arm has no shell by construction, so a mark citing a file the index never ingested —
+    a Makefile, a CMakeLists, a generator script, a YAML config — cannot be reached however good
+    retrieval is. Those marks are legitimate: the fact is real and a source arm can find it. But
+    scored without this note they read as retrieval failures, and a reader would draw a
+    conclusion about the tool from a question about file coverage.
+
+    INFORMATIONAL, NEVER A FAILURE. Removing such a mark would bias the rubric toward what the
+    index happens to ingest, which is the self-portrait this project keeps warning about.
+
+    A LOWER BOUND, and said so: a mark citing an INDEXED file can still need source text the
+    index does not carry. What this catches is the hard case — the file is not there at all.
+
+    @brief Cited files absent from the index.
+    @return Notes.
+    @version 1
+    """
+    if db is None or not db.is_file():
+        return []
+    try:
+        conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+        indexed = {r[0] for r in conn.execute("SELECT DISTINCT name FROM path").fetchall()}
+    except sqlite3.Error:
+        return []
+    out: list[str] = []
+    for q in rubric.questions:
+        missing = sorted(
+            {
+                str(ref[0])
+                for m in q.marks
+                for ref in m.refs
+                if ref and not any(i.endswith(str(ref[0])) for i in indexed)
+            }
+        )
+        if missing:
+            out.append(
+                f"{where} {q.id}: cites {len(missing)} file(s) NOT in the index — {', '.join(missing)}"
+            )
+    return out
+
+
+## @brief The built index for a target under the run directories, newest first.
+## @param name Target directory name.
+## @return The database path, or None.
+## @version 1
+def _index_db(name: str) -> Path | None:
+    """@brief Find a provisioned index for a target.
+    @return Path or None.
+    @version 1
+    """
+    runs = ROOT / "acceptance" / "runs"
+    if not runs.is_dir():
+        return None
+    for run in sorted(runs.iterdir(), reverse=True):
+        found = sorted((run / name / "state" / "targets").glob("*/clew.db"))
+        if found:
+            return found[0]
+    return None
+
+
 ## @brief Locate a target's checkout under the run directories, newest first.
 ## @param name Target directory name.
 ## @return The checkout path, or None.
@@ -215,6 +284,7 @@ def main() -> int:
             complaints += _audit_question(q, name)
             total += sum(_cost(m)[1] for m in q.marks)
         notes += _no_set_mark(rubric, name)
+        notes += _unreachable_refs(rubric, _index_db(name), name)
         checkout = _checkout(name)
         if checkout is None:
             notes.append(f"{name}: no checkout found, ref existence unchecked")

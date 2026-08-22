@@ -246,6 +246,30 @@ harness diffs them and refuses to run on any other difference. Asymmetry in what
 is a handicap built into the instrument, and "is the baseline arm good enough" is otherwise an
 opinion.
 
+## Running a grid
+
+One command drives every target through provision → generate → grade → report:
+
+```bash
+.venv/bin/python -m acceptance.matrix --out acceptance/runs/<date>-n3 --models sonnet --replicates 3 --seed 7
+```
+
+**Do not run the four phases per target by hand.** That is sixteen commands carrying their own
+paths, and every path defect this harness has shipped came from that sequence — a relative
+`--mcp-config` the agent could not resolve, a `--repo` naming the wrong tree, and a build that
+inherited the operator's own `CLEW_STATE_HOME` and overwrote their personal index. None were
+logic errors. The driver derives every path from `--out` plus the target's directory name, so
+the directory generation writes and the directory grading reads are the same expression.
+
+A target that refuses is recorded by NAME and PHASE and the rest of the grid still runs; the
+exit code is the number of failed targets. Generation runs for every target before any target
+grades, so a stop midway leaves whole targets ungenerated — a gap a reader can see — rather than
+every target half-graded.
+
+The single phases remain available (`plan`, `generate`, `grade`, `report`) for re-grading a
+finished run, which is cheap and re-runnable in a way generation is not. `report` takes an
+optional `--rubric`; with it, the separation table carries files-cited per question.
+
 ## Repeatability requirements
 
 Four things must be pinned, and only the first currently is:

@@ -1,10 +1,10 @@
 {
   "cell": "Q1_sonnet_index_r1",
   "arm": "index",
-  "rubric_version": "3.0.0",
-  "rubric_digest": "893a8b8ce7c69215",
+  "rubric_version": "3.0.1",
+  "rubric_digest": "3e69ca942f204b30",
   "judge_model": "claude-sonnet-4-5-20250929",
-  "score": 0.65,
+  "score": 0.75,
   "unmarked_pct": 0.0,
   "decisions": [
     {
@@ -81,7 +81,7 @@
       "mark": "identifies the benchmark timer thread as Windows-only, gated on a platform condition rather than on the threading config",
       "kind": "conclusion",
       "weight": 2,
-      "hit": false,
+      "hit": true,
       "detail": "",
       "agreement": 0.6666666666666666,
       "samples": 3,

@@ -184,6 +184,16 @@ class _StubResult:
 
     decisions: list = []
 
+    ## @brief No split verdicts in a stub.
+    ## @return Zero.
+    ## @version 1
+    def split_decisions(self) -> int:
+        """@brief Stub split count.
+        @return 0.
+        @version 1
+        """
+        return 0
+
     ## @brief Fixed score.
     ## @return (score, unmarked).
     ## @version 1
@@ -424,3 +434,147 @@ def test_paired_summary_uses_the_configured_arms(capsys: pytest.CaptureFixture) 
     assert "No arm PAIRS" not in out, "the configured arms were not recognised as a pair"
     assert "+30.0pt" in out, "separation must be computed for the pair"
     assert "+8" in out, "shell displacement must be computed for the pair"
+
+
+## @brief Separation is reported beside the question's citation spread.
+## @return None.
+## @version 1
+def test_separation_table_carries_files_cited(capsys: pytest.CaptureFixture) -> None:
+    """THE AXIS THE GRID EXISTS TO TEST, per the owner: multi-file questions are where the index
+    should excel over a source harness. That is a PREDICTION, and a prediction is only testable
+    if the two numbers appear together — separation on one axis, files-cited on the other.
+
+    Reported and never ruled on. The harness prints the pair; whether the correlation holds is
+    the owner's call on the finished grid, and no threshold here decides it.
+
+    @brief Files-cited rides beside separation.
+    @return None.
+    @version 1
+    """
+    rows = [
+        _cell(f"Q1_sonnet_{_A}_r1", _A, 0.40),
+        _cell(f"Q1_sonnet_{_B}_r1", _B, 0.70),
+        _cell(f"Q2_sonnet_{_A}_r1", _A, 0.80),
+        _cell(f"Q2_sonnet_{_B}_r1", _B, 0.80),
+    ]
+    cli._paired_summary(rows, files_cited={"Q1": 6, "Q2": 1})
+    out = capsys.readouterr().out
+    q1 = next(x for x in out.splitlines() if x.startswith("Q1_"))
+    q2 = next(x for x in out.splitlines() if x.startswith("Q2_"))
+    assert " 6 " in f" {q1} ", f"Q1 must report 6 files cited: {q1}"
+    assert " 1 " in f" {q2} ", f"Q2 must report 1 file cited: {q2}"
+    assert "files" in out, "the column must be labelled"
+
+
+## @brief Without a rubric the spread column degrades rather than inventing a number.
+## @return None.
+## @version 1
+def test_separation_table_without_a_rubric_shows_no_spread(
+    capsys: pytest.CaptureFixture,
+) -> None:
+    """`report` can be run against an answers directory alone, and a zero there would read as
+    "this question cites nothing" — a claim about the rubric made by a caller that never opened
+    one. The same rule as the -1 tool counts: an unknown is printed as unknown.
+
+    @brief Absent spread prints as unknown.
+    @return None.
+    @version 1
+    """
+    rows = [
+        _cell(f"Q1_sonnet_{_A}_r1", _A, 0.40),
+        _cell(f"Q1_sonnet_{_B}_r1", _B, 0.70),
+    ]
+    cli._paired_summary(rows)
+    line = next(x for x in capsys.readouterr().out.splitlines() if x.startswith("Q1_"))
+    assert " 0 " not in f" {line} ", f"an unknown spread must not print as zero: {line}"
+
+
+## @brief A question with cells but no complete arm pair is named, not silently dropped.
+## @return None.
+## @version 1
+def test_unpaired_questions_are_named(capsys: pytest.CaptureFixture) -> None:
+    """MEASURED ON THE LIVE RUN. mbedtls Q2 had a baseline cell and a blended-arm cell but no
+    index_only cell, so it simply did not appear in the separation table — and the table gives
+    no sign that a question is missing from it. A reader comparing five questions sees four rows
+    and no reason to look for the fifth.
+
+    Silent truncation reading as complete coverage is this project's recurring shape. The count
+    of unpaired questions is printed with their names.
+
+    @brief Unpaired questions are reported.
+    @return None.
+    @version 1
+    """
+    rows = [
+        _cell(f"Q1_sonnet_{_A}_r1", _A, 0.40),
+        _cell(f"Q1_sonnet_{_B}_r1", _B, 0.70),
+        _cell(f"Q2_sonnet_{_A}_r1", _A, 0.80),
+    ]
+    cli._paired_summary(rows)
+    out = capsys.readouterr().out
+    tail = out.split("shell displaced")[-1]
+    assert "Q2" in tail, (
+        f"the question with no complete pair must be NAMED, not just counted: {tail}"
+    )
+    assert "absent from the table" in tail, "and the reader must be told it is missing from it"
+    assert "Q1" not in tail.split("absent from the table above:")[-1], (
+        "a question that DID pair must not be listed as missing"
+    )
+
+
+## @brief The sidecar records how many verdicts were split, and the report shows it.
+## @return None.
+## @version 1
+def test_split_count_reaches_the_sidecar_and_the_table(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    """A SCORE ALONE CANNOT SAY HOW STABLE IT IS. Measured: two grading passes over an unchanged
+    rubric reproduced four cells exactly and moved a fifth by 10 points, entirely from one mark
+    the judge splits 2:1 on. Without this column the two kinds of cell look identical, and a
+    reader averaging them cannot tell which numbers to trust.
+
+    Reported, never ruled on — no threshold here rejects a cell for being split.
+
+    @brief Split verdicts are recorded and displayed.
+    @return None.
+    @version 1
+    """
+    answers = tmp_path / "answers"
+    answers.mkdir()
+    (answers / f"Q1_sonnet_{_A}_r1.md").write_text("an answer", encoding="utf-8")
+
+    def scored(question, answer, rubric, arm):
+        return score.QuestionResult(
+            id=question.id,
+            decisions=[
+                score.Decision("firm", "conclusion", 3, True, agreement=1.0, samples=3),
+                score.Decision("split", "conclusion", 2, True, agreement=0.67, samples=3),
+            ],
+        )
+
+    monkeypatch.setattr(cli, "score_question", scored)
+    assert cli.cmd_grade(argparse.Namespace(rubric=MBEDTLS, answers=answers)) == 0
+    sidecar = json.loads((answers / f"Q1_sonnet_{_A}_r1.grade.json").read_text())
+    assert sidecar["split_decisions"] == 1, "the sidecar must carry the count"
+    capsys.readouterr()
+
+    rows = [
+        (
+            {
+                "stem": f"Q1_sonnet_{_A}_r1",
+                "arm": _A,
+                "seconds": 1.0,
+                "output_tokens": 1,
+                "cache_read_tokens": 1,
+                "result_bytes": 1,
+                "turns": 1,
+                "tool_calls": 1,
+                "non_index_tool_calls": 1,
+                "denied_tool_calls": 0,
+            },
+            sidecar,
+        )
+    ]
+    cli._print_cells(rows)
+    line = next(x for x in capsys.readouterr().out.splitlines() if x.startswith("Q1_"))
+    assert line.split()[-1] == "1", f"the split count must be the last column: {line}"

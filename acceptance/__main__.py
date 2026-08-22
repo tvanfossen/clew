@@ -179,6 +179,9 @@ def cmd_grade(args) -> int:
                     "judge_model": rubric.judge_model,
                     "score": got,
                     "unmarked_pct": unmarked,
+                    ## DECISIONS THE JUDGE WAS NOT SURE OF. Not a drift predictor: measured,
+                    ## the cell that moved furthest on a regrade had none.
+                    "split_decisions": result.split_decisions(),
                     "decisions": [asdict(d) for d in result.decisions],
                 },
                 indent=2,
@@ -193,10 +196,78 @@ def cmd_grade(args) -> int:
     return 0
 
 
+## @brief Print the per-cell table.
+## @param rows (meta, grade) pairs in report order.
+## @return None.
+## @version 1
+def _print_cells(rows: list) -> None:
+    """EXTRACTED SO THE TABLE ITSELF IS TESTABLE. Every column here is a number a reader will
+    quote, and a column that silently shifts or prints the wrong field is invisible in a
+    coordinator function that also does file I/O.
+
+    SPLIT counts verdicts whose judge samples disagreed. It does NOT predict drift — measured on
+    five cells regraded against an unchanged rubric, three cells carrying a split reproduced
+    exactly while the largest mover had none. It flags a decision the judge was unsure of, which
+    is worth seeing on its own terms. An older sidecar predating the field prints as unknown
+    rather than as zero, because zero would claim the judge never wavered.
+
+    @brief Per-cell table.
+    @return None.
+    @version 1
+    """
+    head = (
+        f"{'cell':<34} {'time':>7} {'out tok':>8} {'cache tok':>10} {'bytes':>8} "
+        f"{'turns':>6} {'tools':>6} {'!idx':>5} {'deny':>5} {'score':>7} {'unmkd':>6} {'split':>6}"
+    )
+    print(head)
+    print("-" * len(head))
+    for meta, grade in rows:
+        score = f"{grade['score']:6.1%}" if grade else "     —"
+        unmarked = f"{grade['unmarked_pct']:5.1%}" if grade else "    —"
+        split = str(grade.get("split_decisions", "—")) if grade else "—"
+        print(
+            f"{meta['stem']:<34} {meta['seconds']:6.1f}s {meta['output_tokens']:>8} "
+            f"{meta['cache_read_tokens']:>10} {meta['result_bytes']:>8} {meta['turns']:>6} "
+            f"{meta['tool_calls']:>6} {meta['non_index_tool_calls']:>5} "
+            f"{meta['denied_tool_calls']:>5} {score:>7} {unmarked:>6} {split:>6}"
+        )
+
+
+## @brief Distinct files each question's marks cite, keyed by question id.
+## @param rubric_path Rubric to read, or None when report was run without one.
+## @return {question_id: distinct files cited}; empty when unavailable.
+## @version 1
+def _files_cited(rubric_path: Path | None) -> dict[str, int]:
+    """THE OTHER HALF OF THE PREDICTION UNDER TEST. Separation alone cannot say whether the
+    index's advantage is specific to answers assembled from places no single read reaches; the
+    pair can, and n=1 over two saturated cells is the only evidence for it so far.
+
+    A PROXY, AND SAID SO: citing four files does not prove an answer needs four reads. What it
+    tracks is the shape that has actually saturated.
+
+    RETURNS EMPTY RATHER THAN RAISING when the rubric is absent or unreadable. `report` reads a
+    FINISHED run and must not fail on a rubric that has since moved or been re-versioned — the
+    column degrades to unknown, which is what the caller prints.
+
+    @brief Per-question citation spread.
+    @return Mapping, possibly empty.
+    @version 1
+    """
+    if rubric_path is None:
+        return {}
+    try:
+        rubric = load(rubric_path)
+    except RubricError:
+        return {}
+    return {
+        q.id: len({str(ref[0]) for m in q.marks for ref in m.refs if ref}) for q in rubric.questions
+    }
+
+
 ## @brief Report the three axes per cell, from frozen artifacts only.
 ## @param args Parsed arguments.
 ## @return Exit code.
-## @version 1
+## @version 2
 def cmd_report(args) -> int:
     """ALL THREE AXES, EVERY TIME, and cost as TWO numbers. `total_tokens` is a turn counter
     times a mostly-cached prompt, so it tracks round trips far more closely than anything
@@ -219,22 +290,8 @@ def cmd_report(args) -> int:
         print("no cells found", file=sys.stderr)
         return 1
 
-    head = (
-        f"{'cell':<34} {'time':>7} {'out tok':>8} {'cache tok':>10} {'bytes':>8} "
-        f"{'turns':>6} {'tools':>6} {'!idx':>5} {'deny':>5} {'score':>7} {'unmkd':>6}"
-    )
-    print(head)
-    print("-" * len(head))
-    for meta, grade in rows:
-        score = f"{grade['score']:6.1%}" if grade else "     —"
-        unmarked = f"{grade['unmarked_pct']:5.1%}" if grade else "    —"
-        print(
-            f"{meta['stem']:<34} {meta['seconds']:6.1f}s {meta['output_tokens']:>8} "
-            f"{meta['cache_read_tokens']:>10} {meta['result_bytes']:>8} {meta['turns']:>6} "
-            f"{meta['tool_calls']:>6} {meta['non_index_tool_calls']:>5} "
-            f"{meta['denied_tool_calls']:>5} {score:>7} {unmarked:>6}"
-        )
-    _paired_summary(rows)
+    _print_cells(rows)
+    _paired_summary(rows, files_cited=_files_cited(args.rubric))
     print("\nOUT TOK and CACHE TOK are reported apart, never summed. Measured on one cell:")
     print(
         "534,192 cached against 7,292 output — a blended figure describes the prefix, not the work."
@@ -242,6 +299,16 @@ def cmd_report(args) -> int:
     print("!idx = tool calls that did not use the index, the lever under test.")
     print("-1 in a tool column means the count could not be determined, NOT zero.")
     print("DENY on the BASELINE arm is contamination: it reached for a tool it should not see.")
+    print(
+        "SPLIT = verdicts whose judge samples disagreed — a decision the judge was unsure of, "
+        "NOT a drift\n        predictor: regrading five cells, the one that moved furthest "
+        "(-12.1pt) had no split verdicts at all."
+    )
+    print(
+        "FILES = distinct files that question's marks cite, printed beside separation because "
+        "multi-file\n        questions are where the index is predicted to excel. The harness "
+        "prints the pair; it does not rule on it."
+    )
     return 0
 
 
@@ -249,7 +316,7 @@ def cmd_report(args) -> int:
 ## @param rows (meta, grade) pairs for every cell in the run.
 ## @return None.
 ## @version 1
-def _paired_summary(rows: list) -> None:
+def _paired_summary(rows: list, files_cited: dict[str, int] | None = None) -> None:
     """TWO THINGS THE PER-CELL TABLE CANNOT SHOW, both of which decide whether a question earned
     its place in the grid.
 
@@ -269,10 +336,18 @@ def _paired_summary(rows: list) -> None:
     A NEGATIVE DISPLACEMENT IS A REAL RESULT, not a glitch: the index cost that cell more than it
     saved. Reporting only the wins is how a benchmark becomes a self-portrait.
 
+    SPREAD RIDES BESIDE SEPARATION, because that pair is the prediction the grid exists to test:
+    multi-file questions are where the index should excel over a source harness. Two saturated
+    cells at n=1 suggested it and n=1 cannot establish it, so both numbers print on one row and
+    NOTHING here rules on the correlation. `files_cited` is absent when `report` ran without a
+    rubric and prints as unknown rather than as zero — a zero would be a claim about a rubric
+    this process never opened.
+
     @brief Paired per-question summary.
     @return None.
-    @version 1
+    @version 2
     """
+    files_cited = files_cited or {}
     paired: dict = {}
     for meta, grade in rows:
         parsed = parse_stem(str(meta["stem"]))
@@ -294,12 +369,18 @@ def _paired_summary(rows: list) -> None:
         print("\nNo arm PAIRS in this run — separation and displacement need both arms of a cell.")
         return
 
-    print(f"\n{'question':<22} {left:>9} {right:>9} {'separation':>11} {'shell displaced':>16}")
-    print("-" * 70)
+    print(
+        f"\n{'question':<22} {'files':>6} {left:>9} {right:>9} {'separation':>11} "
+        f"{'shell displaced':>16}"
+    )
+    print("-" * 77)
     for key in sorted(complete):
         b_meta, b_grade = complete[key][left]
         i_meta, i_grade = complete[key][right]
         label = f"{key[0]}_{key[1]}_r{key[2]}"
+        ## UNKNOWN PRINTS AS UNKNOWN. Absent when report ran without a rubric; a 0 there would
+        ## assert the question cites nothing, which is a claim about a file nobody opened.
+        spread = str(files_cited.get(key[0], "—"))
         b_shell, i_shell = b_meta["non_index_tool_calls"], i_meta["non_index_tool_calls"]
         ## UNKNOWN COUNTS DO NOT BECOME A DISPLACEMENT. -1 means the transcript could not be
         ## read; arithmetic on it would invent a number.
@@ -314,9 +395,20 @@ def _paired_summary(rows: list) -> None:
             ## is the difference between a reader drawing the right conclusion and the wrong one.
             idx_used = i_meta["tool_calls"] - i_meta["non_index_tool_calls"]
             flag = "" if i_meta["tool_calls"] < 0 or idx_used > 0 else "   NO INDEX CALLS"
-            print(f"{label:<22} {b:>8.1%} {i:>8.1%} {sep:>11} {disp:>16}{flag}")
+            print(f"{label:<22} {spread:>6} {b:>8.1%} {i:>8.1%} {sep:>11} {disp:>16}{flag}")
         else:
-            print(f"{label:<22} {'—':>9} {'—':>9} {'—':>11} {disp:>16}")
+            print(f"{label:<22} {spread:>6} {'—':>9} {'—':>9} {'—':>11} {disp:>16}")
+    ## A QUESTION MISSING FROM THIS TABLE LEAVES NO TRACE IN IT. Measured: a run held a baseline
+    ## cell and a blended-arm cell for one question and no index_only cell, so that question
+    ## simply did not appear — and a reader comparing five questions sees four rows with nothing
+    ## saying why. Silent truncation reading as complete coverage is the shape this whole file
+    ## exists to avoid, so what was dropped is named.
+    unpaired = sorted({k[0] for k in paired} - {k[0] for k in complete})
+    if unpaired:
+        print(
+            f"\n{len(unpaired)} question(s) had cells but no complete {left}/{right} pair and are "
+            f"absent from the table above: {', '.join(unpaired)}."
+        )
     tied = sum(
         1
         for k, v in complete.items()
@@ -343,8 +435,11 @@ def main() -> int:
 
     for name in ("plan", "generate", "grade", "report"):
         p = sub.add_parser(name)
-        if name != "report":
-            p.add_argument("--rubric", type=Path, required=True)
+        ## OPTIONAL FOR `report`, required everywhere else. A finished run's answers directory
+        ## is self-describing for every other column, so requiring the rubric here would make a
+        ## plain report impossible on a run whose rubric has since moved — and the one column it
+        ## supplies degrades to unknown rather than to a wrong number.
+        p.add_argument("--rubric", type=Path, required=name != "report", default=None)
         if name in ("plan", "generate"):
             p.add_argument("--models", nargs="+", required=True)
             p.add_argument("--replicates", type=int, default=1)

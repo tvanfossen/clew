@@ -335,3 +335,36 @@ def test_vote_records_the_reason_each_attempt_failed(monkeypatch: pytest.MonkeyP
     monkeypatch.setattr(judge, "ask", lambda *_a, **_k: judge.Reply(text="I think it is fine."))
     voted = judge.vote("m", "a", "claude-x-1", 1)
     assert "no VERDICT line" in voted.reasons[0]
+
+
+## @brief A split verdict is counted, so a score built on them is distinguishable.
+## @return None.
+## @version 1
+def test_split_decisions_are_counted(monkeypatch: pytest.MonkeyPatch) -> None:
+    """MEASURED. Grading five cells twice against an unchanged rubric reproduced four of them to
+    the decimal and moved one by 10 points — and the entire movement was ONE weight-2 mark the
+    judge splits 2:1 on. Every other verdict in that cell was unanimous.
+
+    So run-to-run noise on this grader is not spread thinly across a cell; it is concentrated in
+    the decisions where the judge disagrees with itself, and `agreement` already exposes which.
+    Counting them makes a score that rests on split verdicts distinguishable from one where
+    every verdict was unanimous — the same job `unmarked_pct` does for decisions never ruled on.
+
+    SET DECISIONS ARE NOT SPLIT VERDICTS. They record agreement 0.0 with samples 0 because the
+    extraction, not the verdict, was voted; counting them would report every set mark as
+    unstable and drown the signal.
+
+    @brief Split verdicts are counted, set decisions are not.
+    @return None.
+    @version 1
+    """
+    decisions = [
+        score.Decision("unanimous", "conclusion", 3, True, agreement=1.0, samples=3),
+        score.Decision("split", "conclusion", 2, True, agreement=0.67, samples=3),
+        score.Decision("also split", "conclusion", 2, False, agreement=0.67, samples=3),
+        score.Decision("single sample", "retrieval", 1, True, agreement=1.0, samples=1),
+        score.Decision("a set member", "set", 2, True, agreement=0.0, samples=0),
+        score.Decision("unruled", "conclusion", 3, None, agreement=0.0, samples=3, errors=3),
+    ]
+    result = score.QuestionResult(id="Q1", decisions=decisions)
+    assert result.split_decisions() == 2, "only the two genuinely split VERDICTS count"
