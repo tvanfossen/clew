@@ -55,11 +55,21 @@ class CellResult:
     model: str
     ok: bool
     seconds: float = 0.0
-    total_tokens: int = 0
+    ## FOUR TOKEN NUMBERS, NEVER ONE. Blending them hides that cached prefix dominates: measured
+    ## at 534,192 cache-read against 7,292 output on a single cell.
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cache_read_tokens: int = 0
+    cache_creation_tokens: int = 0
+    cost_usd: float = 0.0
     result_bytes: int = 0
     turns: int = 0
     tool_calls: int = 0
     non_index_tool_calls: int = 0
+    ## A DENIED CALL IS EVIDENCE, not noise: it is an arm reaching for something it was fenced
+    ## from, and a non-zero count on the BASELINE arm means the fencing is doing work it should
+    ## not have to do.
+    denied_tool_calls: int = 0
     error: str = ""
 
 
@@ -67,29 +77,47 @@ class CellResult:
 ## @param envelope The runner's JSON envelope.
 ## @return (total calls, calls that were not index tools).
 ## @version 1
-def count_tools(envelope: dict) -> tuple[int, int]:
+def count_tools(envelope: dict, session_id: str | None, repo_root: Path) -> tuple[int, int]:
     """NON-INDEX CALLS ARE THE LEVER UNDER TEST, so they are counted rather than inferred.
 
-    Returns -1 for both when the envelope carries no message list — a cell whose tool use is
-    UNKNOWN must not report 0, because 0 reads as "used no tools", which is the best possible
-    result on the axis being measured.
+    THE JSON ENVELOPE DOES NOT CARRY THE MESSAGES. Measured on the first real run: it holds
+    `usage`, `num_turns`, `permission_denials` and the result text, and nothing else. The tool
+    calls live in the SESSION TRANSCRIPT, which the envelope names by `session_id`.
 
-    @brief Tool-call counts.
+    Returns -1 for both when the transcript cannot be read. A cell whose tool use is UNKNOWN must
+    not report 0, because 0 reads as "used no tools" — the best possible result on the very axis
+    being measured, handed out for a missing file.
+
+    @brief Tool-call counts from the session transcript.
     @return (total, non-index).
-    @version 1
+    @version 2
     """
-    messages = envelope.get("messages")
-    if not isinstance(messages, list):
+    if not session_id:
         return -1, -1
+    slug = "-" + str(repo_root).lstrip("/").replace("/", "-")
+    path = Path.home() / ".claude" / "projects" / slug / f"{session_id}.jsonl"
+    if not path.is_file():
+        found = list((Path.home() / ".claude" / "projects").glob(f"*/{session_id}.jsonl"))
+        if not found:
+            return -1, -1
+        path = found[0]
     total = 0
     non_index = 0
-    for message in messages:
-        for block in (message.get("content") or []) if isinstance(message, dict) else []:
-            if not isinstance(block, dict) or block.get("type") != "tool_use":
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
                 continue
-            total += 1
-            if not str(block.get("name") or "").startswith("mcp__clew__"):
-                non_index += 1
+            content = ((row.get("message") or {}).get("content")) or []
+            for block in content if isinstance(content, list) else []:
+                if not isinstance(block, dict) or block.get("type") != "tool_use":
+                    continue
+                total += 1
+                if "clew" not in str(block.get("name") or ""):
+                    non_index += 1
+    except OSError:
+        return -1, -1
     return total, non_index
 
 
@@ -125,6 +153,8 @@ def run_cell(
             f"{cell.stem()}: the index arm needs an MCP config. Running it without one "
             f"measures the baseline arm under the index arm's name"
         )
+    out_dir = out_dir.resolve()
+    repo_root = repo_root.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     argv = [
         "claude",
@@ -136,9 +166,23 @@ def run_cell(
         "json",
         "--allowedTools",
         _ALLOWED[cell.arm],
+        ## THE BASELINE ARM MUST NOT INHERIT THE OPERATOR'S MCP SERVERS. Measured on the first
+        ## real run: the baseline arm attempted `mcp__plugin_clew_clew__index` and was denied by
+        ## --allowedTools, so no index data reached the answer — but it could SEE that an index
+        ## existed, which is a hint the comparison cannot afford to give it. Denying a call is
+        ## not the same as never offering it.
+        ##
+        ## `--strict-mcp-config` loads ONLY what is passed on the command line, so the baseline
+        ## arm gets an empty server set rather than whatever the launching session happened to
+        ## have configured.
+        "--strict-mcp-config",
     ]
+    ## ABSOLUTE, because the subprocess runs with cwd set to the TARGET REPO. A relative config
+    ## path resolved against that tree, the file was not there, and every index cell failed
+    ## while the baseline cells succeeded — a failure mode that silently produces a one-armed
+    ## run if the errors are not read.
     if cell.arm == "index" and mcp_config is not None:
-        argv += ["--mcp-config", str(mcp_config)]
+        argv += ["--mcp-config", str(mcp_config.resolve())]
 
     started = time.monotonic()
     try:
@@ -166,18 +210,29 @@ def run_cell(
 
     answer = str(envelope.get("result") or "")
     usage = envelope.get("usage") or {}
-    calls, non_index = count_tools(envelope)
+    calls, non_index = count_tools(envelope, envelope.get("session_id"), repo_root)
+    ## THE ENVELOPE HAS NO `total_tokens`, and assuming one read the cost axis as ZERO on every
+    ## cell of the first real run. It carries the four components separately, and they must stay
+    ## separate: measured on one baseline cell, cache_read was 534,192 against 7,292 output.
+    ## Summing them into one number is the "turn counter times a mostly-cached prompt" the
+    ## hypothesis warns about — it would have been dominated by cached prefix and said nothing
+    ## about retrieval.
     result = CellResult(
         stem=cell.stem(),
         arm=cell.arm,
         model=cell.model,
         ok=bool(answer.strip()),
         seconds=elapsed,
-        total_tokens=int(usage.get("total_tokens") or envelope.get("total_tokens") or 0),
+        input_tokens=int(usage.get("input_tokens") or 0),
+        output_tokens=int(usage.get("output_tokens") or 0),
+        cache_read_tokens=int(usage.get("cache_read_input_tokens") or 0),
+        cache_creation_tokens=int(usage.get("cache_creation_input_tokens") or 0),
+        cost_usd=float(envelope.get("total_cost_usd") or 0.0),
         result_bytes=len(answer.encode("utf-8")),
         turns=int(envelope.get("num_turns") or 0),
         tool_calls=calls,
         non_index_tool_calls=non_index,
+        denied_tool_calls=len(envelope.get("permission_denials") or []),
         error="" if answer.strip() else "the agent produced no answer text",
     )
 

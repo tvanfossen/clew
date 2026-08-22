@@ -71,25 +71,20 @@ def test_successful_cell_freezes_three_artifacts(
     """
     envelope = {
         "result": "The threading macros are commented out.",
-        "usage": {"total_tokens": 4321},
+        "usage": {"output_tokens": 4321, "cache_read_input_tokens": 99},
         "num_turns": 5,
-        "messages": [
-            {
-                "content": [
-                    {"type": "tool_use", "name": "Grep"},
-                    {"type": "tool_use", "name": "Read"},
-                ]
-            },
-            {"content": [{"type": "tool_use", "name": "mcp__clew__dossier"}]},
-        ],
+        "session_id": "no-such-session",
     }
     monkeypatch.setattr(subprocess, "run", _fake_run(envelope))
     out = tmp_path / "out"
     result = execute.run_cell(CELL, "What runs?", tmp_path, out)
 
-    assert result.ok and result.total_tokens == 4321 and result.turns == 5
+    assert result.ok and result.output_tokens == 4321 and result.turns == 5
+    assert result.cache_read_tokens == 99, "cached prefix is recorded separately, never blended"
     assert result.result_bytes == len(envelope["result"].encode())
-    assert (result.tool_calls, result.non_index_tool_calls) == (3, 2)
+    assert (result.tool_calls, result.non_index_tool_calls) == (-1, -1), (
+        "an unreadable transcript reports UNKNOWN, never zero"
+    )
     assert (out / "Q1_sonnet_baseline_r1.md").read_text() == envelope["result"]
     meta = json.loads((out / "Q1_sonnet_baseline_r1.meta.json").read_text())
     assert meta["argv"][0] == "claude", (
@@ -142,8 +137,8 @@ def test_unknown_tool_use_is_minus_one_not_zero() -> None:
     @return None.
     @version 1
     """
-    assert execute.count_tools({}) == (-1, -1)
-    assert execute.count_tools({"messages": []}) == (0, 0)
+    assert execute.count_tools({}, None, Path("/nowhere")) == (-1, -1)
+    assert execute.count_tools({}, "absent-session", Path("/nowhere")) == (-1, -1)
 
 
 ## @brief The baseline arm keeps its full tool repertoire.

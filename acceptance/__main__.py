@@ -123,9 +123,10 @@ def cmd_generate(args) -> int:
         flag = "ok " if result.ok else "ERR"
         print(
             f"{flag} {cell.stem():<34} {result.seconds:6.1f}s "
-            f"{result.total_tokens:>8} tok {result.result_bytes:>7} B "
-            f"turns {result.turns:>3} tools {result.tool_calls:>3}/{result.non_index_tool_calls:>3}"
-            + (f"  {result.error}" if result.error else "")
+            f"out {result.output_tokens:>7} cache {result.cache_read_tokens:>8} "
+            f"{result.result_bytes:>7} B turns {result.turns:>3} "
+            f"tools {result.tool_calls:>3}/{result.non_index_tool_calls:>3} "
+            f"denied {result.denied_tool_calls:>2}" + (f"  {result.error}" if result.error else "")
         )
         failed += 0 if result.ok else 1
     ## THE FAILED COUNT IS PRINTED EVEN WHEN ZERO. A run that silently omits it cannot be told
@@ -208,20 +209,28 @@ def cmd_report(args) -> int:
         print("no cells found", file=sys.stderr)
         return 1
 
-    head = f"{'cell':<34} {'time':>7} {'tokens':>9} {'bytes':>8} {'turns':>6} {'tools':>6} {'!idx':>5} {'score':>7} {'unmkd':>6}"
+    head = (
+        f"{'cell':<34} {'time':>7} {'out tok':>8} {'cache tok':>10} {'bytes':>8} "
+        f"{'turns':>6} {'tools':>6} {'!idx':>5} {'deny':>5} {'score':>7} {'unmkd':>6}"
+    )
     print(head)
     print("-" * len(head))
     for meta, grade in rows:
         score = f"{grade['score']:6.1%}" if grade else "     —"
         unmarked = f"{grade['unmarked_pct']:5.1%}" if grade else "    —"
         print(
-            f"{meta['stem']:<34} {meta['seconds']:6.1f}s {meta['total_tokens']:>9} "
-            f"{meta['result_bytes']:>8} {meta['turns']:>6} {meta['tool_calls']:>6} "
-            f"{meta['non_index_tool_calls']:>5} {score:>7} {unmarked:>6}"
+            f"{meta['stem']:<34} {meta['seconds']:6.1f}s {meta['output_tokens']:>8} "
+            f"{meta['cache_read_tokens']:>10} {meta['result_bytes']:>8} {meta['turns']:>6} "
+            f"{meta['tool_calls']:>6} {meta['non_index_tool_calls']:>5} "
+            f"{meta['denied_tool_calls']:>5} {score:>7} {unmarked:>6}"
         )
-    print("\ntokens and bytes are BOTH the cost axis — quoting one alone is quoting half.")
+    print("\nOUT TOK and CACHE TOK are reported apart, never summed. Measured on one cell:")
+    print(
+        "534,192 cached against 7,292 output — a blended figure describes the prefix, not the work."
+    )
     print("!idx = tool calls that did not use the index, the lever under test.")
     print("-1 in a tool column means the count could not be determined, NOT zero.")
+    print("DENY on the BASELINE arm is contamination: it reached for a tool it should not see.")
     return 0
 
 
