@@ -97,3 +97,280 @@ questions:
           a stable id is not. That is the whole premise of the before/after comparison in
           src/duplicate_diff.rs.
         refs: [["src/duplicates.rs", 72, 74], ["src/duplicate_diff.rs", 1, 6]]
+
+  - id: Q2
+    intent: |
+      Probes whether the agent reads a formula or follows a value. AIRD's inputs are listed in
+      its own docstring — one read. What that read cannot tell you is that the number is
+      afterwards MULTIPLIED by a file-level figure computed in a different module, that the
+      multiplier is deliberately capped so it nudges rather than dominates, and that the whole
+      post-pass only happens in one invocation mode.
+
+      The traversal is three hops and no single file holds it: complexity.rs computes AIRD
+      eagerly per function, coupling.rs builds the corpus-wide import graph, and coupling.rs then
+      calls BACK into complexity.rs to re-scale. An answer that reports the formula's six inputs
+      has read the function and missed what determines the value.
+
+    prompt: |
+      knots reports an AIRD score per function. What actually determines that number — and would
+      you expect the same function to score the same on two different runs?
+
+    marks:
+      - text: names the function-level inputs the AIRD formula takes
+        type: retrieval
+        weight: 1
+        evidence: |
+          calculate_aird takes cognitive, sloc, nesting, test_score, doc_score and state_coupling,
+          each normalised against a divisor and capped at 1.0 before weighting.
+        refs: [["src/complexity.rs", 1421, 1450]]
+
+      - text: >-
+          states that the score is afterwards MULTIPLIED by a factor derived from the efferent
+          coupling of the FILE the function lives in
+        type: conclusion
+        weight: 3
+        evidence: |
+          apply_aird_ce_multiplier re-scales an already-computed AIRD by aird_file_ce_multiplier,
+          re-clamping to the 0-100 ceiling.
+        refs: [["src/complexity.rs", 1525, 1540]]
+
+      - text: >-
+          explains WHY it is a post-pass rather than a seventh input — AIRD is computed eagerly
+          per function, before the corpus-wide import graph exists
+        type: conclusion
+        weight: 3
+        evidence: |
+          Stated outright in apply_aird_ce_multiplier's docstring. The ordering is a data
+          dependency, not a style choice.
+        refs: [["src/complexity.rs", 1530, 1534]]
+
+      - text: >-
+          states that the file-level Ce comes from the coupling module's corpus-wide import
+          graph, which only exists in the recursive whole-corpus mode
+        type: conclusion
+        weight: 3
+        evidence: |
+          The multiplier's docstring names knots::coupling as the source and says the graph is
+          only available in --recursive mode. coupling.rs imports apply_aird_ce_multiplier back
+          from complexity.rs, so the dependency runs both ways between the two modules.
+        refs: [["src/complexity.rs", 1517, 1524], ["src/coupling.rs", 25, 27]]
+
+      - text: >-
+          concludes that the SAME FUNCTION therefore scores differently depending on how the tool
+          was invoked — a single-file run cannot apply the multiplier at all
+        type: conclusion
+        weight: 3
+        evidence: |
+          The conclusion the whole question exists for. Without the corpus graph there is no file
+          Ce, so the post-pass does not run and the reported AIRD is the unscaled figure.
+        refs: [["src/complexity.rs", 1517, 1524]]
+
+      - text: >-
+          notes that the file-coupling contribution is deliberately CAPPED so it nudges the score
+          rather than dominating it
+        type: conclusion
+        weight: 2
+        evidence: |
+          Two constants bound it: the Ce normalisation cap, beyond which the multiplier stays
+          maxed, and a maximum proportional bonus. The rationale given is that file coupling is a
+          coarser, one-abstraction-up signal than the function's own state_coupling, in a formula
+          calibrated around function-level inputs.
+        refs: [["src/complexity.rs", 1505, 1516]]
+
+  - id: Q3
+    intent: |
+      Probes a deliberate exclusion and its reason. That knots computes Ce, Ca and Instability is
+      one lookup. What matters is what is NOT counted and why: imports that resolve to nothing in
+      the corpus contribute no edge at all, and ambiguous ones resolve to no edge rather than an
+      arbitrary pick. Both are stated as reasoning about signal rather than as implementation
+      limits, and an answer that reports the metrics without the exclusions has described a
+      different tool.
+
+    prompt: |
+      knots reports import-coupling metrics per file. What counts as an edge in that graph, and
+      what deliberately does not?
+
+    marks:
+      - text: names the three file-level coupling metrics knots computes
+        type: retrieval
+        weight: 1
+        evidence: |
+          Efferent coupling, afferent coupling and instability, the last being Ce over Ce plus Ca.
+        refs: [["src/coupling.rs", 1, 6], ["src/coupling.rs", 28, 40]]
+
+      - text: >-
+          states that an import which does not resolve to a file IN THE ANALYSED CORPUS
+          contributes no edge — third-party libraries, standard library and unresolvable dynamic
+          imports are all excluded
+        type: conclusion
+        weight: 3
+        evidence: |
+          Stated in the module header. The metrics measure coupling within the corpus.
+        refs: [["src/coupling.rs", 14, 17]]
+
+      - text: >-
+          explains the CONSEQUENCE that motivates the exclusion — counting external dependencies
+          would inflate every file importing a third-party library and push instability toward
+          its maximum for nearly the whole corpus, erasing the signal
+        type: conclusion
+        weight: 3
+        evidence: |
+          The reason is given explicitly and is about signal preservation, not about difficulty of
+          resolution. An answer that says external imports are "not tracked" has the fact without
+          the argument.
+        refs: [["src/coupling.rs", 18, 21]]
+
+      - text: >-
+          states that an AMBIGUOUS import — one whose name matches several corpus files — resolves
+          to NO edge rather than to an arbitrary choice
+        type: conclusion
+        weight: 3
+        evidence: |
+          The header gives same-named files in different packages as the example and states the
+          principle: a wrong edge is worse than a missing one.
+        refs: [["src/coupling.rs", 9, 13]]
+
+      - text: >-
+          conveys that both exclusions bias the graph toward UNDER-counting, and that this is the
+          intended direction
+        type: conclusion
+        weight: 2
+        evidence: |
+          Each rule drops an edge rather than inventing one, and each is justified by the cost of
+          a false edge. An answer noticing that the two rules share a direction has understood the
+          design rather than listed it.
+        refs: [["src/coupling.rs", 9, 21]]
+
+  - id: Q4
+    intent: |
+      A near-duplicate pair that punishes skimming. Two AIRD functions sit adjacent with the same
+      six parameters and nearly the same body, and the docstring says the second is "the same
+      formula without the caps". It is not: THREE of the six normalisations stay clamped, and the
+      weights differ from the capped variant's. An agent that reads the docstring and paraphrases
+      it will state something the code contradicts twenty lines below.
+
+      The purpose is the interesting half and cannot be inferred from either body: the capped
+      score pins at its ceiling for very large functions, so refactoring shows no movement — the
+      raw score keeps falling and gives a progress signal while the gate score is still maxed.
+
+    prompt: |
+      knots computes AIRD twice, in two different functions. What is the difference between them,
+      and why would anyone want the second one?
+
+    marks:
+      - text: identifies that there is a capped AIRD and a raw uncapped variant beside it
+        type: retrieval
+        weight: 1
+        evidence: |
+          calculate_aird returns a clamped integer; calculate_aird_raw returns an f64 that can
+          exceed 100.
+        refs: [["src/complexity.rs", 1433, 1440], ["src/complexity.rs", 1463, 1470]]
+
+      - text: >-
+          states the PURPOSE — the capped score pins at its ceiling for very large functions, so
+          refactoring produces no visible movement, while the raw score keeps decreasing and gives
+          a progress signal
+        type: conclusion
+        weight: 3
+        evidence: |
+          Stated in the raw variant's docstring. The gate score can sit at its maximum while real
+          improvement is happening, and that is exactly when a maintainer needs a number.
+        refs: [["src/complexity.rs", 1458, 1462]]
+
+      - text: >-
+          notes that the raw variant is NOT simply the capped one with the caps removed — several
+          of its normalisations remain clamped
+        type: conclusion
+        weight: 3
+        evidence: |
+          Only the cognitive and sloc terms lose their ceiling. Nesting, test, documentation and
+          state-coupling all keep theirs, one of them with an inline note that nesting rarely
+          exceeds its cap. An answer that repeats "same formula without the caps" has taken the
+          docstring's summary over the body.
+        refs: [["src/complexity.rs", 1471, 1477]]
+
+      - text: >-
+          conveys that the two functions do not share an implementation — the formula is written
+          out twice, so a weight changed in one does not change the other
+        type: conclusion
+        weight: 2
+        evidence: |
+          Both bodies compute the weighted sum independently. Nothing enforces that they stay in
+          step.
+        refs: [["src/complexity.rs", 1450, 1456], ["src/complexity.rs", 1478, 1483]]
+
+      - text: >-
+          notes that the raw variant floors at zero rather than clamping to a ceiling, so a
+          well-documented simple function cannot go negative
+        type: conclusion
+        weight: 2
+        evidence: |
+          The documentation term subtracts, and the result is floored at zero with no upper bound
+          — the mirror image of the capped variant, which is bounded above and below.
+        refs: [["src/complexity.rs", 1478, 1483]]
+
+  - id: Q5
+    intent: |
+      Probes whether the agent establishes a precedence ORDER or merely finds a config file.
+      There are three ways to influence what knots analyses and how it judges it, they coexist by
+      design rather than by accident, and one of them is explicitly preserved rather than
+      replaced. The ordering matters to anyone whose CI run disagrees with their local one, and
+      no single file states all three.
+
+    prompt: |
+      A user reports that knots ignored a threshold they configured. What are all the ways
+      thresholds and exclusions can be set, and which one wins?
+
+    marks:
+      - text: identifies the optional TOML configuration file as one source
+        type: retrieval
+        weight: 1
+        evidence: |
+          An optional unified-config file carrying thresholds and file/function exclusions, with
+          every field optional.
+        refs: [["src/config.rs", 1, 8]]
+
+      - text: >-
+          states that command-line flags ALWAYS take precedence over anything in the
+          configuration file
+        type: conclusion
+        weight: 3
+        evidence: |
+          Stated outright in the module header, and it is the answer to the user's complaint: a
+          flag set in CI silently overrides the file they edited.
+        refs: [["src/config.rs", 5, 6]]
+
+      - text: >-
+          identifies a THIRD mechanism — the older include/exclude sidecar — and states that it
+          keeps working unchanged
+        type: conclusion
+        weight: 3
+        evidence: |
+          The header names it and says the newer file is an additive surface, not a replacement.
+          An answer describing only the config file and the flags has missed a live path that can
+          also be responsible.
+        refs: [["src/config.rs", 6, 8]]
+
+      - text: >-
+          conveys that the design intent is COEXISTENCE rather than migration — the older
+          mechanism is preserved deliberately rather than deprecated
+        type: conclusion
+        weight: 2
+        evidence: |
+          "Additive config surface, not a replacement" is the stated position. That distinguishes
+          a tool that will remove the old path from one that will not.
+        refs: [["src/config.rs", 4, 8]]
+
+      - text: the ways thresholds or exclusions can be configured
+        type: set
+        weight: 2
+        extract: |
+          List every distinct mechanism the answer says can set thresholds or exclusions. One per
+          line, using the answer's own words. If it names none, reply NONE.
+        members:
+          - value: knots.toml
+            evidence: "the optional unified-config file"
+          - value: CLI
+            evidence: "command-line flags, highest precedence"
+          - value: FilterRules
+            evidence: "the legacy include/exclude JSON sidecar"
