@@ -98,9 +98,9 @@ How often does the LLM judge change its mind about the same (mark, answer) pair?
 much deterministic structure the rubric schema has to carry, and it was unknown — n=1 per mark
 with no vote, bounded only at ≤~6% by the falsity trios.
 
-**Measured 2026-08-21** with `scripts/judge_variance.py`, against answers already committed — no
-agent runs, judge calls only. 40 pairs stratified 20/20 by mark shape, 3 independent reps each,
-120 calls:
+**Measured 2026-08-21** with `scripts/judge_variance.py` — no agent runs, judge calls only. 40
+pairs stratified 20/20 by mark shape, 3 independent reps each, 120 calls. Frozen record and raw
+rows: [`judge-variance/2026-08-21/`](judge-variance/2026-08-21/README.md).
 
 | shape | pairs | flipped | flip rate | disagrees with the recorded verdict |
 |---|---:|---:|---:|---:|
@@ -108,6 +108,12 @@ agent runs, judge calls only. 40 pairs stratified 20/20 by mark shape, 3 indepen
 | objective | 20 | 0 | **0.0%** | 0.0% |
 
 Transport/parse errors: **0 of 120**.
+
+**It is not regenerable.** It was measured against the previous rubric generation, whose
+transcripts were deleted in the 002 overhaul, and its rows are in a shape the current decision
+model does not use. The script speaks only the current shape — deliberately, rather than knowing
+two and letting a reader mistake archived rows for current ones. To re-establish the bound on the
+current grader, run it against a fresh `generate` + `grade` pass.
 
 **Read the bound, not the point estimate.** Zero events in 40 pairs bounds the flip rate at
 roughly **≤7.5% of pairs at 95% confidence** (rule of three) — it does not establish that it is
@@ -131,9 +137,9 @@ observation, not a control.
 operational/
   README.md                      this file — what is measured and why it is not in the matrix
   judge-variance/
-    sample.json                  the stratified sample, with its seed — regenerable, and the
-                                 seed is what makes the measurement repeatable
-    verdicts.jsonl               one row per judge call: cell, mark, rep, verdict, error
+    <date>/                      one frozen measurement per date: sample.json, verdicts.jsonl
+                                 and a README stating what it bounds and what it cannot
+
   <machine>/                     one directory per machine; a figure without a machine is not a
                                  measurement
     machine.md                   CPU, cores, RAM, storage, OS — enough to reproduce
