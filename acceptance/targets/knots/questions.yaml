@@ -1,0 +1,99 @@
+# SPDX-License-Identifier: MIT
+#
+# THE GRADING KEY FOR KNOTS. Schema and rules: acceptance/DESIGN.md.
+#
+# WHY THIS TARGET. It is the only RUST repository in the reference set, so it is the only cell
+# exercising the rustdoc-JSON path rather than doxygen. "It works on Rust" is otherwise an
+# assertion about a capability rather than a measurement of one.
+#
+# The question below is built on a LIMIT the code states about itself. An agent that finds the
+# duplicate detector will describe what it catches; the components that matter are what it
+# deliberately does NOT catch and why, which is a design conclusion rather than a lookup.
+
+schema: 1
+
+target: brandon-arrendondo/knots
+commit: 9be25b32bebb2040a90946beac087a3d3b4d72f6
+version: 2.0.0
+
+ground_truth: |
+  knots's own source at the commit above, read directly.
+
+judge:
+  model: claude-sonnet-4-5-20250929
+  samples_when_weight_at_least: 2
+
+questions:
+  - id: Q1
+    intent: |
+      Probes whether the agent reports a capability or its boundary. "knots finds duplicate
+      functions" is one lookup and is what a shallow answer returns. The load-bearing facts are
+      that detection is STRUCTURAL rather than textual, that it is deliberately blind to a whole
+      clone class, and that it is gated off the default pass because it costs a second parse of
+      every file — three decisions, all readable from source, none of which follow from finding
+      the module.
+
+    prompt: |
+      knots can report duplicate functions across a codebase. What counts as a duplicate, what
+      does it deliberately miss, and why isn't it just part of the normal analysis pass?
+
+    marks:
+      - text: locates the detection in src/duplicates.rs
+        type: retrieval
+        weight: 1
+        evidence: |
+          The module's whole job; its header states the design.
+        refs: [["src/duplicates.rs", 1, 13]]
+
+      - text: >-
+          states that two functions group together when their AST subtrees hash IDENTICALLY —
+          same node kinds in the same shape — so the comparison is structural rather than textual
+        type: conclusion
+        weight: 3
+        evidence: |
+          Built on the substrate's structural fingerprinting. Identifier and literal TEXT is
+          ignored, which is why a renamed copy still groups.
+        refs: [["src/duplicates.rs", 1, 8]]
+
+      - text: >-
+          concludes that this catches byte-identical and RENAMED clones but is blind to
+          near-misses — a copy with one extra statement hashes differently and does not group
+        type: conclusion
+        weight: 3
+        evidence: |
+          Type-1 and Type-2 are caught; Type-3 is not, and the module says so. Catching Type-3
+          would need a fuzzy similarity threshold the substrate deliberately does not provide,
+          so the gap is a design boundary rather than an oversight.
+        refs: [["src/duplicates.rs", 5, 8]]
+
+      - text: >-
+          states that detection is GATED behind an explicit flag rather than folded into the
+          default recursive pass, and gives the cost reason — it is corpus-wide and needs a
+          SECOND parse of every file
+        type: conclusion
+        weight: 3
+        evidence: |
+          Gated behind --find-duplicates. The per-function metrics come for free from the first
+          parse; fingerprinting does not, which is the whole reason for the flag.
+        refs: [["src/duplicates.rs", 10, 13]]
+
+      - text: >-
+          conveys that very small functions are skipped, because two single-line accessors
+          hashing alike is not a finding
+        type: conclusion
+        weight: 2
+        evidence: |
+          A minimum AST node count filters them out before grouping.
+        refs: [["src/duplicates.rs", 19, 24]]
+
+      - text: >-
+          explains that a group's identity is CONTENT-DERIVED rather than positional, so a group
+          stays comparable across runs even when files are added, removed or reordered
+        type: conclusion
+        weight: 3
+        evidence: |
+          group_id (src/duplicates.rs:72) formats the first member's content hash. Diffing
+          "group #1 vs group #1" across two runs is meaningless once the corpus changes; diffing
+          a stable id is not. That is the whole premise of the before/after comparison in
+          src/duplicate_diff.rs.
+        refs: [["src/duplicates.rs", 72, 74], ["src/duplicate_diff.rs", 1, 6]]
