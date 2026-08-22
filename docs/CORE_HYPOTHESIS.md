@@ -145,6 +145,32 @@ use. That is a question about affordance, not about whether the tool is good. It
 arm *instructed* to prefer the index is not a flawed counterfactual — it is the control that
 isolates tool quality from adoption.
 
+> **This is not a theoretical exclusion, and the size of it is measured.** Told only that "a
+> queryable index is available as MCP tools", **two of two** index cells never touched the index
+> — no mention of the tools anywhere in either transcript — and answered entirely from `Grep` and
+> `Read`. Naming the three tools took it to **one of two**. A directive to use the index first
+> took it to **two of two**. The cell that first used them called all three with **zero
+> tool-discovery calls**, so the tools were in its tool list the whole time and discovery was
+> never the obstacle; its twin, identical config and identical brief, simply did not reach for
+> them.
+>
+> | index arm's tool sentence | index cells that used the index |
+> |---|---|
+> | "a queryable index is available as MCP tools" | 0 of 2 |
+> | the three tools named | 1 of 2 |
+> | a directive to use the index first | 2 of 2 |
+>
+> So adoption varies *between otherwise identical cells*. An index arm that silently answers from
+> source is not a weak result — it is a cell that measured the wrong thing, and averaging it into
+> the arm's score makes the quality axis meaningless. Hence a directive rather than an inventory,
+> and hence a per-cell record of index calls beside every score: a reader must be able to see
+> which cells exercised the arm at all.
+>
+> **The cost of this control is what it excludes.** The matrix measures tool quality with
+> adoption held constant. It does NOT measure the shipped experience, in which nobody instructs
+> the model and the index competes for attention against the shell on its own merits. That is a
+> real and important question; it is simply not this one.
+
 **Refresh latency is out of scope.** Every editor-integrated index pays a re-parse delay. It is
 machine-bound, it would confound the time axis with an operational variable, and it is measured
 in `acceptance/operational/` instead.
