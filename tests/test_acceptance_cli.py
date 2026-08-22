@@ -352,3 +352,25 @@ def test_zero_index_cell_is_flagged_in_the_separation_table(capsys: pytest.Captu
     assert "NO INDEX CALLS" not in lines["Q2_sonnet_r1"], (
         "a cell that used the index is not flagged"
     )
+
+
+## @brief The cross-rubric audit passes on the shipped set.
+## @return None.
+## @version 1
+def test_shipped_rubrics_pass_the_cross_rubric_audit() -> None:
+    """THE LOADER VALIDATES ONE RUBRIC; THESE ARE PROPERTIES OF THE SET. It caught a five-member
+    set mark carrying 56% of its question's weight — one mark deciding the majority of a
+    question, which the per-rubric validator has no way to see because nothing about that mark
+    is malformed.
+
+    Run through the module rather than the shell so a failure names the offending mark here
+    instead of in a subprocess's stdout.
+
+    @brief The audit is clean.
+    @return None.
+    @version 1
+    """
+    import scripts.rubric_audit as audit
+
+    assert audit.TARGETS, "the audit found no rubrics, so a pass proves nothing"
+    assert audit.main() == 0

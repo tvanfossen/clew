@@ -24,7 +24,7 @@ schema: 1
 
 target: tvanfossen/entropic
 commit: 6dcb4c814639fd58ead85aea06809637010f34f1
-version: 3.0.0
+version: 3.1.0
 
 ground_truth: |
   entropic's own source at the commit above, read directly. Counts were taken from the working
@@ -210,7 +210,12 @@ questions:
 
       - text: the top-level source directories that reach into llama.cpp
         type: set
-        weight: 2
+        ## WEIGHT 1 BECAUSE THE SET IS LARGE. A set mark costs (members + 1) decisions, so a
+        ## five-member set at weight 2 carried 10 of this question's 18 points — one mark
+        ## deciding the majority of a question makes it a coin flip wearing a rubric's clothes.
+        ## Scaling the weight down keeps the completeness measure without letting it dominate.
+        ## `scripts/rubric_audit.py` is what flags this shape.
+        weight: 1
         extract: |
           List every directory under src/ that the answer says contains code calling into
           llama.cpp. One per line, as the answer writes them. If the answer names none, reply
