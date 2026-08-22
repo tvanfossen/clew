@@ -208,21 +208,30 @@ def check_symmetry() -> None:
 ## @param rubric The validated rubric.
 ## @param models Model tiers, outermost loop.
 ## @param replicates Runs per (question, arm).
-## @param seed Recorded, so the shuffle is reproducible.
+## @param seed Recorded, and combined with the target so the shuffle is reproducible per target.
 ## @return Ordered cells.
-## @version 1
+## @version 2
 def plan(rubric: Rubric, models: tuple[str, ...], replicates: int, seed: int) -> list[Cell]:
     """COUNTERBALANCED ON REPLICATE PARITY. If one arm always ran first, any drift over the run —
     load, throttling, capacity state — would be confounded with arm, and the subtraction that
     produces every headline number would carry it.
 
+    THE SHUFFLE IS SEEDED FROM (seed, target), NOT THE SEED ALONE. Every shipped rubric holds
+    five questions, so a bare seed shuffled the same-length list once per target from a fresh
+    RNG and every target opened with the SAME question — position perfectly correlated with
+    question across the whole grid rather than averaged out by it. Any start-of-run effect then
+    lands on one question every time, which is the exact confound the shuffle exists to remove.
+
+    Mixing the target in keeps the seed's whole purpose: an order is still a pure function of
+    what is recorded in `run.json`, so a grid replays exactly.
+
     @brief Ordered cells for a run.
     @return Cells in execution order.
-    @version 1
+    @version 2
     """
     if replicates < 1:
         raise ValueError("replicates must be at least 1")
-    rng = random.Random(seed)
+    rng = random.Random(f"{seed}:{rubric.target}")
     order = 0
     cells: list[Cell] = []
     for model in models:

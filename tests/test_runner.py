@@ -29,13 +29,13 @@ MBEDTLS_RUBRIC = REPO / "acceptance" / "targets" / "mbedtls" / "questions.yaml"
 ## @param ids Question identifiers.
 ## @return Rubric.
 ## @version 1
-def _rubric(*ids: str, declare: dict | None = None) -> Rubric:
+def _rubric(*ids: str, declare: dict | None = None, target: str = "owner/repo") -> Rubric:
     """@brief A minimal rubric for plan tests.
     @return Rubric.
-    @version 1
+    @version 2
     """
     return Rubric(
-        target="owner/repo",
+        target=target,
         commit="a" * 40,
         version="1.0.0",
         ground_truth="source",
@@ -44,6 +44,42 @@ def _rubric(*ids: str, declare: dict | None = None) -> Rubric:
         questions=tuple(Question(id=i, intent="i", prompt="p") for i in ids),
         declare=declare or {},
     )
+
+
+## @brief The question order is reproducible per target and not shared between targets.
+## @return None.
+## @version 1
+def test_question_order_is_seeded_per_target() -> None:
+    """OBSERVED ON THE SHIPPED RUBRICS. All four targets have five questions, so one seed
+    shuffled the same-length list four times from the same fresh RNG and every target opened
+    with the SAME question. Position is then perfectly correlated with question across the
+    whole grid rather than averaged out, so any start-of-run effect — capacity, a cold cache,
+    an operator watching the first cell — lands on one question every time.
+
+    Both halves matter. Reproducibility is what makes a seed worth recording at all, so the
+    order must be a pure function of (seed, target); decorrelation is what the seed is for.
+
+    @brief Order depends on the target, and is stable for one.
+    @return None.
+    @version 1
+    """
+    ids = ("Q1", "Q2", "Q3", "Q4", "Q5")
+
+    def order(target: str, seed: int = 1) -> list[str]:
+        cells = runner.plan(_rubric(*ids, target=target), ("sonnet",), replicates=1, seed=seed)
+        seen: list[str] = []
+        for cell in cells:
+            if cell.question_id not in seen:
+                seen.append(cell.question_id)
+        return seen
+
+    assert order("owner/a") == order("owner/a"), "the same seed and target must replay exactly"
+    assert order("owner/a") != order("owner/b"), (
+        "two targets at one seed produced the same question order, so position is confounded "
+        "with question across the grid"
+    )
+    assert order("owner/a", seed=1) != order("owner/a", seed=2), "the seed must still move it"
+    assert sorted(order("owner/a")) == sorted(ids), "shuffling must not drop or add a question"
 
 
 ## @brief The two arms' briefs differ only in the tool sentence.
