@@ -20,6 +20,24 @@ Three consequences drive every decision below.
 answer it.** "Does this repo have a mutex?" is `ctrl-F` for a human and one call for either arm.
 Grading there measures nothing.
 
+**AND THE SHARPEST FORM OF THAT RULE, LEARNED FROM A SATURATED QUESTION: if the complete answer
+lives in ONE FILE, the question cannot discriminate.** Measured — an entropic question about a
+two-call API idiom scored 100% for BOTH arms, and the baseline reached it in four turns with
+three tool calls, because the whole answer is one 110-line file plus a header. Its answer was
+excellent: it distinguished the two call sites' different first-call roles, cited the API
+contract, and independently found a real logging asymmetry. Nothing was wrong with the marks.
+
+Adding harder marks about the same file would not have helped, because the constraint is not
+mark difficulty — it is that **reading one file is cheap for either arm**, so no retrieval
+substrate can matter. A question discriminates only where the complete answer is assembled from
+places no single read reaches: callers spread across a file, a gate in a config header away from
+the code it guards, a failure value's fate at every site that receives it.
+
+**This is not visible to the discrimination gate**, which compares a shallow fixture against a
+complete one. Both score high on a saturated question and the gap looks healthy. Saturation shows
+up only when two real arms tie at the ceiling, so **report per-question arm separation after every
+run** and treat a tie at the top as a question to replace rather than a result to average in.
+
 **A mark earns its place by how it was DERIVED, not by how hard it is.** A component belongs if a
 complete answer genuinely contains it. It does not belong because a tool surfaces it — and that
 rule cuts identically in both directions, so it also excludes surface marks that exist because a

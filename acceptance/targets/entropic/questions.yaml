@@ -7,9 +7,12 @@
 # previous generation's rubric for this target had five of eleven questions asking about the
 # INDEX rather than about the repository, which measures the instrument instead of the claim.
 #
-# Both questions are built on a gap between what a name suggests and what the code does. That is
-# what makes them discriminating: an agent that locates the symbol and stops will describe the
-# name's implication and be wrong.
+# Q1 is built on a gap between what a name suggests and what the code does, EXTENDED after n=1
+# showed its first half saturated: both arms scored 100% because the whole answer lived in one
+# file. Its second half follows a failure value outward to every site that receives it, which is
+# the only shape where a retrieval substrate can matter. Q2 is a dependency-boundary question.
+
+
 
 schema: 1
 
@@ -28,17 +31,29 @@ judge:
 questions:
   - id: Q1
     intent: |
-      A concept question with a false friend in it. The word "retry" appears in the tokenizer,
-      so any agent finds the code; the question is whether it stops there and calls it error
-      handling. It is not — it is a size-negotiation protocol with a fixed second attempt, no
-      backoff and no counter, and the second failure is terminal. An agent that reports "the
-      tokenizer retries on failure" has located the right lines and drawn the wrong conclusion,
-      which is the failure mode the whole hypothesis is about.
+      A concept question with a false friend in it, EXTENDED after it saturated. The word "retry"
+      appears in the tokenizer, so any agent finds the code; the first half asks whether it stops
+      there and calls it error handling. It is not — it is a size-negotiation protocol with a
+      fixed second attempt, no backoff and no counter, and the second failure is terminal.
+
+      MEASURED AT n=1: BOTH ARMS SCORED 100% on the first half alone, and the baseline reached it
+      in four turns with three tool calls. The marks were not weak — that answer distinguished
+      the two call sites' different first-call roles, cited the API contract, and independently
+      found a real logging asymmetry. The question simply could not discriminate, because its
+      entire answer lives in ONE 110-line file. Reading one file is cheap for either arm, so no
+      retrieval substrate can matter there.
+
+      The second half is the fix, and it is a different SHAPE rather than a harder version of the
+      same thing: it follows the failure value outward to every site that receives it. That
+      answer is assembled from places no single read reaches, which is the only condition under
+      which the arms can differ.
 
     prompt: |
       entropic's tokenizer calls into llama.cpp twice in a row in two different places. Why does
-      it call twice, what happens if the second call also fails, and would you describe this as
-      retry logic?
+      it call twice, and would you describe this as retry logic?
+
+      Then follow the failure outward: when tokenization fails, what value does the caller
+      receive, and what do the callers do with it?
 
     marks:
       - text: locates the two-call pattern in src/inference/llama_cpp_tokenizer.cpp
@@ -96,6 +111,38 @@ questions:
         refs:
           - ["src/inference/llama_cpp_tokenizer.cpp", 92, 94]
           - ["src/inference/llama_cpp_tokenizer.cpp", 54, 57]
+
+      - text: >-
+          states that the backend's wrapper returns an EMPTY container for a failed tokenization,
+          the same value it returns when no tokenizer is wired at all
+        type: conclusion
+        weight: 3
+        evidence: |
+          LlamaCppBackend::tokenize (src/inference/llama_cpp_backend.cpp:788) returns {} when
+          tokenizer_ is null, and otherwise forwards whatever the tokenizer returned — which is
+          also {} on failure. The two states are indistinguishable to every caller.
+        refs: [["src/inference/llama_cpp_backend.cpp", 788, 800]]
+
+      - text: >-
+          concludes that a failed tokenization is therefore indistinguishable from a legitimately
+          empty result, and that no caller checks for it
+        type: conclusion
+        weight: 3
+        evidence: |
+          Nothing at the call sites tests the returned container for emptiness before using it.
+          The failure is silent by construction rather than by oversight at any one site.
+        refs: [["src/inference/llama_cpp_backend.cpp", 824, 845]]
+
+      - text: >-
+          identifies that the token-counting path reports ZERO for a failed tokenization rather
+          than signalling an error
+        type: conclusion
+        weight: 3
+        evidence: |
+          do_count_tokens (src/inference/llama_cpp_backend.cpp:825) returns tokens.size() on the
+          forwarded container, so a failure is reported to its caller as a count of 0 — a
+          plausible number rather than an error.
+        refs: [["src/inference/llama_cpp_backend.cpp", 824, 828]]
 
   - id: Q2
     intent: |
