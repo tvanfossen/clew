@@ -139,6 +139,42 @@ class Cell:
         return f"{self.question_id}_{self.model}_{self.arm}_r{self.replicate}"
 
 
+## @brief Recover (question, model, arm, replicate) from a cell stem.
+## @param stem A filename stem produced by `Cell.stem`.
+## @return The four fields, or None when the stem is not a cell name.
+## @version 1
+def parse_stem(stem: str) -> tuple[str, str, str, int] | None:
+    """THE INVERSE OF `Cell.stem`, AND IT LIVES HERE SO THE TWO CANNOT DRIFT. Every consumer
+    used to split on "_" and index positionally, which is correct only while no field contains
+    an underscore — and the arm 1.1.0 actually runs is `index_only`.
+
+    Measured on a real sidecar: `Q1_sonnet_index_only_r1` parsed to arm "index" and replicate
+    "only". Both wrong, both silent, and `index` is a REAL arm name so nothing downstream could
+    tell. The grade sidecar recorded the wrong arm, and that value drives `arm_only` mark
+    fencing; the paired summary keyed replicates on "only" and found no pairs at all.
+
+    ARM IS THE ONLY FIELD THAT MAY CONTAIN AN UNDERSCORE, so it is recovered from the middle
+    after the two leading fields and the trailing replicate are taken from the ends, then
+    checked against the known arms. An unknown arm REFUSES rather than being returned, because a
+    half-parse is exactly what produced the defect.
+
+    @brief Parse a cell stem.
+    @return (question_id, model, arm, replicate), or None.
+    @version 1
+    """
+    parts = stem.split("_")
+    if len(parts) < 4 or not parts[-1].startswith("r"):
+        return None
+    try:
+        replicate = int(parts[-1][1:])
+    except ValueError:
+        return None
+    arm = "_".join(parts[2:-1])
+    if arm not in ALL_ARMS:
+        return None
+    return parts[0], parts[1], arm, replicate
+
+
 ## @brief Build one arm's brief.
 ## @param arm Which arm.
 ## @param root Repository root shown to the agent.

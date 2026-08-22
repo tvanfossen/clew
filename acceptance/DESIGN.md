@@ -20,18 +20,30 @@ Three consequences drive every decision below.
 answer it.** "Does this repo have a mutex?" is `ctrl-F` for a human and one call for either arm.
 Grading there measures nothing.
 
-**AND THE SHARPEST FORM OF THAT RULE, LEARNED FROM A SATURATED QUESTION: if the complete answer
-lives in ONE FILE, the question cannot discriminate.** Measured — an entropic question about a
-two-call API idiom scored 100% for BOTH arms, and the baseline reached it in four turns with
-three tool calls, because the whole answer is one 110-line file plus a header. Its answer was
-excellent: it distinguished the two call sites' different first-call roles, cited the API
-contract, and independently found a real logging asymmetry. Nothing was wrong with the marks.
+**A SATURATED QUESTION, AND A PREDICTION DRAWN FROM IT.** Measured: an entropic question about
+a two-call API idiom scored 100% for BOTH arms, and the baseline reached it in four turns with
+three tool calls. Its answer was excellent — it distinguished the two call sites' different
+first-call roles, cited the API contract, and independently found a real logging asymmetry.
+Nothing was wrong with the marks; the instrument simply had no resolution left on that question.
+A second question saturated the same way.
 
-Adding harder marks about the same file would not have helped, because the constraint is not
-mark difficulty — it is that **reading one file is cheap for either arm**, so no retrieval
-substrate can matter. A question discriminates only where the complete answer is assembled from
-places no single read reaches: callers spread across a file, a gate in a config header away from
-the code it guards, a failure value's fate at every site that receives it.
+**THE PROPOSED EXPLANATION IS THAT BOTH ANSWERS LIVED IN ONE FILE**, and reading one file is
+cheap for either arm — so a question discriminates best where the complete answer is assembled
+from places no single read reaches: callers spread across a file, a gate in a config header away
+from the code it guards, a failure value's fate at every site that receives it. That is also the
+owner's framing of the hypothesis: **multi-file questions are the area where the index should
+excel over a source harness.**
+
+**IT IS A PREDICTION, NOT AN ESTABLISHED PROPERTY, AND THIS DOCUMENT SAID OTHERWISE.** An
+earlier version stated it as a rule — "if the complete answer lives in one file, the question
+cannot discriminate" — on the strength of n=1 over two questions, which cannot separate that
+explanation from "those two questions were simply not hard". A gate was then written to fail a
+build on it, which would have enforced a guess as policy.
+
+So the number is REPORTED instead: `scripts/rubric_audit.py` prints files-cited per question and
+exits 0 on it, and low-spread questions are kept deliberately as the NULL CASE. If single-file
+questions saturate and multi-file ones separate, that is a measured result and the check can be
+armed then.
 
 **This is not visible to the discrimination gate**, which compares a shallow fixture against a
 complete one. Both score high on a saturated question and the gap looks healthy. Saturation shows

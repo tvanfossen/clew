@@ -33,7 +33,7 @@ from pathlib import Path
 from .execute import index_cells_that_never_used_the_index, run_cell
 from .grader.rubric import RubricError, load
 from .grader.score import score_question
-from .runner import check_revision, check_symmetry, plan
+from .runner import ARMS, check_revision, check_symmetry, parse_stem, plan
 
 
 ## @brief Load a rubric, refusing loudly rather than half-parsing.
@@ -163,10 +163,10 @@ def cmd_grade(args) -> int:
     questions = {q.id: q for q in rubric.questions}
     graded = 0
     for path in sorted(args.answers.glob("*.md")):
-        parts = path.stem.split("_")
-        if len(parts) < 4 or parts[0] not in questions:
+        parsed = parse_stem(path.stem)
+        if parsed is None or parsed[0] not in questions:
             continue
-        qid, arm = parts[0], parts[2]
+        qid, arm = parsed[0], parsed[2]
         result = score_question(questions[qid], path.read_text("utf-8"), rubric, arm)
         got, unmarked = result.score()
         (args.answers / f"{path.stem}.grade.json").write_text(
@@ -275,24 +275,31 @@ def _paired_summary(rows: list) -> None:
     """
     paired: dict = {}
     for meta, grade in rows:
-        parts = str(meta["stem"]).split("_")
-        if len(parts) < 4:
+        parsed = parse_stem(str(meta["stem"]))
+        if parsed is None:
             continue
-        paired.setdefault((parts[0], parts[1], parts[3]), {})[meta["arm"]] = (meta, grade)
+        qid, model, arm, replicate = parsed
+        ## KEYED ON THE PARSED ARM, not on meta["arm"]. They agree today, and a run whose
+        ## metadata disagreed with its own filename would otherwise pair two cells of one arm.
+        paired.setdefault((qid, model, replicate), {})[arm] = (meta, grade)
 
-    complete = {k: v for k, v in paired.items() if {"baseline", "index"} <= set(v)}
+    ## DERIVED FROM `ARMS`, never hardcoded — the same defect `check_symmetry` already had, one
+    ## file over. This named its two arms literally, so once the compared pair became
+    ## baseline/index_only every cell failed the membership test and the whole block printed
+    ## "No arm PAIRS in this run" on a grid where every cell WAS paired. Silent and total: the
+    ## per-cell table still prints, so it reads like an unpaired run rather than a blind reporter.
+    left, right = ARMS
+    complete = {k: v for k, v in paired.items() if {left, right} <= set(v)}
     if not complete:
         print("\nNo arm PAIRS in this run — separation and displacement need both arms of a cell.")
         return
 
-    print(
-        f"\n{'question':<22} {'baseline':>9} {'index':>9} {'separation':>11} {'shell displaced':>16}"
-    )
+    print(f"\n{'question':<22} {left:>9} {right:>9} {'separation':>11} {'shell displaced':>16}")
     print("-" * 70)
     for key in sorted(complete):
-        b_meta, b_grade = complete[key]["baseline"]
-        i_meta, i_grade = complete[key]["index"]
-        label = f"{key[0]}_{key[1]}_{key[2]}"
+        b_meta, b_grade = complete[key][left]
+        i_meta, i_grade = complete[key][right]
+        label = f"{key[0]}_{key[1]}_r{key[2]}"
         b_shell, i_shell = b_meta["non_index_tool_calls"], i_meta["non_index_tool_calls"]
         ## UNKNOWN COUNTS DO NOT BECOME A DISPLACEMENT. -1 means the transcript could not be
         ## read; arithmetic on it would invent a number.
@@ -313,9 +320,7 @@ def _paired_summary(rows: list) -> None:
     tied = sum(
         1
         for k, v in complete.items()
-        if v["baseline"][1]
-        and v["index"][1]
-        and abs(v["baseline"][1]["score"] - v["index"][1]["score"]) < 1e-9
+        if v[left][1] and v[right][1] and abs(v[left][1]["score"] - v[right][1]["score"]) < 1e-9
     )
     if tied:
         print(

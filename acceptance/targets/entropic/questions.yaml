@@ -24,7 +24,7 @@ schema: 1
 
 target: tvanfossen/entropic
 commit: 6dcb4c814639fd58ead85aea06809637010f34f1
-version: 3.1.0
+version: 3.1.1
 
 ground_truth: |
   entropic's own source at the commit above, read directly. Counts were taken from the working
@@ -45,14 +45,17 @@ questions:
       MEASURED AT n=1: BOTH ARMS SCORED 100% on the first half alone, and the baseline reached it
       in four turns with three tool calls. The marks were not weak — that answer distinguished
       the two call sites' different first-call roles, cited the API contract, and independently
-      found a real logging asymmetry. The question simply could not discriminate, because its
-      entire answer lives in ONE 110-line file. Reading one file is cheap for either arm, so no
-      retrieval substrate can matter there.
+      found a real logging asymmetry. On that question the instrument had no resolution left.
 
-      The second half is the fix, and it is a different SHAPE rather than a harder version of the
-      same thing: it follows the failure value outward to every site that receives it. That
-      answer is assembled from places no single read reaches, which is the only condition under
-      which the arms can differ.
+      THE PROPOSED EXPLANATION, AND IT IS ONLY THAT: the whole answer lives in ONE 110-line file,
+      and reading one file is cheap for either arm. n=1 over two saturated questions cannot
+      separate that from "the question was simply not hard", and an earlier version of this note
+      asserted the causal claim as settled. It is a prediction the grid can test — the audit
+      prints files-cited per question so the two can be correlated — not a property established
+      here.
+
+      The second half is a different SHAPE rather than a harder version of the same thing: it
+      follows the failure value outward to every site that receives it.
 
     prompt: |
       entropic's tokenizer calls into llama.cpp twice in a row in two different places. Why does

@@ -367,3 +367,50 @@ def test_blended_arm_is_out_of_the_comparison_and_index_only_has_no_shell() -> N
     assert "Bash" in runner.brief(runner.BLENDED_ARM, "/repo", "Q?")
     ## Symmetry still holds over the comparison arms with the third one present.
     runner.check_symmetry()
+
+
+## @brief A stem round-trips through the parser for every arm, including one with an underscore.
+## @return None.
+## @version 1
+def test_stem_round_trips_for_every_arm() -> None:
+    """MEASURED ON A REAL SIDECAR. The stem is `{question}_{model}_{arm}_r{n}` and the consumers
+    split it on "_" and indexed positionally — so `Q1_sonnet_index_only_r1` parsed to arm
+    "index" and replicate "only".
+
+    Two silent consequences, both on the arm the 1.1.0 grid actually runs. The grade sidecar
+    recorded `arm: "index"` for every index_only cell, and that value drives `arm_only` mark
+    fencing — a mark fenced to index_only was skipped and one fenced to index was applied, in
+    both cases to the wrong arm. And the paired summary keyed replicates on the fragment "only",
+    so no cell ever paired and the whole separation block printed "No arm PAIRS in this run".
+
+    The parse is the INVERSE OF `stem()` and lives beside it so the two cannot drift. Arm is the
+    only field that may contain an underscore, so it is recovered from the middle after the two
+    leading fields and the trailing replicate are taken from the ends.
+
+    @brief Stem parsing survives an underscore in the arm.
+    @return None.
+    @version 1
+    """
+    assert any("_" in arm for arm in runner.ALL_ARMS), (
+        "this test is pointless unless some arm contains an underscore"
+    )
+    for arm in runner.ALL_ARMS:
+        cell = runner.Cell("owner/repo", "Q1", arm, "sonnet", 3, 0)
+        got = runner.parse_stem(cell.stem())
+        assert got == ("Q1", "sonnet", arm, 3), f"{cell.stem()!r} parsed to {got!r}"
+
+
+## @brief A stem that is not a cell name is refused rather than half-parsed.
+## @return None.
+## @version 1
+def test_parse_stem_refuses_a_non_cell() -> None:
+    """A half-parse is what produced the defect above: `index` is a REAL arm name, so the wrong
+    answer looked entirely valid downstream. Returning None makes a caller decide.
+
+    @brief Non-cell stems refuse.
+    @return None.
+    @version 1
+    """
+    assert runner.parse_stem("notes") is None
+    assert runner.parse_stem("Q1_sonnet_baseline_x1") is None, "replicate must be r<N>"
+    assert runner.parse_stem("Q1_sonnet_nosucharm_r1") is None, "arm must be a known arm"

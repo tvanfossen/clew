@@ -12,7 +12,7 @@ schema: 1
 target: Mbed-TLS/mbedtls
 commit: 068ff080b369adfac81509f9b57b2afabaf82dc5
 ref: mbedtls-3.6.7
-version: 3.0.0
+version: 3.0.1
 
 ground_truth: |
   mbedtls source at the commit above, read directly. Every count and line number was taken from
@@ -158,11 +158,18 @@ questions:
       needs the two-branch body read rather than a name resolved.
 
       EXTENDED after n=1 tied at 80%/80%. The original question was answerable almost entirely
-      from one header, and a question whose complete answer lives in one file cannot
-      discriminate — reading it is cheap for either arm. The addition asks WHERE THE OPT-OUT IS
-      ACTUALLY TURNED ON, which is nowhere near the macro: one line in a header every library
-      translation unit includes, plus two example programs that deliberately reach past the API
-      they demonstrate. That is assembled from places no single read reaches.
+      from one header. The addition asks WHERE THE OPT-OUT IS ACTUALLY TURNED ON, which is
+      nowhere near the macro: one line in a header every library translation unit includes, plus
+      two example programs that deliberately reach past the API they demonstrate.
+
+      RE-MEASURED 2026-08-22 ON THE EXTENDED QUESTION, and the tie is gone in the direction
+      nobody predicted: baseline 87.9%, index 69.7%, both at 0.0% unmarked. The earlier reading
+      of this cell was taken when the judge returned NOTHING for either arm — 100% unmarked
+      against both — so "tied at 80/80" describes the pre-extension question graded by a judge
+      that was failing every call. Both halves of that sentence are now superseded.
+
+      Whether the extension is what moved it cannot be told apart from the judge fix at n=1.
+      Recorded so the weekend grid is read against this number and not the withdrawn one.
 
     prompt: |
       mbedtls wraps struct members in MBEDTLS_PRIVATE. What does that accomplish, and for whom?

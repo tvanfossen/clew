@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from acceptance import __main__ as cli
 from acceptance import execute
+from acceptance import runner
 from acceptance.grader import score
 
 REPO = Path(__file__).resolve().parent.parent
@@ -30,6 +31,10 @@ SELF = REPO / "acceptance" / "targets" / "self" / "questions.yaml"
 ## knots shipped unvalidated — a rubric that fails to parse would have reached a matrix run with
 ## the suite green. `targets/*/questions.yaml` is one level deep, which structurally excludes the
 ## private tree (it nests a repo directory under `internal/`) without this file naming it.
+## THE ARMS UNDER TEST, DERIVED. Naming them literally is how the summary itself went blind:
+## it kept comparing a pair the run no longer runs, and every test agreed with it.
+_A, _B = runner.ARMS
+
 SHIPPED = sorted(
     p
     for p in (REPO / "acceptance" / "targets").glob("*/questions.yaml")
@@ -260,10 +265,10 @@ def test_paired_summary_reports_ties_and_displacement(capsys: pytest.CaptureFixt
 
     cli._paired_summary(
         [
-            cell("Q1_sonnet_baseline_r1", "baseline", 11, 0.20),
-            cell("Q1_sonnet_index_r1", "index", 5, 0.75),
-            cell("Q2_sonnet_baseline_r1", "baseline", 10, 0.667),
-            cell("Q2_sonnet_index_r1", "index", 13, 0.667),
+            cell(f"Q1_sonnet_{_A}_r1", _A, 11, 0.20),
+            cell(f"Q1_sonnet_{_B}_r1", _B, 5, 0.75),
+            cell(f"Q2_sonnet_{_A}_r1", _A, 10, 0.667),
+            cell(f"Q2_sonnet_{_B}_r1", _B, 13, 0.667),
         ]
     )
     out = capsys.readouterr().out
@@ -289,8 +294,8 @@ def test_unknown_tool_counts_produce_no_displacement(capsys: pytest.CaptureFixtu
         [
             (
                 {
-                    "stem": "Q1_sonnet_baseline_r1",
-                    "arm": "baseline",
+                    "stem": f"Q1_sonnet_{_A}_r1",
+                    "arm": _A,
                     "tool_calls": -1,
                     "non_index_tool_calls": -1,
                 },
@@ -298,8 +303,8 @@ def test_unknown_tool_counts_produce_no_displacement(capsys: pytest.CaptureFixtu
             ),
             (
                 {
-                    "stem": "Q1_sonnet_index_r1",
-                    "arm": "index",
+                    "stem": f"Q1_sonnet_{_B}_r1",
+                    "arm": _B,
                     "tool_calls": 6,
                     "non_index_tool_calls": 4,
                 },
@@ -341,10 +346,10 @@ def test_zero_index_cell_is_flagged_in_the_separation_table(capsys: pytest.Captu
 
     cli._paired_summary(
         [
-            cell("Q1_sonnet_baseline_r1", "baseline", 9, 9, 0.833),
-            cell("Q1_sonnet_index_r1", "index", 6, 6, 0.667),
-            cell("Q2_sonnet_baseline_r1", "baseline", 9, 9, 0.50),
-            cell("Q2_sonnet_index_r1", "index", 8, 5, 0.90),
+            cell(f"Q1_sonnet_{_A}_r1", _A, 9, 9, 0.833),
+            cell(f"Q1_sonnet_{_B}_r1", _B, 6, 6, 0.667),
+            cell(f"Q2_sonnet_{_A}_r1", _A, 9, 9, 0.50),
+            cell(f"Q2_sonnet_{_B}_r1", _B, 8, 5, 0.90),
         ]
     )
     lines = {x.split()[0]: x for x in capsys.readouterr().out.splitlines() if x.startswith("Q")}
@@ -374,3 +379,48 @@ def test_shipped_rubrics_pass_the_cross_rubric_audit() -> None:
 
     assert audit.TARGETS, "the audit found no rubrics, so a pass proves nothing"
     assert audit.main() == 0
+
+
+## @brief Build one cell's (meta, grade) pair for the summary.
+## @return The pair.
+## @version 1
+def _cell(stem: str, arm: str, score: float, *, shell: int = 4, tools: int = 6) -> tuple:
+    """@brief A minimal reported cell.
+    @return (meta, grade).
+    @version 1
+    """
+    meta = {
+        "stem": stem,
+        "arm": arm,
+        "non_index_tool_calls": shell,
+        "tool_calls": tools,
+    }
+    return meta, {"score": score, "unmarked_pct": 0.0}
+
+
+## @brief The paired summary pairs the arms the run actually used.
+## @return None.
+## @version 1
+def test_paired_summary_uses_the_configured_arms(capsys: pytest.CaptureFixture) -> None:
+    """THE SAME DEFECT `check_symmetry` ALREADY HAD, one file over. The summary named its two
+    arms literally, so once 1.1.0 moved to baseline vs index_only every pair failed the
+    membership test and the whole block printed "No arm PAIRS in this run" — on a grid where
+    every cell was in fact paired.
+
+    Silent and total: the per-cell table still prints, so a reader sees a full run with the
+    separation and displacement analysis simply missing, which reads like a run that was not
+    paired rather than a reporter that could not see the pairing.
+
+    @brief Summary derives its arms from ARMS.
+    @return None.
+    @version 1
+    """
+    rows = [
+        _cell(f"Q1_sonnet_{runner.ARMS[0]}_r1", runner.ARMS[0], 0.40, shell=9),
+        _cell(f"Q1_sonnet_{runner.ARMS[1]}_r1", runner.ARMS[1], 0.70, shell=1),
+    ]
+    cli._paired_summary(rows)
+    out = capsys.readouterr().out
+    assert "No arm PAIRS" not in out, "the configured arms were not recognised as a pair"
+    assert "+30.0pt" in out, "separation must be computed for the pair"
+    assert "+8" in out, "shell displacement must be computed for the pair"
