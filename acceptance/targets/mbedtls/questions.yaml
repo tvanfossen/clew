@@ -87,13 +87,21 @@ questions:
           - ["programs/ssl/ssl_pthread_server.c", 24, 30]
 
       - text: >-
-          places every thread-creation site outside library/ — the threading in this repository
-          belongs to example programs, not to the library itself
+          states BOTH halves of the contrast: that nothing in library/ creates a thread, AND that
+          library/ nonetheless supplies the mutex abstraction used by threaded callers
         type: conclusion
         weight: 3
         evidence: |
-          Both creation sites are under programs/. Nothing in library/ creates a thread;
-          library/threading.c supplies the mutex abstraction used BY threaded callers.
+          Both creation sites are under programs/. library/threading.c supplies the mutex layer
+          but spawns nothing itself.
+
+          SHARPENED after a discrimination check. The mark previously read "places every
+          thread-creation site outside library/", and a deliberately shallow answer that named
+          ONE site and mentioned library/threading.c in passing was ruled HIT — it never
+          established "every", but the judge could read the claim as implied. A mark satisfiable
+          by a weaker claim than it states is a mark that measures nothing. Requiring both halves
+          of the contrast cannot be satisfied by mentioning one site, and the completeness of the
+          site list is measured by the set mark below where it belongs.
         refs:
           - ["programs/ssl/ssl_pthread_server.c", 277]
           - ["programs/test/benchmark.c", 430]
