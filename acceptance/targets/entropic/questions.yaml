@@ -1,0 +1,173 @@
+# SPDX-License-Identifier: MIT
+#
+# THE GRADING KEY FOR ENTROPIC. Schema and rules: acceptance/DESIGN.md.
+#
+# NO MARK REFERS TO ANY TOOL. Every question is about entropic's own source, answerable by
+# either arm, and no mark names an index layer, a query surface or a coverage figure. The
+# previous generation's rubric for this target had five of eleven questions asking about the
+# INDEX rather than about the repository, which measures the instrument instead of the claim.
+#
+# Both questions are built on a gap between what a name suggests and what the code does. That is
+# what makes them discriminating: an agent that locates the symbol and stops will describe the
+# name's implication and be wrong.
+
+schema: 1
+
+target: tvanfossen/entropic
+commit: 6dcb4c814639fd58ead85aea06809637010f34f1
+version: 2.0.0
+
+ground_truth: |
+  entropic's own source at the commit above, read directly. Counts were taken from the working
+  tree at that commit with no modifications and exclude the vendored extern/llama.cpp tree.
+
+judge:
+  model: claude-sonnet-4-5-20250929
+  samples_when_weight_at_least: 2
+
+questions:
+  - id: Q1
+    intent: |
+      A concept question with a false friend in it. The word "retry" appears in the tokenizer,
+      so any agent finds the code; the question is whether it stops there and calls it error
+      handling. It is not — it is a size-negotiation protocol with a fixed second attempt, no
+      backoff and no counter, and the second failure is terminal. An agent that reports "the
+      tokenizer retries on failure" has located the right lines and drawn the wrong conclusion,
+      which is the failure mode the whole hypothesis is about.
+
+    prompt: |
+      entropic's tokenizer calls into llama.cpp twice in a row in two different places. Why does
+      it call twice, what happens if the second call also fails, and would you describe this as
+      retry logic?
+
+    marks:
+      - text: locates the two-call pattern in src/inference/llama_cpp_tokenizer.cpp
+        type: retrieval
+        weight: 1
+        evidence: |
+          tokenize at :49 and detokenize at :86, each calling into llama.cpp twice.
+        refs: [["src/inference/llama_cpp_tokenizer.cpp", 49], ["src/inference/llama_cpp_tokenizer.cpp", 86]]
+
+      - text: >-
+          states that the first call returns the REQUIRED BUFFER SIZE as a negative number, and
+          that the code negates it to size the buffer for the second call
+        type: conclusion
+        weight: 3
+        evidence: |
+          tokenize passes nullptr and 0 on the first call to ask for the size, then `if (n < 0)
+          { n = -n; }` at :58. detokenize's comment at :97 says "n holds -required_size" and
+          sizes the vector with `-n` at :98.
+        refs:
+          - ["src/inference/llama_cpp_tokenizer.cpp", 54, 58]
+          - ["src/inference/llama_cpp_tokenizer.cpp", 97, 98]
+
+      - text: >-
+          concludes that this is SIZE NEGOTIATION rather than retry-on-failure — there is no
+          backoff, no delay, no attempt counter, and exactly one second call
+        type: conclusion
+        weight: 3
+        evidence: |
+          Nothing loops. The second call cannot fail for the same reason as the first, because
+          the buffer is now exactly the size the API asked for. Calling it a retry imports an
+          error-recovery model the code does not have.
+        refs: [["src/inference/llama_cpp_tokenizer.cpp", 49, 71]]
+
+      - text: >-
+          states that a negative or non-positive result from the SECOND call is terminal — it
+          returns empty rather than attempting again
+        type: conclusion
+        weight: 3
+        evidence: |
+          tokenize logs an error and returns {} at :64-68. detokenize returns an empty string
+          from its ternary when n is not positive.
+        refs:
+          - ["src/inference/llama_cpp_tokenizer.cpp", 64, 68]
+          - ["src/inference/llama_cpp_tokenizer.cpp", 101, 103]
+
+      - text: >-
+          notes that detokenize tries a fixed 256-byte STACK buffer first and only heap-allocates
+          when the token does not fit, whereas tokenize always sizes before writing
+        type: conclusion
+        weight: 2
+        evidence: |
+          `char buf[256];` at :92 is tried first; the vector at :98 is reached only when the
+          first call returned negative. tokenize has no equivalent fast path — it always asks
+          for the size first.
+        refs:
+          - ["src/inference/llama_cpp_tokenizer.cpp", 92, 94]
+          - ["src/inference/llama_cpp_tokenizer.cpp", 54, 57]
+
+  - id: Q2
+    intent: |
+      Probes whether the agent establishes the SHAPE of a dependency boundary or only its
+      existence. That llama.cpp is a submodule is one lookup. Where the seam actually falls is
+      not: it is concentrated in one directory and NOT contained by it, and the three files
+      outside are the interesting part — an answer claiming the dependency is confined to the
+      inference layer is wrong in a way that matters to anyone planning to replace it.
+
+    prompt: |
+      entropic depends on llama.cpp. How is that dependency brought in, and how far into
+      entropic's own source does it reach?
+
+    marks:
+      - text: >-
+          states that llama.cpp is brought in as a git SUBMODULE at extern/llama.cpp, rather than
+          vendored, copied or fetched by the build
+        type: retrieval
+        weight: 1
+        evidence: |
+          .gitmodules declares one submodule: path extern/llama.cpp, url the ggml-org repository.
+        refs: [[".gitmodules"]]
+
+      - text: >-
+          conveys that the dependency reaches roughly a dozen files of entropic's own source,
+          not one wrapper
+        type: conclusion
+        weight: 2
+        evidence: |
+          13 files under src/ name llama_ symbols at the pinned commit. An answer conveying the
+          right order of magnitude earns this; an exact count must not be required, since it is
+          an artifact of how one counts.
+        refs: [["src/inference/llama_cpp_backend.cpp"], ["src/inference/orchestrator.cpp"]]
+
+      - text: >-
+          concludes that the dependency is CONCENTRATED in the inference layer but NOT contained
+          by it — a minority of the reaching files sit outside src/inference
+        type: conclusion
+        weight: 3
+        evidence: |
+          10 of the 13 are under src/inference/. The other three are src/config/loader.cpp,
+          src/core/response_generator.cpp and src/facade/entropic.cpp. An answer that says the
+          dependency is confined to the inference layer is wrong, and wrong in the direction
+          that matters to anyone planning to replace the backend.
+        refs:
+          - ["src/config/loader.cpp"]
+          - ["src/core/response_generator.cpp"]
+          - ["src/facade/entropic.cpp"]
+
+      - text: >-
+          identifies the seam as llama.cpp's C API — free functions with an llama_ prefix — rather
+          than C++ classes or inheritance
+        type: conclusion
+        weight: 2
+        evidence: |
+          Every reaching site calls llama_-prefixed free functions (llama_tokenize,
+          llama_token_to_piece and so on) against opaque handles such as llama_vocab.
+        refs: [["src/inference/llama_cpp_tokenizer.cpp", 55, 57]]
+
+      - text: the top-level source directories that reach into llama.cpp
+        type: set
+        weight: 2
+        extract: |
+          List every directory under src/ that the answer says contains code calling into
+          llama.cpp. One per line, as the answer writes them. If the answer names none, reply
+          NONE.
+        members:
+          - value: inference
+            evidence: "10 files"
+          - value: config
+            evidence: "loader.cpp"
+          - value: core
+            evidence: "response_generator.cpp"
+          - value: facade
+            evidence: "entropic.cpp"
