@@ -1,31 +1,40 @@
-## Short answer
+## Default configuration: threading is entirely compiled out
 
-**As shipped, by default: nothing runs concurrently, and nothing is protected — the entire mutex layer is compiled out.**
+`MBEDTLS_THREADING_C`, `MBEDTLS_THREADING_PTHREAD`, and `MBEDTLS_THREADING_ALT` are all commented out in `include/mbedtls/mbedtls_config.h` (lines ~2185, ~2196, ~3787). None of the three is on by default.
 
-`MBEDTLS_THREADING_C` is disabled by default (`//#define MBEDTLS_THREADING_C` in `include/mbedtls/mbedtls_config.h:3787`), and so are both of its backends, `MBEDTLS_THREADING_PTHREAD` (:2196) and `MBEDTLS_THREADING_ALT` (:2185). That one config knob cascades through everything:
+That matters more than a typical "feature flag off" because `library/threading.c` in its entirety sits behind `#if defined(MBEDTLS_THREADING_C)`. With the default config, that file compiles to nothing — the pthread-backed mutex implementation, the `mbedtls_mutex_init/free/lock/unlock` function pointers, and the `mbedtls_threading_mutex_t` type itself simply don't exist in the build. It isn't that locks become no-ops; the lock/unlock call sites aren't there at all.
 
-- `mbedtls_threading_mutex_t` (the mutex type itself) only exists under `#if defined(MBEDTLS_THREADING_PTHREAD)` or `MBEDTLS_THREADING_ALT` (`threading.h:27-44`) — off by default, so the type doesn't exist.
-- The four function pointers (`mbedtls_mutex_init/free/lock/unlock`) and all five global mutex externs (`threading.h:105-161`) are inside `#if defined(MBEDTLS_THREADING_C)` — off by default, so none of them exist either.
-- `library/threading.c`, the only file that implements lock/unlock, is itself wrapped in the same guard — it compiles to an empty translation unit by default.
-- Every call site that would take a lock — in `rsa.c`, `ctr_drbg.c`, `entropy.c`, `hmac_drbg.c`, `memory_buffer_alloc.c`, `platform_util.c`, `psa_crypto*.c`, `ssl_cache.c`, `ssl_cookie.c`, `ssl_ticket.c`, `x509_crt.c` — is individually wrapped in `#if defined(MBEDTLS_THREADING_C)` (verified e.g. `rsa.c:1238-1259`). With the option off, these are plain, unsynchronized code paths.
+I confirmed every single mutex call site in the library is wrapped the same way (`#if defined(MBEDTLS_THREADING_C)` around the call, not just the declaration) — checked across `entropy.c`, `ctr_drbg.c`, `hmac_drbg.c`, `rsa.c`, `memory_buffer_alloc.c`, `platform_util.c`, `psa_crypto.c`, `psa_crypto_slot_management.c`, `psa_crypto_random.c`, `ssl_cache.c`, `ssl_cookie.c`, `ssl_ticket.c`, and `x509_crt.c`. So with the default config, the answer to "what protects what" is **nothing protects anything, because there is nothing to protect it with.**
 
-The two "thread spawns" the index found aren't in the library at all — they're in optional sample/test programs (`programs/ssl/ssl_pthread_server.c`, `programs/test/benchmark.c`). The pthread server sample even checks for you: it opens with `#elif !defined(MBEDTLS_THREADING_C) || !defined(MBEDTLS_THREADING_PTHREAD)` and, under the default config, just prints "MBEDTLS_THREADING_PTHREAD not defined." and exits — it spawns nothing.
+## What actually runs concurrently: nothing, from mbedtls's own code
 
-This matches the doc comment right above the option: *"Traditionally, Mbed TLS assumes it is used in a non-threaded environment or that contexts are not shared between threads."* Default mbedtls is a passive library: it creates no threads of its own, and it's on you (the caller) not to share a context across threads unless you turn threading on.
+The index's thread-spawn scan finds exactly two spawn sites in the whole repo, and both are outside the library:
 
-## If you enable `MBEDTLS_THREADING_C` (+ PTHREAD or ALT)
+- `programs/ssl/ssl_pthread_server.c` — the example pthreaded server demo, spawns `handle_ssl_connection` per connection.
+- `programs/test/benchmark.c` — a Win32 timer thread (`TimerProc`) used for benchmarking, not a worker thread.
 
-Since that's presumably the actual reason for asking, here's what the mutexes protect once you opt in — none of it exists otherwise:
+The library itself (`library/*.c`) never calls `pthread_create` or any thread-spawn primitive. mbedtls is a passive, call-in library — it has no threads of its own; concurrency exists only if the *integrating application* creates threads and calls into mbedtls from more than one of them.
 
-| Mutex | Scope | Protects |
-|---|---|---|
-| `mbedtls_threading_key_slot_mutex` | global, PSA | `registered_readers`/`state` for every slot in the PSA key-slot table |
-| `mbedtls_threading_psa_globaldata_mutex` | global, PSA | rest of the PSA `global_data` struct (implicit shared state every `psa_xxx()` call touches) |
-| `mbedtls_threading_psa_rngdata_mutex` | global, PSA | PSA's global RNG state |
-| `mbedtls_threading_readdir_mutex` | global | non-reentrant `readdir()` inside `mbedtls_x509_crt_parse_path` (`x509_crt.c`) |
-| `mbedtls_threading_gmtime_mutex` | global | non-reentrant libc `gmtime()` fallback in `mbedtls_platform_gmtime_r` (`platform_util.c`) |
-| `ctx->mutex` in `mbedtls_rsa_context` | per-context | serializes concurrent ops (e.g. blinding value regen) on **one shared** RSA context |
-| `ctx->mutex` in `mbedtls_ctr_drbg_context` / `mbedtls_entropy_context` | per-context | serializes reseed/generate calls if that DRBG/entropy context is shared across threads |
-| mutexes in `ssl_cache.c`/`ssl_cookie.c`/`ssl_ticket.c` | per-context | shared server-side session cache / cookie / ticket state across worker threads |
+## The actual default threat model
 
-Note the design intent: this protects **global/implicit state and explicitly-shared contexts**, not "every object automatically." A context used by exactly one thread gets no locking overhead and needs none — which is exactly why, with the option off (the default), you get zero synchronization cost, at the price of zero built-in thread-safety.
+The library's own documentation states this plainly (`mbedtls_config.h` around the `MBEDTLS_THREADING_C` doc comment): mbedtls assumes a non-threaded environment, or that **contexts are never shared across threads**. That's the real contract, and it's caller-enforced, not library-enforced:
+
+- Two threads each holding their own independent `mbedtls_ssl_context` / `mbedtls_x509_crt` / `mbedtls_ctr_drbg_context` etc. is fine and requires nothing — there's no shared mutable state between separate contexts.
+- Two threads touching the *same* context, or any PSA call (`psa_xxx()`) from more than one thread, or any TLS/X.509/PK call when `MBEDTLS_USE_PSA_CRYPTO` is on, or a TLS 1.3 connection at all — is a data race by construction in the default config, because the mutexes that would serialize it don't exist in the binary.
+
+## What the mutexes would protect, if you turned threading on
+
+For context, since the shipped mutex code is real and worth understanding even though it's dormant by default — enabling `MBEDTLS_THREADING_C` plus either `MBEDTLS_THREADING_PTHREAD` (POSIX mutex backend, in `threading.c`) or `MBEDTLS_THREADING_ALT` (caller supplies its own lock callbacks via `mbedtls_threading_set_alt`) activates these critical sections:
+
+| Mutex | Protects |
+|---|---|
+| `ctr_drbg_context.mutex`, `hmac_drbg_context.mutex` | DRBG internal state during reseed/generate |
+| `entropy_context.mutex` | Entropy pool gather/read |
+| `rsa_context.mutex` | Blinding state during RSA private-key ops |
+| `heap.mutex` (memory_buffer_alloc) | The alternative heap allocator's free-list |
+| `mbedtls_threading_gmtime_mutex` (platform_util) | Non-reentrant libc `gmtime`/`localtime` calls where no `gmtime_r` exists |
+| `mbedtls_threading_psa_rngdata_mutex`, `mbedtls_threading_psa_globaldata_mutex`, `mbedtls_threading_key_slot_mutex` (psa_crypto*) | PSA's global RNG state, global subsystem/driver state, and per-key-slot state — this is the "PSA has an implicit shared context" case the docs call out as requiring threading even for single-context use |
+| `ssl_cache_context.mutex`, `mbedtls_ssl_cookie_context.mutex`, `mbedtls_ssl_ticket_context.mutex` | Session cache / DTLS cookie / session-ticket state shared across connections |
+| `mbedtls_threading_readdir_mutex` (x509_crt) | Serializes `readdir()` when loading a certificate directory, since it's non-reentrant on some platforms |
+
+But again — as shipped by default, `MBEDTLS_THREADING_C` is off, so this table describes dead code, not running behavior. Anyone linking mbedtls into a multithreaded app with the default `mbedtls_config.h` and sharing contexts (or using PSA/TLS 1.3 from multiple threads) is relying on nothing but luck.

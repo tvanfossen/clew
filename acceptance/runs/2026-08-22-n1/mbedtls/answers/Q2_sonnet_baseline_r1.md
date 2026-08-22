@@ -1,9 +1,10 @@
-I now have what I need, grounded in the actual source.
+I now have a complete picture. Here's what's going on:
 
-## What `MBEDTLS_PRIVATE` is
+## The mechanism
+
+`include/mbedtls/private_access.h` defines a two-line trick:
 
 ```c
-// include/mbedtls/private_access.h
 #ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS
 #define MBEDTLS_PRIVATE(member) private_##member
 #else
@@ -11,34 +12,20 @@ I now have what I need, grounded in the actual source.
 #endif
 ```
 
-It's a token-pasting macro used as a wrapper around struct field names in public headers, e.g. in `gcm.h`:
+Struct declarations in the public headers write fields as `int MBEDTLS_PRIVATE(state);` which the preprocessor expands to `int private_state;`. Anyone outside the library who writes `ctx.state` gets a normal compile error, because the field is actually named `private_state`. There's no runtime cost and no encapsulation in the C sense (it's still a plain public struct member, just under a name application code isn't supposed to know) — it's a compile-time tripwire, not real access control.
 
-```c
-uint64_t MBEDTLS_PRIVATE(len);   // expands to either "private_len" or "len"
-```
-
-By default (`MBEDTLS_ALLOW_PRIVATE_ACCESS` undefined), every wrapped member gets renamed with a `private_` prefix. If an application defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` **before** including the header, the macro becomes a no-op and the real field name is exposed.
+The library itself (and anything that legitimately needs raw access) escapes the tripwire by `#define MBEDTLS_ALLOW_PRIVATE_ACCESS` **before** including any mbedtls header. `library/common.h:132` does exactly this, so every `.c` file in `library/` compiles with real field names and full access to its own structs. `programs/ssl/ssl_client2.c` and `ssl_server2.c` also define it, since those reference programs intentionally poke at internals for testing/demo purposes.
 
 ## What it accomplishes, and for whom
 
-This was introduced for the Mbed TLS 3.0 API break (documented in `docs/3.0-migration-guide.md`). Struct layouts in mbedtls's public headers have always been visible (C has no real encapsulation — the struct has to be a complete type so callers can stack-allocate it), but the project wants those fields treated as implementation detail, not API. Renaming every field to `private_foo` is a compile-time speed bump: application code that does `ctx.len` instead of calling `mbedtls_gcm_...()` accessor functions simply fails to compile, with an error pointing at the missing member — forcing the developer to either find the accessor function or explicitly opt in via `#define MBEDTLS_ALLOW_PRIVATE_ACCESS`.
+Per `docs/3.0-migration-guide.md:62-74`, this is the enforcement mechanism for the Mbed TLS 3.0 policy decision: **struct layout is not part of the stable API.** The layout of e.g. `mbedtls_ssl_context` or `mbedtls_rsa_context` can change field order, size, or presence between minor versions (3.1, 3.2, ...) without that being a breaking change, because no external caller is supposed to be touching fields directly — only the accessor functions (`mbedtls_<module>_get_<field>` / `_set_<field>`) are the stable, documented surface.
 
-So it's aimed at:
-- **Application developers**, who are pushed toward the accessor-function API (`mbedtls_<module>_get/set_<field>`) instead of poking struct internals directly, which the migration guide explicitly documents as "at your own risk... likely to break in a future minor version."
-- **The Mbed TLS maintainers themselves**, who get freedom to reorder/rename/resize struct internals across minor releases without it counting as a source-compatibility break for well-behaved callers — a real constraint given the library also promises API stability within a major version and ABI stability within an LTS branch (3.6 LTS is called out specifically in the migration guide as safer to break this convention in, since ABI is more tightly held there).
+So it's for **application developers linking against mbedtls as a library**: it converts what used to be a silent ABI/API break (a struct reshuffle that changes behavior or corrupts memory if you'd been poking a field directly) into a compile error at your call site the moment you upgrade mbedtls, rather than a runtime bug. It's a migration/API-boundary enforcement tool, not a security or memory-safety control — `MBEDTLS_ALLOW_PRIVATE_ACCESS` is deliberately provided as an escape hatch ("at your own risk", explicitly documented as likely to break in future minor releases) for people who need something the accessor API doesn't yet expose.
 
-It is explicitly not a security or memory-safety mechanism — nothing stops a determined caller from defining `MBEDTLS_ALLOW_PRIVATE_ACCESS` or reaching into the struct anyway; it's a compiler-enforced "please don't" for anyone who hasn't opted out of the guardrail.
+A small number of fields are intentionally left *unwrapped* (genuinely public, documented as stable) — the migration guide calls these out as the exception, not the rule.
 
 ## How widely it's applied
 
-Very widely — it's a blanket convention, not spot treatment. It appears in **872 occurrences across 57 header files**, essentially every public struct with internal state in both the legacy crypto/X.509/TLS API and the newer PSA headers:
+It's pervasive across the public API surface: 617 occurrences of `MBEDTLS_PRIVATE(` across the headers in `include/mbedtls/`, spanning 59 header files. It's concentrated in the modules with the biggest/most complex context structs — `ssl.h` alone has 209 wraps (the `mbedtls_ssl_context`/`mbedtls_ssl_config` structs are huge), followed by `cipher.h` (44), `x509_crt.h` (35), `ecdh.h` (24), `lms.h` (20), `rsa.h`/`pkcs7.h`/`ecp.h` (18 each), and a long tail down through `ssl_ticket.h`, `pk.h`, `ecjpake.h`, `ssl_cache.h`, `entropy.h`, `ccm.h`, `ssl_ciphersuites.h`, etc.
 
-- Crypto primitives: `aes.h`, `aria.h`, `camellia.h`, `chacha20.h`, `chachapoly.h`, `cmac.h`, `des.h`, `gcm.h`, `ccm.h`, `nist_kw.h`, `poly1305.h`, `sha1.h`, `sha256.h`, `sha3.h`, `sha512.h`, `md5.h`, `ripemd160.h`, `md.h`, `cipher.h`, `block_cipher.h`
-- Public-key / big-number: `bignum.h`, `rsa.h`, `ecp.h`, `ecdh.h`, `ecdsa.h`, `ecjpake.h`, `dhm.h`, `pk.h`
-- RNG/entropy: `ctr_drbg.h`, `hmac_drbg.h`, `entropy.h`
-- X.509/ASN.1: `asn1.h`, `x509.h`, `x509_crt.h`, `x509_crl.h`, `x509_csr.h`, `pem.h`, `pkcs7.h`, `oid.h`
-- TLS: `ssl.h`, `ssl_cache.h`, `ssl_ciphersuites.h`, `ssl_cookie.h`, `ssl_ticket.h`
-- Platform/misc: `platform.h`, `threading.h`, `timing.h`
-- PSA layer: `psa/crypto_struct.h`, `crypto_builtin_composites.h`, `crypto_builtin_key_derivation.h`, `crypto_driver_contexts_key_derivation.h`, `crypto_extra.h`, `crypto_platform.h`, `crypto_se_driver.h`, `crypto_types.h`, `crypto_values.h`
-
-Internally, the library obviously needs unrestricted access to its own structs, so `library/common.h` (included by essentially all `.c` files in `library/`) unconditionally `#define`s `MBEDTLS_ALLOW_PRIVATE_ACCESS` before pulling in any mbedtls headers, with a comment explicitly noting "Although structs defined in header files are publicly available, their members are private and should not be accessed by the user." The two interactive test programs `programs/ssl/ssl_server2.c` and `ssl_client2.c` do the same at the top of the file, since they intentionally exercise internal fields for testing purposes.
+On the consuming side, only `library/common.h` needs to opt out for the whole library build (every library `.c` file includes it and inherits the `#define`), plus the two SSL demo/test programs that intentionally reach into internals. Everything else in `tests/` and `programs/` goes through the public accessor functions like ordinary external code would — which also means the test suite doubles as coverage that the accessor API is actually sufficient, not just that the private-field tripwire compiles.
