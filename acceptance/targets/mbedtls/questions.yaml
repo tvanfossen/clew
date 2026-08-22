@@ -147,14 +147,21 @@ questions:
   - id: Q2
     intent: |
       Probes the difference between naming a macro and explaining what it does to a consumer.
-      The surface fact — MBEDTLS_PRIVATE exists — is one lookup. The components that matter are
-      the DIRECTION of the default and WHICH consumer gets which expansion, both of which need
-      the two-branch body read rather than a name resolved. The set mark measures how much of
-      the distribution the agent established before stopping.
+      The surface fact — MBEDTLS_PRIVATE exists — is one lookup, and the DIRECTION of the default
+      needs the two-branch body read rather than a name resolved.
+
+      EXTENDED after n=1 tied at 80%/80%. The original question was answerable almost entirely
+      from one header, and a question whose complete answer lives in one file cannot
+      discriminate — reading it is cheap for either arm. The addition asks WHERE THE OPT-OUT IS
+      ACTUALLY TURNED ON, which is nowhere near the macro: one line in a header every library
+      translation unit includes, plus two example programs that deliberately reach past the API
+      they demonstrate. That is assembled from places no single read reaches.
 
     prompt: |
-      mbedtls wraps struct members in MBEDTLS_PRIVATE. What does that accomplish, for whom, and
-      how widely is it applied?
+      mbedtls wraps struct members in MBEDTLS_PRIVATE. What does that accomplish, and for whom?
+
+      Be concrete about the "for whom": find where the opt-out is actually turned on in this
+      tree, and say what that means for the code in those places.
 
     marks:
       - text: locates the macro's definition in include/mbedtls/private_access.h
@@ -213,6 +220,45 @@ questions:
           is not required and must not be, since it is an artifact of how one counts.
         refs:
           - ["include/mbedtls/private_access.h", 14, 18]
+
+      - text: >-
+          states that library-internal code turns the opt-out ON in a shared header, so every
+          library translation unit sees plain member names
+        type: conclusion
+        weight: 3
+        evidence: |
+          library/common.h:132 defines MBEDTLS_ALLOW_PRIVATE_ACCESS, with a docstring saying
+          "Allow library to access its structs' private members". Every library .c includes it,
+          so the whole library compiles against the unrenamed form while an external consumer of
+          the same headers does not.
+        refs: [["library/common.h", 126, 132]]
+
+      - text: >-
+          identifies that some example programs ALSO define the opt-out for themselves,
+          deliberately reaching past the public API they otherwise demonstrate
+        type: conclusion
+        weight: 2
+        evidence: |
+          programs/ssl/ssl_client2.c:8 and programs/ssl/ssl_server2.c:8 each define
+          MBEDTLS_ALLOW_PRIVATE_ACCESS before including anything.
+        refs:
+          - ["programs/ssl/ssl_client2.c", 8]
+          - ["programs/ssl/ssl_server2.c", 8]
+
+      - text: every file that turns the private-access opt-out on
+        type: set
+        weight: 2
+        extract: |
+          List every file the answer says DEFINES the macro that disables the private-member
+          renaming (that is, files that turn the opt-out on — not files that merely mention or
+          test it). Paths only, one per line, as the answer writes them. If none, reply NONE.
+        members:
+          - value: library/common.h
+            evidence: ":132, for the whole library"
+          - value: programs/ssl/ssl_client2.c
+            evidence: ":8"
+          - value: programs/ssl/ssl_server2.c
+            evidence: ":8"
 
       - text: the top-level directories where MBEDTLS_PRIVATE is used
         type: set
