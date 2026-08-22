@@ -168,7 +168,10 @@ def test_paired_summary_reports_ties_and_displacement(capsys: pytest.CaptureFixt
     """
 
     def cell(stem, arm, shell, score):
-        return ({"stem": stem, "arm": arm, "non_index_tool_calls": shell}, {"score": score})
+        return (
+            {"stem": stem, "arm": arm, "tool_calls": shell, "non_index_tool_calls": shell},
+            {"score": score},
+        )
 
     cli._paired_summary(
         [
@@ -200,11 +203,21 @@ def test_unknown_tool_counts_produce_no_displacement(capsys: pytest.CaptureFixtu
     cli._paired_summary(
         [
             (
-                {"stem": "Q1_sonnet_baseline_r1", "arm": "baseline", "non_index_tool_calls": -1},
+                {
+                    "stem": "Q1_sonnet_baseline_r1",
+                    "arm": "baseline",
+                    "tool_calls": -1,
+                    "non_index_tool_calls": -1,
+                },
                 {"score": 0.5},
             ),
             (
-                {"stem": "Q1_sonnet_index_r1", "arm": "index", "non_index_tool_calls": 4},
+                {
+                    "stem": "Q1_sonnet_index_r1",
+                    "arm": "index",
+                    "tool_calls": 6,
+                    "non_index_tool_calls": 4,
+                },
                 {"score": 0.5},
             ),
         ]
@@ -215,3 +228,42 @@ def test_unknown_tool_counts_produce_no_displacement(capsys: pytest.CaptureFixtu
     line = next(x for x in capsys.readouterr().out.splitlines() if x.startswith("Q1_"))
     assert line.split()[-1] == "—", line
     assert "-5" not in line, "an unknown count must not be turned into arithmetic"
+
+
+## @brief A cell that never touched the index is flagged in the separation row.
+## @return None.
+## @version 1
+def test_zero_index_cell_is_flagged_in_the_separation_table(capsys: pytest.CaptureFixture) -> None:
+    """A CELL THAT NEVER TOUCHED THE INDEX IS NOT A RESULT ABOUT THE INDEX.
+
+    Measured: one cell scored 16.7 points BELOW its baseline while making zero index calls. Read
+    from the separation table alone that is a quality loss for the tool. It is the adoption
+    holdout — the arm answered from source and the index was never consulted.
+
+    The generate-time warning names it, but a reader of the report has no reason to go looking
+    for that, so the row carries the flag itself.
+
+    @brief Zero-index cells are marked in the row.
+    @return None.
+    @version 1
+    """
+
+    def cell(stem, arm, total, shell, score):
+        return (
+            {"stem": stem, "arm": arm, "tool_calls": total, "non_index_tool_calls": shell},
+            {"score": score},
+        )
+
+    cli._paired_summary(
+        [
+            cell("Q1_sonnet_baseline_r1", "baseline", 9, 9, 0.833),
+            cell("Q1_sonnet_index_r1", "index", 6, 6, 0.667),
+            cell("Q2_sonnet_baseline_r1", "baseline", 9, 9, 0.50),
+            cell("Q2_sonnet_index_r1", "index", 8, 5, 0.90),
+        ]
+    )
+    lines = {x.split()[0]: x for x in capsys.readouterr().out.splitlines() if x.startswith("Q")}
+    assert "NO INDEX CALLS" in lines["Q1_sonnet_r1"], "a loss with no index calls must be marked"
+    assert "NO INDEX CALLS" not in lines["Q2_sonnet_r1"], (
+        "a cell that used the index is not flagged"
+    )

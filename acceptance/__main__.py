@@ -300,7 +300,14 @@ def _paired_summary(rows: list) -> None:
         if b_grade and i_grade:
             b, i = b_grade["score"], i_grade["score"]
             sep = f"{(i - b) * 100:+.1f}pt" + ("" if abs(i - b) > 1e-9 else "  TIED")
-            print(f"{label:<22} {b:>8.1%} {i:>8.1%} {sep:>11} {disp:>16}")
+            ## A CELL THAT NEVER TOUCHED THE INDEX IS NOT A RESULT ABOUT THE INDEX. Measured:
+            ## one cell scored 16.7 points BELOW its baseline while making zero index calls.
+            ## Read from the table alone that is a quality loss for the tool; it is in fact the
+            ## adoption holdout, and the arm simply answered from source. Flagging it in the row
+            ## is the difference between a reader drawing the right conclusion and the wrong one.
+            idx_used = i_meta["tool_calls"] - i_meta["non_index_tool_calls"]
+            flag = "" if i_meta["tool_calls"] < 0 or idx_used > 0 else "   NO INDEX CALLS"
+            print(f"{label:<22} {b:>8.1%} {i:>8.1%} {sep:>11} {disp:>16}{flag}")
         else:
             print(f"{label:<22} {'—':>9} {'—':>9} {'—':>11} {disp:>16}")
     tied = sum(
