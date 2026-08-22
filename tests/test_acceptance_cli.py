@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import subprocess
@@ -19,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from acceptance import __main__ as cli
 from acceptance import execute
+from acceptance.grader import score
 
 REPO = Path(__file__).resolve().parent.parent
 MBEDTLS = REPO / "acceptance" / "targets" / "mbedtls" / "questions.yaml"
@@ -66,34 +68,59 @@ def test_rubric_discovery_is_not_empty_and_covers_the_known_targets() -> None:
     assert MBEDTLS in SHIPPED and SELF in SHIPPED
 
 
-## @brief A rubric's digest is captured when it is parsed, not re-read later.
+## @brief The digest a sidecar records names the rubric its marks came from.
 ## @return None.
-## @version 1
-def test_rubric_digest_is_fixed_at_load(tmp_path: Path) -> None:
-    """OBSERVED. `grade` re-read the rubric file inside its per-cell loop to stamp each sidecar,
-    while the marks came from a parse done once at startup. Grading a target takes minutes per
-    cell; editing the rubric during a run therefore produced sidecars whose recorded digest named
-    a file that was NOT the file their marks came from — provenance that reads as exact and is
-    wrong, which is worse than no provenance at all.
+## @version 2
+def test_grade_stamps_the_digest_of_the_rubric_it_actually_graded_against(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """OBSERVED, by editing a rubric while a grade run was in flight. `grade` re-read the rubric
+    file inside its per-cell loop to stamp each sidecar, while the marks came from a parse done
+    once at startup. Grading takes minutes per cell, so a mid-run edit produced sidecars whose
+    recorded digest named a file that was NOT the file their marks came from — provenance that
+    reads as exact and is wrong, which is worse than none.
 
-    The fix is structural rather than careful: the digest is taken from the bytes `load` itself
-    parsed, so no second read exists to disagree with the first.
+    DRIVEN THROUGH cmd_grade, NOT through load. The first version of this test asserted that
+    `Rubric.digest` does not change after the file changes — which a frozen string satisfies
+    however the digest was computed, so it stayed green with the defect restored. A mutation
+    control caught that; the assertion had to move to the place that stamps.
 
-    @brief Digest and marks come from one read.
+    @brief The stamped digest names the graded rubric.
     @return None.
-    @version 1
+    @version 2
     """
-    path = tmp_path / "questions.yaml"
-    path.write_bytes(MBEDTLS.read_bytes())
-    rubric = cli._rubric(path)
-    assert rubric is not None
-    before = rubric.digest
-    assert before and before == hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+    rubric_path = tmp_path / "questions.yaml"
+    rubric_path.write_bytes(MBEDTLS.read_bytes())
+    at_load = hashlib.sha256(rubric_path.read_bytes()).hexdigest()[:16]
 
-    path.write_text(path.read_text() + "\n# an edit landing mid-run\n", encoding="utf-8")
-    assert rubric.digest == before, "the digest followed the file instead of the parse"
-    assert cli._rubric(path).digest != before, (
-        "a genuinely different rubric must digest differently"
+    answers = tmp_path / "answers"
+    answers.mkdir()
+    for stem in ("Q1_sonnet_baseline_r1", "Q2_sonnet_baseline_r1"):
+        (answers / f"{stem}.md").write_text("an answer", encoding="utf-8")
+
+    ## THE EDIT LANDS BETWEEN CELLS — the real-world shape, since the rubric sits in a working
+    ## tree someone is still editing while the run takes minutes per cell.
+    def edit_then_score(question, answer, rubric, arm):
+        rubric_path.write_text(
+            rubric_path.read_text(encoding="utf-8") + "\n# edited mid-run\n", encoding="utf-8"
+        )
+        return score.QuestionResult(
+            id=question.id,
+            decisions=[score.Decision(mark="m", kind="conclusion", weight=1, hit=True)],
+        )
+
+    monkeypatch.setattr(cli, "score_question", edit_then_score)
+    assert cli.cmd_grade(argparse.Namespace(rubric=rubric_path, answers=answers)) == 0
+
+    sidecars = sorted(answers.glob("*.grade.json"))
+    assert len(sidecars) == 2, "the run graded nothing, so it proves nothing"
+    assert hashlib.sha256(rubric_path.read_bytes()).hexdigest()[:16] != at_load, (
+        "the fixture never edited the rubric, so there was no drift to detect"
+    )
+    stamped = {json.loads(p.read_text(encoding="utf-8"))["rubric_digest"] for p in sidecars}
+    assert stamped == {at_load}, (
+        f"sidecars recorded {stamped} but the marks came from {at_load}: the digest was "
+        f"re-read from disk instead of taken from the parse"
     )
 
 
