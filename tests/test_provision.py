@@ -75,7 +75,12 @@ def test_mcp_config_names_the_target(tmp_path: Path) -> None:
     out = tmp_path / "mcp.json"
     provision.write_mcp_config(db, tmp_path / "repo", out, tmp_path / "state")
     doc = json.loads(out.read_text())
-    args = doc["mcpServers"]["clew"]["args"]
+    server = doc["mcpServers"]["clew"]
+    ## THE CONSOLE SCRIPT, NOT `python -m`. With the module form the server started, said
+    ## nothing, and registered NO TOOLS AT ALL — the index arm then answered from source and the
+    ## run reported success. Pinned because nothing downstream distinguishes the two.
+    assert server["command"].endswith("clew-mcp"), server["command"]
+    args = server["args"]
     assert "--repo" in args
     assert str(tmp_path / "repo") in args, "a config that does not name the repo derives one"
     ## THE SERVER TAKES NO DATABASE PATH — it derives one from --repo under CLEW_STATE_HOME. So

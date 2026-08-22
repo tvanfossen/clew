@@ -1,10 +1,8 @@
 {
   "mcpServers": {
     "clew": {
-      "command": "/home/tvanfossen/Projects/docs-db/.venv/bin/python",
+      "command": "/home/tvanfossen/Projects/docs-db/.venv/bin/clew-mcp",
       "args": [
-        "-m",
-        "clew.mcp_server.server",
         "--repo",
         "/home/tvanfossen/Projects/mbedtls"
       ],

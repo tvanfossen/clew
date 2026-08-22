@@ -225,7 +225,13 @@ def write_mcp_config(db: Path, repo: Path, path: Path, state_home: Path) -> None
             {
                 "mcpServers": {
                     "clew": {
-                        "command": sys.executable,
+                        ## THE CONSOLE SCRIPT, NOT `python -m`. Measured: with
+                        ## `-m clew.mcp_server.server` the server appeared to start, emitted no
+                        ## error, and registered NO TOOLS AT ALL — not even the tier-0 ones that
+                        ## need no database. An agent given that config answered from source and
+                        ## the run reported 4/4 ok. `clew-mcp` is the entry point the package
+                        ## declares and the only one observed to work.
+                        "command": str(Path(sys.executable).parent / "clew-mcp"),
                         ## ABSOLUTE, AND THIS IS THE SECOND TIME A RELATIVE PATH BROKE THE
                         ## INDEX ARM. The server subprocess inherits the ANSWERING agent's cwd —
                         ## the target checkout — so a relative --repo resolves inside the target,
@@ -235,12 +241,7 @@ def write_mcp_config(db: Path, repo: Path, path: Path, state_home: Path) -> None
                         ## raised no denial, and the run reported 4/4 ok. The index arm answered
                         ## WITHOUT ITS INDEX and produced prose indistinguishable from a real
                         ## cell. The only signal was that it made ZERO index calls.
-                        "args": [
-                            "-m",
-                            "clew.mcp_server.server",
-                            "--repo",
-                            str(repo.resolve()),
-                        ],
+                        "args": ["--repo", str(repo.resolve())],
                         ## THE SAME STATE ROOT THE BUILD USED. The server derives its database
                         ## from --repo under this root, so config and build cannot disagree.
                         "env": {"CLEW_STATE_HOME": str(state_home)},
@@ -251,6 +252,58 @@ def write_mcp_config(db: Path, repo: Path, path: Path, state_home: Path) -> None
         ),
         encoding="utf-8",
     )
+
+
+## @brief Refuse unless the written config actually surfaces the index tools.
+## @param config Path to the MCP config.
+## @param repo The target tree, used as the probe's working directory.
+## @return None.
+## @version 1
+def check_index_tools_reachable(config: Path, repo: Path) -> None:
+    """THE ONLY CHECK THAT DISTINGUISHES A WORKING INDEX ARM FROM A SILENT ONE.
+
+    Every earlier signal was absent by construction: the server starts, exits 0, writes nothing
+    to stderr, the agent raises no denial, and the run reports every cell ok. Twice a config that
+    surfaced NO TOOLS produced four plausible answers, and the only evidence was a tool count
+    nobody had a reason to read until the numbers looked odd.
+
+    So this SPENDS ONE CHEAP CALL before any cell is generated. A probe that costs a fraction of
+    a cell and refuses is strictly better than a run that costs all of them and cannot be
+    interpreted.
+
+    @brief The index arm can actually reach the index.
+    @return None.
+    @version 1
+    """
+    argv = [
+        "claude",
+        "-p",
+        "Call the clew search tool with text 'int' and corpus 'symbols'. "
+        "Reply with the single word FOUND, or NOTOOL if no such tool exists.",
+        "--model",
+        "sonnet",
+        "--output-format",
+        "json",
+        "--allowedTools",
+        "mcp__clew__dossier,mcp__clew__search,mcp__clew__index",
+        "--strict-mcp-config",
+        "--mcp-config",
+        str(config.resolve()),
+    ]
+    try:
+        done = subprocess.run(
+            argv, capture_output=True, text=True, timeout=300, check=False, cwd=str(repo)
+        )
+        reply = str(json.loads(done.stdout).get("result") or "")
+    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
+        raise ProvisionError(f"index-tool probe could not run: {exc}") from exc
+    if "NOTOOL" in reply.upper() or "FOUND" not in reply.upper():
+        raise ProvisionError(
+            f"the index arm cannot reach the index through {config}. The probe replied:\n"
+            f"{reply[:400]}\n"
+            f"Generating cells now would produce an index arm answering from source with no "
+            f"error anywhere — which has happened twice and is invisible in the artifacts."
+        )
 
 
 ## @brief Provision one target end to end.
@@ -302,6 +355,7 @@ def provision(rubric: Rubric, root: Path) -> Provisioned:
 
     config = root / "mcp.json"
     write_mcp_config(db, repo, config, state_home)
+    check_index_tools_reachable(config, repo)
     return Provisioned(
         repo=repo,
         db=db,
