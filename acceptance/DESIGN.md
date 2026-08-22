@@ -150,6 +150,13 @@ one way and parsed it another, reported zero fenced marks, and counted them agai
 **`evidence` is inline.** A sibling evidence document lets a mark and its ground truth drift
 independently.
 
+**A `set` mark's members must have CANONICAL SPELLINGS** — file paths, symbol names, macro
+names, directory names, numbers. Members are compared on a normalised key built for exactly
+those, so a prose-valued member grades phrasing instead of knowledge: an answer saying
+"definitive" does not match a member spelled "definitive for the scope". A collection whose
+items have no canonical spelling belongs in a `conclusion` mark, where the judge handles wording
+and the schema does not pretend to.
+
 ## Grading routine
 
 Generation and grading are separate phases. Grading never runs inline, so the grader is never next

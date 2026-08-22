@@ -1,0 +1,209 @@
+# SPDX-License-Identifier: MIT
+#
+# THE GRADING KEY FOR THE SELF TARGET. Schema and rules: acceptance/DESIGN.md.
+#
+# WHY THIS TARGET EXISTS. Every other reference repository is C or C++. The query surface works
+# on Python — doxygen indexes it and the tree-sitter recovery path covers it — but only the
+# richness layers are C/C++-specific, so "it works on Python" has been an assertion about a
+# capability rather than a measurement of one. This is the only Python datapoint in the set.
+#
+# GROUND TRUTH IS SOURCE-DERIVED, WHICH MATTERS MORE HERE THAN ANYWHERE ELSE. The target IS the
+# tool, so an index-derived figure would move whenever the pipeline moved and the rubric would
+# silently grade the tool against its own output. Every mark below was verified by reading the
+# module source at the pinned commit — never a query reply.
+#
+# THE PIN WILL GO STALE FAST. This repository changes daily. A grid run against a different
+# commit is not comparable to one run against this pin, and `check_revision` refuses on a
+# mismatch rather than letting the two drift quietly. MOVING THE PIN IS ALLOWED ONLY WITH THE
+# DIFF CHECKED: `git diff --stat <old>..<new> -- clew/` must be empty over the modules these
+# marks cite, or the marks must be re-verified.
+#
+# NO MARK GRADES THIS PROJECT'S OWN BUG HISTORY. A rubric must grade the TARGET REPOSITORY —
+# what the code does now — not the sequence of defects that produced it. Where a docstring
+# records why a design was chosen, the mark asks for the DESIGN and its consequence, which is
+# readable from the source, not for the issue number.
+
+schema: 1
+
+target: tvanfossen/clew
+commit: b16379cd8155e3322e7ef1f4aeffb6e432e11528
+version: 2.0.0
+
+ground_truth: |
+  clew's own source at the commit above, read directly. Line numbers were taken from the
+  working tree at that commit with no modifications.
+
+judge:
+  model: claude-sonnet-4-5-20250929
+  samples_when_weight_at_least: 2
+
+questions:
+  - id: Q1
+    intent: |
+      Probes whether the agent stops at "there is a scope resolver" — one lookup, both arms —
+      or reaches the two design decisions that make the scope what it is: that a Doxyfile's
+      INPUT is deliberately NOT honoured, and that nested git trees are indexed rather than cut
+      out. Both are reversals of the obvious implementation, so an agent that has only located
+      the function will describe the obvious version and be wrong.
+
+    prompt: |
+      When clew indexes a repository, what decides which files end up in the index? Walk
+      through how that decision is made and what happens when nothing has been declared.
+
+    marks:
+      - text: names derive_scope in clew/scope.py as where the decision is resolved
+        type: retrieval
+        weight: 1
+        evidence: |
+          clew/scope.py:187, returning a DerivedScope.
+        refs: [["clew/scope.py", 187, 219]]
+
+      - text: >-
+          states that a repository's own declared index_scope is preferred, and that every
+          failure to find one falls through to indexing the whole repository
+        type: conclusion
+        weight: 3
+        evidence: |
+          derive_scope reads the declaration and returns whole_repo_scope (clew/scope.py:226) on
+          every failure mode — no config, no index_scope section, no declared root that exists.
+        refs: [["clew/scope.py", 187, 219], ["clew/scope.py", 226]]
+
+      - text: >-
+          conveys that the fallback carries a REASON explaining which scope was used and why,
+          so an unstated scope is never silently guessed
+        type: conclusion
+        weight: 2
+        evidence: |
+          whole_repo_scope carries the reason; a rejected declaration is logged as a WARNING as
+          well as returned, because a reason carried only in the payload leaves the log still
+          claiming absence.
+        refs: [["clew/scope.py", 205, 219]]
+
+      - text: >-
+          states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed
+          tree, and explains why — a repository that ships one would get only its documented
+          subset while a repository that ships none gets its whole tree
+        type: conclusion
+        weight: 3
+        evidence: |
+          The Doxyfile fallback was removed from derive_scope. Honouring it made a documentation
+          target stand in for a reasoning boundary, which penalises a repository for documenting
+          itself. The index says what should be REASONED ABOUT; the gate says what must be
+          DOCUMENTED, and coupling them forces a repo to loosen its quality bar to widen its
+          graph.
+        refs: [["clew/scope.py", 193, 198]]
+
+      - text: >-
+          states that nested git trees are INDEXED and tagged rather than excluded from the
+          scope
+        type: conclusion
+        weight: 3
+        evidence: |
+          The containment pass that cut nested trees out of every scope was removed, not
+          bypassed — tagging lives in clew/external.py. A trace that stops at a submodule
+          boundary answers "this call leaves the repo" when it could answer what the call does.
+        refs: [["clew/scope.py", 199, 204]]
+
+      - text: >-
+          conveys that the containment call was REMOVED rather than left in place with its
+          callers dropped
+        type: conclusion
+        weight: 2
+        evidence: |
+          A containment call left in place with its callers removed is a safety property that
+          reads as enforced and is not. Stated explicitly in derive_scope's docstring.
+        refs: [["clew/scope.py", 199, 204]]
+
+  - id: Q2
+    intent: |
+      Probes the difference between "the search returned nothing" and "the search returned
+      nothing AND said how much that is worth". The surface fact is one lookup. The components
+      that matter are why the strong wording is earned per call rather than attached to a
+      result shape, and why exactly one absent-corpus downgrade exists — the second was built
+      and reverted, which is a design conclusion readable from the source and invisible to an
+      agent that only located the function.
+
+    prompt: |
+      A search against a clew index comes back with no rows. How does the reply distinguish
+      "this repository does not contain that" from "I did not look in the place it lives", and
+      how much confidence is each answer entitled to?
+
+    marks:
+      - text: locates the grading in clew/mcp_server/emptiness.py
+        type: retrieval
+        weight: 1
+        evidence: |
+          The module's whole job. _verdict is at :330.
+        refs: [["clew/mcp_server/emptiness.py", 330, 366]]
+
+      - text: >-
+          states that the strong wording is EARNED PER CALL by querying which corpora the search
+          did not read, rather than being attached to a result shape
+        type: conclusion
+        weight: 3
+        evidence: |
+          _verdict calls unsearched_corpora (clew/query/symbols.py:1760), which asks the database
+          which corpora search did not read and whether any holds this query. "Definitive" is
+          asserted only after that comes back empty.
+        refs: [["clew/mcp_server/emptiness.py", 330, 340], ["clew/query/symbols.py", 1760]]
+
+      - text: >-
+          explains that a single token matching nothing was previously treated as proof of
+          absence, and that this confuses "nothing exists" with "I did not look there"
+        type: conclusion
+        weight: 3
+        evidence: |
+          Stated in _verdict. The distinction is the module's reason for existing.
+        refs: [["clew/mcp_server/emptiness.py", 332, 337]]
+
+      - text: >-
+          states that the downgrades are ORDERED most-specific first, and explains why — a
+          matching row in an unread corpus is a statement about THIS query and outranks
+          statements about the index as a whole
+        type: conclusion
+        weight: 3
+        evidence: |
+          If a typedef matched, saying "rebuild to get file docs" would send the caller to fix
+          the wrong thing.
+        refs: [["clew/mcp_server/emptiness.py", 339, 343]]
+
+      - text: >-
+          conveys that there is exactly ONE absent-corpus downgrade and that keeping it to one is
+          deliberate, because downgrading on every absent layer turns the grading into a blanket
+          hedge
+        type: conclusion
+        weight: 3
+        evidence: |
+          A second downgrade was built and reverted. Most indexes lacking a layer lack it because
+          a hand-built fixture never made one, so downgrading on absence would hedge nearly every
+          reply and spend the strong wording the module exists to earn.
+        refs: [["clew/mcp_server/emptiness.py", 345, 353]]
+
+      - text: >-
+          conveys the general rule the module leaves behind — fix the corpus, not the sentence
+          about the corpus
+        type: conclusion
+        weight: 2
+        evidence: |
+          A wording change that compensates for missing data hedges every honest answer to
+          excuse one dishonest one. The motivating case was fixed upstream in the harvest, after
+          which the query returns rows and never reaches this grading at all.
+        refs: [["clew/mcp_server/emptiness.py", 55, 57]]
+
+      - text: >-
+          distinguishes all three grades an empty reply can receive: definitive for the scope,
+          definitive for a reason that is not absence, and not definitive
+        type: conclusion
+        weight: 3
+        evidence: |
+          The module docstring enumerates exactly three. (1) a single token matched nothing in
+          any corpus, so retrying will not help; (2) the pattern's extension appears in no
+          indexed file at all — certain about the index AND about why, which makes "widen the
+          scope" the next move rather than "give up"; (3) an over-specified conjunction or a
+          corpus this index does not carry, where the reply names the token that emptied it.
+
+          NOT A SET MARK, deliberately. Set members are compared on a normalised key built for
+          paths and identifiers; prose values are fragile under it, since an answer saying
+          "definitive" would not match a member spelled "definitive for the scope". A set mark
+          whose members have no canonical spelling grades phrasing.
+        refs: [["clew/mcp_server/emptiness.py", 31, 37]]
