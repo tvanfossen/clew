@@ -144,11 +144,7 @@ def read_build_meta(db: Path) -> dict:
         raise ProvisionError(f"{db}: cannot read build_meta: {exc}") from exc
     finally:
         conn.close()
-    options: dict = {}
-    for key, value in rows.items():
-        if key.startswith("options."):
-            options.setdefault(key.split(".")[1], {})
-    return {"rows": rows, "options": options}
+    return rows
 
 
 ## @brief Build the index for a provisioned target.
@@ -270,7 +266,7 @@ def provision(rubric: Rubric, root: Path) -> Provisioned:
         repo=repo,
         db=db,
         mcp_config=config,
-        build_version=str(meta["rows"].get("build_version", "")),
+        build_version=str(meta.get("build_version", "")),
     )
 
 

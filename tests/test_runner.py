@@ -195,14 +195,28 @@ def test_unapplied_declaration_is_refused() -> None:
     """THE CHECK WHOSE ABSENCE LET A WHOLE PHASE OF WORK GO UNMEASURED — a committed declaration
     that never reached the build, with every downstream result describing a build nobody chose.
 
+    THE SIGNAL IS THE TIER, NOT THE KEY'S PRESENCE. `build_meta` stamps `options.<leaf>.tier` for
+    every option it knows about, declared or not, and an undeclared one reads `heuristic`. A
+    key-presence check therefore PASSES on a build that ignored the declaration entirely, which
+    is the failure this exists to catch wearing a pass.
+
+    Comparison is at the LEAF: a rubric declares `preprocessor.predefined`, the index records
+    `options.predefined`. The first version compared section names to leaf keys and refused a
+    real build whose declaration had landed perfectly.
+
     @brief Unapplied declaration refuses.
     @return None.
-    @version 1
+    @version 2
     """
     rubric = _rubric("Q1", declare={"preprocessor": {"predefined": ["X"]}})
-    runner.check_declaration_applied(rubric, {"options": {"preprocessor": {}}})
-    with pytest.raises(ValueError, match="missing: \\['preprocessor'\\]"):
-        runner.check_declaration_applied(rubric, {"options": {"vendored": []}})
+    ## Applied: the leaf carries an explicit tier.
+    runner.check_declaration_applied(rubric, {"options.predefined.tier": "explicit"})
+    ## Present but HEURISTIC — the build knows the option and nobody declared it.
+    with pytest.raises(ValueError, match="no explicit tier"):
+        runner.check_declaration_applied(rubric, {"options.predefined.tier": "heuristic"})
+    ## Absent entirely.
+    with pytest.raises(ValueError, match="no explicit tier"):
+        runner.check_declaration_applied(rubric, {"options.locks.tier": "explicit"})
 
 
 ## @brief A rubric with no declaration needs no build metadata.

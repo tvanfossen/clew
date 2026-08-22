@@ -218,22 +218,35 @@ def check_declaration_applied(rubric: Rubric, build_meta: dict) -> None:
     that never reached the build makes the measured index differ from the intended one, and
     every downstream result describes a build nobody chose.
 
-    Structural, by section NAME — not a count and not a prose note. A count passes when the
-    wrong sections are present.
+    THE SIGNAL IS THE TIER, NOT THE KEY'S PRESENCE. `build_meta` stamps `options.<leaf>.tier` for
+    EVERY option it knows about, declared or not, and an undeclared one reads `heuristic`. So a
+    key-presence check passes on a build that ignored the declaration entirely — which is the
+    exact failure this exists to catch, dressed as a pass.
+
+    IT ALSO COMPARES AT THE LEAF, NOT THE SECTION. A rubric declares `preprocessor.predefined`;
+    the index records `options.predefined`. The first version compared section names to leaf keys
+    and refused a build whose declaration had landed perfectly. It refused loudly rather than
+    passing wrongly, which is the only reason that was cheap.
 
     @brief The declaration reached the build.
     @return None.
-    @version 1
+    @version 2
     """
     if not rubric.declare:
         return
-    stated = (build_meta or {}).get("options") or {}
-    missing = sorted(set(rubric.declare) - set(stated))
-    if missing:
+    rows = build_meta or {}
+    wanted: set[str] = set()
+    for section, body in rubric.declare.items():
+        leaves = body if isinstance(body, dict) else {}
+        wanted |= set(leaves) if leaves else {section}
+    unapplied = sorted(
+        leaf for leaf in wanted if str(rows.get(f"options.{leaf}.tier", "")) in ("", "heuristic")
+    )
+    if unapplied:
         raise ValueError(
-            f"the rubric declares {sorted(rubric.declare)} but the built index records "
-            f"{sorted(stated)} — missing: {missing}. The index under test is not the index "
-            f"the rubric describes"
+            f"the rubric declares {sorted(wanted)} but the built index records no explicit tier "
+            f"for {unapplied} — the declaration did not reach the build, so the index under test "
+            f"is not the index the rubric describes"
         )
 
 
