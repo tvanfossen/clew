@@ -79,3 +79,14 @@ acceptance/runs/*/*/state/
 ## submodule it contains THIRD-PARTY source rendered to HTML — committing it would leak another
 ## project into this repository, which is the one provenance rule with no gate behind it.
 acceptance/runs/*/*/clew.doxygen/
+
+## PRIVATE TARGETS' RUN ARTIFACTS. The rubric under acceptance/targets/internal/ is already
+## ignored, but a RUN writes answers, transcripts and grade sidecars under acceptance/runs/, and
+## those carry the target's source paths, symbol names and quoted code. Nothing measured on a
+## private target is citable and none of it may reach a committed file — the one provenance rule
+## with no gate behind it, which is why it is spelled out here rather than remembered.
+##
+## Named explicitly rather than by a wildcard: a new private target must be ADDED here, and
+## noticing that is the point.
+acceptance/runs/*/d_c3sh/
+acceptance/runs/*/gd_lightstick_foot/
