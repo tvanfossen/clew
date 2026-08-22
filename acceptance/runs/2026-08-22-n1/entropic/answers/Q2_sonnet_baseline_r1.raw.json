@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 65043,
+  "num_turns": 11,
+  "stop_reason": "end_turn",
+  "session_id": "5dd08584-7179-4b4e-8277-ff1d41f6a771",
+  "total_cost_usd": 0.25292119999999996,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 33284,
+    "cache_read_input_tokens": 280811,
+    "output_tokens": 6250,
+    "output_tokens_details": {
+      "thinking_tokens": 2837
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 33284,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2996,
+        "cache_read_input_tokens": 49838,
+        "cache_creation_input_tokens": 3333,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3333
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1010,
+      "outputTokens": 17,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001095,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 14,
+      "outputTokens": 6250,
+      "cacheReadInputTokens": 280811,
+      "cacheCreationInputTokens": 33284,
+      "webSearchRequests": 0,
+      "costUSD": 0.2518262,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Bringing it in\n\nllama.cpp is a **git submodule**, not a package dependency:\n\n```\n[submodule \"extern/llama.cpp\"]\n    path = extern/llama.cpp\n    url = https://github.com/ggml-org/llama.cpp.git\n```\n\nPinned currently at `20a04b22` (`gguf-v0.19.0-840-g20a04b220`). It's pulled into the CMake build from `extern/CMakeLists.txt` via `add_subdirectory(llama.cpp EXCLUDE_FROM_ALL)`, alongside a second `add_subdirectory` for `llama.cpp/tools/mtmd` (multimodal support, added v2.1.8). Both are built as **static** libraries with PIC forced on and then linked into entropic's own inference shared library \u2014 the comment in the build file is explicit about the intent: *\"Our facade absorbs libllama.a as a static dependency; consumers never link to llama directly.\"* So it's vendored-and-baked-in, not shipped as a sibling `.so`. `ENTROPIC_HAS_CUDA` bridges straight to `GGML_CUDA` for GPU builds, and `LLAMA_BUILD_TESTS/EXAMPLES/SERVER/TOOLS` are all forced off so only the library and mtmd get built, not llama.cpp's CLI tools.\n\n## How far it reaches\n\n**Contained, mostly, in `src/inference/`.** Eight files `#include <llama.h>` or `<mtmd.h>` directly: `llama_cpp_backend.{h,cpp}` (4,100+ lines \u2014 the bulk of the coupling), `llama_cpp_sampler.{h,cpp}`, `llama_cpp_tokenizer.{h,cpp}`, plus `grammar_registry.cpp`, `speculative_compat.cpp`, `orchestrator.cpp`, and `adapter_manager.cpp`.\n\n**The abstract interface boundary holds.** `include/entropic/interfaces/i_inference_backend.h` \u2014 the immutable interface header per the project's own design rules \u2014 has zero llama.cpp types in it, only comment references. That's the intended seam and it's clean.\n\n**But it leaks one layer above the interface.** `include/entropic/inference/adapter_manager.h`, `orchestrator.h`, and `speculative_compat.h` (implementation-layer headers, distinct from `interfaces/`) forward-declare `llama_model`, `llama_context`, and `llama_adapter_lora` and use them as real parameter/member types in their public signatures \u2014 not just comments. So llama.cpp's opaque struct types are baked into several internal C++ header contracts, beyond just the `.cpp` files that own the actual llama.cpp calls.\n\n**The public C API (`entropic.h`) itself stays pure** \u2014 no llama.cpp types cross that `.so` boundary, consistent with the architecture doc's rule #1. But the implementation behind it, `src/facade/entropic.cpp`, does reach in for the LoRA adapter endpoints (`entropic_adapter_load/unload/swap`): it `dynamic_cast<LlamaCppBackend*>(base)`s the abstract backend back down to the concrete llama.cpp type and pulls out raw `llama_model*`/`llama_context*` via `llama_model_ptr()`/`llama_context_ptr()` to hand to the adapter manager. The inline comments acknowledge this isn't backend-agnostic (\"The C API cannot safely provide this \u2014 use tier-based adapter configuration for lifecycle management\") \u2014 it's a known, documented gap in the abstraction, not an oversight.\n\n**Config schema mirrors llama.cpp's surface directly.** `include/entropic/types/config.h` and `src/config/loader.cpp` carry llama.cpp-specific vocabulary as first-class config fields/comments \u2014 `llama_split_mode`, `llama_log_path`, `n_ubatch`, adapter WARM/HOT states documented against `llama_adapter_lora_init`/`llama_set_adapter_lora` \u2014 so entropic's own configuration model is shaped around llama.cpp's parameter names rather than abstracting them behind engine-neutral terms.\n\n**Net picture:** the dependency is vendored via submodule, statically absorbed into entropic's shared library so nothing downstream links llama.cpp directly, and the C API surface is genuinely insulated. But the C++ internals \u2014 one layer of headers up from the interface, the adapter/LoRA code path in the facade, and the config schema \u2014 all know they're talking to llama.cpp specifically. If a second inference backend were ever added, `i_inference_backend.h` would be ready for it, but `adapter_manager`, `orchestrator`, `speculative_compat`, and the facade's adapter endpoints would need rework since they currently assume llama.cpp's concrete types.",
+  "ttft_ms": 2663,
+  "ttft_stream_ms": 979,
+  "time_to_request_ms": 197,
+  "type": "result",
+  "duration_ms": 65128,
+  "uuid": "b812d1d4-24ef-433a-92ed-b5b7feb56f93"
+}

@@ -1,0 +1,45 @@
+{
+  "target": "tvanfossen/entropic",
+  "commit": "6dcb4c814639fd58ead85aea06809637010f34f1",
+  "rubric_version": "2.0.0",
+  "rubric_digest": "a349130dd090330f",
+  "seed": 7,
+  "models": [
+    "sonnet"
+  ],
+  "replicates": 1,
+  "cells": [
+    {
+      "target": "tvanfossen/entropic",
+      "question_id": "Q1",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 0
+    },
+    {
+      "target": "tvanfossen/entropic",
+      "question_id": "Q1",
+      "arm": "index",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 1
+    },
+    {
+      "target": "tvanfossen/entropic",
+      "question_id": "Q2",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 2
+    },
+    {
+      "target": "tvanfossen/entropic",
+      "question_id": "Q2",
+      "arm": "index",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 3
+    }
+  ]
+}

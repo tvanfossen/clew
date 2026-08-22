@@ -1,0 +1,40 @@
+{
+  "stem": "Q1_sonnet_index_r1",
+  "arm": "index",
+  "model": "sonnet",
+  "ok": true,
+  "seconds": 40.001493354997365,
+  "input_tokens": 14,
+  "output_tokens": 2819,
+  "cache_read_tokens": 279022,
+  "cache_creation_tokens": 51702,
+  "cost_usd": 0.2920444,
+  "result_bytes": 3532,
+  "turns": 7,
+  "tool_calls": 6,
+  "non_index_tool_calls": 1,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/entropic.\n\nYou have the usual shell and file tools \u2014 Read, Grep, Glob and Bash \u2014 and additionally a queryable index of this repository: mcp__clew__dossier for everything known about a named symbol, mcp__clew__search to find a name or enumerate a layer, mcp__clew__index for status. USE THE INDEX FIRST for any question about a symbol, its callers or callees, what it touches, or where something lives; fall back to reading source only where the index cannot answer.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nentropic's tokenizer calls into llama.cpp twice in a row in two different places. Why does\nit call twice, what happens if the second call also fails, and would you describe this as\nretry logic?\n",
+    "--model",
+    "sonnet",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash,mcp__clew__dossier,mcp__clew__search,mcp__clew__index",
+    "--strict-mcp-config",
+    "--mcp-config",
+    "/home/tvanfossen/Projects/docs-db/acceptance/runs/2026-08-22-n1/entropic/mcp.json"
+  ],
+  "cell": {
+    "target": "tvanfossen/entropic",
+    "question_id": "Q1",
+    "arm": "index",
+    "model": "sonnet",
+    "replicate": 1,
+    "order": 1
+  }
+}
