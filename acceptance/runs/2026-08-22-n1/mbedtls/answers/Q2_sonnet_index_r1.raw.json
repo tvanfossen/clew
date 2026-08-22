@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 36780,
+  "num_turns": 8,
+  "stop_reason": "end_turn",
+  "session_id": "557fe0d7-e01f-49fa-8896-ec0eb87e28fd",
+  "total_cost_usd": 0.1642918,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 20887,
+    "cache_read_input_tokens": 223939,
+    "output_tokens": 3474,
+    "output_tokens_details": {
+      "thinking_tokens": 620
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 20887,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1311,
+        "cache_read_input_tokens": 43232,
+        "cache_creation_input_tokens": 696,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 696
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1092,
+      "outputTokens": 20,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.0011920000000000001,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 12,
+      "outputTokens": 3474,
+      "cacheReadInputTokens": 223939,
+      "cacheCreationInputTokens": 20887,
+      "webSearchRequests": 0,
+      "costUSD": 0.1630998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Now I have enough grounded detail to answer.\n\n## What `MBEDTLS_PRIVATE` does\n\nIt's a build-time name-mangling trick, defined in `include/mbedtls/private_access.h`:\n\n```c\n#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS\n#define MBEDTLS_PRIVATE(member) private_##member\n#else\n#define MBEDTLS_PRIVATE(member) member\n#endif\n```\n\nEvery struct field mbedtls wants to reserve is declared in the header as `int MBEDTLS_PRIVATE(foo);`, which the preprocessor expands to `int private_foo;`. Any application code that tries to write `ctx.foo` directly gets a **compile error**, because the real field name is `private_foo`, not `foo` \u2014 there's no such member. The only way in is to either use the module's accessor functions (`mbedtls_<module>_get_foo()`/`set_foo()`), or, as an explicit last resort, spell it out as `ctx.MBEDTLS_PRIVATE(foo)` yourself, at your own risk.\n\nDefining `MBEDTLS_ALLOW_PRIVATE_ACCESS` before including the headers flips the macro back to a no-op, so `foo` and `MBEDTLS_PRIVATE(foo)` become the same identifier and direct access compiles again.\n\n## Who it's for, and why\n\nThis is documented explicitly as an API/ABI-stability boundary, not a security control (`docs/3.0-migration-guide.md`, \"Most structure fields are now private\"):\n\n- As of mbedtls 3.0, struct layout is no longer part of the stable public API \u2014 minor versions (3.1, 3.2, \u2026) are free to add, remove, rename, reorder, or retype fields.\n- The mangled name is the enforcement mechanism: it stops application code from silently depending on layout that the project has explicitly said it may change, catching the dependency at compile time rather than letting it become an ABI break discovered at runtime in a later release.\n- A small set of fields are documented as genuinely public/stable and aren't wrapped; everything else defaults to private until an accessor is added.\n\nWho gets the bypass:\n- **The library itself** unlocks it globally \u2014 `library/common.h` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` before pulling in the public headers, with the comment \"Although structs defined in header files are publicly available, their members are private and should not be accessed by the user\" \u2014 so internal library code addresses fields by their plain names as if the wrapper weren't there. (A handful of library files \u2014 `ecdh.c`, `md.c`, `x509_crt.c`, `pk_internal.h`, `ssl_ciphersuites_internal.h` \u2014 still spell out `MBEDTLS_PRIVATE(member)` explicitly even under that umbrella, which works either way since the macro degrades to identity, but is a minor inconsistency rather than a second mechanism.)\n- Sample/test programs that legitimately need raw struct access (e.g. `programs/ssl/ssl_client2.c`, `ssl_server2.c`) `#define MBEDTLS_ALLOW_PRIVATE_ACCESS` at the top of the file, same escape hatch available to any application.\n- Everyone else \u2014 normal application code linking against mbedtls \u2014 is expected to go through accessor functions; the guide points users with a missing accessor to file an enhancement request rather than reach for the macro.\n\n## How widely it's applied\n\nIt's applied broadly, not to a handful of \"sensitive\" structs. 51 public headers under `include/mbedtls/` pull in `private_access.h`, and there are 623 uses of `MBEDTLS_PRIVATE(...)` across those headers \u2014 i.e. this is the default posture for struct fields across essentially the whole public API surface (crypto contexts, X.509, SSL/TLS config and connection structs, etc.), not an exception applied selectively.",
+  "ttft_ms": 3293,
+  "ttft_stream_ms": 1041,
+  "time_to_request_ms": 62,
+  "type": "result",
+  "duration_ms": 36620,
+  "uuid": "436ec995-4160-4130-82f2-a01a55a1a539"
+}

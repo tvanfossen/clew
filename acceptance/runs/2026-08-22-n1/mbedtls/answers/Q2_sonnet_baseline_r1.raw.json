@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 41923,
+  "num_turns": 14,
+  "stop_reason": "end_turn",
+  "session_id": "d6344a6d-bef7-44ad-acca-2c5b65fa5a9e",
+  "total_cost_usd": 0.1155438,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 6295,
+    "cache_read_input_tokens": 250449,
+    "output_tokens": 3913,
+    "output_tokens_details": {
+      "thinking_tokens": 356
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 6295,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1841,
+        "cache_read_input_tokens": 39104,
+        "cache_creation_input_tokens": 832,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 832
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1016,
+      "outputTokens": 20,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001116,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 14,
+      "outputTokens": 3913,
+      "cacheReadInputTokens": 250449,
+      "cacheCreationInputTokens": 6295,
+      "webSearchRequests": 0,
+      "costUSD": 0.11442780000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I now have what I need, grounded in the actual source.\n\n## What `MBEDTLS_PRIVATE` is\n\n```c\n// include/mbedtls/private_access.h\n#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS\n#define MBEDTLS_PRIVATE(member) private_##member\n#else\n#define MBEDTLS_PRIVATE(member) member\n#endif\n```\n\nIt's a token-pasting macro used as a wrapper around struct field names in public headers, e.g. in `gcm.h`:\n\n```c\nuint64_t MBEDTLS_PRIVATE(len);   // expands to either \"private_len\" or \"len\"\n```\n\nBy default (`MBEDTLS_ALLOW_PRIVATE_ACCESS` undefined), every wrapped member gets renamed with a `private_` prefix. If an application defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` **before** including the header, the macro becomes a no-op and the real field name is exposed.\n\n## What it accomplishes, and for whom\n\nThis was introduced for the Mbed TLS 3.0 API break (documented in `docs/3.0-migration-guide.md`). Struct layouts in mbedtls's public headers have always been visible (C has no real encapsulation \u2014 the struct has to be a complete type so callers can stack-allocate it), but the project wants those fields treated as implementation detail, not API. Renaming every field to `private_foo` is a compile-time speed bump: application code that does `ctx.len` instead of calling `mbedtls_gcm_...()` accessor functions simply fails to compile, with an error pointing at the missing member \u2014 forcing the developer to either find the accessor function or explicitly opt in via `#define MBEDTLS_ALLOW_PRIVATE_ACCESS`.\n\nSo it's aimed at:\n- **Application developers**, who are pushed toward the accessor-function API (`mbedtls_<module>_get/set_<field>`) instead of poking struct internals directly, which the migration guide explicitly documents as \"at your own risk... likely to break in a future minor version.\"\n- **The Mbed TLS maintainers themselves**, who get freedom to reorder/rename/resize struct internals across minor releases without it counting as a source-compatibility break for well-behaved callers \u2014 a real constraint given the library also promises API stability within a major version and ABI stability within an LTS branch (3.6 LTS is called out specifically in the migration guide as safer to break this convention in, since ABI is more tightly held there).\n\nIt is explicitly not a security or memory-safety mechanism \u2014 nothing stops a determined caller from defining `MBEDTLS_ALLOW_PRIVATE_ACCESS` or reaching into the struct anyway; it's a compiler-enforced \"please don't\" for anyone who hasn't opted out of the guardrail.\n\n## How widely it's applied\n\nVery widely \u2014 it's a blanket convention, not spot treatment. It appears in **872 occurrences across 57 header files**, essentially every public struct with internal state in both the legacy crypto/X.509/TLS API and the newer PSA headers:\n\n- Crypto primitives: `aes.h`, `aria.h`, `camellia.h`, `chacha20.h`, `chachapoly.h`, `cmac.h`, `des.h`, `gcm.h`, `ccm.h`, `nist_kw.h`, `poly1305.h`, `sha1.h`, `sha256.h`, `sha3.h`, `sha512.h`, `md5.h`, `ripemd160.h`, `md.h`, `cipher.h`, `block_cipher.h`\n- Public-key / big-number: `bignum.h`, `rsa.h`, `ecp.h`, `ecdh.h`, `ecdsa.h`, `ecjpake.h`, `dhm.h`, `pk.h`\n- RNG/entropy: `ctr_drbg.h`, `hmac_drbg.h`, `entropy.h`\n- X.509/ASN.1: `asn1.h`, `x509.h`, `x509_crt.h`, `x509_crl.h`, `x509_csr.h`, `pem.h`, `pkcs7.h`, `oid.h`\n- TLS: `ssl.h`, `ssl_cache.h`, `ssl_ciphersuites.h`, `ssl_cookie.h`, `ssl_ticket.h`\n- Platform/misc: `platform.h`, `threading.h`, `timing.h`\n- PSA layer: `psa/crypto_struct.h`, `crypto_builtin_composites.h`, `crypto_builtin_key_derivation.h`, `crypto_driver_contexts_key_derivation.h`, `crypto_extra.h`, `crypto_platform.h`, `crypto_se_driver.h`, `crypto_types.h`, `crypto_values.h`\n\nInternally, the library obviously needs unrestricted access to its own structs, so `library/common.h` (included by essentially all `.c` files in `library/`) unconditionally `#define`s `MBEDTLS_ALLOW_PRIVATE_ACCESS` before pulling in any mbedtls headers, with a comment explicitly noting \"Although structs defined in header files are publicly available, their members are private and should not be accessed by the user.\" The two interactive test programs `programs/ssl/ssl_server2.c` and `ssl_client2.c` do the same at the top of the file, since they intentionally exercise internal fields for testing purposes.",
+  "ttft_ms": 2240,
+  "ttft_stream_ms": 1045,
+  "time_to_request_ms": 182,
+  "type": "result",
+  "duration_ms": 41252,
+  "uuid": "c93ef5a4-9d13-4697-85b5-82b03a39ce5c"
+}

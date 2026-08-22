@@ -1,0 +1,45 @@
+{
+  "target": "Mbed-TLS/mbedtls",
+  "commit": "068ff080b369adfac81509f9b57b2afabaf82dc5",
+  "rubric_version": "2.0.0",
+  "rubric_digest": "1f49e2d9f7c9024f",
+  "seed": 7,
+  "models": [
+    "sonnet"
+  ],
+  "replicates": 1,
+  "cells": [
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q1",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 0
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q1",
+      "arm": "index",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 1
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q2",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 2
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q2",
+      "arm": "index",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 3
+    }
+  ]
+}

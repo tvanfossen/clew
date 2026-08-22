@@ -41,9 +41,30 @@ ARMS = ("baseline", "index")
 ## built into the instrument, and "is the baseline arm good enough" is otherwise an opinion.
 _TOOLS = {
     "baseline": "You have the usual shell and file tools: Read, Grep, Glob and Bash.",
+    ## A DIRECTIVE, NOT AN OFFER, and the measurements forced it in two steps.
+    ##
+    ## First: a brief saying only "a queryable index is available as MCP tools" produced TWO
+    ## index cells that never touched the index, answering entirely from Grep and Read.
+    ##
+    ## Second, and this corrected the diagnosis: naming the tools took it to one cell of two. The
+    ## cell that used them called all three with ZERO ToolSearch — so the tools were in the tool
+    ## list the entire time and discovery was never the problem. Its twin, same config and same
+    ## brief, simply did not reach for them. That is ADOPTION VARIANCE between otherwise
+    ## identical cells.
+    ##
+    ## The hypothesis puts adoption OUT OF SCOPE: the claim under test is whether the index
+    ## yields better answers more cheaply, not whether an agent thinks to use it. An index arm
+    ## that silently answers from source is therefore not a weak result — it is a cell that
+    ## measured the wrong thing, and blending it into the arm's score makes the quality axis
+    ## meaningless. Instructing the arm is the CONTROL that holds adoption constant, which is why
+    ## this reads as an instruction rather than an inventory.
     "index": (
-        "You have the usual shell and file tools — Read, Grep, Glob and Bash — and additionally "
-        "a queryable index of this repository, exposed as MCP tools."
+        "You have the usual shell and file tools — Read, Grep, Glob and Bash — and additionally a "
+        "queryable index of this repository: mcp__clew__dossier for everything known about a "
+        "named symbol, mcp__clew__search to find a name or enumerate a layer, mcp__clew__index "
+        "for status. USE THE INDEX FIRST for any question about a symbol, its callers or callees, "
+        "what it touches, or where something lives; fall back to reading source only where the "
+        "index cannot answer."
     ),
 }
 

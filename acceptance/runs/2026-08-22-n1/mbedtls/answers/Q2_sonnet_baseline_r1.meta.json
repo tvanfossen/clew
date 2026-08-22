@@ -1,0 +1,38 @@
+{
+  "stem": "Q2_sonnet_baseline_r1",
+  "arm": "baseline",
+  "model": "sonnet",
+  "ok": true,
+  "seconds": 42.31567818799522,
+  "input_tokens": 14,
+  "output_tokens": 3913,
+  "cache_read_tokens": 250449,
+  "cache_creation_tokens": 6295,
+  "cost_usd": 0.1155438,
+  "result_bytes": 4296,
+  "turns": 14,
+  "tool_calls": 13,
+  "non_index_tool_calls": 13,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/mbedtls.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nmbedtls wraps struct members in MBEDTLS_PRIVATE. What does that accomplish, for whom, and\nhow widely is it applied?\n",
+    "--model",
+    "sonnet",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "Mbed-TLS/mbedtls",
+    "question_id": "Q2",
+    "arm": "baseline",
+    "model": "sonnet",
+    "replicate": 1,
+    "order": 2
+  }
+}
