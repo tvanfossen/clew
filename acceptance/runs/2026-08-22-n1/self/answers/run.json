@@ -1,0 +1,45 @@
+{
+  "target": "tvanfossen/clew",
+  "commit": "b16379cd8155e3322e7ef1f4aeffb6e432e11528",
+  "rubric_version": "2.0.0",
+  "rubric_digest": "fe615c6453781a35",
+  "seed": 7,
+  "models": [
+    "sonnet"
+  ],
+  "replicates": 1,
+  "cells": [
+    {
+      "target": "tvanfossen/clew",
+      "question_id": "Q1",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 0
+    },
+    {
+      "target": "tvanfossen/clew",
+      "question_id": "Q1",
+      "arm": "index",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 1
+    },
+    {
+      "target": "tvanfossen/clew",
+      "question_id": "Q2",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 2
+    },
+    {
+      "target": "tvanfossen/clew",
+      "question_id": "Q2",
+      "arm": "index",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 3
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 58272,
+  "num_turns": 10,
+  "stop_reason": "end_turn",
+  "session_id": "83a267da-cb57-4e79-931a-10eb73a74c96",
+  "total_cost_usd": 0.4853884,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 86498,
+    "cache_read_input_tokens": 473362,
+    "output_tokens": 4358,
+    "output_tokens_details": {
+      "thinking_tokens": 1275
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 86498,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1800,
+        "cache_read_input_tokens": 84382,
+        "cache_creation_input_tokens": 2116,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2116
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1033,
+      "outputTokens": 15,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001108,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 18,
+      "outputTokens": 4358,
+      "cacheReadInputTokens": 473362,
+      "cacheCreationInputTokens": 86498,
+      "webSearchRequests": 0,
+      "costUSD": 0.4842804,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## What decides the file set\n\nThree independent decisions compose to produce the final file list, and none of them defaults to \"whatever's in the Doxyfile's own INPUT\":\n\n**1. Scope \u2014 *which directories* are eligible (`clew/scope.py`)**\n\n`derive_scope()` checks exactly one thing: does the repo declare an `index_scope:` section, either in `.clew.yaml` or via the `x-clew` passthrough inside a `.doxygen-guard.yaml`? That section has two keys, `roots:` (required \u2014 it *replaces* the scope) and `excludes:` (optional). A declared root that doesn't exist on disk is dropped with a warning rather than silently passed through to doxygen.\n\nIf a declaration exists and yields at least one usable root, that becomes `SOURCE_DECLARED` and those roots/excludes are taken **at their word, never walked** for nested repos.\n\nCritically, the target's own `Doxyfile` `INPUT =` line is **not** a tier here at all (removed in gh#333). The code frames this explicitly: a Doxyfile's `INPUT` states a *documentation* target, not a *reasoning* boundary \u2014 honoring it used to mean a repo that published a clean API-doc Doxyfile (e.g. `FILE_PATTERNS = *.h`) got a narrower index than a repo that shipped no Doxyfile at all, which is backwards. The Doxyfile is still read for `ALIASES`/`PREDEFINED`/filters, but its `INPUT` is always overridden (`replace_input=True` whenever scope is folded in).\n\n**2. Pattern \u2014 *which filenames within those directories count* (`clew/doxygen.py`)**\n\n`FILE_PATTERNS` is now **forced** to doxygen's own stock extension list (the same set `doxygen -g` writes into a fresh Doxyfile \u2014 `.c/.cc/.h/.py/.md/...`, ~60 patterns), appended last so it overrides anything the target's Doxyfile declares. This closed gh#340: a target declaring a narrow `FILE_PATTERNS = *.h *.cpp *.md` was silently dropping `.c`/`.cu` files that scope had just admitted (measured losing 2 definitions from entropic's own `main`, plus all of a vendored submodule). `declared_file_patterns()` still reads the target's own declaration, but purely for *reporting* the difference \u2014 it's no longer policy.\n\n**3. Content identity, not extension filtering, at hash time (`clew/treescan.py`)**\n\n`enumerate_tree()` walks the resolved INPUT roots recursively, pruning EXCLUDE subtrees during descent (not filtering after), and deliberately does **not** apply an extension filter \u2014 everything under INPUT gets hashed. This is the conservative side of \"when in doubt, MISS\": any change anywhere in the admitted tree invalidates the cache, even to a file doxygen itself wouldn't parse.\n\n## What happens when nothing is declared\n\nNo `index_scope:` anywhere \u2192 `derive_scope` falls through to `whole_repo_scope()`, the default tier since gh#333, not a last resort:\n\n- The **single INPUT root is the repo root itself** \u2014 the whole tree.\n- Subtracted: everything `git ls-files --ignored --others --exclude-standard` reports (build output, venvs, caches) **on both sides of every submodule boundary** \u2014 a nested repo's own `.gitignore` is invisible to `git` at the parent level, so it's queried separately \u2014 plus dot-directories and known cache dirs (`__pycache__`, `node_modules`) that no repo declares as source.\n- **Nested git trees (submodules, stray clones) are walked into and indexed, not excluded** (gh#333/gh#335) \u2014 they used to be cut out entirely, which meant a `chain_trace` into a submodule boundary just said \"left the repo\" instead of showing what the call does. They're now tagged `external` post-build (`external.py`) so two codebases in one index stay distinguishable, but their source is in the index.\n- `FILE_PATTERNS` is still the forced doxygen-default set regardless of scope tier, so \"nothing declared\" doesn't narrow extensions either.\n\nThis fallback is **logged at WARNING**, not silently applied \u2014 `derive_scope_logged` distinguishes a declared scope (logged at INFO with its roots) from the whole-repo default (WARNING, with the reason plus a sentence telling the owner exactly how to declare `index_scope:` to narrow it). If the repo also ships no Doxyfile at all, one is synthesized (`synthesize_doxyfile`) with just `PROJECT_NAME`/`OUTPUT_DIRECTORY`/`STRIP_FROM_PATH` and empty `INPUT` \u2014 the scope-derived roots fill `INPUT` in afterward via `replace_input`, so an empty synthesized Doxyfile never produces an empty build (a prior mbedtls regression: clean `rc=0`, 0 functions indexed).\n\nNet effect: a repo that declares nothing about itself gets indexed *in full* (minus what git already says to ignore), rather than getting a narrower index \u2014 the tool treats silence as \"index everything you can prove is safe to skip,\" never as \"index nothing\" or \"guess a subset.\"",
+  "ttft_ms": 2265,
+  "ttft_stream_ms": 1139,
+  "time_to_request_ms": 186,
+  "type": "result",
+  "duration_ms": 58177,
+  "uuid": "54d6a810-847d-44c4-b96a-1b10957b9f4d"
+}

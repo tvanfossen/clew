@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "clew": {
+      "command": "/home/tvanfossen/Projects/docs-db/.venv/bin/clew-mcp",
+      "args": [
+        "--repo",
+        "/home/tvanfossen/Projects/docs-db/acceptance/runs/2026-08-22-n1/self/repo"
+      ],
+      "env": {
+        "CLEW_STATE_HOME": "/home/tvanfossen/Projects/docs-db/acceptance/runs/2026-08-22-n1/self/state"
+      }
+    }
+  }
+}

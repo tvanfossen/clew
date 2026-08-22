@@ -1,0 +1,38 @@
+{
+  "stem": "Q1_sonnet_baseline_r1",
+  "arm": "baseline",
+  "model": "sonnet",
+  "ok": true,
+  "seconds": 59.314801738990354,
+  "input_tokens": 18,
+  "output_tokens": 4358,
+  "cache_read_tokens": 473362,
+  "cache_creation_tokens": 86498,
+  "cost_usd": 0.4853884,
+  "result_bytes": 4690,
+  "turns": 10,
+  "tool_calls": 9,
+  "non_index_tool_calls": 9,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/docs-db/acceptance/runs/2026-08-22-n1/self/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nWhen clew indexes a repository, what decides which files end up in the index? Walk\nthrough how that decision is made and what happens when nothing has been declared.\n",
+    "--model",
+    "sonnet",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "tvanfossen/clew",
+    "question_id": "Q1",
+    "arm": "baseline",
+    "model": "sonnet",
+    "replicate": 1,
+    "order": 0
+  }
+}

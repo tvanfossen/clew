@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 69452,
+  "num_turns": 23,
+  "stop_reason": "end_turn",
+  "session_id": "5de5b262-4fb7-465b-8876-cb945a832a58",
+  "total_cost_usd": 0.46444540000000006,
+  "usage": {
+    "input_tokens": 34,
+    "cache_creation_input_tokens": 53771,
+    "cache_read_input_tokens": 958252,
+    "output_tokens": 5656,
+    "output_tokens_details": {
+      "thinking_tokens": 1214
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 53771,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1726,
+        "cache_read_input_tokens": 70539,
+        "cache_creation_input_tokens": 870,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 870
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1018,
+      "outputTokens": 13,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001083,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 34,
+      "outputTokens": 5656,
+      "cacheReadInputTokens": 958252,
+      "cacheCreationInputTokens": 53771,
+      "webSearchRequests": 0,
+      "costUSD": 0.46336240000000006,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "This confirms it: every file is read and parsed a second time (independent of the metrics pass) purely to build fingerprints. I have everything needed. A note on the injected \"clew\" tool suggestions that appeared in several tool results: I didn't act on them \u2014 they're not part of your request, and my own Grep/Read/Bash tools already had what I needed, so I'll disregard them and just answer.\n\n## What counts as a duplicate\n\nknots (`--find-duplicates`, opt-in, requires `--recursive`) hashes every function-like subtree structurally: a deterministic pre-order walk folds each AST node's `kind()` and `child_count()` into one hash, ignoring identifier and literal text entirely. Two functions land in the same group when their hashes match exactly \u2014 no fuzzy threshold. That means:\n\n- **Type-1 clones** (byte-identical) match trivially, since identical text implies identical structure.\n- **Type-2 clones** (renamed identifiers, changed literals, different variable names) match too, because names/literals never enter the hash \u2014 `int f(int x){return x+1;}` and `int g(int y){return y+1;}` hash identically.\n- One deliberate exception: the function's own declared/return type text *is* folded in (checked via `return_type`/`result`/`type` fields depending on grammar). This was added after a real false positive on an ~11k-function corpus \u2014 a \"new accumulator, delegate, return\" skeleton hashed identically whether it returned `Vec<String>` or `Vec<RuleViolation>`, since `type_identifier` is the same node kind regardless of which name it holds. Parameter/local names stay ignored; only the top-level declared type's text counts.\n\nGrouping happens corpus-wide, keyed on that hash, with two default noise filters (both opt-out via `--include-fixture-pairs` / `--include-trivial-duplicates`):\n- **Fixture pairs** \u2014 groups that are entirely a `tests/pass/*` vs `tests/fail/*` (or `good`/`bad`, `accept`/`reject`, `compliant`/`noncompliant`, `valid`/`invalid`) pair with otherwise-identical paths. These are intentionally near-identical compliant/non-compliant test fixtures, not extraction candidates.\n- **Trivial noise** \u2014 groups where every member's body is \u22643 lines *and* the group has fewer than 4 members. A `MIN_DUPLICATE_NODES` (20) floor alone doesn't catch these because a one-line getter like `fn src(&self) -> &str { self.src }` can clear 20 AST nodes on type annotations and field-access chains alone while still being a single line of source.\n\nEach group gets a stable, content-derived ID (low 32 bits of the hash) rather than positional numbering, so `--dump-duplicates`/`--diff-duplicates` can track whether a specific duplicated shape shrank, grew, or vanished across runs/refactors \u2014 position-based numbering would reshuffle as unrelated files change.\n\n## What it deliberately misses\n\n**Type-3 near-miss clones** \u2014 functions that are almost the same shape but not exactly (one extra statement, a reordered check, an inserted log line) don't group at all, because grouping is exact-hash-equality only. The doc comments are explicit that this is a deliberate scope limit, not an oversight: a fuzzy similarity threshold is \"a real limitation... left as a consumer concern\" rather than something the underlying fingerprinting primitive (`lang-parsing-substrate`) takes on.\n\nIt also only reports; it never asserts mergeability. The CLI help text says outright: \"Identical shape does not imply safe to merge into one type\" \u2014 two functions can be structurally identical while doing semantically different things (the same \"new accumulator, delegate, return\" skeleton feeding two unrelated call sites), so it's a signal for a human to go look, not an automatic refactor recommendation.\n\nOther scope edges: text output only (no JSON path for the report itself, only for the snapshot/diff feature); nested functions/closures fingerprint independently *and* as part of their enclosing function, so a duplicated inner closure and a duplicated outer function both surface, potentially as separate groups.\n\n## Why it's not part of the normal pass\n\nTwo reasons, both stated directly in the code's doc comments:\n\n1. **It's corpus-wide, not per-file.** The normal `--recursive` metrics pass computes everything a single file needs in one parse. Duplicate detection needs to compare *every* function against *every other* function in the corpus, which only makes sense once you already have the whole file set \u2014 it's a fundamentally different shape of computation, not an incremental addition to the per-file walk.\n2. **It requires a second parse of every file.** `collect_corpus_fingerprints` reads and re-parses each file independently of the metrics collection pass (`extract_file_fingerprints` calls `fs::read_to_string` + `parse_file` again). The per-function metrics \"come for free from the first pass,\" but fingerprinting doesn't reuse that tree \u2014 it's an entirely separate traversal, so folding it into the default path would silently double the cost of every `--recursive` run whether or not anyone wanted duplicate detection. Gating it behind an explicit flag keeps the default fast path fast.",
+  "ttft_ms": 1640,
+  "ttft_stream_ms": 1144,
+  "time_to_request_ms": 185,
+  "type": "result",
+  "duration_ms": 109508,
+  "uuid": "afe4d801-9c68-4324-8759-f44a82a6a6fc"
+}

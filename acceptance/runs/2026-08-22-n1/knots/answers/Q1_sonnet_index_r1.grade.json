@@ -1,0 +1,71 @@
+{
+  "cell": "Q1_sonnet_index_r1",
+  "arm": "index",
+  "rubric_version": "2.0.0",
+  "rubric_digest": "3103ea4fdeafe53a",
+  "judge_model": "claude-sonnet-4-5-20250929",
+  "score": 1.0,
+  "unmarked_pct": 0.0,
+  "decisions": [
+    {
+      "mark": "locates the detection in src/duplicates.rs",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "",
+      "agreement": 1.0,
+      "samples": 1,
+      "errors": 0
+    },
+    {
+      "mark": "states that two functions group together when their AST subtrees hash IDENTICALLY \u2014 same node kinds in the same shape \u2014 so the comparison is structural rather than textual",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that this catches byte-identical and RENAMED clones but is blind to near-misses \u2014 a copy with one extra statement hashes differently and does not group",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that detection is GATED behind an explicit flag rather than folded into the default recursive pass, and gives the cost reason \u2014 it is corpus-wide and needs a SECOND parse of every file",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that very small functions are skipped, because two single-line accessors hashing alike is not a finding",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a group's identity is CONTENT-DERIVED rather than positional, so a group stays comparable across runs even when files are added, removed or reordered",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

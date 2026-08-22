@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 34935,
+  "num_turns": 7,
+  "stop_reason": "end_turn",
+  "session_id": "41546c65-9754-4dd1-9c05-925624ae9068",
+  "total_cost_usd": 0.20859119999999998,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 30984,
+    "cache_read_input_tokens": 296401,
+    "output_tokens": 2413,
+    "output_tokens_details": {
+      "thinking_tokens": 511
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 30984,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 974,
+        "cache_read_input_tokens": 51384,
+        "cache_creation_input_tokens": 3415,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3415
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1142,
+      "outputTokens": 15,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001217,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 14,
+      "outputTokens": 2413,
+      "cacheReadInputTokens": 296401,
+      "cacheCreationInputTokens": 30984,
+      "webSearchRequests": 0,
+      "costUSD": 0.20737419999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I have what I need to answer.\n\nThe distinction lives in `clew/mcp_server/emptiness.py`, and it's earned per-call rather than declared by shape. An empty `search` reply is graded into one of three tiers, computed only after the result comes back zero (so the cost is paid exclusively on the empty path, never the common one):\n\n**1. Definitive.** Earned only when a single token matched nothing *and* `query.unsearched_corpora` \u2014 which asks the database whether any corpus `search` doesn't read (right now: markdown/Kconfig prose) holds a row this same query would have matched \u2014 also comes back empty. Only then does the reply say \"this IS a definitive empty result... do not retry or fall back to guessing.\" This is full confidence, and it's checkable: the query that produced it is named in the code (`unsearched_corpora`), not asserted by the tool description.\n\n**2. Definitive, but for a different reason (absent corpus, not absent match).** If the index was built without a corpus the query needed \u2014 no file-level docs corpus, no ingested markdown \u2014 the reply says so explicitly (`_NO_FILE_DOCS` / `_NO_PROSE_CORPUS`) rather than claiming the repository lacks the thing. This is also full confidence, but the claim is \"the index can't see there,\" not \"the repo doesn't have it\" \u2014 and it tells the caller how to fix the index (`index(action='refresh')`) instead of how to fix the query.\n\n**3. Not definitive.** Two sub-cases, both graded down:\n- *Unread-corpus hit*: `unsearched_corpora` found rows in a corpus `search` doesn't cover (e.g. the name exists as a typedef, but `search` doesn't index typedefs). The reply names the hit count and corpus and points at `dossier` by name \u2014 this is the \"I didn't look there\" case made concrete and actionable, not just claimed.\n- *Over-specified conjunction*: for multi-token queries, `token_hit_counts` runs each token independently; any token with zero independent hits is named as the one that emptied the whole AND-match, with instruction to retry without it.\n\nThe confidence budget, in short: **definitive** claims (\"do not retry, do not guess\") are earned only after the code has actually checked every corpus it could have missed and found nothing there either \u2014 never from a single zero-row query alone. Everything short of that full check is worded as *not* definitive, with the specific reason (named corpus, named token) and a concrete next action, because the module's own history (gh#31, #315, #372, #373, #374, #404) is four to five separate incidents of the strong wording being issued from partial evidence and turning out false \u2014 an agent that was told \"do not retry\" when a class, variable, macro, or typedef corpus held the match, and either gave up or fell back to grep. The design rule the file states explicitly: fix the corpus (or the diagnosis), never the sentence \u2014 a wording tweak that papers over missing coverage would hedge every honest empty reply to excuse the rare dishonest one.",
+  "ttft_ms": 6271,
+  "ttft_stream_ms": 1342,
+  "time_to_request_ms": 97,
+  "type": "result",
+  "duration_ms": 34466,
+  "uuid": "bd4a8fe3-71a2-4db0-8e57-0b84ea03316e"
+}

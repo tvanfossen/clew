@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 54940,
+  "num_turns": 13,
+  "stop_reason": "end_turn",
+  "session_id": "da258ec6-46fc-4f5e-b8e8-34e676f6a863",
+  "total_cost_usd": 0.4465375999999999,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 70665,
+    "cache_read_input_tokens": 574988,
+    "output_tokens": 4765,
+    "output_tokens_details": {
+      "thinking_tokens": 1175
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 70665,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1719,
+        "cache_read_input_tokens": 68452,
+        "cache_creation_input_tokens": 2213,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2213
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1111,
+      "outputTokens": 15,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001186,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 22,
+      "outputTokens": 4765,
+      "cacheReadInputTokens": 574988,
+      "cacheCreationInputTokens": 70665,
+      "webSearchRequests": 0,
+      "costUSD": 0.44535159999999996,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I now have the complete picture \u2014 I'll write the answer from what's grounded in the code.\n\n## What counts as a duplicate\n\nknots runs a separate, opt-in pass (`--find-duplicates`) that parses the corpus a second time and computes a **structural fingerprint** of every function-like subtree (`lang-parsing-substrate::function_fingerprints`). The fingerprint is a hash built from a pre-order walk that folds in each node's `kind()` and `child_count()` \u2014 the *shape* of the AST, not its text. Two functions land in the same group when their hashes match exactly (`duplicate_groups` in the substrate, wired through `find_duplicate_groups` in `src/duplicates.rs`).\n\nBecause identifiers and literals are never hashed, this catches:\n- **Type-1 clones** \u2014 byte-identical functions (fall out for free, since identical text obviously has identical structure)\n- **Type-2 clones** \u2014 renamed identifiers, changed constants/literals, but the same control-flow skeleton\n\nOne deliberate exception: the node's own **declared return type text** is folded in (not descendants' types \u2014 just the top-level node being hashed). This was added after a real false positive on an ~11k-function corpus, where two functions with the identical \"build accumulator, delegate, return\" skeleton but different return types (`-> Vec<String>` vs `-> Vec<RuleViolation>`) hashed identically, since `type_identifier` is the same *kind* regardless of which name it holds. Parameter and variable names stay ignored.\n\nGrouping only fires on **exact hash equality**, and the pass filters out low-value noise before reporting:\n- `MIN_DUPLICATE_NODES = 20` \u2014 subtrees smaller than this are dropped outright.\n- Trivial-noise groups \u2014 every member's body is \u22643 lines *and* fewer than 4 members repeat it. A one-line accessor can clear the 20-node floor purely from type annotations and field-access chains, so the node-count floor alone doesn't catch it; this second heuristic does, unless it repeats 4+ times (at which point it reads as deliberate copy-paste worth a shared trait, not incidental overlap).\n- Fixture pairs \u2014 groups where every member sits under a recognized pass/fail-style directory pair (`pass`/`fail`, `compliant`/`noncompliant`, `good`/`bad`, `accept`/`reject`, `valid`/`invalid`) and the paths are otherwise identical once the tag is normalized away. This exists specifically for CERT-C-style `tests/pass/CWE-190.c` vs `tests/fail/CWE-190.c` fixtures, which are intentionally near-identical and not extraction candidates.\n\nBoth filters are opt-out (`--include-fixture-pairs`, `--include-trivial-duplicates`), and groups are sorted largest-group-first then by node count so the highest-value clones surface first. Each group also gets a stable, content-derived `group_id` (a hex tag off the shared hash) rather than positional numbering, specifically so `--dump-duplicates`/`--diff-duplicates` can track \"did this group shrink or vanish\" across a refactor without being thrown off by files being added/removed elsewhere in the corpus.\n\n## What it deliberately misses\n\n- **Type-3 near-miss clones** \u2014 a function with one extra statement, a reordered check, an added guard clause \u2014 don't match, because there's no fuzzy/similarity threshold, only exact hash equality. The substrate's module doc is explicit that this is a deliberate scope boundary: fuzzy matching is left as a consumer concern, not something the primitive provides.\n- **Nested functions/closures** are fingerprinted twice \u2014 once as part of the enclosing function's subtree, once independently \u2014 matching the crate's existing call-graph walk behavior of not stopping at function boundaries. That means a duplicate can show up at two granularities simultaneously rather than being deduplicated across levels.\n- Sub-20-node functions and small-body/low-repeat groups are filtered by default, so genuinely duplicated tiny helpers (a 2-line duplicated getter) won't show up unless you pass `--include-trivial-duplicates`.\n\n## Why it isn't part of the normal analysis pass\n\nStated directly in `duplicates.rs`'s file doc: per-function metrics (McCabe, cognitive, SLOC, ABC, etc.) come for free from the single parse `--recursive` already does per file. Duplicate detection is fundamentally different in scope \u2014 it's **corpus-wide** (a function isn't \"duplicate\" relative to anything in isolation, only relative to every other function across every other file) and requires re-parsing every file specifically to build fingerprints, which the normal per-file metrics walk has no reason to do. It's also only meaningful with `--recursive` in the first place \u2014 `recursive_duplicate_groups` gates on `ctx.recursive && ctx.find_duplicates` because a single file has no corpus to compare itself against. Bundling that second full-corpus parse into the default pass would tax every run of knots (including single-file and non-duplicate-interested runs) for a feature most invocations don't want, so it's kept as an explicit, separately-costed opt-in.",
+  "ttft_ms": 2195,
+  "ttft_stream_ms": 1415,
+  "time_to_request_ms": 93,
+  "type": "result",
+  "duration_ms": 114139,
+  "uuid": "44b6b500-28f0-4805-b094-b48f6c77e7ad"
+}
