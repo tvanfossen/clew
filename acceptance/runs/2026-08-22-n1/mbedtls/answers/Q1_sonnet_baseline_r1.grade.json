@@ -2,7 +2,7 @@
   "cell": "Q1_sonnet_baseline_r1",
   "arm": "baseline",
   "rubric_version": "2.0.0",
-  "rubric_digest": "1f49e2d9f7c9024f",
+  "rubric_digest": "3c2674a35b125ba2",
   "judge_model": "claude-sonnet-4-5-20250929",
   "score": 0.2,
   "unmarked_pct": 0.0,

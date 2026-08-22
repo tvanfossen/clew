@@ -39,6 +39,9 @@ DEFAULT_TIMEOUT = 1800
 _ALLOWED = {
     "baseline": "Read,Grep,Glob,Bash",
     "index": "Read,Grep,Glob,Bash,mcp__clew__dossier,mcp__clew__search,mcp__clew__index",
+    ## THE CEILING ARM GETS THE INDEX AND NOTHING ELSE. Not a comparison arm — see
+    ## runner.CEILING_ARM for why it stands beside the grid rather than in it.
+    "index_only": "mcp__clew__dossier,mcp__clew__search,mcp__clew__index",
 }
 
 
@@ -148,7 +151,7 @@ def run_cell(
     """
     import time
 
-    if cell.arm == "index" and mcp_config is None:
+    if cell.arm in ("index", "index_only") and mcp_config is None:
         raise ValueError(
             f"{cell.stem()}: the index arm needs an MCP config. Running it without one "
             f"measures the baseline arm under the index arm's name"
@@ -181,7 +184,7 @@ def run_cell(
     ## path resolved against that tree, the file was not there, and every index cell failed
     ## while the baseline cells succeeded — a failure mode that silently produces a one-armed
     ## run if the errors are not read.
-    if cell.arm == "index" and mcp_config is not None:
+    if cell.arm in ("index", "index_only") and mcp_config is not None:
         argv += ["--mcp-config", str(mcp_config.resolve())]
 
     started = time.monotonic()

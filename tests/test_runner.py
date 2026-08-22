@@ -68,7 +68,7 @@ def test_asymmetric_briefs_are_refused(monkeypatch: pytest.MonkeyPatch) -> None:
     @return None.
     @version 1
     """
-    monkeypatch.setitem(runner._TOOLS, "index", _TOOLS_LEAK)
+    monkeypatch.setitem(runner._TOOLS, runner.ARMS[1], _TOOLS_LEAK)
     with pytest.raises(ValueError, match="differ outside the tool sentence"):
         runner.check_symmetry()
 
@@ -298,3 +298,37 @@ def test_dirty_tree_is_refused_at_the_pin(tmp_path: Path) -> None:
     (tmp_path / "a.txt").write_text("two")
     with pytest.raises(ValueError, match="working tree is MODIFIED"):
         runner.check_revision(rubric, tmp_path)
+
+
+## @brief 1.1.0 compares baseline vs index_only; the blended arm stays out.
+## @return None.
+## @version 1
+def test_blended_arm_is_out_of_the_comparison_and_index_only_has_no_shell() -> None:
+    """AN INDEX ARM SCORING BELOW FULL MARKS IS AMBIGUOUS between "the index could not answer"
+    and "the agent did not ask" — measured, index arms made 0 to 5 index calls out of 6 to 14, so
+    every score is confounded with adoption. The ceiling arm removes the second explanation.
+
+    IT IS NOT A COMPARISON ARM. Nobody ships "you may only use the index", and this project
+    retired a crippled arm once already because index-versus-grep is not the real-world question.
+    So it must stay out of ARMS, and `check_symmetry` must compare only the arms that ARE paired
+    — diffing a deliberately asymmetric arm would either fail the check or dilute it into
+    permitting anything.
+
+    @brief Ceiling arm is separate and shell-free.
+    @return None.
+    @version 1
+    """
+    ## 1.1.0 COMPARES baseline vs index_only. The BLENDED arm — a full harness that also has the
+    ## index — is confounded with adoption and is deferred to 1.2.0, so it must stay OUT of the
+    ## compared pair while remaining runnable.
+    assert runner.BLENDED_ARM not in runner.ARMS, "the blended arm must not join the comparison"
+    assert runner.BLENDED_ARM in runner.ALL_ARMS
+    assert "index_only" in runner.ARMS
+    text = runner.brief("index_only", "/repo", "Q?")
+    for shell in ("Bash", "Grep", "Glob"):
+        assert shell not in text, f"the index-only arm was granted {shell}"
+    assert "index alone" in text
+    ## The blended arm still has its shell, or it would not be the shipped shape.
+    assert "Bash" in runner.brief(runner.BLENDED_ARM, "/repo", "Q?")
+    ## Symmetry still holds over the comparison arms with the third one present.
+    runner.check_symmetry()

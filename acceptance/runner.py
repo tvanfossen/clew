@@ -34,7 +34,27 @@ from pathlib import Path
 
 from .grader.rubric import Rubric
 
-ARMS = ("baseline", "index")
+## THE TWO ARMS 1.1.0 COMPARES (owner ruling, 2026-08-22).
+##
+## `index_only` rather than the blended `index` arm, because the blend is confounded with
+## ADOPTION and adoption is an independent problem. Measured: index arms made between 0 and 5
+## index calls out of 6 to 14 total, and one cell made none at all despite an explicit directive.
+## A score built on that measures an agent's habits at least as much as a tool's capability.
+##
+## Strip the shell and the ambiguity goes with it — a miss belongs to the tool. The question
+## 1.1.0 answers is "can the index alone match a full agentic harness", which is fully
+## falsifiable in a way the blend is not.
+##
+## THE CORE HYPOTHESIS DOES NOT CHANGE. H1 is about the retrieval substrate, not about whether an
+## agent thinks to reach for it; 1.1.0 simply does not aim to answer it in full. The blended arm
+## is a 1.2.0 target, once adoption is solved.
+ARMS = ("baseline", "index_only")
+
+## THE BLENDED ARM. Still runnable and still the shipped product's shape, but NOT part of the
+## 1.1.0 comparison for the reason above. Kept so 1.2.0 has a prior measurement to improve on
+## rather than starting from nothing.
+BLENDED_ARM = "index"
+ALL_ARMS = ARMS + (BLENDED_ARM,)
 
 ## THE ONLY PERMITTED DIFFERENCE BETWEEN THE TWO BRIEFS. Everything else is byte-identical and
 ## `check_symmetry` refuses on any other delta. Asymmetry in what an arm is TOLD is a handicap
@@ -65,6 +85,19 @@ _TOOLS = {
         "for status. USE THE INDEX FIRST for any question about a symbol, its callers or callees, "
         "what it touches, or where something lives; fall back to reading source only where the "
         "index cannot answer."
+    ),
+    ## NO SHELL AT ALL. The arm cannot read a line of source, so a mark it misses is a mark the
+    ## index does not carry — which is the whole point. It also means marks whose ANSWER FORM
+    ## needs source (quote this comment, show these lines) will fail here even when the index
+    ## holds the fact, and that is informative rather than a defect: it partitions the rubric
+    ## into what the index can answer and what it can only point at.
+    "index_only": (
+        "You have ONLY a queryable index of this repository — no shell, no file reading, no "
+        "search over the source. The tools are mcp__clew__dossier for everything known about a "
+        "named symbol, mcp__clew__search to find a name or enumerate a layer, and "
+        "mcp__clew__index for status. Answer from the index alone. Where the index cannot tell "
+        "you something, say so plainly rather than guessing — an honest gap is the useful "
+        "answer here."
     ),
 }
 
@@ -126,8 +159,8 @@ def brief(arm: str, root: str, question: str) -> str:
     @return Brief text.
     @version 1
     """
-    if arm not in ARMS:
-        raise ValueError(f"unknown arm {arm!r}; expected one of {list(ARMS)}")
+    if arm not in ALL_ARMS:
+        raise ValueError(f"unknown arm {arm!r}; expected one of {list(ALL_ARMS)}")
     return _BRIEF.format(root=root, tools=_TOOLS[arm], question=question)
 
 
@@ -146,8 +179,12 @@ def check_symmetry() -> None:
     @return None.
     @version 1
     """
-    left = brief("baseline", "/repo", "Q?").splitlines()
-    right = brief("index", "/repo", "Q?").splitlines()
+    ## DERIVED FROM `ARMS`, never hardcoded. This check named its two arms literally and kept
+    ## comparing the OLD pair after the compared arms changed — it refused a correct
+    ## configuration while silently no longer checking the one in use.
+    first, second = ARMS
+    left = brief(first, "/repo", "Q?").splitlines()
+    right = brief(second, "/repo", "Q?").splitlines()
     ## `line[1:]`, NOT `line[2:]`. `unified_diff` prefixes ONE character; slicing two ate the
     ## first character of every line, so nothing ever matched `permitted` and the check refused
     ## its own symmetric briefs. It failed loudly, which is the only reason it was cheap.
@@ -156,7 +193,10 @@ def check_symmetry() -> None:
         for line in difflib.unified_diff(left, right, n=0, lineterm="")
         if line.startswith(("+", "-")) and not line.startswith(("+++", "---"))
     ]
-    permitted = set(_TOOLS.values())
+    ## ONLY THE COMPARISON ARMS. The ceiling arm is deliberately asymmetric — it is not part of
+    ## the grid and diffing it here would either fail the check or dilute it into permitting
+    ## anything.
+    permitted = {_TOOLS[a] for a in ARMS}
     stray = [line for line in changed if line not in permitted]
     if stray:
         raise ValueError(

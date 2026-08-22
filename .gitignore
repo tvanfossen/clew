@@ -80,13 +80,17 @@ acceptance/runs/*/*/state/
 ## project into this repository, which is the one provenance rule with no gate behind it.
 acceptance/runs/*/*/clew.doxygen/
 
-## PRIVATE TARGETS' RUN ARTIFACTS. The rubric under acceptance/targets/internal/ is already
-## ignored, but a RUN writes answers, transcripts and grade sidecars under acceptance/runs/, and
-## those carry the target's source paths, symbol names and quoted code. Nothing measured on a
-## private target is citable and none of it may reach a committed file — the one provenance rule
-## with no gate behind it, which is why it is spelled out here rather than remembered.
+## PRIVATE TARGETS, EVERYWHERE THEY APPEAR. Anything under an `internal/` segment is ignored
+## wholesale — rubrics, checkouts, indexes, answers, transcripts and grade sidecars alike.
 ##
-## Named explicitly rather than by a wildcard: a new private target must be ADDED here, and
-## noticing that is the point.
-acceptance/runs/*/d_c3sh/
-acceptance/runs/*/gd_lightstick_foot/
+## STRUCTURAL RATHER THAN A LIST, and that is the whole point. An earlier version named each
+## private target explicitly on the reasoning that adding a new one should be a deliberate act.
+## That gets it backwards: it makes the SAFE case depend on somebody remembering, so a new
+## private target is committable by default until someone notices. Nothing measured on a private
+## target is citable and none of it may reach a committed file, and that rule has no gate behind
+## it — so the layout has to make the mistake impossible rather than merely noticeable.
+##
+## The consequence for run layout: a private target's run root goes under
+## `acceptance/runs/<date>/internal/<target>/`, not beside the public ones.
+acceptance/targets/internal/
+**/internal/
