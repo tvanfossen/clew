@@ -11,6 +11,7 @@ still returns verdicts; wrong arithmetic still returns a number.
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -267,3 +268,70 @@ def test_weight_is_importance_not_partial_credit() -> None:
     result.decisions = [score.Decision(str(w), "conclusion", w, True) for w in (1, 2, 3)]
     got, unmarked = result.score()
     assert got == 1.0 and unmarked == 0.0
+
+
+## @brief A transient failure is retried; a missing binary is not.
+## @return None.
+## @version 1
+def test_ask_retries_transient_failures_but_not_a_missing_binary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """MEASURED: three cells came back 85-100% unruled with EVERY call failing, and the identical
+    call succeeded minutes later with no code change. That is transient capacity, and it gets
+    worse exactly as a grid gets bigger — when unruled marks do the most damage.
+
+    A missing binary is the opposite case: it will not fix itself, and retrying burns the budget
+    to reach the same answer three times.
+
+    @brief Retry policy.
+    @return None.
+    @version 1
+    """
+    import subprocess as sp
+
+    monkeypatch.setattr(judge.time, "sleep", lambda _s: None)
+
+    calls = {"n": 0}
+
+    def flaky(argv, **_kw):
+        calls["n"] += 1
+        if calls["n"] < judge.ASK_ATTEMPTS:
+            return sp.CompletedProcess(argv, 1, "", "overloaded")
+        return sp.CompletedProcess(argv, 0, json.dumps({"result": "QUOTE: x\nVERDICT: HIT"}), "")
+
+    monkeypatch.setattr(sp, "run", flaky)
+    reply = judge.ask("p", "claude-x-1")
+    assert reply.error == "" and judge.read_verdict(reply.text) == "HIT"
+    assert calls["n"] == judge.ASK_ATTEMPTS, "a transient failure must be retried"
+
+    def missing(argv, **_kw):
+        calls["n"] += 1
+        raise OSError("no such file: claude")
+
+    calls["n"] = 0
+    monkeypatch.setattr(sp, "run", missing)
+    assert "transport" in judge.ask("p", "claude-x-1").error
+    assert calls["n"] == 1, "a missing binary must NOT be retried"
+
+
+## @brief An unruled vote records WHY, not just how many failed.
+## @return None.
+## @version 1
+def test_vote_records_the_reason_each_attempt_failed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """ "3/3 calls failed" cannot tell a reader whether the judge was rate-limited, timed out, or
+    replied without a verdict block — three failures needing three different responses. Recording
+    only the tally made an unruled decision uninvestigable after the fact.
+
+    @brief Failure reasons are kept.
+    @return None.
+    @version 1
+    """
+    monkeypatch.setattr(judge, "ask", lambda *_a, **_k: judge.Reply(error="rc=1: overloaded"))
+    voted = judge.vote("m", "a", "claude-x-1", 3)
+    assert voted.verdict is None and voted.errors == 3
+    assert voted.reasons and all("overloaded" in r for r in voted.reasons)
+
+    ## A reply that arrives but carries no verdict block is a DIFFERENT failure and says so.
+    monkeypatch.setattr(judge, "ask", lambda *_a, **_k: judge.Reply(text="I think it is fine."))
+    voted = judge.vote("m", "a", "claude-x-1", 1)
+    assert "no VERDICT line" in voted.reasons[0]

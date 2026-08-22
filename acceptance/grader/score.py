@@ -187,7 +187,7 @@ def score_set(mark: Mark, answer: str, model: str, samples: int = 3) -> list[Dec
 ## @param rubric The owning rubric, for the judge model and vote threshold.
 ## @param arm Which arm produced the answer, used only for fencing.
 ## @return QuestionResult.
-## @version 1
+## @version 2
 def score_question(question: Question, answer: str, rubric: Rubric, arm: str) -> QuestionResult:
     """A FENCED MARK IS EXCLUDED FROM THE ARM THAT CANNOT REACH IT, never scored zero against it.
     `arm_only` names the arm that CAN reach the mark, so it leaves the other arm's denominator
@@ -196,7 +196,7 @@ def score_question(question: Question, answer: str, rubric: Rubric, arm: str) ->
 
     @brief Score one question.
     @return QuestionResult.
-    @version 1
+    @version 2
     """
     body = anonymise(answer)
     result = QuestionResult(id=question.id)
@@ -214,7 +214,12 @@ def score_question(question: Question, answer: str, rubric: Rubric, arm: str) ->
                 kind=mark.type,
                 weight=mark.weight,
                 hit=None if voted.verdict is None else voted.verdict == "HIT",
-                detail="" if voted.verdict else f"{voted.errors}/{voted.samples} calls failed",
+                detail=(
+                    ""
+                    if voted.verdict
+                    else f"{voted.errors}/{voted.samples} calls failed: "
+                    + "; ".join(dict.fromkeys(voted.reasons))
+                ),
                 agreement=voted.agreement,
                 samples=voted.samples,
                 errors=voted.errors,

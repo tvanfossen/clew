@@ -25,10 +25,16 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+import time
 from collections import Counter
 from dataclasses import dataclass
 
 VERDICTS: tuple[str, ...] = ("HIT", "MISS")
+
+## Attempts per judge call and the pause between them. Three rides out a busy window without
+## turning a genuinely broken invocation into a long hang.
+ASK_ATTEMPTS = 3
+ASK_BACKOFF_SECONDS = 4
 DEFAULT_TIMEOUT = 180
 
 _HEADER = re.compile(r"^#\s+Q\d+\s*[—–-].*$", re.MULTILINE)
@@ -69,11 +75,11 @@ class Reply:
 
 
 ## @brief A voted verdict across independent samples.
-## @version 1
+## @version 2
 @dataclass(frozen=True)
 class Vote:
     """@brief Majority verdict, its agreement ratio, and the errors that did not vote.
-    @version 1
+    @version 2
     """
 
     verdict: str | None
@@ -81,6 +87,8 @@ class Vote:
     tally: tuple
     samples: int
     errors: int
+    ## Why each failed attempt failed, in order. Empty on a clean vote.
+    reasons: tuple = ()
 
 
 ## @brief Strip arm, model and run identity from an answer before judging.
@@ -110,7 +118,7 @@ def anonymise(answer: str) -> str:
 ## @param model Dated model id — never an alias.
 ## @param timeout Seconds before the call is abandoned.
 ## @return Reply.
-## @version 1
+## @version 2
 def ask(prompt: str, model: str, timeout: int = DEFAULT_TIMEOUT) -> Reply:
     """Tool-less and fresh every call, which is what makes repeated calls a variance measurement
     rather than a conversation.
@@ -121,7 +129,7 @@ def ask(prompt: str, model: str, timeout: int = DEFAULT_TIMEOUT) -> Reply:
 
     @brief One judge call.
     @return Reply.
-    @version 1
+    @version 2
     """
     argv = [
         "claude",
@@ -134,16 +142,39 @@ def ask(prompt: str, model: str, timeout: int = DEFAULT_TIMEOUT) -> Reply:
         "--allowedTools",
         "",
     ]
-    try:
-        done = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, check=False)
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        return Reply(error=f"transport: {exc}")
-    if done.returncode != 0:
-        return Reply(error=f"rc={done.returncode}: {done.stderr.strip()[:400]}")
-    try:
-        return Reply(text=str(json.loads(done.stdout).get("result") or ""))
-    except (json.JSONDecodeError, AttributeError) as exc:
-        return Reply(error=f"unparseable envelope: {exc}")
+    ## RETRIED WITH BACKOFF, because the observed failure is TRANSIENT CAPACITY rather than a
+    ## broken call. Measured: three cells came back 85-100% unruled — EVERY call failing, not
+    ## some — and the identical call succeeded minutes later with no code change. A judge that
+    ## degrades under sustained load gets worse exactly as a grid gets bigger, which is when
+    ## unruled marks do the most damage.
+    ##
+    ## Bounded rather than indefinite: a genuinely broken invocation must still surface as an
+    ## error instead of hanging a run. A missing binary is not retried at all, since it will not
+    ## fix itself and would burn the whole budget.
+    last = Reply(error="no attempt made")
+    for attempt in range(ASK_ATTEMPTS):
+        if attempt:
+            time.sleep(ASK_BACKOFF_SECONDS * attempt)
+        try:
+            done = subprocess.run(
+                argv, capture_output=True, text=True, timeout=timeout, check=False
+            )
+        except subprocess.TimeoutExpired as exc:
+            last = Reply(error=f"timeout after {timeout}s: {exc}")
+            continue
+        except OSError as exc:
+            return Reply(error=f"transport: {exc}")
+        if done.returncode != 0:
+            last = Reply(
+                error=f"rc={done.returncode} after {attempt + 1} attempt(s): "
+                f"{done.stderr.strip()[:300]}"
+            )
+            continue
+        try:
+            return Reply(text=str(json.loads(done.stdout).get("result") or ""))
+        except (json.JSONDecodeError, AttributeError) as exc:
+            last = Reply(error=f"unparseable envelope: {exc}")
+    return last
 
 
 ## @brief Build the per-mark verdict prompt.
@@ -273,7 +304,7 @@ def read_items(text: str) -> tuple[str, ...] | None:
 ## @param model Dated model id.
 ## @param n Samples to request.
 ## @return Vote.
-## @version 1
+## @version 2
 def vote(mark_text: str, answer: str, model: str, n: int) -> Vote:
     """AGREEMENT IS OVER SAMPLES REQUESTED, never over survivors. One verdict plus two errors
     under a survivor denominator reads as unanimity, which makes a vote look MORE decisive the
@@ -281,20 +312,28 @@ def vote(mark_text: str, answer: str, model: str, n: int) -> Vote:
 
     @brief Voted verdict.
     @return Vote.
-    @version 1
+    @version 2
     """
     requested = max(1, n)
     counts: Counter = Counter()
     errors = 0
+    ## THE REASON IS KEPT, not just the count. "3/3 calls failed" cannot tell a reader whether
+    ## the judge was rate-limited, timed out, or replied without a verdict block — three
+    ## failures needing three different responses. Recording only the tally made an unruled
+    ## decision uninvestigable after the fact.
+    reasons: list[str] = []
     prompt = verdict_prompt(mark_text, answer)
     for _ in range(requested):
         reply = ask(prompt, model)
         token = None if reply.error else read_verdict(reply.text)
         if token is None:
             errors += 1
+            reasons.append(reply.error or "reply carried no VERDICT line")
             continue
         counts[token] += 1
     if not counts:
-        return Vote(None, 0.0, (), requested, errors)
+        return Vote(None, 0.0, (), requested, errors, tuple(reasons))
     top, top_n = counts.most_common(1)[0]
-    return Vote(top, top_n / requested, tuple(sorted(counts.items())), requested, errors)
+    return Vote(
+        top, top_n / requested, tuple(sorted(counts.items())), requested, errors, tuple(reasons)
+    )
