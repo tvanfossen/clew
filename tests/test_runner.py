@@ -247,7 +247,6 @@ def test_the_shipped_rubric_plans() -> None:
     cells = runner.plan(rubric, ("sonnet",), replicates=1, seed=3)
     assert len(cells) == len(rubric.questions) * 2
     assert len({c.stem() for c in cells}) == len(cells), "cell names must be unique"
-    assert runner.rubric_digest(MBEDTLS_RUBRIC) == runner.rubric_digest(MBEDTLS_RUBRIC)
 
 
 ## @brief A dirty working tree is refused even at the right commit.

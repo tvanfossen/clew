@@ -26,7 +26,6 @@ Counterbalancing the order within the pair is what stops that drift being confou
 from __future__ import annotations
 
 import difflib
-import hashlib
 import random
 import subprocess
 from dataclasses import dataclass
@@ -330,18 +329,3 @@ def check_declaration_applied(rubric: Rubric, build_meta: dict) -> None:
             f"for {unapplied} — the declaration did not reach the build, so the index under test "
             f"is not the index the rubric describes"
         )
-
-
-## @brief A short digest binding a run to its rubric text.
-## @param path Rubric file.
-## @return Hex digest prefix.
-## @version 1
-def rubric_digest(path: Path) -> str:
-    """Recorded with every run so a result names the exact rubric that produced it. A version
-    string is a claim; a digest is a fact.
-
-    @brief Rubric content digest.
-    @return Digest prefix.
-    @version 1
-    """
-    return hashlib.sha256(path.read_bytes()).hexdigest()[:16]

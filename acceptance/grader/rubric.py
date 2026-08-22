@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -95,11 +96,11 @@ class Question:
 
 
 ## @brief A validated rubric.
-## @version 1
+## @version 2
 @dataclass(frozen=True)
 class Rubric:
     """@brief Everything needed to grade one target, validated.
-    @version 1
+    @version 2
     """
 
     target: str
@@ -112,6 +113,10 @@ class Rubric:
     ref: str = ""
     declare: dict = field(default_factory=dict)
     variant_note: str = ""
+    ## Digest of the exact bytes this rubric was parsed from. Carried on the object rather than
+    ## recomputed from the path, so nothing downstream can stamp a digest for a file that is no
+    ## longer the file the marks came from.
+    digest: str = ""
 
 
 ## @brief Refuse any key that is not in the allowed set, naming it.
@@ -243,18 +248,23 @@ def _question(raw: dict) -> Question:
 ## @brief Load and fully validate a rubric file.
 ## @param path Path to the rubric YAML.
 ## @return Rubric.
-## @version 1
+## @version 2
 def load(path: Path) -> Rubric:
     """Either a fully-validated rubric or a raise naming the offending path. No partial parse.
+
+    THE DIGEST IS TAKEN FROM THE BYTES PARSED HERE, not recomputed from the path later. A grader
+    that re-read the file per cell stamped sidecars with a digest that could name a file the marks
+    had not come from — exact-looking provenance that is wrong, which is worse than none.
 
     @brief Load a rubric.
     @param path Rubric file.
     @return Rubric.
-    @version 1
+    @version 2
     """
     try:
-        doc: Any = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError) as exc:
+        raw = path.read_bytes()
+        doc: Any = yaml.safe_load(raw.decode("utf-8"))
+    except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
         raise RubricError(f"{path}: unreadable: {exc}") from exc
     if not isinstance(doc, dict):
         raise RubricError(f"{path}: top level is not a mapping")
@@ -306,6 +316,7 @@ def load(path: Path) -> Rubric:
         ref=str(doc.get("ref") or ""),
         declare=declare,
         variant_note=variant,
+        digest=hashlib.sha256(raw).hexdigest()[:16],
     )
 
 

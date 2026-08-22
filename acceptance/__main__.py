@@ -33,7 +33,7 @@ from pathlib import Path
 from .execute import index_cells_that_never_used_the_index, run_cell
 from .grader.rubric import RubricError, load
 from .grader.score import score_question
-from .runner import check_revision, check_symmetry, plan, rubric_digest
+from .runner import check_revision, check_symmetry, plan
 
 
 ## @brief Load a rubric, refusing loudly rather than half-parsing.
@@ -55,11 +55,11 @@ def _rubric(path: Path):
 ## @brief Print the ordered cell plan without running anything.
 ## @param args Parsed arguments.
 ## @return Exit code.
-## @version 1
+## @version 2
 def cmd_plan(args) -> int:
     """@brief Show what a run would do.
     @return Exit code.
-    @version 1
+    @version 2
     """
     rubric = _rubric(args.rubric)
     if rubric is None:
@@ -67,7 +67,7 @@ def cmd_plan(args) -> int:
     check_symmetry()
     cells = plan(rubric, tuple(args.models), args.replicates, args.seed)
     print(f"{rubric.target} @ {rubric.commit[:10]}  rubric {rubric.version}")
-    print(f"digest {rubric_digest(args.rubric)}  seed {args.seed}  {len(cells)} cells")
+    print(f"digest {rubric.digest}  seed {args.seed}  {len(cells)} cells")
     for cell in cells:
         print(f"  {cell.order:>4}  {cell.stem()}")
     return 0
@@ -76,14 +76,14 @@ def cmd_plan(args) -> int:
 ## @brief Run every cell and freeze its artifacts.
 ## @param args Parsed arguments.
 ## @return Exit code.
-## @version 1
+## @version 2
 def cmd_generate(args) -> int:
     """PREFLIGHT BEFORE THE FIRST CELL, not per cell. A revision mismatch found on cell 40 has
     already spent 39 cells against the wrong tree.
 
     @brief Generate answers.
     @return Exit code.
-    @version 1
+    @version 2
     """
     rubric = _rubric(args.rubric)
     if rubric is None:
@@ -104,7 +104,7 @@ def cmd_generate(args) -> int:
                 "target": rubric.target,
                 "commit": rubric.commit,
                 "rubric_version": rubric.version,
-                "rubric_digest": rubric_digest(args.rubric),
+                "rubric_digest": rubric.digest,
                 "seed": args.seed,
                 "models": list(args.models),
                 "replicates": args.replicates,
@@ -148,14 +148,14 @@ def cmd_generate(args) -> int:
 ## @brief Grade every frozen answer against the rubric.
 ## @param args Parsed arguments.
 ## @return Exit code.
-## @version 1
+## @version 2
 def cmd_grade(args) -> int:
     """Reads only the frozen `.md` files. A cell that failed left none, so it cannot be graded
     as an answer that said nothing.
 
     @brief Grade answers.
     @return Exit code.
-    @version 1
+    @version 2
     """
     rubric = _rubric(args.rubric)
     if rubric is None:
@@ -175,7 +175,7 @@ def cmd_grade(args) -> int:
                     "cell": path.stem,
                     "arm": arm,
                     "rubric_version": rubric.version,
-                    "rubric_digest": rubric_digest(args.rubric),
+                    "rubric_digest": rubric.digest,
                     "judge_model": rubric.judge_model,
                     "score": got,
                     "unmarked_pct": unmarked,

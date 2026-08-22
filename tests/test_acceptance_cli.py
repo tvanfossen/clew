@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -23,20 +24,77 @@ REPO = Path(__file__).resolve().parent.parent
 MBEDTLS = REPO / "acceptance" / "targets" / "mbedtls" / "questions.yaml"
 SELF = REPO / "acceptance" / "targets" / "self" / "questions.yaml"
 
+## DISCOVERED, NOT LISTED. A hand-written list of two covered mbedtls and self while entropic and
+## knots shipped unvalidated — a rubric that fails to parse would have reached a matrix run with
+## the suite green. `targets/*/questions.yaml` is one level deep, which structurally excludes the
+## private tree (it nests a repo directory under `internal/`) without this file naming it.
+SHIPPED = sorted(
+    p
+    for p in (REPO / "acceptance" / "targets").glob("*/questions.yaml")
+    if p.parent.name != "internal"
+)
+
 
 ## @brief Every shipped rubric loads through the CLI's loader.
 ## @return None.
 ## @version 1
-@pytest.mark.parametrize("path", [MBEDTLS, SELF], ids=["mbedtls", "self"])
+@pytest.mark.parametrize("path", SHIPPED, ids=lambda p: p.parent.name)
 def test_shipped_rubrics_load(path: Path) -> None:
     """Run against the REAL rubrics, not fixtures. A validator only ever exercised on fixtures
     is tested against the detector rather than against the world.
 
     @brief Shipped rubrics validate.
     @return None.
-    @version 1
+    @version 2
     """
     assert cli._rubric(path) is not None
+
+
+## @brief Discovery finds every shipped target, so adding one cannot skip validation.
+## @return None.
+## @version 1
+def test_rubric_discovery_is_not_empty_and_covers_the_known_targets() -> None:
+    """THE GUARD ON THE GUARD. A glob that matches nothing parametrizes to zero cases and reports
+    PASSED, which is indistinguishable from validating everything. Naming the two targets that
+    were previously hardcoded also proves the replacement did not narrow what is covered.
+
+    @brief Discovery is non-vacuous.
+    @return None.
+    @version 1
+    """
+    assert len(SHIPPED) >= 4, f"only found {[p.parent.name for p in SHIPPED]}"
+    assert MBEDTLS in SHIPPED and SELF in SHIPPED
+
+
+## @brief A rubric's digest is captured when it is parsed, not re-read later.
+## @return None.
+## @version 1
+def test_rubric_digest_is_fixed_at_load(tmp_path: Path) -> None:
+    """OBSERVED. `grade` re-read the rubric file inside its per-cell loop to stamp each sidecar,
+    while the marks came from a parse done once at startup. Grading a target takes minutes per
+    cell; editing the rubric during a run therefore produced sidecars whose recorded digest named
+    a file that was NOT the file their marks came from — provenance that reads as exact and is
+    wrong, which is worse than no provenance at all.
+
+    The fix is structural rather than careful: the digest is taken from the bytes `load` itself
+    parsed, so no second read exists to disagree with the first.
+
+    @brief Digest and marks come from one read.
+    @return None.
+    @version 1
+    """
+    path = tmp_path / "questions.yaml"
+    path.write_bytes(MBEDTLS.read_bytes())
+    rubric = cli._rubric(path)
+    assert rubric is not None
+    before = rubric.digest
+    assert before and before == hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+
+    path.write_text(path.read_text() + "\n# an edit landing mid-run\n", encoding="utf-8")
+    assert rubric.digest == before, "the digest followed the file instead of the parse"
+    assert cli._rubric(path).digest != before, (
+        "a genuinely different rubric must digest differently"
+    )
 
 
 ## @brief A file that is not a rubric is refused, not half-parsed.
