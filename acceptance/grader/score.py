@@ -21,6 +21,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from collections import Counter
+
 from .judge import Vote, anonymise, ask, extract_prompt, read_items, vote
 from .rubric import Mark, Question, Rubric
 
@@ -93,9 +95,10 @@ def _key(value: str) -> str:
 ## @param mark The set mark.
 ## @param answer Anonymised answer.
 ## @param model Dated judge model id.
+## @param samples Independent extraction calls to vote over.
 ## @return List of decisions.
 ## @version 1
-def score_set(mark: Mark, answer: str, model: str) -> list[Decision]:
+def score_set(mark: Mark, answer: str, model: str, samples: int = 3) -> list[Decision]:
     """PRECISION IS A DECISION, NOT A MODIFIER. Once grading is known to be mechanical the
     optimal strategy for recall alone is to name everything, so an answer that pads its list
     loses a decision it would otherwise have won. Both arms are subject to it identically, so it
@@ -105,18 +108,39 @@ def score_set(mark: Mark, answer: str, model: str) -> list[Decision]:
     @return Decisions.
     @version 1
     """
-    reply = ask(extract_prompt(mark.extract, answer), model)
-    named = None if reply.error else read_items(reply.text)
-    if named is None:
+    ## EXTRACTION IS VOTED, for the same reason verdicts are and with more urgency: a set mark
+    ## of N members is N+1 decisions ALL resting on this call, so one flaky extraction moves far
+    ## more weight than one flaky verdict.
+    ##
+    ## OBSERVED, NOT ANTICIPATED. Grading the same answer twice extracted NONE once and `include`
+    ## the other time, flipping two decisions and moving that cell ten points — while every
+    ## verdict decision in the same cell agreed unanimously. The judge-variance measurement that
+    ## found 0 flips covered VERDICT calls only, and said so; this is the other half.
+    ##
+    ## An item counts when a MAJORITY of successful extractions named it. Union would inherit
+    ## every hallucination; intersection would punish an answer for one flaky call.
+    prompt = extract_prompt(mark.extract, answer)
+    tally: Counter = Counter()
+    ## KEYED FOR COMPARISON, REPORTED AS WRITTEN. A detail line naming the normalised key sends
+    ## a reader looking for a string that appears nowhere in the answer.
+    written: dict[str, str] = {}
+    ok = 0
+    for _ in range(max(1, samples)):
+        reply = ask(prompt, model)
+        items = None if reply.error else read_items(reply.text)
+        if items is None:
+            continue
+        ok += 1
+        for item in {_key(i): i for i in items}.items():
+            tally[item[0]] += 1
+            written.setdefault(item[0], item[1])
+    if not ok:
         return [
             Decision(mark.text, "set", mark.weight, None, "extraction unavailable")
             for _ in range(len(mark.members) + 1)
         ]
 
-    ## KEYED FOR COMPARISON, REPORTED AS WRITTEN. The detail line has to name what the answer
-    ## actually said, or a reader cannot find the spurious item to check it — a normalised key
-    ## sends them looking for a string that appears nowhere in the answer.
-    got = {_key(item): item for item in named}
+    got = {key: written[key] for key, n in tally.items() if n * 2 > ok}
     out: list[Decision] = []
     correct = set()
     for member in mark.members:
@@ -132,14 +156,26 @@ def score_set(mark: Mark, answer: str, model: str) -> list[Decision]:
                 "named" if found else "not named",
             )
         )
+    ## SILENCE DOES NOT EARN PRECISION. An answer that named NOTHING has an empty prediction
+    ## set, so it has nothing spurious in it and scored clean under the first version — a mark
+    ## satisfiable by saying nothing, which is the exact failure the design forbids. Caught by
+    ## the discrimination check: a deliberately shallow answer named zero directories and won
+    ## this decision. Precision is undefined on an empty set; here it is a MISS, because the
+    ## answer contributed no set information at all.
     spurious = sorted(raw for key, raw in got.items() if key not in correct)
+    if not got:
+        detail = "named nothing — precision is not earned by silence"
+    elif spurious:
+        detail = f"named {len(spurious)} not in the set: {spurious}"
+    else:
+        detail = "clean"
     out.append(
         Decision(
             f"{mark.text} — precision",
             "set_precision",
             mark.weight,
-            not spurious,
-            "clean" if not spurious else f"named {len(spurious)} not in the set: {spurious}",
+            bool(got) and not spurious,
+            detail,
         )
     )
     return out
@@ -168,7 +204,7 @@ def score_question(question: Question, answer: str, rubric: Rubric, arm: str) ->
         if mark.arm_only and mark.arm_only != arm:
             continue
         if mark.type == "set":
-            result.decisions.extend(score_set(mark, body, rubric.judge_model))
+            result.decisions.extend(score_set(mark, body, rubric.judge_model, 3))
             continue
         n = 3 if mark.weight >= rubric.judge_samples_when_weight_at_least else 1
         voted: Vote = vote(mark.text, body, rubric.judge_model, n)

@@ -22,7 +22,26 @@ connection. Everything in it is TRUE about the lines it found. It is wrong about
 `Q1_complete_*` reaches the conclusion: as shipped, both macros are commented out, the example
 compiles to a stub `main`, and nothing runs concurrently at all.
 
-## Result — mbedtls Q1
+## Results
+
+| target | question | complete | shallow | separation |
+|---|---|---:|---:|---:|
+| mbedtls | Q1 — what runs concurrently as shipped | 100.0% | 35.0% | 65 |
+| entropic | Q1 — is the tokenizer's "retry" a retry? | 100.0% | 33.3% | 67 |
+
+`unmarked_pct` is 0.0% on every cell above.
+
+**entropic Q1 is the strongest evidence the design works.** Its shallow answer ends with a
+confident *"yes, I would describe this as retry logic — a standard retry-on-failure pattern...
+resilient to intermittent errors"*, which is precisely backwards. That single wrong conclusion
+cost it both weight-3 conclusion marks while it kept every fact it had actually found.
+
+It also kept a weight-3 mark it deserved: *"a negative result from the SECOND call is terminal"*.
+The shallow answer does state that, framed as graceful degradation. **That HIT is correct and was
+checked rather than assumed** — a rubric that punished it would be scoring the answer's framing
+rather than its content, which is the thing the judge is explicitly told not to grade.
+
+## Detail — mbedtls Q1
 
 | answer | score | unmarked |
 |---|---:|---:|
@@ -49,14 +68,18 @@ halves of a contrast — that nothing in `library/` creates a thread AND that `l
 nonetheless supplies the mutex abstraction — which cannot be satisfied by mentioning one site.
 Completeness of the site list is measured by the set mark, where it belongs.
 
-## An observation, not a defect
+## The second defect: precision was earned by silence
 
-The `set_precision` decision is nearly free for any answer that does not hallucinate. The shallow
-answer named one of two correct files, so its precision was 1/1 and it won that decision. That is
-correct behaviour — precision measures false positives, and under-naming is the recall side's job,
-which duly failed it. But it does mean a set mark's `+1` precision decision inflates a lazy
-answer's score slightly, and a reader comparing set-heavy questions to conclusion-heavy ones
-should know it.
+mbedtls Q2's shallow answer named **zero** directories, missed every set member, and **won the
+precision decision** — an empty prediction set has nothing spurious in it, so it scored clean.
+
+That is a decision satisfiable by saying nothing, which is the failure the design forbids
+everywhere else. Precision now requires the answer to have named at least one item.
+
+Worth separating from the near-miss case that first drew attention to it: mbedtls Q1's shallow
+answer named one of two correct files and won precision legitimately — it had no false positives,
+and under-naming is the recall side's job, which duly failed it. **One of those is correct
+behaviour and one is a hole**, and only running the check on a second question told them apart.
 
 ## Re-run it whenever a rubric changes
 

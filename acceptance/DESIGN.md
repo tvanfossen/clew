@@ -185,6 +185,12 @@ set is. The script then computes:
 strategy for recall alone is to name everything. Both arms are subject to it identically, so it is
 not a bias — it removes the incentive to dump.
 
+**Precision is not earned by silence.** An answer that names *nothing* has an empty prediction
+set, so it has nothing spurious in it and would score clean — a decision satisfiable by saying
+nothing, which is the failure this whole design forbids. Precision requires at least one named
+item. Found by the discrimination check rather than by review: a deliberately shallow answer
+named zero directories, missed every member, and still won the decision.
+
 A set mark scores its weight only when recall is 1.0 and precision is 1.0. Partial recall is
 reported per-member and carried in the sidecar, because *which* members an arm reached is the most
 informative thing the whole instrument produces.

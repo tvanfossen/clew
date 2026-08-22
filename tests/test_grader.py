@@ -151,6 +151,70 @@ def test_set_scoring_counts_members_and_precision(monkeypatch: pytest.MonkeyPatc
     assert all(d.weight == 2 for d in out)
 
 
+## @brief Extraction is voted, and a minority extraction does not decide a member.
+## @return None.
+## @version 1
+def test_extraction_is_voted_by_majority(monkeypatch: pytest.MonkeyPatch) -> None:
+    """OBSERVED, NOT ANTICIPATED. Grading one answer twice extracted NONE once and `include` the
+    other time, flipping two decisions and moving that cell ten points — while every VERDICT
+    decision in the same cell agreed unanimously.
+
+    A set mark of N members is N+1 decisions all resting on the extraction call, so a single
+    flaky extraction moves far more weight than a single flaky verdict. Majority is the rule:
+    union would inherit every hallucination, intersection would punish an answer for one flaky
+    call.
+
+    @brief Majority decides a set member.
+    @return None.
+    @version 1
+    """
+    mark = Mark(
+        text="the directories",
+        type="set",
+        weight=1,
+        extract="List them.",
+        members=({"value": "include"}, {"value": "library"}),
+    )
+    replies = iter(
+        [
+            judge.Reply(text="ITEMS:\ninclude\nlibrary\nEND"),
+            judge.Reply(text="ITEMS:\ninclude\nEND"),
+            judge.Reply(text="ITEMS:\ninclude\nEND"),
+        ]
+    )
+    monkeypatch.setattr(score, "ask", lambda *_a, **_k: next(replies))
+    out = score.score_set(mark, "answer", "claude-x-1", samples=3)
+    ## `include` in 3 of 3 survives; `library` in 1 of 3 does not.
+    assert [d.hit for d in out] == [True, False, True]
+
+
+## @brief An answer that names nothing does not earn the precision decision.
+## @return None.
+## @version 1
+def test_silence_does_not_earn_precision(monkeypatch: pytest.MonkeyPatch) -> None:
+    """AN EMPTY PREDICTION SET HAS NOTHING SPURIOUS IN IT, so the first version scored it clean —
+    a mark satisfiable by saying nothing, which is the failure the whole design forbids.
+
+    Found by the discrimination check, not by review: a deliberately shallow answer named zero
+    directories, missed every member, and still won this decision.
+
+    @brief Naming nothing misses precision.
+    @return None.
+    @version 1
+    """
+    mark = Mark(
+        text="the directories",
+        type="set",
+        weight=2,
+        extract="List them.",
+        members=({"value": "include"}, {"value": "library"}),
+    )
+    monkeypatch.setattr(score, "ask", lambda *_a, **_k: judge.Reply(text="ITEMS:\nNONE\nEND"))
+    out = score.score_set(mark, "an answer naming no directories", "claude-x-1")
+    assert [d.hit for d in out] == [False, False, False], "no members, and no free precision"
+    assert "silence" in out[-1].detail
+
+
 ## @brief A failed extraction leaves every set decision unruled, never missed.
 ## @return None.
 ## @version 1
