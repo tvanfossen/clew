@@ -234,6 +234,7 @@ def cmd_report(args) -> int:
             f"{meta['tool_calls']:>6} {meta['non_index_tool_calls']:>5} "
             f"{meta['denied_tool_calls']:>5} {score:>7} {unmarked:>6}"
         )
+    _paired_summary(rows)
     print("\nOUT TOK and CACHE TOK are reported apart, never summed. Measured on one cell:")
     print(
         "534,192 cached against 7,292 output — a blended figure describes the prefix, not the work."
@@ -242,6 +243,79 @@ def cmd_report(args) -> int:
     print("-1 in a tool column means the count could not be determined, NOT zero.")
     print("DENY on the BASELINE arm is contamination: it reached for a tool it should not see.")
     return 0
+
+
+## @brief Per-question arm comparison: separation and shell displacement.
+## @param rows (meta, grade) pairs for every cell in the run.
+## @return None.
+## @version 1
+def _paired_summary(rows: list) -> None:
+    """TWO THINGS THE PER-CELL TABLE CANNOT SHOW, both of which decide whether a question earned
+    its place in the grid.
+
+    SEPARATION. A question where both arms score identically contributes nothing to the
+    comparison however well its marks are written. Measured at n=1, three of four questions tied
+    — one of them at 100%/100%, where the baseline reached the ceiling in four turns because the
+    whole answer lived in one file. The discrimination fixtures cannot see that: a shallow answer
+    and a complete one both score high on a saturated question and the gap looks healthy. Only
+    two real arms tying reveals it, and only if someone reports it.
+
+    DISPLACEMENT. The index arm still spends most of its calls on the shell, which invites the
+    question of what the index is doing at all. The honest answer is per cell: how many shell
+    calls did the baseline need, and how many did the index arm avoid. Measured, mbedtls Q1 traded
+    3 index calls for 6 fewer shell calls and won 55 points; entropic Q2 spent 1 index call and
+    made THREE MORE shell calls than the baseline.
+
+    A NEGATIVE DISPLACEMENT IS A REAL RESULT, not a glitch: the index cost that cell more than it
+    saved. Reporting only the wins is how a benchmark becomes a self-portrait.
+
+    @brief Paired per-question summary.
+    @return None.
+    @version 1
+    """
+    paired: dict = {}
+    for meta, grade in rows:
+        parts = str(meta["stem"]).split("_")
+        if len(parts) < 4:
+            continue
+        paired.setdefault((parts[0], parts[1], parts[3]), {})[meta["arm"]] = (meta, grade)
+
+    complete = {k: v for k, v in paired.items() if {"baseline", "index"} <= set(v)}
+    if not complete:
+        print("\nNo arm PAIRS in this run — separation and displacement need both arms of a cell.")
+        return
+
+    print(
+        f"\n{'question':<22} {'baseline':>9} {'index':>9} {'separation':>11} {'shell displaced':>16}"
+    )
+    print("-" * 70)
+    for key in sorted(complete):
+        b_meta, b_grade = complete[key]["baseline"]
+        i_meta, i_grade = complete[key]["index"]
+        label = f"{key[0]}_{key[1]}_{key[2]}"
+        b_shell, i_shell = b_meta["non_index_tool_calls"], i_meta["non_index_tool_calls"]
+        ## UNKNOWN COUNTS DO NOT BECOME A DISPLACEMENT. -1 means the transcript could not be
+        ## read; arithmetic on it would invent a number.
+        disp = "—" if b_shell < 0 or i_shell < 0 else f"{b_shell - i_shell:+d}"
+        if b_grade and i_grade:
+            b, i = b_grade["score"], i_grade["score"]
+            sep = f"{(i - b) * 100:+.1f}pt" + ("" if abs(i - b) > 1e-9 else "  TIED")
+            print(f"{label:<22} {b:>8.1%} {i:>8.1%} {sep:>11} {disp:>16}")
+        else:
+            print(f"{label:<22} {'—':>9} {'—':>9} {'—':>11} {disp:>16}")
+    tied = sum(
+        1
+        for k, v in complete.items()
+        if v["baseline"][1]
+        and v["index"][1]
+        and abs(v["baseline"][1]["score"] - v["index"][1]["score"]) < 1e-9
+    )
+    if tied:
+        print(
+            f"\n{tied} of {len(complete)} question(s) TIED. A tie contributes nothing to the "
+            f"comparison — and a tie at the CEILING means the question is saturated and should be "
+            f"replaced rather than averaged in."
+        )
 
 
 ## @brief CLI entry point.

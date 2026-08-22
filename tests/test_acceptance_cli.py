@@ -146,3 +146,72 @@ def test_cli_module_runs() -> None:
     assert done.returncode == 0, done.stderr
     assert "Mbed-TLS/mbedtls" in done.stdout
     assert "digest" in done.stdout, "a run names the exact rubric text that produced it"
+
+
+## @brief The paired summary reports separation, ties and shell displacement.
+## @return None.
+## @version 1
+def test_paired_summary_reports_ties_and_displacement(capsys: pytest.CaptureFixture) -> None:
+    """TWO THINGS THE PER-CELL TABLE CANNOT SHOW.
+
+    A tie contributes nothing to the comparison however good its marks are, and a tie at the
+    CEILING means the question is saturated — measured at n=1, three of four questions tied and
+    one of those was 100%/100%. The discrimination fixtures cannot see that, because a shallow
+    answer and a complete one both score high there.
+
+    Displacement answers "what is the index actually doing" when the index arm still spends most
+    of its calls on the shell. A NEGATIVE displacement is a real result, not a glitch.
+
+    @brief Paired summary output.
+    @return None.
+    @version 1
+    """
+
+    def cell(stem, arm, shell, score):
+        return ({"stem": stem, "arm": arm, "non_index_tool_calls": shell}, {"score": score})
+
+    cli._paired_summary(
+        [
+            cell("Q1_sonnet_baseline_r1", "baseline", 11, 0.20),
+            cell("Q1_sonnet_index_r1", "index", 5, 0.75),
+            cell("Q2_sonnet_baseline_r1", "baseline", 10, 0.667),
+            cell("Q2_sonnet_index_r1", "index", 13, 0.667),
+        ]
+    )
+    out = capsys.readouterr().out
+    assert "+55.0pt" in out
+    assert "TIED" in out
+    assert "+6" in out, "displacement where the index saved shell calls"
+    assert "-3" in out, "a NEGATIVE displacement must be shown, not hidden"
+    assert "saturated" in out
+
+
+## @brief An unknown tool count never becomes a displacement number.
+## @return None.
+## @version 1
+def test_unknown_tool_counts_produce_no_displacement(capsys: pytest.CaptureFixture) -> None:
+    """-1 means the transcript could not be read. Arithmetic on it would invent a number, and an
+    invented number on the axis under test is worse than an absent one.
+
+    @brief Unknown counts yield no displacement.
+    @return None.
+    @version 1
+    """
+    cli._paired_summary(
+        [
+            (
+                {"stem": "Q1_sonnet_baseline_r1", "arm": "baseline", "non_index_tool_calls": -1},
+                {"score": 0.5},
+            ),
+            (
+                {"stem": "Q1_sonnet_index_r1", "arm": "index", "non_index_tool_calls": 4},
+                {"score": 0.5},
+            ),
+        ]
+    )
+    ## ASSERT ON THE DISPLACEMENT COLUMN, not on the presence of an em-dash anywhere. The first
+    ## version checked `"—" in out` and passed with the guard REMOVED, because the tie message
+    ## below the table contains one. A mutation control caught it; reading the test did not.
+    line = next(x for x in capsys.readouterr().out.splitlines() if x.startswith("Q1_"))
+    assert line.split()[-1] == "—", line
+    assert "-5" not in line, "an unknown count must not be turned into arithmetic"
