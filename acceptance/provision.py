@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sqlite3
 import subprocess
 import sys
@@ -150,11 +151,11 @@ def read_build_meta(db: Path) -> dict:
 ## @brief Build the index for a provisioned target.
 ## @param rubric The rubric, for its declaration.
 ## @param repo The checked-out tree.
-## @param db Where to write the index.
+## @param state_home CLEW_STATE_HOME for the build, shared with the server.
 ## @param declare_file Path to write the rubric's declaration to, or None to skip.
 ## @return None.
 ## @version 1
-def build_index(rubric: Rubric, repo: Path, db: Path, declare_file: Path | None) -> None:
+def build_index(rubric: Rubric, repo: Path, state_home: Path, declare_file: Path | None) -> None:
     """IN-PROCESS, never through a running server. A server process older than the working tree
     runs old pipeline logic and re-stamps the index with it, which can drop whole layers and
     then report health.
@@ -163,21 +164,32 @@ def build_index(rubric: Rubric, repo: Path, db: Path, declare_file: Path | None)
     @return None.
     @version 1
     """
+    ## NO --output. The MCP server DERIVES its database location from --repo and takes no
+    ## explicit path, so writing the index anywhere else guarantees the server looks somewhere
+    ## the build never wrote. Instead both sides are pointed at the same state root through
+    ## CLEW_STATE_HOME, and they agree by construction rather than by two paths being kept in
+    ## step by hand.
+    ##
+    ## IT ALSO ISOLATES THE RUN. Without it a target that is a LOCAL checkout shares a state
+    ## root with the operator's own indexes, so a run could silently read an index built weeks
+    ## ago for ordinary work rather than the one it just built under its declaration.
     argv = [
         sys.executable,
         "-m",
         "clew",
-        "--output",
-        str(db),
         "--repo-root",
         str(repo),
         "--rebuild",
     ]
     if declare_file is not None:
         argv += ["--declare", str(declare_file)]
+    ## THE ENV IS THE WHOLE MECHANISM, so it is built explicitly rather than inherited.
+    ## Inherited, the build wrote to the OPERATOR'S OWN state root and overwrote the index they
+    ## use for ordinary work on that checkout — measured, not hypothesised.
+    env = dict(os.environ, CLEW_STATE_HOME=str(state_home))
     try:
         done = subprocess.run(
-            argv, capture_output=True, text=True, timeout=BUILD_TIMEOUT, check=False
+            argv, capture_output=True, text=True, timeout=BUILD_TIMEOUT, check=False, env=env
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise ProvisionError(f"index build could not run: {exc}") from exc
@@ -191,9 +203,10 @@ def build_index(rubric: Rubric, repo: Path, db: Path, declare_file: Path | None)
 ## @param db The built index.
 ## @param repo The target tree.
 ## @param path Where to write the config.
+## @param state_home CLEW_STATE_HOME shared with the build.
 ## @return None.
 ## @version 1
-def write_mcp_config(db: Path, repo: Path, path: Path) -> None:
+def write_mcp_config(db: Path, repo: Path, path: Path, state_home: Path) -> None:
     """WRITTEN LAST, so it cannot exist before the index it points at. A config naming a database
     that was never built sends the index arm to an empty index, which answers — badly — rather
     than refusing.
@@ -213,7 +226,24 @@ def write_mcp_config(db: Path, repo: Path, path: Path) -> None:
                 "mcpServers": {
                     "clew": {
                         "command": sys.executable,
-                        "args": ["-m", "clew.mcp_server.server", "--repo", str(repo)],
+                        ## ABSOLUTE, AND THIS IS THE SECOND TIME A RELATIVE PATH BROKE THE
+                        ## INDEX ARM. The server subprocess inherits the ANSWERING agent's cwd —
+                        ## the target checkout — so a relative --repo resolves inside the target,
+                        ## finds no database, and registers no query tools.
+                        ##
+                        ## MEASURED: the server started cleanly, emitted no error, the agent
+                        ## raised no denial, and the run reported 4/4 ok. The index arm answered
+                        ## WITHOUT ITS INDEX and produced prose indistinguishable from a real
+                        ## cell. The only signal was that it made ZERO index calls.
+                        "args": [
+                            "-m",
+                            "clew.mcp_server.server",
+                            "--repo",
+                            str(repo.resolve()),
+                        ],
+                        ## THE SAME STATE ROOT THE BUILD USED. The server derives its database
+                        ## from --repo under this root, so config and build cannot disagree.
+                        "env": {"CLEW_STATE_HOME": str(state_home)},
                     }
                 }
             },
@@ -237,8 +267,9 @@ def provision(rubric: Rubric, root: Path) -> Provisioned:
     @version 1
     """
     root.mkdir(parents=True, exist_ok=True)
+    root = root.resolve()
     repo = root / "repo"
-    db = root / "clew.db"
+    state_home = root / "state"
 
     fetch_pinned(rubric, repo)
     try:
@@ -253,7 +284,16 @@ def provision(rubric: Rubric, root: Path) -> Provisioned:
         declare_file = root / "declaration.yaml"
         declare_file.write_text(yaml.safe_dump(rubric.declare, sort_keys=False), encoding="utf-8")
 
-    build_index(rubric, repo, db, declare_file)
+    build_index(rubric, repo, state_home, declare_file)
+    ## FOUND, NOT COMPUTED. The slug is the server's business; globbing the state root it was
+    ## just given avoids reimplementing that derivation and drifting from it.
+    built = sorted((state_home / "targets").glob("*/clew.db"))
+    if len(built) != 1:
+        raise ProvisionError(
+            f"expected exactly one index under {state_home}/targets, found {len(built)}: "
+            f"{[str(b) for b in built]}"
+        )
+    db = built[0]
     meta = read_build_meta(db)
     try:
         check_declaration_applied(rubric, meta)
@@ -261,7 +301,7 @@ def provision(rubric: Rubric, root: Path) -> Provisioned:
         raise ProvisionError(str(exc)) from exc
 
     config = root / "mcp.json"
-    write_mcp_config(db, repo, config)
+    write_mcp_config(db, repo, config, state_home)
     return Provisioned(
         repo=repo,
         db=db,

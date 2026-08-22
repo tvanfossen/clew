@@ -57,7 +57,9 @@ def test_mcp_config_refuses_without_an_index(tmp_path: Path) -> None:
     @version 1
     """
     with pytest.raises(provision.ProvisionError, match="does not exist"):
-        provision.write_mcp_config(tmp_path / "absent.db", tmp_path, tmp_path / "mcp.json")
+        provision.write_mcp_config(
+            tmp_path / "absent.db", tmp_path, tmp_path / "mcp.json", tmp_path / "state"
+        )
 
 
 ## @brief A written config names the target repo and the module server.
@@ -71,11 +73,16 @@ def test_mcp_config_names_the_target(tmp_path: Path) -> None:
     db = tmp_path / "clew.db"
     db.write_bytes(b"x")
     out = tmp_path / "mcp.json"
-    provision.write_mcp_config(db, tmp_path / "repo", out)
+    provision.write_mcp_config(db, tmp_path / "repo", out, tmp_path / "state")
     doc = json.loads(out.read_text())
     args = doc["mcpServers"]["clew"]["args"]
     assert "--repo" in args
     assert str(tmp_path / "repo") in args, "a config that does not name the repo derives one"
+    ## THE SERVER TAKES NO DATABASE PATH — it derives one from --repo under CLEW_STATE_HOME. So
+    ## the config MUST carry the same state root the build used, or the server looks somewhere
+    ## the build never wrote and registers no query tools, silently.
+    env = doc["mcpServers"]["clew"]["env"]
+    assert env["CLEW_STATE_HOME"] == str(tmp_path / "state")
 
 
 ## @brief A build that exits non-zero raises rather than leaving a partial index.
@@ -92,7 +99,7 @@ def test_failed_build_refuses(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
 
     monkeypatch.setattr(subprocess, "run", run)
     with pytest.raises(provision.ProvisionError, match="index build failed"):
-        provision.build_index(_rubric(), tmp_path, tmp_path / "clew.db", None)
+        provision.build_index(_rubric(), tmp_path, tmp_path / "state", None)
 
 
 ## @brief A missing database is reported, not treated as an empty one.

@@ -248,3 +248,53 @@ def test_the_shipped_rubric_plans() -> None:
     assert len(cells) == len(rubric.questions) * 2
     assert len({c.stem() for c in cells}) == len(cells), "cell names must be unique"
     assert runner.rubric_digest(MBEDTLS_RUBRIC) == runner.rubric_digest(MBEDTLS_RUBRIC)
+
+
+## @brief A dirty working tree is refused even at the right commit.
+## @return None.
+## @version 1
+def test_dirty_tree_is_refused_at_the_pin(tmp_path: Path) -> None:
+    """HEAD IS NOT THE TREE. A modified checkout passes a rev-parse check while both arms read
+    files the rubric was never verified against, so every line number in it is a claim about
+    content nobody checked.
+
+    A freshly fetched target cannot be dirty. A LOCAL checkout reused as a target silently can,
+    which is how two of the reference targets are provisioned — so the check exists for the case
+    that actually occurs rather than the one that cannot.
+
+    @brief Dirty tree refuses.
+    @return None.
+    @version 1
+    """
+    import subprocess
+
+    env = {
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@t",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@t",
+        "PATH": "/usr/bin:/bin",
+    }
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    (tmp_path / "a.txt").write_text("one")
+    subprocess.run(["git", "-C", str(tmp_path), "add", "a.txt"], check=True)
+    subprocess.run(["git", "-C", str(tmp_path), "commit", "-q", "-m", "x"], check=True, env=env)
+    head = subprocess.run(
+        ["git", "-C", str(tmp_path), "rev-parse", "HEAD"], capture_output=True, text=True
+    ).stdout.strip()
+
+    rubric = Rubric(
+        target="owner/repo",
+        commit=head,
+        version="1.0.0",
+        ground_truth="source",
+        judge_model="claude-x-1",
+        judge_samples_when_weight_at_least=2,
+        questions=(Question(id="Q1", intent="i", prompt="p"),),
+    )
+    ## Clean at the pin: passes.
+    runner.check_revision(rubric, tmp_path)
+    ## Same commit, modified content: refused.
+    (tmp_path / "a.txt").write_text("two")
+    with pytest.raises(ValueError, match="working tree is MODIFIED"):
+        runner.check_revision(rubric, tmp_path)

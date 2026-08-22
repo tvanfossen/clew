@@ -158,3 +158,30 @@ def test_baseline_arm_is_not_fenced_to_one_command() -> None:
     index = execute._ALLOWED["index"].split(",")
     assert set(baseline) < set(index), "the index arm is the baseline arm PLUS the index"
     assert not [t for t in baseline if t.startswith("mcp__")]
+
+
+## @brief An index cell that never touched the index is flagged.
+## @return None.
+## @version 1
+def test_index_cell_with_no_index_calls_is_flagged() -> None:
+    """THE ONLY DOWNSTREAM SIGNAL that the index arm ran WITHOUT its index. Measured: a relative
+    --repo in the MCP config resolved inside the target checkout, the server started, found no
+    database, registered no query tools, raised no error, and the run reported 4/4 ok.
+
+    UNKNOWN IS NOT ZERO. A cell whose tool use could not be determined (-1) must not be flagged,
+    or the alarm fires on a missing transcript and stops meaning anything.
+
+    @brief Zero-index-call cells are reported.
+    @return None.
+    @version 1
+    """
+    from acceptance.execute import CellResult, index_cells_that_never_used_the_index
+
+    rows = [
+        CellResult("blind", "index", "m", True, tool_calls=8, non_index_tool_calls=8),
+        CellResult("used", "index", "m", True, tool_calls=8, non_index_tool_calls=5),
+        CellResult("baseline", "baseline", "m", True, tool_calls=8, non_index_tool_calls=8),
+        CellResult("unknown", "index", "m", True, tool_calls=-1, non_index_tool_calls=-1),
+        CellResult("failed", "index", "m", False, tool_calls=0, non_index_tool_calls=0),
+    ]
+    assert index_cells_that_never_used_the_index(rows) == ["blind"]

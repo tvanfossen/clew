@@ -206,6 +206,27 @@ def check_revision(rubric: Rubric, root: Path) -> None:
             f"{root} is at {head or '<unknown>'} but the rubric pins {rubric.commit}. "
             f"Check out the pin; do not adjust the rubric to match the tree"
         )
+    ## HEAD IS NOT THE TREE. A dirty working tree passes a rev-parse check while both arms read
+    ## files the rubric was never verified against — every line number in it is then a claim
+    ## about content nobody checked. A freshly fetched target cannot be dirty; a LOCAL checkout
+    ## reused as a target silently can, which is exactly how two of the reference targets are
+    ## provisioned.
+    try:
+        dirty = subprocess.run(
+            ["git", "-C", str(root), "status", "--porcelain", "--untracked-files=no"],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        ).stdout.strip()
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise ValueError(f"{root}: cannot read working-tree state: {exc}") from exc
+    if dirty:
+        raise ValueError(
+            f"{root} is at the pinned commit but its working tree is MODIFIED:\n{dirty}\n"
+            f"The rubric was verified against the pin, not against these edits. Stash or commit "
+            f"them; do not measure a tree nobody checked"
+        )
 
 
 ## @brief Refuse unless the built index recorded every declared section.

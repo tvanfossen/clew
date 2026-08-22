@@ -30,7 +30,7 @@ import sys
 from dataclasses import asdict
 from pathlib import Path
 
-from .execute import run_cell
+from .execute import index_cells_that_never_used_the_index, run_cell
 from .grader.rubric import RubricError, load
 from .grader.score import score_question
 from .runner import check_revision, check_symmetry, plan, rubric_digest
@@ -116,6 +116,7 @@ def cmd_generate(args) -> int:
     )
 
     failed = 0
+    results = []
     for cell in cells:
         result = run_cell(
             cell, prompts[cell.question_id], args.repo, args.out, args.mcp_config, args.timeout
@@ -128,10 +129,19 @@ def cmd_generate(args) -> int:
             f"tools {result.tool_calls:>3}/{result.non_index_tool_calls:>3} "
             f"denied {result.denied_tool_calls:>2}" + (f"  {result.error}" if result.error else "")
         )
+        results.append(result)
         failed += 0 if result.ok else 1
     ## THE FAILED COUNT IS PRINTED EVEN WHEN ZERO. A run that silently omits it cannot be told
     ## from one whose failures were never counted.
     print(f"\n{len(cells) - failed}/{len(cells)} cells produced an answer")
+    blind = index_cells_that_never_used_the_index(results)
+    if blind:
+        print(
+            f"\nWARNING — {len(blind)} index cell(s) made ZERO index calls: {blind}\n"
+            f"That is what an index arm running WITHOUT its index looks like: the server starts, "
+            f"finds no database, registers no query tools, and the agent answers from the source "
+            f"with no error anywhere. Verify the MCP config resolves before trusting these cells."
+        )
     return 1 if failed else 0
 
 

@@ -6,8 +6,11 @@
         "-m",
         "clew.mcp_server.server",
         "--repo",
-        "acceptance/runs/2026-08-22-n1/mbedtls/repo"
-      ]
+        "/home/tvanfossen/Projects/mbedtls"
+      ],
+      "env": {
+        "CLEW_STATE_HOME": "/home/tvanfossen/Projects/docs-db/acceptance/runs/2026-08-22-n1/mbedtls/state"
+      }
     }
   }
 }

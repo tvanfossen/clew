@@ -245,3 +245,38 @@ def run_cell(
     if result.ok:
         (out_dir / f"{cell.stem()}.md").write_text(answer, "utf-8")
     return result
+
+
+## @brief Flag index cells that never touched the index.
+## @param results Cell results from a generate pass.
+## @return List of stems that are suspect.
+## @version 1
+def index_cells_that_never_used_the_index(results: list[CellResult]) -> list[str]:
+    """THE ONLY DOWNSTREAM SIGNAL THAT THE INDEX ARM RAN WITHOUT ITS INDEX.
+
+    Measured: a relative `--repo` in the MCP config resolved inside the target checkout, so the
+    server started, found no database, and registered no query tools. It emitted no error, the
+    agent raised no denial, and the run reported 4/4 ok — the index arm answered the question
+    without its index and produced prose indistinguishable from a real cell.
+
+    A cell that used the index zero times is NOT automatically broken: an agent may genuinely
+    choose not to reach for it, and whether it wants to is adoption, which the hypothesis puts
+    out of scope. So this REPORTS rather than refuses. But an index arm at zero across a whole
+    run is a configuration failure until proven otherwise, and nothing else in the artifacts
+    says so.
+
+    A cell whose tool use could not be determined (-1) is not counted here — unknown is not zero,
+    and treating it as zero would manufacture the very alarm this exists to raise honestly.
+
+    @brief Index cells with no index calls.
+    @return Suspect cell stems.
+    @version 1
+    """
+    return [
+        r.stem
+        for r in results
+        if r.arm == "index"
+        and r.ok
+        and r.tool_calls >= 0
+        and r.tool_calls == r.non_index_tool_calls
+    ]
