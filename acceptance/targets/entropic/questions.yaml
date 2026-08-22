@@ -11,6 +11,12 @@
 # showed its first half saturated: both arms scored 100% because the whole answer lived in one
 # file. Its second half follows a failure value outward to every site that receives it, which is
 # the only shape where a retrieval substrate can matter. Q2 is a dependency-boundary question.
+#
+# Q3-Q5 were added to reach five questions across varying difficulty and problem area, each
+# built to the same rule and each a DIFFERENT SHAPE so the set does not measure one skill five
+# times: Q3 converges on one decision from two gates that never reference each other, Q4 is an
+# inventory spread over seven files with no file that lists them, and Q5 is a language-boundary
+# question whose six files each hold one constraint that solves a problem stated elsewhere.
 
 
 
@@ -18,7 +24,7 @@ schema: 1
 
 target: tvanfossen/entropic
 commit: 6dcb4c814639fd58ead85aea06809637010f34f1
-version: 2.0.0
+version: 3.0.0
 
 ground_truth: |
   entropic's own source at the commit above, read directly. Counts were taken from the working
@@ -218,3 +224,507 @@ questions:
             evidence: "response_generator.cpp"
           - value: facade
             evidence: "entropic.cpp"
+
+  - id: Q3
+    intent: |
+      TWO GATES IN TWO CLASSES THAT CONSULT DIFFERENT LISTS. The subsystem reads like a
+      conventional allow/deny model and its own header comment calls it "Default-deny model" —
+      but the deny list is the only thing that blocks anything, and the same header's next
+      sentence says so ("Unknown tools are not denied"). An answer that reads the class in
+      isolation reports the doc; an answer that follows both call sites reports the code.
+
+      The shape is deliberately the opposite of Q1's. Q1 follows one value outward to its
+      receivers; this one converges on a single decision from two directions that never
+      reference each other — ServerManager::execute and ToolExecutor::check_approval are in
+      different files, in different subsystems, and neither mentions the other.
+
+      The sharpest component is the approval callback. It is a void function pointer, so it
+      cannot refuse; the code sets approved = true immediately after firing it. Registering a
+      callback therefore approves everything, and the only path to a denial at that gate is
+      having no callback at all — the inverse of what "ask the user" suggests.
+
+    prompt: |
+      A tool call arrives in entropic and the user has configured permissions. Trace what
+      actually decides whether that call runs, and say what a pattern in each list does.
+
+    marks:
+      - text: >-
+          names PermissionManager and locates the allow and deny lists as coming from the
+          PermissionsConfig the ServerManager is constructed with
+        type: retrieval
+        weight: 1
+        evidence: |
+          include/entropic/types/config.h:589-593 declares PermissionsConfig with `allow`, `deny`
+          and `auto_approve`. src/mcp/server_manager.cpp:33-35 initialises
+          `permissions_(permissions.allow, permissions.deny)`.
+        refs:
+          - ["include/entropic/types/config.h", 585, 593]
+          - ["src/mcp/server_manager.cpp", 30, 36]
+
+      - text: >-
+          concludes that the DENY list is the only one that blocks execution — ServerManager's
+          execute path consults is_denied and nothing else before routing the call
+        type: conclusion
+        weight: 3
+        evidence: |
+          src/mcp/server_manager.cpp:157-166: the pattern is built, `is_denied` is consulted, and
+          on false the function falls straight through to `route_tool_call`. `is_allowed` is never
+          called on this path.
+        refs:
+          - ["src/mcp/server_manager.cpp", 155, 167]
+
+      - text: >-
+          states that the ALLOW list does not grant execution but suppresses the approval step —
+          it is consulted only from ToolExecutor::check_approval, in a different file
+        type: conclusion
+        weight: 3
+        evidence: |
+          src/mcp/tool_executor.cpp:161-166 computes
+          `auto_ok = loop_config_.auto_approve_tools || server_manager_.is_explicitly_allowed(...)`.
+          ServerManager::is_explicitly_allowed (src/mcp/server_manager.cpp:286-291) is the only
+          route to `permissions_.is_allowed`, and tool_executor.cpp:164 is its only caller.
+
+          This is the cross-file half: neither file references the other's gate, and reading
+          either one alone yields a coherent but incomplete model of the decision.
+        refs:
+          - ["src/mcp/tool_executor.cpp", 161, 170]
+          - ["src/mcp/server_manager.cpp", 284, 291]
+
+      - text: >-
+          concludes that the effective posture is default-ALLOW at the blocking gate — a tool
+          matching neither list is not denied and runs
+        type: conclusion
+        weight: 3
+        evidence: |
+          Direct consequence of execute() consulting only is_denied. The class's own header
+          comment at include/entropic/mcp/permission_manager.h:27-30 opens "Default-deny model"
+          and then states "Unknown tools are not denied", so the doc contradicts its own first
+          sentence.
+
+          A mark is earned by describing what the code does. Noticing the doc's contradiction is
+          not required, but an answer that repeats "default-deny" as the behaviour has reported
+          the comment rather than the code.
+        refs:
+          - ["include/entropic/mcp/permission_manager.h", 24, 32]
+          - ["src/mcp/server_manager.cpp", 155, 167]
+
+      - text: >-
+          identifies that the approval callback CANNOT refuse — it returns void, and the code
+          sets approved to true unconditionally after firing it
+        type: conclusion
+        weight: 3
+        evidence: |
+          include/entropic/core/engine_types.h:370 declares
+          `void (*on_tool_call)(const char* json, void* ud)`. src/mcp/tool_executor.cpp:168-174
+          fires it and then assigns `approved = true` with no value consulted.
+
+          The consequence inverts the intuition: registering a callback approves everything, and
+          a call is refused at this gate only when NO callback is registered — which is exactly
+          what the log line at :183 says ("No approval callback — denying").
+        refs:
+          - ["include/entropic/core/engine_types.h", 370]
+          - ["src/mcp/tool_executor.cpp", 167, 186]
+
+      - text: >-
+          explains that a pattern is matched with fnmatch, split at the first colon into a tool
+          part and an argument part, and that a pattern with no colon matches on the tool name
+          alone
+        type: conclusion
+        weight: 2
+        evidence: |
+          src/mcp/permission_manager.cpp:101-124. The tool portion must fnmatch the tool name; if
+          there is no colon the function returns true at that point; otherwise the whole pattern
+          must fnmatch the whole `tool:arg` string. fnmatch is called with flags 0, so a `*` is
+          not path-segment-bounded.
+        refs:
+          - ["src/mcp/permission_manager.cpp", 92, 125]
+
+      - text: >-
+          states that only ONE argument value ever reaches the pattern — the rest of the call's
+          arguments are invisible to permission matching, and a non-string or unparseable
+          argument collapses to a wildcard
+        type: conclusion
+        weight: 3
+        evidence: |
+          src/mcp/server_manager.cpp:426-444. args_to_pattern parses the JSON, takes `j.begin()`,
+          and returns it only `if (first->is_string())`; every other case — empty args, `{}`, a
+          non-string first value, a parse failure caught by `catch (...)` — returns `"*"`.
+
+          Which single argument that is, is not the caller's choice: entropic uses plain
+          nlohmann::json, whose default object type is std::map, so iteration is by sorted key.
+          Naming that detail is not required; stating that one argument stands in for all of them
+          is.
+        refs:
+          - ["src/mcp/server_manager.cpp", 419, 444]
+
+      - text: >-
+          identifies that a decision can be PERSISTED for future sessions by appending to
+          config.local.yaml, separately from the in-memory add_permission call
+        type: conclusion
+        weight: 2
+        evidence: |
+          include/entropic/storage/permission_persister.h:36-58: PermissionPersister is
+          constructed from a config directory, targets `config.local.yaml`, exposes
+          `save_permission(pattern, allow)` and serialises writes with an internal mutex.
+          src/storage/permission_persister.cpp:1-10 records that it edits the YAML by line rather
+          than through a parser. ServerManager::add_permission
+          (src/mcp/server_manager.cpp:359-362) is the in-memory counterpart and writes nothing.
+        refs:
+          - ["include/entropic/storage/permission_persister.h", 20, 58]
+          - ["src/mcp/server_manager.cpp", 355, 362]
+
+      - text: the files a permission decision passes through
+        type: set
+        weight: 2
+        extract: |
+          List every file path the answer names as taking part in deciding whether a tool call
+          runs, or in recording that decision. Paths only, one per line, exactly as the answer
+          writes them. If the answer names none, reply NONE.
+        members:
+          - value: src/mcp/permission_manager.cpp
+            evidence: "the matcher itself"
+          - value: src/mcp/server_manager.cpp
+            evidence: ":157-166 the blocking gate, :286-291 the allow query, :426-444 the pattern"
+          - value: src/mcp/tool_executor.cpp
+            evidence: ":161-186 the approval gate, the only caller of is_explicitly_allowed"
+          - value: include/entropic/types/config.h
+            evidence: ":589-593 where allow and deny come from"
+
+  - id: Q4
+    intent: |
+      AN INVENTORY QUESTION WHOSE ANSWER IS SPREAD OVER SEVEN FILES IN FOUR SUBSYSTEMS, with no
+      file that lists them. This is the shape a single read cannot serve: any one file yields a
+      correct but partial answer, and the partial answer looks complete.
+
+      Deliberately the inverse of the mbedtls concurrency question, where the correct conclusion
+      is that nothing runs concurrently. Here a great deal does, so an agent that has generalised
+      "check whether the feature is compiled in" finds nothing to check.
+
+      The conclusions worth having are about POLICY rather than inventory: callbacks are queued
+      and drained on the caller's thread rather than fired from the background one; every thread
+      body installs the same logging scope as its first statement; exactly one thread is
+      detached; and one thread exists solely to translate an atomic into a plain int because the
+      C ABI cannot carry an atomic across the boundary.
+
+    prompt: |
+      Which parts of entropic run on a thread other than the caller's, and what keeps that safe?
+
+    marks:
+      - text: >-
+          identifies that thread creation is spread across several subsystems — the external
+          bridge, the MCP transports, the health monitor and the inference path — rather than
+          being centralised
+        type: retrieval
+        weight: 1
+        evidence: |
+          9 std::thread construction sites across 7 files at the pinned commit, in
+          src/facade/, src/mcp/, src/core/ and src/inference/. No file enumerates them.
+        refs:
+          - ["src/facade/external_bridge.cpp", 796]
+          - ["src/mcp/health_monitor.cpp", 92]
+
+      - text: >-
+          describes the external bridge's two-level thread structure: one accept thread that
+          spawns a further thread per connected client
+        type: conclusion
+        weight: 3
+        evidence: |
+          src/facade/external_bridge.cpp:796-799 starts accept_thread_ running accept_loop;
+          :945-951 spawns one thread per accepted client running serve_client. The per-client
+          threads are held in client_threads_ under client_threads_mutex_, each ClientThread
+          carrying a `finished` atomic so a completed one can be reaped.
+        refs:
+          - ["src/facade/external_bridge.cpp", 786, 800]
+          - ["src/facade/external_bridge.cpp", 936, 956]
+
+      - text: >-
+          identifies the async-ask worker as the ONE detached thread, and that it therefore
+          outlives its caller's scope with no join
+        type: conclusion
+        weight: 3
+        evidence: |
+          src/facade/external_bridge.cpp:1158 constructs it and :1222 is the only `.detach()` in
+          first-party source at the pinned commit — every other thread is stored in a member and
+          joined. The body runs entropic_run, updates the task registry under tasks_mutex_,
+          broadcasts a progress notification and expires old tasks.
+
+          An answer that says "threads are detached" or names detachment as the general pattern
+          has the fact inverted; detaching is the exception here and it is singular.
+        refs:
+          - ["src/facade/external_bridge.cpp", 1140, 1223]
+
+      - text: >-
+          explains that the health monitor does NOT invoke its status callback from the monitor
+          thread — it queues events under a mutex and the caller drains them on its own thread
+        type: conclusion
+        weight: 3
+        evidence: |
+          src/mcp/health_monitor.cpp:117-130: process_events takes event_mutex_, swaps the queue
+          out under the lock, releases it, and only then invokes status_callback_. The doc
+          comment states the intent: "Drain event queue, invoke callbacks on engine thread."
+
+          This is the policy that makes the rest of the design safe, and it is invisible from the
+          thread-creation site — the thread is started in start() at :87-95 and nothing there
+          says where callbacks land.
+        refs:
+          - ["src/mcp/health_monitor.cpp", 112, 131]
+          - ["include/entropic/mcp/health_monitor.h", 130, 140]
+
+      - text: >-
+          identifies that the monitor's shutdown is an atomic flag exchange plus a condition
+          variable wake, and that stop() joins rather than detaching or abandoning the thread
+        type: conclusion
+        weight: 2
+        evidence: |
+          src/mcp/health_monitor.cpp:102-110: `if (!running_.exchange(false)) return;` makes stop
+          idempotent, wake_cv_.notify_all() interrupts the poll wait, and the thread is joined if
+          joinable. State declared at include/entropic/mcp/health_monitor.h:136-140:
+          std::thread, std::atomic<bool>, std::condition_variable and its mutex.
+        refs:
+          - ["src/mcp/health_monitor.cpp", 97, 111]
+          - ["include/entropic/mcp/health_monitor.h", 130, 141]
+
+      - text: >-
+          identifies the cancellation observer thread as existing to bridge an atomic into a plain
+          int, because the C ABI boundary cannot carry an atomic
+        type: conclusion
+        weight: 3
+        evidence: |
+          src/core/response_generator.cpp:404-429. The comment above it states the reason
+          directly — the C ABI stays int*-only, no atomic across the .so boundary — and the
+          thread polls the atomic every 10ms, writing 1 into a plain int the generate call
+          watches. It is joined immediately after the call returns.
+
+          A near-identical poller appears at src/inference/inference_c_api.cpp:385 and
+          src/inference/interface_factory.cpp:246, so this is a repeated idiom rather than a
+          one-off, which is itself only visible across files.
+        refs:
+          - ["src/core/response_generator.cpp", 404, 429]
+          - ["src/inference/inference_c_api.cpp", 385]
+
+      - text: >-
+          notes that every thread body installs a per-handle logging scope as its first
+          statement, so background work logs against the handle that owns it
+        type: conclusion
+        weight: 2
+        evidence: |
+          `entropic::log::HandleLogScope scope(log_id);` opens the bodies at
+          src/facade/external_bridge.cpp:797, :946 and :1159, each with a comment recording why.
+          The log_id is captured by value from handle_ before the thread starts, because the
+          handle cannot be dereferenced safely from the new thread.
+
+          This is a cross-cutting convention: it is not stated anywhere as a rule, and it shows
+          only by seeing the same first line in several thread bodies.
+        refs:
+          - ["src/facade/external_bridge.cpp", 790, 800]
+          - ["src/facade/external_bridge.cpp", 942, 948]
+
+      - text: >-
+          identifies that each MCP transport runs its own reader thread — a stderr forwarder for
+          the stdio transport and an event reader for the SSE transport
+        type: conclusion
+        weight: 2
+        evidence: |
+          src/mcp/transport_stdio.cpp:163-165 starts stderr_reader_loop after the child process
+          is spawned; src/mcp/transport_sse.cpp:106-108 starts sse_reader_loop, then sleeps 500ms
+          and checks connected_ to decide whether the connection came up.
+        refs:
+          - ["src/mcp/transport_stdio.cpp", 156, 168]
+          - ["src/mcp/transport_sse.cpp", 100, 118]
+
+      - text: every first-party source file that creates a thread
+        type: set
+        weight: 1
+        extract: |
+          List every file path the answer names as containing a site where a thread is created.
+          Paths only, one per line, exactly as the answer writes them. Do not include files that
+          only describe or join threads created elsewhere. If the answer names none, reply NONE.
+        members:
+          - value: src/facade/external_bridge.cpp
+            evidence: ":796 accept, :945 per-client, :1158 detached async worker"
+          - value: src/mcp/health_monitor.cpp
+            evidence: ":92 monitor_loop"
+          - value: src/mcp/transport_stdio.cpp
+            evidence: ":164 stderr_reader_loop"
+          - value: src/mcp/transport_sse.cpp
+            evidence: ":107 sse_reader_loop"
+          - value: src/core/response_generator.cpp
+            evidence: ":413 cancellation observer"
+          - value: src/inference/inference_c_api.cpp
+            evidence: ":385 cancel poller"
+          - value: src/inference/interface_factory.cpp
+            evidence: ":246 cancel poller"
+
+  - id: Q5
+    intent: |
+      A LANGUAGE-BOUNDARY QUESTION. The surface — "ctypes over a shared library" — is one
+      sentence and both arms will produce it. What discriminates is that the boundary is built
+      out of six files that each hold one constraint, and every one of those constraints exists
+      to solve a problem stated in a different file.
+
+      The load-bearing one is the SPLIT between the two generated modules. A reader who finds
+      `_bindings.py` sees `_lib = load()` at import time and concludes that importing the package
+      requires the engine to be present — which is false, and is exactly the failure the split
+      prevents: `entropic install-engine` is a subcommand of the package that downloads the
+      engine, so the package must import before the engine exists.
+
+      Ownership crosses in BOTH directions and the two directions use different functions. An
+      answer that covers only engine-to-caller has described half the contract.
+
+    prompt: |
+      entropic is a C++ engine with a Python package. How does Python actually reach the engine,
+      and what are the rules about memory that crosses between them?
+
+    marks:
+      - text: >-
+          identifies ctypes over librentropic.so as the mechanism, with no compiled extension
+          module involved
+        type: retrieval
+        weight: 1
+        evidence: |
+          python/src/entropic/_bindings.py:19-24 imports ctypes and calls
+          entropic._loader.load(), which returns a ctypes.CDLL. The C header states the same from
+          the other side: "All functions are pure C — no C++ types cross this boundary"
+          (include/entropic/entropic.h:7-8).
+        refs:
+          - ["python/src/entropic/_bindings.py", 17, 24]
+          - ["include/entropic/entropic.h", 4, 9]
+
+      - text: >-
+          states that the bindings are GENERATED from the C header by scripts/gen_bindings.py,
+          not hand-written
+        type: conclusion
+        weight: 2
+        evidence: |
+          Both python/src/entropic/_bindings.py:2-5 and _bindings_manifest.py:2 carry an
+          "AUTO-GENERATED by scripts/gen_bindings.py — do not edit" banner naming
+          include/entropic/entropic.h plus types/*.h as the source.
+        refs:
+          - ["python/src/entropic/_bindings.py", 1, 15]
+          - ["python/src/entropic/_bindings_manifest.py", 1, 8]
+
+      - text: >-
+          identifies that drift between the header and the bindings is caught by a pre-commit
+          check that re-runs the generator and diffs
+        type: conclusion
+        weight: 3
+        evidence: |
+          .pre-commit-config.yaml:86-95 defines gen-bindings-check, running
+          `inv gen-bindings --check`, scoped by a files regex covering the headers, both
+          generated modules and the generator itself. Its comment records the motivating failure:
+          an export in the header not reflected in the wrapper.
+
+          Nothing in either Python file names the hook, and nothing in the hook names what it
+          protects beyond the paths — so this is assembled from the config plus the banner.
+        refs:
+          - [".pre-commit-config.yaml", 84, 96]
+
+      - text: >-
+          explains that the generated surface is SPLIT IN TWO on purpose — a names-only manifest
+          that imports no ctypes, and the real bindings module that loads the library
+        type: conclusion
+        weight: 3
+        evidence: |
+          _bindings_manifest.py holds only a frozenset of names and its docstring says it is
+          "imported eagerly by entropic.__init__ ... without loading librentropic.so".
+          _bindings.py executes `_lib = load()` at module scope (line 24), so importing it forces
+          the load.
+        refs:
+          - ["python/src/entropic/_bindings_manifest.py", 1, 12]
+          - ["python/src/entropic/_bindings.py", 22, 24]
+
+      - text: >-
+          concludes that the split exists so `import entropic` succeeds before the engine is on
+          disk, which is what makes an install-engine subcommand shippable inside the same package
+        type: conclusion
+        weight: 3
+        evidence: |
+          python/src/entropic/__init__.py:45-56 states it: the manifest "does NOT import ctypes or
+          load librentropic.so ... so `entropic install-engine` can run before the .so exists on
+          disk and still `import entropic` successfully". The deferral is PEP 562 __getattr__ at
+          :85-93, which imports _bindings only when a bound name is actually touched.
+
+          This is the conclusion the question is built around, and it is not derivable from
+          _bindings.py alone — read on its own, that file says the library loads at import.
+        refs:
+          - ["python/src/entropic/__init__.py", 44, 57]
+          - ["python/src/entropic/__init__.py", 84, 93]
+
+      - text: >-
+          describes the loader's resolution order as environment overrides first, then a default
+          user directory, then the system library cache — with two directory layouts tried per root
+        type: conclusion
+        weight: 2
+        evidence: |
+          python/src/entropic/_loader.py:37-57 builds the candidate list: $ENTROPIC_LIB,
+          $ENTROPIC_HOME nested then flat, ~/.entropic nested then flat; find() at :62-70 falls
+          back to ctypes.util.find_library("rentropic"). Two layouts per root because the release
+          tarball extracts differently depending on whether --strip-components=1 was used.
+        refs:
+          - ["python/src/entropic/_loader.py", 1, 25]
+          - ["python/src/entropic/_loader.py", 35, 70]
+
+      - text: >-
+          states the engine-to-caller rule: a returned char* transfers ownership and is freed with
+          entropic_free, while a const char* stays owned by the handle and is only valid until the
+          next call on it
+        type: conclusion
+        weight: 3
+        evidence: |
+          include/entropic/entropic.h:31-37, the "Memory ownership" block. The two halves have
+          different lifetimes and the distinction is carried entirely by the return type's
+          constness — a detail an answer that says "free what you get back" gets wrong for the
+          const case.
+        refs:
+          - ["include/entropic/entropic.h", 31, 38]
+          - ["include/entropic/entropic.h", 249]
+
+      - text: >-
+          states the caller-to-engine rule as the SECOND direction: a buffer the engine will free
+          must be allocated with entropic_alloc, and shows where the Python side does that
+        type: conclusion
+        weight: 3
+        evidence: |
+          include/entropic/entropic.h:34-36 requires it for buffers the engine frees, naming hook
+          modified_json. python/src/entropic/hooks.py:123-135 implements it — _alloc_c_string
+          calls entropic_alloc and memmoves a NUL-terminated UTF-8 copy in — and the hook
+          trampoline at :155-160 does the same for a returned dict.
+
+          Two directions, two functions, and the Python side is the only place the second one is
+          exercised. An answer covering only the first direction has half the contract.
+        refs:
+          - ["include/entropic/entropic.h", 31, 38]
+          - ["python/src/entropic/hooks.py", 118, 162]
+
+      - text: >-
+          notes that the hook trampoline swallows every Python exception rather than letting it
+          unwind into the C engine, treating a failed hook as a pass-through
+        type: conclusion
+        weight: 2
+        evidence: |
+          python/src/entropic/hooks.py:164-170: a bare `except Exception` prints a traceback to
+          stderr and sets rc = 0, which is the pass verdict. Unwinding a Python exception through
+          a ctypes callback into C is undefined, so the catch is deliberate — the comment says so
+          — but the consequence is that a broken hook is silent apart from stderr.
+        refs:
+          - ["python/src/entropic/hooks.py", 160, 171]
+
+      - text: the files that make up the Python-to-engine boundary
+        type: set
+        weight: 2
+        extract: |
+          List every file path the answer names as part of how the Python package reaches the C
+          engine — locating the library, declaring the bindings, deferring the load, or handling
+          memory that crosses. Paths only, one per line, as the answer writes them. If the answer
+          names none, reply NONE.
+        members:
+          - value: python/src/entropic/_loader.py
+            evidence: "finds and dlopens librentropic.so"
+          - value: python/src/entropic/_bindings.py
+            evidence: "generated ctypes surface; loads the library at import"
+          - value: python/src/entropic/_bindings_manifest.py
+            evidence: "generated names-only module; imports no ctypes"
+          - value: python/src/entropic/__init__.py
+            evidence: ":45-56 and :85-93, the PEP 562 deferral"
+          - value: include/entropic/entropic.h
+            evidence: "the C contract both generated files are derived from"
