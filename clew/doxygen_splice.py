@@ -79,6 +79,7 @@ class SpliceReport:
     """
 
     files_replaced: int = 0
+    files_removed: int = 0
     members_deleted: int = 0
     members_inserted: int = 0
     compounds_deleted: int = 0
@@ -93,15 +94,16 @@ class SpliceReport:
     ##
     # @brief One-line summary for the build log.
     # @return Human-readable description.
-    # @version 1
+    # @version 2
     # @dg_internal
     def describe(self) -> str:
         """@brief Summarise the splice.
         @return Description string.
-        @version 1
+        @version 2
         """
         return (
-            f"{self.files_replaced} file(s) respliced: "
+            f"{self.files_replaced} file(s) respliced, "
+            f"{self.files_removed} removed: "
             f"memberdef -{self.members_deleted}/+{self.members_inserted}, "
             f"compounddef -{self.compounds_deleted}/+{self.compounds_inserted}, "
             f"xrefs -{self.xrefs_deleted}/+{self.xrefs_inserted}, "
@@ -455,6 +457,46 @@ def _insert_compounds(
 
 
 ##
+# @brief The refids of everything a changed file defines, read from the subset database.
+# @param sub Subset database connection.
+# @param changed Repo-relative paths whose content changed.
+# @param ctx Path caches for both databases plus the repo root.
+# @return Refid strings for the changed files' memberdefs and compounddefs.
+# @version 1
+# @dg_internal
+def _changed_refids(sub: sqlite3.Connection, changed: set[str], ctx: dict) -> set[str]:
+    """THE FENCE FOR EVERY RE-INSERTION. A subset run resolves names against only the files
+    it can see, so an edge or relation it emits between two CLOSURE files can disagree with
+    what the whole tree says — measured on this repository as 8 edges a full rebuild does not
+    emit, between functions the edit never touched. Restricting re-insertion to rows that
+    touch a changed file's own definitions is exactly symmetric with deletion, and it is the
+    rule the module already states for rows: replace the CHANGED set, leave the closure alone.
+
+    Covers memberdefs AND compounddefs, because `member` and `contains` hang off compounds
+    while `xrefs` hangs off members.
+
+    @brief Collect the refids a changed file defines.
+    @return Refid strings.
+    @version 1
+    """
+    found: set[str] = set()
+    for rel in changed:
+        sub_file = ctx["sub_paths"].get(rel)
+        if sub_file is None:
+            continue
+        for table in ("memberdef", "compounddef"):
+            found.update(
+                str(r[0])
+                for r in sub.execute(
+                    f"SELECT rf.refid FROM {table} t "  # noqa: S608 - literal table names
+                    "JOIN refid rf ON rf.rowid = t.rowid WHERE t.file_id = ?",
+                    (sub_file,),
+                )
+            )
+    return found
+
+
+##
 # @brief Re-link class membership and containment for the respliced files.
 # @param work Working copy connection (written).
 # @param sub Subset database connection (read).
@@ -465,6 +507,8 @@ def _insert_compounds(
 def _insert_relations(
     work: sqlite3.Connection,
     sub: sqlite3.Connection,
+    changed: set[str],
+    ctx: dict,
     report: SpliceReport,
 ) -> None:
     """`member` and `contains` are the rows that make a class's methods findable AS members
@@ -477,6 +521,7 @@ def _insert_relations(
     @return None.
     @version 1
     """
+    changed_refids = _changed_refids(sub, changed, ctx)
     pairs = (
         ("member", "scope_rowid", "memberdef_rowid", "prot, virt"),
         ("contains", "inner_rowid", "outer_rowid", ""),
@@ -490,6 +535,8 @@ def _insert_relations(
             f"JOIN refid rr ON rr.rowid = s.{right}"
         ).fetchall()
         for row in rows:
+            if str(row[0]) not in changed_refids and str(row[1]) not in changed_refids:
+                continue
             lhs = work.execute("SELECT rowid FROM refid WHERE refid = ?", (str(row[0]),)).fetchone()
             rhs = work.execute("SELECT rowid FROM refid WHERE refid = ?", (str(row[1]),)).fetchone()
             if lhs is None or rhs is None:
@@ -541,7 +588,13 @@ def _remap_optional_path(
 # @return None.
 # @version 1
 # @dg_internal
-def _insert_xrefs(work: sqlite3.Connection, sub: sqlite3.Connection, report: SpliceReport) -> None:
+def _insert_xrefs(
+    work: sqlite3.Connection,
+    sub: sqlite3.Connection,
+    changed: set[str],
+    ctx: dict,
+    report: SpliceReport,
+) -> None:
     """ENDPOINTS RESOLVE THROUGH `refid`, NOT THROUGH `memberdef`, and that is doxygen's own
     schema rather than a relaxation of mine: `xrefs.src_rowid`/`dst_rowid` REFERENCE `refid`,
     and NOT every refid owns a memberdef row.
@@ -553,16 +606,29 @@ def _insert_xrefs(work: sqlite3.Connection, sub: sqlite3.Connection, report: Spl
     dropping an edge doxygen legitimately stores, and faithfully reproducing doxygen's output
     is the contract. The importer downstream joins memberdef and ignores these on its own.
 
-    Every xref the subset emitted is offered, not only those originating in a changed file:
-    the closure files were re-read precisely so their edges into and out of the change could
-    be re-emitted, and the stale copies were deleted alongside the members they touched.
-    Duplicates are harmless — `xrefs` is UNIQUE on the triple with ON CONFLICT IGNORE, and
-    a re-offered row is byte-identical to the one already there.
+    ONLY EDGES TOUCHING A CHANGED FILE ARE RE-INSERTED, and the first version got this
+    wrong in a way only a real-repo comparison caught. It inserted EVERY edge the subset
+    emitted, which sounds harmless — the closure files were re-read, so surely their edges
+    are fine. They are not: doxygen resolves a name against the files it can SEE, and in a
+    four-file subset an ambiguous name resolves differently than it does among 284. Measured
+    on this repository, a modification-only refresh then carried 8 edges a full rebuild does
+    not emit, between functions in files the edit never touched (`cull` -> `db_status`,
+    `import_kconfig` -> `discover_kconfig`). Nothing was missing; the graph had grown edges
+    that do not exist.
 
-    @brief Insert the subset's xref edges.
+    The rule that fixes it is the one the module already states for rows — replace the
+    CHANGED set, leave the closure alone — applied to edges. It is also exactly symmetric
+    with deletion: `_delete_file_rows` removes the xrefs touching a changed file's members,
+    so those are precisely the ones to put back. Everything else the master already had
+    right.
+
+    Duplicates remain harmless: `xrefs` is UNIQUE on the triple with ON CONFLICT IGNORE.
+
+    @brief Insert the subset's xref edges that touch a changed file.
     @return None.
-    @version 2
+    @version 3
     """
+    changed_refids = _changed_refids(sub, changed, ctx)
     rows = sub.execute(
         """
         SELECT rs.refid, rd.refid, x.context
@@ -572,6 +638,9 @@ def _insert_xrefs(work: sqlite3.Connection, sub: sqlite3.Connection, report: Spl
         """
     ).fetchall()
     for raw_src, raw_dst, context in rows:
+        if str(raw_src) not in changed_refids and str(raw_dst) not in changed_refids:
+            report.xrefs_unresolved += 1
+            continue
         src = _refid_rowid(work, str(raw_src))
         dst = _refid_rowid(work, str(raw_dst))
         work.execute(
@@ -584,7 +653,8 @@ def _insert_xrefs(work: sqlite3.Connection, sub: sqlite3.Connection, report: Spl
 ##
 # @brief Rebuild the master doxygen database by re-reading only the changed files.
 # @param master_db The previous whole-tree doxygen database.
-# @param subset_db A doxygen database produced from the closure-expanded subset.
+# @param subset_db A doxygen database from the closure-expanded subset, or None for a
+#                  deletions-only splice where there is nothing to re-read.
 # @param changed Repo-relative paths whose content changed.
 # @param out The path to write the spliced database to.
 # @param repo_root Absolute repository root.
@@ -593,10 +663,11 @@ def _insert_xrefs(work: sqlite3.Connection, sub: sqlite3.Connection, report: Spl
 # @req REQ-DDB-INDEX-002
 def splice_doxygen(
     master_db: Path,
-    subset_db: Path,
+    subset_db: Path | None,
     changed: set[str],
     out: Path,
     repo_root: Path,
+    removed: set[str] | None = None,
 ) -> SpliceReport:
     """THE COPY HAPPENS FIRST, and that ordering is load-bearing. Every key in
     `doxygen_cache` names the SAME output path and each build OVERWRITES it, so a subset run
@@ -607,27 +678,43 @@ def splice_doxygen(
     Only the CHANGED files' rows are replaced. Closure files were re-read so their edges
     resolve; their own rows in the master are still correct and are left alone.
 
+    `removed` is DELETE-ONLY and exists so an ordinary deletion does not force a full
+    rebuild. A deleted file appears in no subset run — there is nothing to re-read — so
+    without this it would land in `skipped` and its rows would persist as a phantom symbol
+    the index still answers about. Branch switches make that common, not exotic.
+
     @brief Splice a subset doxygen run into the master database.
     @return The splice report.
-    @version 1
+    @version 2
     """
     report = SpliceReport()
-    if not master_db.exists() or not subset_db.exists():
-        report.skipped.append("master or subset database missing")
+    if not master_db.exists():
+        report.skipped.append("master database missing")
+        return report
+    if subset_db is not None and not subset_db.exists():
+        report.skipped.append("subset database missing")
         return report
 
     if out.resolve() != master_db.resolve():
         shutil.copy2(master_db, out)
 
     work = sqlite3.connect(out)
-    sub = sqlite3.connect(subset_db)
+    ## DELETIONS-ONLY takes no subset run. Feeding the master back in as its own subset
+    ## would re-insert the very rows the removal loop just deleted, so there is no
+    ## connection to open and the insert phase is skipped outright.
+    sub = sqlite3.connect(subset_db) if subset_db is not None else None
     try:
         work.execute("PRAGMA foreign_keys = OFF")
         ctx = {
             "repo_root": repo_root,
             "work_paths": _file_rowids(work, repo_root),
-            "sub_paths": _file_rowids(sub, repo_root),
+            "sub_paths": _file_rowids(sub, repo_root) if sub is not None else {},
         }
+        for rel in sorted(removed or ()):
+            gone = ctx["work_paths"].get(rel)
+            if gone is not None:
+                _delete_file_rows(work, gone, report)
+                report.files_removed += 1
         for rel in sorted(changed):
             if rel not in ctx["sub_paths"]:
                 ## The subset run did not produce this file. Refusing to delete its master
@@ -641,11 +728,13 @@ def splice_doxygen(
             _insert_compounds(work, sub, rel, ctx, report)
             _insert_members(work, sub, rel, ctx, report)
             report.files_replaced += 1
-        _insert_relations(work, sub, report)
-        _insert_xrefs(work, sub, report)
+        if sub is not None:
+            _insert_relations(work, sub, changed, ctx, report)
+            _insert_xrefs(work, sub, changed, ctx, report)
         work.commit()
     finally:
-        sub.close()
+        if sub is not None:
+            sub.close()
         work.close()
 
     if report.skipped:

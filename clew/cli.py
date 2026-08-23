@@ -64,6 +64,7 @@ import argparse
 import contextlib
 import logging
 import os
+import shutil
 import sqlite3
 import sys
 import time
@@ -131,6 +132,7 @@ from .errors import DoxygenUnavailableError, RustdocUnavailableError
 from .event_edges import import_event_edges
 from .filedocs import ingest_file_docs
 from .harvest_plan import build_harvest_plan, warm_harvest_plan
+from .doxygen_splice import splice_doxygen, xref_closure
 from .indexcache import IndexCache
 from .datamodel import import_data_model_keys
 from .kconfig import import_kconfig
@@ -182,6 +184,7 @@ from .tiers import (
     resolve_layered,
 )
 from .treescan import (
+    ScanSummary,
     doxygen_input_roots,
     enumerate_tree,
     manifest_key,
@@ -880,6 +883,132 @@ def _run_doxygen_from_args(doxyfile: Path, args: argparse.Namespace, predefined:
     )
 
 
+## How many consecutive splices are allowed before a whole-tree build is forced. A spliced
+## database is not bit-identical to a rebuild — measured on this repository, one stale call
+## edge in 5168 with nothing missing — and nothing in a splice bounds the accumulation of
+## that error across many refreshes. 20 keeps the worst case at roughly twenty stale edges
+## while still amortising one full build over twenty cheap ones.
+SPLICE_GENERATION_LIMIT = 20
+
+
+## @brief Decide whether an incremental doxygen run is possible, and what to feed it.
+## @param cache The index cache holding the previous output and this run's scan.
+## @param summary This run's tree classification.
+## @param repo_root Absolute repository root.
+## @param config_sha This build's configuration hash; only matching output may be spliced.
+## @return (previous output, changed set, removed set, subset list), or None to run in full.
+## @version 1
+## @req REQ-DDB-INDEX-002
+def _incremental_plan(
+    cache: IndexCache,
+    summary: ScanSummary,
+    repo_root: Path,
+    config_sha: str,
+) -> tuple[Path, set[str], set[str], list[str]] | None:
+    """SEPARATED FROM THE ACTION so the decision is readable on its own and so the guard
+    conditions cannot be lost among the file shuffling that follows.
+
+    Declines in three cases, each for a different reason:
+
+      - nothing changed AND nothing was removed: there is no work, and the caller's
+        `doxygen_get` hit should already have covered it;
+      - no verified previous output exists: there is nothing to splice INTO, so a full run is
+        not a fallback but the only correct answer;
+      - the closure expanded to the whole tree: a subset run would re-read everything anyway,
+        so paying the splice's complexity buys nothing. No arbitrary threshold is involved —
+        doxygen's cost is near-linear in input size, so the break-even IS the tree.
+
+    @brief Plan an incremental doxygen run.
+    @return The plan, or None.
+    @version 1
+    """
+    changed = set(summary.modified) | set(summary.added)
+    removed = set(summary.removed)
+    if cache.splice_generation() >= SPLICE_GENERATION_LIMIT:
+        logger.info(
+            "doxygen: %d consecutive incremental splices — running in full to reset "
+            "accumulated drift",
+            cache.splice_generation(),
+        )
+        return None
+    previous = cache.doxygen_any(config_sha) if (changed or removed) else None
+    if previous is None:
+        return None
+    subset = sorted(xref_closure(previous, changed, repo_root)) if changed else []
+    total = len(summary.unchanged) + len(changed)
+    viable = subset and len(subset) < total if changed else bool(removed)
+    return (previous, changed, removed, subset) if viable else None
+
+
+## @brief Satisfy the doxygen stage by re-reading only the changed files and splicing.
+## @param doxyfile The Doxyfile driving the run.
+## @param args Parsed CLI arguments.
+## @param predefined Pre-rendered PREDEFINED text for the declared preprocessor config.
+## @param cache The index cache.
+## @param summary This run's tree classification.
+## @param repo_root Absolute repository root.
+## @param config_sha This build's configuration hash.
+## @return The spliced database, or None when a full run is required.
+## @version 1
+## @req REQ-DDB-INDEX-002
+def _incremental_doxygen(
+    doxyfile: Path,
+    args: argparse.Namespace,
+    predefined: str,
+    cache: IndexCache,
+    summary: ScanSummary,
+    repo_root: Path,
+    config_sha: str,
+) -> Path | None:
+    """THE COPY BEFORE THE SUBSET RUN IS THE WHOLE TRICK. Every `doxygen_cache` key names the
+    SAME output path and each build OVERWRITES it, so the subset run destroys the database
+    being spliced from. `previous` is copied aside FIRST; skip that and the splice reads its
+    own subset as its master and quietly produces a database holding only the changed files.
+
+    Falls back by returning None rather than raising. An incremental path that fails should
+    cost a full rebuild, never a failed build — the feature exists to make refreshes cheap,
+    and a cheap refresh that sometimes breaks the index would be worse than an expensive one.
+
+    @brief Run doxygen incrementally and splice the result.
+    @return The spliced database, or None.
+    @version 1
+    """
+    plan = _incremental_plan(cache, summary, repo_root, config_sha)
+    if plan is None:
+        return None
+    previous, changed, removed, subset = plan
+    keep = previous.with_name(previous.name + ".prev")
+    staged: Path | None = None
+    try:
+        shutil.copy2(previous, keep)
+        if subset:
+            produced = run_doxygen(
+                doxyfile,
+                doxyfile.parent,
+                extra_input=[str(repo_root / rel) for rel in subset],
+                replace_input=True,
+                output_dir=_doxygen_out_dir(args),
+                predefined=predefined,
+            )
+            staged = produced.with_name(produced.name + ".subset")
+            shutil.copy2(produced, staged)
+        report = splice_doxygen(keep, staged, changed, previous, repo_root, removed=removed)
+    except (OSError, sqlite3.Error) as exc:
+        logger.warning("doxygen: incremental splice failed (%s) — running in full", exc)
+        return None
+    finally:
+        for scratch in (keep, staged):
+            if scratch is not None:
+                scratch.unlink(missing_ok=True)
+    logger.info(
+        "doxygen: incremental — re-read %d of %d file(s); %s",
+        len(subset),
+        len(summary.unchanged) + len(changed),
+        report.describe(),
+    )
+    return previous
+
+
 ## @brief Reachability entry patterns, resolved through the five-tier rule.
 ## @param args Parsed CLI arguments (uses --entry-patterns).
 ## @param decl The repo's parsed `.clew.yaml`.
@@ -1318,7 +1447,7 @@ def _is_rust_only_repo(repo_root: Path) -> bool:
 ## @param preprocessor The resolved preprocessor configuration this index represents.
 ## @param timer Stage timer, marked once the tree scan and its hash are complete.
 ## @return Path to the doxygen SQLite output (cached or freshly generated).
-## @version 7
+## @version 8
 ## @dg_internal
 def _doxygen_stage(
     doxyfile: Path,
@@ -1349,7 +1478,7 @@ def _doxygen_stage(
     caller's `doxygen` segment covers the whole stage — which is what happened.
 
     @brief Doxygen stage with tree-hash-based skip.
-    @version 5
+    @version 6
     """
     predefined = doxyfile_lines(preprocessor or PreprocessorConfig())
     if cache is None:
@@ -1362,7 +1491,7 @@ def _doxygen_stage(
         args.extra_exclude,
         replace_input,
     )
-    cache.scan(enumerate_tree(roots, excludes, repo_root))
+    summary = cache.scan(enumerate_tree(roots, excludes, repo_root))
     content = doxyfile_content_for(
         doxyfile,
         args.extra_input,
@@ -1371,14 +1500,25 @@ def _doxygen_stage(
         predefined,
     )
     tree_sha = cache.tree_sha(content, [])
+    ## The CONFIGURATION key, which unlike tree_sha does not move when a file is edited.
+    ## Gating the splice on it is what stops a scope change from splicing into output built
+    ## under the old scope (#399's aliasing, re-shipped once already).
+    config_sha = cache.config_sha(content, [])
     if timer is not None:
         timer.mark("index_cache_scan")
     cached_db = cache.doxygen_get(tree_sha)
     if cached_db is not None:
         logger.info("doxygen: tree unchanged — reusing cached output %s", cached_db)
         return cached_db
-    generated = _run_doxygen_from_args(doxyfile, args, predefined)
-    cache.doxygen_put(tree_sha, generated)
+    spliced = _incremental_doxygen(
+        doxyfile, args, predefined, cache, summary, repo_root, config_sha
+    )
+    generated = spliced or _run_doxygen_from_args(doxyfile, args, predefined)
+    ## A full run makes the index exact again, so it CLEARS the counter; a splice adds one
+    ## generation of bounded drift. Recorded here rather than inside the splice because
+    ## this is the only place that knows which of the two actually ran.
+    cache.record_splice(reset=spliced is None)
+    cache.doxygen_put(tree_sha, generated, config_sha)
     return generated
 
 
