@@ -3373,3 +3373,59 @@ async def test_building_a_target_does_register_it(tmp_path: Path) -> None:
         "a registered target must be listed — this is what `targets` and `cull` operate on"
     )
     assert Path(target.db_path).parent.is_dir(), "a build needs its directory to exist"
+
+
+## @brief Everything load-bearing survives the client's 2,048-character cut.
+## @return None.
+## @version 1
+def test_served_text_survives_the_client_truncation_cap() -> None:
+    """MEASURED, NOT ASSUMED. A client caps each served text at 2,048 characters and discards the
+    rest silently — verified against one session's own delivered context, where `dossier`'s
+    3,079-char description arrived cut at exactly 2,048 and `search`'s 3,064 cut at exactly the
+    same offset. Per tool, not a shared budget: dropping a tool buys nothing.
+
+    NOTHING REPORTED THE LOSS. The server sent the bytes, got no error, and `server.py`'s own
+    comment budgets the cost in bytes SENT. So `INSTRUCTIONS` shipped with every routing rule past
+    the cut while the one line that did arrive said the index is not a substitute for reading
+    source — and a session spent twenty turns on grep asserting exactly that.
+
+    Document order is therefore load-bearing, and this is the only thing that keeps it so.
+
+    @brief Routing survives truncation.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server.descriptions import load_descriptions
+    from clew.mcp_server.server import INSTRUCTIONS
+
+    cap = 2048
+
+    ## The sentences without which a reader cannot route, and the reason each one is here.
+    required = {
+        "INSTRUCTIONS": (
+            INSTRUCTIONS,
+            [
+                ("START AT `dossier`", "the routing rule itself"),
+                ("VERBATIM SOURCE", "the fact whose absence sent a session to grep for 20 turns"),
+                ("max_body_lines", "how to read past a truncated body"),
+                ("USE `search`", "what to do without a name"),
+            ],
+        ),
+    }
+    for name, (text, phrases) in required.items():
+        for phrase, why in phrases:
+            at = text.find(phrase)
+            assert at >= 0, f"{name} no longer contains {phrase!r} at all — {why}"
+            assert at < cap, (
+                f"{name}: {phrase!r} sits at {at}, past the {cap}-char cap, so it never reaches "
+                f"the model — {why}"
+            )
+
+    ## Every tool description must say what it returns before the cut, or a model choosing between
+    ## it and grep is choosing on the strength of a sentence it never saw.
+    for tool, text in load_descriptions().items():
+        head = text[:cap]
+        assert head.strip(), f"{tool} description is empty"
+        assert "body" in head or "verbatim" in head.lower() or "corpus" in head, (
+            f"{tool}: nothing in the delivered first {cap} chars says what it returns"
+        )
