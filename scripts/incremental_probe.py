@@ -279,9 +279,99 @@ def cmd_outbound(args: argparse.Namespace) -> int:
 
 
 ##
+# @brief Check whether doxygen's refid strings survive a change of input set.
+# @param args Parsed arguments carrying the master database and Doxyfile.
+# @return Process exit status.
+# @version 1
+def cmd_refids(args: argparse.Namespace) -> int:
+    """THE ASSUMPTION THE WHOLE SPLICE RESTS ON, so it is measured and not reasoned about.
+
+    `memberdef.rowid` REFERENCES `refid.rowid`, and `xrefs.src_rowid`/`dst_rowid` reference
+    `refid` as well. So if doxygen's `refid.refid` TEXT is derived from the ENTITY, two
+    databases built from the same source agree on it, and a splice can join on that string
+    and never guess a rowid. If instead it carries any dependence on the input SET — a
+    counter, an ordering, a per-run disambiguator — then the same function gets different
+    refids in a subset run, every join silently misses, and the splice writes a graph whose
+    edges all point at nothing while every row count looks sane.
+
+    Compares the refid recorded for each of a changed file's members in the master index
+    against the refid a subset run assigns the same member.
+
+    @brief Verify refid stability across input sets.
+    @return 0 when stable, 1 when not.
+    @version 1
+    """
+    target = args.file
+    conn = sqlite3.connect(args.db)
+    try:
+        master = dict(
+            conn.execute(
+                """
+                SELECT md.name, r.refid
+                FROM memberdef md
+                JOIN path p ON p.rowid = md.file_id
+                JOIN refid r ON r.rowid = md.rowid
+                WHERE p.name = ?
+                """,
+                (target,),
+            ).fetchall()
+        )
+    except sqlite3.OperationalError as exc:
+        print(f"schema mismatch: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        conn.close()
+
+    if not master:
+        print(f"no memberdefs for {target} in the master index", file=sys.stderr)
+        return 1
+
+    with tempfile.TemporaryDirectory() as tmp:
+        work = Path(tmp)
+        db = run_doxygen(
+            Path(args.doxyfile),
+            work,
+            extra_input=[str(Path(args.repo) / target)],
+            replace_input=True,
+            output_dir=work,
+        )
+        if not db.exists():
+            print("subset run produced no database", file=sys.stderr)
+            return 1
+        sub = sqlite3.connect(db)
+        try:
+            subset = dict(
+                sub.execute(
+                    """
+                    SELECT md.name, r.refid
+                    FROM memberdef md
+                    JOIN refid r ON r.rowid = md.rowid
+                    """
+                ).fetchall()
+            )
+        finally:
+            sub.close()
+
+    shared = sorted(set(master) & set(subset))
+    if not shared:
+        print("no member names in common — cannot compare", file=sys.stderr)
+        return 1
+    agree = [n for n in shared if master[n] == subset[n]]
+    print(f"file:              {target}")
+    print(f"master members:    {len(master)}")
+    print(f"subset members:    {len(subset)}")
+    print(f"comparable:        {len(shared)}")
+    print(f"refid IDENTICAL:   {len(agree)} / {len(shared)}")
+    for name in shared[:5]:
+        flag = "==" if master[name] == subset[name] else "!="
+        print(f"  {flag} {name}\n       master {master[name]}\n       subset {subset[name]}")
+    return 0 if len(agree) == len(shared) else 1
+
+
+##
 # @brief Parse arguments and dispatch a subcommand.
 # @return Process exit status.
-# @version 2
+# @version 3
 def main() -> int:
     """@brief Entry point.
     @return Exit status.
@@ -295,12 +385,19 @@ def main() -> int:
     parser.add_argument("--db", default=str(default_db))
     parser.add_argument("--doxyfile", default=str(default_doxyfile))
     parser.add_argument("--repo", default=str(REPO))
+    parser.add_argument("--file", default="clew/mcp_server/tools_query.py")
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("subset", help="doxygen cost versus input size")
     sub.add_parser("closure", help="one-hop xref closure per file")
     sub.add_parser("outbound", help="outbound xref loss under a subset run")
+    sub.add_parser("refids", help="refid stability across input sets")
     args = parser.parse_args()
-    return {"subset": cmd_subset, "closure": cmd_closure, "outbound": cmd_outbound}[args.cmd](args)
+    return {
+        "subset": cmd_subset,
+        "closure": cmd_closure,
+        "outbound": cmd_outbound,
+        "refids": cmd_refids,
+    }[args.cmd](args)
 
 
 if __name__ == "__main__":
