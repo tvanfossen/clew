@@ -12,7 +12,7 @@ schema: 1
 target: Mbed-TLS/mbedtls
 commit: 068ff080b369adfac81509f9b57b2afabaf82dc5
 ref: mbedtls-3.6.7
-version: 3.0.1
+version: 3.1.0
 
 ground_truth: |
   mbedtls source at the commit above, read directly. Every count and line number was taken from
@@ -69,13 +69,29 @@ questions:
           - ["include/mbedtls/mbedtls_config.h", 3740, 3787]
 
       - text: >-
-          states that both threading macros are commented out in the shipped mbedtls_config.h,
-          so a default build defines neither
+          states that the shipped mbedtls_config.h leaves BOTH threading macros undefined, so a
+          default build defines neither
         type: conclusion
         weight: 3
         evidence: |
           Line 2196 is `//#define MBEDTLS_THREADING_PTHREAD` and line 3787 is
           `//#define MBEDTLS_THREADING_C`. Both commented, verified at the pinned commit.
+
+          RESTATED AROUND THE FACT, after a three-pass measurement made this the ONLY unstable
+          mark in the grid — 15.0pt of swing on two cells, from two different arms, while every
+          other cell reproduced to the decimal. Five of its six passes were 2:1 splits, so the
+          judge was not flipping a coin: it sat on this mark's boundary.
+
+          The cause is visible in the answers. One writes "`MBEDTLS_THREADING_C` is `#undef`'d
+          (:3787), and so are both of its backends (:2196)" — the fact under test, with the right
+          lines — but the mark previously demanded the phrase "commented out". A judge grading
+          substance called that a HIT; a judge grading the mechanism word called it a MISS, and
+          both readings were defensible.
+
+          The fact is that a default build defines neither macro. WHETHER the config achieves
+          that by commenting the line or by undefining it is incidental, and an answer naming the
+          exact lines is if anything more precise than the mark was. The mechanism stays here as
+          ground truth; it is no longer a phrase the answer must produce.
         refs:
           - ["include/mbedtls/mbedtls_config.h", 2196]
           - ["include/mbedtls/mbedtls_config.h", 3787]
