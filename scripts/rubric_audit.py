@@ -13,6 +13,7 @@ weight is not four measurements of one thing.
 from __future__ import annotations
 
 import sqlite3
+import subprocess
 import sys
 from pathlib import Path
 
@@ -250,9 +251,18 @@ def _index_db(name: str) -> Path | None:
 ## @param name Target directory name.
 ## @return The checkout path, or None.
 ## @version 1
-def _checkout(name: str) -> Path | None:
-    """@brief Find a provisioned checkout for a target.
-    @return Path or None.
+def _checkout(name: str, commit: str) -> Path | None:
+    """AT THE PIN, OR NOT AT ALL. This took the newest directory that merely EXISTED, and a
+    FAILED provision leaves an empty `repo/` behind — so the audit selected a clone that had
+    fetched nothing and reported all 46 of one target's refs as "absent at the pin".
+
+    Confidently wrong, and wrong in the direction that wastes the most time: every mark named,
+    every one of them fine. The audit's whole claim is that a cited file exists AT THE PINNED
+    COMMIT, so it has to verify the checkout is at that commit rather than assume a directory
+    named `repo` is one.
+
+    @brief Find a checkout that is actually at the pin.
+    @return Path, or None when no run holds one.
     @version 1
     """
     runs = ROOT / "acceptance" / "runs"
@@ -260,7 +270,19 @@ def _checkout(name: str) -> Path | None:
         return None
     for run in sorted(runs.iterdir(), reverse=True):
         candidate = run / name / "repo"
-        if candidate.is_dir():
+        if not (candidate / ".git").exists():
+            continue
+        try:
+            head = subprocess.run(
+                ["git", "-C", str(candidate), "rev-parse", "HEAD"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            ).stdout.strip()
+        except (OSError, subprocess.TimeoutExpired):
+            continue
+        if head == commit:
             return candidate
     return None
 
@@ -285,9 +307,11 @@ def main() -> int:
             total += sum(_cost(m)[1] for m in q.marks)
         notes += _no_set_mark(rubric, name)
         notes += _unreachable_refs(rubric, _index_db(name), name)
-        checkout = _checkout(name)
+        checkout = _checkout(name, rubric.commit)
         if checkout is None:
-            notes.append(f"{name}: no checkout found, ref existence unchecked")
+            notes.append(
+                f"{name}: no checkout AT THE PIN {rubric.commit[:10]}, ref existence unchecked"
+            )
         else:
             complaints += _missing_refs(rubric, checkout, name)
         sizes[name] = total

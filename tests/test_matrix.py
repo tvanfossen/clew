@@ -240,3 +240,54 @@ def test_without_provision_only_the_phases_run(
     monkeypatch.setattr(matrix, "run_phase", lambda phase, argv: ran.append(phase) or True)
     assert matrix.drive(_args(out=tmp_path / "grid", targets=targets)) == 0
     assert ran == ["generate", "grade", "report"]
+
+
+## @brief A probe that could not run is not an unreachable index.
+## @return None.
+## @version 1
+def test_probe_distinguishes_a_blocked_probe_from_a_missing_index(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """MEASURED ON THE WEEKEND GRID'S OWN PRE-FLIGHT. Two targets were refused with "the index
+    arm cannot reach the index", and the reply the message quoted was "You've hit your session
+    limit". The index was fine; the PROBE could not run.
+
+    Two failures needing opposite responses. An unreachable index means fix the config before
+    spending anything. An exhausted session means wait and re-run the identical command. Reported
+    as the same thing, an operator would go hunting a config defect that does not exist — and
+    this project's whole discipline is that a wrong diagnosis costs more than a missing one.
+
+    @brief A blocked probe says so.
+    @return None.
+    @version 1
+    """
+    import json as _json
+    import subprocess as sp
+
+    from acceptance import provision as prov
+
+    config = tmp_path / "mcp.json"
+    config.write_text("{}", encoding="utf-8")
+
+    def limited(argv, **_kw):
+        payload = {"result": "You've hit your session limit · resets 12:40am (America/Detroit)"}
+        return sp.CompletedProcess(argv, 0, _json.dumps(payload), "")
+
+    monkeypatch.setattr(sp, "run", limited)
+    with pytest.raises(prov.ProvisionError) as caught:
+        prov.check_index_tools_reachable(config, tmp_path)
+    message = str(caught.value)
+    assert "could not run" in message or "limit" in message.lower(), message
+    assert "cannot reach the index" not in message, (
+        f"a rate-limited probe must not be reported as an unreachable index: {message}"
+    )
+
+    ## THE CONTROL: a genuine NOTOOL reply must STILL be reported as an unreachable index, or
+    ## this fix would have silenced the one check that catches an index arm with no index.
+    def notool(argv, **_kw):
+        return sp.CompletedProcess(argv, 0, _json.dumps({"result": "NOTOOL"}), "")
+
+    monkeypatch.setattr(sp, "run", notool)
+    with pytest.raises(prov.ProvisionError) as caught:
+        prov.check_index_tools_reachable(config, tmp_path)
+    assert "cannot reach the index" in str(caught.value)

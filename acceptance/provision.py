@@ -297,6 +297,21 @@ def check_index_tools_reachable(config: Path, repo: Path) -> None:
         reply = str(json.loads(done.stdout).get("result") or "")
     except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
         raise ProvisionError(f"index-tool probe could not run: {exc}") from exc
+    ## A PROBE THAT COULD NOT RUN IS NOT AN UNREACHABLE INDEX, and reporting them alike sends an
+    ## operator hunting a config defect that does not exist. Measured on this grid's own
+    ## pre-flight: two targets were refused with "the index arm cannot reach the index" and the
+    ## quoted reply was "You've hit your session limit". The index was fine.
+    ##
+    ## The two failures need OPPOSITE responses — fix the config, versus wait and re-run the
+    ## identical command — so they get different refusals.
+    blocked = ("session limit", "rate limit", "usage limit", "quota", "overloaded")
+    if any(phrase in reply.lower() for phrase in blocked):
+        raise ProvisionError(
+            f"index-tool probe could not run — the model refused before reaching the tools:\n"
+            f"{reply[:300]}\n"
+            f"This says NOTHING about {config}. Re-run the identical command once capacity "
+            f"returns; nothing has been generated and nothing needs fixing."
+        )
     if "NOTOOL" in reply.upper() or "FOUND" not in reply.upper():
         raise ProvisionError(
             f"the index arm cannot reach the index through {config}. The probe replied:\n"
