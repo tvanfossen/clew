@@ -169,31 +169,107 @@ def cmd_grade(args) -> int:
         qid, arm = parsed[0], parsed[2]
         result = score_question(questions[qid], path.read_text("utf-8"), rubric, arm)
         got, unmarked = result.score()
-        (args.answers / f"{path.stem}.grade.json").write_text(
-            json.dumps(
-                {
-                    "cell": path.stem,
-                    "arm": arm,
-                    "rubric_version": rubric.version,
-                    "rubric_digest": rubric.digest,
-                    "judge_model": rubric.judge_model,
-                    "score": got,
-                    "unmarked_pct": unmarked,
-                    ## DECISIONS THE JUDGE WAS NOT SURE OF. Not a drift predictor: measured,
-                    ## the cell that moved furthest on a regrade had none.
-                    "split_decisions": result.split_decisions(),
-                    "decisions": [asdict(d) for d in result.decisions],
-                },
-                indent=2,
-            ),
-            "utf-8",
-        )
+        record = {
+            "cell": path.stem,
+            "arm": arm,
+            "rubric_version": rubric.version,
+            "rubric_digest": rubric.digest,
+            "judge_model": rubric.judge_model,
+            "score": got,
+            "unmarked_pct": unmarked,
+            ## DECISIONS THE JUDGE WAS NOT SURE OF. Not a drift predictor: measured,
+            ## the cell that moved furthest on a regrade had none.
+            "split_decisions": result.split_decisions(),
+            "decisions": [asdict(d) for d in result.decisions],
+        }
+        (args.answers / f"{path.stem}.grade.json").write_text(json.dumps(record, indent=2), "utf-8")
+        ## APPENDED, BECAUSE GRADING USED TO EAT ITS OWN EVIDENCE. Regrading five cells against
+        ## an unchanged rubric moved one by 12 points, and WHICH marks flipped is unrecoverable:
+        ## the second pass overwrote the first. A variance figure needs both passes, and the
+        ## decisions are the half that answers "what changed" rather than "how much".
+        ##
+        ## The sidecar above still holds the latest pass, so no consumer changes. Each line
+        ## carries its own rubric digest, or a rubric edit between passes would be indexed as
+        ## judge noise.
+        with (args.answers / f"{path.stem}.grades.jsonl").open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(record) + "\n")
         print(f"{path.stem:<34} score {got:6.1%}  unmarked {unmarked:5.1%}")
         graded += 1
     if not graded:
         print("no answers found — nothing was graded", file=sys.stderr)
         return 1
     return 0
+
+
+## @brief Report the spread across grading passes, and which marks moved.
+## @param answers Directory holding the frozen artifacts.
+## @return None.
+## @version 1
+def _print_variance(answers: Path) -> None:
+    """WHAT A REGRADE IS FOR. Grading five cells twice against an unchanged rubric moved one by
+    12 points, and nothing could say which marks flipped because the second pass had overwritten
+    the first. Passes are retained now; this reads them.
+
+    A SPREAD ALONE IS NOT ENOUGH. "The cell moved 12 points" is the question and "these two marks
+    flipped" is the answer, so the marks are named. A mark that held steady across every pass is
+    omitted — listing it is noise in the one table built to isolate movement.
+
+    ONLY PASSES SHARING A RUBRIC DIGEST ARE COMPARED, and the newest digest wins. A rubric edit
+    between passes is a different question being answered; indexing that as variance would report
+    a deliberate correction as instability, which is the mistake in the opposite direction.
+
+    NOTHING IS PRINTED FOR A SINGLE PASS. A spread over one pass is zero, and printing zero
+    asserts a stable grader on the strength of never having checked.
+
+    @brief Cross-pass variance.
+    @return None.
+    @version 1
+    """
+    rows: list[tuple[str, list[dict]]] = []
+    for path in sorted(answers.glob("*.grades.jsonl")):
+        passes = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            try:
+                passes.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+        if len(passes) < 2:
+            continue
+        digest = passes[-1].get("rubric_digest")
+        comparable = [p for p in passes if p.get("rubric_digest") == digest]
+        if len(comparable) >= 2:
+            rows.append((path.name.removesuffix(".grades.jsonl"), comparable))
+    if not rows:
+        return
+
+    head = f"{'cell':<34} {'passes':>7} {'low':>8} {'high':>8} {'spread':>9}  marks that flipped"
+    print(f"\n{head}")
+    print("-" * len(head))
+    for cell, passes in rows:
+        scores = [float(p.get("score", 0.0)) for p in passes]
+        low, high = min(scores), max(scores)
+        moved = sorted(
+            {
+                d["mark"]
+                for p in passes
+                for d in p.get("decisions", [])
+                if any(
+                    q["mark"] == d["mark"] and q.get("hit") != d.get("hit")
+                    for other in passes
+                    for q in other.get("decisions", [])
+                )
+            }
+        )
+        names = ", ".join(m[:44] for m in moved) if moved else "none"
+        print(
+            f"{cell:<34} {len(passes):>7} {low:>7.1%} {high:>7.1%} "
+            f"{(high - low) * 100:>8.1f}pt  {names}"
+        )
+    print(
+        "SPREAD is between grading passes of the SAME answers against the SAME rubric — it is the "
+        "grader's\n        own noise, not a difference between arms. Passes graded against a "
+        "different rubric digest are excluded."
+    )
 
 
 ## @brief Print the per-cell table.
@@ -292,6 +368,7 @@ def cmd_report(args) -> int:
 
     _print_cells(rows)
     _paired_summary(rows, files_cited=_files_cited(args.rubric))
+    _print_variance(args.answers)
     print("\nOUT TOK and CACHE TOK are reported apart, never summed. Measured on one cell:")
     print(
         "534,192 cached against 7,292 output — a blended figure describes the prefix, not the work."

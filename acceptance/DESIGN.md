@@ -270,6 +270,18 @@ The single phases remain available (`plan`, `generate`, `grade`, `report`) for r
 finished run, which is cheap and re-runnable in a way generation is not. `report` takes an
 optional `--rubric`; with it, the separation table carries files-cited per question.
 
+**Grading is additive.** `<stem>.grade.json` holds the latest pass and `<stem>.grades.jsonl`
+holds every pass, appended, with each line carrying its own rubric digest. Regrading used to
+overwrite: one measured regrade moved a cell by 12.1 points and which marks flipped was
+unrecoverable, because the second pass had eaten the first. With two or more passes at the
+current digest, `report` prints the spread and NAMES the marks that moved.
+
+**The noise floor is unmeasured**, and one regrade of five cells is not a measurement of it —
+that pass spread from −12.1pt to +10.0pt, which is wide enough that a per-question delta inside
+it says nothing. Two things are worth knowing before reading any grid: run `grade` more than
+once on the same answers to get a floor, and treat a separation smaller than that floor as
+unresolved rather than as a result.
+
 ## Repeatability requirements
 
 Four things must be pinned, and only the first currently is:

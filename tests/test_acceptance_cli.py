@@ -624,3 +624,159 @@ def test_audit_ref_check_fails_on_a_missing_file(tmp_path: Path) -> None:
     ## worse than none, because the noise trains a reader to skip it.
     clean = dataclasses.replace(stub, questions=(dataclasses.replace(question, marks=marks[:1]),))
     assert audit._missing_refs(clean, checkout, "fixture") == []
+
+
+## @brief Every grading pass is retained, not just the latest.
+## @return None.
+## @version 1
+def test_grading_appends_a_pass_history(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """MEASURED, AND THE MEASUREMENT ATE ITS OWN EVIDENCE. Regrading five cells against an
+    unchanged rubric moved one by -12.1 points, and which marks flipped is now unrecoverable —
+    the second pass overwrote the first. A variance figure needs BOTH passes; grading kept one.
+
+    `<stem>.grade.json` still holds the latest pass, so every existing consumer is unchanged.
+    The history rides beside it as one JSON object per line, appended, so a regrade adds
+    evidence instead of replacing it and the cost is a few kilobytes per cell.
+
+    DECISIONS ARE KEPT IN THE HISTORY, not just the score. "The cell moved 12 points" is the
+    question; "these two marks flipped" is the answer, and only the decisions carry it.
+
+    @brief Grading appends rather than replacing.
+    @return None.
+    @version 1
+    """
+    answers = tmp_path / "answers"
+    answers.mkdir()
+    (answers / f"Q1_sonnet_{_A}_r1.md").write_text("an answer", encoding="utf-8")
+
+    scores = iter([True, False])
+
+    def scored(question, answer, rubric, arm):
+        return score.QuestionResult(
+            id=question.id,
+            decisions=[
+                score.Decision("m", "conclusion", 2, next(scores), agreement=1.0, samples=3)
+            ],
+        )
+
+    monkeypatch.setattr(cli, "score_question", scored)
+    args = argparse.Namespace(rubric=MBEDTLS, answers=answers)
+    assert cli.cmd_grade(args) == 0
+    assert cli.cmd_grade(args) == 0
+
+    latest = json.loads((answers / f"Q1_sonnet_{_A}_r1.grade.json").read_text())
+    assert latest["score"] == 0.0, "the sidecar holds the LATEST pass"
+
+    history = (answers / f"Q1_sonnet_{_A}_r1.grades.jsonl").read_text().splitlines()
+    assert len(history) == 2, f"both passes must be retained, got {len(history)}"
+    passes = [json.loads(line) for line in history]
+    assert [p["score"] for p in passes] == [1.0, 0.0], "in the order they were graded"
+    assert passes[0]["decisions"][0]["hit"] is True, "a pass keeps its DECISIONS, not just a score"
+    assert passes[1]["decisions"][0]["hit"] is False
+    assert all(p["rubric_digest"] == latest["rubric_digest"] for p in passes), (
+        "each pass records the rubric it graded against, or a drift cannot be told from noise"
+    )
+
+
+## @brief With more than one grading pass, the report shows the spread and what flipped.
+## @return None.
+## @version 1
+def test_report_shows_grading_variance_and_the_marks_that_flipped(
+    tmp_path: Path, capsys: pytest.CaptureFixture
+) -> None:
+    """ "THE CELL MOVED 12 POINTS" IS THE QUESTION; "THESE MARKS FLIPPED" IS THE ANSWER. Retaining
+    passes is worth nothing if nothing reads them, and a spread alone still leaves a reader
+    unable to tell judge noise from a rubric that changed underneath.
+
+    ONLY PASSES GRADED AGAINST THE SAME RUBRIC ARE COMPARED. A digest change between passes is a
+    different question being answered, and indexing that as variance would report an intentional
+    rubric edit as instability.
+
+    @brief Variance and flips are reported.
+    @return None.
+    @version 1
+    """
+    answers = tmp_path / "answers"
+    answers.mkdir()
+
+    def a_pass(score_value, steady_hit, moved_hit, digest="abc123"):
+        return {
+            "cell": "Q1_sonnet_baseline_r1",
+            "arm": "baseline",
+            "rubric_digest": digest,
+            "score": score_value,
+            "unmarked_pct": 0.0,
+            "split_decisions": 0,
+            "decisions": [
+                {
+                    "mark": "steady mark",
+                    "hit": steady_hit,
+                    "weight": 3,
+                    "agreement": 1.0,
+                    "samples": 3,
+                    "kind": "conclusion",
+                    "detail": "",
+                    "errors": 0,
+                },
+                {
+                    "mark": "the one that moved",
+                    "hit": moved_hit,
+                    "weight": 2,
+                    "agreement": 1.0,
+                    "samples": 3,
+                    "kind": "conclusion",
+                    "detail": "",
+                    "errors": 0,
+                },
+            ],
+        }
+
+    ## THE SUPERSEDED PASS COMES FIRST, which is the real shape: a rubric is corrected and
+    ## regraded, so the stale digest is the OLD one. The newest digest decides what is
+    ## comparable, so this pass is excluded and the two after it are the measurement.
+    lines = [
+        a_pass(0.2, False, False, digest="SUPERSEDED"),
+        a_pass(1.0, True, True),
+        a_pass(0.6, True, False),
+    ]
+    (answers / "Q1_sonnet_baseline_r1.grades.jsonl").write_text(
+        "".join(json.dumps(x) + "\n" for x in lines), encoding="utf-8"
+    )
+
+    cli._print_variance(answers)
+    out = capsys.readouterr().out
+    assert "Q1_sonnet_baseline_r1" in out
+    assert "40.0" in out, "the spread between the two comparable passes must be shown"
+    assert "the one that moved" in out, "the mark that flipped must be NAMED"
+    assert "steady mark" not in out, "a mark that never moved is noise in this table"
+    ## ASSERT ON THE COLUMN, not on a phrase. The count says how much evidence the spread rests
+    ## on — a 40pt spread over two passes and over twenty are different claims — and reading the
+    ## row proves the number is there rather than that some wording happens to appear.
+    row = next(x for x in out.splitlines() if x.startswith("Q1_sonnet_baseline_r1"))
+    assert row.split()[1] == "2", f"the passes column must show 2, got: {row}"
+
+
+## @brief A single grading pass produces no variance block at all.
+## @return None.
+## @version 1
+def test_report_shows_no_variance_block_for_one_pass(
+    tmp_path: Path, capsys: pytest.CaptureFixture
+) -> None:
+    """A spread computed from one pass is zero, and printing zero would assert the grader is
+    perfectly stable on the strength of never having checked.
+
+    @brief One pass yields no variance claim.
+    @return None.
+    @version 1
+    """
+    answers = tmp_path / "answers"
+    answers.mkdir()
+    (answers / "Q1_sonnet_baseline_r1.grades.jsonl").write_text(
+        json.dumps(
+            {"cell": "Q1_sonnet_baseline_r1", "rubric_digest": "d", "score": 0.5, "decisions": []}
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    cli._print_variance(answers)
+    assert capsys.readouterr().out.strip() == "", "one pass is not a variance measurement"
