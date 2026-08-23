@@ -1960,11 +1960,33 @@ class QueryTools:
     ## @req REQ-DDB-MCP-003
     def search(
         self,
-        text: str = "",
+        text: Annotated[
+            str,
+            Field(
+                description=(
+                    "Words to match. EVERY whitespace-separated token must appear in ONE "
+                    "searchable unit, so give the two most distinctive words. Ignored by the "
+                    "`locks` and `threads` corpora, which enumerate everything."
+                )
+            ),
+        ] = "",
         *,
-        corpus: str = "symbols",
-        limit: int = 25,
-        target: str | None = None,
+        corpus: Annotated[
+            str,
+            Field(
+                description=(
+                    "What to read. 'symbols' (default) for functions, variables, macros, types "
+                    "and per-file docs; 'prose' for the repo's markdown, full-text. Or enumerate "
+                    "a whole layer: 'locks', 'threads', 'files', 'config'. Each row's `kind` is "
+                    "what you pass to dossier verbatim."
+                )
+            ),
+        ] = "symbols",
+        limit: Annotated[int, Field(description="Maximum rows returned.")] = 25,
+        target: Annotated[
+            str | None,
+            Field(description="Repo root or slug to query; omit for the default target."),
+        ] = None,
     ) -> dict[str, Any]:
         """ONE FINDER, N CORPORA — `search_prose` WAS NEVER A TOOL, IT WAS AN ARGUMENT.
         The two searches differed in which table they read and in nothing a caller cares

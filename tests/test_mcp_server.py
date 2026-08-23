@@ -3429,3 +3429,57 @@ def test_served_text_survives_the_client_truncation_cap() -> None:
         assert "body" in head or "verbatim" in head.lower() or "corpus" in head, (
             f"{tool}: nothing in the delivered first {cap} chars says what it returns"
         )
+
+
+## @brief Every tool parameter carries a description, in the one channel a client cannot cut.
+## @return None.
+## @version 1
+def test_every_tool_parameter_is_described() -> None:
+    """THE ONLY UNTRUNCATABLE SURFACE, AND IT USED TO CARRY NOTHING. Parameter descriptions land in
+    the JSON Schema, which a client re-sends whole on every request — while a measured 33% of every
+    prose description is discarded at a 2,048-character cap. Before this, every parameter arrived
+    as an auto-generated title and nothing else: `{"default": 120, "title": "Max Body Lines"}`.
+
+    That absence has a measured cost. A session read `Max Body Lines` with no explanation, never
+    learned that `body` is verbatim source with inline comments, and told its operator the index
+    could not return source at all — then spent twenty turns on grep on the strength of it. One
+    schema field would have prevented it, and the schema field is the one thing that always
+    arrives.
+
+    @brief Parameters are described where truncation cannot reach.
+    @return None.
+    @version 1
+    """
+    import typing
+
+    from clew.mcp_server.server import DocsDbServer
+    from clew.mcp_server.tools_query import QueryTools
+
+    for owner, name in (
+        (QueryTools, "dossier"),
+        (QueryTools, "search"),
+        (DocsDbServer, "index"),
+        (DocsDbServer, "propose_declaration"),
+    ):
+        fn = getattr(owner, name)
+        hints = typing.get_type_hints(fn, include_extras=True)
+        undescribed = []
+        for pname, hint in hints.items():
+            if pname in ("return", "self", "ctx"):
+                continue
+            meta = getattr(hint, "__metadata__", ())
+            if not any(getattr(m, "description", None) for m in meta):
+                undescribed.append(pname)
+        assert not undescribed, (
+            f"{name}: {undescribed} carry no schema description, so they reach a model as bare "
+            f"auto-titles in the one channel that is never truncated"
+        )
+
+    ## AND THE ONE THAT MATTERS MOST BY NAME. This is the field whose silence produced a wrong
+    ## claim to an operator, so it is asserted on its content and not merely its presence.
+    body = typing.get_type_hints(QueryTools.dossier, include_extras=True)["max_body_lines"]
+    text = next(m.description for m in body.__metadata__ if getattr(m, "description", None))
+    assert "VERBATIM SOURCE" in text and "truncated" in text, (
+        f"max_body_lines must state that it returns verbatim source and how to read past a "
+        f"truncated body; got: {text!r}"
+    )

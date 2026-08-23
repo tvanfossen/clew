@@ -115,7 +115,9 @@ import time
 import traceback
 import warnings
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
+
+from pydantic import Field
 
 import anyio
 
@@ -1314,15 +1316,57 @@ class DocsDbServer:
     async def index(
         self,
         ctx: Context,
-        action: str = "status",
-        target: str | None = None,
-        force: bool = False,
-        doxyfile: str | None = None,
-        scope: str = SCOPE_FROM_GUARD,
-        exclude: list[str] | None = None,
-        options: dict[str, Any] | None = None,
-        max_age_days: float | None = 30.0,
-        include_stale: bool = True,
+        action: Annotated[
+            str,
+            Field(
+                description=(
+                    "'refresh' builds or updates an index; 'targets' lists indexed repositories; "
+                    "'status' is the full diagnosis WHEN YOU ALREADY HAVE A REASON TO WANT IT — "
+                    "every query reply already names its target and flags staleness, so do not "
+                    "open a session with it; 'stats' grades one index; 'cull' deletes stale ones."
+                )
+            ),
+        ] = "status",
+        target: Annotated[
+            str | None,
+            Field(description="Repo root or slug; omit for the default target."),
+        ] = None,
+        force: Annotated[
+            bool, Field(description="Rebuild even when the index is already current.")
+        ] = False,
+        doxyfile: Annotated[
+            str | None,
+            Field(
+                description="Explicit Doxyfile path; discovery refuses to guess beyond root and docs/."
+            ),
+        ] = None,
+        scope: Annotated[
+            str, Field(description="What to index; defaults to the repo's own guard declaration.")
+        ] = SCOPE_FROM_GUARD,
+        exclude: Annotated[
+            list[str] | None,
+            Field(
+                description=(
+                    "Repo-relative paths to leave out. RECORDED and REPLAYED by later builds — "
+                    "omit to inherit, pass an empty list to withdraw."
+                )
+            ),
+        ] = None,
+        options: Annotated[
+            dict[str, Any] | None,
+            Field(
+                description=(
+                    "This repository's own conventions, keyed by `.clew.yaml` section name. An "
+                    "unknown key is REFUSED by name rather than ignored."
+                )
+            ),
+        ] = None,
+        max_age_days: Annotated[
+            float | None, Field(description="For 'cull': age threshold in days.")
+        ] = 30.0,
+        include_stale: Annotated[
+            bool, Field(description="For 'targets': include stale databases in the listing.")
+        ] = True,
     ) -> dict[str, Any]:
         """FIVE ADMINISTRATIVE TOOLS WERE FIVE ENTRIES IN EVERY SESSION'S TOOL LIST, and
         four of them are never called in a session that only asks questions. Tool cost is
@@ -1450,7 +1494,17 @@ class DocsDbServer:
     ## @req REQ-DDB-MCP-001
     ## @req REQ-DDB-CONFIG-008
     async def propose_declaration(
-        self, ctx: Context, ignore_declaration: bool = False
+        self,
+        ctx: Context,
+        ignore_declaration: Annotated[
+            bool,
+            Field(
+                description=(
+                    "True to propose from scratch, ignoring any existing `.clew.yaml` — use it "
+                    "to see what the defaults alone would find."
+                )
+            ),
+        ] = False,
     ) -> dict[str, Any]:
         """TIER-0 on purpose. The proposer's whole reason to exist is a repo that
         has not declared its conventions yet, which is precisely the state in which
