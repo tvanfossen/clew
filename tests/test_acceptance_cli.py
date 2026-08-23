@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import hashlib
 import json
 import subprocess
@@ -21,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from acceptance import __main__ as cli
 from acceptance import execute
 from acceptance import runner
+from acceptance.grader import rubric as _rubric_mod
 from acceptance.grader import score
 
 REPO = Path(__file__).resolve().parent.parent
@@ -578,3 +580,47 @@ def test_split_count_reaches_the_sidecar_and_the_table(
     cli._print_cells(rows)
     line = next(x for x in capsys.readouterr().out.splitlines() if x.startswith("Q1_"))
     assert line.split()[-1] == "1", f"the split count must be the last column: {line}"
+
+
+## @brief The ref-existence check fails on a rubric citing a file that is not at the pin.
+## @return None.
+## @version 1
+def test_audit_ref_check_fails_on_a_missing_file(tmp_path: Path) -> None:
+    """THE GUARD ON THE GUARD, and a mutation control is what demanded it. The audit had one
+    test — that the shipped rubrics pass — and disabling the ref check entirely ALSO makes them
+    pass, so nothing distinguished "every ref is real" from "nobody looked".
+
+    That is the shape this project keeps shipping: a check with a test for the clean case and
+    none for the case it exists to catch.
+
+    @brief The ref check refuses a phantom file.
+    @return None.
+    @version 1
+    """
+    import scripts.rubric_audit as audit
+
+    checkout = tmp_path / "repo"
+    (checkout / "src").mkdir(parents=True)
+    (checkout / "src" / "real.c").write_text("int main(void){return 0;}\n", encoding="utf-8")
+
+    rubric = cli._rubric(MBEDTLS)
+    assert rubric is not None
+    marks = (
+        _rubric_mod.Mark(
+            text="cites a real file", type="conclusion", weight=1, refs=(("src/real.c", 1),)
+        ),
+        _rubric_mod.Mark(
+            text="cites a phantom", type="conclusion", weight=1, refs=(("src/gone.c", 1),)
+        ),
+    )
+    question = _rubric_mod.Question(id="Q9", intent="i", prompt="p", marks=marks)
+    stub = dataclasses.replace(rubric, questions=(question,))
+
+    found = audit._missing_refs(stub, checkout, "fixture")
+    assert len(found) == 1, f"exactly the phantom must be reported, got {found}"
+    assert "src/gone.c" in found[0] and "src/real.c" not in found[0]
+
+    ## AND IT MUST STAY QUIET when every ref resolves — a check that fires on a clean rubric is
+    ## worse than none, because the noise trains a reader to skip it.
+    clean = dataclasses.replace(stub, questions=(dataclasses.replace(question, marks=marks[:1]),))
+    assert audit._missing_refs(clean, checkout, "fixture") == []
