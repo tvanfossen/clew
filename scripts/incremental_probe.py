@@ -369,6 +369,47 @@ def cmd_refids(args: argparse.Namespace) -> int:
 
 
 ##
+# @brief Drive the MCP auto-refresh hook in-process against a real target.
+# @param args Parsed arguments (unused; the target is the repo under test).
+# @return Process exit status.
+# @version 1
+def cmd_autorefresh(args: argparse.Namespace) -> int:
+    """END-TO-END CHECK FOR THE QUERY-TIME REFRESH, run in-process because the live MCP
+    server in a session is a separate long-lived process holding older code.
+
+    Reports the staleness axes before and after. A pass is: stale on the `data` axis before,
+    no axes after, and the build log showing the INCREMENTAL path rather than a full run.
+
+    @brief Verify auto-refresh brings a stale index current.
+    @return 0 when the refresh cleared the data axis, 1 otherwise.
+    @version 1
+    """
+    import anyio
+
+    from clew.mcp_server.freshness import code_identity, notices
+    from clew.mcp_server.server import build_server
+    from clew.mcp_server.state import TargetRegistry, db_status
+
+    _mcp, state = build_server(TargetRegistry())
+    target = state.resolve_target(str(REPO))
+    before = notices(db_status(target), code_identity())
+    print("axes before:", [n["axis"] for n in before] or "(current)")
+    if not any(n["axis"] == "data" for n in before):
+        print("nothing to do — edit a file first so the data axis is stale", file=sys.stderr)
+        return 1
+
+    ## Pass the target EXPLICITLY. `state.active` is derived from --repo /
+    ## CLAUDE_PROJECT_DIR, which this probe does not set, so `None` would make the hook
+    ## return before measuring anything — and report a clean pass for the wrong reason.
+    print("active target:", state.active.repo_path if state.active else "(none)")
+    anyio.run(state._auto_refresh, str(REPO))
+
+    after = notices(db_status(target), code_identity())
+    print("axes after: ", [n["axis"] for n in after] or "(current)")
+    return 0 if not any(n["axis"] == "data" for n in after) else 1
+
+
+##
 # @brief Parse arguments and dispatch a subcommand.
 # @return Process exit status.
 # @version 3
@@ -391,12 +432,14 @@ def main() -> int:
     sub.add_parser("closure", help="one-hop xref closure per file")
     sub.add_parser("outbound", help="outbound xref loss under a subset run")
     sub.add_parser("refids", help="refid stability across input sets")
+    sub.add_parser("autorefresh", help="drive the MCP auto-refresh hook in-process")
     args = parser.parse_args()
     return {
         "subset": cmd_subset,
         "closure": cmd_closure,
         "outbound": cmd_outbound,
         "refids": cmd_refids,
+        "autorefresh": cmd_autorefresh,
     }[args.cmd](args)
 
 
