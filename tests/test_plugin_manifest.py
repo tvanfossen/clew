@@ -417,7 +417,7 @@ def test_both_halves_of_the_pressure_counter_are_registered() -> None:
     ## Both spellings a real client serves. Neither is hypothetical: this repository is consumed
     ## as a plugin, and `clew init` registers the same server directly.
     clew_tools = ("mcp__clew__dossier", "mcp__plugin_clew_clew__dossier")
-    searches = ("Bash", "Grep", "Glob")
+    searches = ("Bash", "Grep", "Glob", "Read")
 
     for pattern in credit:
         for tool in clew_tools:
