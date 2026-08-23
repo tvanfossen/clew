@@ -233,10 +233,14 @@ def _print_variance(answers: Path) -> None:
                 passes.append(json.loads(line))
             except json.JSONDecodeError:
                 continue
-        if len(passes) < 2:
+        if not passes:
             continue
         digest = passes[-1].get("rubric_digest")
         comparable = [p for p in passes if p.get("rubric_digest") == digest]
+        ## ONE GUARD, NOT TWO. A `len(passes) < 2` skip stood here as well and was DEAD: this
+        ## check already subsumes it, so no single edit could break either one and a mutation
+        ## control reported the pair as untested. An exclusion enforced twice is an exclusion
+        ## nothing verifies.
         if len(comparable) >= 2:
             rows.append((path.name.removesuffix(".grades.jsonl"), comparable))
     if not rows:
