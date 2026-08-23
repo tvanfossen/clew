@@ -41,6 +41,7 @@ import pytest
 pytest.importorskip("mcp", reason="MCP server is an optional extra (pip install -e '.[mcp]')")
 
 from clew.mcp_server import freshness as fr
+from clew.mcp_server import server as server_module
 from clew.mcp_server import state as st
 from clew.mcp_server.server import (
     NO_TARGET_ERROR,
@@ -50,6 +51,7 @@ from clew.mcp_server.server import (
     register_query_tools,
     unregister_query_tools,
 )
+from clew.mcp_server._sdk import MCPServer
 from clew.mcp_server.tools_query import TIER1_TOOLS, QueryTools
 from clew.scope import SCOPE_FROM_GUARD
 from clew.signature import (
@@ -3504,3 +3506,103 @@ def test_every_tool_parameter_is_described() -> None:
         f"max_body_lines must state that it returns verbatim source and how to read past a "
         f"truncated body; got: {text!r}"
     )
+
+
+##
+# @brief The refresh wrapper must not change any tool's JSON Schema.
+# @return None.
+# @version 1
+def test_the_refresh_wrapper_preserves_every_tool_schema() -> None:
+    """AN INVARIANCE, because the schema is the one served surface a client cannot truncate.
+
+    Every parameter description reaches the model through the JSON Schema the SDK derives
+    from each tool's SIGNATURE. Wrapping a tool to refresh before answering replaces that
+    callable, and a wrapper without `functools.wraps` reports `(*args, **kwargs)` — so every
+    tool would register with an EMPTY schema, the only untruncatable routing signal would go
+    to zero, and nothing would error.
+
+    `test_every_tool_parameter_is_described` cannot catch that: it registers with no hook, so
+    it exercises the plain binding. This registers BOTH ways and demands the schemas match,
+    which is the check that actually covers the wrapper.
+
+    @brief Wrapped and unwrapped registration produce identical schemas.
+    @return None.
+    @version 1
+    """
+
+    async def hook(target: str | None) -> None:
+        return None
+
+    tools = QueryTools(lambda: "/nonexistent.db", lambda: "/tmp", lambda: [], None)
+    schemas: dict[bool, dict[str, dict]] = {}
+    for wrapped, before in ((False, None), (True, hook)):
+        mcp = MCPServer("schema-probe")
+        register_query_tools(mcp, tools, before)
+        schemas[wrapped] = {
+            name: mcp._tool_manager.get_tool(name).parameters or {} for name in TIER1_TOOLS
+        }
+
+    for name in TIER1_TOOLS:
+        plain = schemas[False][name].get("properties", {})
+        hooked = schemas[True][name].get("properties", {})
+        assert hooked == plain, (
+            f"{name}'s schema changed when the refresh wrapper was attached, so the "
+            f"parameter descriptions no longer reach the model: {len(plain)} properties "
+            f"unwrapped vs {len(hooked)} wrapped"
+        )
+        assert plain, f"{name} registered with no parameters at all in either shape"
+
+
+##
+# @brief A query refreshes a stale index and leaves a current one alone.
+# @param server The server fixture.
+# @return None.
+# @version 1
+@pytest.mark.anyio
+async def test_a_query_refreshes_only_when_the_data_axis_is_stale(
+    server, monkeypatch, tmp_path
+) -> None:
+    """THE OWNER RULED A QUERY SHOULD BLOCK AND REFRESH rather than answer stale, so both
+    halves are pinned: it builds when the data axis is stale, and it does NOT build otherwise.
+
+    The second half is the one worth writing. A hook that refreshed unconditionally would
+    make every query pay a build, which is the behaviour most likely to get the feature turned
+    off — and no assertion about the stale case would notice.
+
+    `matches_source` false is also pinned as a REFUSAL, because a build through a server older
+    than its source runs old pipeline logic and re-stamps the index with it. That is the one
+    build that can silently drop whole layers and then report health, so an automatic path
+    must never attempt it.
+
+    @brief Auto-refresh fires on data staleness only, and never on a stale process.
+    @return None.
+    @version 1
+    """
+    ## The fixture yields (MCPServer, DocsDbServer); the refresh hook lives on the latter.
+    _mcp, state = server
+    ## The fixture's registry is empty, so `active` is None and the hook would return before
+    ## measuring anything — the test would pass while asserting nothing.
+    state.active = st.target_for(tmp_path, state.registry.home)
+    builds: list[str] = []
+
+    def fake_build(target, doxyfile, *args, **kwargs):
+        builds.append(target.repo_path)
+        return {"ok": True, "built": True}
+
+    monkeypatch.setattr(state, "_run_build", fake_build)
+
+    cases = (
+        ([], True, 0, "a current index must not trigger a build"),
+        ([{"axis": "schema", "message": "x"}], True, 0, "only the data axis is rebuildable"),
+        ([{"axis": "data", "message": "x"}], False, 0, "a stale PROCESS must refuse to build"),
+        ([{"axis": "data", "message": "x"}], True, 1, "a stale data axis must refresh"),
+    )
+    for axes, matches, expected, why in cases:
+        builds.clear()
+        ## Patched so the decision depends ONLY on the axes and the process identity;
+        ## the real reader would raise on this scratch path and mask the assertion.
+        monkeypatch.setattr(server_module, "db_status", lambda *a, **k: {})
+        monkeypatch.setattr(server_module, "notices", lambda *a, **k: axes)
+        monkeypatch.setattr(server_module, "code_identity", lambda: {"matches_source": matches})
+        await state._auto_refresh(None)
+        assert len(builds) == expected, f"{why} (axes={axes}, matches_source={matches})"
