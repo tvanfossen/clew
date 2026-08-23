@@ -1,0 +1,253 @@
+{
+  "target": "Mbed-TLS/mbedtls",
+  "commit": "068ff080b369adfac81509f9b57b2afabaf82dc5",
+  "rubric_version": "3.1.0",
+  "rubric_digest": "dc24d1a79dd9c16f",
+  "seed": 7,
+  "models": [
+    "sonnet"
+  ],
+  "replicates": 3,
+  "cells": [
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q2",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 0
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q2",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 1
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q2",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 2
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q2",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 3
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q2",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 4
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q2",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 5
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q1",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 6
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q1",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 7
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q1",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 8
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q1",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 9
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q1",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 10
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q1",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 11
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q5",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 12
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q5",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 13
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q5",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 14
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q5",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 15
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q5",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 16
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q5",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 17
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q3",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 18
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q3",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 19
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q3",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 20
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q3",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 21
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q3",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 22
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q3",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 23
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q4",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 24
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q4",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 25
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q4",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 26
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q4",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 27
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q4",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 28
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q4",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 29
+    }
+  ]
+}

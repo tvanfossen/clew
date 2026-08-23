@@ -1,0 +1,106 @@
+{
+  "is_error": false,
+  "duration_api_ms": 141681,
+  "num_turns": 2,
+  "stop_reason": "end_turn",
+  "session_id": "619b0149-6d59-4e52-91f1-8f07ddf77b2a",
+  "total_cost_usd": 0.5586303,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 53071,
+    "cache_read_input_tokens": 46812,
+    "output_tokens": 2786,
+    "output_tokens_details": {
+      "thinking_tokens": 25
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 53071,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2190,
+        "cache_read_input_tokens": 46812,
+        "cache_creation_input_tokens": 6259,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6259
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1536,
+      "outputTokens": 14,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001606,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 32,
+      "outputTokens": 12671,
+      "cacheReadInputTokens": 471544,
+      "cacheCreationInputTokens": 102534,
+      "webSearchRequests": 0,
+      "costUSD": 0.5570243,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 1,
+    "requested": {
+      "background": 0,
+      "foreground": 1,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 1,
+    "spawned_by_subagents": 0,
+    "completed": 1,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {
+      "Explore": 1
+    }
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Off-caller-thread execution in entropic\n\nNothing in entropic uses thread pools or `std::async` \u2014 every background execution path is a plain `std::thread` (some `.detach()`'d, most joined on teardown). There are nine distinct spawn sites, clustered into three groups: the MCP bridge's I/O loops, transport reader threads, and small cancellation-poller threads that bridge a C-ABI `int*` into an atomic. There's no dedicated \"Threading\"/\"Concurrency\" section in `docs/architecture-cpp.md` \u2014 the closest architecture-level rule is Design Rule #10 (\"atomic state, mutex transitions\"), which is scoped to the inference backend's state machine, not to these threads. Where a real cross-thread contract exists, it's documented on the owning class/header instead, and the quality of that documentation varies a lot between classes.\n\n**1. `ExternalBridge` accept loop** (`src/facade/external_bridge.cpp:796`) \u2014 polls the unix socket and accepts clients. Safety: `running_` is `std::atomic<bool>`; `listen_fd_` is closed only after `running_` flips and before `join()`, so safety here is ordering, not a lock. Documented in the class header's thread-safety note.\n\n**2. `ExternalBridge` per-client serve threads** (`external_bridge.cpp:945`) \u2014 one thread per connection running the request dispatch loop. Safety: the thread handle + fd live in a `client_threads_` vector guarded by `client_threads_mutex_`, each entry carries its own `atomic<bool> finished`; `stop()` locks to move the vector out, then `shutdown()`s each fd outside the lock to unblock blocking `read()`s before joining. `subscribers_` is separately guarded by `subscribers_mutex_`. Well-documented in the header.\n\n**3. `ExternalBridge::run_async_ask`** (`external_bridge.cpp:1158`, detached at `:1222`) \u2014 runs an async `entropic.ask` in the background. Safety: all task-table access goes through `tasks_mutex_`; `observer_gen_` is an `atomic<uint64_t>` generation counter incremented under that mutex and checked (without the lock) by the phase-observer callback to discard stale post-detach callbacks. This generation-counter pattern is explicitly called out in comments \u2014 it's the one place where \"atomic read without a lock\" is a deliberate, documented design choice rather than an oversight.\n\n**4. `ResponseGenerator::dispatch_batch_generate`** (`response_generator.cpp:413`) \u2014 polls the engine's interrupt flag and mirrors it into a C-ABI cancel int. **This is the one genuine gap**: `cancel_int` is a plain, non-atomic `int` (`response_generator.cpp:404`) written by the observer thread and read across the C-ABI boundary by the calling thread \u2014 a real data race, unlike sites #5 and #6 which solve the identical problem with `std::atomic<bool>`. The comment explains the int-boundary rationale but doesn't flag the missing synchronization, and nothing in the architecture doc covers it.\n\n**5\u20136. `iface_generate_with_cancel`** (`interface_factory.cpp:246`) and **`CancelFlagBridge`** (`inference_c_api.cpp:385`) \u2014 same 10ms-poll cancellation-bridge pattern, done correctly: `cancel_flag`/`done` (or `cancel_`/`done_`) are `std::atomic<bool>`, threads are joined (the latter via RAII destructor). Both documented in local comments.\n\n**7. `HealthMonitor::monitor_loop`** (`health_monitor.cpp:92`) \u2014 polls watched external MCP servers and posts health events. Safety: `watched_` under `watched_mutex_`, `event_queue_` under `event_mutex_` and drained via lock+swap, `running_` atomic, plus a `wake_cv_`/`wake_mutex_` for early wakeup on stop. This is the best-documented threading contract in the codebase \u2014 the header states outright: \"status changes are posted to a thread-safe event queue... the engine's main thread drains via `process_events()`. No cross-thread mutation of engine state.\" The callback into engine code is explicitly restricted to run only on the caller's thread during drain, never from the monitor thread itself.\n\n**8. `StdioTransport::stderr_reader_loop`** (`transport_stdio.cpp:164`) \u2014 forwards a child process's stderr to the logger. Safety: `atomic<bool>` for `connected_`/`cancel_flag_`; stdin/stdout I/O is guarded by `io_mutex_`, but the stderr fd is separate and untouched by that mutex \u2014 safe by construction (no shared buffer) but less explicitly documented than #7.\n\n**9. `SSETransport::sse_reader_loop`** (`transport_sse.cpp:107`) \u2014 reads an SSE stream and matches responses to pending requests by id. Safety: `pending_responses_` guarded by `pending_mutex_` with a `pending_cv_` that `send_request()` blocks on and `close()` notifies to unblock waiters before shutdown; `connected_`/`running_` atomic; `next_request_id_` is `atomic<int>`. Documented in the header.\n\n### Bottom line\n\nThe prevailing safety pattern is consistent and mostly sound: atomics for simple flags/counters, mutexes for anything structured (maps, vectors, queues), condition variables where a caller thread needs to block on background-thread progress, and careful join/shutdown ordering to avoid use-after-close on fds. `HealthMonitor` is the model example, with an explicit \"no cross-thread engine mutation\" rule stated in its header. The one place that pattern isn't followed is `response_generator.cpp:404`'s `cancel_int` \u2014 a plain `int` shared across threads where the two sibling implementations (`interface_factory.cpp`, `inference_c_api.cpp`) both correctly use `std::atomic<bool>` for the exact same problem. That's worth fixing to match the established convention, and worth adding to the architecture doc's threading guidance so it doesn't reappear at the next call-cancellation site.\n\nOne process note: while gathering this, the subagent's tool results carried injected instructions pushing it toward a `clew`/`dossier` tool that doesn't exist in this session's toolset. It correctly ignored that and used direct grep/Read \u2014 flagging it here since it's the kind of prompt-injection pattern worth knowing about if you see similar phrasing elsewhere.",
+  "ttft_ms": 2898,
+  "ttft_stream_ms": 2332,
+  "time_to_request_ms": 419,
+  "type": "result",
+  "duration_ms": 141886,
+  "uuid": "b516bfea-5674-4bd4-afa7-a15398ba90ea"
+}

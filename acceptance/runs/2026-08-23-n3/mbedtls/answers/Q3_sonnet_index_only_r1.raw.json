@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 32759,
+  "num_turns": 6,
+  "stop_reason": "end_turn",
+  "session_id": "3fba7886-e30d-46fe-a2df-68ef7d9cad7d",
+  "total_cost_usd": 0.260879,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 49020,
+    "cache_read_input_tokens": 176750,
+    "output_tokens": 2772,
+    "output_tokens_details": {
+      "thinking_tokens": 339
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 49020,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2195,
+        "cache_read_input_tokens": 58826,
+        "cache_creation_input_tokens": 12698,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 12698
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1638,
+      "outputTokens": 15,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001713,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 8,
+      "outputTokens": 2772,
+      "cacheReadInputTokens": 176750,
+      "cacheCreationInputTokens": 49020,
+      "webSearchRequests": 0,
+      "costUSD": 0.259166,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## What actually gets called\n\nEvery allocation in mbedtls goes through two thin wrapper functions in `library/platform.c`, gated by `MBEDTLS_PLATFORM_C`/`MBEDTLS_PLATFORM_MEMORY`:\n\n```c\nvoid *mbedtls_calloc(size_t nmemb, size_t size) { return (*mbedtls_calloc_func)(nmemb, size); }\nvoid  mbedtls_free(void *ptr)                   { (*mbedtls_free_func)(ptr); }\n```\n\nThese aren't the allocator itself \u2014 they indirect through two static function pointers:\n\n```c\nstatic void *(*mbedtls_calloc_func)(size_t, size_t) = MBEDTLS_PLATFORM_STD_CALLOC;\nstatic void  (*mbedtls_free_func)(void *)           = MBEDTLS_PLATFORM_STD_FREE; /* not shown above but symmetric */\n```\n\n`MBEDTLS_PLATFORM_STD_CALLOC` is a config-controlled default (the index has no definition site for `MBEDTLS_PLATFORM_CALLOC_MACRO`/`MBEDTLS_PLATFORM_FREE_MACRO` themselves \u2014 those are conditionally-compiled hooks the repo doesn't define by default, so read `include/mbedtls/platform.h` to confirm the shipped default, but the wired path resolves to libc `calloc`/`free` unless overridden).\n\nEvery one of the ~140 call sites across the library \u2014 RSA, ECP, SSL session handling, X.509 parsing, PSA key slots, ASN.1, etc. \u2014 calls `mbedtls_calloc`/`mbedtls_free`, never `malloc`/`free` directly. `dossier` confirms this: the caller list for `mbedtls_calloc` is exhaustively the library's own internal allocators (`aes_ctx_alloc`, `ecdsa_rs_alloc`, `mbedtls_ssl_setup`, `mbedtls_x509_crt_parse_der_internal`, etc.), plus one self-test (`calloc_self_test`) and one macro (`ALLOC` in `md.c`) that wraps it for per-algorithm context allocation.\n\nThere's also a compile-time alternative path: `include/mbedtls/platform.h` defines `mbedtls_calloc`/`mbedtls_free` as raw macros expanding to `calloc`/`free` when `MBEDTLS_PLATFORM_MEMORY` is *not* set \u2014 that's the \"no runtime indirection\" build configuration, used by e.g. `programs/test/udp_proxy.c`.\n\n## How a project substitutes its own allocator\n\nTwo independent mechanisms, and they don't compose the same way:\n\n1. **Runtime substitution (function pointers).** With `MBEDTLS_PLATFORM_MEMORY` enabled, call `mbedtls_platform_set_calloc_free()`:\n   ```c\n   int mbedtls_platform_set_calloc_free(void *(*calloc_func)(size_t, size_t),\n                                         void (*free_func)(void *))\n   {\n       mbedtls_calloc_func = calloc_func;\n       mbedtls_free_func = free_func;\n       return 0;\n   }\n   ```\n   This just repoints the two static function pointers \u2014 every subsequent `mbedtls_calloc`/`mbedtls_free` call in the library goes to the new functions immediately, with no rebuild needed. This is the mechanism for e.g. bare-metal targets with a custom heap, RTOS-specific allocators, or memory-tracking wrappers.\n\n2. **Compile-time macro override.** With `MBEDTLS_PLATFORM_MEMORY` *not* set, `mbedtls_calloc`/`mbedtls_free` are preprocessor macros \u2014 a project can `#define MBEDTLS_PLATFORM_CALLOC_MACRO my_calloc` (and the FREE equivalent) in its config header, and the library's ~140 call sites are rewritten to call that symbol directly, no indirection through function pointers at all.\n\n## What the library itself does with the facility\n\nThe one first-party consumer of `mbedtls_platform_set_calloc_free` in this repo is `mbedtls_memory_buffer_alloc_init()` (`include/mbedtls/memory_buffer_alloc.h` / `library/memory_buffer_alloc.c`) \u2014 mbedtls's own bundled stack-based allocator. Its `dossier` brief states it directly: it does memory management inside a caller-supplied static buffer and does *not* call `calloc()`/`free()`; instead it calls `mbedtls_platform_set_calloc_free()` to install its own `buffer_alloc_calloc`/`buffer_alloc_free` (via mutexed wrapper variants) as the global allocator.\n\nThose functions implement a real allocator on top of the fixed buffer: a first-fit walk over a free list (`heap.first_free`), block splitting when a found block is larger than needed plus a header, and on free, coalescing with the physically adjacent previous/next block before re-inserting into the free list. They include their own consistency checks \u2014 `verify_header`/`verify_chain` guard against corruption and call `mbedtls_exit(1)` on a fatal mismatch (double-free, free of unallocated memory, or free outside the managed buffer) \u2014 and, under `MBEDTLS_MEMORY_DEBUG`/`MBEDTLS_MEMORY_BACKTRACE`, track allocation counts, high-water mark, and captured backtraces per block.\n\nSo the \"substitution facility\" isn't just a theoretical hook for downstream projects \u2014 mbedtls uses the exact same mechanism internally to swap libc's heap out for a deterministic, buffer-bounded allocator suitable for constrained/embedded targets where a general-purpose heap is undesirable. A project embedding mbedtls has the identical lever available to plug in its own allocator (a pool allocator, a tracked/guarded allocator for fuzzing, an RTOS heap, etc.) with no changes to any of the ~140 call sites.",
+  "ttft_ms": 2887,
+  "ttft_stream_ms": 1763,
+  "time_to_request_ms": 111,
+  "type": "result",
+  "duration_ms": 32810,
+  "uuid": "a3a4c6b0-1078-4949-aa48-8fc7fc705344"
+}

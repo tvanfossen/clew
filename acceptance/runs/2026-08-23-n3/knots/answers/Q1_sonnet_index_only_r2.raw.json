@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 34018,
+  "num_turns": 5,
+  "stop_reason": "end_turn",
+  "session_id": "9ccfc103-177d-467e-b3b0-13cdee87e8e1",
+  "total_cost_usd": 0.12197720000000001,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 10292,
+    "cache_read_input_tokens": 268061,
+    "output_tokens": 2547,
+    "output_tokens_details": {
+      "thinking_tokens": 576
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 10292,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1484,
+        "cache_read_input_tokens": 59017,
+        "cache_creation_input_tokens": 1870,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1870
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1637,
+      "outputTokens": 14,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001707,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 10,
+      "outputTokens": 2547,
+      "cacheReadInputTokens": 268061,
+      "cacheCreationInputTokens": 10292,
+      "webSearchRequests": 0,
+      "costUSD": 0.12027020000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I have enough to answer this fully from the index.\n\n## What counts as a duplicate\n\nDetection is entirely structural, not textual or semantic. `find_duplicate_groups` (`src/duplicates.rs:100`) groups functions by identical AST structural hash \u2014 from the file doc: \"Two functions group together when their AST subtrees hash identically \u2014 same node kinds in the same [shape].\" This is computed by `lang_parsing_substrate::function_fingerprints` (an external crate the index can't see the internals of) during `extract_file_fingerprints` (`src/main.rs:1703`), called per-file with a floor of `MIN_DUPLICATE_NODES = 20` AST nodes (`src/duplicates.rs:28`) \u2014 bodies smaller than that are never fingerprinted at all, so they can't form a group regardless of how identical they are.\n\nA group is 2+ members sharing that hash. Groups are sorted largest-group-first, then by node count (`group_sort_key`), so the clones most worth acting on surface first.\n\n## What it deliberately excludes\n\nTwo filters run after raw grouping, both on by default (`DuplicateFilters`, negated from `--include-fixture-pairs` / `--include-trivial-duplicates` in `duplicate_filters_from`):\n\n- **Fixture pairs** (`is_fixture_pair_group`): every member sits under a recognized pass/fail-style fixture directory, at least two distinct tags are present, and the paths are identical once the tag is normalized away. This is explicitly there to auto-exclude CERT-C-style `tests/pass/*.c` vs `tests/fail/*.c` fixtures, which are intentionally near-identical by design \u2014 not extraction candidates.\n- **Trivial noise** (`is_trivial_noise_group`): every member's body is \u2264 `TRIVIAL_BODY_LINE_SPAN` lines (a getter, a one-`assert_eq!` test, a dispatch stub) *and* the group doesn't repeat often enough (`TRIVIAL_MIN_REPEAT`) to look like deliberate copy-paste. The node-count floor alone doesn't catch these because a one-line accessor can clear 20 AST nodes purely from type annotations and field-access chains. Notably, the doc comment flags a self-referential risk: post-refactor, the unavoidable per-type accessor glue produced *by fixing real duplication* would otherwise show up as new \"duplicate\" groups, misreading as unresolved debt.\n\nBoth exclusion counts are preserved in `DuplicateGroupsResult` (`excluded_fixture_pairs`, `excluded_trivial`) rather than silently dropped, so a report can say how much was filtered and why.\n\nWhat the mechanism structurally can't catch, since the index confirms hashing is purely AST-shape: renamed variables/fields don't break a match (that's the point), but any semantic-but-differently-structured duplicate \u2014 reordered independent statements, an equivalent loop written a different way, a duplicate spread across two different node shapes \u2014 falls outside \"identical hash\" and is missed. The index has no visibility into `lang_parsing_substrate::fingerprint`'s exact hash inputs (it's an external crate), so I can't say precisely which token-level details (literal values, comments, whitespace) do or don't factor in \u2014 that would need reading that crate's source directly, which is outside what the index can answer.\n\n## Why it's a separate pass, not part of normal analysis\n\n`recursive_duplicate_groups` (`src/main.rs:1530`) is gated behind **both** `ctx.find_duplicates` (the `--find-duplicates` flag) and `ctx.recursive`. The doc comment states the reason for the second condition plainly: \"a single file has no corpus to compare against\" \u2014 duplicate detection is inherently corpus-wide, comparing every function against every other function across the whole recursive walk, which is a different shape of work than per-file metric computation (`collect_all_metrics`, run unconditionally). `collect_corpus_fingerprints` parses and fingerprints every file in parallel (`par_iter`) as an explicit \"Phase 1,\" separate from the metrics pass, silently skipping unreadable/unparseable files (deliberately not warning again since the metrics pass already does). That two-phase, corpus-scale structure \u2014 plus the fact it produces a fundamentally different kind of report (cross-file groups, not per-function scores) \u2014 is why it's opt-in via its own flag rather than folded into the standard metrics output.",
+  "ttft_ms": 2326,
+  "ttft_stream_ms": 1650,
+  "time_to_request_ms": 105,
+  "type": "result",
+  "duration_ms": 33693,
+  "uuid": "d794e3ae-ee2c-4aa8-8490-d45d4650c0f0"
+}

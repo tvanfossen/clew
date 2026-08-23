@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 52018,
+  "num_turns": 19,
+  "stop_reason": "end_turn",
+  "session_id": "f752ac39-504a-478b-a90f-108442512e50",
+  "total_cost_usd": 0.30725160000000007,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 41936,
+    "cache_read_input_tokens": 531413,
+    "output_tokens": 3148,
+    "output_tokens_details": {
+      "thinking_tokens": 281
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 41936,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1270,
+        "cache_read_input_tokens": 63886,
+        "cache_creation_input_tokens": 560,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 560
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1625,
+      "outputTokens": 16,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001705,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 20,
+      "outputTokens": 3148,
+      "cacheReadInputTokens": 531413,
+      "cacheCreationInputTokens": 41936,
+      "webSearchRequests": 0,
+      "costUSD": 0.3055466,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I now have the full pipeline. Here's the answer.\n\n## What counts as an edge\n\nAn edge `A \u2192 B` in knots' import-coupling graph exists when file A's syntactic import list contains a string that resolves, unambiguously, to file B's module key \u2014 where \"resolves\" means:\n\n1. **Extraction** (`extract_file_imports`, `src/main.rs`): each file is parsed and its raw import strings pulled out by the tree-sitter substrate (`lang_parsing_substrate::import_sources`) \u2014 this is purely syntactic (whatever the grammar recognizes as an import/use/include statement), not a semantic resolver.\n2. **Candidate reduction** (`resolve_candidate`): each raw import string is normalized to a single trailing identifier \u2014 strip any path prefix up to the last `/` or `\\`, strip a trailing known source-file extension (from `known_source_extensions()`, i.e. any extension any supported language declares), then take whatever follows the last `::` (or, failing that, the last `.`).\n3. **Module-key matching** (`module_key` / `index_module_keys`): every corpus file is keyed by its bare file stem (filename minus directory and extension). The reduced import candidate is looked up against this map of stem \u2192 file.\n4. **Uniqueness gate** (`resolve_targets`): the edge is only added if exactly **one** corpus file shares that module key (`key_counts.get(&candidate) == 1`). If zero files match, or more than one file shares the same stem (e.g. `mod.rs` in two different directories, or two languages' files that happen to share a stem), the import is silently dropped \u2014 no edge, and no signal that it was ambiguous.\n5. **Self-edges excluded**: if the resolved target is the same file as the source, it's discarded (`target != path`).\n6. **Deduplication**: targets are collected into a `HashSet`, so multiple imports from A to B collapse to one edge; the metric counts distinct target files, not import statement count.\n\nSo Ce (efferent) for a file = number of distinct other corpus files it successfully resolves an import to; Ca (afferent) = number of distinct files whose edge set contains it (`count_incoming_edges`); Instability is derived from those two.\n\n## What deliberately does not count\n\n- **Imports of anything outside the corpus** \u2014 standard library, third-party packages, anything that isn't one of the files knots parsed in this run. There's no external-module tracking; it's dropped at the module-key lookup (no match in `key_owner`).\n- **Ambiguous stems** \u2014 any import string that reduces to a module key shared by \u22652 corpus files is treated as unresolvable and produces no edge, rather than guessing or fanning out to all candidates. The file doc calls this out explicitly as \"a best-effort heuristic, not real module resolution.\"\n- **Self-imports** \u2014 a file \"importing\" itself never becomes an edge.\n- **Files that fail to parse or read** \u2014 `extract_file_imports` returns `None` on read/parse/language-lookup failure and is skipped silently (the code comment notes `collect_all_metrics` already warns about the same files elsewhere, so this path doesn't duplicate that warning).\n- **Duplicate imports of the same target** \u2014 multiple `use`/`import` lines pointing at the same file only ever contribute one edge (HashSet dedup), so Ce/Ca measure distinct-file coupling, not import-statement volume.\n\nOne thing the index can't tell me directly: I don't have the actual list of node-kinds `import_sources` treats as \"an import\" per language (that logic lives in the external `lang_parsing_substrate` crate, not in this repo's indexed source), so I can't say precisely which per-language syntactic forms (e.g. re-exports, conditional/lazy imports, dynamic `require`) are or aren't captured at the extraction step \u2014 only what happens to whatever that substrate hands back.",
+  "ttft_ms": 2806,
+  "ttft_stream_ms": 1605,
+  "time_to_request_ms": 101,
+  "type": "result",
+  "duration_ms": 52185,
+  "uuid": "8d5e97bd-9979-4b33-a1c3-447ccaaff316"
+}

@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 39684,
+  "num_turns": 13,
+  "stop_reason": "end_turn",
+  "session_id": "a1caf38e-350e-4623-a268-6f0f4d21d328",
+  "total_cost_usd": 0.2435834,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 38777,
+    "cache_read_input_tokens": 272207,
+    "output_tokens": 3238,
+    "output_tokens_details": {
+      "thinking_tokens": 418
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 38777,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1602,
+        "cache_read_input_tokens": 55407,
+        "cache_creation_input_tokens": 4121,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4121
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1545,
+      "outputTokens": 17,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.00163,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 12,
+      "outputTokens": 3238,
+      "cacheReadInputTokens": 272207,
+      "cacheCreationInputTokens": 38777,
+      "webSearchRequests": 0,
+      "costUSD": 0.24195339999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I have a clear picture now. Here's the answer.\n\n## How the dependency is brought in\n\n`llama.cpp` is vendored as a **git submodule**, not a package-manager dependency:\n\n```\n.gitmodules:  [submodule \"extern/llama.cpp\"] \u2192 https://github.com/ggml-org/llama.cpp.git\n              pinned commit b8420...\n```\n\nAt configure time, `extern/CMakeLists.txt` does `add_subdirectory(llama.cpp EXCLUDE_FROM_ALL)`, building `libllama.a` (and `libmtmd.a` from `llama.cpp/tools/mtmd` for multimodal) as **static** libraries with `LLAMA_BUILD_TESTS/EXAMPLES/SERVER/TOOLS` all off and `LLAMA_BUILD_COMMON=ON` (needed only so `mtmd`'s CMake can reference the `common` target). `EXCLUDE_FROM_ALL` suppresses llama.cpp's own install rules \u2014 entropic's facade absorbs `libllama.a` statically, so downstream consumers of entropic never link llama.cpp directly. GPU support is bridged via `ENTROPIC_HAS_CUDA \u2192 GGML_CUDA`. Everything else in the repo (spdlog, Catch2, ryml/rapidyaml) comes in via `FetchContent`; llama.cpp is the one dependency handled as a submodule instead, presumably because it's pinned to an exact commit and patched/tracked deliberately (comments reference \"v2.1.11-pinned commit `253ba110b`\", \"b8420\", etc.).\n\n## How far it reaches into entropic's own source\n\nIt reaches **deep into the inference layer**, but is deliberately walled off from the public C API:\n\n- **Direct wrapper files** \u2014 `src/inference/llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler.{h,cpp}`, `llama_cpp_tokenizer.{h,cpp}` `#include <llama.h>` directly and implement entropic's `IInferenceBackend`/`ISampler`/`ITokenizer` interfaces against the raw llama.cpp C API.\n- **Several other `.cpp` files in `src/inference/`** also `#include <llama.h>` directly: `adapter_manager.cpp`, `speculative_compat.cpp`, `grammar_registry.cpp`, `orchestrator.cpp` \u2014 plus `interface_factory.cpp`, `secondary_model_loader.cpp`, and `inference_c_api.cpp` which pull in `llama_cpp_backend.h`.\n- **Public headers leak llama.cpp types via forward declarations**, not full includes: `include/entropic/inference/adapter_manager.h`, `orchestrator.h`, and `speculative_compat.h` forward-declare `struct llama_model`, `llama_context`, `llama_adapter_lora` and expose them in function signatures (`llama_model*`, `llama_context*`). So llama.cpp's type names appear in entropic's own public interface headers, even though the real `<llama.h>` isn't included there.\n- **Build-level reach**: `src/inference/CMakeLists.txt` adds `extern/llama.cpp/common` and `extern/llama.cpp/vendor` (for `stb_image.h`) as private include dirs, and links `llama`, `llama-common`, and `mtmd` \u2014 so entropic reaches past `llama.h` itself into llama.cpp's `common/` helper code (`common.h`, `sampling.h`, `speculative.h`) and its vendored third-party headers.\n- **A compatibility shim exists specifically because of an upstream limitation**: `speculative_compat.{h,cpp}` explicitly documents that it duplicates logic from `extern/llama.cpp/common/speculative.cpp` because that check is `static`/file-private in llama.cpp at the pinned commit and can't be called directly \u2014 so entropic re-implements it.\n- **Tests reach in too**: `tests/model/*.cpp` (real-model tests) and several `tests/unit/inference/*.cpp` files exercise the llama.cpp-backed code paths directly (e.g. `backend_real_model_smoke_test.cpp`, `vocab_only_smoke_test.cpp`).\n\nSo the boundary is: `IInferenceBackend`/`ISampler`/`ITokenizer` interfaces plus opaque/forward-declared `llama_model*`/`llama_context*` pointers form the seam, but the seam is porous at the header level (raw llama.cpp pointer types appear in entropic's own headers) and the inference `.so` as a whole is thoroughly built against llama.cpp's C API and its `common/` support code, not just a thin binding layer.",
+  "ttft_ms": 2953,
+  "ttft_stream_ms": 2362,
+  "time_to_request_ms": 799,
+  "type": "result",
+  "duration_ms": 39953,
+  "uuid": "41b9f7a0-494f-4ebb-9017-2a54355a824f"
+}

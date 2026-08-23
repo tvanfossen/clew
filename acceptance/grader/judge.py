@@ -31,10 +31,18 @@ from dataclasses import dataclass
 
 VERDICTS: tuple[str, ...] = ("HIT", "MISS")
 
-## Attempts per judge call and the pause between them. Three rides out a busy window without
-## turning a genuinely broken invocation into a long hang.
-ASK_ATTEMPTS = 3
-ASK_BACKOFF_SECONDS = 4
+## Attempts per judge call and the linear backoff between them — 0s, 60s, 120s, 180s: TEN MINUTES
+## of patience in total, then it gives up.
+##
+## SIZED FOR A CAPACITY REFUSAL, NOT A NETWORK BLIP. The previous 3 x 4s covered twelve seconds,
+## and a capacity refusal is measured in minutes — this account hit one naming a reset hours
+## away. Measured consequence: seven of twenty graded cells came back majority-unruled, each
+## having exhausted every attempt inside the same twelve seconds.
+##
+## Bounded on purpose. An unbounded retry would hang a ninety-cell grade on one bad cell, and a
+## grade that never finishes is worse than one with a named gap in it.
+ASK_ATTEMPTS = 4
+ASK_BACKOFF_SECONDS = 60
 DEFAULT_TIMEOUT = 180
 
 _HEADER = re.compile(r"^#\s+Q\d+\s*[—–-].*$", re.MULTILINE)
@@ -156,8 +164,19 @@ def ask(prompt: str, model: str, timeout: int = DEFAULT_TIMEOUT) -> Reply:
         if attempt:
             time.sleep(ASK_BACKOFF_SECONDS * attempt)
         try:
+            ## STDIN EXPLICITLY CLOSED. The CLI warns "no stdin data received in 3s,
+            ## proceeding without it" when it inherits an idle stdin, and the same call
+            ## measured 8.9s with stdin inherited against 3.4s from /dev/null. A COST fix,
+            ## not a correctness one — stdin was tested as a suspect for the rc=1 failures
+            ## and cleared, both forms succeed. But this grid makes ~2,244 judge calls, so a
+            ## few seconds each is hours of a grade spent waiting for input that never comes.
             done = subprocess.run(
-                argv, capture_output=True, text=True, timeout=timeout, check=False
+                argv,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+                stdin=subprocess.DEVNULL,
             )
         except subprocess.TimeoutExpired as exc:
             last = Reply(error=f"timeout after {timeout}s: {exc}")
@@ -165,10 +184,12 @@ def ask(prompt: str, model: str, timeout: int = DEFAULT_TIMEOUT) -> Reply:
         except OSError as exc:
             return Reply(error=f"transport: {exc}")
         if done.returncode != 0:
-            last = Reply(
-                error=f"rc={done.returncode} after {attempt + 1} attempt(s): "
-                f"{done.stderr.strip()[:300]}"
-            )
+            ## STDOUT TOO, NOT JUST STDERR. Measured on the weekend grid: seven cells recorded
+            ## "rc=1 after 3 attempt(s):" with NOTHING after the colon, because the CLI puts its
+            ## explanation on stdout and only the empty stderr was kept. A recorded reason that
+            ## says only "it failed" is the tally this field replaced.
+            detail = (done.stderr.strip() or done.stdout.strip())[:300]
+            last = Reply(error=f"rc={done.returncode} after {attempt + 1} attempt(s): {detail}")
             continue
         try:
             return Reply(text=str(json.loads(done.stdout).get("result") or ""))

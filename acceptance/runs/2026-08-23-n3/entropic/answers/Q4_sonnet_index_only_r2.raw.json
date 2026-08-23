@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 34505,
+  "num_turns": 5,
+  "stop_reason": "end_turn",
+  "session_id": "422982b3-2ad9-4cd8-bdc3-c5d61e346d7d",
+  "total_cost_usd": 0.12069479999999999,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 10098,
+    "cache_read_input_tokens": 261489,
+    "output_tokens": 2629,
+    "output_tokens_details": {
+      "thinking_tokens": 413
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 10098,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1590,
+        "cache_read_input_tokens": 57329,
+        "cache_creation_input_tokens": 2271,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2271
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1620,
+      "outputTokens": 15,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001695,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 10,
+      "outputTokens": 2629,
+      "cacheReadInputTokens": 261489,
+      "cacheCreationInputTokens": 10098,
+      "webSearchRequests": 0,
+      "costUSD": 0.11899980000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I have enough to answer. One caveat worth stating up front: the index's thread layer is derived from AST spawn-site pattern matching (`source: ast_spawn`, `confidence: medium`) \u2014 it's a good map of `std::thread`/pthread call sites this build knows how to recognize, not a certified enumeration of every concurrent path in the binary.\n\n## What runs off the caller's thread\n\nThe index resolves five first-party thread rows (a sixth, `listen_after_bind`, is a test-fixture mock in `tests/unit/mcp/transport_sse_test.cpp` and not production code):\n\n**1. `ExternalBridge::accept_loop`** (`src/facade/external_bridge.cpp:917`, spawned from `ExternalBridge::start`)\nA background accept loop that `poll()`s the listen socket and, per connection, spawns *another* thread inline (`ct->thread = std::thread([...]{ serve_client(...); })`) after checking `SO_PEERCRED` via `peer_uid_matches`. So this is actually two thread tiers: one long-lived accept thread, plus one short-lived per-client serve thread for each connection. Safety: the per-client thread closes its own fd and flips an atomic `finished` flag on exit rather than touching the shared list directly; the accept thread then reaps finished entries under `client_threads_mutex_` (RAII `lock_guard`) before pushing the new one \u2014 the dossier's `sections` entry confirms that lock covers `push_back`/`reap_finished_clients_locked`. `stop()` handles shutdown races by `shutdown(fd, SHUT_RDWR)` to unblock anyone stuck in a blocking read.\n\n**2. `HealthMonitor::monitor_loop`** (`src/mcp/health_monitor.cpp:92`, spawned from `HealthMonitor::start`)\nPolls watched server entries every 500ms. Safety: mutates the shared `watched_` map only inside `std::lock_guard<std::mutex> lock(watched_mutex_)` \u2014 confirmed as the lock held both by `monitor_loop` itself and, transitively, by `check_server` (its only callee, called while the lock is held). Sleeping between polls uses a *separate* `wake_mutex_`/`wake_cv_` (a `condition_variable::wait_for`) so the shutdown flag `running_` can be checked without holding `watched_mutex_` \u2014 i.e., it deliberately drops the data lock before waiting so a `stop()` call from another thread isn't blocked behind it.\n\n**3. `StdioTransport::stderr_reader_loop`** (`src/mcp/transport_stdio.cpp:164`, spawned from `StdioTransport::open`)\nPolls the child process's stderr fd and forwards lines to spdlog. Safety: this one has **no lock at all** in the dossier \u2014 it only reads a plain fd (`stderr_fd_`) and calls `logger->warn(...)` (spdlog's own internal locking covers the log sink), and loops on the `connected_` flag. It touches no other shared mutable state, so it's safe by not sharing anything, not by explicit synchronization.\n\n**4. `SSETransport::sse_reader_loop`** (`src/mcp/transport_sse.cpp:107`, spawned from `SSETransport::open`)\nRuns `httplib::Client::Get` with a streaming content-receiver callback that calls `process_sse_line` \u2192 `handle_sse_data` for each SSE line. Safety concern here: `process_sse_line` writes `current_event_type_` **with no lock held** (`writes`/`locks_held` both empty in the dossier). That's only safe if nothing else touches `current_event_type_` concurrently \u2014 the index can't confirm that from this side; I'd want to grep `handle_sse_data` and any main-thread readers of `current_event_type_` before calling this one clean. Flagging it as the weakest-looking link of the five.\n\n## Summary of the safety pattern\n\nAcross the three genuinely-background loops (`accept_loop`, `monitor_loop`, `stderr_reader_loop`) the consistent idiom is: RAII `lock_guard`/`unique_lock` over a dedicated per-resource mutex (`client_threads_mutex_`, `watched_mutex_`), atomics for cross-thread flags (`finished`, `running_`, `connected_`) checked without a lock, and condition variables used for wakeup rather than busy-polling shared state. `sse_reader_loop`'s `current_event_type_` write is the one case where the index shows no lock and no atomic \u2014 that's a gap in the index's evidence, not a confirmed bug, but it doesn't fit the pattern the other three follow and is worth eyeballing directly in `transport_sse.h`/`.cpp`.",
+  "ttft_ms": 1896,
+  "ttft_stream_ms": 1286,
+  "time_to_request_ms": 87,
+  "type": "result",
+  "duration_ms": 34367,
+  "uuid": "dcbe428b-5a13-475a-a7b8-0c6e6a228fe0"
+}

@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 39119,
+  "num_turns": 10,
+  "stop_reason": "end_turn",
+  "session_id": "3db9225e-fd32-4ade-8d4a-22fb041f042b",
+  "total_cost_usd": 0.2440478,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 32258,
+    "cache_read_input_tokens": 423714,
+    "output_tokens": 2862,
+    "output_tokens_details": {
+      "thinking_tokens": 287
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 32258,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1479,
+        "cache_read_input_tokens": 78554,
+        "cache_creation_input_tokens": 536,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 536
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1550,
+      "outputTokens": 15,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001625,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 14,
+      "outputTokens": 2862,
+      "cacheReadInputTokens": 423714,
+      "cacheCreationInputTokens": 32258,
+      "webSearchRequests": 0,
+      "costUSD": 0.24242280000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Now I have the whole chain grounded in the actual source. Here's the trace.\n\n## What actually decides it\n\nA tool call from the model lands in `ToolExecutor::process_single_call` (`src/mcp/tool_executor.cpp`), which runs a fixed gauntlet **before** the call ever reaches a server. Any one of these can reject it, and it's checked in this order (`check_call_preconditions`, with the pre-tool hook running even earlier):\n\n1. **Pre-tool hook** (`PRE_TOOL_CALL`) \u2014 a plugin can veto outright, informationally, before anything else.\n2. **Anti-spiral hard block** \u2014 same tool called too many times consecutively. Cheap, checked first among preconditions.\n3. **Schema check** \u2014 args validated against the tool's JSON Schema (required fields, enum, type).\n4. **MCP authorization** (`MCPAuthorizationManager::check_access`) \u2014 per-identity key set. Only enforced if the identity was ever `register_identity()`'d; unregistered identities pass through untouched (backward-compat default).\n5. **Tier `allowed_tools`** (gh#83) \u2014 if the identity is a locked tier with a declared allowlist, the call name must be literally in it.\n6. **Duplicate-call detection** \u2014 same name+args seen recently \u2192 short-circuited with the cached result or a circuit-breaker message after 3 repeats.\n7. **Approval** \u2014 `check_approval()`. This is where the user's configured **allow/deny lists** actually enter:\n   - `loop_config_.auto_approve_tools` short-circuits everything (approve all), OR\n   - `server_manager_.is_explicitly_allowed(name, args_json)` \u2192 delegates to `PermissionManager::is_allowed`.\n   - If neither, and an `on_tool_call` callback is registered, that callback is invoked and the call is treated as approved unconditionally (there's no actual veto path back from the callback in this code \u2014 calling it *is* the approval).\n   - If no callback exists, it's denied by default (default-deny).\n\nOnly after clearing all of that does `execute_tool` run, which calls `ServerManager::execute()` \u2014 and that itself does a **second**, redundant deny check (`permissions_.is_denied(tool_name, pattern)`) right before routing to the actual server. So the deny list is actually consulted twice on two different paths (`check_approval`'s `is_allowed` and `execute`'s `is_denied`), while the allow list is only consulted once, inside `check_approval`.\n\n## The permission lists themselves\n\n`PermissionsConfig` (`include/entropic/types/config.h`) holds `allow` and `deny` as vectors of glob patterns, user-configurable (e.g. via `~/.entropic/config.yaml` / `.entropic/config.local.yaml`), fed into a `PermissionManager` owned by `ServerManager`.\n\n**What one pattern in the list does**, per `PermissionManager::pattern_matches` (fnmatch semantics, from `permission_manager.h`'s doc comment and the implementation):\n\n- The pattern is split at the first `:` into a tool-name glob and an optional argument-pattern glob.\n- The tool-name portion is matched against the fully-qualified tool name (`server.tool`) via `fnmatch`. E.g. `\"filesystem.*\"` matches every filesystem tool.\n- If there's no `:`, a tool-name match alone is sufficient \u2014 the pattern hits regardless of arguments.\n- If there is a `:`, the *full* pattern (`tool_name:arg_pattern`) must also `fnmatch`-match the full call signature (`tool_name:serialized_args`), e.g. `\"bash.execute:python*\"` only matches `bash.execute` calls whose serialized-args pattern starts with `python`.\n\nAnd the precedence rule that actually governs the outcome: **deny beats allow.** Concretely, `ServerManager::execute` denies on any deny-list match regardless of what the allow list says (that check runs unconditionally at execution time), and `check_approval`'s `is_allowed` lookup is only ever consulted to *skip prompting* \u2014 it never overrides a deny. A tool with no match in either list is not auto-denied by `PermissionManager` itself; it falls through to the approval callback, and absent that callback, `check_approval` denies it by default. So the net model is: default-deny, allow-list bypasses the prompt, deny-list is an unconditional veto checked at two separate points in the call path.",
+  "ttft_ms": 2996,
+  "ttft_stream_ms": 1752,
+  "time_to_request_ms": 418,
+  "type": "result",
+  "duration_ms": 38929,
+  "uuid": "7094847d-4629-42ee-9cb4-6666c38beeb4"
+}

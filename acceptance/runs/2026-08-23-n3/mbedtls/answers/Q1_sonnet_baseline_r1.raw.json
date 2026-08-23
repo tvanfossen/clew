@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 44291,
+  "num_turns": 8,
+  "stop_reason": "end_turn",
+  "session_id": "fe29404a-f3fa-4c69-8c4b-f4bf66a1969a",
+  "total_cost_usd": 0.2459384,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 38234,
+    "cache_read_input_tokens": 283522,
+    "output_tokens": 3464,
+    "output_tokens_details": {
+      "thinking_tokens": 1374
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 38234,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2007,
+        "cache_read_input_tokens": 58593,
+        "cache_creation_input_tokens": 363,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 363
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1549,
+      "outputTokens": 17,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001634,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 12,
+      "outputTokens": 3464,
+      "cacheReadInputTokens": 283522,
+      "cacheCreationInputTokens": 38234,
+      "webSearchRequests": 0,
+      "costUSD": 0.24430439999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## What runs concurrently: nothing, by default\n\nmbedtls doesn't spawn threads itself \u2014 there's no `pthread_create`/`std::thread`/`CreateThread` anywhere in `library/`. It is a passive library; any concurrency in a program using it comes entirely from the *application* creating threads and calling into mbedtls/PSA from more than one of them.\n\n## The mutex layer is compiled out entirely\n\nIn the shipped default `include/mbedtls/mbedtls_config.h`:\n\n```\n2185://#define MBEDTLS_THREADING_ALT\n2196://#define MBEDTLS_THREADING_PTHREAD\n3787://#define MBEDTLS_THREADING_C\n```\n\nAll three are commented out. That has a cascading effect:\n\n- `library/threading.c`'s entire body sits under `#if defined(MBEDTLS_THREADING_C)`. With it undefined, the file compiles to an essentially empty translation unit \u2014 the `mbedtls_mutex_init/free/lock/unlock` function pointers aren't even defined.\n- Every single call site that would take a lock is wrapped in the same guard, e.g.:\n  - `entropy.c`, `ctr_drbg.c`, `hmac_drbg.c`, `rsa.c` \u2014 per-context mutex around entropy/DRBG/RSA state\n  - `ssl_cache.c`, `ssl_cookie.c`, `ssl_ticket.c` \u2014 session cache / cookie / ticket context locks\n  - `x509_crt.c` \u2014 `mbedtls_threading_readdir_mutex` around `readdir()`\n  - `psa_crypto.c`, `psa_crypto_slot_management.c`, `psa_crypto_random.c` \u2014 PSA global-data mutex, RNG-data mutex, key-slot mutex\n  - `platform_util.c` \u2014 `mbedtls_threading_gmtime_mutex` around the `gmtime()` fallback\n  - `memory_buffer_alloc.c` \u2014 heap-allocator mutex\n\nSo under default configuration, none of these locks/unlocks are even present in the compiled binary \u2014 they're dead code paths, not runtime no-ops. **Nothing is protected**, because there is nothing to protect against: the default build gives no thread-safety guarantee at all.\n\nThe header comments make this an explicit contract, not an oversight \u2014 `mbedtls_config.h` warns at the `MBEDTLS_SSL_PROTO_TLS1_3`, `MBEDTLS_USE_PSA_CRYPTO`, and `MBEDTLS_PSA_CRYPTO_C` options that if you touch these from multiple threads you **must** enable `MBEDTLS_THREADING_C` yourself (and then also `MBEDTLS_THREADING_PTHREAD` or provide `MBEDTLS_THREADING_ALT`) \u2014 mbedtls assumes single-threaded use, or at minimum non-shared contexts, unless the integrator opts in.\n\n**Bottom line:** as shipped, mbedtls is a single-threaded-use library. The mutex/thread code exists in source but is entirely conditional; turning on concurrent use of shared contexts without enabling `MBEDTLS_THREADING_C` + a backend is undefined behavior, not \"protected but slow.\"",
+  "ttft_ms": 2896,
+  "ttft_stream_ms": 2206,
+  "time_to_request_ms": 202,
+  "type": "result",
+  "duration_ms": 44384,
+  "uuid": "b48714a1-76cb-4c3a-8cdc-bc4a9160f9b8"
+}

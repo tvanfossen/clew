@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 20683,
+  "num_turns": 3,
+  "stop_reason": "end_turn",
+  "session_id": "1358af89-a110-460f-b8d5-6c2b54c85f78",
+  "total_cost_usd": 0.19278,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 38410,
+    "cache_read_input_tokens": 116925,
+    "output_tokens": 1412,
+    "output_tokens_details": {
+      "thinking_tokens": 18
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 38410,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1127,
+        "cache_read_input_tokens": 48292,
+        "cache_creation_input_tokens": 10846,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 10846
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1553,
+      "outputTokens": 14,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.0016229999999999999,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 6,
+      "outputTokens": 1412,
+      "cacheReadInputTokens": 116925,
+      "cacheCreationInputTokens": 38410,
+      "webSearchRequests": 0,
+      "costUSD": 0.191157,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "This is well-documented directly in the source, so the answer is grounded in `src/duplicates.rs`.\n\n**What counts as a duplicate**\n\nTwo functions are grouped as duplicates when their AST subtrees hash identically \u2014 same node kinds in the same shape, via the substrate's structural fingerprinting (`lang_parsing_substrate::fingerprint` / `duplicate_groups`). This is deliberately text-blind: identifier names, literals, and formatting don't matter, only tree shape. That means it catches:\n\n- **Type\u20111 clones** \u2014 byte-identical bodies\n- **Type\u20112 clones** \u2014 renamed identifiers/literals but structurally identical\n\nGroups are sorted largest-group-first, then by node count, so the highest-value clusters surface first. Each member also gets a `content_hash`-derived `group_id` that's stable across runs (so you can diff \"did this clone shrink after refactoring\" between two reports), and optionally a Levenshtein-based `byte_diff_percent` against the group's first member, capped at bodies under `MAX_DIFF_CHARS` (20,000 chars) for cost reasons.\n\nTwo filters strip out low-value noise before reporting (both on by default, opt-out via CLI flags):\n- **Fixture pairs** \u2014 groups where members sit under matched `pass`/`fail`-style (or `compliant`/`noncompliant`, `good`/`bad`, `accept`/`reject`, `valid`/`invalid`) directory pairs with otherwise-identical paths \u2014 the classic CERT-C `tests/pass/CWE-190.c` vs `tests/fail/CWE-190.c` case, intentionally near-identical by design, not a real extraction candidate.\n- **Trivial noise** \u2014 groups where every member's body is \u22643 lines (getters, one-assert tests, dispatch stubs) *and* the group repeats fewer than 4 times. A one-line accessor can still clear the 20-AST-node floor purely from type annotations/field-access chains, so node count alone doesn't filter it; line span does. Repeat \u22654 times and it's kept anyway, on the theory that's likely deliberate copy-paste worth a shared trait.\n\nThere's also a hard floor: functions under 20 AST nodes are skipped entirely regardless of grouping, since two single-line getters hashing alike isn't meaningful.\n\n**What it deliberately misses**\n\n**Type\u20113 near-miss clones** \u2014 functions that are almost the same shape but differ by an extra statement, a reordered branch, an inserted guard, etc. The doc comment is explicit: this would require \"a fuzzy similarity threshold the substrate deliberately doesn't provide.\" The design commits to exact structural-hash equality only, no fuzzy/similarity scoring.\n\n**Why it's not part of the normal analysis pass**\n\nGated behind `--find-duplicates` rather than folded into the default `--recursive` run, for a cost reason: the per-function metrics (McCabe, cognitive complexity, SLOC, etc.) come for free from the single parse pass main.rs already does per file. Duplicate detection is corpus-wide by nature \u2014 it has to fingerprint and compare every function against every other function across the whole codebase \u2014 and requires a second parse of every file to build that corpus fingerprint. That's a materially different cost profile (O(corpus) vs. O(single file)), so it's opt-in rather than bundled into the default pass.",
+  "ttft_ms": 2875,
+  "ttft_stream_ms": 2242,
+  "time_to_request_ms": 413,
+  "type": "result",
+  "duration_ms": 20234,
+  "uuid": "ebf3ea22-03be-4ecc-b616-4083fbe59146"
+}

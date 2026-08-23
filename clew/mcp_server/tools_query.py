@@ -23,7 +23,9 @@ import re
 import json
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
+
+from pydantic import Field
 
 from .. import query as q
 from .. import wire
@@ -1694,15 +1696,58 @@ class QueryTools:
     ## @req REQ-DDB-QUERY-010
     def dossier(
         self,
-        subject: str | list[str],
+        subject: Annotated[
+            str | list[str],
+            Field(
+                description=(
+                    "One symbol name, or a list of up to 8 for one reply. A function, variable, "
+                    "macro, class, lock, thread, requirement id or config symbol."
+                )
+            ),
+        ],
         *,
-        kind: str | None = None,
-        depth: int = 1,
-        direction: str = "forward",
-        max_neighbors: int = 8,
-        qualified: str | None = None,
-        target: str | None = None,
-        max_body_lines: int = q.DEFAULT_BODY_LINES,
+        kind: Annotated[
+            str | None,
+            Field(description="Narrow to one kind when a name resolves to several."),
+        ] = None,
+        depth: Annotated[
+            int,
+            Field(
+                description=(
+                    "1 is the symbol and its immediate neighbours. 2-6 also walks the call and "
+                    "dataflow graph and returns a bounded causal chain."
+                )
+            ),
+        ] = 1,
+        direction: Annotated[
+            str, Field(description="'forward' for downstream, 'back' for upstream, on depth >= 2.")
+        ] = "forward",
+        max_neighbors: Annotated[
+            int, Field(description="Cap on callers and callees listed per symbol.")
+        ] = 8,
+        qualified: Annotated[
+            str | None,
+            Field(
+                description=(
+                    "The exact signature from a previous reply's `candidates`, to pick one "
+                    "overload. Single name only."
+                )
+            ),
+        ] = None,
+        target: Annotated[
+            str | None,
+            Field(description="Repo root or slug to query; omit for the default target."),
+        ] = None,
+        max_body_lines: Annotated[
+            int,
+            Field(
+                description=(
+                    "Lines of VERBATIM SOURCE returned in `body`, including inline comments. "
+                    "Raise it when a reply comes back `truncated: true` — this is how you read "
+                    "the actual code without opening the file."
+                )
+            ),
+        ] = q.DEFAULT_BODY_LINES,
     ) -> dict[str, Any]:
         """A LIST IN THE SAME ARGUMENT, NOT A SECOND ARGUMENT. The alternative — keeping
         `function: str` and adding `functions: list[str]` — puts two ways to name a symbol

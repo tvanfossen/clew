@@ -1,0 +1,253 @@
+{
+  "target": "brandon-arrendondo/knots",
+  "commit": "9be25b32bebb2040a90946beac087a3d3b4d72f6",
+  "rubric_version": "3.0.0",
+  "rubric_digest": "017dc0b19f663b72",
+  "seed": 7,
+  "models": [
+    "sonnet"
+  ],
+  "replicates": 3,
+  "cells": [
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q4",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 0
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q4",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 1
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q4",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 2
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q4",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 3
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q4",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 4
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q4",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 5
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q3",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 6
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q3",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 7
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q3",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 8
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q3",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 9
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q3",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 10
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q3",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 11
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q5",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 12
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q5",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 13
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q5",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 14
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q5",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 15
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q5",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 16
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q5",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 17
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q1",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 18
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q1",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 19
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q1",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 20
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q1",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 21
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q1",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 22
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q1",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 23
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q2",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 24
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q2",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 1,
+      "order": 25
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q2",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 26
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q2",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 2,
+      "order": 27
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q2",
+      "arm": "baseline",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 28
+    },
+    {
+      "target": "brandon-arrendondo/knots",
+      "question_id": "Q2",
+      "arm": "index_only",
+      "model": "sonnet",
+      "replicate": 3,
+      "order": 29
+    }
+  ]
+}

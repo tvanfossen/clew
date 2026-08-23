@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 14084,
+  "num_turns": 3,
+  "stop_reason": "end_turn",
+  "session_id": "fa7d8ae2-e5f1-4a43-b837-241ecbae899c",
+  "total_cost_usd": 0.1610382,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 31387,
+    "cache_read_input_tokens": 124716,
+    "output_tokens": 883,
+    "output_tokens_details": {
+      "thinking_tokens": 14
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 31387,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 707,
+        "cache_read_input_tokens": 51629,
+        "cache_creation_input_tokens": 2268,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2268
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1630,
+      "outputTokens": 15,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001705,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 6,
+      "outputTokens": 883,
+      "cacheReadInputTokens": 124716,
+      "cacheCreationInputTokens": 31387,
+      "webSearchRequests": 0,
+      "costUSD": 0.15933319999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Both live in `src/complexity.rs` and share the identical weighted formula over the same six inputs (cognitive, sloc, nesting, test_score, doc_score, state_coupling), but they differ in exactly one place:\n\n- **`calculate_aird`** (line 1433) normalizes `cognitive` and `sloc` with `.min(1.0)` caps before weighting, then rounds and clamps the final result to `[0, 100]`, returning a `u32`. This is the score used for the CI gate / reported metric.\n- **`calculate_aird_raw`** (line 1463) uses the *same* formula but leaves `cognitive_norm` and `sloc_norm` uncapped (only `nesting`, `test`, `doc`, `coupling` stay clamped, per the inline comment \"nesting rarely exceeds cap; keep clamped\"). It returns an unclamped `f64` that can exceed 100 when a function's cognitive complexity or SLOC blows past the normalization denominators (75 and 200 respectively).\n\nWhy anyone wants the second one: the doxygen comment on `calculate_aird_raw` states its purpose directly \u2014 it's for **progress tracking on very large/complex functions**. Once a function's cognitive or SLOC value is large enough to saturate the capped AIRD at 100, `calculate_aird` will report 100 both before and after a partial refactor, giving no feedback that the refactor helped. `calculate_aird_raw` keeps climbing above 100 uncapped, so as the function is incrementally simplified the raw score visibly decreases even while the capped, gate-facing score is still pinned at the ceiling \u2014 it exists purely to give a non-flat signal in that saturated regime.\n\nIts only callers are `aird_tips` and `raw_aird_suffix` in `src/output.rs`, both output/reporting helpers \u2014 `raw_aird_suffix`'s brief confirms this: it emits the `raw AIRD (uncapped): N` line \"once cognitive or sloc has hit its cap,\" i.e. it's purely a display/diagnostic aid layered on top of the same underlying formula, not a second scoring path used for gating.",
+  "ttft_ms": 1958,
+  "ttft_stream_ms": 1393,
+  "time_to_request_ms": 104,
+  "type": "result",
+  "duration_ms": 13578,
+  "uuid": "a445bb1e-1599-4773-b1dc-6e87690ac280"
+}

@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 27204,
+  "num_turns": 8,
+  "stop_reason": "end_turn",
+  "session_id": "93baef14-39d5-4b4d-a5d7-a902efb3fe96",
+  "total_cost_usd": 0.18878760000000003,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 30569,
+    "cache_read_input_tokens": 221188,
+    "output_tokens": 2048,
+    "output_tokens_details": {
+      "thinking_tokens": 284
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 30569,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1101,
+        "cache_read_input_tokens": 52282,
+        "cache_creation_input_tokens": 791,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 791
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1664,
+      "outputTokens": 22,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001774,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 10,
+      "outputTokens": 2048,
+      "cacheReadInputTokens": 221188,
+      "cacheCreationInputTokens": 30569,
+      "webSearchRequests": 0,
+      "costUSD": 0.18701360000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "This gives a concrete, complete picture. Here's what the index shows.\n\n**Mechanism** (`include/mbedtls/private_access.h`): `MBEDTLS_PRIVATE(member)` is a macro that struct-field declarations in the public headers are wrapped in \u2014 e.g. `int MBEDTLS_PRIVATE(nr);` inside `mbedtls_aes_context`. The macro is gated by an `#ifndef`/`#ifdef` pair on `MBEDTLS_ALLOW_PRIVATE_ACCESS`:\n\n- If `MBEDTLS_ALLOW_PRIVATE_ACCESS` is **not** defined, `MBEDTLS_PRIVATE(member)` expands to `private_##member` \u2014 so `nr` becomes the field name `private_nr`. Any external code written against the \"obvious\" field name (`ctx.nr`) simply fails to compile.\n- If it **is** defined, `MBEDTLS_PRIVATE(member)` expands to just `member` \u2014 the field keeps its real, natural name and is directly accessible.\n\nSo the wrapper doesn't add real C access control (there's no `private:` in C) \u2014 it's a compile-time tripwire. `library/common.h:132` documents the intent directly: \"Although structs defined in header files are publicly available, their members are private and should not be accessed by the user.\" Renaming the field is what turns \"should not\" into \"does not compile.\"\n\n**Who the opt-out is turned on for**, per the macro's own `gated_by`/definition sites recorded in the index:\n\n1. **`library/common.h:132`** \u2014 `#define MBEDTLS_ALLOW_PRIVATE_ACCESS`. This header is pulled into the library's own `.c` translation units. So **mbedtls's own library implementation** defines the opt-out for itself, meaning internal code accesses struct fields by their real names (`ctx.nr`, not `ctx.private_nr`).\n2. **`programs/ssl/ssl_client2.c:8`** and **`programs/ssl/ssl_server2.c:8`** \u2014 the same `#define` appears at the top of these two sample/test programs, before they include any mbedtls headers.\n\nThat's the whole set the index finds. The implication: everyone else \u2014 a genuine third-party application linking against the public headers without that `#define` \u2014 gets the name-mangled `private_*` fields and is expected to go through the public accessor API rather than touch struct internals directly. `ssl_client2.c`/`ssl_server2.c` are two of mbedtls's own bundled example/test programs, so they've deliberately opted back into direct-field access (likely because they're used for interop/fuzz/regression testing and want to poke at internals the public API doesn't expose) \u2014 they are not evidence that \"normal\" applications are meant to do the same. The convention name (`MBEDTLS_ALLOW_PRIVATE_ACCESS`) and the doc comment both frame this as an explicit, deliberate opt-out for code that accepts it's binding itself to internals that can change across versions, not a general permission.\n\nOne gap: the index can tell me the opt-out is `#define`d in exactly these three files' first ~10 lines, but it can't read the surrounding comment in `ssl_client2.c`/`ssl_server2.c` explaining *why* those two programs specifically need it \u2014 that would take reading the source directly.",
+  "ttft_ms": 2923,
+  "ttft_stream_ms": 1844,
+  "time_to_request_ms": 122,
+  "type": "result",
+  "duration_ms": 27363,
+  "uuid": "3e4e527e-7e18-4e12-9af5-001754ddca1c"
+}

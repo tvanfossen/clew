@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 14014,
+  "num_turns": 3,
+  "stop_reason": "end_turn",
+  "session_id": "a0c28fa8-6c5e-4dc0-bc57-c3980bfd88ea",
+  "total_cost_usd": 0.0577864,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 4013,
+    "cache_read_input_tokens": 152812,
+    "output_tokens": 945,
+    "output_tokens_details": {
+      "thinking_tokens": 18
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 4013,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 728,
+        "cache_read_input_tokens": 51658,
+        "cache_creation_input_tokens": 2932,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2932
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1630,
+      "outputTokens": 16,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.00171,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 6,
+      "outputTokens": 945,
+      "cacheReadInputTokens": 152812,
+      "cacheCreationInputTokens": 4013,
+      "webSearchRequests": 0,
+      "costUSD": 0.056076400000000005,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The two functions live side by side in `src/complexity.rs` (`calculate_aird` at line 1433, `calculate_aird_raw` at 1463) and share the exact same weighted formula \u2014 cognitive\u00d755 + sloc\u00d715 + nesting\u00d715 + test\u00d715 \u2212 doc\u00d715 + coupling\u00d710 \u2014 over the same six normalized inputs. The difference is entirely in the normalization:\n\n- **`calculate_aird`** clamps every one of `cognitive_norm`, `sloc_norm`, etc. to `.min(1.0)` before weighting, then rounds and clamps the final sum to `[0, 100]`, returning a `u32`. This is the score used everywhere else (`collect_function_metrics` calls it) \u2014 it's the stable, bounded 0\u2013100 metric meant for CI gating and reporting.\n- **`calculate_aird_raw`** leaves `cognitive_norm` and `sloc_norm` *uncapped* (only `nesting_norm`, `test_norm`, `doc_norm`, `coupling_norm` stay clamped \u2014 the comment even flags this: \"nesting rarely exceeds cap; keep clamped\"), and returns an unclamped `f64` that can exceed 100.\n\n**Why anyone wants the second one:** it exists to solve a specific blind spot in the first. Once a function's cognitive complexity crosses 75 or SLOC crosses 200, `calculate_aird` pins at 100 \u2014 the ceiling \u2014 and *stays* at 100 no matter how much worse the function gets. If you're refactoring a huge, gnarly function, the capped score gives you zero feedback: it reads \"100\" before and after every intermediate change until you've dropped below the cap. `calculate_aird_raw` keeps growing past 100, so it can still distinguish \"still bad\" from \"getting better\" while the capped score is saturated. Concretely, it's consumed by `raw_aird_suffix` (in `src/output.rs`), which only prints the \"raw AIRD (uncapped): N\" line when `cognitive >= 75 || sloc >= 200` \u2014 i.e., exactly when the capped metric has lost its resolution \u2014 giving a progress signal during refactoring that the gated/reported score can no longer provide.",
+  "ttft_ms": 1872,
+  "ttft_stream_ms": 1212,
+  "time_to_request_ms": 101,
+  "type": "result",
+  "duration_ms": 13480,
+  "uuid": "dab1eb42-2f31-4833-ad49-db241a8dbce7"
+}

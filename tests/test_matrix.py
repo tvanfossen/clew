@@ -291,3 +291,33 @@ def test_probe_distinguishes_a_blocked_probe_from_a_missing_index(
     with pytest.raises(prov.ProvisionError) as caught:
         prov.check_index_tools_reachable(config, tmp_path)
     assert "cannot reach the index" in str(caught.value)
+
+
+## @brief The driver's own output is unbuffered, so a detached run shows progress.
+## @return None.
+## @version 1
+def test_driver_makes_its_output_line_buffered() -> None:
+    """MEASURED ON THE WEEKEND RUN ITSELF. Launched detached with stdout to a file, the grid
+    generated 22 cells while its log held nothing but a single refusal — Python buffers stdout
+    when it is not a tty, so every per-cell line sat in a 8KB buffer.
+
+    A five-hour run whose only progress signal is "the process is still alive" is a run an
+    operator cannot supervise: they cannot tell generation from a hang, and the artifacts are the
+    only evidence. Requiring them to remember `python -u` puts the fix in the invocation, which
+    is precisely where this driver exists to stop putting things.
+
+    @brief Output is flushed as it is produced.
+    @return None.
+    @version 1
+    """
+    import inspect
+
+    src = inspect.getsource(matrix)
+    assert "reconfigure" in src and "line_buffering=True" in src, (
+        "matrix must line-buffer its own stdout; a detached grid is otherwise silent for hours"
+    )
+    ## AND IT MUST BE DONE BEFORE ANY WORK. Reconfiguring after the first phase would leave the
+    ## provisioning output — the part that refuses and matters most — still buffered.
+    assert src.index("reconfigure") < src.index("def drive"), (
+        "the reconfigure must precede drive(), or provisioning output is still buffered"
+    )

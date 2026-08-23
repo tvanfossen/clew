@@ -1,0 +1,38 @@
+{
+  "stem": "Q2_sonnet_baseline_r2",
+  "arm": "baseline",
+  "model": "sonnet",
+  "ok": true,
+  "seconds": 42.071785824984545,
+  "input_tokens": 10,
+  "output_tokens": 3439,
+  "cache_read_tokens": 248076,
+  "cache_creation_tokens": 13856,
+  "cost_usd": 0.14107920000000002,
+  "result_bytes": 4557,
+  "turns": 6,
+  "tool_calls": 5,
+  "non_index_tool_calls": 5,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/docs-db/acceptance/runs/2026-08-23-n3/entropic/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nentropic depends on llama.cpp. How is that dependency brought in, and how far into\nentropic's own source does it reach?\n",
+    "--model",
+    "sonnet",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "tvanfossen/entropic",
+    "question_id": "Q2",
+    "arm": "baseline",
+    "model": "sonnet",
+    "replicate": 2,
+    "order": 15
+  }
+}

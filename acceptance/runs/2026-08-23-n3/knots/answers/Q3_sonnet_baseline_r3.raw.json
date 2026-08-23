@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 19866,
+  "num_turns": 3,
+  "stop_reason": "end_turn",
+  "session_id": "f8cb7efd-2ad3-442c-9167-d0ac6879412c",
+  "total_cost_usd": 0.0707352,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 6771,
+    "cache_read_input_tokens": 144041,
+    "output_tokens": 1321,
+    "output_tokens_details": {
+      "thinking_tokens": 18
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 6771,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1038,
+        "cache_read_input_tokens": 48267,
+        "cache_creation_input_tokens": 6391,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6391
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1541,
+      "outputTokens": 16,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001621,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 6,
+      "outputTokens": 1321,
+      "cacheReadInputTokens": 144041,
+      "cacheCreationInputTokens": 6771,
+      "webSearchRequests": 0,
+      "costUSD": 0.0691142,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Now I have the full picture, straight from `src/coupling.rs`.\n\n**What counts as an edge**\n\nAn edge `file A \u2192 file B` is created only when all of the following hold:\n\n1. **A is a raw import string extracted syntactically** by `lang_parsing_substrate::import_sources` (the tree-sitter substrate's per-language import/include extraction) \u2014 e.g. a JS `./bar` import, a Java `com.example.util.Helper` import, a `#include \"foo.h\"`.\n2. That raw string reduces, via `resolve_candidate`, to a single trailing identifier: strip any path prefix (up to the last `/` or `\\`), strip a trailing extension if it's a *known source extension* (drawn from the same language table that drives `LANGUAGES`/`SUPPORTED_EXTENSIONS`), then strip a namespace separator (`::` or a final `.`).\n3. That candidate identifier matches **exactly one** file's `Path::file_stem()` in the analyzed corpus (`index_module_keys`/`key_counts`).\n4. The match isn't a self-import (`target != path`).\n\nIf all four hold, a directed edge is added to `ImportGraph`, and Ce/Ca/Instability (`ce = |targets|`, `ca` = count of files pointing at this one, `instability = ce/(ce+ca)`, `0.0` when both are zero) are derived purely from this resolved graph. Multiple imports from A to the same B collapse to one edge (`HashSet<String>` targets) \u2014 Ce counts *distinct* files, not raw import statement count.\n\n**What deliberately does not count**\n\n- **Any import that doesn't resolve to a corpus file at all** \u2014 third-party libraries, stdlib imports, unresolvable dynamic `require()`s. These are explicitly excluded so Ce/Ca measure coupling *within the analyzed corpus only*, matching the classic Robert Martin Ce/Ca/Instability scope. The doc comment is explicit that counting externals would inflate Ce for nearly every file and push Instability toward 1.0 corpus-wide, erasing the signal (see the `external_imports_do_not_create_edges` test: importing `numpy` yields `ce = 0`).\n- **Ambiguous stem matches** \u2014 if two or more corpus files share the same `file_stem` (e.g. `pkg_a/utils.py` and `pkg_b/utils.py`, or two different-language `mod.rs`/`utils.js` collisions), the candidate resolves to **no edge at all**, for *either* file, rather than picking one arbitrarily. The rationale stated in the source: \"a wrong edge is worse than a missing one\" (`ambiguous_stem_resolves_to_no_edge` test).\n- **Self-imports** \u2014 even if a file's import string were to resolve back to itself, `resolve_targets` explicitly filters `target != path`.\n\nSo the graph is a best-effort heuristic, not true module resolution \u2014 it never does real path/classpath/package resolution, just stem-matching with a fail-closed policy on ambiguity, and it's scoped to intra-corpus dependencies by design, not total fan-out.",
+  "ttft_ms": 2622,
+  "ttft_stream_ms": 1944,
+  "time_to_request_ms": 185,
+  "type": "result",
+  "duration_ms": 19312,
+  "uuid": "f53fe148-3771-457e-bfcb-014e571faee8"
+}

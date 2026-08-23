@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 43810,
+  "num_turns": 10,
+  "stop_reason": "end_turn",
+  "session_id": "d2ce8b64-e534-4d07-82a5-5b8d8999c3ee",
+  "total_cost_usd": 0.25889840000000003,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 39512,
+    "cache_read_input_tokens": 334172,
+    "output_tokens": 3234,
+    "output_tokens_details": {
+      "thinking_tokens": 199
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 39512,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1776,
+        "cache_read_input_tokens": 59718,
+        "cache_creation_input_tokens": 516,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 516
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1558,
+      "outputTokens": 18,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001648,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 14,
+      "outputTokens": 3234,
+      "cacheReadInputTokens": 334172,
+      "cacheCreationInputTokens": 39512,
+      "webSearchRequests": 0,
+      "costUSD": 0.25725040000000005,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I have everything needed. Here's the walk-through.\n\n## Runtime path: negative int \u2192 string\n\n1. **The code space.** Error codes are packed 16-bit values in the negative range, split into a *high-level* module field (bits masked by `0xFF80`) and a *low-level* field (`~0xFF80`) \u2014 see `include/mbedtls/error.h:17-91`. A single `int` a caller receives, e.g. `-0x2700`, can carry both a high-level code (e.g. an X.509 or PK failure) and a low-level cause code (e.g. an ASN.1 or MPI failure) added together via `MBEDTLS_ERROR_ADD`/`mbedtls_error_add()` (`error.h:107-154`).\n\n2. **`mbedtls_strerror(ret, buf, buflen)`** (`library/error.c:792` in the built file, template at `scripts/data_files/error.fmt:69`) does the assembly:\n   - Negates `ret` if negative.\n   - If the high-level bits (`ret & 0xFF80`) are non-zero, calls `mbedtls_high_level_strerr()` and writes that string into `buf`.\n   - Unless the high-level code was `MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE` (early-return case), it then appends `\" : \"` and calls `mbedtls_low_level_strerr()` for the remaining low-level bits, concatenating that string too.\n   - Any code it can't recognize becomes `\"UNKNOWN ERROR CODE (%04X)\"`.\n\n3. **`mbedtls_high_level_strerr()` / `mbedtls_low_level_strerr()`** are plain `switch` statements over `case -(MBEDTLS_ERR_FOO):` mapping to a literal string like `\"AES - Invalid key length\"` (`error.c:551` onward). These switches are entirely **generated code** \u2014 bracketed by `/* Begin Auto-Generated Code. */` / `/* End Auto-Generated Code. */` markers \u2014 not hand-maintained.\n\nSo: negative int \u2192 mask into high/low parts \u2192 two generated lookup switches \u2192 concatenated strings \u2192 truncated into the caller's buffer, always null-terminated.\n\n## Where the generated code comes from\n\n`library/error.c` is not edited directly for its switch bodies. It's produced by `scripts/generate_errors.pl` from:\n- **The template** `scripts/data_files/error.fmt`, which has three placeholder lines: `HEADER_INCLUDED`, `HIGH_LEVEL_CODE_CHECKS`, `LOW_LEVEL_CODE_CHECKS`.\n- **All `#define MBEDTLS_ERR_*` macros** found by regex-scanning every header in `include/mbedtls/*.h`, paired with whichever Doxygen comment (before or after the `#define`) documents them.\n\nThe script buckets each error name's module prefix (e.g. `AES`, `AES` \u2192 `AES`, but `MPI`\u2192`BIGNUM`, `CTR`\u2192`CTR_DRBG`, `HMAC`\u2192`HMAC_DRBG` via hardcoded fixups) into either `@low_level_modules` or `@high_level_modules` (both are literal lists at the top of the `.pl` file \u2014 a module not in either list makes the script fail loudly with \"Error: Do not know how to handle\"). It then emits one `#if defined(MBEDTLS_<MOD>_C) ... case -(NAME): return (\"MODULE - description\"); ... #endif` block per module, substitutes the three placeholders in the template, and writes the result to `library/error.c`.\n\n## What a contributor does to add a new error code\n\n1. **Pick an unused code point** in the layout table documented at the top of `include/mbedtls/error.h` (respecting the module's reserved 16-bit range, and whether it's a high-level or low-level module).\n2. **Add the `#define`** in the relevant module header (e.g. `include/mbedtls/foo.h`), following the exact pattern the regex expects:\n   ```c\n   /** Short description of the failure */\n   #define MBEDTLS_ERR_FOO_SOMETHING  -0x1234\n   ```\n   The Doxygen comment must be *either* immediately before *or* immediately after the `#define` (never both, never neither) \u2014 the script `die`s otherwise. If the module prefix (`FOO`) is new, it must also be added to `@low_level_modules` or `@high_level_modules` in `scripts/generate_errors.pl`, or the script exits with an error.\n3. **Regenerate `library/error.c`**: run `scripts/generate_errors.pl` (no args, from repo root or `scripts/`) \u2014 this rewrites the auto-generated switch blocks and `#include` guards in place.\n4. **Commit the regenerated `library/error.c` alongside the header change.** CI enforces this isn't skipped: `tests/scripts/check-generated-files.sh` re-runs `generate_errors.pl` and diffs the output against what's committed (`check-generated-files.sh:135`), so a hand-edited or stale `error.c` fails the build.\n5. Don't hand-edit anything between the `Begin Auto-Generated Code` / `End Auto-Generated Code` markers \u2014 it will be silently clobbered next regeneration and diverge from what CI expects.",
+  "ttft_ms": 2866,
+  "ttft_stream_ms": 1867,
+  "time_to_request_ms": 401,
+  "type": "result",
+  "duration_ms": 42385,
+  "uuid": "ebee9b55-0f3b-426d-a187-0fe8426b98cc"
+}

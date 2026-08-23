@@ -1,0 +1,38 @@
+{
+  "stem": "Q1_sonnet_baseline_r2",
+  "arm": "baseline",
+  "model": "sonnet",
+  "ok": true,
+  "seconds": 58.64532356301788,
+  "input_tokens": 20,
+  "output_tokens": 4160,
+  "cache_read_tokens": 510584,
+  "cache_creation_tokens": 12626,
+  "cost_usd": 0.1959378,
+  "result_bytes": 4621,
+  "turns": 10,
+  "tool_calls": 9,
+  "non_index_tool_calls": 9,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/docs-db/acceptance/runs/2026-08-23-n3/entropic/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nentropic's tokenizer calls into llama.cpp twice in a row in two different places. Why does\nit call twice, and would you describe this as retry logic?\n\nThen follow the failure outward: when tokenization fails, what value does the caller\nreceive, and what do the callers do with it?\n",
+    "--model",
+    "sonnet",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "tvanfossen/entropic",
+    "question_id": "Q1",
+    "arm": "baseline",
+    "model": "sonnet",
+    "replicate": 2,
+    "order": 9
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 57400,
+  "num_turns": 10,
+  "stop_reason": "end_turn",
+  "session_id": "a0357f4e-3f5a-4dc1-b76b-59eb10288604",
+  "total_cost_usd": 0.1959378,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 12626,
+    "cache_read_input_tokens": 510584,
+    "output_tokens": 4160,
+    "output_tokens_details": {
+      "thinking_tokens": 1138
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 12626,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2144,
+        "cache_read_input_tokens": 57958,
+        "cache_creation_input_tokens": 1539,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1539
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1582,
+      "outputTokens": 19,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001677,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 20,
+      "outputTokens": 4160,
+      "cacheReadInputTokens": 510584,
+      "cacheCreationInputTokens": 12626,
+      "webSearchRequests": 0,
+      "costUSD": 0.1942608,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## The two-call pattern\n\nBoth `tokenize` and `detokenize` in `src/inference/llama_cpp_tokenizer.cpp` call the same llama.cpp function twice, but for two different reasons \u2014 one is a **size probe**, the other is a **failure-driven retry**.\n\n**`tokenize()` (lines 55\u201368):** the first call passes `nullptr, 0` as the output buffer \u2014 this is llama.cpp's documented convention for \"tell me how many tokens this needs.\" It returns a negative number whose magnitude is the required token count. The code negates it, allocates a vector of exactly that size, and calls `llama_tokenize` again to actually fill it. This is a **size query, not a retry** \u2014 the first call is never expected to succeed at writing tokens; it's designed to fail in a specific, informative way every single time. There's no loop, no backoff, and no repetition of the *same* call \u2014 it's a fixed two-step probe/fill protocol.\n\n**`detokenize()` (lines 93\u2013104):** this one is more genuinely a retry. It optimistically calls `llama_token_to_piece` against a 256-byte stack buffer, hoping that's big enough (it almost always is \u2014 most token pieces are a few bytes). Only if that returns negative (buffer too small) does it fall back to a second call sized exactly to `-n`. This *is* fair to call retry logic \u2014 it's optimistic-buffer-then-retry-on-failure \u2014 but it's a single, bounded, one-shot retry against a different-sized resource, not a retry against a transient/recoverable error. There's no backoff, no retry limit counter, and no possibility of a third attempt: if the second call also fails, the code gives up immediately.\n\nSo: `tokenize`'s two calls are a mandatory two-phase protocol (never skippable), while `detokenize`'s two calls are a fast-path/fallback pair (skippable when the stack buffer is big enough). Only the latter deserves the word \"retry,\" and even then it's a narrow, single-attempt variant \u2014 not resilience/retry-loop logic in the sense of retrying against unreliable I/O.\n\n## Following the failure outward\n\n**On failure, both functions return an empty value with no error signal in the type itself:**\n- `tokenize()` returns `{}` (empty `std::vector<int32_t>`) when `vocab_` is null, or when the second `llama_tokenize` call returns a negative `actual` count (logged as an error at `llama_cpp_tokenizer.cpp:65-67`).\n- `detokenize()` returns `{}` (empty `std::string`) when `vocab_` is null, or when the retried call returns `n <= 0`.\n\n**`LlamaCppBackend::tokenize`/`detokenize`** (`llama_cpp_backend.cpp:788-816`) pass this straight through \u2014 no check for the failure case, just a copy/forward. The doc comments even say explicitly \"Returns empty when no tokenizer is wired \u2014 matches prior failure-path return,\" conflating \"no tokenizer\" with \"tokenizer failed\" into the same empty-vector signal.\n\n**Every caller downstream treats an empty token vector as if it were a legitimate empty prompt, not a failure:**\n- `do_generate_text_only` (`llama_cpp_backend.cpp:2561`, `2643`) calls `tokenize(prompt, true)`, logs `tokens.size()` (which would just read `0`), and passes it straight to `run_prefill_cached`.\n- `run_prefill` (`llama_cpp_backend.cpp:1484-1503`) loops `for (int i = 0; i < n_tokens; ...)` \u2014 with `n_tokens == 0` this loop body never executes, `llama_decode` is never called, and the function returns `true` (success).\n- So a tokenization failure doesn't propagate an error at all \u2014 it silently becomes a \"successful\" prefill of zero tokens, and generation proceeds against an effectively unprimed/empty context, indistinguishable from a caller who genuinely passed an empty string.\n\nThis is worth flagging as a real gap: **there is no way for a caller to distinguish \"tokenizer failed\" from \"input was empty.\"** The only trace of the failure is a log line at ERROR level inside `llama_cpp_tokenizer.cpp:65-67` \u2014 nothing sets `GenerationResult::error_code`, nothing short-circuits `do_generate_text_only`, and the eventual `GenerationResult` will report a normal `finish_reason` (`\"stop\"` or hitting `max_tokens`) built from a model that was never actually given the prompt. A user would see a nonsensical/generic completion with no indication tokenization ever failed, and would have to go digging in logs to find out why.\n\nOne place this is at least partially covered: `detokenize` failures during streaming generation (`llama_cpp_backend.cpp:1534`, `1819`) just append an empty string to `generated`/`r.content` \u2014 a dropped token silently disappears from the output rather than corrupting or erroring, which is the more benign version of the same \"empty means nothing happened\" pattern.",
+  "ttft_ms": 2434,
+  "ttft_stream_ms": 1810,
+  "time_to_request_ms": 431,
+  "type": "result",
+  "duration_ms": 57351,
+  "uuid": "bed9563b-c7aa-49a7-81fc-4e02fd817290"
+}

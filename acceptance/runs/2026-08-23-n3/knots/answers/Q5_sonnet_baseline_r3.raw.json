@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 53866,
+  "num_turns": 7,
+  "stop_reason": "end_turn",
+  "session_id": "e2c9162f-e271-4e00-8823-36848b413583",
+  "total_cost_usd": 0.16872240000000002,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 16845,
+    "cache_read_input_tokens": 328827,
+    "output_tokens": 3392,
+    "output_tokens_details": {
+      "thinking_tokens": 864
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 16845,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2029,
+        "cache_read_input_tokens": 63276,
+        "cache_creation_input_tokens": 1463,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1463
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1548,
+      "outputTokens": 17,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001633,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 12,
+      "outputTokens": 3392,
+      "cacheReadInputTokens": 328827,
+      "cacheCreationInputTokens": 16845,
+      "webSearchRequests": 0,
+      "costUSD": 0.16708940000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Ways to set thresholds\n\nThere are three layers, resolved **per metric, per function** (not as one all-or-nothing config):\n\n1. **CLI flags** \u2014 `--mccabe-threshold`, `--cognitive-threshold`, `--nesting-threshold`, `--sloc-threshold`, `--abc-threshold`, `--return-threshold`, `--aird-threshold`, `--aicp-threshold`, `--external-calls-threshold`, `--unreachable-blocks-threshold`. Repeating a flag is \"last one wins\" (`src/main.rs:49`, tested at `main.rs:1744`).\n2. **`knots.toml` per-language section** \u2014 `[<lang>.thresholds]` (e.g. `[c.thresholds]`), keyed by the same canonical language key `language_for_file` resolves (`config.rs:31`).\n3. **`knots.toml` global section** \u2014 `[thresholds]`.\n\n`knots.toml` is auto-discovered by walking up from the current directory (`config.rs:88`); it's entirely optional, and there's no way to point knots at a different filename \u2014 that's likely the first place a \"config was ignored\" report comes from: the file has to be named exactly `knots.toml` and live in an ancestor of cwd.\n\n**Resolution winner:** `EffectiveThresholds::for_file` (`main.rs:502`) does `self.cli.<metric>.or(lang_cfg.<metric>).or(self.global.<metric>)` **independently for every metric**. So it's not \"CLI file wins entirely over toml file\" \u2014 a user can set `--cognitive-threshold=20` on the CLI and still have `mccabe` come from `knots.toml`'s per-language or global section. Precedence order per metric: **CLI > per-language `knots.toml` > global `knots.toml`**. If none of the three set a given metric, that metric simply isn't gated at all (thresholds are opt-in; `has_active_threshold()` gates whether checking runs at all).\n\nOn top of raw threshold values, two more things can make a configured threshold appear to do nothing even though it resolved correctly:\n\n- **`--baseline`** ratchets: an over-threshold function that's already in the baseline and hasn't gotten *worse* is tolerated, even though it's still over the numeric threshold.\n- **`--since <REF>` / `--changed`** scope gating to only functions overlapping changed lines \u2014 a pre-existing violation in an untouched function is silently skipped.\n- **Inline suppression comments** (`// tools:off` \u2026 `// tools:on`, or `// tools:suppress knots:<metric>`) suppress specific metrics (or all of them) for a function regardless of what threshold layer set the value (`lib.rs:830+`).\n\n## Ways to set exclusions\n\nFour independent mechanisms, and they're **not mutually exclusive \u2014 they AND together** (a file/function must survive all of them to be reported):\n\n1. **`--exclude <FILE>`** \u2014 JSON sidecar, blacklist by file/function (legacy `FilterRules`), applied in `should_process_file` before a file is even parsed.\n2. **`--include <FILE>`** \u2014 JSON whitelist counterpart, same gate.\n3. **`--exclude-path <PATTERN>`** (repeatable regex, pre-commit `exclude:` syntax) \u2014 also a pre-parse file-level filter (`path_is_excluded`).\n4. **`knots.toml`'s `[[filter.exclude]]`** \u2014 glob `file_patterns` AND regex `function_patterns` within an entry, matched against any entry (OR across entries). This one runs *after* metrics are computed (`metrics.retain(|f| !config::exclude_matches(...))`), so it's the only mechanism with real function-name granularity, not just file-path.\n\nThere's no precedence question among the exclusion mechanisms because none of them override each other \u2014 they're independent filters applied in sequence, so if a user's `knots.toml` exclusion isn't taking effect, check whether a `--exclude`/`--exclude-path` CLI filter or the JSON `--include` whitelist is already dropping the file earlier in the pipeline, or whether `knots.toml` simply wasn't discovered (wrong directory).\n\n## Most likely cause of the report\n\nGiven the per-metric merge, the most probable explanation for \"knots ignored a threshold I configured\": the user set it in `knots.toml` (global or per-language) while **also** passing that same `--*-threshold` flag on the CLI (e.g. in a wrapper script or CI job) with a different \u2014 often default/unset \u2014 value, and CLI silently wins for that metric per `for_file`. Second most likely: `knots.toml` isn't being discovered because it's not in an ancestor directory of the invocation's cwd. Third: the offending function is covered by a `tools:off`/`tools:suppress` comment or is outside `--since`/`--changed` scope or tolerated by `--baseline`.",
+  "ttft_ms": 3389,
+  "ttft_stream_ms": 2122,
+  "time_to_request_ms": 607,
+  "type": "result",
+  "duration_ms": 53860,
+  "uuid": "ab6971d6-688d-41b3-bb8d-38404351f899"
+}

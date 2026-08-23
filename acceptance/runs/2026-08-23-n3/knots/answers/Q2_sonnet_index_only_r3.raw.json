@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 57102,
+  "num_turns": 10,
+  "stop_reason": "end_turn",
+  "session_id": "295c4d88-f4a8-4e42-8d11-29f9d6c327fe",
+  "total_cost_usd": 0.20758900000000002,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 12534,
+    "cache_read_input_tokens": 573050,
+    "output_tokens": 4109,
+    "output_tokens_details": {
+      "thinking_tokens": 1873
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 12534,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2404,
+        "cache_read_input_tokens": 62724,
+        "cache_creation_input_tokens": 390,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 390
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1633,
+      "outputTokens": 16,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001713,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 20,
+      "outputTokens": 4109,
+      "cacheReadInputTokens": 573050,
+      "cacheCreationInputTokens": 12534,
+      "webSearchRequests": 0,
+      "costUSD": 0.20587600000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## What determines the AIRD number\n\n`calculate_aird` (src/complexity.rs:1433) is a pure function of six pre-computed metrics, each derived by walking the function's own AST \u2014 nothing external, nothing timing-based:\n\n```\ncognitive_norm = min(cognitive/75, 1.0)\nsloc_norm      = min(sloc/200,     1.0)\nnesting_norm   = min(nesting/8,    1.0)\ntest_norm      = min(max(test_score,0)/20, 1.0)\ndoc_norm       = min(max(doc_score,0)/10,  1.0)\ncoupling_norm  = min(state_coupling/12,    1.0)\n\nraw = 55*cognitive_norm + 15*sloc_norm + 15*nesting_norm + 15*test_norm\n      - 15*doc_norm + 10*coupling_norm\n\nAIRD = round(raw).clamp(0, 100)\n```\n\nSo: **Cognitive complexity is the dominant driver (weight 55)**, SLOC/nesting/testability each contribute up to 15, documentation *subtracts* up to 15, and state coupling to the function's own struct/class adds up to 10. All six inputs (`cognitive`, `sloc`, `nesting`, `test_scoring.total_score`, `test_scoring.documentation_score`, `state_coupling`) come from `calculate_cognitive_complexity`, `calculate_sloc*`, `calculate_nesting_depth`, `calculate_test_scoring`, `calculate_state_coupling` \u2014 all pure tree-sitter traversals over the node, called once per function in `collect_function_metrics` (src/lib.rs:891).\n\nThere's a second, separate mechanism layered on top: `apply_aird_ce_multiplier`/`aird_file_ce_multiplier` re-scale an already-computed AIRD by the *file's* efferent coupling (Ce) \u2014 a corpus-wide import-graph metric \u2014 up to a 20% bump, capped and re-clamped to 0\u2013100. This is meant to run as a post-pass (`apply_file_ce_to_aird` in src/coupling.rs) once the whole corpus's import graph is known, since a single function's own AIRD is computed \"eagerly,\" before any other file exists.\n\nOne thing worth flagging honestly: **the index shows zero callers anywhere for `apply_file_ce_to_aird`.** `collect_all_metrics` (src/main.rs, the multi-file/matrix/SARIF entry points) calls `collect_function_metrics` directly and never touches `coupling::apply_file_ce_to_aird` or constructs `FileCoupling`. `FunctionMetrics.file_ce` is hardcoded to `0` at construction and nothing in the indexed call graph overwrites it. So as far as static call resolution can tell, the Ce-multiplier path is present in the codebase but currently unwired into any of the four run modes \u2014 I can't rule out a dynamic/feature-gated call the AST resolver misses, but on the evidence available this looks like dead code, not an active part of the score.\n\n## Same function, two runs \u2014 same score?\n\nGiven that finding, yes: since the Ce-multiplier post-pass appears unreachable, AIRD reduces to the pure per-function formula above, and every input is deterministic \u2014 same source AST in, same integers out, no randomness, no global/mutable state, no wall-clock or ordering dependency. `collect_all_metrics` does process files in parallel via `rayon`, but each file's metrics are computed independently and the result is deterministically re-sorted by `(file_path, name)` afterward, so parallelism doesn't perturb any individual function's score.\n\nCaveat, and it's the one that actually matters: **if `apply_file_ce_to_aird` ever does get wired in** (a code path the index doesn't show me, or a future change), then AIRD would stop being a pure per-function property \u2014 it would depend on which other files are analyzed alongside it in that run, since file-level Ce comes from the corpus-wide import graph. The same function could then score differently between a single-file run and a `--recursive` corpus run, or between two recursive runs over different file sets. That's a scope-dependent source of variation the current (apparently dead) code was clearly designed to introduce, so it's worth watching for if this changes.",
+  "ttft_ms": 1940,
+  "ttft_stream_ms": 1357,
+  "time_to_request_ms": 106,
+  "type": "result",
+  "duration_ms": 57021,
+  "uuid": "22f5c57a-d579-4ac8-b9dd-e09bca5da3ac"
+}

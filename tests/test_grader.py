@@ -416,3 +416,94 @@ def test_grader_fingerprint_tracks_its_own_source(tmp_path: pathlib.Path) -> Non
     cache.mkdir()
     (cache / "judge.cpython-312.pyc").write_bytes(b"\x00\x01\x02")
     assert score.grader_fingerprint(pkg) == stable, "bytecode must not move the fingerprint"
+
+
+## @brief A failure's reason is kept even when the tool writes it to stdout.
+## @return None.
+## @version 1
+def test_ask_records_stdout_when_stderr_is_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    """MEASURED ON THE WEEKEND GRID. Seven cells recorded `rc=1 after 3 attempt(s):` with nothing
+    after the colon — the CLI had put its explanation on STDOUT and only the empty stderr was
+    kept. A reason that says only "it failed" is exactly the bare tally this field was added to
+    replace, so the omission silently undid that fix.
+
+    @brief The reason is recorded wherever the tool wrote it.
+    @return None.
+    @version 1
+    """
+    import subprocess as sp
+
+    monkeypatch.setattr(judge.time, "sleep", lambda _s: None)
+    monkeypatch.setattr(
+        sp,
+        "run",
+        lambda argv, **_k: sp.CompletedProcess(argv, 1, "You've hit your session limit", ""),
+    )
+    error = judge.ask("p", "claude-x-1").error
+    assert "session limit" in error, f"the reason must survive: {error!r}"
+
+    ## STDERR STILL WINS when both are present — it is the channel a failure belongs on, and
+    ## preferring stdout would bury a real diagnostic under ordinary output.
+    monkeypatch.setattr(
+        sp, "run", lambda argv, **_k: sp.CompletedProcess(argv, 1, "chatter", "the real cause")
+    )
+    assert "the real cause" in judge.ask("p", "claude-x-1").error
+
+
+## @brief Retry backoff spans minutes, because the failure it must survive lasts minutes.
+## @return None.
+## @version 1
+def test_retry_backoff_covers_a_rate_limit_not_a_blip() -> None:
+    """CALIBRATED FROM ARITHMETIC, NOT FROM A GUESS ABOUT ONE FAILURE. Three attempts at four
+    seconds of linear backoff cover twelve seconds in total. A capacity refusal is measured in
+    MINUTES — this account hit one that named a reset time hours away — so the retry was sized
+    for a network blip and could not ride out the thing that actually happens.
+
+    Measured consequence on the weekend grid: seven of twenty graded cells came back
+    majority-unruled, each having exhausted all three attempts.
+
+    WHAT IS NOT CLAIMED: that this was the cause of those specific failures. Their reason was
+    discarded by a separate defect (only stderr was recorded, and the CLI writes to stdout), so
+    it is unrecoverable. This is sized for the failure mode that is documented to exist, and the
+    next occurrence will record its own reason.
+
+    @brief Backoff is minutes-scale.
+    @return None.
+    @version 1
+    """
+    total = sum(judge.ASK_BACKOFF_SECONDS * i for i in range(judge.ASK_ATTEMPTS))
+    assert total >= 120, (
+        f"total backoff is {total}s; a capacity refusal outlasts that, so every attempt burns "
+        f"into the same refusal and the cell is lost"
+    )
+    ## AND IT MUST STILL TERMINATE. An unbounded retry hangs a 90-cell grade on one bad cell.
+    assert total <= 900, f"total backoff {total}s would stall a grid on a single cell"
+
+
+## @brief The judge does not wait on inherited stdin.
+## @return None.
+## @version 1
+def test_ask_closes_stdin(monkeypatch: pytest.MonkeyPatch) -> None:
+    """MEASURED, AND NOT A CORRECTNESS FIX. The CLI warns "no stdin data received in 3s,
+    proceeding without it" when stdin is inherited and idle, and the same call measured 8.9s with
+    stdin closed against 3.4s from /dev/null. Both SUCCEED — stdin was tested as a suspect for
+    the rc=1 failures and cleared.
+
+    It is a cost fix. The grid makes roughly 2,244 judge calls, so a few seconds of waiting each
+    is on the order of two hours of a grade spent waiting for input that never comes.
+
+    @brief stdin is explicitly closed.
+    @return None.
+    @version 1
+    """
+    import subprocess as sp
+
+    seen = {}
+
+    def capture(argv, **kw):
+        seen.update(kw)
+        return sp.CompletedProcess(argv, 0, json.dumps({"result": "VERDICT: HIT"}), "")
+
+    monkeypatch.setattr(sp, "run", capture)
+    judge.ask("p", "claude-x-1")
+    assert seen.get("stdin") is sp.DEVNULL, "the judge must not wait on inherited stdin"

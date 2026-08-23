@@ -513,6 +513,26 @@ def _paired_summary(rows: list, files_cited: dict[str, int] | None = None) -> No
         ## UNKNOWN COUNTS DO NOT BECOME A DISPLACEMENT. -1 means the transcript could not be
         ## read; arithmetic on it would invent a number.
         disp = "—" if b_shell < 0 or i_shell < 0 else f"{b_shell - i_shell:+d}"
+        ## A CELL THE JUDGE NEVER RULED ON HAS NO SCORE TO COMPARE. Measured on the weekend
+        ## grid: six cells came back with unmarked_pct 1.0 — every judge call failing rc=1 — and
+        ## this table printed "0.0% 0.0% +0.0pt TIED" for them. A transport failure rendered as a
+        ## finding about both arms, in the one table a reader draws conclusions from, on answers
+        ## that were excellent.
+        ##
+        ## The design already says an unruled decision is not a miss. This enforces it where the
+        ## comparison is actually made, at the threshold where most of a cell's weight went
+        ## unruled — below that the score still means something and `unmkd` in the per-cell
+        ## table carries the caveat.
+        unruled = max(
+            float((b_grade or {}).get("unmarked_pct", 0.0)),
+            float((i_grade or {}).get("unmarked_pct", 0.0)),
+        )
+        if b_grade and i_grade and unruled > 0.5:
+            print(
+                f"{label:<22} {spread:>6} {'unruled':>9} {'unruled':>9} "
+                f"{f'{unruled:.0%} unruled':>11} {disp:>16}"
+            )
+            continue
         if b_grade and i_grade:
             b, i = b_grade["score"], i_grade["score"]
             sep = f"{(i - b) * 100:+.1f}pt" + ("" if abs(i - b) > 1e-9 else "  TIED")

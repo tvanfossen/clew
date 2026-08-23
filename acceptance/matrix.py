@@ -36,6 +36,21 @@ from .grader.rubric import Rubric, RubricError, load
 from .provision import ProvisionError, provision
 
 
+## LINE-BUFFERED BEFORE ANY WORK HAPPENS. Measured on the first weekend run: launched detached
+## with stdout to a file, the grid generated 22 cells while its log held one line, because Python
+## buffers stdout when it is not a tty. A five-hour run whose only progress signal is "the process
+## is still alive" cannot be supervised — an operator cannot tell generation from a hang.
+##
+## Done HERE rather than by asking for `python -u`, because the invocation is exactly where this
+## driver exists to stop putting requirements. Before `drive` is defined, so the provisioning
+## output — the part that refuses, and the part that matters most — is flushed too.
+try:
+    sys.stdout.reconfigure(line_buffering=True)
+    sys.stderr.reconfigure(line_buffering=True)
+except (AttributeError, ValueError):  # pragma: no cover - a replaced stream may not support it
+    pass
+
+
 ## @brief One target's outcome across the phases this driver ran.
 ## @version 1
 @dataclass(frozen=True)

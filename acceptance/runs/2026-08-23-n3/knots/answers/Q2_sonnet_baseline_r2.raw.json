@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 38309,
+  "num_turns": 5,
+  "stop_reason": "end_turn",
+  "session_id": "13aa7374-ac52-49d7-89e4-49a65d35256f",
+  "total_cost_usd": 0.14465319999999998,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 16581,
+    "cache_read_input_tokens": 277376,
+    "output_tokens": 2122,
+    "output_tokens_details": {
+      "thinking_tokens": 313
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 16581,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1227,
+        "cache_read_input_tokens": 62989,
+        "cache_creation_input_tokens": 1482,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1482
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1549,
+      "outputTokens": 13,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001614,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 10,
+      "outputTokens": 2122,
+      "cacheReadInputTokens": 277376,
+      "cacheCreationInputTokens": 16581,
+      "webSearchRequests": 0,
+      "costUSD": 0.14303919999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## What determines a function's AIRD score\n\nAIRD (\"AI Reasoning Difficulty\") is a weighted composite computed in `calculate_aird` (`src/complexity.rs:1433`), fed six pre-computed metrics for that function:\n\n```\nraw = cognitive/75 \u00d7 55\n    + sloc/200     \u00d7 15\n    + nesting/8    \u00d7 15\n    + test_score/20 \u00d7 15\n    \u2212 doc_score/10  \u00d7 15\n    + state_coupling/12 \u00d7 10\n\nAIRD = round(clamp(raw, 0, 100))\n```\n\nEach ratio is capped at 1.0 before being weighted (so cognitive can't dominate past its 55-point ceiling, etc.), and there's a separate uncapped variant (`calculate_aird_raw`) used only to show refactoring progress once a function is pinned at the 100 ceiling.\n\nThe six inputs themselves come from pure tree-sitter traversals over the function's own AST node, computed once in `lib.rs::collect_function_metrics` (~line 908-949):\n\n- **cognitive** \u2014 cognitive-complexity walk of the function body\n- **sloc** \u2014 source lines of code (language-specific comment stripping, minus nested-function lines)\n- **nesting** \u2014 max nesting depth\n- **test_score / doc_score** \u2014 from `calculate_test_scoring` (testability heuristics + doc-comment detection)\n- **state_coupling** \u2014 `calculate_state_coupling`, roughly how many of the enclosing struct's own fields the function touches\n\nThen, only in `--recursive` mode, there's a second pass: `coupling::apply_file_ce_to_aird` computes each file's efferent coupling (Ce \u2014 how many other corpus files it imports, resolved by best-effort stem-matching in `build_import_graph`) across the **whole corpus**, and `apply_aird_ce_multiplier` re-scales the already-computed AIRD by up to \u00d71.20 based on that file-level Ce, re-clamping to 100.\n\n## Would the same function score the same on two runs?\n\n**Yes \u2014 deterministically, as long as three things hold:**\n\n1. **The function's own source text is unchanged** \u2014 every one of the six per-function inputs is a pure function of that function's AST, no I/O, no randomness, no hashing-order dependence (state_coupling counts a `HashSet`-style field set, but the metric is a count, not an iteration-order-dependent value).\n2. **The knots version/formula is unchanged** \u2014 the weights and caps are hardcoded constants; a `knots` version bump that recalibrates them (the doc comment explicitly says they're \"calibrated against corpus percentile analysis\") would move the score without the function changing at all.\n3. **If run with `--recursive`, the surrounding corpus is unchanged** \u2014 the file-level Ce multiplier depends on the *other files present* in the same run (their imports into/out of this function's file). Move the file into a different corpus, add/remove sibling files, or run it standalone vs. `--recursive`, and the same function's AIRD can shift by up to 20%, purely from that multiplier \u2014 even though the function's own code, and the base AIRD before the multiplier, are identical.\n\nSo: same file content + same knots version + same corpus scope (or non-recursive mode) \u2192 bit-for-bit same score, every time, because nothing in the pipeline is a source of run-to-run variance (no threading races affecting order-sensitive computation, no clock/random inputs). The one axis that can legitimately produce a different number for an unchanged function is the recursive Ce multiplier, since it's corpus-relative rather than purely local to the function.",
+  "ttft_ms": 3432,
+  "ttft_stream_ms": 2839,
+  "time_to_request_ms": 438,
+  "type": "result",
+  "duration_ms": 38098,
+  "uuid": "55ae338e-0882-4ae2-80cd-8990f2a3c7c4"
+}

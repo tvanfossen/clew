@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 37385,
+  "num_turns": 6,
+  "stop_reason": "end_turn",
+  "session_id": "383567d5-202a-45a4-b547-d83d25f8569a",
+  "total_cost_usd": 0.1458702,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 12474,
+    "cache_read_input_tokens": 328041,
+    "output_tokens": 2863,
+    "output_tokens_details": {
+      "thinking_tokens": 627
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 12474,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1622,
+        "cache_read_input_tokens": 60830,
+        "cache_creation_input_tokens": 2239,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2239
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1637,
+      "outputTokens": 15,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001712,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 12,
+      "outputTokens": 2863,
+      "cacheReadInputTokens": 328041,
+      "cacheCreationInputTokens": 12474,
+      "webSearchRequests": 0,
+      "costUSD": 0.1441582,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I now have enough to answer fully from the index.\n\n## What counts as a duplicate\n\nDuplication in knots is purely **structural**, not textual. `src/duplicates.rs`'s file doc says it's \"built on the substrate's structural fingerprinting (`lang_parsing_substrate::fingerprint`). Two functions group together when their AST subtrees hash identically \u2014 same node kinds in the same [shape].\" So it's a content-addressed hash of the parsed AST shape per function, computed corpus-wide by `collect_corpus_fingerprints` (parallel parse + fingerprint of every file), then `find_duplicate_groups` \u2192 `sorted_duplicate_groups` \u2192 `grouped_members` bins fingerprints that hash identically into groups of 2+. Groups are sorted largest-group-first, then by node count (`group_sort_key`), so the clones \"most worth acting on\" surface first.\n\nTwo floors keep this from being noise:\n- **`MIN_DUPLICATE_NODES = 20`** \u2014 functions with fewer AST nodes than this are skipped entirely before fingerprinting; too small to be a meaningful match.\n- **Two opt-out filters**, both on by default (`DuplicateFilters`, applied via `duplicate_filters_from`):\n  - `exclude_fixture_pairs` (`--include-fixture-pairs` to disable) \u2014 drops groups matched by `is_fixture_pair_group`: every member sits under a recognized pass/fail-style directory pair (pass/fail, accept/reject, good/bad \u2014 matched as a whole path component so `passthrough/` isn't fooled), at least two distinct tags are represented, and the paths are otherwise identical once the tag is normalized away. This is explicitly there for CERT-C-style `tests/pass/*.c` vs `tests/fail/*.c` fixtures, which are *intentionally* near-identical and not real extraction candidates.\n  - `exclude_trivial` (`--include-trivial-duplicates` to disable) \u2014 drops groups via `is_trivial_noise_group`: every member's body is \u2264`TRIVIAL_BODY_LINE_SPAN` (3) lines *and* the group repeats fewer than `TRIVIAL_MIN_REPEAT` (4) times. The rationale documented on the function: a one-line accessor can clear the 20-node floor purely from type annotations and field-access chains while still being trivial, and \u2014 more subtly \u2014 per-type accessor glue produced *by fixing* real duplication elsewhere would otherwise reappear as new \"unresolved debt.\"\n\n## What it deliberately misses\n\nBecause matching is exact structural-hash equality, it deliberately misses:\n- **Near-duplicates** \u2014 anything that differs in AST shape at all (renamed intermediate variables don't matter since it's node-kind-based, but a reordered statement, an extra branch, or a different literal type does change the hash). There's no fuzzy/similarity scoring here, only exact grouping.\n- **Cross-language duplication** \u2014 fingerprinting is per-file AST, so a duplicated algorithm re-implemented in a different grammar can't hash the same.\n- Anything under the 20-node floor, and (by default) the two filtered categories above.\n\n## Why it isn't part of the normal analysis pass\n\n`recursive_duplicate_groups` in `src/main.rs` is explicitly gated:\n\n```rust\n(ctx.recursive && ctx.find_duplicates).then(|| { ... })\n```\n\nTwo separate gates, both required:\n- **`ctx.recursive`** \u2014 a single-file run has no corpus to compare against, so duplicate detection is meaningless outside `--recursive` scans.\n- **`ctx.find_duplicates`** \u2014 an explicit opt-in flag (`--find-duplicates`) even when scanning recursively. The per-function metrics pass (McCabe, Cognitive, SLOC, etc.) is a linear walk over each function in isolation; duplicate detection is a distinct **corpus-wide** phase \u2014 parse every file, fingerprint every function-sized subtree, then group and sort across the whole set \u2014 which is a different cost profile and a different question (\"is this code repeated elsewhere\") from per-function complexity (\"is this function itself complex\"). Bundling it into the default pass would pay that corpus-wide cost on every run regardless of whether the caller wants duplicate reporting, so it's opt-in and paired with snapshot/diff tooling (`--dump-duplicates`, `--diff-duplicates`) for tracking it over time rather than folding it into the always-on metrics output.\n\nOne honest gap: the actual fingerprint algorithm (what exactly \"same node kinds in the same shape\" normalizes away \u2014 e.g. whether identifiers/literals are elided) lives in the external `lang_parsing_substrate` crate, which isn't indexed in this repository, so I can't characterize its normalization rules precisely beyond what the file doc states.",
+  "ttft_ms": 3114,
+  "ttft_stream_ms": 1648,
+  "time_to_request_ms": 113,
+  "type": "result",
+  "duration_ms": 37212,
+  "uuid": "240ac417-b032-4c08-88ad-a1ab008d0adf"
+}

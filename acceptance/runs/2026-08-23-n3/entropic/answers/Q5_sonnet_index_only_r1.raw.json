@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 52340,
+  "num_turns": 16,
+  "stop_reason": "end_turn",
+  "session_id": "42d563e5-daed-49bf-b76d-11f7b10ec6e4",
+  "total_cost_usd": 0.2999926,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 43492,
+    "cache_read_input_tokens": 420078,
+    "output_tokens": 4025,
+    "output_tokens_details": {
+      "thinking_tokens": 1264
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 43492,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1583,
+        "cache_read_input_tokens": 63426,
+        "cache_creation_input_tokens": 2599,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2599
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1632,
+      "outputTokens": 19,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001727,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 16,
+      "outputTokens": 4025,
+      "cacheReadInputTokens": 420078,
+      "cacheCreationInputTokens": 43492,
+      "webSearchRequests": 0,
+      "costUSD": 0.2982656,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "This gives a clear, well-evidenced picture. Here's the answer:\n\n## The path from Python to the engine\n\nThere is no Cython, no pybind11, no C-extension build step involved. The bridge is:\n\n1. **`src/facade/entropic.cpp` (+ sibling facade files like `entropic_hooks.cpp`, `entropic_identity.cpp`, `entropic_mcp.cpp`) implement a pure-C API** declared in `include/entropic/entropic.h`. Per that header's own doc: \"All functions are pure C \u2014 no C++ types cross this boundary.\" This compiles into `librentropic.so`, with every crossing symbol tagged `ENTROPIC_EXPORT` (`__attribute__((visibility(\"default\")))`, from `entropic_export.h`), applied *only* to factory functions, the `entropic.h` C API, and MCP plugin interface functions \u2014 everything else in the `.so` stays hidden.\n\n2. **`python/src/entropic/_bindings.py` is auto-generated** by `scripts/gen_bindings.py`, whose `parse_functions()` walks the header for every `ENTROPIC_EXPORT` declaration and emits a matching `ctypes` function object, `IntEnum`, `ctypes.Structure`, or `CFUNCTYPE` typedef \u2014 a flat, 1:1 mechanical mirror of the C ABI, symbol names matching exactly. Python literally calls into the `.so` through `ctypes`, nothing else.\n\n3. **A hand-written Pythonic facade sits on top** \u2014 `hooks.py`, `streams.py`, `helpers.py` \u2014 wrapping the raw `_bindings` calls to hide two documented foot-guns rather than exposing raw ctypes to consumers.\n\n4. **Drift between the two sides is a gate, not a convention**: a pre-commit hook (`inv gen-bindings --check`) re-runs the generator and diffs against the committed `_bindings.py`; a header change without a regenerated wrapper fails the build (`tests/unit/test_gen_bindings.py` self-tests that this actually fires).\n\n## The memory rules crossing the boundary\n\nThe index surfaces concrete, enforced rules rather than a general policy:\n\n- **Engine-allocated memory must be freed by the engine, not by Python/libc.** `entropic_alloc` is a thin `malloc` wrapper; `entropic_free` is a thin `free` wrapper \u2014 but the contract (per `i_mcp_server.h`'s doc) is: *\"Free with `entropic_free()`. Strings returned by name are server-owned (valid for handle lifetime). Input strings \u2026 \"* \u2014 i.e. ownership direction is explicit per-field, and Python must call back into the C ABI's free function rather than assume its own allocator can reclaim it.\n\n- **Struct-vs-contents ownership is split, and the split is real code, not just docs.** `entropic_free_logprob_result` frees only the `logprobs` and `tokens` arrays *inside* the struct and nulls both pointers to prevent double-free \u2014 the struct itself is caller-owned and freed separately. Any Python wrapper touching this type has to track that split explicitly.\n\n- **Callback lifetime is the sharpest foot-gun, and it's named as such in the code.** `hooks.py`'s file doc states it directly: registering a callback via the raw `_bindings.HOOK_CB` / `entropic_register_hook` \"carries two foot-guns,\" the first being **Lifetime**: *\"a CFUNCTYPE-wrapped Python callable must be referenced [kept alive] for as long as the engine can call it.\"* `ctypes.CFUNCTYPE` produces a trampoline that C++ gets a raw function pointer into; if the Python-side wrapper object is garbage-collected while the engine still holds that pointer (e.g. after `entropic_register_hook`), the next dispatch calls freed memory \u2014 undefined behavior, not a Python exception. `streams.py` echoes the same concern (\"wraps it so consumers don't have to manage CFUNCTYPE lifetime themselves\"), and `helpers.py` shows the mitigation pattern explicitly in its docstring example: `_CB = DELEGATION_COMPLETE_CB(...)` held in a module-level/long-lived variable specifically to stop Python from collecting the trampoline out from under the engine.\n\nI didn't find a second named foot-gun in what the index returned (the `hooks.py` doc string was truncated at \"two foot-guns: 1. Lifetime\u2026 2. \u2026\" and the index doesn't hold raw file text beyond what's captured in doc/body fields) \u2014 if that second one matters for what you're doing, it's worth opening `python/src/entropic/hooks.py` directly to read the rest of the docstring.",
+  "ttft_ms": 2183,
+  "ttft_stream_ms": 1501,
+  "time_to_request_ms": 101,
+  "type": "result",
+  "duration_ms": 52288,
+  "uuid": "691a3c86-01ba-45be-9c7c-65a7cc7f24cd"
+}

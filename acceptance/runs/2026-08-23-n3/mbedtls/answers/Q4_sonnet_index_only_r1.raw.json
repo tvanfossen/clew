@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 54452,
+  "num_turns": 10,
+  "stop_reason": "end_turn",
+  "session_id": "b33f55ad-0bbe-41f2-9170-c2fe9e4f0723",
+  "total_cost_usd": 0.2760288,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 43180,
+    "cache_read_input_tokens": 283089,
+    "output_tokens": 4494,
+    "output_tokens_details": {
+      "thinking_tokens": 1999
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 43180,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3302,
+        "cache_read_input_tokens": 62161,
+        "cache_creation_input_tokens": 3523,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3523
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1642,
+      "outputTokens": 17,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001727,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 12,
+      "outputTokens": 4494,
+      "cacheReadInputTokens": 283089,
+      "cacheCreationInputTokens": 43180,
+      "webSearchRequests": 0,
+      "costUSD": 0.2743018,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## The path from a negative `int` to a string\n\n**1. The call site** \u2014 any mbedtls function returns a negative `int` (e.g. `MBEDTLS_ERR_CIPHER_BAD_INPUT_DATA`, `-0x6400`). Nothing about the return value itself is a string; it's just a bit-packed code.\n\n**2. The caller invokes `mbedtls_strerror(ret, buf, buflen)`** \u2014 declared in `include/mbedtls/error.h`, defined in `library/error.c:792-860`. Body, verified from the index:\n\n- Normalizes sign: `if (ret < 0) ret = -ret;`\n- Splits the code into two fields by mask: `ret & 0xFF80` is the **high-level** (module) part, `ret & ~0xFF80` is the **low-level** part. This is why mbedtls error codes are commonly a combination of a module code and a low-level code OR'd together.\n- Calls `mbedtls_high_level_strerr(ret)` (`library/error.c:174-535`) if the high-level field is non-zero.\n- If a low-level field is also present, appends `\" : \"` plus the result of `mbedtls_low_level_strerr(ret)` (`library/error.c:537-790`).\n- Falls back to `\"UNKNOWN ERROR CODE (%04X)\"` if either lookup returns `NULL`.\n- Writes into `buf`, truncating to `buflen`, always null-terminating (checked explicitly for `buflen == 0`).\n\n**3. The two `strerr` functions are each one giant `switch`** over module/low-level constants \u2014 e.g. `mbedtls_high_level_strerr` has cases for `MBEDTLS_ERR_CIPHER_*`, `MBEDTLS_ERR_DHM_*`, `MBEDTLS_ERR_ECP_*`, `MBEDTLS_ERR_MD_*`, `MBEDTLS_ERR_PEM_*`, `MBEDTLS_ERR_PK_*`, etc.; `mbedtls_low_level_strerr` covers `MBEDTLS_ERR_AES_*`, `ARIA`, `ASN1`, `BASE64`, `BIGNUM`, `CAMELLIA`, `CCM`, `CHACHA20`, `CHACHAPOLY`, `CTR_DRBG`, `DES`, `ENTROPY`, and more. Each `case` is wrapped in `#if defined(MBEDTLS_<MODULE>_C)` so a disabled module's error strings simply don't compile in, and each returns a literal like `\"CIPHER - Bad input parameters\"`.\n\n**4. Config gating.** The whole file is compiled only when `MBEDTLS_ERROR_C` is defined; there's also an `MBEDTLS_ERROR_STRERROR_DUMMY` path (both gate macros are defined in `include/mbedtls/mbedtls_config.h` and the two size-reduced config presets) for builds that want the API present but the strings stripped out.\n\n## The auto-generation seam \u2014 and a genuine gap\n\nBoth switch bodies open with the literal comment `/* Begin Auto-Generated Code. */`. That's the index telling you these blocks aren't hand-authored line by line \u2014 they're generated from the `MBEDTLS_ERR_*` `#define`s (with their `/**< description */` doc comments) in each module's header under `include/mbedtls/`.\n\nI can't verify the generator itself from the index: this repo's index only covers `.c/.h/.inc/.md/.py` files, and mbedtls's error-table generator is conventionally a Perl script under `scripts/` \u2014 a `.pl` file, which this index's scope doesn't include at all (confirmed: `scripts/*` lists only 9 `.py` files, no generator script). I checked prose search too and found nothing describing the generation process directly. So take the rest of this paragraph as inference from the \"Begin Auto-Generated Code\" marker and the file layout, not something I can point at a specific indexed file for.\n\n## What a contributor has to do to add a new error code\n\n1. Add a new `#define MBEDTLS_ERR_<MODULE>_<NAME>  -0x____  /**< description */` in the relevant module header (e.g. `include/mbedtls/cipher.h`), picking an unused bit value within that module's allocated error-code range and writing the doc comment \u2014 that comment text is what ends up as the human-readable string.\n2. Regenerate `library/error.c` rather than hand-editing the switch cases between the auto-generated markers \u2014 a hand edit there will get clobbered the next time the generator runs, and since I can't see the generator invocation from this index, I'd recommend confirming the exact regeneration command (likely `make generated_files` or a `scripts/generate_errors.*` target) by reading the repo/build files directly rather than trusting me to name it.\n3. Make sure the new case lands under the correct `#if defined(MBEDTLS_<MODULE>_C)` guard and in the correct function (`mbedtls_high_level_strerr` vs `mbedtls_low_level_strerr`) \u2014 that's determined mechanically by which bits (`0xFF80` vs `~0xFF80`) the new code's numeric value occupies.\n\nThat last step \u2014 where the generator actually sources its list of `MBEDTLS_ERR_*` defines from, and the exact regen command \u2014 is the part I'm flagging as an honest gap rather than guessing at from training-data memory of mbedtls's public layout.",
+  "ttft_ms": 2547,
+  "ttft_stream_ms": 1367,
+  "time_to_request_ms": 116,
+  "type": "result",
+  "duration_ms": 54305,
+  "uuid": "7d1456cb-541b-406a-8372-595af7fbeda8"
+}

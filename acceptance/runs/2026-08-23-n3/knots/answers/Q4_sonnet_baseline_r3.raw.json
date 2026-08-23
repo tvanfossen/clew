@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 19360,
+  "num_turns": 3,
+  "stop_reason": "end_turn",
+  "session_id": "c478443b-2917-495b-9c71-4aff5335f7e6",
+  "total_cost_usd": 0.0920278,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 11996,
+    "cache_read_input_tokens": 153379,
+    "output_tokens": 1173,
+    "output_tokens_details": {
+      "thinking_tokens": 47
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 11996,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 816,
+        "cache_read_input_tokens": 57605,
+        "cache_creation_input_tokens": 2278,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2278
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1546,
+      "outputTokens": 16,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001626,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 6,
+      "outputTokens": 1173,
+      "cacheReadInputTokens": 153379,
+      "cacheCreationInputTokens": 11996,
+      "webSearchRequests": 0,
+      "costUSD": 0.0904018,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I now have everything needed.\n\n## The two functions\n\n`calculate_aird` (`src/complexity.rs:1433`) and `calculate_aird_raw` (`src/complexity.rs:1463`) compute the exact same weighted formula from the same six inputs (cognitive, sloc, nesting, test_score, doc_score, state_coupling):\n\n```\n(cognitive/75 \u00d7 55) + (sloc/200 \u00d7 15) + (nesting/8 \u00d7 15) + (test/20 \u00d7 15)\n  - (doc/10 \u00d7 15) + (coupling/12 \u00d7 10)\n```\n\nThe difference is entirely in **which terms get `.min(1.0)`-clamped before weighting**:\n\n- `calculate_aird` clamps every normalized term to 1.0 *before* combining, and rounds/clamps the final result to an integer in `[0, 100]`. This is the score that's actually stored on `FunctionMetrics`, printed, and checked against `--aird-threshold`.\n- `calculate_aird_raw` only clamps `nesting_norm`, `test_norm`, `doc_norm` (the terms whose caps rarely bind) \u2014 `cognitive_norm` and `sloc_norm` are left **unclamped**, so the returned `f64` can exceed 100 for very large functions, and it isn't rounded to an integer.\n\n## Why the second one exists\n\nBecause `calculate_aird` clamps `cognitive/75` and `sloc/200` at 1.0, a function with cognitive complexity 300 and one with cognitive complexity 1000 both saturate to the same capped contribution \u2014 the reported AIRD score pins at 100 and *stops moving* even as you cut the function's complexity in half. If a refactor takes a monster function from cognitive 300 \u2192 150, the gate-facing score can stay stuck at 100 the whole time, making it look like nothing happened.\n\n`calculate_aird_raw` exists purely so `aird_tips`/`format_aird_breakdown` (in `src/output.rs`) can show a \"raw AIRD (uncapped): N\" number once a function is pinned at the ceiling \u2014 the uncapped value keeps decreasing as cognitive/sloc drop, giving a developer doing incremental extraction a real progress signal instead of a flat \"AIRD: 100\" that never budges until they cross below the normalization cap. It's a diagnostic/motivational readout, not the enforced score \u2014 the CI gate and stored `FunctionMetrics::aird` field only ever use the capped version.",
+  "ttft_ms": 1865,
+  "ttft_stream_ms": 1295,
+  "time_to_request_ms": 185,
+  "type": "result",
+  "duration_ms": 18681,
+  "uuid": "22580b58-ee93-4301-9998-2db47711385c"
+}

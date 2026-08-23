@@ -1,0 +1,38 @@
+{
+  "stem": "Q4_sonnet_baseline_r3",
+  "arm": "baseline",
+  "model": "sonnet",
+  "ok": true,
+  "seconds": 153.67786598901148,
+  "input_tokens": 2,
+  "output_tokens": 1539,
+  "cache_read_tokens": 48532,
+  "cache_creation_tokens": 7497,
+  "cost_usd": 0.4985106999999999,
+  "result_bytes": 4248,
+  "turns": 1,
+  "tool_calls": 3,
+  "non_index_tool_calls": 3,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/docs-db/acceptance/runs/2026-08-23-n3/entropic/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nWhich parts of entropic run on a thread other than the caller's, and what keeps that safe?\n",
+    "--model",
+    "sonnet",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "tvanfossen/entropic",
+    "question_id": "Q4",
+    "arm": "baseline",
+    "model": "sonnet",
+    "replicate": 3,
+    "order": 4
+  }
+}

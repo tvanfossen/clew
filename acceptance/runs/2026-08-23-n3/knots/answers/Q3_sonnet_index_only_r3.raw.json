@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 43840,
+  "num_turns": 14,
+  "stop_reason": "end_turn",
+  "session_id": "81d2df9b-3d75-4649-ac67-690e0b40e4fb",
+  "total_cost_usd": 0.20263040000000002,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 12730,
+    "cache_read_input_tokens": 609382,
+    "output_tokens": 2810,
+    "output_tokens_details": {
+      "thinking_tokens": 439
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 12730,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1248,
+        "cache_read_input_tokens": 62417,
+        "cache_creation_input_tokens": 890,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 890
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1625,
+      "outputTokens": 13,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.0016899999999999999,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 22,
+      "outputTokens": 2810,
+      "cacheReadInputTokens": 609382,
+      "cacheCreationInputTokens": 12730,
+      "webSearchRequests": 0,
+      "costUSD": 0.20094040000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I now have the full pipeline from raw import string to graph edge. Here's the answer:\n\n## What counts as an edge\n\nAn edge is a **file\u2192file** relationship in `ImportGraph.edges: HashMap<file, HashSet<file>>`, built in two phases (`src/coupling.rs`):\n\n1. **Extraction** (`extract_file_imports` \u2192 `lang_parsing_substrate::import_sources`): for every file that parses under a compiled-in grammar, pull the raw import/`use`/`include` strings straight out of the syntax tree \u2014 a purely syntactic pass, language-neutral like the rest of knots.\n\n2. **Resolution** (`resolve_targets` \u2192 `resolve_candidate` + `index_module_keys`):\n   - Each raw import string is reduced to a bare identifier: strip any path prefix (up to the last `/` or `\\`), strip a trailing extension *only if it's one of the tool's known source extensions*, then strip a namespace separator (`::` for Rust-style, or `.` otherwise) down to the last segment.\n   - Every corpus file is separately indexed by its **module key** \u2014 just its `file_stem()` (filename minus directory and extension), with a count of how many files share that stem.\n   - A candidate import becomes an edge **only if its resolved key matches exactly one corpus file's stem** (`key_counts == 1`). If zero files share that stem, or more than one does, the import is dropped \u2014 it counts as neither Ce nor Ca.\n   - A self-import (target == path) is explicitly excluded.\n   - Each surviving edge is deduplicated into a `HashSet`, so **N imports of the same file only count once** toward Ce.\n\nSo an edge = \"file A contains at least one import statement whose final identifier segment matches the file-stem of exactly one other file in the analyzed corpus, and that file isn't A itself.\"\n\n## What deliberately does not count\n\n- **Ambiguous stems.** If two files in the corpus share a filename stem (e.g. `utils.py` and `utils.rs`, or two `mod.rs`/`__init__.py`-style files), imports resolving to that stem are dropped rather than guessed at \u2014 the code explicitly rejects `key_counts != 1`.\n- **Imports of anything outside the analyzed file set.** Standard-library imports, third-party packages, or any file not included in the current run (e.g. not passed with `--recursive`, or excluded/filtered out) never resolve to a corpus file, so they contribute to neither Ce nor Ca. There is no external-package tracking at all.\n- **Self-imports.** `target != path` is enforced.\n- **Duplicate imports of the same target within one file.** Collapsed via `HashSet`, so Ce reflects distinct dependencies, not import statement count.\n- **Files that fail to parse or read**, or whose language isn't compiled in \u2014 silently skipped in `extract_file_imports` (the doc note says this mirrors `collect_all_metrics`'s skip behavior without re-warning, since that pass already warned).\n- **Real module/path semantics.** The file doc for `coupling.rs` is explicit that this is \"a best-effort heuristic, not real module resolution\" \u2014 there's no package-manager awareness, no relative-vs-absolute path resolution, no re-export following. It's a filename-stem match, full stop.\n\nOne thing the index can't tell me directly: I don't have the body of `lang_parsing_substrate::import_sources` itself (it's an external crate/dependency, not indexed in this repo \u2014 confirmed by the earlier \"not indexed\" result), so I can't say precisely which node kinds per language it treats as an \"import\" at the syntax level. That's a genuine gap \u2014 everything downstream of extraction is fully visible in the index, but the extraction grammar per language would require reading that substrate crate's source directly.",
+  "ttft_ms": 2411,
+  "ttft_stream_ms": 1253,
+  "time_to_request_ms": 110,
+  "type": "result",
+  "duration_ms": 43910,
+  "uuid": "a7ed54aa-0547-493d-9874-a5a229ea818a"
+}

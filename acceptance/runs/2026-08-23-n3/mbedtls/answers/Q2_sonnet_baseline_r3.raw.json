@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 30726,
+  "num_turns": 7,
+  "stop_reason": "end_turn",
+  "session_id": "c7e2765c-e102-4532-b358-422c0aa14694",
+  "total_cost_usd": 0.08166,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 3232,
+    "cache_read_input_tokens": 228235,
+    "output_tokens": 2137,
+    "output_tokens_details": {
+      "thinking_tokens": 145
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 3232,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1072,
+        "cache_read_input_tokens": 47417,
+        "cache_creation_input_tokens": 378,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 378
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1580,
+      "outputTokens": 23,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.0016950000000000001,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 10,
+      "outputTokens": 2137,
+      "cacheReadInputTokens": 228235,
+      "cacheCreationInputTokens": 3232,
+      "webSearchRequests": 0,
+      "costUSD": 0.079965,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Now I have the full picture. Let me answer.\n\n## What `MBEDTLS_PRIVATE` accomplishes\n\n`include/mbedtls/private_access.h`:\n\n```c\n#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS\n#define MBEDTLS_PRIVATE(member) private_##member\n#else\n#define MBEDTLS_PRIVATE(member) member\n#endif\n```\n\nStruct definitions in the public headers write their fields as `MBEDTLS_PRIVATE(state)` etc., which the preprocessor expands to a literal `private_state` token by default. So an **application** including `ssl.h` and writing `ssl->state` gets a compile error \u2014 there is no field literally named `state`, only `private_state`. This is a compile-time access-control shim bolted onto plain C structs (which have no real visibility keywords): the struct layout is still fully public in the header (ABI/sizeof needs are satisfied), but the *field names* are deliberately obfuscated so casual/direct member access from outside the library doesn't compile. It forces all access through the accessor functions (`mbedtls_ssl_get_state()`-style getters/setters) that the library provides, which is what lets mbedtls change internal struct layout across releases without an ABI-stability promise to callers who followed the rule \u2014 direct member reads/writes are the specific thing declared unstable and off-limits.\n\n## For whom, and where the opt-out is actually flipped\n\nThe opt-out is `#define MBEDTLS_ALLOW_PRIVATE_ACCESS` before including the headers, which flips the macro back to `member` (no prefix), i.e. restores direct field access. In this tree it's turned on in exactly three places:\n\n1. **`library/common.h:132`** \u2014 every `.c` file inside `library/` includes this, so **the library's own implementation code** gets private access to its own structs. The comment right above it says it plainly: *\"structs defined in header files are publicly available, [but] their members are private and should not be accessed by the user\"* \u2014 the library itself is not \"the user\"; it's exempted because it has to construct/inspect its own structs directly for performance and implementation reasons the accessor API doesn't need to expose.\n\n2. **`programs/ssl/ssl_client2.c:8`** and **`programs/ssl/ssl_server2.c:8`** \u2014 these are the SSL test/demo programs. They opt in because they're written as **whitebox test harnesses** that poke at internal SSL context fields (e.ks., `ssl->state` per the comment at `include/mbedtls/ssl.h:5160-5166`) to test/demonstrate corner cases that the public accessor API doesn't cover.\n\nSo the barrier is aimed at ordinary applications linking against mbedtls: an app author who tries `ssl->state` gets a build failure and is pushed toward the stable getter/setter API. The library's own source and its own bundled test/sample programs are the only code in-tree granted the escape hatch, and `ssl.h`'s doc comment explicitly frames using that escape hatch from application code as \"deprecated\" and something that \"could be broken in any future release\" \u2014 i.e., opting out is tolerated for mbedtls-internal code and explicitly discouraged (unsupported) for everyone else.",
+  "ttft_ms": 2632,
+  "ttft_stream_ms": 1477,
+  "time_to_request_ms": 415,
+  "type": "result",
+  "duration_ms": 30545,
+  "uuid": "13b5157a-9e1f-4b5b-aebd-2231b1e4308e"
+}

@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 40161,
+  "num_turns": 9,
+  "stop_reason": "end_turn",
+  "session_id": "ceec6fe0-d100-40d2-94a3-46db41672fb5",
+  "total_cost_usd": 0.15034440000000002,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 15438,
+    "cache_read_input_tokens": 295972,
+    "output_tokens": 2774,
+    "output_tokens_details": {
+      "thinking_tokens": 871
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 15438,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1015,
+        "cache_read_input_tokens": 55879,
+        "cache_creation_input_tokens": 4079,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4079
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1549,
+      "outputTokens": 17,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001634,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 12,
+      "outputTokens": 2774,
+      "cacheReadInputTokens": 295972,
+      "cacheCreationInputTokens": 15438,
+      "webSearchRequests": 0,
+      "costUSD": 0.1487104,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "This entire file is one big `#if defined(MBEDTLS_THREADING_C)` block, and that macro is commented out in the shipped `include/mbedtls/mbedtls_config.h` (`//#define MBEDTLS_THREADING_C`, line 3787). So in the library's out-of-the-box configuration:\n\n**Nothing runs concurrently that the library itself starts.** mbedtls contains no thread-creation code anywhere (`pthread_create`, `std::thread`, `CreateThread` \u2014 none of it appears in `library/` or `include/`). It is a pure callee: it never spawns a thread on its own. Any concurrency is entirely the *application's* doing \u2014 if the calling program hands the same `mbedtls_*` context to two of its own threads, that's concurrent use of the library, not something mbedtls creates.\n\n**And by default nothing protects that concurrent use, because none of it compiles.** Every mutex site I found \u2014 `ctr_drbg.c`, `hmac_drbg.c`, `entropy.c`, `rsa.c`, `x509_crt.c` (readdir), `platform_util.c` (`gmtime`), `memory_buffer_alloc.c` (the debug heap), `ssl_cache.c`, `ssl_cookie.c`, `ssl_ticket.c`, and the PSA crypto layer (`psa_crypto.c`, `psa_crypto_random.c`, `psa_crypto_slot_management.c`) \u2014 is wrapped in `#if defined(MBEDTLS_THREADING_C)`. With that macro undefined, `mbedtls_mutex_lock`/`_init`/etc. don't exist, the global mutex objects (`mbedtls_threading_readdir_mutex`, `mbedtls_threading_gmtime_mutex`, `mbedtls_threading_key_slot_mutex`, `mbedtls_threading_psa_globaldata_mutex`, `mbedtls_threading_psa_rngdata_mutex`) aren't even instantiated, and the `#if`'d call sites vanish at preprocessing \u2014 there's no dummy/no-op fallback substituted in; the code is simply absent.\n\nSo the honest default-config answer is: mbedtls ships thread-safety plumbing (a pthread backend and an `MBEDTLS_THREADING_ALT` hook for custom mutex implementations), but it's opt-in and off by default. Out of the box, if an application shares one `mbedtls_ctr_drbg_context`, `mbedtls_entropy_context`, RSA context, PSA key-slot table, SSL session cache/ticket/cookie context, or the debug heap allocator across threads it created itself, mbedtls provides **zero protection** for that sharing \u2014 it's a data race the application would have to serialize itself, or the app must explicitly turn on `MBEDTLS_THREADING_C` (and usually `MBEDTLS_THREADING_PTHREAD`, or supply `MBEDTLS_THREADING_ALT` callbacks) to get any of these locks compiled in.",
+  "ttft_ms": 3906,
+  "ttft_stream_ms": 2192,
+  "time_to_request_ms": 442,
+  "type": "result",
+  "duration_ms": 40088,
+  "uuid": "3aa6a603-b7e2-401a-acc3-1cb05341dd19"
+}

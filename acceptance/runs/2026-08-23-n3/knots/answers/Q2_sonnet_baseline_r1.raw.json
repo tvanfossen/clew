@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 35132,
+  "num_turns": 5,
+  "stop_reason": "end_turn",
+  "session_id": "7751ff32-2353-458c-abec-260d3ed04e32",
+  "total_cost_usd": 0.2531074,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 44096,
+    "cache_read_input_tokens": 249997,
+    "output_tokens": 2508,
+    "output_tokens_details": {
+      "thinking_tokens": 736
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 44096,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1177,
+        "cache_read_input_tokens": 62860,
+        "cache_creation_input_tokens": 1964,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1964
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1549,
+      "outputTokens": 15,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001624,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 10,
+      "outputTokens": 2508,
+      "cacheReadInputTokens": 249997,
+      "cacheCreationInputTokens": 44096,
+      "webSearchRequests": 0,
+      "costUSD": 0.25148339999999997,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "This is deterministic \u2014 Ce is a set cardinality (HashSet), so iteration order in the HashMap doesn't affect the resulting `ce` count. Good, that confirms determinism for the file-coupling piece too.\n\nI have enough to answer.\n\n## What determines AIRD\n\nAIRD (`calculate_aird` in `src/complexity.rs:1433`) is a weighted sum of five per-function metrics, each independently normalized to 0\u20131 against a fixed denominator and capped, then rescaled and clamped to 0\u2013100:\n\n```\nAIRD = min(cognitive/75, 1)\u00b755\n     + min(sloc/200,   1)\u00b715\n     + min(nesting/8,  1)\u00b715\n     + min(test_score/20, 1)\u00b715\n     \u2212 min(doc_score/10,  1)\u00b715\n     + min(state_coupling/12, 1)\u00b710\n```\n\n- `cognitive`, `nesting`, `sloc` come straight from the tree-sitter traversal of that function's own AST (`calculate_cognitive_complexity`, `calculate_nesting_depth`, `calculate_sloc*`).\n- `test_score`/`doc_score` come from `calculate_test_scoring` (testability heuristics + a doc-comment score that subtracts from the total).\n- `state_coupling` comes from `calculate_state_coupling` (how much the function touches its own struct's fields / has high arity).\n\nAfter that per-function score is computed, one more factor can rescale it: if you run with `--recursive`, `apply_file_ce_to_aird` (`src/coupling.rs`) multiplies the score by up to 1.20\u00d7 based on the file's efferent coupling (Ce) \u2014 the number of *other corpus files* it imports, from a whole-corpus import graph built after all files are parsed. That's the only piece of the score that depends on anything outside the function itself.\n\n## Would the same function score the same across two runs?\n\nYes, deterministically \u2014 assuming the same inputs:\n\n- Every term in the formula is a pure function of the parsed AST of the source text. No randomness, no timestamps, no environment reads.\n- The Ce multiplier is a `HashSet` cardinality (distinct imported files), so `HashMap`/`HashSet` iteration order in the import graph can't perturb the count \u2014 it's order-independent by construction.\n- `calculate_aird_raw` and `calculate_aird` share the same deterministic formula; the only difference is capping.\n\nWhat *would* change the number between \"runs\":\n1. **The source file itself changed** (even whitespace inside the function, since SLOC/cognitive/nesting are line- and structure-sensitive).\n2. **Different CLI scope** \u2014 running non-recursive vs. `--recursive`, or changing which files are included in a recursive corpus, changes the file's Ce and therefore the \u00d71.0\u20131.20 multiplier, even though the function's own code didn't change.\n3. **Inline suppression comments** added/removed near the function (affects `suppressed`, not the raw score, but affects whether it's reported/gated).\n4. **A different knots version** \u2014 the weights, caps, and denominators (`75`, `200`, `8`, `20`, `10`, `12`, the `0.20` Ce bonus cap) are constants calibrated in this codebase and can change release to release.\n\nSo: same source, same invocation scope, same knots version \u2192 bit-for-bit identical AIRD every time. The only way to get a different number for \"the same function\" is if one of those four things silently differs between runs \u2014 most commonly #2, since people often don't realize non-recursive vs. `--recursive` runs can score the same function differently via the Ce multiplier.",
+  "ttft_ms": 2363,
+  "ttft_stream_ms": 1815,
+  "time_to_request_ms": 437,
+  "type": "result",
+  "duration_ms": 34727,
+  "uuid": "0fc40608-4e87-43bd-8f39-adcea82aa31a"
+}

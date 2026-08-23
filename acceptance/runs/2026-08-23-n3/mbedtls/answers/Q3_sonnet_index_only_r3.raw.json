@@ -1,0 +1,104 @@
+{
+  "is_error": false,
+  "duration_api_ms": 24005,
+  "num_turns": 4,
+  "stop_reason": "end_turn",
+  "session_id": "36fc7dfb-a6f0-4409-8c1a-09d56d6e4a5f",
+  "total_cost_usd": 0.09738340000000001,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 11640,
+    "cache_read_input_tokens": 142642,
+    "output_tokens": 2056,
+    "output_tokens_details": {
+      "thinking_tokens": 156
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 11640,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1744,
+        "cache_read_input_tokens": 48208,
+        "cache_creation_input_tokens": 10649,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 10649
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard"
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1638,
+      "outputTokens": 17,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001723,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty"
+    },
+    "claude-sonnet-5": {
+      "inputTokens": 6,
+      "outputTokens": 2056,
+      "cacheReadInputTokens": 142642,
+      "cacheCreationInputTokens": 11640,
+      "webSearchRequests": 0,
+      "costUSD": 0.0956604,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "canonicalModel": "claude-sonnet-5",
+      "provider": "firstParty"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## What actually gets called\n\n`mbedtls_calloc()` is not a direct call to libc \u2014 it's a thin indirection through a function pointer:\n\n```c\n// library/platform.c:44\nstatic void * (*mbedtls_calloc_func)(size_t, size_t) = MBEDTLS_PLATFORM_STD_CALLOC;\n\n// library/platform.c:47-50\nvoid *mbedtls_calloc(size_t nmemb, size_t size)\n{\n    return (*mbedtls_calloc_func)(nmemb, size);\n}\n```\n\n`mbedtls_free()` follows the identical pattern with a paired `mbedtls_free_func` pointer. By default `MBEDTLS_PLATFORM_STD_CALLOC` resolves to plain libc `calloc` (the index has no definition site for that macro to confirm the exact default text \u2014 it's a preprocessor default in `platform.h`/`platform_util.h`, and the index flags this rather than guessing), so out of the box `mbedtls_calloc`/`mbedtls_free` just wrap standard `calloc`/`free`.\n\nThere's a second layer worth knowing: `mbedtls_calloc` in application/library code is itself a **macro** (`include/mbedtls/platform.h:144`), gated by `MBEDTLS_PLATFORM_MEMORY` and `MBEDTLS_PLATFORM_CALLOC_MACRO`/`_FREE_MACRO`. If those aren't both defined, the macro just expands to the function described above. If a project defines `MBEDTLS_PLATFORM_CALLOC_MACRO`, every `mbedtls_calloc()` call site in the source is preprocessed straight to that macro \u2014 bypassing the function-pointer indirection entirely, at compile time rather than runtime.\n\n## How a project substitutes its own allocator\n\nTwo independent substitution mechanisms exist, and they don't compose the same way:\n\n1. **Runtime substitution (default path):** call `mbedtls_platform_set_calloc_free(calloc_func, free_func)`, which does exactly this:\n   ```c\n   int mbedtls_platform_set_calloc_free(void *(*calloc_func)(size_t, size_t),\n                                        void (*free_func)(void *))\n   {\n       mbedtls_calloc_func = calloc_func;\n       mbedtls_free_func = free_func;\n       return 0;\n   }\n   ```\n   This reassigns the global function pointers, so every subsequent `mbedtls_calloc`/`mbedtls_free` call in the library (dozens of call sites across ASN.1, PK, X.509, SSL, PSA, cipher contexts, etc.) transparently routes through the new allocator, no rebuild required.\n\n2. **Compile-time substitution:** define `MBEDTLS_PLATFORM_MEMORY` plus `MBEDTLS_PLATFORM_CALLOC_MACRO`/`MBEDTLS_PLATFORM_FREE_MACRO` in `mbedtls_config.h` to point at project-specific symbols. This is the mechanism the `MBEDTLS_PLATFORM_MEMORY` config gate exists for (declared as a real config flag in `include/mbedtls/mbedtls_config.h:3297`, and there's a dedicated test config `tests/configs/user-config-malloc-0-null.h` exercising it) \u2014 used for constrained targets where you don't want the pointer-indirection overhead or want the allocator resolved statically.\n\n## What the library itself does with this facility\n\nmbedtls ships its own consumer of the runtime hook: `mbedtls_memory_buffer_alloc_init()` (in `include/mbedtls/memory_buffer_alloc.h`, implemented for the stack-based allocator). Per its documented brief, it does memory management inside a caller-supplied static buffer instead of calling `calloc()`/`free()`, and it wires itself in by calling `mbedtls_platform_set_calloc_free()` with its own two functions \u2014 turning the global `mbedtls_calloc`/`mbedtls_free` into pointers at that fixed buffer. This is the library's dogfooding of the substitution mechanism: it's meant for heap-less/embedded builds, and it explicitly notes that its own calloc/free are thread-safe only if `MBEDTLS_THREADING_C` is also enabled.\n\nSo the layering is: every allocation in the library funnels through `mbedtls_calloc`/`mbedtls_free` \u2192 a pair of global function pointers \u2192 either libc by default, a project's own allocator via `mbedtls_platform_set_calloc_free`, or mbedtls's own bundled static-buffer allocator via `mbedtls_memory_buffer_alloc_init`, with a separate compile-time macro path available for cases where even the pointer indirection isn't wanted.",
+  "ttft_ms": 2511,
+  "ttft_stream_ms": 1360,
+  "time_to_request_ms": 97,
+  "type": "result",
+  "duration_ms": 23478,
+  "uuid": "6a369899-6fe5-4bff-99a9-82c9efa0b21f"
+}

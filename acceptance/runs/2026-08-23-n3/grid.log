@@ -1,0 +1,91 @@
+REFUSED — git rev-parse HEAD failed (rc=128) in /home/tvanfossen/Projects/docs-db/acceptance/runs/2026-08-23-n3/self/repo: fatal: ambiguous argument 'HEAD': unknown revision or path not in the working tree.
+Use '--' to separate paths from revisions, like this:
+'git <command> [<revision>...] -- [<file>...]'
+4 target(s): entropic, knots, mbedtls, self
+
+=== provision entropic
+
+=== provision knots
+
+=== provision mbedtls
+
+=== provision self
+
+=== generate entropic
+ok  Q4_sonnet_baseline_r1               143.9s out    2786 cache    46812    5965 B turns   2 tools   1/  1 denied  0
+ok  Q4_sonnet_index_only_r1              41.2s out    2813 cache   298026    4265 B turns   6 tools   5/  0 denied  0
+ok  Q4_sonnet_index_only_r2              36.8s out    2629 cache   261489    4133 B turns   5 tools   4/  0 denied  0
+ok  Q4_sonnet_baseline_r2               170.5s out    1799 cache    48240    4755 B turns   1 tools   3/  3 denied  0
+ok  Q4_sonnet_baseline_r3               153.7s out    1539 cache    48532    4248 B turns   1 tools   3/  3 denied  0
+ok  Q4_sonnet_index_only_r3              49.9s out    3559 cache   324690    4944 B turns   6 tools   5/  0 denied  0
+ok  Q1_sonnet_baseline_r1                88.5s out    5940 cache   960528    3781 B turns  18 tools  17/ 17 denied  0
+ok  Q1_sonnet_index_only_r1             129.2s out    9761 cache  1276716    4665 B turns  20 tools  19/  0 denied  0
+ok  Q1_sonnet_index_only_r2              59.0s out    4328 cache   576381    4207 B turns  12 tools  11/  0 denied  0
+ok  Q1_sonnet_baseline_r2                58.6s out    4160 cache   510584    4621 B turns  10 tools   9/  9 denied  0
+ok  Q1_sonnet_baseline_r3                64.4s out    4333 cache   754589    3874 B turns  14 tools  13/ 13 denied  0
+ok  Q1_sonnet_index_only_r3              63.5s out    4240 cache   583369    4052 B turns  14 tools  13/  0 denied  0
+ok  Q2_sonnet_baseline_r1                41.3s out    3238 cache   272207    3776 B turns  13 tools  12/ 12 denied  0
+ok  Q2_sonnet_index_only_r1              39.1s out    2713 cache   305860    3438 B turns  10 tools   9/  0 denied  0
+ok  Q2_sonnet_index_only_r2              33.7s out    2364 cache   215420    3744 B turns   7 tools   6/  0 denied  0
+ok  Q2_sonnet_baseline_r2                42.1s out    3439 cache   248076    4557 B turns   6 tools   5/  5 denied  0
+ok  Q2_sonnet_baseline_r3                49.8s out    3613 cache   403463    4165 B turns   8 tools   7/  7 denied  0
+ok  Q2_sonnet_index_only_r3              52.0s out    3733 cache   216552    3780 B turns   7 tools   6/  0 denied  0
+ok  Q3_sonnet_baseline_r1               137.2s out    2329 cache    67583    4216 B turns   2 tools   1/  1 denied  0
+ok  Q3_sonnet_index_only_r1              52.5s out    3079 cache   534605    4259 B turns  11 tools  10/  0 denied  0
+ok  Q3_sonnet_index_only_r2              48.3s out    2770 cache   508204    4116 B turns   9 tools   8/  0 denied  0
+ok  Q3_sonnet_baseline_r2                48.8s out    2890 cache   481491    3526 B turns  10 tools   9/  9 denied  0
+ok  Q3_sonnet_baseline_r3                40.2s out    2862 cache   423714    4129 B turns  10 tools   9/  9 denied  0
+ok  Q3_sonnet_index_only_r3              66.3s out    4503 cache   747309    4086 B turns  14 tools  13/  0 denied  0
+ok  Q5_sonnet_baseline_r1                52.0s out    4106 cache   468524    6025 B turns  13 tools  12/ 12 denied  0
+ok  Q5_sonnet_index_only_r1              54.8s out    4025 cache   420078    4146 B turns  16 tools  15/  0 denied  0
+ok  Q5_sonnet_index_only_r2              62.9s out    4731 cache   385482    5199 B turns  14 tools  13/  0 denied  0
+ok  Q5_sonnet_baseline_r2               116.5s out    1588 cache    49177    4044 B turns   1 tools   5/  5 denied  0
+ok  Q5_sonnet_baseline_r3                47.9s out    3414 cache   406860    4756 B turns  12 tools  11/ 11 denied  0
+ok  Q5_sonnet_index_only_r3              73.2s out    5263 cache   664152    6125 B turns  18 tools  17/  0 denied  0
+
+30/30 cells produced an answer
+--- generate entropic ok in 2118s
+
+=== generate knots
+ok  Q4_sonnet_baseline_r1                20.4s out    1223 cache   124343    2241 B turns   3 tools   2/  2 denied  0
+ok  Q4_sonnet_index_only_r1              16.0s out     883 cache   124716    1888 B turns   3 tools   2/  0 denied  0
+ok  Q4_sonnet_index_only_r2              16.5s out     945 cache   152812    1885 B turns   3 tools   2/  0 denied  0
+ok  Q4_sonnet_baseline_r2                20.4s out    1303 cache   201875    2011 B turns   4 tools   3/  3 denied  0
+ok  Q4_sonnet_baseline_r3                20.0s out    1173 cache   153379    2084 B turns   3 tools   2/  2 denied  0
+ok  Q4_sonnet_index_only_r3              18.3s out    1049 cache   152793    2262 B turns   3 tools   2/  0 denied  0
+ok  Q3_sonnet_baseline_r1                22.6s out    1297 cache   177440    2630 B turns   4 tools   3/  3 denied  0
+ok  Q3_sonnet_index_only_r1              54.7s out    3148 cache   531413    3780 B turns  19 tools  18/  0 denied  0
+ok  Q3_sonnet_index_only_r2              36.1s out    2307 cache   429533    3007 B turns  11 tools  10/  0 denied  0
+ok  Q3_sonnet_baseline_r2                24.2s out    1340 cache   144099    3010 B turns   3 tools   2/  2 denied  0
+ok  Q3_sonnet_baseline_r3                20.6s out    1321 cache   144041    2753 B turns   3 tools   2/  2 denied  0
+ok  Q3_sonnet_index_only_r3              46.5s out    2810 cache   609382    3622 B turns  14 tools  13/  0 denied  0
+ok  Q5_sonnet_baseline_r1                36.6s out    2672 cache   229249    4320 B turns   5 tools   4/  4 denied  0
+ok  Q5_sonnet_index_only_r1              67.1s out    4541 cache   602417    4539 B turns  17 tools  16/  0 denied  0
+ok  Q5_sonnet_index_only_r2              80.5s out    5632 cache   986989    4107 B turns  26 tools  25/  0 denied  0
+ok  Q5_sonnet_baseline_r2                36.6s out    2559 cache   258062    4018 B turns   9 tools   8/  8 denied  0
+ok  Q5_sonnet_baseline_r3                55.2s out    3392 cache   328827    4370 B turns   7 tools   6/  6 denied  0
+ok  Q5_sonnet_index_only_r3              49.1s out    3541 cache   453140    4439 B turns  14 tools  13/  0 denied  0
+ok  Q1_sonnet_baseline_r1                21.6s out    1412 cache   116925    3178 B turns   3 tools   2/  2 denied  0
+ok  Q1_sonnet_index_only_r1              47.8s out    3527 cache   302372    4336 B turns   6 tools   5/  0 denied  0
+ok  Q1_sonnet_index_only_r2              36.3s out    2547 cache   268061    4224 B turns   5 tools   4/  0 denied  0
+ok  Q1_sonnet_baseline_r2                23.1s out    1540 cache   150413    3790 B turns   3 tools   2/  2 denied  0
+ok  Q1_sonnet_baseline_r3                19.4s out    1198 cache   192344    2618 B turns   4 tools   3/  3 denied  0
+ok  Q1_sonnet_index_only_r3              39.8s out    2863 cache   328041    4501 B turns   6 tools   5/  0 denied  0
+ok  Q2_sonnet_baseline_r1                36.1s out    2508 cache   249997    3321 B turns   5 tools   4/  4 denied  0
+ok  Q2_sonnet_index_only_r1              28.7s out    1835 cache   179790    3477 B turns   4 tools   3/  0 denied  0
+ok  Q2_sonnet_index_only_r2              30.3s out    2030 cache   208883    3446 B turns   4 tools   3/  0 denied  0
+ok  Q2_sonnet_baseline_r2                39.4s out    2122 cache   277376    3364 B turns   5 tools   4/  4 denied  0
+ok  Q2_sonnet_baseline_r3                34.0s out    2017 cache   278793    2684 B turns   5 tools   4/  4 denied  0
+ok  Q2_sonnet_index_only_r3              59.6s out    4109 cache   573050    3755 B turns  10 tools   9/  0 denied  0
+
+30/30 cells produced an answer
+--- generate knots ok in 1058s
+
+=== generate mbedtls
+ok  Q2_sonnet_baseline_r1                34.5s out    2404 cache   155924    3675 B turns   7 tools   6/  6 denied  0
+ok  Q2_sonnet_index_only_r1              29.9s out    2048 cache   221188    2964 B turns   8 tools   7/  0 denied  0
+ok  Q2_sonnet_index_only_r2              23.8s out    1608 cache   147219    2693 B turns   6 tools   5/  0 denied  0
+ok  Q2_sonnet_baseline_r2                31.9s out    2269 cache   181583    2922 B turns   7 tools   6/  6 denied  0
+ok  Q2_sonnet_baseline_r3                31.8s out    2137 cache   228235    3069 B turns   7 tools   6/  6 denied  0
+ok  Q2_sonnet_index_only_r3              34.4s out    2257 cache   246576    2646 B turns   8 tools   7/  0 denied  0
+ok  Q1_sonnet_baseline_r1                45.7s out    3464 cache   283522    2561 B turns   8 tools   7/  7 denied  0

@@ -938,3 +938,48 @@ def test_variance_says_when_passes_were_excluded_by_drift(
     assert "spread" not in out.split("Q1_sonnet_baseline_r1")[0].lower(), (
         "no variance table should be printed when nothing is comparable"
     )
+
+
+## @brief A cell the judge never ruled on is not reported as a score.
+## @return None.
+## @version 1
+def test_separation_hides_scores_the_judge_never_ruled(capsys: pytest.CaptureFixture) -> None:
+    """MEASURED ON THE WEEKEND GRID. Six entropic Q3 cells came back with unmarked_pct 1.0 — the
+    judge ruled on NOTHING, every call failing with rc=1 — and the separation table printed
+    "0.0% 0.0% +0.0pt TIED" for all three replicates. A transport failure rendered as a
+    substantive finding about both arms, in the one table a reader draws conclusions from.
+
+    The answers were excellent. One traced the whole authorisation pipeline with file:line
+    references. Nothing about them earned a zero.
+
+    This is the design's own rule — an unruled decision is NOT a miss — enforced where it
+    actually matters. A cell whose weight is mostly unruled has no score to compare, so it shows
+    the unmarked share instead and is never called a tie.
+
+    @brief Unruled cells report as unruled.
+    @return None.
+    @version 1
+    """
+
+    def cell(stem, arm, score_value, unmarked):
+        return (
+            {"stem": stem, "arm": arm, "tool_calls": 6, "non_index_tool_calls": 3},
+            {"score": score_value, "unmarked_pct": unmarked, "split_decisions": 0},
+        )
+
+    rows = [
+        cell(f"Q3_sonnet_{_A}_r1", _A, 0.0, 1.0),
+        cell(f"Q3_sonnet_{_B}_r1", _B, 0.0, 1.0),
+        cell(f"Q4_sonnet_{_A}_r1", _A, 0.80, 0.0),
+        cell(f"Q4_sonnet_{_B}_r1", _B, 0.60, 0.0),
+    ]
+    cli._paired_summary(rows)
+    out = capsys.readouterr().out
+    q3 = next(x for x in out.splitlines() if x.startswith("Q3_"))
+    q4 = next(x for x in out.splitlines() if x.startswith("Q4_"))
+    assert "TIED" not in q3, f"an unruled cell must never be called a tie: {q3}"
+    assert "0.0%" not in q3, f"and must not publish a score it does not have: {q3}"
+    assert "unruled" in q3.lower(), f"it must say what happened instead: {q3}"
+    ## THE CONTROL: a genuinely graded pair still reports its separation, or this fix would have
+    ## blanked the table it exists to protect.
+    assert "-20.0pt" in q4, f"a fully ruled pair still separates: {q4}"

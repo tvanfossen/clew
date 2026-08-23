@@ -1,0 +1,38 @@
+{
+  "stem": "Q5_sonnet_baseline_r1",
+  "arm": "baseline",
+  "model": "sonnet",
+  "ok": true,
+  "seconds": 36.587715925998054,
+  "input_tokens": 10,
+  "output_tokens": 2672,
+  "cache_read_tokens": 229249,
+  "cache_creation_tokens": 35446,
+  "cost_usd": 0.2160068,
+  "result_bytes": 4320,
+  "turns": 5,
+  "tool_calls": 4,
+  "non_index_tool_calls": 4,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/docs-db/acceptance/runs/2026-08-23-n3/knots/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nA user reports that knots ignored a threshold they configured. What are all the ways\nthresholds and exclusions can be set, and which one wins?\n",
+    "--model",
+    "sonnet",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "brandon-arrendondo/knots",
+    "question_id": "Q5",
+    "arm": "baseline",
+    "model": "sonnet",
+    "replicate": 1,
+    "order": 12
+  }
+}
