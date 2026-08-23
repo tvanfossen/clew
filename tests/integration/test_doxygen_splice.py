@@ -121,9 +121,34 @@ def _snapshot(db: Path, root: Path) -> dict[str, set]:
                 "JOIN path p ON p.rowid = cd.file_id"
             )
         }
+        ## ADDED AFTER A MUTATION CONTROL MISSED. Deleting the `_insert_relations` call left
+        ## this test green, because the three sets above never read `member` or `contains` —
+        ## so the rows that make a class's methods findable AS members were unguarded, which
+        ## is the "test for the failure path and none for the success path" shape this repo
+        ## keeps shipping.
+        relations = {
+            ("member", str(left), str(right))
+            for left, right in conn.execute(
+                "SELECT rl.refid, rr.refid FROM member m "
+                "JOIN refid rl ON rl.rowid = m.scope_rowid "
+                "JOIN refid rr ON rr.rowid = m.memberdef_rowid"
+            )
+        } | {
+            ("contains", str(left), str(right))
+            for left, right in conn.execute(
+                "SELECT rl.refid, rr.refid FROM contains c "
+                "JOIN refid rl ON rl.rowid = c.inner_rowid "
+                "JOIN refid rr ON rr.rowid = c.outer_rowid"
+            )
+        }
     finally:
         conn.close()
-    return {"members": members, "edges": edges, "compounds": compounds}
+    return {
+        "members": members,
+        "edges": edges,
+        "compounds": compounds,
+        "relations": relations,
+    }
 
 
 ##
@@ -187,6 +212,10 @@ def test_incremental_splice_matches_a_full_rebuild(tmp_path: Path) -> None:
     assert not report.skipped, f"splice skipped files: {report.skipped}"
     assert report.files_replaced == 1
     assert report.members_inserted > 0, "no members inserted — the splice did nothing"
+    assert report.relations_dropped == 0, (
+        "a relation endpoint was missing from the working copy, which means the closure did "
+        "not bring in a compound the subset needed"
+    )
     assert report.compounds_inserted > 0, (
         "no compounddefs inserted while some were deleted — every class, struct and "
         "file-compound in the changed file would be silently lost"
@@ -198,7 +227,7 @@ def test_incremental_splice_matches_a_full_rebuild(tmp_path: Path) -> None:
     added = [m for m in got["members"] if m[1] == "splice_probe_added"]
     assert added, "the edit's new function is absent from the spliced database"
 
-    for layer in ("members", "compounds", "edges"):
+    for layer in ("members", "compounds", "edges", "relations"):
         missing = want[layer] - got[layer]
         extra = got[layer] - want[layer]
         assert not missing and not extra, (
