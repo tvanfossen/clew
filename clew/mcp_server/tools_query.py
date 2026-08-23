@@ -1714,8 +1714,11 @@ class QueryTools:
             int,
             Field(
                 description=(
-                    "1 is the symbol and its immediate neighbours. 2-6 also walks the call and "
-                    "dataflow graph and returns a bounded causal chain."
+                    "How far to walk. Depth 1 is the symbol and its immediate neighbours. "
+                    "Depth 2-6 also returns `chain`, a bounded causal walk across call and "
+                    "shared-key edges; 6 is the maximum. Only a function is an endpoint of "
+                    "those edges, so a deeper walk on any other kind returns `depth_note` "
+                    "saying so instead of pretending."
                 )
             ),
         ] = 1,

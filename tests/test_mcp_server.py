@@ -1638,24 +1638,43 @@ def test_the_descriptions_name_every_subject_kind_the_tools_accept(tools: QueryT
     reads five and defaults to one. So the description must name every one of both, and
     this is what stops a kind or corpus being added to the dispatch and nowhere else.
     """
-    from clew.mcp_server.tools_query import CORPORA
+    import typing
+
+    from clew.mcp_server.tools_query import CORPORA, QueryTools
     from clew.query import SUBJECT_KINDS
 
-    dossier_desc = TIER1_TOOLS["dossier"]
+    ## THE SCHEMA, NOT THE PROSE. The enumerations moved into the parameter descriptions when the
+    ## prose was cut to fit the client's 2,048-char cap — which is the better home for them
+    ## anyway, because the schema is re-sent whole on every request while a third of the prose was
+    ## being discarded. The requirement is unchanged: a kind the surface does not name is
+    ## unreachable in practice. Only where it must be named moved.
+    def described(fn: object, param: str) -> str:
+        hint = typing.get_type_hints(fn, include_extras=True)[param]
+        return next(m.description for m in hint.__metadata__ if getattr(m, "description", None))
+
+    subject = described(QueryTools.dossier, "subject")
     for kind in SUBJECT_KINDS:
-        assert kind in dossier_desc, f"dossier accepts subject kind {kind!r} and never says so"
-    search_desc = TIER1_TOOLS["search"]
-    for corpus in CORPORA:
-        assert corpus in search_desc, f"search reads corpus {corpus!r} and never says so"
+        assert kind in subject or kind in TIER1_TOOLS["dossier"], (
+            f"dossier accepts subject kind {kind!r} and neither its schema nor its description "
+            f"says so, which makes that kind unreachable in practice"
+        )
+    corpus = described(QueryTools.search, "corpus")
+    for name in CORPORA:
+        assert name in corpus or name in TIER1_TOOLS["search"], (
+            f"search reads corpus {name!r} and neither its schema nor its description says so"
+        )
 
     ## The claim #46 falsified stays falsified, and the split it replaced with stays named.
-    assert "returns strictly less" not in dossier_desc
-    assert "direct CALL edges only" not in dossier_desc
+    ## THE WHOLE DELIVERED SURFACE for dossier is its description plus its parameter schema, and
+    ## both arrive untruncated now, so a capability counts as disclosed if it appears in either.
+    surface = TIER1_TOOLS["dossier"] + " " + described(QueryTools.dossier, "depth")
+    assert "returns strictly less" not in surface
+    assert "direct CALL edges only" not in surface
 
-    ## And the depth fold must be discoverable, or `chain_trace`'s capability is present
-    ## and unreachable — which is a worse outcome than having deleted it.
-    assert "depth" in dossier_desc
-    assert str(q_max_depth()) in dossier_desc, "the depth BOUND must be disclosed, not implied"
+    ## The depth fold must be discoverable, or `chain_trace`'s capability is present and
+    ## unreachable — a worse outcome than having deleted it.
+    assert "depth" in surface.lower()
+    assert str(q_max_depth()) in surface, "the depth BOUND must be disclosed, not implied"
 
 
 ## @brief The traversal depth bound, read from the library rather than restated.
@@ -3375,60 +3394,62 @@ async def test_building_a_target_does_register_it(tmp_path: Path) -> None:
     assert Path(target.db_path).parent.is_dir(), "a build needs its directory to exist"
 
 
-## @brief Everything load-bearing survives the client's 2,048-character cut.
+## @brief NOTHING the server serves exceeds the client's cap, so nothing is ever truncated.
 ## @return None.
-## @version 1
-def test_served_text_survives_the_client_truncation_cap() -> None:
-    """MEASURED, NOT ASSUMED. A client caps each served text at 2,048 characters and discards the
-    rest silently — verified against one session's own delivered context, where `dossier`'s
-    3,079-char description arrived cut at exactly 2,048 and `search`'s 3,064 cut at exactly the
-    same offset. Per tool, not a shared budget: dropping a tool buys nothing.
+## @version 2
+def test_no_served_text_is_ever_truncated() -> None:
+    """OWNER RULING: no truncation should occur, ever — fit everything inside the budget and prove
+    it. This is that proof, and it replaces a weaker test that only asserted the IMPORTANT phrases
+    landed inside the cap. That version tolerated discarded bytes as long as the routing survived,
+    which is a different and much softer promise.
 
-    NOTHING REPORTED THE LOSS. The server sent the bytes, got no error, and `server.py`'s own
-    comment budgets the cost in bytes SENT. So `INSTRUCTIONS` shipped with every routing rule past
-    the cut while the one line that did arrive said the index is not a substitute for reading
-    source — and a session spent twenty turns on grep asserting exactly that.
+    THE CAP IS MEASURED, NOT ASSUMED. A client truncates each served string at 2,048 characters
+    and reports nothing: verified against one session's own delivered context, where dossier's
+    3,079-char description arrived cut at exactly 2,048 and search's 3,064 at the identical offset.
+    PER TOOL, not a shared budget, so the fix is what occupies each 2 KiB rather than how many
+    tools there are.
 
-    Document order is therefore load-bearing, and this is the only thing that keeps it so.
+    WHY THIS SHIPPED WITHOUT ANYONE NOTICING: the server sends the bytes, gets no error, and
+    `server.py`'s own comment budgets the cost in bytes SENT. Nothing measured bytes RECEIVED. So
+    INSTRUCTIONS carried every routing rule past the cut while the one line that did arrive said
+    the index is not a substitute for reading source — and a session spent twenty turns on grep
+    asserting exactly that.
 
-    @brief Routing survives truncation.
+    A LENGTH ASSERTION CANNOT BE GAMED, which is why it is the whole test now. Reordering satisfies
+    "the important part survives"; only fitting satisfies "nothing is lost".
+
+    @brief Every served string fits the cap.
     @return None.
-    @version 1
+    @version 2
     """
     from clew.mcp_server.descriptions import load_descriptions
-    from clew.mcp_server.server import INSTRUCTIONS
+    from clew.mcp_server.server import INSTRUCTIONS, TIER0_TOOLS
 
     cap = 2048
+    surfaces = {"INSTRUCTIONS": INSTRUCTIONS, **load_descriptions(), **TIER0_TOOLS}
+    over = {k: len(v) - cap for k, v in surfaces.items() if len(v) > cap}
+    assert not over, (
+        f"these served strings exceed the {cap}-char cap and will be silently truncated: {over}. "
+        f"Cut them; the parameter schema is the place for per-argument detail, since it is never "
+        f"truncated."
+    )
 
-    ## The sentences without which a reader cannot route, and the reason each one is here.
-    required = {
-        "INSTRUCTIONS": (
-            INSTRUCTIONS,
-            [
-                ("START AT `dossier`", "the routing rule itself"),
-                ("VERBATIM SOURCE", "the fact whose absence sent a session to grep for 20 turns"),
-                ("max_body_lines", "how to read past a truncated body"),
-                ("USE `search`", "what to do without a name"),
-            ],
-        ),
-    }
-    for name, (text, phrases) in required.items():
-        for phrase, why in phrases:
-            at = text.find(phrase)
-            assert at >= 0, f"{name} no longer contains {phrase!r} at all — {why}"
-            assert at < cap, (
-                f"{name}: {phrase!r} sits at {at}, past the {cap}-char cap, so it never reaches "
-                f"the model — {why}"
-            )
+    ## AND THE ROUTING MUST STILL BE THERE. Fitting by deleting the reason to use the tool would
+    ## pass the length check and defeat the point, so the load-bearing sentences are named.
+    for phrase, why in (
+        ("START AT `dossier`", "the routing rule"),
+        ("VERBATIM SOURCE", "the fact whose absence sent a session to grep for 20 turns"),
+        ("max_body_lines", "how to read past a truncated body"),
+        ("USE `search`", "what to do without a name"),
+    ):
+        assert phrase in INSTRUCTIONS, f"INSTRUCTIONS lost {phrase!r} — {why}"
 
-    ## Every tool description must say what it returns before the cut, or a model choosing between
-    ## it and grep is choosing on the strength of a sentence it never saw.
-    for tool, text in load_descriptions().items():
-        head = text[:cap]
-        assert head.strip(), f"{tool} description is empty"
-        assert "body" in head or "verbatim" in head.lower() or "corpus" in head, (
-            f"{tool}: nothing in the delivered first {cap} chars says what it returns"
-        )
+    ## dossier must say what it returns in its OPENING sentence. It previously said so at char 640,
+    ## inside the cap, and a session still got it wrong; position is doing work presence did not.
+    head = load_descriptions()["dossier"][:200]
+    assert "VERBATIM SOURCE BODY" in head, (
+        f"dossier must state it returns source in its first 200 chars; got: {head!r}"
+    )
 
 
 ## @brief Every tool parameter carries a description, in the one channel a client cannot cut.

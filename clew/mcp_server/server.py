@@ -343,61 +343,32 @@ def _listing_row(status: dict[str, Any]) -> dict[str, Any]:
 
 INSTRUCTIONS = """Queryable index over a C, C++, Rust or Python repository.
 
-## ROUTING — first, because the rest may not reach you
-
-MEASURED, AND THE REASON THIS DOCUMENT IS ORDERED THIS WAY: a client caps each served text at
-2,048 characters and silently discards the remainder. This document was 3,172 characters with
-EVERY routing rule past the cut, so what arrived said what the index IS and never when to reach
-for it — while the one line that did arrive said the index is not a substitute for reading source.
-A session then spent twenty turns on grep, asserting the index could not return source at all.
-Routing comes first now; the framing that used to sit here is at the bottom, where losing it costs
-nothing.
-
 START AT `dossier` FOR ANY QUESTION ABOUT A NAMED THING. It returns that symbol's VERBATIM SOURCE
 BODY INCLUDING INLINE COMMENTS, plus its file and line span, both neighbour directions, the thread
 it runs on, the locks it takes, the requirements it satisfies and its liveness — in ONE call. Raise
-`max_body_lines` when a reply comes back `truncated: true`. There is no separate tool for any of
-those parts.
+`max_body_lines` when a reply says `truncated`. There is no separate tool for any of those parts.
 
-USE `search` WHEN YOU DO NOT HAVE A NAME YET, or to enumerate a whole layer: threads, locks,
-files, config, prose.
+USE `search` WHEN YOU DO NOT HAVE A NAME YET, or to enumerate a layer: threads, locks, files,
+config, prose. Each row's `kind` is what you hand back to `dossier`.
 
-WHAT THE INDEX CANNOT SETTLE: how one name is spelled differently for different consumers, and
-anything outside the indexed file set — a Makefile, a CI config. Reading source after the index
-has named the file is the intended path, not a failure.
+WHAT IT CANNOT SETTLE: how one name is spelled for different consumers, and anything outside the
+indexed file set — a Makefile, a CI config. Reading source after the index names the file is the
+intended path, not a failure.
 
 DO NOT OPEN A SESSION WITH `index(action='status')`. Every query reply already carries a `target`
-naming the repository it answered from, and a `staleness` block if and only if that index is
-stale. A current index costs zero calls to establish; a stale one announces itself on the first
-reply you were going to make anyway.
+naming the repository it answered from, and a `staleness` block if and only if that index is stale.
+A current index costs zero calls to establish; a stale one announces itself on the first reply you
+were going to make anyway. CHECK `target` BEFORE CONCLUDING A SYMBOL DOES NOT EXIST.
 
-CHECK A REPLY'S `target` BEFORE CONCLUDING A SYMBOL DOES NOT EXIST.
+TARGETS. One server answers about any indexed repository. Every tool takes an optional `target` —
+a repo root or slug; omit it and the DEFAULT answers, DERIVED from --repo else $CLAUDE_PROJECT_DIR.
+There is no set_target tool and nothing is kept between calls. Query tools appear once the server knows of any
+repository, so if the tool list looks short call `index(action='refresh')` and re-read it.
 
-## TARGETS
-
-One server answers about any indexed repository. Every tool takes an optional `target` — a repo
-root path or a slug. Pass it and that repository answers; omit it and the DEFAULT target answers,
-which is DERIVED rather than set: from --repo, else $CLAUDE_PROJECT_DIR. There is no set_target
-tool, and the server keeps nothing between calls.
-
-Administration is one tool with an `action`: `index(action='targets')` lists indexed repositories,
-`index(action='refresh')` builds or updates one, `index(action='status')` gives the full diagnosis
-when you already have a reason to want it, `index(action='stats')` grades a named index. The query
-tools appear once the server knows of any repository — if the tool list looks short, call
-`index(action='refresh')` and re-read it.
-
-## BELOW HERE IS FRAMING, AND IS EXPECTED TO BE TRUNCATED
-
-A `clew` is the ball of thread Ariadne gave Theseus: the thing you follow to find your way out of
-the labyrinth. It is the archaic spelling and the direct ancestor of "clue". That is the model —
-you are inside a structure too large to hold in your head, and this hands you the thread rather
-than a map of the maze.
-
-NO PERFORMANCE FIGURES ARE QUOTED HERE, deliberately. This text is served to a model that is
-sometimes then graded on the answers it gives, so a number describing which question types the
-index wins teaches to the test and turns a benchmark into a self-portrait. Measured results live
-in the repository's committed acceptance artifacts, checkable against the transcripts they came
-from."""
+SIZED TO ARRIVE WHOLE. A client caps each served string at 2,048 characters and discards the rest
+in silence; this was 3,412 with every routing rule past the cut. A test asserts nothing exceeds
+it. No performance figures, deliberately — this is served to a model sometimes graded on its
+answers."""
 
 
 ## EXEMPT FROM TOOL-SEARCH DEFERRAL (gh#7). A client may present MCP tools as DEFERRED — named
