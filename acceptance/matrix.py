@@ -186,6 +186,18 @@ def drive(args) -> int:
         _, root, _ = prepared
         ready.append((rubric_path, root))
 
+    ## STOP HERE ON REQUEST. Provisioning is where a grid fails CHEAPLY — a pin that moved, a
+    ## declaration the build did not record, an MCP config whose tools never register — and each
+    ## of those is worth finding before a weekend of agent calls rather than on cell 40 of 120.
+    ## `check_index_tools_reachable` already runs inside provision(), so this is a real
+    ## end-to-end pre-flight and not merely a clone.
+    if getattr(args, "provision_only", False):
+        failed = [o for o in outcomes if not o.ok]
+        print(f"\nprovisioned {len(ready)}/{len(rubrics)} target(s); no phases run")
+        for o in failed:
+            print(f"  FAILED {o.name} at {o.phase}: {o.detail[:200]}")
+        return len(failed)
+
     for phase in ("generate", "grade", "report"):
         for rubric_path, root in list(ready):
             name = rubric_path.parent.name
@@ -223,6 +235,11 @@ def main() -> int:
     parser.add_argument("--replicates", type=int, default=1)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--timeout", type=int, default=1800)
+    parser.add_argument(
+        "--provision-only",
+        action="store_true",
+        help="fetch, build and verify every target, then stop before spending any agent calls",
+    )
     return drive(parser.parse_args())
 
 

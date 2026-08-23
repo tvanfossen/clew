@@ -6,6 +6,7 @@
   "judge_model": "claude-sonnet-4-5-20250929",
   "score": 0.6,
   "unmarked_pct": 0.0,
+  "split_decisions": 1,
   "decisions": [
     {
       "mark": "names MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the gating macros",

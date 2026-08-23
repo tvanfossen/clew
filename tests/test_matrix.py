@@ -41,6 +41,7 @@ def _args(**over) -> argparse.Namespace:
         "replicates": 3,
         "seed": 7,
         "timeout": 1800,
+        "provision_only": False,
     }
     base.update(over)
     return argparse.Namespace(**base)
@@ -175,3 +176,67 @@ def test_a_failed_target_does_not_stop_the_grid(
     assert code == 1, "the exit code is the number of failed targets"
     assert "alpha" in out and "provision" in out, "the failure must be named with its phase"
     assert "1/2 target(s) completed every phase" in out
+
+
+## @brief Provision-only stops before generation.
+## @return None.
+## @version 1
+def test_provision_only_runs_no_phases(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    """THE PRE-FLIGHT AN EXPENSIVE RUN NEEDS. Provisioning is where a grid fails cheaply — a pin
+    that moved, a declaration the build did not record, an MCP config whose tools never register
+    — and every one of those is worth finding before a weekend of agent calls rather than on
+    cell 40 of 120.
+
+    Asserted by making phase execution EXPLODE: if provision-only ever reaches a phase, this
+    fails loudly instead of quietly spending the budget it exists to protect.
+
+    @brief Provision-only spends nothing.
+    @return None.
+    @version 1
+    """
+    targets = tmp_path / "targets"
+    (targets / "alpha").mkdir(parents=True)
+    (targets / "alpha" / "questions.yaml").write_text("stub\n", encoding="utf-8")
+
+    monkeypatch.setattr(
+        matrix, "_prepare", lambda rubric_path, out: (object(), out / "alpha", object())
+    )
+
+    def explode(*_a, **_k):
+        raise AssertionError("provision-only must not run a phase")
+
+    monkeypatch.setattr(matrix, "run_phase", explode)
+    code = matrix.drive(_args(out=tmp_path / "grid", targets=targets, provision_only=True))
+    assert code == 0
+    out = capsys.readouterr().out
+    assert "provision" in out.lower()
+    assert "generate" not in out.lower(), "no phase may be announced, let alone run"
+
+
+## @brief Without the flag, the phases still run.
+## @return None.
+## @version 1
+def test_without_provision_only_the_phases_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """THE CONTROL FOR THE TEST ABOVE. A flag that skipped the phases unconditionally would pass
+    it, and a grid that provisions and then silently does nothing is the worst possible outcome
+    of a driver whose whole job is to run the grid.
+
+    @brief The default still drives every phase.
+    @return None.
+    @version 1
+    """
+    targets = tmp_path / "targets"
+    (targets / "alpha").mkdir(parents=True)
+    (targets / "alpha" / "questions.yaml").write_text("stub\n", encoding="utf-8")
+
+    monkeypatch.setattr(
+        matrix, "_prepare", lambda rubric_path, out: (object(), out / "alpha", object())
+    )
+    ran: list[str] = []
+    monkeypatch.setattr(matrix, "run_phase", lambda phase, argv: ran.append(phase) or True)
+    assert matrix.drive(_args(out=tmp_path / "grid", targets=targets)) == 0
+    assert ran == ["generate", "grade", "report"]

@@ -19,12 +19,61 @@ marks into failures against both arms.
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from collections import Counter
 
 from .judge import Vote, anonymise, ask, extract_prompt, read_items, vote
 from .rubric import Mark, Question, Rubric
+
+
+## Length of the published grader fingerprint. It exists to be COMPARED, never inverted.
+FINGERPRINT_CHARS = 12
+
+
+## @brief Identify the grader's own source, so passes under different code are separable.
+## @param root Grader package directory; defaults to this module's own.
+## @return Short hex digest, or "" when the tree cannot be read.
+## @version 1
+def grader_fingerprint(root: Path | None = None) -> str:
+    """FOUND BY USING THE VARIANCE MACHINERY THIS PACKAGE FEEDS. Two grades of the same frozen
+    answers spread -12.1pt to +15.0pt and it was read as judge noise — twice, in two different
+    shapes, and both readings were wrong. The judge RETRY had landed between those grades, so
+    marks that were previously left unruled started being ruled and the scores moved because the
+    GRADER changed underneath them. Two consecutive passes under one grader version then
+    reproduced all five cells exactly.
+
+    A pass already records `rubric_digest`, because comparing across rubrics is meaningless. The
+    identical argument applies to the grader, and nothing recorded it — so a variance figure
+    could silently be measuring a code change and read as a property of the judge.
+
+    ALL THREE MODULES, because a score can move from any of them: `score.py` decides weighting,
+    `judge.py` decides what the judge is asked and how a reply is read, `rubric.py` decides what
+    a mark IS.
+
+    DERIVED, NEVER HAND-MAINTAINED. A constant somebody must remember to bump is a constant that
+    will be forgotten in exactly the commit that matters — the one that changes how a mark is
+    decided.
+
+    ONLY `.py` IS HASHED. A `.pyc` is regenerated as a side effect of importing the very code
+    being identified, so hashing bytecode would make the fingerprint change because it was read.
+
+    @brief Fingerprint the grader's source.
+    @return Short digest, or "" when unreadable.
+    @version 1
+    """
+    here = root if root is not None else Path(__file__).resolve().parent
+    try:
+        sources = sorted(p for p in here.glob("*.py"))
+        digest = hashlib.sha256()
+        for path in sources:
+            digest.update(path.name.encode("utf-8"))
+            digest.update(path.read_bytes())
+    except OSError:
+        return ""
+    return digest.hexdigest()[:FINGERPRINT_CHARS] if sources else ""
 
 
 ## @brief One binary decision's outcome.

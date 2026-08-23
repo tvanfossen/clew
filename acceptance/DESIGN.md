@@ -261,6 +261,17 @@ inherited the operator's own `CLEW_STATE_HOME` and overwrote their personal inde
 logic errors. The driver derives every path from `--out` plus the target's directory name, so
 the directory generation writes and the directory grading reads are the same expression.
 
+**Pre-flight first.** `--provision-only` fetches every target at its pin, builds each index under
+its own isolated state root, verifies the declaration reached `build_meta`, writes the MCP config
+and probes that the index tools actually register — then stops without spending a single agent
+call. Provisioning is where a grid fails cheaply; every one of those failures is worth finding
+before a weekend of generation rather than on cell 40 of 120.
+
+Verified end to end rather than only in tests: driving a real provision produced a checkout at
+the pin, an index with the same row counts as the previous run, and an MCP config naming the
+run's OWN checkout and state root — the two paths whose earlier divergence produced an index arm
+with no index, and a build that overwrote the operator's personal database.
+
 A target that refuses is recorded by NAME and PHASE and the rest of the grid still runs; the
 exit code is the number of failed targets. Generation runs for every target before any target
 grades, so a stop midway leaves whole targets ungenerated — a gap a reader can see — rather than

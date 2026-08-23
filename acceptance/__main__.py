@@ -32,7 +32,7 @@ from pathlib import Path
 
 from .execute import index_cells_that_never_used_the_index, run_cell
 from .grader.rubric import RubricError, load
-from .grader.score import score_question
+from .grader.score import grader_fingerprint, score_question
 from .runner import ARMS, check_revision, check_symmetry, parse_stem, plan
 
 
@@ -180,6 +180,9 @@ def cmd_grade(args) -> int:
             ## DECISIONS THE JUDGE WAS NOT SURE OF. Not a drift predictor: measured,
             ## the cell that moved furthest on a regrade had none.
             "split_decisions": result.split_decisions(),
+            ## WHICH GRADER PRODUCED THIS. Comparing passes across grader versions measures a
+            ## code change and reads as judge noise — this session did exactly that.
+            "grader_fingerprint": grader_fingerprint(),
             "decisions": [asdict(d) for d in result.decisions],
         }
         (args.answers / f"{path.stem}.grade.json").write_text(json.dumps(record, indent=2), "utf-8")
@@ -226,6 +229,7 @@ def _print_variance(answers: Path) -> None:
     @version 1
     """
     rows: list[tuple[str, list[dict]]] = []
+    excluded: list[tuple[str, int, str]] = []
     for path in sorted(answers.glob("*.grades.jsonl")):
         passes = []
         for line in path.read_text(encoding="utf-8").splitlines():
@@ -235,23 +239,52 @@ def _print_variance(answers: Path) -> None:
                 continue
         if not passes:
             continue
+        ## THE GRADER IS PART OF THE COMPARISON, not just the rubric. This session measured a
+        ## -12.1pt to +15.0pt spread on frozen answers and reported it as judge noise; it was
+        ## the judge RETRY landing between the two grades, so marks previously left unruled
+        ## started being ruled. Two passes under one grader version then reproduced every cell
+        ## exactly. A code change measured as a property of the judge is the failure this pair
+        ## of keys prevents.
         digest = passes[-1].get("rubric_digest")
-        comparable = [p for p in passes if p.get("rubric_digest") == digest]
+        grader = passes[-1].get("grader_fingerprint")
+        comparable = [
+            p
+            for p in passes
+            if p.get("rubric_digest") == digest and p.get("grader_fingerprint") == grader
+        ]
         ## ONE GUARD, NOT TWO. A `len(passes) < 2` skip stood here as well and was DEAD: this
         ## check already subsumes it, so no single edit could break either one and a mutation
         ## control reported the pair as untested. An exclusion enforced twice is an exclusion
         ## nothing verifies.
         if len(comparable) >= 2:
             rows.append((path.name.removesuffix(".grades.jsonl"), comparable))
+        elif len(passes) >= 2:
+            ## EXCLUDED, AND SAID SO. The fingerprint digests every grader source file, so an
+            ## edit that cannot move a score still invalidates comparability — deliberately, a
+            ## false "comparable" publishes a code change as judge noise. The cost is that an
+            ## ordinary edit between passes leaves no variance row, and a reader seeing no row
+            ## concludes there was no variance rather than that nothing was comparable.
+            reason = (
+                "grader" if len({p.get("grader_fingerprint") for p in passes}) > 1 else "rubric"
+            )
+            excluded.append((path.name.removesuffix(".grades.jsonl"), len(passes), reason))
+    for cell, count, reason in excluded:
+        print(
+            f"\n{cell}: {count} pass(es) recorded, none comparable — they span more than one "
+            f"{reason} version, so any spread between them would measure that change and not "
+            f"the judge."
+        )
     if not rows:
         return
 
     head = f"{'cell':<34} {'passes':>7} {'low':>8} {'high':>8} {'spread':>9}  marks that flipped"
     print(f"\n{head}")
     print("-" * len(head))
+    by_arm: dict[str, list[float]] = {}
     for cell, passes in rows:
         scores = [float(p.get("score", 0.0)) for p in passes]
         low, high = min(scores), max(scores)
+        by_arm.setdefault(str(passes[-1].get("arm", "?")), []).append((high - low) * 100)
         moved = sorted(
             {
                 d["mark"]
@@ -269,6 +302,20 @@ def _print_variance(answers: Path) -> None:
             f"{cell:<34} {len(passes):>7} {low:>7.1%} {high:>7.1%} "
             f"{(high - low) * 100:>8.1f}pt  {names}"
         )
+    ## PER ARM, BECAUSE ARM-DEPENDENT NOISE IS A BIAS AND NOT A FLOOR. Observed on three passes
+    ## over five frozen cells: both baseline cells held at 0.0pt while all three index-arm cells
+    ## moved 10-15pt. n=3 on five cells cannot distinguish that from chance, which is exactly why
+    ## the number is PRINTED and nothing here rules on it — but if it holds, one shared error bar
+    ## would understate one arm's uncertainty and overstate the other's, and every "the index
+    ## wins by X" would need its own interval.
+    ##
+    ## The cell count rides with each mean. A mean over one cell is not a measurement, and
+    ## printing it bare invites a reader to treat it as one.
+    parts = [
+        f"{arm} {sum(v) / len(v):.1f}pt ({len(v)} cell{'s' if len(v) != 1 else ''})"
+        for arm, v in sorted(by_arm.items())
+    ]
+    print(f"mean spread by arm: {'  '.join(parts)}")
     print(
         "SPREAD is between grading passes of the SAME answers against the SAME rubric — it is the "
         "grader's\n        own noise, not a difference between arms. Passes graded against a "

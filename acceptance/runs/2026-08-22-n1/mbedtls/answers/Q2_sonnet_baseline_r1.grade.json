@@ -6,6 +6,7 @@
   "judge_model": "claude-sonnet-4-5-20250929",
   "score": 0.8787878787878788,
   "unmarked_pct": 0.0,
+  "split_decisions": 0,
   "decisions": [
     {
       "mark": "locates the macro's definition in include/mbedtls/private_access.h",
@@ -53,9 +54,9 @@
       "weight": 2,
       "hit": true,
       "detail": "",
-      "agreement": 0.6666666666666666,
+      "agreement": 1.0,
       "samples": 3,
-      "errors": 1
+      "errors": 0
     },
     {
       "mark": "states that library-internal code turns the opt-out ON in a shared header, so every library translation unit sees plain member names",

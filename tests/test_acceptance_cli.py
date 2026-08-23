@@ -780,3 +780,161 @@ def test_report_shows_no_variance_block_for_one_pass(
     )
     cli._print_variance(answers)
     assert capsys.readouterr().out.strip() == "", "one pass is not a variance measurement"
+
+
+## @brief Spread is summarised per arm, so arm-dependent noise is visible rather than averaged.
+## @return None.
+## @version 1
+def test_variance_summarises_spread_per_arm(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    """OBSERVED AND NOT YET ESTABLISHED, which is exactly why the number is printed rather than
+    ruled on. Three grading passes over five frozen mbedtls cells left both BASELINE cells at a
+    spread of 0.0pt while all three index-arm cells moved 10-15pt. n=3 on five cells cannot tell
+    that from chance.
+
+    It matters because of what it would mean if it holds: arm-dependent grader noise is a BIAS,
+    not a floor. A single shared error bar would understate one arm's uncertainty and overstate
+    the other's, and "the index wins by X" would need its own interval rather than a common one.
+
+    So the summary reports mean spread per arm and says nothing about which is larger. If the
+    arms are equally stable it prints that just as plainly.
+
+    @brief Per-arm spread is reported.
+    @return None.
+    @version 1
+    """
+    answers = tmp_path / "answers"
+    answers.mkdir()
+
+    def write(cell, arm, scores):
+        lines = [
+            {
+                "cell": cell,
+                "arm": arm,
+                "rubric_digest": "d",
+                "score": s,
+                "unmarked_pct": 0.0,
+                "split_decisions": 0,
+                "decisions": [],
+            }
+            for s in scores
+        ]
+        (answers / f"{cell}.grades.jsonl").write_text(
+            "".join(json.dumps(x) + "\n" for x in lines), encoding="utf-8"
+        )
+
+    write("Q1_sonnet_baseline_r1", "baseline", [0.20, 0.20, 0.20])
+    write("Q2_sonnet_baseline_r1", "baseline", [0.90, 0.90, 0.90])
+    write("Q1_sonnet_index_only_r1", "index_only", [0.60, 0.60, 0.75])
+
+    cli._print_variance(answers)
+    out = capsys.readouterr().out
+    summary = out.split("mean spread by arm:")[-1].splitlines()[0]
+    assert "baseline 0.0pt" in summary, f"a perfectly stable arm must read 0.0: {summary}"
+    assert "index_only 15.0pt" in summary, f"the moving arm's mean must be shown: {summary}"
+    assert "2 cell" in summary and "1 cell" in summary, (
+        "the cell count must ride with each mean, or a one-cell arm reads as a measurement"
+    )
+
+
+## @brief Passes graded by a different grader version are excluded from variance.
+## @return None.
+## @version 1
+def test_variance_excludes_passes_from_another_grader_version(
+    tmp_path: Path, capsys: pytest.CaptureFixture
+) -> None:
+    """THE DEFECT THIS SESSION'S OWN MEASUREMENT WALKED INTO. Two grades of the same frozen
+    answers spread -12.1pt to +15.0pt and it was reported as judge noise. It was not: the judge
+    RETRY landed between them, so marks previously left unruled started being ruled and the
+    scores moved because the GRADER had changed. Two passes under one grader version then
+    reproduced every cell exactly.
+
+    A pass already excluded a differing rubric digest for exactly this reason. The grader
+    deserved the same treatment and had none, so a code change could be measured and published
+    as a property of the judge.
+
+    @brief Grader drift is not variance.
+    @return None.
+    @version 1
+    """
+    answers = tmp_path / "answers"
+    answers.mkdir()
+
+    def line(sc, grader):
+        return json.dumps(
+            {
+                "cell": "Q1_sonnet_baseline_r1",
+                "arm": "baseline",
+                "rubric_digest": "same",
+                "grader_fingerprint": grader,
+                "score": sc,
+                "unmarked_pct": 0.0,
+                "split_decisions": 0,
+                "decisions": [],
+            }
+        )
+
+    ## An old grader scored this cell far lower. Under one grader it never moves.
+    (answers / "Q1_sonnet_baseline_r1.grades.jsonl").write_text(
+        "\n".join([line(0.20, "OLD"), line(0.80, "NEW"), line(0.80, "NEW")]) + "\n",
+        encoding="utf-8",
+    )
+    cli._print_variance(answers)
+    out = capsys.readouterr().out
+    row = next(x for x in out.splitlines() if x.startswith("Q1_sonnet_baseline_r1"))
+    assert row.split()[1] == "2", f"only the two same-grader passes are comparable: {row}"
+    assert "0.0pt" in row, f"and under one grader this cell did not move: {row}"
+    assert "60.0" not in row, "the 60pt gap across grader versions must NOT be reported as noise"
+
+
+## @brief Passes excluded by drift are reported, not silently dropped.
+## @return None.
+## @version 1
+def test_variance_says_when_passes_were_excluded_by_drift(
+    tmp_path: Path, capsys: pytest.CaptureFixture
+) -> None:
+    """THE GUARD IS CONSERVATIVE ON PURPOSE AND THAT MAKES IT LOUD BY NECESSITY. The grader
+    fingerprint digests every source file in the grader package, so ANY edit invalidates
+    comparability — including one that cannot move a score. A false "incomparable" is safe and a
+    false "comparable" publishes a code change as judge noise, so the strictness is the right
+    trade.
+
+    But it means a run of passes spanning an ordinary edit yields NO variance row, and a reader
+    seeing no row concludes there was no variance rather than that their passes were never
+    comparable. That is the silent-truncation failure this project keeps re-learning: an absent
+    answer reading as a clean one.
+
+    So the exclusion is stated with its cause and its count.
+
+    @brief Excluded passes are named.
+    @return None.
+    @version 1
+    """
+    answers = tmp_path / "answers"
+    answers.mkdir()
+
+    def line(sc, grader="G1", digest="R1"):
+        return json.dumps(
+            {
+                "cell": "Q1_sonnet_baseline_r1",
+                "arm": "baseline",
+                "rubric_digest": digest,
+                "grader_fingerprint": grader,
+                "score": sc,
+                "unmarked_pct": 0.0,
+                "split_decisions": 0,
+                "decisions": [],
+            }
+        )
+
+    ## Three passes, each under a different grader — nothing is comparable with anything.
+    (answers / "Q1_sonnet_baseline_r1.grades.jsonl").write_text(
+        "\n".join([line(0.2, "G1"), line(0.5, "G2"), line(0.8, "G3")]) + "\n", encoding="utf-8"
+    )
+    cli._print_variance(answers)
+    out = capsys.readouterr().out
+    assert "Q1_sonnet_baseline_r1" in out, "the cell must be named, not omitted in silence"
+    assert "grader" in out.lower(), "and the reason must be the grader, not left to inference"
+    assert "3 pass" in out, "with how many passes were set aside"
+    assert "spread" not in out.split("Q1_sonnet_baseline_r1")[0].lower(), (
+        "no variance table should be printed when nothing is comparable"
+    )
