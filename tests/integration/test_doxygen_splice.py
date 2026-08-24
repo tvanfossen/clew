@@ -192,24 +192,42 @@ def _snapshot(db: Path, root: Path) -> dict[str, set]:
 
 
 ##
-# @brief The file the test edits, and the edit itself.
+# @brief The files the test edits, and the edits themselves.
 # @param root The copied fixture root.
-# @return The repo-relative path that was modified.
-# @version 1
-def _make_edit(root: Path) -> str:
-    """The edit ADDS A CROSS-FILE CALL, which is the case a subset run gets wrong. A
-    whitespace or comment change would be re-read identically by both paths and would prove
-    nothing about edge recovery.
+# @return The repo-relative paths that were modified.
+# @version 2
+def _make_edit(root: Path) -> set[str]:
+    """TWO FILES, EACH TARGETING A DIFFERENT TABLE, and the second exists because a mutation
+    control caught the first version being vacuous.
 
-    @brief Add a function that calls into another file.
-    @return The edited file's repo-relative path.
-    @version 1
+    `main.c` gets a cross-file CALL, which is the case a subset run gets wrong — a whitespace
+    or comment change would be re-read identically by both paths and prove nothing.
+
+    `shapes.cpp` gets a second DERIVED CLASS overriding the virtual, because
+    `reimplements`/`compoundref` rows only need restoring for a file that CHANGED. With only
+    `main.c` edited, those tables were compared but the changed file contributed nothing to
+    them, so deleting their restoration left this test green — the non-vacuity gate below
+    confirmed the tables were non-empty GLOBALLY and still could not see it. An invariance is
+    only load-bearing for a table the CHANGED SET actually populates.
+
+    @brief Edit one C file for edges and one C++ file for inheritance.
+    @return The edited files' repo-relative paths.
+    @version 2
     """
-    target = root / "src" / "main.c"
-    text = target.read_text(encoding="utf-8")
-    text += "\n\nvoid splice_probe_added(void)\n{\n    sound_service_init();\n}\n"
-    target.write_text(text, encoding="utf-8")
-    return "src/main.c"
+    main = root / "src" / "main.c"
+    main.write_text(
+        main.read_text(encoding="utf-8")
+        + "\n\nvoid splice_probe_added(void)\n{\n    sound_service_init();\n}\n",
+        encoding="utf-8",
+    )
+    shapes = root / "src" / "shapes.cpp"
+    shapes.write_text(
+        shapes.read_text(encoding="utf-8")
+        + "struct Extra : Base { int area() const override; };\n"
+        + "int Extra::area() const { return 2; }\n",
+        encoding="utf-8",
+    )
+    return {"src/main.c", "src/shapes.cpp"}
 
 
 ##
@@ -243,7 +261,7 @@ def test_incremental_splice_matches_a_full_rebuild(tmp_path: Path) -> None:
     master_kept = tmp_path / "master-kept.db"
     shutil.copy2(master, master_kept)
 
-    changed = {_make_edit(root)}
+    changed = _make_edit(root)
 
     truth = _run(doxyfile, tmp_path / "truth", root)
     truth_kept = tmp_path / "truth-kept.db"
@@ -261,7 +279,7 @@ def test_incremental_splice_matches_a_full_rebuild(tmp_path: Path) -> None:
     report = splice_doxygen(master_kept, subset_db, changed, spliced, root)
 
     assert not report.skipped, f"splice skipped files: {report.skipped}"
-    assert report.files_replaced == 1
+    assert report.files_replaced == 2
     assert report.members_inserted > 0, "no members inserted — the splice did nothing"
     assert report.relations_dropped == 0, (
         "a relation endpoint was missing from the working copy, which means the closure did "
@@ -283,6 +301,20 @@ def test_incremental_splice_matches_a_full_rebuild(tmp_path: Path) -> None:
         assert want[layer], (
             f"the rebuild produced NO {layer} rows, so comparing that table is vacuous and "
             f"the splice could drop it undetected — the fixture needs to populate it"
+        )
+    ## AND THE CHANGED SET MUST CONTRIBUTE TO THEM. Global non-emptiness is not enough: with
+    ## only `main.c` edited, reimplements and compoundref were non-empty yet came entirely from
+    ## an UNCHANGED file, so their rows were never deleted and deleting their restoration was
+    ## invisible. Two mutation controls passed against that shape.
+    ## `Extra` is the class the edit ADDS to shapes.cpp, and doxygen keys a class member's
+    ## refid to the CLASS compound (`structExtra_...`), never to the file — so keying this gate
+    ## on the file name silently found nothing. Its compounddef's `file_id` IS shapes.cpp, so
+    ## the splice deletes it and must put it back.
+    for layer in ("reimplements", "compoundref"):
+        assert any("Extra" in ref for row in want[layer] for ref in row), (
+            f"no {layer} row involves the class the edit added, so that table is compared but "
+            f"never exercised by the splice's delete path — two mutation controls passed "
+            f"against exactly that shape"
         )
 
     added = [m for m in got["members"] if m[1] == "splice_probe_added"]
