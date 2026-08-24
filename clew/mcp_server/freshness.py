@@ -107,15 +107,32 @@ def package_source_root() -> Path:
 ## @brief Fingerprint the package source's identity on disk.
 ## @param root Package root to fingerprint (defaults to the imported one).
 ## @return Short hex digest, or "" when the tree cannot be read or holds no source.
-## @version 2
+## @version 3
 ## @req REQ-DDB-MCP-004
 def source_fingerprint(root: Path | None = None) -> str:
-    """Hashes RELATIVE path, mtime and size for every `.py` under the package — never
-    file CONTENT, and never an absolute path.
+    """Hashes RELATIVE path and file CONTENT for every `.py` under the package — never
+    mtime, and never an absolute path.
 
-    Not content because the question is "has the tree moved since this process started",
-    which mtime answers for a few hundred stats where reading every byte would cost
-    real time on a surface called once per reply.
+    IT HASHED MTIME UNTIL A LIVE MEASUREMENT KILLED THAT. The reasoning was that "has the
+    tree moved since this process started" is answered by a stat, and reading every byte
+    would cost real time on a surface called once per reply. The cost claim was wrong by
+    measurement — 90 files and 2.6 MB hash in 4.0 ms against 2.2 ms for stat-only, so
+    content costs 1.8 ms — and the correctness cost was much larger than 1.8 ms.
+
+    THE CODE AXIS IS A HARD REFUSAL: `matches_source` false blocks the automatic
+    query-time refresh AND refuses an explicit build, and no rebuild clears it — only
+    restarting the client does. An mtime key trips on `git checkout`, a branch switch,
+    `git stash pop`, rsync and plain `touch`, every one of which leaves byte-identical
+    content. Observed here: reverting ONE file with `git checkout` moved the fingerprint,
+    the axis fired on the next two query replies, and that is what stopped the
+    query-time auto-refresh from ever engaging in this repository. A safety gate that
+    fires on ordinary git operations disables the feature it guards.
+
+    The sibling `IndexCache` already states this codebase's rule — mtime+size is a
+    PREFILTER and the sha256 of the bytes is the AUTHORITY, so a touch with no edit and a
+    checkout that restores identical content both stay HITS. This now follows it. No
+    prefilter here, because there is nothing to compare a prefilter against: the result is
+    a single digest over the whole tree, not a per-file cache lookup.
 
     Not absolute paths because anything reachable over MCP is published, and stamping a
     machine's directory layout into a payload is the disclosure that forced the
@@ -135,18 +152,18 @@ def source_fingerprint(root: Path | None = None) -> str:
     lesson exactly — "no rows" is a claim about the detector — reached by a detector that
     could not look. A package with zero `.py` files is not a package.
 
-    @brief Digest the package source tree's mtime/size identity.
+    @brief Digest the package source tree's CONTENT identity.
     @return Short hex digest, or "" when unreadable or empty.
-    @version 2
+    @version 3
     """
     base = root if root is not None else package_source_root()
     digest = hashlib.sha256()
     seen = 0
     try:
         for path in sorted(base.rglob(_SOURCE_GLOB)):
-            stat = path.stat()
             rel = path.relative_to(base).as_posix()
-            digest.update(f"{rel}:{stat.st_mtime_ns}:{stat.st_size}\n".encode())
+            digest.update(f"{rel}\0".encode())
+            digest.update(hashlib.sha256(path.read_bytes()).digest())
             seen += 1
     except OSError:
         return ""

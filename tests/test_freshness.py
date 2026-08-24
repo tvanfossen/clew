@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import os
 from pathlib import Path
 
 import pytest
@@ -365,14 +366,17 @@ def test_the_fingerprint_tracks_the_source_tree(tmp_path: Path) -> None:
     that changes when nothing did makes the code axis fire permanently, which is the
     same failure as no signal at all.
 
-    Asserts on mtime rather than sleeping: `os.utime` makes the change deterministic
-    where a sleep makes the test slow AND flaky.
+    SENSITIVITY IS TO CONTENT, NOT MTIME, and this test used to assert the opposite —
+    "a touched file must move the fingerprint" — which contradicted the sentence directly
+    above it in its own docstring. An mtime key fires on `git checkout`, a branch switch
+    and plain `touch`, all byte-identical, and because the code axis is a hard refusal
+    that no rebuild clears, those spurious trips disabled the query-time auto-refresh
+    entirely. `test_the_source_fingerprint_ignores_mtime_and_tracks_content` covers the
+    stability half against a touch specifically.
 
     @brief The fingerprint is sensitive and stable.
-    @version 1
+    @version 2
     """
-    import os
-
     pkg = tmp_path / "pkg"
     pkg.mkdir()
     (pkg / "a.py").write_text("x = 1\n", encoding="utf-8")
@@ -381,9 +385,8 @@ def test_the_fingerprint_tracks_the_source_tree(tmp_path: Path) -> None:
     assert before, "a readable tree must fingerprint"
     assert fr.source_fingerprint(pkg) == before, "an untouched tree must not drift"
 
-    stat = (pkg / "a.py").stat()
-    os.utime(pkg / "a.py", ns=(stat.st_atime_ns, stat.st_mtime_ns + 1_000_000_000))
-    assert fr.source_fingerprint(pkg) != before, "a touched file must move the fingerprint"
+    (pkg / "a.py").write_text("x = 2\n", encoding="utf-8")
+    assert fr.source_fingerprint(pkg) != before, "an edited file must move the fingerprint"
 
 
 ## @brief A non-`.py` file does not move the fingerprint.
@@ -704,4 +707,57 @@ def test_status_reports_the_real_package_version_not_the_unknown_fallback() -> N
     ## Asserting only on the helper would leave a wrapper free to drop or rename the field.
     assert code_identity().get("package_version") == want, (
         "code_identity() is what reaches a status reply; it must carry the same version"
+    )
+
+
+##
+# @brief A touch with no edit must not move the source fingerprint.
+# @param tmp_path Pytest scratch directory.
+# @return None.
+# @version 1
+def test_the_source_fingerprint_ignores_mtime_and_tracks_content(tmp_path: Path) -> None:
+    """THE CODE AXIS IS A HARD REFUSAL, so a false positive on it is expensive.
+
+    `matches_source` false blocks the automatic query-time refresh AND refuses an explicit
+    build, and no rebuild clears it — only restarting the client does. So anything that trips
+    it spuriously disables both, silently, until someone reconnects.
+
+    An mtime-keyed digest trips on `git checkout`, a branch switch, `git stash pop`, rsync and
+    plain `touch`, all of which leave byte-identical content. MEASURED LIVE in this
+    repository: reverting one file with `git checkout` moved the fingerprint and the code axis
+    fired on the next two query replies, which is what stopped the auto-refresh from ever
+    engaging here.
+
+    The sibling `IndexCache` already states the correct rule for this codebase — mtime+size is
+    a PREFILTER and the sha256 of the bytes is the AUTHORITY, so a touch with no edit and a
+    checkout that restores identical content both stay HITS. This pins the same rule for the
+    fingerprint.
+
+    The cost objection was measured rather than argued: 90 files and 2.6 MB hash in 4.0 ms
+    against 2.2 ms for stat-only, so content costs 1.8 ms on a surface called once per reply.
+
+    @brief A touch is invisible; an edit is not.
+    @return None.
+    @version 1
+    """
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+    (pkg / "a.py").write_text("x = 1\n", encoding="utf-8")
+    (pkg / "b.py").write_text("y = 2\n", encoding="utf-8")
+
+    before = fr.source_fingerprint(pkg)
+    assert before, "a package with .py files must fingerprint to something"
+
+    ## A touch far in the future, so this cannot pass by the mtime happening to land in the
+    ## same nanosecond — the masking that makes this class of test lie.
+    os.utime(pkg / "a.py", ns=(10**18, 10**18))
+    assert fr.source_fingerprint(pkg) == before, (
+        "a touch with identical content moved the fingerprint, so the code axis fires on "
+        "every git checkout and branch switch and disables auto-refresh with no edit at all"
+    )
+
+    (pkg / "a.py").write_text("x = 2\n", encoding="utf-8")
+    assert fr.source_fingerprint(pkg) != before, (
+        "a real content edit did NOT move the fingerprint — the axis can no longer detect "
+        "the stale process it exists to catch, which is worse than firing too often"
     )
