@@ -162,7 +162,7 @@ def meta_section(db: str | Path, prefix: str) -> dict[str, str]:
 ## @param name Bare function name.
 ## @param qualified Optional identity selector; see `matching_identity`.
 ## @return The definition-preferring memberdef rowid, or None if no such function (or none of that identity).
-## @version 6
+## @version 7
 ## @req REQ-DDB-QUERY-003
 ## @req REQ-DDB-QUERY-010
 def resolve_rowid(conn: sqlite3.Connection, name: str, qualified: str | None = None) -> int | None:
@@ -178,7 +178,7 @@ def resolve_rowid(conn: sqlite3.Connection, name: str, qualified: str | None = N
     bare branch would have, for the subset it keeps.
 
     @brief Resolve a function name to its definition-preferring rowid.
-    @version 6
+    @version 7
     """
     if not table_exists(conn, "memberdef"):
         return None
@@ -187,7 +187,9 @@ def resolve_rowid(conn: sqlite3.Connection, name: str, qualified: str | None = N
         return cands[0][0] if cands else None
     row = conn.execute(
         "SELECT rowid FROM memberdef WHERE name=? AND kind='function' "
-        "ORDER BY (COALESCE(bodyfile_id, 0) > 0 AND COALESCE(bodystart, 0) > 0) DESC, rowid LIMIT 1",
+        "ORDER BY (file_id = bodyfile_id) DESC, "
+        "(COALESCE(bodyfile_id, 0) > 0 AND COALESCE(bodystart, 0) > 0) DESC, "
+        "rowid LIMIT 1",
         (name,),
     ).fetchone()
     return row[0] if row else None
@@ -198,7 +200,7 @@ def resolve_rowid(conn: sqlite3.Connection, name: str, qualified: str | None = N
 ## @param name Bare function name (`memberdef.name`).
 ## @param qualified Optional identity selector; see `matching_identity`. None keeps every same-named row.
 ## @return List of (rowid, signature, file, line_start, has_body) tuples, definition rows first then by rowid; empty when the name is unknown or no row carries that identity.
-## @version 5
+## @version 6
 ## @req REQ-DDB-QUERY-003
 ## @req REQ-DDB-QUERY-010
 def function_candidates(
@@ -226,7 +228,7 @@ def function_candidates(
     identity rule in ONE place instead of a second, SQL-shaped copy of it.
 
     @brief List same-named function rows, definition-preferring, with signatures.
-    @version 5
+    @version 6
     """
     if not table_exists(conn, "memberdef"):
         return []
@@ -235,7 +237,7 @@ def function_candidates(
         "m.bodystart, (COALESCE(m.bodyfile_id, 0) > 0 AND COALESCE(m.bodystart, 0) > 0) AS has_body "
         "FROM memberdef m LEFT JOIN path p ON p.rowid = m.file_id "
         "WHERE m.name=? AND m.kind='function' "
-        "ORDER BY has_body DESC, m.rowid",
+        "ORDER BY (m.file_id = m.bodyfile_id) DESC, has_body DESC, m.rowid",
         (name,),
     ).fetchall()
     cands = [(r[0], r[1], r[2], r[3], bool(r[4])) for r in rows]

@@ -160,3 +160,95 @@ def test_candidates_report_a_body_that_lives_in_another_file(tmp_path: Path) -> 
         f"candidates did not surface both meanings of the name: {rows}"
     )
     assert by_rowid[TEST_HELPER][-1], "the in-place helper genuinely has a body too"
+
+
+## The decl/def duality, which is the OTHER shape and the one a C codebase is full of: doxygen
+## emits TWO rows for one identity and enriches the header DECLARATION with the definition's
+## `bodyfile_id`/`bodystart`, so both rows carry an identical body span. Only `file_id ==
+## bodyfile_id` distinguishes them.
+DUAL_DECL = 30
+DUAL_DEF = 31
+
+
+##
+# @brief Build one identity with both a header declaration row and a definition row.
+# @param tmp_path Pytest scratch directory.
+# @return Open connection to the fixture database.
+# @version 1
+def _duality_fixture(tmp_path: Path) -> sqlite3.Connection:
+    """Modelled on real mbedtls rows, not invented: `FStar_UInt128_eq` has rowid 1481
+    (`file_id` = the .h, `bodyfile_id` = 9, `bodystart` = 199) and rowid 1883
+    (`file_id == bodyfile_id` = 9, same `bodystart` 199). The declaration is emitted FIRST, so
+    a `rowid` tiebreak elects it.
+
+    @brief Seed the decl/def duality fixture.
+    @return The connection.
+    @version 1
+    """
+    conn = sqlite3.connect(str(tmp_path / "duality.db"))
+    conn.executescript(
+        """
+        CREATE TABLE path (rowid INTEGER PRIMARY KEY, name TEXT);
+        CREATE TABLE memberdef (
+            rowid INTEGER PRIMARY KEY,
+            kind TEXT, name TEXT, file_id INTEGER, bodyfile_id INTEGER,
+            bodystart INTEGER, bodyend INTEGER, definition TEXT, argsstring TEXT,
+            briefdescription TEXT, detaileddescription TEXT, static INTEGER
+        );
+        """
+    )
+    conn.executemany(
+        "INSERT INTO path (rowid, name) VALUES (?, ?)",
+        [(1, "include/lib/u128.h"), (2, "library/u128.c")],
+    )
+    conn.executemany(
+        "INSERT INTO memberdef (rowid, kind, name, file_id, bodyfile_id, bodystart, bodyend, "
+        "definition, argsstring, briefdescription, detaileddescription, static) "
+        "VALUES (?, 'function', 'u128_eq', ?, ?, 199, 210, 'bool u128_eq', '(a,b)', '', '', 0)",
+        [
+            ## Declaration FIRST, carrying the definition's body span — doxygen's enrichment.
+            (DUAL_DECL, 1, 2),
+            ## The definition itself.
+            (DUAL_DEF, 2, 2),
+        ],
+    )
+    conn.commit()
+    return conn
+
+
+##
+# @brief The decl/def duality must still elect the definition row.
+# @param tmp_path Pytest scratch directory.
+# @return None.
+# @version 1
+def test_the_decl_def_duality_still_elects_the_definition(tmp_path: Path) -> None:
+    """THE REGRESSION THIS PINS. Widening the definition test to "carries a body" made it TRUE
+    for BOTH rows of a duality pair, so the `rowid` tiebreak elected the header DECLARATION —
+    which doxygen emits first. Measured on mbedtls before this test existed: 37 multi-row names
+    flipped their resolved rowid, and `resolve_symbol` joins `path` on `file_id` while taking
+    `bodystart`, so the elected row published a HEADER path with the .c's body line — a
+    fabricated file:line an agent would go read.
+
+    The sort key therefore needs BOTH terms, most specific first: a true in-place definition
+    wins, an out-of-line definition still beats a bodiless declaration, and the duality no
+    longer inverts.
+
+    @brief A declaration enriched with the definition's body does not outrank the definition.
+    @return None.
+    @version 1
+    """
+    conn = _duality_fixture(tmp_path)
+    try:
+        got = _common.resolve_rowid(conn, "u128_eq")
+        rows = _common.function_candidates(conn, "u128_eq")
+    finally:
+        conn.close()
+
+    assert got == DUAL_DEF, (
+        f"resolved to rowid {got}; the header DECLARATION row was elected over the definition "
+        f"because both carry the same body span and the tiebreak is rowid ascending"
+    )
+    assert rows[0][0] == DUAL_DEF, (
+        f"candidates ranked the declaration first: {rows}. `resolve_symbol` joins path on "
+        f"file_id but takes bodystart, so this publishes a header path with the .c's line"
+    )
