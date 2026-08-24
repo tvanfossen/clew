@@ -36,6 +36,20 @@ _DOXYFILE_FORCED_FLAGS = (
     "EXTRACT_STATIC = YES\n"
     "EXTRACT_ANON_NSPACES = YES\n"
     "RECURSIVE = YES\n"
+    ## NO FILTER MAY EVER RUN. `INPUT_FILTER` and `FILTER_PATTERNS` values are COMMANDS
+    ## doxygen executes over each input file, and the target's OWN Doxyfile is read and
+    ## honoured — so without these three lines any indexed repository can obtain arbitrary
+    ## command execution as the developer by simply DECLARING a filter, no injection and no
+    ## cleverness required. clew indexes untrusted third-party code, which makes that a
+    ## remote-ish code execution primitive reachable by cloning.
+    ##
+    ## Forced HERE because this block is concatenated AFTER the repo's Doxyfile, and doxygen
+    ## takes the LAST assignment. It is not sufficient on its own: `extra_input` is appended
+    ## after this block, so a path that injects its own directive still wins — see
+    ## `_reject_uninlineable` for that half.
+    "INPUT_FILTER =\n"
+    "FILTER_PATTERNS =\n"
+    "FILTER_SOURCE_FILES = NO\n"
 )
 
 _DOXY_PHASE_PREFIXES = ("Generating ", "Building ", "Finished", "Running ")
@@ -507,7 +521,7 @@ def synthesize_doxyfile(repo_root: Path, output_dir: Path) -> Path:
 
 
 ## @brief Build the augmented Doxyfile content piped to doxygen on stdin.
-## @version 9
+## @version 10
 ## @req REQ-DDB-INDEX-001
 def _build_doxyfile_content(
     doxyfile: Path,
@@ -578,11 +592,11 @@ def _build_doxyfile_content(
         ## repo's own scope statement to be replaced. A plain `--extra-exclude` build
         ## leaves both keys exactly as the repo wrote them.
         content += "EXCLUDE_PATTERNS =\n"
-    for path in extra_input:
+    for path in _inlineable(list(extra_input), "INPUT"):
         content += f"INPUT += {path}\n"
     content += "EXCLUDE =\n"
     if extra_exclude:
-        for path in extra_exclude:
+        for path in _inlineable(list(extra_exclude), "EXCLUDE"):
             content += f"EXCLUDE += {path}\n"
     logger.info(
         "Appending %d extra INPUT entries (EXCLUDE cleared, %d re-excluded)",
@@ -590,6 +604,48 @@ def _build_doxyfile_content(
         len(extra_exclude) if extra_exclude else 0,
     )
     return content
+
+
+## @brief Drop paths that cannot be written as a Doxyfile value.
+## @param paths Candidate INPUT/EXCLUDE entries.
+## @param kind Which key they are destined for, for the warning.
+## @return The paths safe to inline, in order.
+## @version 1
+## @dg_internal
+def _inlineable(paths: list[str], kind: str) -> list[str]:
+    """DOXYGEN'S CONFIG IS LINE-BASED, so a path containing a newline TERMINATES the
+    assignment and everything after it becomes a new directive. POSIX allows every byte
+    except NUL and `/` in a filename and git stores it faithfully, so a hostile repository
+    can ship `a.c\nINPUT_FILTER = /bin/sh -c ...` as a BASENAME and obtain arbitrary command
+    execution from indexing alone.
+
+    Verified by rendering the configuration: the tail arrived as its own `INPUT_FILTER`
+    directive, positioned after the forced flags and therefore winning over them.
+
+    SKIPPED RATHER THAN REFUSED, and that is not leniency. Doxygen's format cannot
+    REPRESENT such a path, so the file was never indexable by any means — skipping loses
+    nothing that was achievable, while refusing the whole build would make one pathological
+    filename render an entire repository unindexable. The skip is logged as a WARNING with a
+    count, because an accepted-but-unread entry is this project's most repeated defect.
+
+    Carriage return and NUL are rejected on the same reasoning; a bare `\r` can terminate a
+    line for some parsers and NUL cannot appear in a path at all.
+
+    @brief Filter out paths that would inject a Doxyfile directive.
+    @return The safe subset.
+    @version 1
+    """
+    safe = [p for p in paths if not any(c in p for c in "\n\r\x00")]
+    dropped = len(paths) - len(safe)
+    if dropped:
+        logger.warning(
+            "%s: skipping %d path(s) containing a control character. A newline in a path "
+            "would terminate the Doxyfile assignment and turn the remainder into a "
+            "directive, and doxygen cannot represent such a path in any case.",
+            kind,
+            dropped,
+        )
+    return safe
 
 
 ## @brief Bucket a doxygen-stdout line: warning, file, phase, or other.
