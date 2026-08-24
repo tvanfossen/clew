@@ -502,7 +502,7 @@ def _changed_refids(sub: sqlite3.Connection, changed: set[str], ctx: dict) -> se
 # @param sub Subset database connection (read).
 # @param report Accumulating counts.
 # @return None.
-# @version 1
+# @version 2
 # @dg_internal
 def _insert_relations(
     work: sqlite3.Connection,
@@ -519,12 +519,21 @@ def _insert_relations(
 
     @brief Re-insert member and contains rows.
     @return None.
-    @version 1
+    @version 2
     """
     changed_refids = _changed_refids(sub, changed, ctx)
     pairs = (
         ("member", "scope_rowid", "memberdef_rowid", "prot, virt"),
         ("contains", "inner_rowid", "outer_rowid", ""),
+        ## BOTH WERE DELETE-ONLY UNTIL AN ADVERSARIAL REVIEW MEASURED IT. `_delete_file_rows`
+        ## removes them per changed file and nothing put them back, so every override
+        ## relationship and every base/derived link in a changed file was permanently stripped
+        ## — silently, with a symmetric-looking SpliceReport. Measured on the docs-db
+        ## self-index with master as its own subset: reimplements 19 -> 15, compoundref 29 ->
+        ## 27. Readers that went empty: query/symbols.py and query/dossier.py (overrides and
+        ## implementors), query/corpus.py (bases and derived).
+        ("reimplements", "memberdef_rowid", "reimplemented_rowid", ""),
+        ("compoundref", "base_rowid", "derived_rowid", "prot, virt"),
     )
     for table, left, right, extra in pairs:
         columns = f"{left}, {right}" + (f", {extra}" if extra else "")
@@ -650,6 +659,130 @@ def _insert_xrefs(
         report.xrefs_inserted += 1
 
 
+## @brief Restore a changed file's parameter rows and their memberdef links.
+# @param work Working copy connection (written).
+# @param sub Subset database connection (read).
+# @param changed Repo-relative paths whose content changed.
+# @param ctx Path caches for both databases plus the repo root.
+# @param report Accumulating counts.
+# @return None.
+# @version 1
+# @dg_internal
+def _insert_params(
+    work: sqlite3.Connection,
+    sub: sqlite3.Connection,
+    changed: set[str],
+    ctx: dict,
+    report: SpliceReport,
+) -> None:
+    """`param` CARRIES NO REFID, which is why this cannot ride on `_insert_relations`. Rows are
+    matched on their full value tuple and inserted only when absent, because doxygen already
+    shares one `param` row across many memberdefs (1072 param rows against 4239 links on this
+    repo) and copying blindly would grow the table on every splice.
+
+    Delete-only until an adversarial review measured it: memberdef_param 4322 -> 4162 on the
+    docs-db self-index with master as its own subset. The visible consequence is in
+    `query/macros.py`, which distinguishes a function-like macro from an object-like one by
+    whether it has parameter rows — so a spliced function-like macro reads as object-like.
+
+    @brief Re-link a changed file's parameters.
+    @return None.
+    @version 1
+    """
+    columns = [c for c in _columns(sub, "param") if c != "rowid"]
+    joined = ", ".join(columns)
+    marks = ", ".join("?" * len(columns))
+    where = " AND ".join(f"COALESCE({c},'') = COALESCE(?,'')" for c in columns)
+    for rel in sorted(changed):
+        sub_file = ctx["sub_paths"].get(rel)
+        if sub_file is None:
+            continue
+        rows = sub.execute(
+            f"SELECT rf.refid, {', '.join('p.' + c for c in columns)} "  # noqa: S608
+            "FROM memberdef_param mp "
+            "JOIN memberdef m ON m.rowid = mp.memberdef_id "
+            "JOIN refid rf ON rf.rowid = m.rowid "
+            "JOIN param p ON p.rowid = mp.param_id "
+            "WHERE m.file_id = ?",
+            (sub_file,),
+        ).fetchall()
+        for row in rows:
+            member = work.execute(
+                "SELECT m.rowid FROM memberdef m JOIN refid r ON r.rowid = m.rowid "
+                "WHERE r.refid = ?",
+                (str(row[0]),),
+            ).fetchone()
+            if member is None:
+                report.relations_dropped += 1
+                continue
+            values = list(row[1:])
+            existing = work.execute(
+                f"SELECT rowid FROM param WHERE {where} LIMIT 1",
+                values,  # noqa: S608
+            ).fetchone()
+            if existing is None:
+                cur = work.execute(
+                    f"INSERT INTO param({joined}) VALUES ({marks})",
+                    values,  # noqa: S608
+                )
+                param_rowid = cur.lastrowid
+            else:
+                param_rowid = int(existing[0])
+            work.execute(
+                "INSERT INTO memberdef_param(memberdef_id, param_id) VALUES (?, ?)",
+                (int(member[0]), param_rowid),
+            )
+            report.relations_inserted += 1
+
+
+## @brief Restore the `#include` edges a changed file declares.
+# @param work Working copy connection (written).
+# @param sub Subset database connection (read).
+# @param changed Repo-relative paths whose content changed.
+# @param ctx Path caches for both databases plus the repo root.
+# @param report Accumulating counts.
+# @return None.
+# @version 1
+# @dg_internal
+def _insert_includes(
+    work: sqlite3.Connection,
+    sub: sqlite3.Connection,
+    changed: set[str],
+    ctx: dict,
+    report: SpliceReport,
+) -> None:
+    """KEYED ON PATHS, NOT REFIDS — `includes` links two `path` rows, so it needs its own
+    handler. Delete-only until measured: includes 1017 -> 958 on the mbedtls index.
+
+    No clew query reads `includes` TODAY, so restoring it fixes nothing currently visible. It
+    is restored anyway because a table the splice silently empties is a trap for whoever adds
+    the first reader — they would find it empty on incrementally-refreshed indexes only, which
+    is the hardest possible shape to debug.
+
+    @brief Re-insert a changed file's include edges.
+    @return None.
+    @version 1
+    """
+    for rel in sorted(changed):
+        sub_file = ctx["sub_paths"].get(rel)
+        if sub_file is None:
+            continue
+        for local, dst_name in sub.execute(
+            "SELECT i.local, d.name FROM includes i JOIN path d ON d.rowid = i.dst_id "
+            "WHERE i.src_id = ?",
+            (sub_file,),
+        ):
+            src = _path_rowid(work, rel, ctx["work_paths"])
+            dst = _path_rowid(
+                work, normalize_path(str(dst_name), ctx["repo_root"]), ctx["work_paths"]
+            )
+            work.execute(
+                "INSERT INTO includes(local, src_id, dst_id) VALUES (?, ?, ?)",
+                (local, src, dst),
+            )
+            report.relations_inserted += 1
+
+
 ##
 # @brief Rebuild the master doxygen database by re-reading only the changed files.
 # @param master_db The previous whole-tree doxygen database.
@@ -659,7 +792,7 @@ def _insert_xrefs(
 # @param out The path to write the spliced database to.
 # @param repo_root Absolute repository root.
 # @return A report of what moved.
-# @version 1
+# @version 2
 # @req REQ-DDB-INDEX-002
 def splice_doxygen(
     master_db: Path,
@@ -685,7 +818,7 @@ def splice_doxygen(
 
     @brief Splice a subset doxygen run into the master database.
     @return The splice report.
-    @version 2
+    @version 3
     """
     report = SpliceReport()
     if not master_db.exists():
@@ -730,6 +863,8 @@ def splice_doxygen(
             report.files_replaced += 1
         if sub is not None:
             _insert_relations(work, sub, changed, ctx, report)
+            _insert_params(work, sub, changed, ctx, report)
+            _insert_includes(work, sub, changed, ctx, report)
             _insert_xrefs(work, sub, changed, ctx, report)
         work.commit()
     finally:

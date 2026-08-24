@@ -141,6 +141,42 @@ def _snapshot(db: Path, root: Path) -> dict[str, set]:
                 "JOIN refid rr ON rr.rowid = c.outer_rowid"
             )
         }
+        ## EVERY REMAINING TABLE `_delete_file_rows` TOUCHES. Four of them were deleted per
+        ## changed file and never re-inserted, and this snapshot could not see it because it
+        ## compared only members / compounds / xrefs / member+contains. Keyed on refid or on
+        ## path name so two independent builds are comparable.
+        params = {
+            (str(md), str(ptype or ""), str(pname or ""))
+            for md, ptype, pname in conn.execute(
+                "SELECT r.refid, p.type, p.declname FROM memberdef_param mp "
+                "JOIN memberdef m ON m.rowid = mp.memberdef_id "
+                "JOIN refid r ON r.rowid = m.rowid "
+                "JOIN param p ON p.rowid = mp.param_id"
+            )
+        }
+        reimpl = {
+            (str(a), str(b))
+            for a, b in conn.execute(
+                "SELECT ra.refid, rb.refid FROM reimplements x "
+                "JOIN refid ra ON ra.rowid = x.memberdef_rowid "
+                "JOIN refid rb ON rb.rowid = x.reimplemented_rowid"
+            )
+        }
+        bases = {
+            (str(a), str(b))
+            for a, b in conn.execute(
+                "SELECT ra.refid, rb.refid FROM compoundref x "
+                "JOIN refid ra ON ra.rowid = x.base_rowid "
+                "JOIN refid rb ON rb.rowid = x.derived_rowid"
+            )
+        }
+        incl = {
+            (normalize_path(str(a), root), normalize_path(str(b), root))
+            for a, b in conn.execute(
+                "SELECT s.name, d.name FROM includes i "
+                "JOIN path s ON s.rowid = i.src_id JOIN path d ON d.rowid = i.dst_id"
+            )
+        }
     finally:
         conn.close()
     return {
@@ -148,6 +184,10 @@ def _snapshot(db: Path, root: Path) -> dict[str, set]:
         "edges": edges,
         "compounds": compounds,
         "relations": relations,
+        "params": params,
+        "reimplements": reimpl,
+        "compoundref": bases,
+        "includes": incl,
     }
 
 
@@ -186,6 +226,17 @@ def test_incremental_splice_matches_a_full_rebuild(tmp_path: Path) -> None:
     """
     root = tmp_path / "repo"
     shutil.copytree(FIXTURE, root)
+    ## THE C FIXTURE HOLDS ZERO `reimplements` AND `compoundref` ROWS, so an invariance over
+    ## those tables would pass vacuously on it — 0 == 0. A base/derived pair with a virtual
+    ## override is the smallest thing that populates both, and without it the review's
+    ## least-measured finding stays unmeasured.
+    (root / "src" / "shapes.cpp").write_text(
+        "struct Base { virtual int area() const; virtual ~Base() {} };\n"
+        "struct Derived : Base { int area() const override; };\n"
+        "int Base::area() const { return 0; }\n"
+        "int Derived::area() const { return 1; }\n",
+        encoding="utf-8",
+    )
     doxyfile = _doxyfile(root, tmp_path / "Doxyfile")
 
     master = _run(doxyfile, tmp_path / "master", root)
@@ -224,10 +275,29 @@ def test_incremental_splice_matches_a_full_rebuild(tmp_path: Path) -> None:
     got = _snapshot(spliced, root)
     want = _snapshot(truth_kept, root)
 
+    ## NON-VACUITY GATE. An invariance over an EMPTY table passes as 0 == 0 and proves nothing.
+    ## The C fixture holds no inheritance at all, which is why `shapes.cpp` is written into the
+    ## copy — and this asserts that it worked. Without this gate, deleting the reimplements and
+    ## compoundref restoration would leave the comparison green.
+    for layer in ("params", "reimplements", "compoundref", "includes"):
+        assert want[layer], (
+            f"the rebuild produced NO {layer} rows, so comparing that table is vacuous and "
+            f"the splice could drop it undetected — the fixture needs to populate it"
+        )
+
     added = [m for m in got["members"] if m[1] == "splice_probe_added"]
     assert added, "the edit's new function is absent from the spliced database"
 
-    for layer in ("members", "compounds", "edges", "relations"):
+    for layer in (
+        "members",
+        "compounds",
+        "edges",
+        "relations",
+        "params",
+        "reimplements",
+        "compoundref",
+        "includes",
+    ):
         missing = want[layer] - got[layer]
         extra = got[layer] - want[layer]
         assert not missing and not extra, (
