@@ -145,24 +145,47 @@ run `claude mcp remove clew` first if you have already used `clew init`.
 The plugin registers the MCP server **and one `PostToolUse` hook**. Installing a Claude Code
 plugin does not prompt you about hooks, so it is stated here instead:
 
-- **What it does.** After a `Bash`, `Grep` or `Glob` call it prints one line of context saying the
+- **What it does.** After a `Bash`, `Grep`, `Glob` or `Read` call it adds a short note saying the
   index is available and what `dossier` and `search` answer. It exists because `grep` has an
   enormous training prior and an index tool has none — the tool being correct does not make it
   reached for.
-- **It escalates only when ignored, and using the index silences it.** Each search adds one to a
-  per-session count and each clew call subtracts three. Below five it says nothing; from five it
-  speaks every fifth search; from twenty it speaks every time. A session that uses the index even
-  occasionally never reaches the floor and hears nothing at all.
+- **It escalates only when ignored, and one index call silences it.** Each file-inspection call
+  adds one to a per-session tally; a clew call **clears the tally to zero** rather than crediting
+  against it. Below five it says nothing; from five it speaks every fifth call; from twenty it
+  speaks every call and switches to a longer, blunter tier that states the cost rather than the
+  capability. A session that uses the index even occasionally stays permanently silent.
+
+  Crediting was the original design and it was unrecoverable: measured on one real session, 1,339
+  searches against 38 clew calls left a pressure of 1,225 against a threshold of 20, needing ~408
+  *consecutive* index calls to earn silence back. The loudest tier became permanent, and its own
+  promise that using the tool would stop it was arithmetically false.
 - **~46 ms per matching call**, almost all of it Python starting. It imports nothing from the
   `clew` package and nothing outside `os`/`sys`, for that reason.
-- **It is registered twice** — once for `Bash`/`Grep`/`Glob` and once for the clew tools, which is
-  how it learns which ran without reading anything. The second registration passes `--used` from
-  the manifest; it is the only argument it accepts.
-- **It reads nothing.** Its output is a compile-time constant in
-  [`clew_hook.py`](https://github.com/tvanfossen/clew/blob/main/clew_hook.py) — the hook drains
-  its stdin without parsing it, so no file name, matched line or tool result can reach your
-  model's context through it. It never exits non-zero, because a non-zero exit would send its
-  stderr to the model.
+- **It is registered twice** — once for `Bash`/`Grep`/`Glob`/`Read` and once for the clew tools,
+  which is how it learns which ran without reading anything. The second registration passes
+  `--used` from the manifest; it is the only argument it accepts.
+- **Nothing from your session can reach your model through it.** The payload in
+  [`clew_hook.py`](https://github.com/tvanfossen/clew/blob/main/clew_hook.py) is four module-level
+  string literals — two framing constants and the two tiers — and the single run-time value
+  substituted into them is the tally, coerced with `int()` and rendered with `%d`. An int through
+  `%d` cannot emit anything but digits. The hook drains its stdin **without parsing it**, so no
+  file name, matched line or tool result is ever in scope to echo.
+
+  That is asserted structurally, not behaviourally, by
+  `tests/test_hook.py::test_no_run_time_value_can_reach_the_output`: it reads the source and pins
+  that the surface is exactly four bare literal assignments, that no f-string, `.format()`, `%s`,
+  `os.environ` or `sys.argv` appears anywhere in it, and that exactly **one** `%`-application
+  exists in the file — `note % count`, on the coerced int. A behavioural test could only show that
+  the strings it happened to try were not echoed; it could never show that no string would be.
+
+  The tally is substituted *deliberately*, and it is the one place this design trades a blanket
+  guarantee for effectiveness: a byte-identical note repeats into wallpaper. Measured, ~1,900
+  identical injections in one session changed nothing, and that session went on to make 2 index
+  calls against ~1,900 searches. A number that moves invalidates the prompt cache at that point,
+  so the note is processed rather than replayed.
+- **It never exits non-zero**, because a non-zero exit would send its stderr to the model. Every
+  path returns 0, including every failure path — a marker file that cannot be written fails
+  silently.
 
 **To turn it off**, set `CLEW_HOOK_DISABLE=1` in the environment Claude Code runs in, or delete
 `hooks/hooks.json` from the installed plugin. Registering the server by hand with `clew init`
