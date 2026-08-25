@@ -77,6 +77,20 @@ def _interpreter(spec: str | None) -> Path:
             f"as 'python{spec}'. Refusing to fall back to this process's interpreter, because "
             f"testing the wrong version is worse than not testing."
         )
+    ## FOUND IS NOT ENOUGH — IT NEEDS THE DEPS. A bare `python3.10` on PATH resolves fine and then
+    ## dies with "No module named pytest", which reads as a broken runner rather than as a missing
+    ## environment. That happened the first time this was used for real. Say what to do instead.
+    probe = subprocess.run([found, "-c", "import pytest"], capture_output=True, check=False)
+    if probe.returncode != 0:
+        raise SystemExit(
+            f"{found} has no pytest, so it cannot run this suite. It is a bare interpreter, not a\n"
+            f"prepared environment. Create one and pass its python:\n"
+            f"    {found} -m venv /tmp/clew-{spec}\n"
+            f"    /tmp/clew-{spec}/bin/pip install -e '.[dev]'\n"
+            f"    .venv/bin/python scripts/run_tests.py --python /tmp/clew-{spec}/bin/python\n"
+            f"'.[dev]' matters: without it `build` is missing and the wheel test fails for an\n"
+            f"unrelated reason."
+        )
     return Path(found)
 
 

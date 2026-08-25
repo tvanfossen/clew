@@ -2,11 +2,38 @@
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Bash|Grep|Glob|Read",
+        "matcher": "Read",
         "hooks": [
           {
             "type": "command",
-            "command": "clew-hook"
+            "command": "clew-hook --read"
+          }
+        ]
+      },
+      {
+        "matcher": "Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "clew-hook --pattern"
+          }
+        ]
+      },
+      {
+        "matcher": "Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "clew-hook --glob"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "clew-hook --shell"
           }
         ]
       },

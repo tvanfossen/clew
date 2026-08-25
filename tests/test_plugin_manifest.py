@@ -322,7 +322,11 @@ def test_the_plugin_hook_is_a_packaged_console_script() -> None:
     ## without reading its untrusted stdin, so they are part of the security design and are
     ## enumerated here rather than waved through — an unknown flag reaching the hook would mean
     ## the manifest and the program disagree about what is being said.
-    allowed_args = {clew_hook.USED_FLAG}
+    ## Sourced from the hook's own declarations rather than restated here, so a flag can only be
+    ## passed if the hook publishes it. Until 1.0.10 this was `--used` alone; the modality flags
+    ## joined it when the manifest took over telling the hook WHICH kind of call fired, which is
+    ## what keeps `tool_name` off the run-time path entirely.
+    allowed_args = {clew_hook.USED_FLAG, *clew_hook.MODALITY_FLAGS}
     commands = [
         entry["command"]
         for group in hooks["hooks"].values()
@@ -431,12 +435,19 @@ def test_both_halves_of_the_pressure_counter_are_registered() -> None:
                 f"itself and the counter would measure nothing"
             )
 
+    ## THE UNION MUST COVER ALL FOUR, not each matcher individually. Until 1.0.10 a single
+    ## `Bash|Grep|Glob|Read` matcher covered them together, so per-matcher coverage was the same
+    ## property; now there is one matcher per modality — that is what lets the note say WHICH kind
+    ## of call just happened without reading `tool_name` off untrusted stdin. A tool matched by no
+    ## matcher adds no pressure and the hook stays silent through exactly the sessions it exists
+    ## for, so the union is the thing to pin.
+    for tool in searches:
+        assert any(re.match(pattern, tool) for pattern in search), (
+            f"no search matcher matches {tool!r}, so that tool adds no pressure and the hook "
+            f"stays silent through exactly the sessions it is for"
+        )
+
     for pattern in search:
-        for tool in searches:
-            assert re.match(pattern, tool), (
-                f"search matcher {pattern!r} does not match {tool!r}, so that tool adds no "
-                f"pressure and the hook stays silent through exactly the sessions it is for"
-            )
         for tool in clew_tools:
             assert not re.match(pattern, tool), (
                 f"search matcher {pattern!r} also matches {tool!r}, so an index call would "
