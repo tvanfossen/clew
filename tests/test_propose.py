@@ -821,7 +821,10 @@ def test_mcp_propose_returns_a_draft_and_keeps_stdout_clean(tmp_path: Path) -> N
     @brief The tier-0 propose tool is transport-safe.
     @version 2
     """
-    pytest.importorskip("mcp", reason="the MCP surface needs the optional mcp extra")
+    pytest.importorskip(
+        "mcp",
+        reason="the MCP SDK is a REQUIRED dependency, so this skipping means a BROKEN install, not an unselected extra",
+    )
     from clew.mcp_server.server import DocsDbServer
     from clew.mcp_server.state import Target
 

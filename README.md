@@ -80,6 +80,42 @@ replacement's schema and grading routine, and
 [`docs/CORE_HYPOTHESIS.md`](https://github.com/tvanfossen/clew/blob/main/docs/CORE_HYPOTHESIS.md)
 is the claim it tests. No measured figures are published until it has run.
 
+## Refreshing an index
+
+**A refresh is incremental, and a stale query refreshes itself before answering.** Both exist
+for the same reason: an agent that believes the index is expensive to correct stops using the
+index, and then reasons from a stale one — which is worse than not having it.
+
+- **Incremental.** doxygen is re-run over the changed files plus a closure of their neighbours,
+  and the result is spliced into the existing database rather than replacing it. The closure is
+  the part that has to be right: doxygen's xref pass is global, so editing `b.c` invalidates
+  `a.c`'s edges into it even though `a.c` did not change, and a second pass over the include
+  graph recovers calls the edit itself introduces. On this repository doxygen went from 6218 ms
+  to 325 ms, taking a warm refresh from 8672 ms to ~2700 ms.
+- **Automatic.** When a query arrives against an index whose sources have moved, the refresh
+  runs first and the answer describes the current tree. That is the ~2700 ms above, once, rather
+  than a wrong answer immediately.
+- **You can still ask.** `index(action='refresh')` refreshes on demand; add `force=True` for a
+  full rebuild.
+
+Three limits worth knowing, none of them silent:
+
+- **A newly-added CROSS-FILE call needs C or C++.** The include-graph pass reads doxygen's
+  `includes` table, which is populated from `#include` — so on Python and Rust that pass finds
+  nothing and such a call waits for a full rebuild. The edited file itself is always re-indexed.
+  See [PYTHON_INTEGRATION.md](docs/languages/PYTHON_INTEGRATION.md) and
+  [RUST_INTEGRATION.md](docs/languages/RUST_INTEGRATION.md).
+- **One extra iteration, not a fixed point.** A call reachable only through two new hops waits
+  for a full rebuild, and a generation limit bounds how long a splice chain runs before one
+  happens anyway.
+- **A stale server process refuses to write.** Query tools open the database per call, so reads
+  are always live; but a server whose code predates the working tree will not build, because it
+  would re-stamp the index with old pipeline logic. Restart the client — a rebuild cannot fix it.
+
+**A `CLEW_BUILD_VERSION` bump makes the next build cold.** The constant tracks the build's
+output shape, so when it moves the cached doxygen output is discarded and no index of the old
+shape survives to be queried. Upgrading clew therefore costs one full build, once.
+
 ## What semver covers
 
 **Covered** — a breaking change here means a major bump:

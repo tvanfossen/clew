@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import sqlite3
+import subprocess
 import sys
 import tempfile
 import time
@@ -413,6 +414,216 @@ def cmd_autorefresh(args: argparse.Namespace) -> int:
 # @brief Parse arguments and dispatch a subcommand.
 # @return Process exit status.
 # @version 3
+##
+# @brief Every table the splice writes, with the query that summarises it.
+# @version 1
+_COMPARED = {
+    "memberdef": "SELECT COUNT(*) FROM memberdef",
+    "memberdef_functions": "SELECT COUNT(*) FROM memberdef WHERE kind = 'function'",
+    "call_edges": "SELECT COUNT(*) FROM call_edges",
+    "call_edges_resolved": "SELECT COUNT(*) FROM call_edges WHERE confidence = 'resolved'",
+    "indexed_files": "SELECT COUNT(*) FROM path",
+    "memberdef_param": "SELECT COUNT(*) FROM memberdef_param",
+    "reimplements": "SELECT COUNT(*) FROM reimplements",
+    "compounddef": "SELECT COUNT(*) FROM compounddef",
+    "includes": "SELECT COUNT(*) FROM includes",
+    "xrefs": "SELECT COUNT(*) FROM xrefs",
+}
+
+
+##
+# @brief Summarise one built index across every table the splice touches.
+# @param db Path to a built clew.db.
+# @return Table name to row count, plus the sorted set of indexed paths.
+# @version 1
+def _summarise(db: Path) -> tuple[dict[str, int], set[str]]:
+    """@brief Count the compared tables and collect the indexed file set.
+    @return (counts, paths).
+    @version 1
+    """
+    conn = sqlite3.connect(db)
+    try:
+        counts: dict[str, int] = {}
+        for label, sql in _COMPARED.items():
+            try:
+                counts[label] = conn.execute(sql).fetchone()[0]
+            except sqlite3.Error:
+                counts[label] = -1
+        paths = {r[0] for r in conn.execute("SELECT name FROM path")}
+        return counts, paths
+    finally:
+        conn.close()
+
+
+##
+# @brief Build one index by driving the real CLI, never a hand-wired pipeline.
+# @param repo Repository to index.
+# @param out Database path to write.
+# @param extra Additional CLI arguments.
+# @return Elapsed milliseconds.
+# @version 1
+def _build(repo: Path, out: Path, extra: list[str] | None = None) -> int:
+    """THROUGH THE CLI ON PURPOSE. A hand-wired call to the pipeline is what made #486 look
+    like a live defect when it was only reachable in the scaffold, so the verification a
+    release rests on drives the same entry point a user does.
+
+    @brief Run one build.
+    @return Elapsed ms.
+    @version 1
+    """
+    cmd = [sys.executable, "-m", "clew", "--repo-root", str(repo), "--output", str(out)]
+    cmd += extra or []
+    started = time.monotonic()
+    proc = subprocess.run(cmd, cwd=str(REPO), capture_output=True, text=True, check=False)
+    elapsed = int((time.monotonic() - started) * 1000)
+    ## ALWAYS KEPT, INCLUDING ON SUCCESS. These were discarded whenever the build exited 0,
+    ## which is precisely the case worth reading: a splice that silently drops rows exits 0 and
+    ## says so in its log. Diagnosing the drop then costs a second five-minute run.
+    log = out.with_suffix(out.suffix + f".build{len(list(out.parent.glob('*.build*')))}.log")
+    log.write_text(
+        f"$ {' '.join(cmd)}\n\n--- stdout ---\n{proc.stdout}\n--- stderr ---\n{proc.stderr}"
+    )
+    if proc.returncode != 0:
+        print(proc.stdout[-4000:])
+        print(proc.stderr[-4000:])
+        raise SystemExit(f"build failed ({proc.returncode}): {out}")
+    return elapsed
+
+
+##
+# @brief Compare an incrementally-refreshed index against a full rebuild of the same tree.
+# @param args Parsed arguments carrying the target repo and the file to edit.
+# @return 0 when the two indexes agree on every compared table.
+# @version 1
+def cmd_compare(args: argparse.Namespace) -> int:
+    """THE RELEASE CHECK FOR THE SPLICE, and it is an INVARIANCE rather than a number: an
+    incremental refresh must produce what a full rebuild of the same tree produces. A count
+    that merely looks plausible is what three separate splice defects looked like.
+
+    The order matters and is the part that is easy to get wrong. The edit must land BEFORE
+    the incremental refresh and BEFORE the full build, so both see the same tree; and
+    `splice_generation` must be > 0 afterwards, or the "incremental" arm silently fell back
+    to a full rebuild and the comparison is between two full builds — which passes while
+    proving nothing.
+
+    @brief Full-versus-incremental invariance on a real target.
+    @return 0 on agreement, 1 on any divergence.
+    @version 1
+    """
+    repo = Path(args.repo).resolve()
+    target = repo / args.edit_file
+    if not target.exists():
+        raise SystemExit(f"edit target does not exist: {target}")
+    dirty = subprocess.run(
+        ["git", "-C", str(repo), "status", "--porcelain"],
+        capture_output=True,
+        text=True,
+        check=False,
+    ).stdout.strip()
+    if dirty:
+        raise SystemExit(f"target repo is dirty; refusing to edit it:\n{dirty}")
+
+    work = Path(tempfile.mkdtemp(prefix="clew-compare-"))
+    incremental, full = work / "incr.db", work / "full.db"
+    original = target.read_text()
+    try:
+        cold_ms = _build(repo, incremental)
+        print(f"cold build      : {cold_ms} ms -> {incremental.name}")
+
+        ## The edit: a new call to a function defined in ANOTHER file, which is precisely the
+        ## case #485 lost and the one the include-graph second pass exists to recover.
+        ## THE INCLUDE IS NOT OPTIONAL, AND LEAVING IT OUT INVALIDATES THE WHOLE TEST. The
+        ## second pass's signal IS the include graph, on the stated premise that a C/C++
+        ## cross-file call requires a visible declaration. An edit that calls a function whose
+        ## header it does not include is code that WOULD NOT COMPILE, so there is no include
+        ## edge to find and the pass correctly finds nothing — while a full build still shows
+        ## the edge, because doxygen resolves by NAME and ignores visibility. That divergence
+        ## reads exactly like a splice defect and is not one. Measured: it cost a release
+        ## verification a false blocker.
+        edited = original
+        if args.include_line:
+            lines = original.splitlines(keepends=True)
+            last = max(
+                (i for i, ln in enumerate(lines) if ln.lstrip().startswith("#include")),
+                default=-1,
+            )
+            if last < 0:
+                raise SystemExit(f"no #include in {args.edit_file} to anchor the new one after")
+            lines.insert(last + 1, args.include_line + "\n")
+            edited = "".join(lines)
+            print(f"inserted        : {args.include_line} after line {last + 1}")
+        target.write_text(edited + args.append_text)
+        print(f"edited          : {args.edit_file} (+{len(args.append_text)} bytes)")
+
+        refresh_ms = _build(repo, incremental)
+        print(f"incremental     : {refresh_ms} ms")
+
+        sidecar = incremental.with_name(incremental.name + ".idxcache")
+        generations = -1
+        if sidecar.exists():
+            conn = sqlite3.connect(sidecar)
+            try:
+                ## A KEY IN `cache_meta`, NOT A TABLE OF ITS OWN. The first version of this
+                ## probe queried a `splice_generation` TABLE, got "no such table", and reported
+                ## that the splice had not run — aborting a run in which it HAD run, generation
+                ## 1. A probe that cannot find its evidence must not conclude the absence of the
+                ## thing it was looking for; that is this repo's most-repeated defect, committed
+                ## here by the very check written to guard against it.
+                row = conn.execute(
+                    "SELECT value FROM cache_meta WHERE key = 'splice_generation'"
+                ).fetchone()
+                generations = int(row[0]) if row else 0
+            except sqlite3.Error as exc:
+                print(f"  (splice_generation unreadable: {exc})")
+            finally:
+                conn.close()
+        print(f"splice_generation: {generations}")
+        if generations <= 0:
+            print(
+                "\nABORT: the incremental arm did not splice, so it fell back to a full "
+                "rebuild. Comparing two full builds would PASS and prove nothing."
+            )
+            return 1
+
+        full_ms = _build(repo, full)
+        print(f"full rebuild    : {full_ms} ms -> {full.name}\n")
+
+        incr_counts, incr_paths = _summarise(incremental)
+        full_counts, full_paths = _summarise(full)
+
+        print(f"{'table':<24}{'incremental':>13}{'full':>10}{'delta':>8}")
+        bad = []
+        for label in _COMPARED:
+            a, b = incr_counts[label], full_counts[label]
+            flag = "" if a == b else "  <-- DIVERGES"
+            if a != b:
+                bad.append((label, a, b))
+            print(f"{label:<24}{a:>13}{b:>10}{a - b:>8}{flag}")
+
+        only_incr = sorted(incr_paths - full_paths)
+        only_full = sorted(full_paths - incr_paths)
+        print(f"\nfiles only in incremental: {len(only_incr)}")
+        for name in only_incr[:10]:
+            print(f"    + {name}")
+        print(f"files only in full       : {len(only_full)}")
+        for name in only_full[:10]:
+            print(f"    - {name}")
+        if only_incr or only_full:
+            bad.append(("indexed file SET", len(only_incr), len(only_full)))
+
+        if bad:
+            print("\nDIVERGENCE — the splice does not reproduce a full rebuild:")
+            for label, a, b in bad:
+                print(f"  {label}: incremental={a} full={b}")
+            return 1
+        print("\nAGREEMENT on every compared table and on the indexed file set.")
+        return 0
+    finally:
+        target.write_text(original)
+        print(f"\nrestored {args.edit_file}")
+        print(f"scratch kept at {work}")
+
+
 def main() -> int:
     """@brief Entry point.
     @return Exit status.
@@ -438,6 +649,18 @@ def main() -> int:
     sub.add_parser("outbound", help="outbound xref loss under a subset run")
     sub.add_parser("refids", help="refid stability across input sets")
     sub.add_parser("autorefresh", help="drive the MCP auto-refresh hook in-process")
+    cmp_p = sub.add_parser(
+        "compare", help="incremental refresh versus a full rebuild of the same tree"
+    )
+    cmp_p.add_argument("--edit-file", required=True, help="repo-relative file to append to")
+    cmp_p.add_argument(
+        "--append-text", required=True, help="text to append, introducing a cross-file call"
+    )
+    cmp_p.add_argument(
+        "--include-line",
+        default="",
+        help="an #include to insert after the file's last one, making the new call legal C/C++",
+    )
     args = parser.parse_args()
     return {
         "subset": cmd_subset,
@@ -445,6 +668,7 @@ def main() -> int:
         "outbound": cmd_outbound,
         "refids": cmd_refids,
         "autorefresh": cmd_autorefresh,
+        "compare": cmd_compare,
     }[args.cmd](args)
 
 

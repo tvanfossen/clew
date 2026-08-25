@@ -38,7 +38,10 @@ from pathlib import Path
 
 import pytest
 
-pytest.importorskip("mcp", reason="MCP server is an optional extra (pip install -e '.[mcp]')")
+pytest.importorskip(
+    "mcp",
+    reason="the MCP SDK is a REQUIRED dependency, so this skipping means a BROKEN install, not an unselected extra",
+)
 
 from clew.mcp_server import freshness as fr
 from clew.mcp_server import server as server_module

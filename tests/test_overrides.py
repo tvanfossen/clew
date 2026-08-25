@@ -209,7 +209,10 @@ def test_the_override_fields_reach_the_mcp_wire(overriding_db: Path, repo_root: 
     would be pure noise; an absent `overrides` on a dossier would be a question the
     caller has to ask again.
     """
-    pytest.importorskip("mcp", reason="MCP server is an optional extra")
+    pytest.importorskip(
+        "mcp",
+        reason="the MCP SDK is a REQUIRED dependency, so this skipping means a BROKEN install, not an unselected extra",
+    )
     from clew.mcp_server.tools_query import QueryTools
 
     tools = QueryTools(lambda: overriding_db, lambda: repo_root)
