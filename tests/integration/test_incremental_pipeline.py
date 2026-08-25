@@ -142,6 +142,20 @@ def _snapshot(db: Path) -> dict[str, set]:
                 )
             },
             "indexed": {str(n) for (n,) in conn.execute("SELECT name FROM path WHERE type = 1")},
+            ## PARAMETER LINKS. Omitting this let a mutation that deleted `_insert_params`
+            ## from the splice pass through the pipeline test — the splice was silently
+            ## stripping memberdef_param rows and only the sibling test could see it. Any table
+            ## the splice touches has to appear in BOTH invariances or a mutation slips between
+            ## them.
+            "params": {
+                (str(f), str(n), str(t or ""), str(d or ""))
+                for f, n, t, d in conn.execute(
+                    "SELECT p.name, m.name, pa.type, pa.declname FROM memberdef_param mp "
+                    "JOIN memberdef m ON m.rowid = mp.memberdef_id "
+                    "JOIN path p ON p.rowid = m.file_id "
+                    "JOIN param pa ON pa.rowid = mp.param_id"
+                )
+            },
             ## QUALIFIED, because `reimplements` links the METHODS and both ends are named
             ## `area` — the class that distinguishes them lives in `memberdef.scope`. Keying on
             ## the bare name made the non-vacuity gate look for "Extra" among a set of
@@ -223,8 +237,11 @@ def test_an_incremental_refresh_equals_a_full_rebuild(tmp_path: Path) -> None:
     assert any("Extra" in a or "Extra" in b for a, b in want["reimplements"]), (
         "the rebuild has no Extra override, so the inheritance tables are untested here"
     )
+    assert want["params"], (
+        "the rebuild produced no memberdef_param rows, so comparing that table is vacuous"
+    )
 
-    for layer in ("members", "edges", "indexed", "reimplements"):
+    for layer in ("members", "edges", "indexed", "reimplements", "params"):
         missing = want[layer] - got[layer]
         extra = got[layer] - want[layer]
         assert not missing and not extra, (
