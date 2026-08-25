@@ -328,7 +328,7 @@ def test_rebuild_still_parses_each_file_once(
 def test_pair_accounting_is_not_double_counted(
     indexed_repo: tuple[Path, Path, Path],
 ) -> None:
-    """`misses` is published as the index's `files_reprocessed` and `status` shows it
+    """`misses` is published as the index's `payloads_recomputed` and `status` shows it
     to an agent deciding whether to trust an answer. Since the shared pass COMPUTES
     what the stages then READ, naive counting would report a fully cold build as
     fully missed AND fully hit at the same time.

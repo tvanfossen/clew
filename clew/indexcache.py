@@ -601,7 +601,7 @@ class IndexCache:
     ## @param stage_version The stage's extraction version.
     ## @param extra_key The manifest-derived key component.
     ## @param hit True when the payload was served from the store.
-    ## @version 1
+    ## @version 2
     ## @req REQ-DDB-INDEX-002
     def record_pair(
         self,
@@ -615,11 +615,11 @@ class IndexCache:
         normally COMPUTED by the shared parse pass and then READ BACK by the stage
         that needs it, so the naive count would report every cold build as both
         fully missed and fully hit — and `misses` is published as the index's
-        `files_reprocessed`, which `status` shows to an agent deciding whether to
+        `payloads_recomputed`, which `status` shows to an agent deciding whether to
         trust the answer. First outcome for a pair wins; the pair is the unit.
 
         @brief Record one per-file-per-stage outcome, at most once.
-        @version 1
+        @version 2
         """
         key = (content_sha, stage, stage_version, extra_key)
         if key in self._accounted:

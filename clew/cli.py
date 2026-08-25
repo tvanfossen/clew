@@ -2688,7 +2688,7 @@ def _resolve_doxyfile_and_root(args: argparse.Namespace, output: Path) -> tuple[
 ## @param started `time.perf_counter()` reading from the top of the build.
 ## @param counts (cache hits, cache misses) when a cache ran, else None.
 ## @param timer Per-stage breakdown collected during the build.
-## @version 3
+## @version 4
 ## @req REQ-DDB-MCP-004
 def _stamp_refresh_metrics(
     output: Path, started: float, counts: tuple[int, int] | None, timer: StageTimer
@@ -2722,7 +2722,7 @@ def _stamp_refresh_metrics(
     line wide in a `status` payload; `stagetimer.parse_stages` decodes it.
 
     @brief Persist the measured cost of this build, whole and per stage, into build_meta.
-    @version 2
+    @version 3
     """
     from .signature import write_build_signature
 
@@ -2733,13 +2733,18 @@ def _stamp_refresh_metrics(
     if counts is not None:
         hits, misses = counts
         metrics["cache_hits"] = str(hits)
-        metrics["files_reprocessed"] = str(misses)
+        ## THE UNIT IS A (file, stage) PAYLOAD, NOT A FILE (#470). The cache's key is
+        ## (content_sha, stage, stage_version, extra_key), so one changed file contributes up to
+        ## one miss PER STAGE and there are ~10. Named `files_reprocessed` it read as a second,
+        ## contradicting count of the same thing the tree scan reports — "5 source files changed"
+        ## beside "45 file(s) reprocessed" — and the numbers were both right.
+        metrics["payloads_recomputed"] = str(misses)
     metrics.update(timer.as_meta())
     write_build_signature(output, refresh=metrics)
     logger.info(
-        "refresh cost: %s ms, %s file(s) reprocessed, %s cache hit(s)",
+        "refresh cost: %s ms, %s cached stage payload(s) recomputed, %s served from cache",
         metrics["duration_ms"],
-        metrics.get("files_reprocessed", "unmeasured"),
+        metrics.get("payloads_recomputed", "unmeasured"),
         metrics.get("cache_hits", "unmeasured"),
     )
     logger.info("refresh stages: %s", metrics.get(STAGES_KEY, "unmeasured"))

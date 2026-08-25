@@ -245,7 +245,7 @@ def code_identity() -> dict[str, object]:
 ## @brief Human phrasing for what a refresh of this target last cost.
 ## @param refresh The persisted `refresh.*` section, or None.
 ## @return A clause naming the measured cost, or one saying it has not been measured.
-## @version 1
+## @version 2
 ## @dg_internal
 def _cost_clause(refresh: Mapping[str, str] | None) -> str:
     """GROUNDED IN THIS TARGET'S OWN HISTORY, not a constant (gh#9). An agent that
@@ -258,14 +258,21 @@ def _cost_clause(refresh: Mapping[str, str] | None) -> str:
 
     @brief Phrase the measured cost-to-refresh.
     @return Cost clause.
-    @version 1
+    @version 2
     """
     duration = (refresh or {}).get("duration_ms")
     if not duration:
         return "no refresh of this target has been timed yet, so the cost is unmeasured"
-    reprocessed = (refresh or {}).get("files_reprocessed")
-    files = f" reprocessing {reprocessed} file(s)" if reprocessed else ""
-    return f"the last refresh of this target measured {duration} ms{files}"
+    ## NOT "file(s)" (#470). This number counts (file, stage) PAYLOADS recomputed, and there are
+    ## ~10 stages, so it is normally several times the changed-file count. Printed as files it
+    ## landed in the same notice as "18 source file(s) have changed" and read as a broken counter
+    ## — or worse, as the refresh doing four times the necessary work. `files_reprocessed` is
+    ## still read so an index built before the rename keeps reporting its cost.
+    payloads = (refresh or {}).get("payloads_recomputed") or (refresh or {}).get(
+        "files_reprocessed"
+    )
+    work = f" recomputing {payloads} cached stage payload(s)" if payloads else ""
+    return f"the last refresh of this target measured {duration} ms{work}"
 
 
 ## @brief The data-axis notice, when the sources have drifted.

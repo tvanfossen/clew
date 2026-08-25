@@ -200,14 +200,23 @@ def test_the_data_axis_quotes_the_measured_refresh_cost() -> None:
         source_changed_files=5,
         newest_changed_source="clew/mcp_server/tools_query.py",
         stale=True,
-        refresh={"duration_ms": "3314", "files_reprocessed": "7"},
+        refresh={"duration_ms": "3314", "payloads_recomputed": "70"},
     )
 
     message = _message(fr.notices(status, MATCHING_CODE), fr.AXIS_DATA)
     assert "5 indexed source file(s)" in message
     assert "tools_query.py" in message, "naming the newest changed file makes it checkable"
     assert "3314 ms" in message, "the cost must be the measured one"
-    assert "7 file(s)" in message
+    assert "70 cached stage payload(s)" in message
+    ## #470 IN ONE ASSERTION. This notice reports BOTH numbers, and the payload count is normally
+    ## several times the file count because there are ~10 stages. Calling it "70 file(s)" beside
+    ## "5 indexed source file(s)" read as a contradiction — the same notice claiming 5 files
+    ## changed and 70 files reprocessed — when both numbers were right and only one label was
+    ## wrong. So no second "file(s)" count may appear here.
+    assert "70 file(s)" not in message, "the payload count must not be reported as a file count"
+    assert message.count("file(s)") == 1, (
+        f"exactly one file count belongs in this notice, the changed-source one; got: {message}"
+    )
     assert "index(action='refresh'" in message, "the action that clears this axis must be named"
 
 
@@ -241,9 +250,34 @@ def test_a_zero_duration_reads_as_measured_not_as_missing() -> None:
     @brief Zero is a measurement.
     @version 1
     """
-    clause = fr._cost_clause({"duration_ms": "0", "files_reprocessed": "0"})
+    clause = fr._cost_clause({"duration_ms": "0", "payloads_recomputed": "0"})
     assert "0 ms" in clause
     assert "unmeasured" not in clause
+
+
+## @brief An index built before the #470 rename still reports its measured cost.
+## @return None.
+## @version 1
+def test_the_pre_rename_cost_key_is_still_read() -> None:
+    """#470 renamed the persisted key `files_reprocessed` to `payloads_recomputed` because the old
+    name named the wrong UNIT. An index built by an earlier version carries only the old key, and
+    dropping to "unmeasured" there would discard a real measurement over a spelling.
+
+    WITHOUT THIS TEST THE FALLBACK IS UNTESTED CODE, which is how it gets deleted as dead. The
+    build-version bump makes such an index rare rather than impossible: a stale index is READ
+    live and only rebuilt when something asks for a build.
+
+    @brief The legacy key is honoured, under the corrected label.
+    @return None.
+    @version 1
+    """
+    clause = fr._cost_clause({"duration_ms": "1612", "files_reprocessed": "45"})
+    assert "1612 ms" in clause
+    assert "45 cached stage payload(s)" in clause, (
+        f"the legacy key must still be read, and reported under the CORRECTED label — the old "
+        f"name was wrong about the unit, not about the number: {clause}"
+    )
+    assert "file(s)" not in clause, "the corrected label applies to legacy values too"
 
 
 # ─── axis: code (gh#29's misleading half) ────────────────────────────────────
@@ -452,12 +486,12 @@ def test_the_refresh_cost_round_trips_into_status(tmp_path: Path) -> None:
     conn.commit()
     conn.close()
     write_build_signature(
-        db, refresh={"duration_ms": "1612", "files_reprocessed": "3", "cache_hits": "111"}
+        db, refresh={"duration_ms": "1612", "payloads_recomputed": "3", "cache_hits": "111"}
     )
 
     target = st.Target(repo_path=str(tmp_path), slug="t", db_path=str(db))
     refresh = st.db_status(target)["refresh"]
-    assert refresh == {"duration_ms": "1612", "files_reprocessed": "3", "cache_hits": "111"}
+    assert refresh == {"duration_ms": "1612", "payloads_recomputed": "3", "cache_hits": "111"}
 
 
 ## @brief A measured ZERO survives persistence, where a falsy value would be dropped.
@@ -477,10 +511,10 @@ def test_a_zero_refresh_measurement_survives_persistence(tmp_path: Path) -> None
     @version 1
     """
     db = tmp_path / "clew.db"
-    write_build_signature(db, refresh={"duration_ms": "0", "files_reprocessed": "0"})
+    write_build_signature(db, refresh={"duration_ms": "0", "payloads_recomputed": "0"})
 
     target = st.Target(repo_path=str(tmp_path), slug="t", db_path=str(db))
-    assert st.db_status(target)["refresh"] == {"duration_ms": "0", "files_reprocessed": "0"}
+    assert st.db_status(target)["refresh"] == {"duration_ms": "0", "payloads_recomputed": "0"}
 
 
 ## @brief Stamping a refresh section leaves the other sections intact.

@@ -647,7 +647,7 @@ def _coverage_meta(db: Path) -> dict[str, str]:
 
 ## @brief What the last refresh of this index actually cost, if it was measured.
 ## @param db Path to a built clew.db.
-## @return {duration_ms, files_reprocessed, cache_hits, at} as strings; {} when absent.
+## @return {duration_ms, payloads_recomputed, cache_hits, at} as strings; {} when absent.
 ## @version 1
 ## @req REQ-DDB-MCP-004
 def _refresh_meta(db: Path) -> dict[str, str]:

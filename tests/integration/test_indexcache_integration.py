@@ -141,7 +141,7 @@ def _dump(db: Path) -> dict[str, list[str]]:
 ## member of it is expected to differ between any two builds — three because they
 ## read a wall clock (`at_epoch`, `duration_ms`, the per-stage `stages` breakdown)
 ## and two because making them differ is the cache's entire purpose (`cache_hits`,
-## `files_reprocessed`: a cold build reprocesses everything and hits nothing, a warm
+## `payloads_recomputed`: a cold build recomputes everything and hits nothing, a warm
 ## one the reverse). Comparing them would assert that incrementality does not work.
 _BUILD_COST_PREFIX = "refresh."
 
@@ -154,14 +154,14 @@ _BUILD_COST_ROW_PREFIX = f"(b'{_BUILD_COST_PREFIX}"
 ## Every key `cli._stamp_refresh_metrics` can write. PINNED here, and asserted
 ## present, so the exclusion below cannot quietly widen: a sixth cost key, or the
 ## stamping disappearing altogether, fails the test that excludes them instead of
-## being absorbed. `cache_hits`/`files_reprocessed` are ABSENT under
+## being absorbed. `cache_hits`/`payloads_recomputed` are ABSENT under
 ## `--no-index-cache` by design (no cache ran, so zero would be a lie), which is why
 ## each test states its own expected subset rather than sharing one.
 _BUILD_COST_KEYS = {
     "refresh.at_epoch",
     "refresh.cache_hits",
     "refresh.duration_ms",
-    "refresh.files_reprocessed",
+    "refresh.payloads_recomputed",
     "refresh.stages",
 }
 
