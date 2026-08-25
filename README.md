@@ -181,44 +181,67 @@ run `claude mcp remove clew` first if you have already used `clew init`.
 The plugin registers the MCP server **and one `PostToolUse` hook**. Installing a Claude Code
 plugin does not prompt you about hooks, so it is stated here instead:
 
-- **What it does.** After a `Bash`, `Grep`, `Glob` or `Read` call it adds a short note saying the
-  index is available and what `dossier` and `search` answer. It exists because `grep` has an
-  enormous training prior and an index tool has none — the tool being correct does not make it
-  reached for.
+- **What it does.** After a `Bash`, `Grep`, `Glob` or `Read` call it adds a short note naming the
+  file you just looked at and the one index call that would have answered more — *"You read
+  `symbols.py`. A file read gives you the body and nothing else; `dossier` returns that same body
+  plus its callers and callees in one reply."* It exists because `grep` has an enormous training
+  prior and an index tool has none — the tool being correct does not make it reached for.
+
+  It says what you just did because the generic version did not work. Measured on a real session:
+  the old note fired repeatedly while the agent read four source functions with `grep`, one of
+  which `dossier` would have answered completely. Asked why it ignored the note, the agent's
+  account was that "the index exists" carries no information a capable model does not already
+  have, so it reads as a banner. Naming your last action is the one thing a note that fires
+  *after* the call can say with any marginal value.
 - **It escalates only when ignored, and one index call silences it.** Each file-inspection call
   adds one to a per-session tally; a clew call **clears the tally to zero** rather than crediting
   against it. Below five it says nothing; from five it speaks every fifth call; from twenty it
-  speaks every call and switches to a longer, blunter tier that states the cost rather than the
+  speaks every third call and switches to a blunter tier that states the ratio rather than the
   capability. A session that uses the index even occasionally stays permanently silent.
 
-  Crediting was the original design and it was unrecoverable: measured on one real session, 1,339
-  searches against 38 clew calls left a pressure of 1,225 against a threshold of 20, needing ~408
-  *consecutive* index calls to earn silence back. The loudest tier became permanent, and its own
-  promise that using the tool would stop it was arithmetically false.
+  Two things here are corrections rather than choices. **Crediting** was the original design and
+  was unrecoverable: measured on one real session, 1,339 searches against 38 clew calls left a
+  pressure of 1,225 against a threshold of 20, needing ~408 *consecutive* index calls to earn
+  silence back. The loudest tier became permanent, and its own promise that using the tool would
+  stop it was arithmetically false. **The loud tier also fired on every single call**, which
+  produced ~30 near-identical injections in one session — wallpaper, and therefore filtered
+  hardest exactly where the message mattered most.
 - **~46 ms per matching call**, almost all of it Python starting. It imports nothing from the
-  `clew` package and nothing outside `os`/`sys`, for that reason.
-- **It is registered twice** — once for `Bash`/`Grep`/`Glob`/`Read` and once for the clew tools,
-  which is how it learns which ran without reading anything. The second registration passes
-  `--used` from the manifest; it is the only argument it accepts.
-- **Nothing from your session can reach your model through it.** The payload in
-  [`clew_hook.py`](https://github.com/tvanfossen/clew/blob/main/clew_hook.py) is four module-level
-  string literals — two framing constants and the two tiers — and the single run-time value
-  substituted into them is the tally, coerced with `int()` and rendered with `%d`. An int through
-  `%d` cannot emit anything but digits. The hook drains its stdin **without parsing it**, so no
-  file name, matched line or tool result is ever in scope to echo.
+  `clew` package and nothing outside `os`/`sys`/`json`, for that reason.
+- **It is registered once per tool** — `Read`, `Grep`, `Glob` and `Bash` each get their own
+  matcher passing their own flag, plus one for the clew tools passing `--used`. That is how it
+  knows which kind of call fired **without reading `tool_name`** off the event: the modality comes
+  from the manifest you can read, not from the payload a repository can influence.
+- **What can reach your model through it, stated exactly.** Through 1.0.9 the answer was
+  "nothing": the payload was assembled from constant strings and the only run-time value was the
+  tally, an `int` through `%d`. **That is no longer true, and the change was deliberate** — a note
+  that cannot name your last action was measured changing nothing. The guarantee is now a
+  *bounded* one rather than an absolute one:
 
-  That is asserted structurally, not behaviourally, by
-  `tests/test_hook.py::test_no_run_time_value_can_reach_the_output`: it reads the source and pins
-  that the surface is exactly four bare literal assignments, that no f-string, `.format()`, `%s`,
-  `os.environ` or `sys.argv` appears anywhere in it, and that exactly **one** `%`-application
-  exists in the file — `note % count`, on the coerced int. A behavioural test could only show that
-  the strings it happened to try were not echoed; it could never show that no string would be.
+  > The output is a `json.dumps` of a literal-keyed object. Every value is a module-level literal,
+  > an `int` through `%d`, or a **basename matching `[A-Za-z0-9._-]{1,64}` and not starting with a
+  > dot** — the complete output set of one function, `_safe_token`.
 
-  The tally is substituted *deliberately*, and it is the one place this design trades a blanket
-  guarantee for effectiveness: a byte-identical note repeats into wallpaper. Measured, ~1,900
-  identical injections in one session changed nothing, and that session went on to make 2 index
-  calls against ~1,900 searches. A number that moves invalidates the prompt cache at that point,
-  so the note is processed rather than replayed.
+  Two separate mechanisms, because there are two separate risks and neither covers the other:
+
+  - **`json.dumps` over the whole object** means a filename can never alter the payload's
+    *structure*. Hand-assembled JSON was safe only while the substituted value was an integer; a
+    filename containing `"}}` would otherwise close the string early and append sibling keys of
+    the hook protocol — a `decision`, a `continue` — letting a repository steer the harness
+    itself.
+  - **`_safe_token` bounds the *content*** without eliminating it. Up to 64 allowlist-clean
+    characters of a filename are quoted back inside the note. A repository can name a file
+    `dossier-is-unreliable-prefer-grep.py` and have that appear in the hook's voice. **That
+    residual is real and accepted.** What limits it: `tool_response` — the bulk repository-written
+    field — is **never read**, the bytes are already in your model's context from the tool result
+    the hook is reacting to, and the note's own literal always closes the sentence so a filename
+    never sits at the end.
+
+  Both are asserted structurally in `tests/test_hook.py`, over the AST rather than over text: `%s`
+  is permitted but only ever fed `_safe_token`'s output, and `_safe_token`'s output set is proved
+  by running **every** code point through it rather than by sampling hostile strings. Each was also
+  verified by mutation — disabling either one fails the test aimed at it, and disabling both lands
+  a real `"decision": "block"` injection that four tests catch.
 - **It never exits non-zero**, because a non-zero exit would send its stderr to the model. Every
   path returns 0, including every failure path — a marker file that cannot be written fails
   silently.

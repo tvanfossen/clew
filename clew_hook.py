@@ -79,10 +79,13 @@ behaviour teaches a reader to discount the rest of what it says.
 `clew/hook.py`, and a console script pointing into the package imports `clew/__init__.py` — which
 eagerly pulls the whole pipeline (`cli`, `doxygen`, `call_edges`, ...). MEASURED: 202 ms per
 invocation against 45 ms for the stdlib this file actually uses, on a hook that fires after EVERY
-matching tool call. 157 ms of that was the package import, for a component that needs `os`, `sys`,
-`tempfile` and `pathlib`.
+matching tool call. 157 ms of that was the package import, for a component that needs `os`, `sys`
+and `json` and nothing else.
 
-So it imports nothing from `clew` and must keep importing nothing: the gate asserts it. 25 ms of
+So it imports nothing from `clew` and must keep importing nothing. That was an UNGATED claim
+until 1.0.10 — the docstring said the gate asserted it and no test did;
+`test_the_hook_imports_nothing_from_the_clew_package` now checks both the AST and a real
+child process, the latter being the only half that catches an indirect import. 25 ms of
 the remaining 45 is the interpreter itself, which is the floor for any subprocess hook and the
 reason this does as little as it possibly can.
 
@@ -105,8 +108,10 @@ import sys
 ## is never used, so it cannot carry content.
 DISABLE_ENV = "CLEW_HOOK_DISABLE"
 
-## Marker filename prefix. The suffix is a HEX DIGEST, so the complete path is this module's own
-## literals plus 16 hex characters and nothing else can shape it.
+## Marker filename prefix. The suffix is the session id FILTERED through `_SAFE` — not a hash,
+## whatever older comments here said. The distinction matters to a reviewer: filtering is why
+## `_SAFE` has to be an allowlist rather than a blocklist, since anything it admits reaches a
+## real filesystem path.
 _MARKER_PREFIX = "clew-hook-seen-"
 
 ## Suffixes for the two per-session tallies. SIZE IS THE COUNT: each event appends one byte, so a
@@ -149,6 +154,10 @@ _FIELD_FOR = {
 ## `tool_response`, this process runs after EVERY matching tool call, and the module's budget is
 ## ~45 ms. Over the ceiling, the note degrades to the fileless variant in silence.
 _MAX_EVENT = 1 << 20
+
+## How much is pulled off the pipe per read. The drain must consume everything so the caller never
+## blocks, but only `_MAX_EVENT` is retained, so this is just the granularity of the discard loop.
+_READ_CHUNK = 1 << 16
 
 ## THE TOTAL CODOMAIN OF `_safe_token`, and therefore the complete set of bytes that can reach a
 ## consumer's model through this hook from outside this file. Deliberately spelled out rather than
@@ -317,6 +326,42 @@ _OPERATOR_FILELESS = (
     "its body and everything that calls it are one dossier(subject=NAME) call away. clew is "
     "installed here by the operator. Nothing blocks you; this is the ratio, not a block."
 )
+
+
+##
+# @brief Drain stdin fully while keeping only the first `_MAX_EVENT` bytes.
+# @return The retained prefix of the event.
+# @version 1
+# @dg_internal
+def _drain_stdin() -> bytes:
+    """DRAIN EVERYTHING, KEEP ALMOST NOTHING. The caller writes the event into a pipe and would
+    block if nobody emptied it, so the read cannot be cut short — but nothing requires holding the
+    whole thing in memory. `sys.stdin.buffer.read()` did, and an adversarial audit measured a
+    2 GiB `tool_response` costing 2.4 s and proportional RAM on a component whose budget is ~45 ms
+    and which runs after EVERY matching tool call. A `Read` of a large file puts that file's whole
+    content in `tool_response`.
+
+    So this keeps the first `_MAX_EVENT` bytes — more than any real event's leading fields need —
+    and discards the rest as it goes. Memory becomes O(cap) instead of O(event). The time to pull
+    the bytes off the pipe is irreducible if the caller is not to block, and that is the tradeoff
+    being made deliberately rather than by omission.
+
+    A truncated prefix will not parse as JSON, which is correct: it lands on the fileless note.
+
+    @brief Read all of stdin, retaining a bounded prefix.
+    @return Up to `_MAX_EVENT` bytes.
+    @version 1
+    """
+    chunks: list[bytes] = []
+    kept = 0
+    while True:
+        chunk = sys.stdin.buffer.read(_READ_CHUNK)
+        if not chunk:
+            break
+        if kept < _MAX_EVENT:
+            chunks.append(chunk[: _MAX_EVENT - kept])
+            kept += len(chunks[-1])
+    return b"".join(chunks)
 
 
 ##
@@ -644,7 +689,7 @@ def main() -> int:
     ## if nobody read it. Truncating the READ would trade a non-problem for a hang or an EPIPE; the
     ## ceiling that matters is on the PARSE, in `_target_name`.
     try:
-        raw = sys.stdin.buffer.read()
+        raw = _drain_stdin()
     except Exception:
         raw = b""
 
@@ -677,9 +722,35 @@ def main() -> int:
         ## the correct outcome. A traceback here would reach the model through stderr.
         return 0
 
+    ## FLUSHED INSIDE THE GUARD, AND THE BUFFER DISCARDED IF THAT FAILS. Found by an adversarial
+    ## audit of 1.0.10 and it falsified this file's own central claim. `sys.stdout` is a BUFFERED
+    ## TextIOWrapper, so `write()` alone usually succeeds into the buffer and the real I/O happens
+    ## at interpreter shutdown — AFTER `main()` has returned 0 and outside every `try` in this
+    ## file. When that deferred flush fails, CPython prints "Exception ignored in: <stdout>" to
+    ## stderr and exits 120.
+    ##
+    ## Both triggers are ordinary rather than exotic: the client closing the read end of the pipe
+    ## early (BrokenPipeError) and a full device (ENOSPC). Reproduced deterministically against
+    ## `/dev/full`.
+    ##
+    ## THAT IS THE SECOND INJECTION CHANNEL THIS COMPONENT EXISTS TO KEEP SHUT — a non-zero exit on
+    ## PostToolUse surfaces stderr to the model. Note the wording it emits contains no "Traceback",
+    ## which is why the two tests scanning stderr for that word could not have caught it.
+    ##
+    ## So: flush where it can be caught, and on failure point fd 1 at the null device so the
+    ## shutdown flush has somewhere harmless to go. Retrying the write is pointless — the failure
+    ## means the reader is gone or the disk is full — and the note is advisory, so dropping it is
+    ## the correct outcome.
     try:
         sys.stdout.write(payload)
+        sys.stdout.flush()
     except Exception:
+        try:
+            null = os.open(os.devnull, os.O_WRONLY)
+            os.dup2(null, sys.stdout.fileno())
+            os.close(null)
+        except Exception:
+            pass
         return 0
     return 0
 

@@ -1,7 +1,7 @@
 {
   "name": "clew",
-  "version": "1.0.9",
-  "description": "Index a C, C++, Rust or Python repository into a queryable graph \u2014 symbols, call edges, callbacks, threads, locks, dataflow, requirement links and prose \u2014 and serve it over MCP. Installs four tools AND one PostToolUse hook that notes the index after Bash/Grep/Glob/Read while it goes unused, escalating as unused calls accumulate and going silent again once it is used (disable with CLEW_HOOK_DISABLE=1). Requires the clew-trace package on PATH and the doxygen binary.",
+  "version": "1.0.10",
+  "description": "Index a C, C++, Rust or Python repository into a queryable graph \u2014 symbols, call edges, callbacks, threads, locks, dataflow, requirement links and prose \u2014 and serve it over MCP. Installs four tools AND one PostToolUse hook that names the file you just inspected and the one index call that would have answered more, escalating while it goes unused and going silent again once the index is used (disable with CLEW_HOOK_DISABLE=1). Requires the clew-trace package on PATH and the doxygen binary.",
   "author": {
     "name": "tvanfossen",
     "url": "https://github.com/tvanfossen"

@@ -454,7 +454,8 @@ def test_using_the_index_keeps_the_hook_silent(tmp_path: Path) -> None:
     hard enough reaches for the index where `grep` is genuinely right, which degrades the agent
     and corrupts any later measurement of whether the index helps.
 
-    A clew call credits `_CLEW_CREDIT` searches, so it pops the pressure down faster than
+    A clew call CLEARS the tally outright — an earlier policy credited a fixed number and never
+    reset, which made silence unreachable. It pops the pressure down faster than
     searching pushes it up and steady use parks it at zero.
 
     Runs the real subprocess for both paths, because the credit is delivered by an ARGV FLAG the
@@ -465,7 +466,7 @@ def test_using_the_index_keeps_the_hook_silent(tmp_path: Path) -> None:
     @return None.
     @version 1
     """
-    env = {**os.environ, "TMPDIR": str(tmp_path), "CLEW_CODE_SESSION": "x"}
+    env = {**os.environ, "TMPDIR": str(tmp_path), "CLAUDE_CODE_SESSION_ID": "credit-probe"}
     env["CLAUDE_CODE_SESSION_ID"] = "credit-session"
 
     def call(used: bool) -> bool:
@@ -627,14 +628,17 @@ def test_a_failing_marker_write_fails_silently(
     assert captured.err == "", "nothing may reach stderr, which the model would see"
 
 
-## @brief The marker path must be a digest, immune to whatever the session id contains.
+## @brief The marker path must be immune to whatever the session id contains.
 ## @param monkeypatch Pytest patcher.
 ## @return None.
 ## @version 2
 def test_the_marker_path_cannot_be_shaped_by_the_session_id(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A session id is an arbitrary string and it reaches a filesystem path, so it is hashed
+    """A session id is an arbitrary string and it reaches a filesystem path, so it is FILTERED
+    through an allowlist — not hashed, despite what this docstring said for several releases.
+    What matters is the property below, which is the same either way: nothing the id contains
+    can add a separator, a dot or a traversal segment to the path. Written as it is
     rather than filtered — a filter is a blocklist, and blocklists are wrong by default.
 
     THE PID VERSION WAS WRONG IN PRODUCTION, which is why this key exists at all. Each hook
@@ -1117,4 +1121,62 @@ def test_each_modality_gets_its_own_note() -> None:
     assert "evil.py" not in glob_named, (
         "the glob modality carried a basename; its tool_input is a pattern, and echoing a raw "
         "glob widens the surface for no gain"
+    )
+
+
+##
+# @brief A failing stdout must stay silent, not exit 120 with a message on stderr.
+# @param tmp_path Pytest temp dir.
+# @return None.
+# @version 1
+def test_an_undeliverable_payload_is_dropped_silently(tmp_path: Path) -> None:
+    """FOUND BY AN ADVERSARIAL AUDIT OF 1.0.10, AND IT FALSIFIED THIS COMPONENT'S CENTRAL CLAIM.
+    `sys.stdout` is a BUFFERED TextIOWrapper, so `write()` alone lands in the buffer and the real
+    I/O is deferred to interpreter shutdown — after `main()` has returned 0, and outside every
+    `try` in the module. When that deferred flush failed, CPython printed
+    "Exception ignored in: <stdout>" to stderr and exited 120.
+
+    A non-zero exit on PostToolUse surfaces stderr to the model, which is precisely the second
+    injection channel the whole design exists to keep shut. Both triggers are ordinary: a client
+    that closes the read end early, and a full device.
+
+    WHY THE EXISTING TESTS COULD NOT HAVE CAUGHT IT: two of them scan stderr for "Traceback", and
+    the emitted wording contains no such word. So this asserts stderr is EMPTY rather than
+    traceback-free — a check that cannot be phrased around by a different message.
+
+    @brief An unwritable stdout produces no output and exit 0.
+    @return None.
+    @version 1
+    """
+    ## Preload the tally so ONE invocation speaks; the failure only exists on the speaking path.
+    marker = tmp_path / f"clew-hook-seen-flush{hook._MISS_SUFFIX}"
+    marker.write_bytes(b"." * (hook._QUIET_BELOW - 1))
+    event = json.dumps({"tool_input": {"file_path": "/x/a.py"}})
+
+    ## /dev/full accepts writes and fails them with ENOSPC — the deterministic way to make the
+    ## deferred flush fail without needing a real full disk.
+    if not Path("/dev/full").exists():  # pragma: no cover - platform guard
+        pytest.skip("/dev/full is Linux-specific")
+
+    with Path("/dev/full").open("w") as full:
+        result = subprocess.run(
+            [sys.executable, "-m", "clew_hook", hook.READ_FLAG],
+            input=event,
+            stdout=full,
+            stderr=subprocess.PIPE,
+            text=True,
+            cwd=str(REPO),
+            env={**os.environ, "TMPDIR": str(tmp_path), "CLAUDE_CODE_SESSION_ID": "flush"},
+            check=False,
+        )
+
+    assert result.returncode == 0, (
+        f"exit {result.returncode} when stdout could not be written. A non-zero exit on "
+        f"PostToolUse surfaces stderr to the model, which is the channel this component exists "
+        f"to keep shut."
+    )
+    assert result.stderr == "", (
+        f"stderr must be EMPTY, not merely traceback-free — the shutdown-flush message says "
+        f"'Exception ignored in:' and contains no 'Traceback', which is why the existing scans "
+        f"missed it. Got: {result.stderr[:300]}"
     )
