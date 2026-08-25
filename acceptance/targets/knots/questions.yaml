@@ -1,117 +1,748 @@
 # SPDX-License-Identifier: MIT
 #
-# GRADING KEY TEMPLATE — copy this directory to `acceptance/targets/<your-target>/` and replace
-# everything below the front matter. Read `README.md` beside this file first; it is the runbook.
+# THE GRADING KEY FOR KNOTS. Schema and rules: acceptance/DESIGN.md.
 #
-# The rules below are not style advice. Each one is here because breaking it produced a wrong
-# published number in this project at least once, and most are enforced by tests in
-# `acceptance/bench/test_bench_harness.py` that will fail your rubric rather than mis-grade it.
+# WHY THIS TARGET. It is the only RUST repository in the reference set, so it is the only cell
+# exercising the rustdoc-JSON path rather than doxygen. "It works on Rust" is otherwise an
+# assertion about a capability rather than a measurement of one.
+#
+# The question below is built on a LIMIT the code states about itself. An agent that finds the
+# duplicate detector will describe what it catches; the components that matter are what it
+# deliberately does NOT catch and why, which is a design conclusion rather than a lookup.
 
-## ── front matter ──────────────────────────────────────────────────────────────────────────
-## `target` and `commit` are REQUIRED. `preflight_target_revision` refuses to run when the
-## checkout is not at `commit`, because a rubric verified against one tree and run against
-## another grades code the answer never saw.
-##
-## `ground_truth_source` is REQUIRED and is a claim you are making. Prefer SOURCE-derived: a
-## figure read out of the index moves whenever the pipeline moves, and then the rubric is
-## grading the tool against its own output. Where you must use an index figure, say so here.
+schema: 1
+
 target: brandon-arrendondo/knots
-commit: 9be25b3
-version: 1.0.0
-ground_truth_source: |-
-  THE TARGET'S OWN SOURCE at the commit above, read directly with git grep / file reads.
-  State here anything that came from somewhere else, and why.
+commit: 9be25b32bebb2040a90946beac087a3d3b4d72f6
+version: 3.0.0
 
-## NO COUNTS IN THE FRONT MATTER. `marks` is the list's length. Every written count in this
-## project's rubric history has been wrong at some point; a number you maintain by hand is a
-## number that goes stale silently.
+ground_truth: |
+  knots's own source at the commit above, read directly.
+
+judge:
+  model: claude-sonnet-4-5-20250929
+  samples_when_weight_at_least: 2
 
 questions:
-  ## ── one question ────────────────────────────────────────────────────────────────────────
   - id: Q1
-    title: |-
-        A short name for the question. Not the question itself.
-    ## THE PROMPT IS THE SPECIFICATION AND IT DOES NOT MOVE once a grid has run against it.
-    ##
-    ## Write it the way a colleague would actually ask, and do NOT name the tool, the layer or
-    ## the payload key that answers it. A prompt that says "use the locks layer" measures
-    ## instruction-following, not capability. Ask for the OUTCOME and let both arms find their
-    ## own route.
-    ##
-    ## Good shapes, all of which have discriminated between arms here: "trace X to Y";
-    ## "what runs when Z arrives"; "you have never seen this repo, orient"; "ask something this
-    ## codebase cannot tell you"; "edit it, then answer about what you wrote".
-    prompt: |-
-        The question, verbatim, as a human would ask it.
+    intent: |
+      Probes whether the agent reports a capability or its boundary. "knots finds duplicate
+      functions" is one lookup and is what a shallow answer returns. The load-bearing facts are
+      that detection is STRUCTURAL rather than textual, that it is deliberately blind to a whole
+      clone class, and that it is gated off the default pass because it costs a second parse of
+      every file — three decisions, all readable from source, none of which follow from finding
+      the module.
+
+    prompt: |
+      knots can report duplicate functions across a codebase. What counts as a duplicate, what
+      does it deliberately miss, and why isn't it just part of the normal analysis pass?
+
     marks:
-    ## ── ONE ATOMIC FACT PER MARK. Binary. No partial credit. ─────────────────────────────
-    ## If a mark contains ", and" joining two things an answer could get separately right, it
-    ## is two marks. Compound marks are systematically biased toward MISS for both arms, and
-    ## one target in this set measured 50.6% compound — its result is confounded to this day.
-    - text: |-
-        names `some_function` as the thing that does X
-      ## SYMBOLS AND REFS ARE A SUFFICIENT CONDITION, not a hint for the reader. A declared
-      ## symbol that appears in the answer awards the mark WITHOUT the judge ever seeing it.
-      ## So declare one only when its presence really does settle the mark.
-      ##
-      ## Two rules are enforced by tests:
-      ##   * no prose-shaped symbols — a bare lowercase alphabetic token of 12 chars or fewer
-      ##     is prose, not an identifier. `check`, `absent`, `rejected` and `heap` have all
-      ##     been caught awarding marks unseen.
-      ##   * no symbols on a mark whose text contains a standalone 3+ digit number — a COUNT
-      ##     cannot be settled by a SYMBOL, and declaring one hands the mark away.
-      symbols: ['some_function']
-      ## `[file]`, `[file, line]` or `[file, lo, hi]`. A bare `[file]` is a whole-file citation.
-      refs: [['src/thing.c', 120, 140]]
-    - text: |-
-        states that the count is N, and gives the population it counted
-      ## No symbols here: the mark asks for a figure, so only a reader can settle it.
-      symbols: []
-      refs: []
-    - text: |-
-        **distinguishes "I found none" from "there are none"**
-      symbols: []
-      refs: []
-      ## VETO-SAFE means the D3 falsity check may treat this mark's text as an ESTABLISHED FACT
-      ## that an answer can CONTRADICT. Default false, and be stingy.
-      ##
-      ## Only short, concrete, positive statements of fact about the target qualify. A mark
-      ## carrying grading language ("an answer that does X misses the point") is a rule about
-      ## scoring, not a fact, and feeding it to the veto is malformed.
-      ##
-      ## READ THIS BEFORE SETTING IT TRUE: fed a FALSE fact, the veto inverts and zeroes the
-      ## MORE ACCURATE answer. That is not hypothetical — on the veto's first live firing in
-      ## this project it fired unanimously against a correct answer, because the rubric's fact
-      ## was wrong. Re-verify against source anything you mark veto-safe.
-      veto_safe: false
-    ## `arm_only: db` fences a mark to the index arm; `raw` to the source arm. Use it when a
-    ## mark is genuinely unreachable for one arm, and expect to justify it — a fence is a
-    ## smaller denominator, and a reader must be able to see that 6/6 and 6/10 differ.
+      - text: locates the detection in src/duplicates.rs
+        type: retrieval
+        weight: 1
+        evidence: |
+          The module's whole job; its header states the design.
+        refs: [["src/duplicates.rs", 1, 13]]
+
+      - text: >-
+          states that two functions group together when their AST subtrees hash IDENTICALLY —
+          same node kinds in the same shape — so the comparison is structural rather than textual
+        type: conclusion
+        weight: 3
+        evidence: |
+          Built on the substrate's structural fingerprinting. Identifier and literal TEXT is
+          ignored, which is why a renamed copy still groups.
+        refs: [["src/duplicates.rs", 1, 8]]
+
+      - text: >-
+          concludes that this catches byte-identical and RENAMED clones but is blind to
+          near-misses — a copy with one extra statement hashes differently and does not group
+        type: conclusion
+        weight: 3
+        evidence: |
+          Type-1 and Type-2 are caught; Type-3 is not, and the module says so. Catching Type-3
+          would need a fuzzy similarity threshold the substrate deliberately does not provide,
+          so the gap is a design boundary rather than an oversight.
+        refs: [["src/duplicates.rs", 5, 8]]
+
+      - text: >-
+          states that detection is GATED behind an explicit flag rather than folded into the
+          default recursive pass, and gives the cost reason — it is corpus-wide and needs a
+          SECOND parse of every file
+        type: conclusion
+        weight: 3
+        evidence: |
+          Gated behind --find-duplicates. The per-function metrics come for free from the first
+          parse; fingerprinting does not, which is the whole reason for the flag.
+        refs: [["src/duplicates.rs", 10, 13]]
+
+      - text: >-
+          conveys that very small functions are skipped, because two single-line accessors
+          hashing alike is not a finding
+        type: conclusion
+        weight: 2
+        evidence: |
+          A minimum AST node count filters them out before grouping.
+        refs: [["src/duplicates.rs", 19, 24]]
+
+      - text: >-
+          explains that a group's identity is CONTENT-DERIVED rather than positional, so a group
+          stays comparable across runs even when files are added, removed or reordered
+        type: conclusion
+        weight: 3
+        evidence: |
+          group_id (src/duplicates.rs:72) formats the first member's content hash. Diffing
+          "group #1 vs group #1" across two runs is meaningless once the corpus changes; diffing
+          a stable id is not. That is the whole premise of the before/after comparison in
+          src/duplicate_diff.rs.
+        refs: [["src/duplicates.rs", 72, 74], ["src/duplicate_diff.rs", 1, 6]]
+
+      - text: >-
+          identifies TWO independent exclusion filters applied after grouping — a fixture-pair
+          filter and a trivial-noise filter — and states that both default to EXCLUDING
+        type: conclusion
+        weight: 3
+        evidence: |
+          DuplicateFilters (src/duplicates.rs:80-84) carries exclude_fixture_pairs and
+          exclude_trivial; the doc comment above it records that both default to exclude and each
+          corresponds to an `--include-*` opt-out flag. find_duplicate_groups (:100-115) applies
+          them in that order via drop_matching.
+        refs: [["src/duplicates.rs", 76, 116]]
+
+      - text: >-
+          states that the counts of what was dropped are REPORTED alongside the surviving groups
+          rather than discarded silently
+        type: conclusion
+        weight: 3
+        evidence: |
+          DuplicateGroupsResult (src/duplicates.rs:88-93) carries excluded_fixture_pairs and
+          excluded_trivial beside groups, and drop_matching (:157-168) returns the count it
+          removed. A filtered report that did not say how much it filtered would read as a
+          complete one.
+        refs: [["src/duplicates.rs", 86, 94], ["src/duplicates.rs", 155, 169]]
+
+      - text: >-
+          states that the fixture-pair heuristic requires at least TWO DISTINCT tags in the group,
+          so two files under the same tag directory are not treated as a fixture pair
+        type: conclusion
+        weight: 3
+        evidence: |
+          is_fixture_pair_group (src/duplicates.rs:223-238) returns
+          `tags.len() >= 2 && normalized.len() == 1` — every member must sit under a recognised
+          tag, at least two distinct tags must appear, and the paths must be identical once the
+          tag is normalised away. Its doc comment states the reason directly: otherwise two
+          "pass" files that happen to match would be dropped as a cross pair.
+        refs: [["src/duplicates.rs", 216, 239]]
+
+      - text: >-
+          states that the trivial-noise rule is a CONJUNCTION — a group is dropped only when it
+          is both small-bodied AND repeats fewer than a threshold number of times, so a widely
+          repeated getter is KEPT
+        type: conclusion
+        weight: 3
+        evidence: |
+          is_trivial_noise_group (src/duplicates.rs:254-256) is
+          `group.len() < TRIVIAL_MIN_REPEAT && group.iter().all(|m| line_span(m) <= TRIVIAL_BODY_LINE_SPAN)`.
+          TRIVIAL_MIN_REPEAT is 4 (:39) and TRIVIAL_BODY_LINE_SPAN is 3 (:34).
+
+          The direction is what an answer most often gets backwards: repetition RESCUES a trivial
+          group rather than condemning it, on the reasoning that a getter duplicated across four
+          files is more likely deliberate copy-paste than incidental shape overlap.
+        refs: [["src/duplicates.rs", 30, 40], ["src/duplicates.rs", 244, 257]]
+
+      - text: >-
+          explains that the two size guards measure DIFFERENT UNITS and neither subsumes the
+          other — a node-count floor before grouping and a line-span test after it
+        type: conclusion
+        weight: 3
+        evidence: |
+          MIN_DUPLICATE_NODES is 20 AST nodes (src/duplicates.rs:28); TRIVIAL_BODY_LINE_SPAN is 3
+          SOURCE LINES (:34). The doc comment on the first says why the second exists: a one-line
+          accessor can clear twenty AST nodes purely from type annotations and field-access
+          chains while still being a single line of source.
+        refs: [["src/duplicates.rs", 19, 40]]
+
+      - text: >-
+          identifies that the textual diff against the group's first member is only computed
+          below a size cap, and that this module performs no file I/O of its own
+        type: conclusion
+        weight: 2
+        evidence: |
+          byte_diff_percent (src/duplicates.rs:270-277) returns Some(0) on equality and otherwise
+          computes a Levenshtein-derived percentage only when the longer body is within
+          MAX_DIFF_CHARS (20,000, :261). DuplicateMember.diff_from_first (:57-63) is documented as
+          populated by the CALLER after re-reading source files.
+
+          The consequence is a collapsed distinction: `None` means either "this is the first
+          member" or "the bodies were too large to diff", and nothing in the field separates them.
+        refs: [["src/duplicates.rs", 55, 64], ["src/duplicates.rs", 258, 278]]
 
   - id: Q2
-    title: |-
-        Second question
-    prompt: |-
-        ...
-    marks:
-    - text: |-
-        ...
-      symbols: []
-      refs: []
+    intent: |
+      Probes whether the agent reads a formula or follows a value. AIRD's inputs are listed in
+      its own docstring — one read. What that read cannot tell you is that the number is
+      afterwards MULTIPLIED by a file-level figure computed in a different module, that the
+      multiplier is deliberately capped so it nudges rather than dominates, and that the whole
+      post-pass only happens in one invocation mode.
 
-## ── RULES THAT HAVE NO FIELD, and are checked by reading ────────────────────────────────
-##
-## NO MARK MAY BE SATISFIED BY SILENCE. "does not fabricate a nesting" is met by an answer
-## that never mentions nesting at all. Convert it to a positive obligation, or delete it.
-## Three such marks shipped in one rubric here before anyone noticed.
-##
-## A MARK MUST BE FALSIFIABLE AGAINST THE TARGET. Grading instructions ("the answer should be
-## well organised") are not facts and cannot be scored; they inflate the denominator and
-## nothing else.
-##
-## WRITE THE MARK YOU EXPECT BOTH ARMS TO FAIL. A rubric where every mark is reachable measures
-## nothing at the top end. The most informative questions in this set are the ones where both
-## arms score 20-30%.
-##
-## SPREAD THE DIFFICULTY. If one question carries 40% of the marks it dominates the target's
-## result. 10-16 marks per question has worked well here.
+      The traversal is three hops and no single file holds it: complexity.rs computes AIRD
+      eagerly per function, coupling.rs builds the corpus-wide import graph, and coupling.rs then
+      calls BACK into complexity.rs to re-scale. An answer that reports the formula's six inputs
+      has read the function and missed what determines the value.
+
+    prompt: |
+      knots reports an AIRD score per function. What actually determines that number — and would
+      you expect the same function to score the same on two different runs?
+
+    marks:
+      - text: names the function-level inputs the AIRD formula takes
+        type: retrieval
+        weight: 1
+        evidence: |
+          calculate_aird takes cognitive, sloc, nesting, test_score, doc_score and state_coupling,
+          each normalised against a divisor and capped at 1.0 before weighting.
+        refs: [["src/complexity.rs", 1421, 1450]]
+
+      - text: >-
+          states that the score is afterwards MULTIPLIED by a factor derived from the efferent
+          coupling of the FILE the function lives in
+        type: conclusion
+        weight: 3
+        evidence: |
+          apply_aird_ce_multiplier re-scales an already-computed AIRD by aird_file_ce_multiplier,
+          re-clamping to the 0-100 ceiling.
+        refs: [["src/complexity.rs", 1525, 1540]]
+
+      - text: >-
+          explains WHY it is a post-pass rather than a seventh input — AIRD is computed eagerly
+          per function, before the corpus-wide import graph exists
+        type: conclusion
+        weight: 3
+        evidence: |
+          Stated outright in apply_aird_ce_multiplier's docstring. The ordering is a data
+          dependency, not a style choice.
+        refs: [["src/complexity.rs", 1530, 1534]]
+
+      - text: >-
+          states that the file-level Ce comes from the coupling module's corpus-wide import
+          graph, which only exists in the recursive whole-corpus mode
+        type: conclusion
+        weight: 3
+        evidence: |
+          The multiplier's docstring names knots::coupling as the source and says the graph is
+          only available in --recursive mode. coupling.rs imports apply_aird_ce_multiplier back
+          from complexity.rs, so the dependency runs both ways between the two modules.
+        refs: [["src/complexity.rs", 1517, 1524], ["src/coupling.rs", 25, 27]]
+
+      - text: >-
+          concludes that the SAME FUNCTION therefore scores differently depending on how the tool
+          was invoked — a single-file run cannot apply the multiplier at all
+        type: conclusion
+        weight: 3
+        evidence: |
+          The conclusion the whole question exists for. Without the corpus graph there is no file
+          Ce, so the post-pass does not run and the reported AIRD is the unscaled figure.
+        refs: [["src/complexity.rs", 1517, 1524]]
+
+      - text: >-
+          notes that the file-coupling contribution is deliberately CAPPED so it nudges the score
+          rather than dominating it
+        type: conclusion
+        weight: 2
+        evidence: |
+          Two constants bound it: the Ce normalisation cap, beyond which the multiplier stays
+          maxed, and a maximum proportional bonus. The rationale given is that file coupling is a
+          coarser, one-abstraction-up signal than the function's own state_coupling, in a formula
+          calibrated around function-level inputs.
+        refs: [["src/complexity.rs", 1505, 1516]]
+
+      - text: >-
+          identifies documentation as the one NEGATIVE contributor — every other term adds to the
+          score and the doc term is subtracted
+        type: conclusion
+        weight: 3
+        evidence: |
+          src/complexity.rs:1449-1453. The sum is
+          `(cognitive*55) + (sloc*15) + (nesting*15) + (test*15) - (doc*15) + (coupling*10)`.
+          Documentation is the only term with a minus sign, so writing docs LOWERS a function's
+          reasoning-difficulty score by up to 15 points.
+
+          An answer listing six inputs without the sign has described the arithmetic and missed
+          what the metric claims: that ambiguity, not size, is the cost.
+        refs: [["src/complexity.rs", 1447, 1456]]
+
+      - text: >-
+          conveys that cognitive complexity dominates the weighting — it carries roughly half the
+          available score on its own, with every other term a fraction of that
+        type: conclusion
+        weight: 2
+        evidence: |
+          Weights are cognitive 55, sloc 15, nesting 15, test 15, coupling 10, doc -15
+          (src/complexity.rs:1449-1453). Cognitive alone is more than the other positive terms
+          combined less one. The doc comment names it "primary driver (reasoning steps needed)".
+
+          The right order of magnitude and the right ranking earn this; exact weights are not
+          required.
+        refs: [["src/complexity.rs", 1421, 1456]]
+
+      - text: >-
+          explains that each input is first normalised against its OWN denominator, so an input's
+          influence is set by that denominator rather than by its raw magnitude
+        type: conclusion
+        weight: 3
+        evidence: |
+          src/complexity.rs:1441-1447 divides cognitive by 75, sloc by 200, nesting by 8, test by
+          20, doc by 10 and state_coupling by 12 — each `.min(1.0)`, so every term saturates at
+          its own ceiling before its weight applies.
+
+          The consequence is that a raw SLOC of 100 and a raw cognitive of 100 are not
+          comparable inputs: the first is half its cap and the second is already saturated.
+        refs: [["src/complexity.rs", 1439, 1448]]
+
+      - text: >-
+          notes that the two signed inputs are FLOORED AT ZERO before normalising, so a negative
+          test or documentation score cannot push the total up or down past that floor
+        type: conclusion
+        weight: 2
+        evidence: |
+          test_score and doc_score are `i32` while the other four inputs are `u32`
+          (src/complexity.rs:1433-1440), and both are read as `.max(0)` at :1444-1445. A negative
+          documentation score therefore contributes exactly nothing rather than adding to the
+          difficulty.
+        refs: [["src/complexity.rs", 1433, 1446]]
+
+      - text: >-
+          identifies a SIBLING metric measuring context load rather than reasoning depth, and
+          states that the two are meant to be read together
+        type: conclusion
+        weight: 2
+        evidence: |
+          calculate_aicp (src/complexity.rs:1494-1502) weighs unique external call targets at 60
+          and SLOC at 40, sharing only the documentation term. Its doc comment states the
+          complementarity outright: "a function can be cheap to load but hard to reason about, or
+          expensive to load but trivial once context is assembled".
+
+          This is what AIRD does NOT measure, and the pair is the design.
+        refs: [["src/complexity.rs", 1483, 1503]]
+
+  - id: Q3
+    intent: |
+      Probes a deliberate exclusion and its reason. That knots computes Ce, Ca and Instability is
+      one lookup. What matters is what is NOT counted and why: imports that resolve to nothing in
+      the corpus contribute no edge at all, and ambiguous ones resolve to no edge rather than an
+      arbitrary pick. Both are stated as reasoning about signal rather than as implementation
+      limits, and an answer that reports the metrics without the exclusions has described a
+      different tool.
+
+    prompt: |
+      knots reports import-coupling metrics per file. What counts as an edge in that graph, and
+      what deliberately does not?
+
+    marks:
+      - text: names the three file-level coupling metrics knots computes
+        type: retrieval
+        weight: 1
+        evidence: |
+          Efferent coupling, afferent coupling and instability, the last being Ce over Ce plus Ca.
+        refs: [["src/coupling.rs", 1, 6], ["src/coupling.rs", 28, 40]]
+
+      - text: >-
+          states that an import which does not resolve to a file IN THE ANALYSED CORPUS
+          contributes no edge — third-party libraries, standard library and unresolvable dynamic
+          imports are all excluded
+        type: conclusion
+        weight: 3
+        evidence: |
+          Stated in the module header. The metrics measure coupling within the corpus.
+        refs: [["src/coupling.rs", 14, 17]]
+
+      - text: >-
+          explains the CONSEQUENCE that motivates the exclusion — counting external dependencies
+          would inflate every file importing a third-party library and push instability toward
+          its maximum for nearly the whole corpus, erasing the signal
+        type: conclusion
+        weight: 3
+        evidence: |
+          The reason is given explicitly and is about signal preservation, not about difficulty of
+          resolution. An answer that says external imports are "not tracked" has the fact without
+          the argument.
+        refs: [["src/coupling.rs", 18, 21]]
+
+      - text: >-
+          states that an AMBIGUOUS import — one whose name matches several corpus files — resolves
+          to NO edge rather than to an arbitrary choice
+        type: conclusion
+        weight: 3
+        evidence: |
+          The header gives same-named files in different packages as the example and states the
+          principle: a wrong edge is worse than a missing one.
+        refs: [["src/coupling.rs", 9, 13]]
+
+      - text: >-
+          conveys that both exclusions bias the graph toward UNDER-counting, and that this is the
+          intended direction
+        type: conclusion
+        weight: 2
+        evidence: |
+          Each rule drops an edge rather than inventing one, and each is justified by the cost of
+          a false edge. An answer noticing that the two rules share a direction has understood the
+          design rather than listed it.
+        refs: [["src/coupling.rs", 9, 21]]
+
+      - text: >-
+          states that Ce counts DISTINCT target files rather than import statements, so importing
+          one file ten times contributes one to the count
+        type: conclusion
+        weight: 3
+        evidence: |
+          resolve_targets accumulates into a `HashSet<String>` (src/coupling.rs:97-110) and
+          file_coupling takes `ce = targets.len()` (:141). The graph itself is
+          `HashMap<String, HashSet<String>>` (:44).
+
+          An answer describing Ce as "how many imports the file has" has the wrong unit.
+        refs: [["src/coupling.rs", 41, 46], ["src/coupling.rs", 90, 111]]
+
+      - text: >-
+          notes that a file resolving an import to ITSELF contributes no edge
+        type: conclusion
+        weight: 2
+        evidence: |
+          src/coupling.rs:107-109 inserts the target only `if target != path`. Without it a file
+          whose own stem matched one of its import strings would count as coupled to itself and
+          inflate both Ce and Ca.
+        refs: [["src/coupling.rs", 99, 111]]
+
+      - text: >-
+          gives Instability as Ce over (Ce + Ca), and states that a file with NEITHER imports nor
+          importers is reported as maximally stable rather than undefined
+        type: conclusion
+        weight: 3
+        evidence: |
+          file_coupling (src/coupling.rs:143-147) returns 0.0 when `ce + ca == 0`, and the field
+          doc at :37 says "`0.0` (maximally stable) when both are zero".
+
+          That is a definition choice rather than a measurement: an isolated file is
+          indistinguishable in this metric from one that is depended upon and depends on nothing.
+        refs: [["src/coupling.rs", 33, 39], ["src/coupling.rs", 136, 153]]
+
+      - text: >-
+          explains that resolution matches on a file STEM, so an import is reduced to its last
+          identifier and matched against any corpus file with that stem regardless of directory
+        type: conclusion
+        weight: 3
+        evidence: |
+          module_key is `Path::file_stem` (src/coupling.rs:181-187). resolve_candidate
+          (:192-212) strips a path prefix, then a known source extension, then a namespace
+          separator (`::` or `.`), leaving one trailing identifier.
+
+          So `a::b::config` and `./lib/config.rs` both reduce to `config` and match a corpus file
+          named `config.rs` wherever it lives. The module doc calls this "a best-effort
+          heuristic, not real module resolution" — which is the claim the marks about ambiguity
+          and non-resolution both rest on.
+        refs: [["src/coupling.rs", 4, 12], ["src/coupling.rs", 179, 213]]
+
+      - text: >-
+          identifies that Ca cannot be computed for one file alone — it is counted from incoming
+          edges over the whole resolved graph, in a second phase
+        type: conclusion
+        weight: 2
+        evidence: |
+          build_import_graph is phase 1 (src/coupling.rs:47-63) and `ImportGraph::coupling` is
+          phase 2 (:159-169 in the impl block), which first calls count_incoming_edges
+          (:126-134) over every file's target set before deriving any row.
+
+          Ce is local to a file's own imports; Ca is a property of the corpus. An answer treating
+          them as symmetric has missed why the module is two phases.
+        refs: [["src/coupling.rs", 47, 64], ["src/coupling.rs", 119, 135]]
+
+      - text: >-
+          notes that the post-pass records the raw file Ce on each function alongside the
+          adjusted score, so the coupling contribution stays visible as its own driver
+        type: conclusion
+        weight: 2
+        evidence: |
+          apply_file_ce_to_aird (src/coupling.rs:162-172) sets `func.file_ce = ce` before
+          overwriting `func.aird`. Its doc comment says why: so violation output can show Ce as a
+          distinct driver rather than leaving a silently inflated score.
+        refs: [["src/coupling.rs", 155, 173]]
+
+  - id: Q4
+    intent: |
+      A near-duplicate pair that punishes skimming. Two AIRD functions sit adjacent with the same
+      six parameters and nearly the same body, and the docstring says the second is "the same
+      formula without the caps". It is not: FOUR of the six normalisations stay clamped and only
+      cognitive and SLOC lose their ceiling. An agent that reads the docstring and paraphrases it
+      will state something the code contradicts twenty lines below.
+
+      The weights, checked against the source, are IDENTICAL between the two — 55/15/15/15/-15/10
+      in both. An earlier version of this note claimed they differed; they do not, and the marks
+      below never asserted it. Correcting it here because a wrong ground truth in a checked-in
+      rubric is worse than a missing one.
+
+      The purpose is the interesting half and cannot be inferred from either body: the capped
+      score pins at its ceiling for very large functions, so refactoring shows no movement — the
+      raw score keeps falling and gives a progress signal while the gate score is still maxed.
+
+    prompt: |
+      knots computes AIRD twice, in two different functions. What is the difference between them,
+      and why would anyone want the second one?
+
+    marks:
+      - text: identifies that there is a capped AIRD and a raw uncapped variant beside it
+        type: retrieval
+        weight: 1
+        evidence: |
+          calculate_aird returns a clamped integer; calculate_aird_raw returns an f64 that can
+          exceed 100.
+        refs: [["src/complexity.rs", 1433, 1440], ["src/complexity.rs", 1463, 1470]]
+
+      - text: >-
+          states the PURPOSE — the capped score pins at its ceiling for very large functions, so
+          refactoring produces no visible movement, while the raw score keeps decreasing and gives
+          a progress signal
+        type: conclusion
+        weight: 3
+        evidence: |
+          Stated in the raw variant's docstring. The gate score can sit at its maximum while real
+          improvement is happening, and that is exactly when a maintainer needs a number.
+        refs: [["src/complexity.rs", 1458, 1462]]
+
+      - text: >-
+          notes that the raw variant is NOT simply the capped one with the caps removed — several
+          of its normalisations remain clamped
+        type: conclusion
+        weight: 3
+        evidence: |
+          Only the cognitive and sloc terms lose their ceiling. Nesting, test, documentation and
+          state-coupling all keep theirs, one of them with an inline note that nesting rarely
+          exceeds its cap. An answer that repeats "same formula without the caps" has taken the
+          docstring's summary over the body.
+        refs: [["src/complexity.rs", 1471, 1477]]
+
+      - text: >-
+          conveys that the two functions do not share an implementation — the formula is written
+          out twice, so a weight changed in one does not change the other
+        type: conclusion
+        weight: 2
+        evidence: |
+          Both bodies compute the weighted sum independently. Nothing enforces that they stay in
+          step.
+        refs: [["src/complexity.rs", 1450, 1456], ["src/complexity.rs", 1478, 1483]]
+
+      - text: >-
+          notes that the raw variant floors at zero rather than clamping to a ceiling, so a
+          well-documented simple function cannot go negative
+        type: conclusion
+        weight: 2
+        evidence: |
+          The documentation term subtracts, and the result is floored at zero with no upper bound
+          — the mirror image of the capped variant, which is bounded above and below.
+        refs: [["src/complexity.rs", 1478, 1483]]
+
+      - text: >-
+          names WHICH normalisations lose their ceiling in the raw variant — cognitive complexity
+          and SLOC — and states that the other four keep theirs
+        type: conclusion
+        weight: 3
+        evidence: |
+          src/complexity.rs:1471-1476. Only cognitive_norm and sloc_norm drop the `.min(1.0)`;
+          nesting, test, doc and coupling all retain it, and nesting carries an inline note
+          saying so deliberately.
+
+          The mark above establishes that the uncapping is partial; this one establishes which
+          half, which is the difference between having read the docstring's correction and having
+          read the body.
+        refs: [["src/complexity.rs", 1471, 1477]]
+
+      - text: >-
+          explains that the two uncapped inputs are exactly the ones whose real values routinely
+          exceed their denominators, so uncapping those two is what makes the raw score keep
+          moving
+        type: conclusion
+        weight: 2
+        evidence: |
+          Cognitive normalises at 75 and SLOC at 200 — both routinely exceeded by the large
+          functions the raw variant exists for. Nesting normalises at 8 and carries the inline
+          comment "nesting rarely exceeds cap; keep clamped" (src/complexity.rs:1473).
+
+          So the choice of which caps to drop is not arbitrary: it is the two terms that would
+          otherwise saturate and freeze the score.
+        refs: [["src/complexity.rs", 1439, 1446], ["src/complexity.rs", 1471, 1477]]
+
+      - text: >-
+          notes that the two variants differ in RETURN TYPE — one yields a rounded integer, the
+          other an unrounded floating-point value
+        type: conclusion
+        weight: 2
+        evidence: |
+          calculate_aird returns `u32` via `raw.round().clamp(0.0, 100.0) as u32`
+          (src/complexity.rs:1433-1456); calculate_aird_raw returns `f64` with no rounding at all
+          (:1470, :1478-1481).
+
+          A progress signal that rounded to whole points would stop moving for small refactors,
+          which is the same failure the ceiling causes.
+        refs: [["src/complexity.rs", 1454, 1456], ["src/complexity.rs", 1470, 1482]]
+
+      - text: >-
+          states that the capped variant is bounded at BOTH ends while the raw one is bounded only
+          below
+        type: conclusion
+        weight: 3
+        evidence: |
+          `clamp(0.0, 100.0)` (src/complexity.rs:1455) against `.max(0.0)` (:1481). The raw score
+          has no ceiling, which is the entire point, and still cannot go negative.
+        refs: [["src/complexity.rs", 1454, 1456], ["src/complexity.rs", 1478, 1482]]
+
+      - text: >-
+          notes that the documentation term keeps its cap in BOTH variants, so documentation
+          credit saturates identically and cannot pull a raw score down without limit
+        type: conclusion
+        weight: 2
+        evidence: |
+          doc_norm is `(doc_score.max(0) as f64 / 10.0).min(1.0)` in both
+          (src/complexity.rs:1445 and :1475), so the subtracted term is at most 15 either way.
+
+          Uncapping it would have let a heavily-documented large function cancel its own
+          difficulty, which is the opposite of what the raw variant is for.
+        refs: [["src/complexity.rs", 1444, 1446], ["src/complexity.rs", 1474, 1476]]
+
+  - id: Q5
+    intent: |
+      Probes whether the agent establishes a precedence ORDER or merely finds a config file.
+      There are three ways to influence what knots analyses and how it judges it, they coexist by
+      design rather than by accident, and one of them is explicitly preserved rather than
+      replaced. The ordering matters to anyone whose CI run disagrees with their local one, and
+      no single file states all three.
+
+    prompt: |
+      A user reports that knots ignored a threshold they configured. What are all the ways
+      thresholds and exclusions can be set, and which one wins?
+
+    marks:
+      - text: identifies the optional TOML configuration file as one source
+        type: retrieval
+        weight: 1
+        evidence: |
+          An optional unified-config file carrying thresholds and file/function exclusions, with
+          every field optional.
+        refs: [["src/config.rs", 1, 8]]
+
+      - text: >-
+          states that command-line flags ALWAYS take precedence over anything in the
+          configuration file
+        type: conclusion
+        weight: 3
+        evidence: |
+          Stated outright in the module header, and it is the answer to the user's complaint: a
+          flag set in CI silently overrides the file they edited.
+        refs: [["src/config.rs", 5, 6]]
+
+      - text: >-
+          identifies a THIRD mechanism — the older include/exclude sidecar — and states that it
+          keeps working unchanged
+        type: conclusion
+        weight: 3
+        evidence: |
+          The header names it and says the newer file is an additive surface, not a replacement.
+          An answer describing only the config file and the flags has missed a live path that can
+          also be responsible.
+        refs: [["src/config.rs", 6, 8]]
+
+      - text: >-
+          conveys that the design intent is COEXISTENCE rather than migration — the older
+          mechanism is preserved deliberately rather than deprecated
+        type: conclusion
+        weight: 2
+        evidence: |
+          "Additive config surface, not a replacement" is the stated position. That distinguishes
+          a tool that will remove the old path from one that will not.
+        refs: [["src/config.rs", 4, 8]]
+
+      - text: >-
+          states that a MALFORMED pattern silently matches nothing — a typo in a glob or a regex
+          makes the exclusion never fire, with no error and no warning
+        type: conclusion
+        weight: 3
+        evidence: |
+          glob_match (src/config.rs:105-109) is `Glob::new(pattern).map(...).unwrap_or(false)`,
+          and the function-pattern branch of exclude_matches (:117-122) is
+          `Regex::new(p).map(...).unwrap_or(false)`. Both swallow the compile error and answer
+          "no match".
+
+          This is the most likely explanation for the symptom the question opens with, and it is
+          invisible from the config file: the user's entry is present, syntactically valid TOML,
+          and does nothing.
+        refs: [["src/config.rs", 104, 124]]
+
+      - text: >-
+          identifies that the two pattern fields use DIFFERENT syntaxes — file patterns are globs
+          and function patterns are regular expressions
+        type: conclusion
+        weight: 3
+        evidence: |
+          src/config.rs:105-109 compiles file patterns with `globset::Glob`; :117-122 compiles
+          function patterns with `regex::Regex`. Both live in the same `[[filter.exclude]]` table.
+
+          A user writing `tests/**` for a function name, or `^test_` for a file path, gets a
+          silently non-matching rule via the mark above — the two failures compound.
+        refs: [["src/config.rs", 64, 82], ["src/config.rs", 104, 124]]
+
+      - text: >-
+          explains the matching algebra — the two pattern lists in one entry are AND'd, entries
+          are OR'd against each other, and an EMPTY list means "matches everything" for that field
+        type: conclusion
+        weight: 3
+        evidence: |
+          exclude_matches (src/config.rs:111-124) is `rules.iter().any(...)` over entries, with
+          `file_ok && func_ok` inside; each half is
+          `patterns.is_empty() || patterns.iter().any(...)`. The FilterExclude doc comment at
+          :70-74 states the same rule in prose.
+
+          The empty-list convention is what makes a file-only or function-only entry behave as
+          expected, and it is also how an entry with BOTH lists empty excludes everything.
+        refs: [["src/config.rs", 68, 82], ["src/config.rs", 111, 124]]
+
+      - text: >-
+          states that the config file is DISCOVERED by walking up from the start directory to the
+          filesystem root, taking the first one found
+        type: conclusion
+        weight: 2
+        evidence: |
+          KnotsToml::discover (src/config.rs:87-102) loops `dir = d.parent()` until a
+          `knots.toml` is found or the ancestry is exhausted, returning `Ok(None)` in the latter
+          case.
+
+          So a config several directories above the analysed tree applies, and the nearest one
+          wins — a second way for a threshold to come from somewhere the user is not looking.
+        refs: [["src/config.rs", 84, 103]]
+
+      - text: >-
+          identifies that per-language threshold sections exist, keyed on a canonical language
+          key, and that they are captured by a catch-all rather than an enumerated list
+        type: conclusion
+        weight: 3
+        evidence: |
+          KnotsToml (src/config.rs:18-28) declares `#[serde(flatten)] pub languages:
+          HashMap<String, LanguageSection>`, documented as keyed on the same canonical key as the
+          substrate's language table — `[c.thresholds]`, `[cpp.thresholds]`.
+
+          Because the field is a flattened map, a MISSPELLED top-level section is absorbed into it
+          rather than refused: `[thersholds]` parses cleanly as a language named "thersholds"
+          whose thresholds nothing ever reads. That is the third silent path to "knots ignored my
+          configuration", and unlike the other two it leaves no malformed input at all.
+        refs: [["src/config.rs", 18, 34]]
+
+      - text: the ways thresholds or exclusions can be configured
+        type: set
+        weight: 2
+        extract: |
+          List every distinct mechanism the answer says can set thresholds or exclusions. One per
+          line, using the answer's own words. If it names none, reply NONE.
+        members:
+          - value: knots.toml
+            evidence: "the optional unified-config file"
+          - value: CLI
+            evidence: "command-line flags, highest precedence"
+          - value: FilterRules
+            evidence: "the legacy include/exclude JSON sidecar"

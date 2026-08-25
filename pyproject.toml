@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "clew-trace"
-version = "1.0.7"
+version = "1.0.8"
 description = "Queryable, layered symbol database for C, C++, Rust and Python codebases: doxygen + tree-sitter call graph, threads, locks and dataflow edges, served to AI agents over MCP."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -34,6 +34,13 @@ classifiers = [
 dependencies = [
     "pyyaml>=6.0,<8",
     "rich>=13.0",
+    # DECLARED, NOT LEFT TRANSITIVE VIA fastmcp. `pydantic.Field` carries the tool
+    # parameters' descriptions into the JSON Schema, and the schema is the ONE
+    # surface a client cannot truncate — measured, a third of every prose tool
+    # description is cut before it reaches the model. Losing this import would take
+    # the only untruncatable routing signal to zero, so the version window is ours
+    # to state rather than fastmcp's to change under us.
+    "pydantic>=2.0,<3",
     # Pinned to doxygen-guard's tree-sitter window so both stacks share one venv.
     "tree-sitter>=0.23,<0.24",
     "tree-sitter-c>=0.23,<0.23.5",

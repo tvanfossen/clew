@@ -18,11 +18,15 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import os
 from pathlib import Path
 
 import pytest
 
-pytest.importorskip("mcp", reason="MCP server is an optional extra (pip install -e '.[mcp]')")
+pytest.importorskip(
+    "mcp",
+    reason="the MCP SDK is a REQUIRED dependency, so this skipping means a BROKEN install, not an unselected extra",
+)
 
 from clew.mcp_server import freshness as fr
 from clew.mcp_server import state as st
@@ -199,14 +203,23 @@ def test_the_data_axis_quotes_the_measured_refresh_cost() -> None:
         source_changed_files=5,
         newest_changed_source="clew/mcp_server/tools_query.py",
         stale=True,
-        refresh={"duration_ms": "3314", "files_reprocessed": "7"},
+        refresh={"duration_ms": "3314", "payloads_recomputed": "70"},
     )
 
     message = _message(fr.notices(status, MATCHING_CODE), fr.AXIS_DATA)
     assert "5 indexed source file(s)" in message
     assert "tools_query.py" in message, "naming the newest changed file makes it checkable"
     assert "3314 ms" in message, "the cost must be the measured one"
-    assert "7 file(s)" in message
+    assert "70 cached stage payload(s)" in message
+    ## #470 IN ONE ASSERTION. This notice reports BOTH numbers, and the payload count is normally
+    ## several times the file count because there are ~10 stages. Calling it "70 file(s)" beside
+    ## "5 indexed source file(s)" read as a contradiction — the same notice claiming 5 files
+    ## changed and 70 files reprocessed — when both numbers were right and only one label was
+    ## wrong. So no second "file(s)" count may appear here.
+    assert "70 file(s)" not in message, "the payload count must not be reported as a file count"
+    assert message.count("file(s)") == 1, (
+        f"exactly one file count belongs in this notice, the changed-source one; got: {message}"
+    )
     assert "index(action='refresh'" in message, "the action that clears this axis must be named"
 
 
@@ -240,9 +253,34 @@ def test_a_zero_duration_reads_as_measured_not_as_missing() -> None:
     @brief Zero is a measurement.
     @version 1
     """
-    clause = fr._cost_clause({"duration_ms": "0", "files_reprocessed": "0"})
+    clause = fr._cost_clause({"duration_ms": "0", "payloads_recomputed": "0"})
     assert "0 ms" in clause
     assert "unmeasured" not in clause
+
+
+## @brief An index built before the #470 rename still reports its measured cost.
+## @return None.
+## @version 1
+def test_the_pre_rename_cost_key_is_still_read() -> None:
+    """#470 renamed the persisted key `files_reprocessed` to `payloads_recomputed` because the old
+    name named the wrong UNIT. An index built by an earlier version carries only the old key, and
+    dropping to "unmeasured" there would discard a real measurement over a spelling.
+
+    WITHOUT THIS TEST THE FALLBACK IS UNTESTED CODE, which is how it gets deleted as dead. The
+    build-version bump makes such an index rare rather than impossible: a stale index is READ
+    live and only rebuilt when something asks for a build.
+
+    @brief The legacy key is honoured, under the corrected label.
+    @return None.
+    @version 1
+    """
+    clause = fr._cost_clause({"duration_ms": "1612", "files_reprocessed": "45"})
+    assert "1612 ms" in clause
+    assert "45 cached stage payload(s)" in clause, (
+        f"the legacy key must still be read, and reported under the CORRECTED label — the old "
+        f"name was wrong about the unit, not about the number: {clause}"
+    )
+    assert "file(s)" not in clause, "the corrected label applies to legacy values too"
 
 
 # ─── axis: code (gh#29's misleading half) ────────────────────────────────────
@@ -365,14 +403,17 @@ def test_the_fingerprint_tracks_the_source_tree(tmp_path: Path) -> None:
     that changes when nothing did makes the code axis fire permanently, which is the
     same failure as no signal at all.
 
-    Asserts on mtime rather than sleeping: `os.utime` makes the change deterministic
-    where a sleep makes the test slow AND flaky.
+    SENSITIVITY IS TO CONTENT, NOT MTIME, and this test used to assert the opposite —
+    "a touched file must move the fingerprint" — which contradicted the sentence directly
+    above it in its own docstring. An mtime key fires on `git checkout`, a branch switch
+    and plain `touch`, all byte-identical, and because the code axis is a hard refusal
+    that no rebuild clears, those spurious trips disabled the query-time auto-refresh
+    entirely. `test_the_source_fingerprint_ignores_mtime_and_tracks_content` covers the
+    stability half against a touch specifically.
 
     @brief The fingerprint is sensitive and stable.
-    @version 1
+    @version 2
     """
-    import os
-
     pkg = tmp_path / "pkg"
     pkg.mkdir()
     (pkg / "a.py").write_text("x = 1\n", encoding="utf-8")
@@ -381,9 +422,8 @@ def test_the_fingerprint_tracks_the_source_tree(tmp_path: Path) -> None:
     assert before, "a readable tree must fingerprint"
     assert fr.source_fingerprint(pkg) == before, "an untouched tree must not drift"
 
-    stat = (pkg / "a.py").stat()
-    os.utime(pkg / "a.py", ns=(stat.st_atime_ns, stat.st_mtime_ns + 1_000_000_000))
-    assert fr.source_fingerprint(pkg) != before, "a touched file must move the fingerprint"
+    (pkg / "a.py").write_text("x = 2\n", encoding="utf-8")
+    assert fr.source_fingerprint(pkg) != before, "an edited file must move the fingerprint"
 
 
 ## @brief A non-`.py` file does not move the fingerprint.
@@ -449,12 +489,12 @@ def test_the_refresh_cost_round_trips_into_status(tmp_path: Path) -> None:
     conn.commit()
     conn.close()
     write_build_signature(
-        db, refresh={"duration_ms": "1612", "files_reprocessed": "3", "cache_hits": "111"}
+        db, refresh={"duration_ms": "1612", "payloads_recomputed": "3", "cache_hits": "111"}
     )
 
     target = st.Target(repo_path=str(tmp_path), slug="t", db_path=str(db))
     refresh = st.db_status(target)["refresh"]
-    assert refresh == {"duration_ms": "1612", "files_reprocessed": "3", "cache_hits": "111"}
+    assert refresh == {"duration_ms": "1612", "payloads_recomputed": "3", "cache_hits": "111"}
 
 
 ## @brief A measured ZERO survives persistence, where a falsy value would be dropped.
@@ -474,10 +514,10 @@ def test_a_zero_refresh_measurement_survives_persistence(tmp_path: Path) -> None
     @version 1
     """
     db = tmp_path / "clew.db"
-    write_build_signature(db, refresh={"duration_ms": "0", "files_reprocessed": "0"})
+    write_build_signature(db, refresh={"duration_ms": "0", "payloads_recomputed": "0"})
 
     target = st.Target(repo_path=str(tmp_path), slug="t", db_path=str(db))
-    assert st.db_status(target)["refresh"] == {"duration_ms": "0", "files_reprocessed": "0"}
+    assert st.db_status(target)["refresh"] == {"duration_ms": "0", "payloads_recomputed": "0"}
 
 
 ## @brief Stamping a refresh section leaves the other sections intact.
@@ -704,4 +744,57 @@ def test_status_reports_the_real_package_version_not_the_unknown_fallback() -> N
     ## Asserting only on the helper would leave a wrapper free to drop or rename the field.
     assert code_identity().get("package_version") == want, (
         "code_identity() is what reaches a status reply; it must carry the same version"
+    )
+
+
+##
+# @brief A touch with no edit must not move the source fingerprint.
+# @param tmp_path Pytest scratch directory.
+# @return None.
+# @version 1
+def test_the_source_fingerprint_ignores_mtime_and_tracks_content(tmp_path: Path) -> None:
+    """THE CODE AXIS IS A HARD REFUSAL, so a false positive on it is expensive.
+
+    `matches_source` false blocks the automatic query-time refresh AND refuses an explicit
+    build, and no rebuild clears it — only restarting the client does. So anything that trips
+    it spuriously disables both, silently, until someone reconnects.
+
+    An mtime-keyed digest trips on `git checkout`, a branch switch, `git stash pop`, rsync and
+    plain `touch`, all of which leave byte-identical content. MEASURED LIVE in this
+    repository: reverting one file with `git checkout` moved the fingerprint and the code axis
+    fired on the next two query replies, which is what stopped the auto-refresh from ever
+    engaging here.
+
+    The sibling `IndexCache` already states the correct rule for this codebase — mtime+size is
+    a PREFILTER and the sha256 of the bytes is the AUTHORITY, so a touch with no edit and a
+    checkout that restores identical content both stay HITS. This pins the same rule for the
+    fingerprint.
+
+    The cost objection was measured rather than argued: 90 files and 2.6 MB hash in 4.0 ms
+    against 2.2 ms for stat-only, so content costs 1.8 ms on a surface called once per reply.
+
+    @brief A touch is invisible; an edit is not.
+    @return None.
+    @version 1
+    """
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+    (pkg / "a.py").write_text("x = 1\n", encoding="utf-8")
+    (pkg / "b.py").write_text("y = 2\n", encoding="utf-8")
+
+    before = fr.source_fingerprint(pkg)
+    assert before, "a package with .py files must fingerprint to something"
+
+    ## A touch far in the future, so this cannot pass by the mtime happening to land in the
+    ## same nanosecond — the masking that makes this class of test lie.
+    os.utime(pkg / "a.py", ns=(10**18, 10**18))
+    assert fr.source_fingerprint(pkg) == before, (
+        "a touch with identical content moved the fingerprint, so the code axis fires on "
+        "every git checkout and branch switch and disables auto-refresh with no edit at all"
+    )
+
+    (pkg / "a.py").write_text("x = 2\n", encoding="utf-8")
+    assert fr.source_fingerprint(pkg) != before, (
+        "a real content edit did NOT move the fingerprint — the axis can no longer detect "
+        "the stale process it exists to catch, which is worse than firing too often"
     )

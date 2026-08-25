@@ -70,3 +70,21 @@ figures above include thread, lock and shared-key rows) but they are tuned for t
 read a sparse causal layer on a Python target as "less well covered", not as a measured negative.
 
 `kconfig` and preprocessor gating do not apply.
+
+**Incremental refresh cannot see a NEWLY-ADDED cross-file call here, so it needs a full rebuild
+to appear.** A refresh re-runs doxygen over the changed files plus a closure of their neighbours,
+and one of the two closure passes walks doxygen's `includes` table to find files whose call sites
+may now resolve differently. **That table is populated only from `#include` directives**, so on
+Python it is empty and that pass contributes nothing.
+
+Measured on clew's own index, which is a controlled comparison because the same repository holds
+both languages: **42 include rows, all 42 from the C/C++ test fixtures and zero from its 208
+Python files** (2,130 rows on the C++ target [entropic](https://github.com/tvanfossen/entropic) for
+contrast).
+
+Concretely: edit `a.py` to add a call to a function in `b.py`, and the refresh re-indexes `a.py`
+and picks up the new call site — that part works, because the changed file is always re-run. What
+it cannot do is notice that some *third*, unedited file's view changed as a consequence. The
+practical exposure is small for this reason, but it is not nil, and a full build
+(`index(action='refresh', force=True)`) closes it. Fixing it properly needs a tree-sitter import
+graph rather than doxygen's `includes`.

@@ -73,13 +73,16 @@ class ScanSummary:
         self.removed = removed
 
     ## @brief Human-readable one-line summary for logging.
-    ## @return "N unchanged, N modified, N added, N removed".
-    ## @version 1
+    ## @return "N unchanged, N modified, N added, N removed source file(s)".
+    ## @version 2
     ## @req REQ-DDB-PIPE-003
     def describe(self) -> str:
+        ## SAYS ITS UNIT (#470). These four are SOURCE FILES, while the refresh cost line reports
+        ## (file, stage) payloads — a different unit, normally ~10x larger. Unlabelled, the two
+        ## lines read as two contradicting counts of one change set.
         return (
             f"{len(self.unchanged)} unchanged, {len(self.modified)} modified, "
-            f"{len(self.added)} added, {len(self.removed)} removed"
+            f"{len(self.added)} added, {len(self.removed)} removed source file(s)"
         )
 
 

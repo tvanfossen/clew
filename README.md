@@ -23,8 +23,8 @@ and a mental model you rebuild every session. It is a cache for work you would o
 **doxygen-guard is optional.** [It](https://github.com/tvanfossen/doxygen-guard) is a
 pre-commit gate that keeps a repo's doxygen accurate, and a repo that uses it gets a richer
 index — briefs, requirement tags, versioned comments. But `clew` needs neither the gate nor a
-Doxyfile: a repo that declares nothing gets its whole tree indexed, and three of the four repos
-in `acceptance/targets/` are measured that way. If you want the gate, it is a separate tool with
+Doxyfile: a repo that declares nothing gets its whole tree indexed, and three of the four
+reference repositories are measured that way. If you want the gate, it is a separate tool with
 one job; if you do not, this still works.
 
 ## The four tools
@@ -69,13 +69,52 @@ as a single query, not a manual archaeology session.
 
 ## Measured
 
-Answering from the index is compared against an agent with only `Read`/`Grep`/`Glob`/`Bash` —
-same repository, same model, same sitting, same frozen questions. Four repositories, both arms,
-two model tiers. Every transcript, metric and per-mark grade is committed beside its rubric in
-[`acceptance/targets/`](https://github.com/tvanfossen/clew/tree/main/acceptance/targets); the results are in each target's `result.md`.
+Answering from the index is compared against the same agentic harness without it — same
+repository, same model, same sitting, same frozen questions.
 
-Run it on yours: [`acceptance/targets/TEMPLATE/`](https://github.com/tvanfossen/clew/tree/main/acceptance/targets/TEMPLATE) has the rubric
-template and the runbook.
+**The instrument is being rebuilt.** The previous generation's rubrics graded lexical retrieval
+rather than answer completeness, so they measured which tool was used instead of whether the
+question was answered. They have been deleted rather than migrated; git history holds them.
+[`acceptance/DESIGN.md`](https://github.com/tvanfossen/clew/blob/main/acceptance/DESIGN.md) is the
+replacement's schema and grading routine, and
+[`docs/CORE_HYPOTHESIS.md`](https://github.com/tvanfossen/clew/blob/main/docs/CORE_HYPOTHESIS.md)
+is the claim it tests. No measured figures are published until it has run.
+
+## Refreshing an index
+
+**A refresh is incremental, and a stale query refreshes itself before answering.** Both exist
+for the same reason: an agent that believes the index is expensive to correct stops using the
+index, and then reasons from a stale one — which is worse than not having it.
+
+- **Incremental.** doxygen is re-run over the changed files plus a closure of their neighbours,
+  and the result is spliced into the existing database rather than replacing it. The closure is
+  the part that has to be right: doxygen's xref pass is global, so editing `b.c` invalidates
+  `a.c`'s edges into it even though `a.c` did not change, and a second pass over the include
+  graph recovers calls the edit itself introduces. On this repository doxygen went from 6218 ms
+  to 325 ms, taking a warm refresh from 8672 ms to ~2700 ms.
+- **Automatic.** When a query arrives against an index whose sources have moved, the refresh
+  runs first and the answer describes the current tree. That is the ~2700 ms above, once, rather
+  than a wrong answer immediately.
+- **You can still ask.** `index(action='refresh')` refreshes on demand; add `force=True` for a
+  full rebuild.
+
+Three limits worth knowing, none of them silent:
+
+- **A newly-added CROSS-FILE call needs C or C++.** The include-graph pass reads doxygen's
+  `includes` table, which is populated from `#include` — so on Python and Rust that pass finds
+  nothing and such a call waits for a full rebuild. The edited file itself is always re-indexed.
+  See [PYTHON_INTEGRATION.md](docs/languages/PYTHON_INTEGRATION.md) and
+  [RUST_INTEGRATION.md](docs/languages/RUST_INTEGRATION.md).
+- **One extra iteration, not a fixed point.** A call reachable only through two new hops waits
+  for a full rebuild, and a generation limit bounds how long a splice chain runs before one
+  happens anyway.
+- **A stale server process refuses to write.** Query tools open the database per call, so reads
+  are always live; but a server whose code predates the working tree will not build, because it
+  would re-stamp the index with old pipeline logic. Restart the client — a rebuild cannot fix it.
+
+**A `CLEW_BUILD_VERSION` bump makes the next build cold.** The constant tracks the build's
+output shape, so when it moves the cached doxygen output is discarded and no index of the old
+shape survives to be queried. Upgrading clew therefore costs one full build, once.
 
 ## What semver covers
 
@@ -142,24 +181,47 @@ run `claude mcp remove clew` first if you have already used `clew init`.
 The plugin registers the MCP server **and one `PostToolUse` hook**. Installing a Claude Code
 plugin does not prompt you about hooks, so it is stated here instead:
 
-- **What it does.** After a `Bash`, `Grep` or `Glob` call it prints one line of context saying the
+- **What it does.** After a `Bash`, `Grep`, `Glob` or `Read` call it adds a short note saying the
   index is available and what `dossier` and `search` answer. It exists because `grep` has an
   enormous training prior and an index tool has none — the tool being correct does not make it
   reached for.
-- **It escalates only when ignored, and using the index silences it.** Each search adds one to a
-  per-session count and each clew call subtracts three. Below five it says nothing; from five it
-  speaks every fifth search; from twenty it speaks every time. A session that uses the index even
-  occasionally never reaches the floor and hears nothing at all.
+- **It escalates only when ignored, and one index call silences it.** Each file-inspection call
+  adds one to a per-session tally; a clew call **clears the tally to zero** rather than crediting
+  against it. Below five it says nothing; from five it speaks every fifth call; from twenty it
+  speaks every call and switches to a longer, blunter tier that states the cost rather than the
+  capability. A session that uses the index even occasionally stays permanently silent.
+
+  Crediting was the original design and it was unrecoverable: measured on one real session, 1,339
+  searches against 38 clew calls left a pressure of 1,225 against a threshold of 20, needing ~408
+  *consecutive* index calls to earn silence back. The loudest tier became permanent, and its own
+  promise that using the tool would stop it was arithmetically false.
 - **~46 ms per matching call**, almost all of it Python starting. It imports nothing from the
   `clew` package and nothing outside `os`/`sys`, for that reason.
-- **It is registered twice** — once for `Bash`/`Grep`/`Glob` and once for the clew tools, which is
-  how it learns which ran without reading anything. The second registration passes `--used` from
-  the manifest; it is the only argument it accepts.
-- **It reads nothing.** Its output is a compile-time constant in
-  [`clew_hook.py`](https://github.com/tvanfossen/clew/blob/main/clew_hook.py) — the hook drains
-  its stdin without parsing it, so no file name, matched line or tool result can reach your
-  model's context through it. It never exits non-zero, because a non-zero exit would send its
-  stderr to the model.
+- **It is registered twice** — once for `Bash`/`Grep`/`Glob`/`Read` and once for the clew tools,
+  which is how it learns which ran without reading anything. The second registration passes
+  `--used` from the manifest; it is the only argument it accepts.
+- **Nothing from your session can reach your model through it.** The payload in
+  [`clew_hook.py`](https://github.com/tvanfossen/clew/blob/main/clew_hook.py) is four module-level
+  string literals — two framing constants and the two tiers — and the single run-time value
+  substituted into them is the tally, coerced with `int()` and rendered with `%d`. An int through
+  `%d` cannot emit anything but digits. The hook drains its stdin **without parsing it**, so no
+  file name, matched line or tool result is ever in scope to echo.
+
+  That is asserted structurally, not behaviourally, by
+  `tests/test_hook.py::test_no_run_time_value_can_reach_the_output`: it reads the source and pins
+  that the surface is exactly four bare literal assignments, that no f-string, `.format()`, `%s`,
+  `os.environ` or `sys.argv` appears anywhere in it, and that exactly **one** `%`-application
+  exists in the file — `note % count`, on the coerced int. A behavioural test could only show that
+  the strings it happened to try were not echoed; it could never show that no string would be.
+
+  The tally is substituted *deliberately*, and it is the one place this design trades a blanket
+  guarantee for effectiveness: a byte-identical note repeats into wallpaper. Measured, ~1,900
+  identical injections in one session changed nothing, and that session went on to make 2 index
+  calls against ~1,900 searches. A number that moves invalidates the prompt cache at that point,
+  so the note is processed rather than replayed.
+- **It never exits non-zero**, because a non-zero exit would send its stderr to the model. Every
+  path returns 0, including every failure path — a marker file that cannot be written fails
+  silently.
 
 **To turn it off**, set `CLEW_HOOK_DISABLE=1` in the environment Claude Code runs in, or delete
 `hooks/hooks.json` from the installed plugin. Registering the server by hand with `clew init`
@@ -291,8 +353,8 @@ the narrower form that describes a function or macro and returns `None` for anyt
 | `clew/` | The pipeline (`python -m clew`) |
 | `clew/query/` | The stable query API the MCP server is a view over |
 | `tests/` | `.venv/bin/python -m pytest tests/ -q` (add `--integration` for the tier that builds real repos) |
-| `acceptance/targets/<t>/<version>/` | Frozen rubrics and the committed results of every grid run against them |
-| `acceptance/bench/` | The harness. Acceptance-only by design — deliberately NOT in the pre-commit gate |
+| `acceptance/DESIGN.md` | The schema and grading routine for the instrument being rebuilt |
+| `acceptance/operational/` | Build and refresh cost, and judge variance — measured beside the matrix, never inside it |
 
 ## Dogfooding
 

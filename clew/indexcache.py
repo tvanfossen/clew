@@ -53,13 +53,16 @@ CREATE TABLE IF NOT EXISTS doxygen_cache (
     tree_sha   TEXT PRIMARY KEY,
     db_path    TEXT NOT NULL,
     output_sha TEXT NOT NULL,
+    config_sha TEXT NOT NULL DEFAULT '',
     created_at INTEGER NOT NULL
 );
 """
 
 ## The column set `doxygen_get`/`doxygen_put` require. A sidecar whose table differs is
 ## rebuilt rather than migrated — it is pure cache, so dropping it costs one doxygen run.
-_DOXYGEN_CACHE_COLUMNS = frozenset({"tree_sha", "db_path", "output_sha", "created_at"})
+_DOXYGEN_CACHE_COLUMNS = frozenset(
+    {"tree_sha", "db_path", "output_sha", "config_sha", "created_at"}
+)
 
 _SCHEMA = (
     """
@@ -359,7 +362,7 @@ class IndexCache:
 
     ## @brief Hash of everything that determines the doxygen run's output.
     ## @return Hex sha256 over the scanned tree, Doxyfile bytes, and forced flags.
-    ## @version 3
+    ## @version 4
     ## @req REQ-DDB-INDEX-002
     def tree_sha(self, doxyfile_content: str, extra: list[str]) -> str:
         """Fold the sorted (path, content_sha) set together with the exact
@@ -367,16 +370,60 @@ class IndexCache:
         the forced flags and any --extra-input/--extra-exclude lines).
 
         @brief Compute the doxygen-cache tree hash.
-        @version 3
+        @version 5
+        """
+        digest = self._config_digest(doxyfile_content, extra)
+        for rel in sorted(self._current):
+            digest.update(f"\n{rel}\x00{self._current[rel].content_sha}".encode())
+        return digest.hexdigest()
+
+    ## @brief The part of the tree hash that describes the CONFIGURATION, not the files.
+    ## @param doxyfile_content The exact Doxyfile piped to doxygen.
+    ## @param extra Additional key material.
+    ## @return A seeded hasher, ready for the per-file fold or a direct hexdigest.
+    ## @version 1
+    ## @dg_internal
+    def _config_digest(self, doxyfile_content: str, extra: list[str]) -> Any:
+        """SHARED WITH `tree_sha` ON PURPOSE. `config_sha` must be a strict prefix of what
+        `tree_sha` folds, or the two could disagree about what counts as a configuration and
+        the splice would key off a different notion of sameness than the skip does. Rendering
+        it in one place is what makes them impossible to diverge.
+
+        @brief Seed a digest with the configuration only.
+        @return The seeded hasher.
+        @version 1
         """
         digest = hashlib.sha256()
         digest.update(f"build_version={CLEW_BUILD_VERSION}\n".encode())
         digest.update(doxyfile_content.encode("utf-8", errors="replace"))
         for item in extra:
             digest.update(f"\x1f{item}".encode())
-        for rel in sorted(self._current):
-            digest.update(f"\n{rel}\x00{self._current[rel].content_sha}".encode())
-        return digest.hexdigest()
+        return digest
+
+    ## @brief Identify the build CONFIGURATION, independent of the file set.
+    ## @param doxyfile_content The exact Doxyfile piped to doxygen.
+    ## @param extra Additional key material.
+    ## @return Hex sha256 over the Doxyfile bytes, forced flags and build version.
+    ## @version 1
+    ## @req REQ-DDB-INDEX-002
+    def config_sha(self, doxyfile_content: str, extra: list[str]) -> str:
+        """WHAT THE INCREMENTAL SPLICE MAY SAFELY SPLICE INTO. `tree_sha` changes on any file
+        edit, which is exactly when a splice is wanted, so it cannot be the key for "is the
+        previous output compatible with this build". This one changes only when the
+        CONFIGURATION moves — Doxyfile bytes, forced flags, declared scope, PREDEFINED.
+
+        THIS EXISTS BECAUSE OMITTING IT RE-SHIPPED #399. The first version of `doxygen_any`
+        served the newest digest-verified output regardless of the key that produced it, which
+        is precisely the aliasing `doxygen_get` was hardened against: withdrawing an
+        `index_scope` statement served the NARROWER earlier output, so a widened scope got the
+        file inventory back while its functions stayed missing. An existing integration test
+        caught it at commit time, not this module's own tests.
+
+        @brief Compute the configuration hash.
+        @return Hex digest.
+        @version 1
+        """
+        return self._config_digest(doxyfile_content, extra).hexdigest()
 
     ## @brief Look up a previously generated doxygen SQLite output.
     ## @return Path to the cached doxygen db when it still holds THIS key's output, else None.
@@ -434,10 +481,86 @@ class IndexCache:
             return None
         return path
 
+    ## @brief How many incremental splices have run since the last whole-tree doxygen build.
+    ## @return The generation count, 0 when unknown.
+    ## @version 1
+    ## @req REQ-DDB-INDEX-002
+    def splice_generation(self) -> int:
+        """MEASURED DRIFT IS WHY THIS EXISTS, not caution in the abstract. A spliced database
+        is not bit-identical to a full rebuild: on this repository a modification-only refresh
+        carried ONE call edge a full rebuild does not emit, out of 5168, with nothing missing.
+        The cause is doxygen resolving names against the files it can SEE, so a subset can
+        attribute an intra-file call to a different memberdef row than the whole tree does.
+
+        One stale edge in five thousand is a fair price for a 3.2x cheaper refresh. A hundred
+        splices' worth of accumulated stale edges is not, and nothing about a splice bounds
+        the accumulation on its own. Counting generations turns unbounded drift into a known
+        ceiling: the caller refuses to splice past the limit and pays for one full rebuild,
+        which resets the count.
+
+        @brief Read the splice generation counter.
+        @return Generations since the last full build.
+        @version 1
+        """
+        row = self.conn.execute(
+            "SELECT value FROM cache_meta WHERE key = 'splice_generation'"
+        ).fetchone()
+        return int(row[0]) if row and str(row[0]).isdigit() else 0
+
+    ## @brief Advance or clear the splice generation counter.
+    ## @param reset True after a whole-tree build, which makes the index exact again.
+    ## @version 1
+    ## @req REQ-DDB-INDEX-002
+    def record_splice(self, reset: bool = False) -> None:
+        """@brief Increment the splice generation, or zero it after a full build.
+        @version 1
+        """
+        value = 0 if reset else self.splice_generation() + 1
+        self.conn.execute(
+            "INSERT INTO cache_meta(key, value) VALUES('splice_generation', ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (str(value),),
+        )
+
+    ## @brief Serve the newest verified doxygen output built under THIS configuration.
+    ## @param config_sha The current configuration hash; only matching output is served.
+    ## @return Path to a usable previous output, or None when none verifies.
+    ## @version 1
+    ## @req REQ-DDB-INDEX-002
+    def doxygen_any(self, config_sha: str) -> Path | None:
+        """The newest cached doxygen output that still holds the bytes it was recorded with,
+        WHATEVER key produced it. `doxygen_get` answers "is this exact configuration's output
+        still here", which is the right question for skipping the stage entirely. The
+        incremental splice asks a different one: "is there a previous whole-tree output I can
+        splice INTO", and the answer is useful even when the tree hash has moved — that is
+        precisely the case where a splice is wanted.
+
+        Verified by digest for the same reason `doxygen_get` is (#399): every key in this
+        table names the SAME `db_path`, so existence alone proves nothing about whose output
+        the file currently holds. A row whose digest no longer matches is skipped rather than
+        served, because splicing into an unrecognised database would silently mix two
+        configurations' rows and report success.
+
+        @brief Serve the newest verified doxygen output, any key.
+        @return Path to a usable previous output, or None.
+        @version 1
+        """
+        if not self.read_enabled:
+            return None
+        for raw_path, recorded in self.conn.execute(
+            "SELECT db_path, output_sha FROM doxygen_cache WHERE config_sha = ? AND config_sha != '' "
+            "ORDER BY created_at DESC",
+            (config_sha,),
+        ):
+            path = Path(str(raw_path))
+            if path.exists() and hash_file(path) == str(recorded):
+                return path
+        return None
+
     ## @brief Record which doxygen SQLite output a tree hash produced.
     ## @version 2
     ## @req REQ-DDB-INDEX-002
-    def doxygen_put(self, tree_sha: str, db_path: Path) -> None:
+    def doxygen_put(self, tree_sha: str, db_path: Path, config_sha: str = "") -> None:
         """Records the output's DIGEST alongside its path, which is what lets `doxygen_get`
         tell this key's output from the next key's overwrite of the same file (#399).
 
@@ -458,9 +581,9 @@ class IndexCache:
             )
             return
         self.conn.execute(
-            "INSERT OR REPLACE INTO doxygen_cache(tree_sha, db_path, output_sha, created_at) "
-            "VALUES (?, ?, ?, ?)",
-            (tree_sha, str(db_path), output_sha, int(time.time())),
+            "INSERT OR REPLACE INTO doxygen_cache(tree_sha, db_path, output_sha, config_sha, "
+            "created_at) VALUES (?, ?, ?, ?, ?)",
+            (tree_sha, str(db_path), output_sha, config_sha, int(time.time())),
         )
 
     ## @brief Count one cache hit or miss for the end-of-build summary.
@@ -478,7 +601,7 @@ class IndexCache:
     ## @param stage_version The stage's extraction version.
     ## @param extra_key The manifest-derived key component.
     ## @param hit True when the payload was served from the store.
-    ## @version 1
+    ## @version 2
     ## @req REQ-DDB-INDEX-002
     def record_pair(
         self,
@@ -492,11 +615,11 @@ class IndexCache:
         normally COMPUTED by the shared parse pass and then READ BACK by the stage
         that needs it, so the naive count would report every cold build as both
         fully missed and fully hit — and `misses` is published as the index's
-        `files_reprocessed`, which `status` shows to an agent deciding whether to
+        `payloads_recomputed`, which `status` shows to an agent deciding whether to
         trust the answer. First outcome for a pair wins; the pair is the unit.
 
         @brief Record one per-file-per-stage outcome, at most once.
-        @version 1
+        @version 2
         """
         key = (content_sha, stage, stage_version, extra_key)
         if key in self._accounted:

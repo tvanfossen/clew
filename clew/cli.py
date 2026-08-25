@@ -64,6 +64,7 @@ import argparse
 import contextlib
 import logging
 import os
+import shutil
 import sqlite3
 import sys
 import time
@@ -88,6 +89,7 @@ from .callback_edges import import_callback_registration_edges
 from .coverage import report_index_coverage
 from .external import EXTERNAL_ROOTS_META_KEY, stamp_external_provenance
 from .declaration import (
+    SECTION_TEST_PATHS,
     SECTION_DATA_MODEL,
     SECTION_DISPATCH,
     SECTION_ENRICH,
@@ -111,6 +113,7 @@ from .dispatch import load_dispatch_manifest, shared_key_document
 from .dispatch_edges import import_declared_dispatch_edges
 from .dominated_edges import prune_dominated_fuzzy_call_edges
 from .doxygen import (
+    in_doxygen_scope,
     copy_database,
     declared_file_patterns,
     describe_doxyfile_resolution,
@@ -131,7 +134,9 @@ from .errors import DoxygenUnavailableError, RustdocUnavailableError
 from .event_edges import import_event_edges
 from .filedocs import ingest_file_docs
 from .harvest_plan import build_harvest_plan, warm_harvest_plan
+from .doxygen_splice import include_expansion, splice_doxygen, xref_closure
 from .indexcache import IndexCache
+from .testscope import TEST_PATH_FACTS, mark_test_scope
 from .datamodel import import_data_model_keys
 from .kconfig import import_kconfig
 from .kconfig_gates import import_kconfig_gates
@@ -182,6 +187,7 @@ from .tiers import (
     resolve_layered,
 )
 from .treescan import (
+    ScanSummary,
     doxygen_input_roots,
     enumerate_tree,
     manifest_key,
@@ -341,6 +347,9 @@ _FOLDED_BUILD_DEFAULTS: dict[str, Any] = {
     ## stated section onto args, and a test asserts every accepted option can actually be
     ## applied — which is what caught this missing.
     "vendored": None,
+    ## Same requirement as `vendored`: a dest is REQUIRED, and a test asserts every
+    ## accepted option can actually be applied.
+    "test_paths": None,
     "index_cache": None,
     "no_index_cache": False,
 }
@@ -880,6 +889,256 @@ def _run_doxygen_from_args(doxyfile: Path, args: argparse.Namespace, predefined:
     )
 
 
+## @brief Run doxygen over an explicit file list, replacing the Doxyfile's own INPUT.
+## @param doxyfile The Doxyfile to base the run on.
+## @param args Parsed CLI arguments.
+## @param predefined Pre-rendered PREDEFINED text.
+## @param repo_root Absolute repository root.
+## @param subset Repo-relative paths to make the whole INPUT.
+## @return The generated database path.
+## @version 1
+## @req REQ-DDB-INDEX-002
+def _run_subset(
+    doxyfile: Path,
+    args: argparse.Namespace,
+    predefined: str,
+    repo_root: Path,
+    subset: list[str],
+) -> Path:
+    """Extracted because the incremental path runs doxygen TWICE and the two invocations must
+    be identical in configuration. Spelling them out separately is how the second pass would
+    quietly drift from the first.
+
+    @brief Run one subset doxygen pass.
+    @return Path to the generated database.
+    @version 1
+    """
+    return run_doxygen(
+        doxyfile,
+        doxyfile.parent,
+        extra_input=[str(repo_root / rel) for rel in subset],
+        replace_input=True,
+        output_dir=_doxygen_out_dir(args),
+        predefined=predefined,
+    )
+
+
+## How many consecutive splices are allowed before a whole-tree build is forced. A spliced
+## database is not bit-identical to a rebuild — measured on this repository, one stale call
+## edge in 5168 with nothing missing — and nothing in a splice bounds the accumulation of
+## that error across many refreshes. 20 keeps the worst case at roughly twenty stale edges
+## while still amortising one full build over twenty cheap ones.
+SPLICE_GENERATION_LIMIT = 20
+
+
+## @brief Decide whether an incremental doxygen run is possible, and what to feed it.
+## @param cache The index cache holding the previous output and this run's scan.
+## @param summary This run's tree classification.
+## @param repo_root Absolute repository root.
+## @param config_sha This build's configuration hash; only matching output may be spliced.
+## @param doxyfile The Doxyfile, read for the scope patterns.
+## @param args Parsed CLI arguments, for the replace_input regime.
+## @return (previous output, changed set, removed set, subset list), or None to run in full.
+## @version 2
+## @req REQ-DDB-INDEX-002
+def _incremental_plan(
+    cache: IndexCache,
+    summary: ScanSummary,
+    repo_root: Path,
+    config_sha: str,
+    doxyfile: Path,
+    args: argparse.Namespace,
+) -> tuple[Path, set[str], set[str], list[str]] | None:
+    """SEPARATED FROM THE ACTION so the decision is readable on its own and so the guard
+    conditions cannot be lost among the file shuffling that follows.
+
+    Declines in three cases, each for a different reason:
+
+      - nothing changed AND nothing was removed: there is no work, and the caller's
+        `doxygen_get` hit should already have covered it;
+      - no verified previous output exists: there is nothing to splice INTO, so a full run is
+        not a fallback but the only correct answer;
+      - the closure expanded to the whole tree: a subset run would re-read everything anyway,
+        so paying the splice's complexity buys nothing. No arbitrary threshold is involved —
+        doxygen's cost is near-linear in input size, so the break-even IS the tree.
+
+    @brief Plan an incremental doxygen run.
+    @return The plan, or None.
+    @version 2
+    """
+    ## THE SCAN IS UNFILTERED BY DESIGN — it answers "did anything change", where a false
+    ## positive only costs a rebuild. Using that same set as the doxygen INPUT is what let a
+    ## glob-excluded file be spliced into the master, so the changed set is narrowed to the
+    ## run's REAL scope here, before it becomes either a delete target or an INPUT entry.
+    ## Filtered at the plan, not at the run, so `changed` and `subset` cannot disagree about
+    ## what is in scope — a file dropped from one but not the other lands in `skipped` and
+    ## reads as "left stale" when it should never have been a candidate.
+    honor_exclude = not getattr(args, "replace_input", False)
+    changed = set(
+        in_doxygen_scope(
+            sorted(set(summary.modified) | set(summary.added)), doxyfile, honor_exclude
+        )
+    )
+    removed = set(in_doxygen_scope(sorted(summary.removed), doxyfile, honor_exclude))
+    if cache.splice_generation() >= SPLICE_GENERATION_LIMIT:
+        logger.info(
+            "doxygen: %d consecutive incremental splices — running in full to reset "
+            "accumulated drift",
+            cache.splice_generation(),
+        )
+        return None
+    previous = cache.doxygen_any(config_sha) if (changed or removed) else None
+    if previous is None:
+        return None
+    subset = sorted(xref_closure(previous, changed, repo_root)) if changed else []
+    total = len(summary.unchanged) + len(changed)
+    viable = subset and len(subset) < total if changed else bool(removed)
+    return (previous, changed, removed, subset) if viable else None
+
+
+## @brief Satisfy the doxygen stage by re-reading only the changed files and splicing.
+## @param doxyfile The Doxyfile driving the run.
+## @param args Parsed CLI arguments.
+## @param predefined Pre-rendered PREDEFINED text for the declared preprocessor config.
+## @param cache The index cache.
+## @param summary This run's tree classification.
+## @param repo_root Absolute repository root.
+## @param config_sha This build's configuration hash.
+## @return The spliced database, or None when a full run is required.
+## @version 4
+## @req REQ-DDB-INDEX-002
+def _incremental_doxygen(
+    doxyfile: Path,
+    args: argparse.Namespace,
+    predefined: str,
+    cache: IndexCache,
+    summary: ScanSummary,
+    repo_root: Path,
+    config_sha: str,
+) -> Path | None:
+    """THE COPY BEFORE THE SUBSET RUN IS THE WHOLE TRICK. Every `doxygen_cache` key names the
+    SAME output path and each build OVERWRITES it, so the subset run destroys the database
+    being spliced from. `previous` is copied aside FIRST; skip that and the splice reads its
+    own subset as its master and quietly produces a database holding only the changed files.
+
+    Falls back by returning None rather than raising. An incremental path that fails should
+    cost a full rebuild, never a failed build — the feature exists to make refreshes cheap,
+    and a cheap refresh that sometimes breaks the index would be worse than an expensive one.
+
+    @brief Run doxygen incrementally and splice the result.
+    @return The spliced database, or None.
+    @version 4
+    """
+    plan = _incremental_plan(cache, summary, repo_root, config_sha, doxyfile, args)
+    if plan is None:
+        return None
+    previous, changed, removed, subset = plan
+    keep = previous.with_name(previous.name + ".prev")
+    staged: Path | None = None
+    try:
+        shutil.copy2(previous, keep)
+        ## BEFORE ANY READER, not just before the splice (#492). `include_expansion`
+        ## draws its candidate paths from this master, and normalising it later meant a
+        ## fixed-up header `include/entropic/entropic.h` was suffix-matched against a
+        ## still-stripped `entropic/entropic.h` and missed — so the expansion returned
+        ## empty, the second pass never ran, and the new cross-file call stayed lost.
+        ## Fixing the two operands at different times is what made this a THIRD symptom
+        ## of one defect: every consumer of a doxygen path must see the same spelling.
+        fix_doxygen_paths(keep, doxyfile, repo_root)
+        if subset:
+            produced = _run_subset(doxyfile, args, predefined, repo_root, subset)
+            ## NORMALISED THE MOMENT IT EXISTS, not just before the splice (#492). Fixing only
+            ## the splice's operands left `include_expansion` reading this database RAW, where
+            ## it tests `normalize_path(includer) in changed` — a stripped `mcp/foo.cpp` against
+            ## a git-derived `src/mcp/foo.cpp`. It missed, `headers` came back empty, the second
+            ## pass never ran, and a newly-added cross-file call was lost with no log line to
+            ## say so. Same defect as the splice's, one layer down, and fixing the splice alone
+            ## moved the symptom instead of removing it.
+            fix_doxygen_paths(produced, doxyfile, repo_root)
+            ## SECOND PASS, BOUNDED AT ONE. `xref_closure` is derived from the PRE-EDIT
+            ## master, so it can only re-supply callees the changed file ALREADY called — and
+            ## a change set is exactly where NEW calls appear. Measured: adding one call to a
+            ## previously-uncalled function produced a subset with none of that callee's files
+            ## and lost the edge against a full rebuild, with `xrefs_unresolved` at zero
+            ## because the row never existed to be dropped.
+            extra = include_expansion(produced, keep, changed, set(subset), repo_root)
+            if extra:
+                logger.info(
+                    "doxygen: incremental second pass — the include graph adds %d file(s) "
+                    "the pre-edit xref table could not have named",
+                    len(extra),
+                )
+                subset = sorted(set(subset) | extra)
+                produced = _run_subset(doxyfile, args, predefined, repo_root, subset)
+            staged = produced.with_name(produced.name + ".subset")
+            shutil.copy2(produced, staged)
+        ## BOTH SIDES SPELL PATHS THE WAY GIT DOES, BEFORE ANY COMPARISON (#492). The splice
+        ## matches the git-derived changed set against `path.name` rows, and a target whose own
+        ## Doxyfile declares STRIP_FROM_PATH stores those rows with the prefix REMOVED — so
+        ## `src/mcp/health_monitor.cpp` was compared against a stored `mcp/health_monitor.cpp`,
+        ## missed, and EVERY changed file was declared absent from the subset run. The splice
+        ## then fail-closed and respliced ZERO files while the build reported success. Measured
+        ## on a target declaring `STRIP_FROM_PATH = include src`: 615 of 2133 file rows stored
+        ## stripped, and every refresh a silent no-op.
+        ##
+        ## `normalize_path` could not have caught it. It handles the ABSOLUTE case, and a
+        ## stripped name is already RELATIVE, so it returned the short name verbatim and looked
+        ## like it had done its job. Reconstruction needs the STRIP_FROM_PATH prefixes, which
+        ## only the Doxyfile has.
+        ##
+        ## So run the pipeline's OWN fixup rather than re-deriving one here: it is the same
+        ## function, reading the same Doxyfile, that the full build already applies, so the two
+        ## paths cannot drift into disagreeing about what a file is called. Both operands are
+        ## scratch COPIES, so the cached doxygen output is untouched.
+        if staged is not None:
+            fix_doxygen_paths(staged, doxyfile, repo_root)
+        report = splice_doxygen(keep, staged, changed, previous, repo_root, removed=removed)
+    except (OSError, sqlite3.Error) as exc:
+        logger.warning("doxygen: incremental splice failed (%s) — running in full", exc)
+        return None
+    finally:
+        for scratch in (keep, staged):
+            if scratch is not None:
+                scratch.unlink(missing_ok=True)
+    logger.info(
+        "doxygen: incremental — re-read %d of %d file(s); %s",
+        len(subset),
+        len(summary.unchanged) + len(changed),
+        report.describe(),
+    )
+    return previous
+
+
+## @brief Which paths hold test code, resolved through the five-tier rule.
+## @param args Parsed CLI arguments (uses --test-paths / the stated option).
+## @param decl The repo's parsed `.clew.yaml`.
+## @return The resolution: the pattern set plus the stated tier that won.
+## @version 1
+## @req REQ-DDB-CONFIG-006
+## @req REQ-DDB-QUERY-003
+def _test_paths(args: argparse.Namespace, decl: dict) -> LayeredResolution:
+    """`TEST_PATH_FACTS` enters as HEURISTICS, not facts, and the distinction is the whole
+    point of the tier rule here. A repo that declares `test_paths:` is stating its layout, so
+    the guesses must be DISPLACED rather than accumulated — otherwise declaring `t/*` would
+    still leave `tests/*` and `*_test.*` in force, and an operator could not narrow the rule at
+    all, only widen it.
+
+    Contrast `entry_patterns`, where the built-ins are facts that accumulate beneath a
+    statement. Reachability wants every plausible seed; this wants exactly the caller's notion
+    of "test".
+
+    @brief Resolve the test-path patterns and their provenance.
+    @return The LayeredResolution for `test_paths`.
+    @version 1
+    """
+    return resolve_layered(
+        facts=(),
+        explicit=getattr(args, "test_paths", None),
+        declared=decl.get(SECTION_TEST_PATHS),
+        heuristics=TEST_PATH_FACTS,
+    )
+
+
 ## @brief Reachability entry patterns, resolved through the five-tier rule.
 ## @param args Parsed CLI arguments (uses --entry-patterns).
 ## @param decl The repo's parsed `.clew.yaml`.
@@ -1318,7 +1577,7 @@ def _is_rust_only_repo(repo_root: Path) -> bool:
 ## @param preprocessor The resolved preprocessor configuration this index represents.
 ## @param timer Stage timer, marked once the tree scan and its hash are complete.
 ## @return Path to the doxygen SQLite output (cached or freshly generated).
-## @version 7
+## @version 8
 ## @dg_internal
 def _doxygen_stage(
     doxyfile: Path,
@@ -1349,7 +1608,7 @@ def _doxygen_stage(
     caller's `doxygen` segment covers the whole stage — which is what happened.
 
     @brief Doxygen stage with tree-hash-based skip.
-    @version 5
+    @version 6
     """
     predefined = doxyfile_lines(preprocessor or PreprocessorConfig())
     if cache is None:
@@ -1362,7 +1621,7 @@ def _doxygen_stage(
         args.extra_exclude,
         replace_input,
     )
-    cache.scan(enumerate_tree(roots, excludes, repo_root))
+    summary = cache.scan(enumerate_tree(roots, excludes, repo_root))
     content = doxyfile_content_for(
         doxyfile,
         args.extra_input,
@@ -1371,20 +1630,31 @@ def _doxygen_stage(
         predefined,
     )
     tree_sha = cache.tree_sha(content, [])
+    ## The CONFIGURATION key, which unlike tree_sha does not move when a file is edited.
+    ## Gating the splice on it is what stops a scope change from splicing into output built
+    ## under the old scope (#399's aliasing, re-shipped once already).
+    config_sha = cache.config_sha(content, [])
     if timer is not None:
         timer.mark("index_cache_scan")
     cached_db = cache.doxygen_get(tree_sha)
     if cached_db is not None:
         logger.info("doxygen: tree unchanged — reusing cached output %s", cached_db)
         return cached_db
-    generated = _run_doxygen_from_args(doxyfile, args, predefined)
-    cache.doxygen_put(tree_sha, generated)
+    spliced = _incremental_doxygen(
+        doxyfile, args, predefined, cache, summary, repo_root, config_sha
+    )
+    generated = spliced or _run_doxygen_from_args(doxyfile, args, predefined)
+    ## A full run makes the index exact again, so it CLEARS the counter; a splice adds one
+    ## generation of bounded drift. Recorded here rather than inside the splice because
+    ## this is the only place that knows which of the two actually ran.
+    cache.record_splice(reset=spliced is None)
+    cache.doxygen_put(tree_sha, generated, config_sha)
     return generated
 
 
 ## @brief Run every build stage against one (temp) output DB path.
 ## @param timer Stage timer; one `mark` closes each stage below. A fresh one when omitted.
-## @version 50
+## @version 51
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -1414,7 +1684,7 @@ def _build_stages(
     per file. It changes no stage's position and emits nothing — see harvest.py.
 
     @brief Execute every augmentation stage against one output database.
-    @version 45
+    @version 46
     """
     timer = timer or StageTimer()
     repo_root = Path(args.repo_root).resolve() if args.repo_root else doxyfile.parent
@@ -1755,6 +2025,13 @@ def _build_stages(
         extra_seeds=python_entry_seeds(output, repo_root, cache),
     )
     timer.mark("reachability")
+
+    ## AFTER the path table is complete, and stamped into the index because the resolver runs
+    ## against a database with no repo root and no `.clew.yaml` to re-read.
+    test_scope = _test_paths(args, decl)
+    with sqlite3.connect(output) as _ts_conn:
+        mark_test_scope(_ts_conn, list(test_scope.values))
+    timer.mark("test_scope")
 
     # Stamp the build-version signature last so a partial build never leaves a
     # DB looking current. Consumers' freshness checks treat a mismatch as stale.
@@ -2447,7 +2724,7 @@ def _resolve_doxyfile_and_root(args: argparse.Namespace, output: Path) -> tuple[
 ## @param started `time.perf_counter()` reading from the top of the build.
 ## @param counts (cache hits, cache misses) when a cache ran, else None.
 ## @param timer Per-stage breakdown collected during the build.
-## @version 3
+## @version 4
 ## @req REQ-DDB-MCP-004
 def _stamp_refresh_metrics(
     output: Path, started: float, counts: tuple[int, int] | None, timer: StageTimer
@@ -2481,7 +2758,7 @@ def _stamp_refresh_metrics(
     line wide in a `status` payload; `stagetimer.parse_stages` decodes it.
 
     @brief Persist the measured cost of this build, whole and per stage, into build_meta.
-    @version 2
+    @version 3
     """
     from .signature import write_build_signature
 
@@ -2492,13 +2769,18 @@ def _stamp_refresh_metrics(
     if counts is not None:
         hits, misses = counts
         metrics["cache_hits"] = str(hits)
-        metrics["files_reprocessed"] = str(misses)
+        ## THE UNIT IS A (file, stage) PAYLOAD, NOT A FILE (#470). The cache's key is
+        ## (content_sha, stage, stage_version, extra_key), so one changed file contributes up to
+        ## one miss PER STAGE and there are ~10. Named `files_reprocessed` it read as a second,
+        ## contradicting count of the same thing the tree scan reports — "5 source files changed"
+        ## beside "45 file(s) reprocessed" — and the numbers were both right.
+        metrics["payloads_recomputed"] = str(misses)
     metrics.update(timer.as_meta())
     write_build_signature(output, refresh=metrics)
     logger.info(
-        "refresh cost: %s ms, %s file(s) reprocessed, %s cache hit(s)",
+        "refresh cost: %s ms, %s cached stage payload(s) recomputed, %s served from cache",
         metrics["duration_ms"],
-        metrics.get("files_reprocessed", "unmeasured"),
+        metrics.get("payloads_recomputed", "unmeasured"),
         metrics.get("cache_hits", "unmeasured"),
     )
     logger.info("refresh stages: %s", metrics.get(STAGES_KEY, "unmeasured"))

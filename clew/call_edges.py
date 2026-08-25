@@ -369,6 +369,11 @@ def _ast_record_call_edge(
     *,
     qualified: str = "",
     definition_of: dict[int, str] | None = None,
+    receiver: str = "",
+    argc: int = -1,
+    receiver_types: dict[str, set[str]] | None = None,
+    scope_of: dict[int, str] | None = None,
+    argc_of: dict[int, int] | None = None,
 ) -> None:
     """A UNIQUE NAME IS NOT EVIDENCE ABOUT A RECEIVER, and conflating the two made this
     layer assert fabrications as certainties.
@@ -413,6 +418,40 @@ def _ast_record_call_edge(
             ## edge earns `resolved` — a unique NAME never did (see below).
             edges_resolved.append((caller_rowid, candidates[0], source))
             return
+    ## THE RECEIVER'S DECLARED TYPE IS EVIDENCE, and reading it is what makes a member call
+    ## verifiable rather than merely reportable. `handle->engine->run_turn(input)` looked
+    ## unresolvable only because nobody consulted `engine`'s type, which the index already
+    ## holds: scoping to `entropic::AgentEngine` eliminates two same-named helpers in
+    ## `tests/model/` outright, and arity separates what remains.
+    ##
+    ## Placed BEFORE the refusal below so a receiver-verified call earns `resolved` on the same
+    ## footing as a qualified one — in both cases the SOURCE TEXT names the target, which is
+    ## the distinction that whole refusal rests on.
+    if source == SOURCE_AST_MEMBER and receiver and receiver_types:
+        narrowed, receiver_verified = _narrow_by_receiver(
+            receiver, argc, candidates, receiver_types, scope_of or {}, argc_of or {}
+        )
+        if receiver_verified and len(narrowed) == 1:
+            edges_resolved.append((caller_rowid, narrowed[0], source))
+            return
+        ## THE RECEIVER IS VERIFIED BUT THE OVERLOAD IS NOT, which is exactly what `fuzzy`
+        ## means and the one case where emitting several rows is honest rather than a fan-out.
+        ## On entropic both `AgentEngine::run_turn` overloads take ONE argument
+        ## (`const std::string&`, `std::vector<Message>`), so arity cannot split them and
+        ## distinguishing further needs the argument's TYPE — real type checking, which this
+        ## layer does not do.
+        ##
+        ## What makes this different from the expansion gh#347 removed is the BOUND: every row
+        ## here is a method of the class the receiver is DECLARED to be, so the set is the
+        ## overloads of one method on one class — not every same-named function in the repo,
+        ## which is how `tests/` came to emit 778 edges per function. Fuzzy keeps it out of
+        ## `mark_reachability` and the thread BFS while letting `callees` show that the call
+        ## exists at all, which is the whole complaint: silence read as "calls nothing".
+        if receiver_verified and len(narrowed) > 1:
+            for rowid in narrowed:
+                edges_fuzzy.append((caller_rowid, rowid, source))
+            return
+        candidates = narrowed
     unverified_receiver = source == SOURCE_AST_MEMBER
     if len(candidates) == 1 and not unverified_receiver:
         edges_resolved.append((caller_rowid, candidates[0], source))
@@ -444,6 +483,218 @@ def _ast_record_call_edge(
     ## the build log now states a measured ZERO rather than falling silent about a layer that
     ## used to dominate the table.
     return
+
+
+## Type spellings that name no class, so a receiver declared as one of them tells us nothing.
+_NOT_A_CLASS = frozenset(
+    {
+        "auto",
+        "void",
+        "bool",
+        "char",
+        "short",
+        "int",
+        "long",
+        "float",
+        "double",
+        "size_t",
+        "unsigned",
+        "signed",
+        "wchar_t",
+        "nullptr_t",
+        "T",
+        "U",
+    }
+)
+
+
+## @brief The class name a declared type refers to, with wrappers peeled off.
+## @param type_text A doxygen `memberdef.type` string.
+## @return The bare class name, or '' when none is identifiable.
+## @version 1
+## @dg_internal
+def _receiver_class(type_text: str) -> str:
+    """PEELS SMART POINTERS AND REFERENCES, because that is how a receiver is almost always
+    spelled. `handle->engine` on entropic has declared type
+    `std::unique_ptr< entropic::AgentEngine >`, and the class that owns the method is the
+    TEMPLATE ARGUMENT, not the wrapper. Recursing handles the nested case
+    (`unique_ptr<shared_ptr<Foo>>`) without a special branch.
+
+    Returns '' rather than a guess for anything unidentifiable — `auto`, a template parameter,
+    a function type. An empty result makes the caller fall through to today's behaviour, which
+    is to emit no edge.
+
+    @brief Reduce a declared type to its class name.
+    @return Class name or ''.
+    @version 1
+    """
+    text = (type_text or "").strip()
+    for _ in range(6):
+        if "<" not in text:
+            break
+        inner = text[text.index("<") + 1 : text.rindex(">")] if ">" in text else ""
+        ## A multi-argument template (`map<K, V>`) names no single receiver class, so refuse
+        ## rather than pick the first argument.
+        if "," in inner:
+            return ""
+        text = inner.strip()
+    text = text.replace("*", " ").replace("&", " ").strip()
+    words = [w for w in text.split() if w not in ("const", "volatile", "struct", "class", "enum")]
+    if len(words) != 1:
+        return ""
+    ## `auto` and the builtins name no class, so returning them would send the narrowing
+    ## looking for a scope that cannot exist. Refuse instead, which falls through to
+    ## today's behaviour.
+    return "" if words[0] in _NOT_A_CLASS else words[0]
+
+
+## @brief Declared types of every member variable, keyed by the variable's own name.
+## @param conn Open connection to the database being built.
+## @return Mapping of variable name to the set of class names it may denote; empty when the
+##         table carries no `type` column.
+## @version 1
+## @dg_internal
+def _receiver_types(conn: sqlite3.Connection) -> dict[str, set[str]]:
+    """THE RECEIVER'S TYPE IS ALREADY IN THE INDEX, which is the whole basis of this layer.
+    doxygen records a member variable with its declared type, so `handle->engine`'s class is a
+    documented fact rather than an inference — clew was simply not reading it.
+
+    A SET per name, not one type, because two unrelated classes can both have a member called
+    `engine` — and the narrowing REFUSES whenever the set holds more than one, since there is
+    then no fact about which class the receiver is. Storing the set rather than the first type
+    is what makes that refusal possible; keeping one arbitrary type would look identical and be
+    a guess.
+
+    @brief Index member-variable names to their declared classes.
+    @return Name-to-classes mapping.
+    @version 1
+    """
+    ## DEGRADES ON A TABLE WITHOUT THE COLUMN rather than raising. A minimal fixture, and any
+    ## index predating this layer, has a `memberdef` with no `type` — receiver resolution simply
+    ## does not apply there, which is missing knowledge and not an error. Five hermetic tests
+    ## build exactly that shape and caught this immediately.
+    columns = {str(row[1]) for row in conn.execute("PRAGMA table_info(memberdef)")}
+    if not {"type", "kind", "name"} <= columns:
+        return {}
+    types: dict[str, set[str]] = {}
+    for name, type_text in conn.execute(
+        "SELECT name, COALESCE(type, '') FROM memberdef WHERE kind = 'variable'"
+    ):
+        klass = _receiver_class(str(type_text))
+        if klass:
+            types.setdefault(str(name), set()).add(klass)
+    return types
+
+
+## @brief Candidates whose owning class matches the receiver's declared type.
+## @param receiver The receiver's trailing member name, e.g. 'engine'.
+## @param argc Argument count at the call site, or -1 when unknown.
+## @param candidates Rowids sharing the callee name.
+## @param receiver_types Name-to-classes mapping from `_receiver_types`.
+## @param scope_of Rowid to owning scope.
+## @param argc_of Rowid to declared parameter count.
+## @return (survivors, verified) — `verified` is True only when the receiver's class
+##         actually matched at least one candidate, so a caller can tell a real narrowing
+##         from 'the receiver told us nothing'.
+## @version 1
+## @dg_internal
+def _narrow_by_receiver(
+    receiver: str,
+    argc: int,
+    candidates: list[int],
+    receiver_types: dict[str, set[str]],
+    scope_of: dict[int, str],
+    argc_of: dict[int, int],
+) -> tuple[list[int], bool]:
+    """TURNS AN UNVERIFIED MEMBER CALL INTO A VERIFIED ONE, using evidence the source text
+    already carries. On entropic, `handle->engine->run_turn(input)`:
+
+        engine   is a member variable, declared `std::unique_ptr< entropic::AgentEngine >`
+        run_turn has FOUR rows — two `entropic::AgentEngine` overloads, and two unrelated
+                 file-local helpers in `tests/model/*.cpp`
+
+    Scoping to the declared class ELIMINATES the two test helpers outright — not
+    deprioritises them, eliminates them, because the receiver's type says they cannot be the
+    target. Argument count then separates the surviving overloads:
+    `(const std::string&)` takes one, `(std::vector<Message>)` takes one — equal, so arity
+    cannot split those two, and the call correctly stays unresolved rather than picking.
+
+    RETURNS THE INPUT UNCHANGED when the receiver is unknown, so this can only ever NARROW.
+    A receiver that is a local, a parameter, an `auto`, or a name doxygen never indexed leaves
+    the caller exactly where it was: no edge, which is today's behaviour.
+
+    @brief Narrow candidates by the receiver's declared class and the call's arity.
+    @return Surviving candidates.
+    @version 1
+    """
+    classes = receiver_types.get(receiver or "", set())
+    if not classes or not candidates:
+        return candidates, False
+    ## INTERSECT THE RECEIVER'S POSSIBLE CLASSES WITH THE CLASSES THAT ACTUALLY DECLARE THIS
+    ## METHOD, and require exactly one survivor. Two weaker rules were tried and both were
+    ## wrong in opposite directions:
+    ##
+    ##   UNION — accept any candidate matching ANY of the receiver's classes. Measured: 56
+    ##   fuzzy groups spanned more than one class, `parse_tool_calls` reaching five classes in
+    ##   five files. A cross-file fan-out wearing a type-resolution costume.
+    ##
+    ##   SINGLE CLASS ONLY — refuse whenever the receiver name is declared more than once.
+    ##   Measured: kills the case this exists for, because `engine` is declared in FOUR classes
+    ##   in entropic (an AgentEngine unique_ptr, an AgentEngine*, a Python ChessEngine, an
+    ##   `auto`), so `run_turn` refused again.
+    ##
+    ## The intersection is what carries evidence: `engine` may be four things, but only ONE of
+    ## them declares `run_turn`, so the pair (receiver name, method name) pins the class even
+    ## though neither does alone. `parse_tool_calls` exists on all five of its receiver's
+    ## classes, so it stays refused — which is correct, since nothing here distinguishes them.
+    ## COUNTED AS DISTINCT SCOPES, NOT DISTINCT TYPE SPELLINGS, and that distinction cost a
+    ## fourth iteration to find. `engine` is declared both as
+    ## `std::unique_ptr< entropic::AgentEngine >` and as `AgentEngine *`, which are the SAME
+    ## class written two ways; `_scope_is` matches either against the one real scope, so
+    ## counting spellings saw two owners and refused. The target is a scope in the index, so
+    ## the scope is what must be unique.
+    matched = {
+        scope_of.get(rowid, "")
+        for rowid in candidates
+        if any(_scope_is(scope_of.get(rowid, ""), klass) for klass in classes)
+    }
+    if len(matched) != 1:
+        return candidates, False
+    scope_only = next(iter(matched))
+    scoped = [rowid for rowid in candidates if scope_of.get(rowid, "") == scope_only]
+    ## NO MATCH IS NOT A NARROWING, and conflating the two nearly reshipped the exact fan-out
+    ## gh#347 removed. Returning the untouched candidate list with `verified=False` is what
+    ## stops the caller emitting one row per same-named function in the repo: measured, that
+    ## mistake put 11,390 fuzzy edges into the entropic index in a single build.
+    if not scoped:
+        return candidates, False
+    if len(scoped) > 1 and argc >= 0:
+        by_arity = [rowid for rowid in scoped if argc_of.get(rowid, -1) == argc]
+        if by_arity:
+            return by_arity, True
+    return scoped, True
+
+
+## @brief Whether a memberdef scope denotes the given class.
+## @param scope The `memberdef.scope` value.
+## @param klass A class name, possibly unqualified.
+## @return True when they name the same class.
+## @version 1
+## @dg_internal
+def _scope_is(scope: str, klass: str) -> bool:
+    """Matched at a `::` boundary in BOTH directions, because either side may be the qualified
+    one: a member declared `AgentEngine*` has an unqualified class while the method's scope is
+    `entropic::AgentEngine`, and the reverse happens when a type is written fully qualified in
+    a namespace the method's scope omits. A bare substring test would let `Engine` match
+    `MyEngineFactory`.
+
+    @brief Compare a scope against a class name.
+    @return True on a boundary-respecting match.
+    @version 1
+    """
+    if not scope or not klass:
+        return False
+    return scope == klass or scope.endswith("::" + klass) or klass.endswith("::" + scope)
 
 
 ## @brief Candidates whose signature actually bears the qualified name written at the call site.
@@ -545,7 +796,7 @@ def _sole_child(node: Any) -> Any:
 
 ## @brief Harvest one file's rowid-free (callee_name, call_line, source) call sites.
 ## @return List of [callee_name, call_line, source] triples in walk order.
-## @version 7
+## @version 8
 ## @dg_internal
 def _ast_harvest_calls(tree: Any, src_bytes: bytes) -> list[list[Any]]:
     """Walk the parse tree iteratively, recording every direct call's callee
@@ -571,7 +822,7 @@ def _ast_harvest_calls(tree: Any, src_bytes: bytes) -> list[list[Any]]:
     `[name, line, source]` shape with no Rust-specific code here at all.
 
     @brief Per-file call-site harvest (C/C++/Rust here, Python via pyast).
-    @version 6
+    @version 7
     """
     if is_python_tree(tree):
         return harvest_calls(tree, src_bytes, SOURCE_AST, SOURCE_AST_MEMBER, SOURCE_BINDING)
@@ -599,10 +850,79 @@ def _ast_harvest_calls(tree: Any, src_bytes: bytes) -> list[list[Any]]:
         ## A FOURTH payload element rather than a reshape: `_fold_call_sites` already reads
         ## `site[2] if len(site) > 2`, so a shorter cached payload from an older build stays
         ## readable instead of raising.
+        ## FIFTH AND SIXTH elements, appended for #482 rather than reshaping, exactly as the
+        ## qualifier was: `_fold_call_payload` reads each index defensively, so a payload
+        ## cached by an older build stays foldable. The stage_version bump makes that cold.
+        ##
+        ## These two are what turn an unverified member call into a verified one. The
+        ## receiver's declared type is already in the index — `handle->engine` is a member
+        ## variable of type `std::unique_ptr< entropic::AgentEngine >` — so scoping the callee
+        ## to that class eliminates same-named functions in unrelated files outright. Arity
+        ## then separates surviving overloads.
         sites.append(
-            [callee_name, node.start_point[0] + 1, source, _qualifier_text(raw_callee, src_bytes)]
+            [
+                callee_name,
+                node.start_point[0] + 1,
+                source,
+                _qualifier_text(raw_callee, src_bytes),
+                _receiver_tail(raw_callee, src_bytes),
+                _call_argc(node),
+            ]
         )
     return sites
+
+
+## @brief The trailing member name of a member call's receiver.
+## @param raw_callee The call_expression's `function` child.
+## @param src_bytes The file's bytes, for slicing.
+## @return e.g. 'engine' for `handle->engine->run_turn()`, or '' when there is no receiver.
+## @version 1
+## @dg_internal
+def _receiver_tail(raw_callee: Any, src_bytes: bytes) -> str:
+    """THE TAIL, not the whole expression. For `handle->engine->run_turn(input)` the callee is
+    a `field_expression` whose `argument` is itself `handle->engine`; the piece that has a
+    DECLARED TYPE in the index is that inner expression's own `field`, `engine`. Taking the
+    outer text (`handle->engine`) would match no memberdef, and taking the root (`handle`)
+    would resolve to the handle's type rather than the engine's.
+
+    A bare-identifier receiver (`obj.method()`) yields `obj`, which usually names a local or
+    parameter that doxygen does not index — that simply fails to resolve later, which is the
+    correct outcome and not a special case here.
+
+    @brief Extract the receiver's trailing member name.
+    @return The name, or ''.
+    @version 1
+    """
+    if raw_callee is None or raw_callee.type != "field_expression":
+        return ""
+    recv = raw_callee.child_by_field_name("argument")
+    if recv is None:
+        return ""
+    node = recv.child_by_field_name("field") if recv.type == "field_expression" else recv
+    if node is None or node.type not in ("identifier", "field_identifier"):
+        return ""
+    return src_bytes[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
+
+
+## @brief How many arguments a call site passes.
+## @param call_node The call_expression node.
+## @return The count, or -1 when the argument list cannot be read.
+## @version 1
+## @dg_internal
+def _call_argc(call_node: Any) -> int:
+    """Counts NAMED children of the `arguments` node, so punctuation is not counted. Returns -1
+    rather than 0 when the list is unreadable, because 0 is a real arity and conflating "no
+    arguments" with "unknown" would make arity narrowing pick a nullary overload for a call
+    whose arguments were simply not parsed.
+
+    @brief Count a call's arguments.
+    @return Count, or -1 when unknown.
+    @version 1
+    """
+    args = call_node.child_by_field_name("arguments")
+    if args is None:
+        return -1
+    return sum(1 for child in args.children if child.is_named)
 
 
 ## @brief The full qualified callee text, when the call site wrote one.
@@ -649,7 +969,11 @@ class _CallSiteHarvester(Harvester):
     #    nothing now yields real sites.
     # 4: gh#1 — a Python keyword-argument function binding is harvested as an extra
     #    site tagged 'binding', so a `.py` payload cached at 3 is missing those rows.
-    stage_version = 4
+    # 5: #482 — a site now carries the receiver's trailing member name and the call's
+    #    argument count, which is what lets a member call resolve to ONE method instead
+    #    of none. A payload cached at 4 lacks both and would silently keep the old
+    #    behaviour, so the bump is what makes the fix take effect on an existing index.
+    stage_version = 5
     label = "tree-sitter"
 
     ## @brief Harvest one file's call sites.
@@ -685,6 +1009,9 @@ def _fold_call_payload(
     edges_resolved: list[tuple[int, int, str]],
     edges_fuzzy: list[tuple[int, int, str]],
     definition_of: dict[int, str] | None = None,
+    receiver_types: dict[str, set[str]] | None = None,
+    scope_of: dict[int, str] | None = None,
+    argc_of: dict[int, int] | None = None,
 ) -> None:
     """Map each harvested call line back to its enclosing function's rowid and
     the callee name to candidate rowids — the rowid-dependent half of Layer 3,
@@ -702,6 +1029,9 @@ def _fold_call_payload(
         source = site[2] if len(site) > 2 else SOURCE_AST
         ## Fourth element added for #75; absent in a payload cached by an older build.
         qualified = site[3] if len(site) > 3 else ""
+        ## Fifth and sixth added for #482; absent in a payload cached before stage_version 5.
+        receiver = site[4] if len(site) > 4 else ""
+        argc = site[5] if len(site) > 5 else -1
         caller_rowid = _ast_caller_at_line(funcs_in_file, call_line)
         if caller_rowid is None:
             continue
@@ -714,6 +1044,11 @@ def _fold_call_payload(
             source,
             qualified=qualified,
             definition_of=definition_of,
+            receiver=receiver,
+            argc=argc,
+            receiver_types=receiver_types,
+            scope_of=scope_of,
+            argc_of=argc_of,
         )
 
 
@@ -756,7 +1091,7 @@ def _ast_insert_edges(
 ## @param db_path Path to the clew.db being built.
 ## @param repo_root Repository root (for resolving indexed relative paths).
 ## @param cache Optional incremental index cache; None disables caching.
-## @version 7
+## @version 8
 ## @req REQ-DDB-PIPE-003
 def import_ast_call_edges(
     db_path: Path,
@@ -778,7 +1113,7 @@ def import_ast_call_edges(
     guarantees structurally instead of by remembering to check.
 
     @brief Populate call_edges from tree-sitter AST walk, then guard self-edges.
-    @version 7
+    @version 8
     """
     ts_classes = try_import_tree_sitter()
     if ts_classes is None:
@@ -791,6 +1126,28 @@ def import_ast_call_edges(
 
     conn = sqlite3.connect(str(db_path))
     name_to_rowids, file_funcs = _build_function_indexes(conn)
+    ## THE RECEIVER-TYPE MAPS (#482). Built once per build, from rows doxygen already
+    ## wrote: `memberdef.type` for member variables, and `scope` plus parameter count for
+    ## the functions a call might land on. Nothing is inferred — the receiver's class is a
+    ## declared fact that this layer previously did not read.
+    receiver_types = _receiver_types(conn)
+    ## Both maps are only meaningful when `receiver_types` found anything, and both read
+    ## columns a minimal fixture may not have — so they are skipped together rather than each
+    ## carrying its own guard.
+    scope_of: dict[int, str] = {}
+    argc_of: dict[int, int] = {}
+    if receiver_types:
+        scope_of = {
+            int(r): str(sc or "")
+            for r, sc in conn.execute("SELECT rowid, scope FROM memberdef WHERE kind = 'function'")
+        }
+        if _table_exists(conn, "memberdef_param"):
+            argc_of = {
+                int(r): int(n)
+                for r, n in conn.execute(
+                    "SELECT memberdef_id, COUNT(*) FROM memberdef_param GROUP BY memberdef_id"
+                )
+            }
     harvested = run_harvest(conn, repo_root, call_site_harvester(), ts_classes, cache)
 
     edges_resolved: list[tuple[int, int, str]] = []
@@ -806,6 +1163,9 @@ def import_ast_call_edges(
                 edges_resolved,
                 edges_fuzzy,
                 definition_of,
+                receiver_types=receiver_types,
+                scope_of=scope_of,
+                argc_of=argc_of,
             )
 
     inserted_resolved, inserted_fuzzy = _ast_insert_edges(

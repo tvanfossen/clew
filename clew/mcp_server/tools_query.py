@@ -23,7 +23,9 @@ import re
 import json
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
+
+from pydantic import Field
 
 from .. import query as q
 from .. import wire
@@ -191,6 +193,30 @@ def _staleness_within_budget(
 ## which undermines exactly that.
 _SCHEMA_AXIS = "schema"
 
+## AND `data` UNDOES IT TOO, BUT ONLY FOR A MISSING SUBJECT (gh#12). The comment above is right
+## about row lists and wrong about subject misses, which is the case that got reported: a symbol
+## written minutes earlier came back `found: false` as "a definitive negative", beside a `data`
+## notice in the SAME envelope saying 39 files had changed since the build. For "does this symbol
+## exist", data staleness is not a footnote — it is the single likeliest explanation, and the note
+## spent its advice sending the reader to check `target`, which was correct all along.
+##
+## SCOPED TO `found is False` ON PURPOSE. Applying it to every empty list would hedge "no callers"
+## and "no locks" on any slightly-stale index, which is the over-hedging gh#393 built and reverted.
+## A subject miss is the one shape where a newer working tree fully explains the answer.
+_DATA_AXIS = "data"
+
+## Why this is still the residual case in 1.0.8 rather than a solved one: a data-stale query now
+## refreshes BEFORE answering, so a miss with a live `data` notice means the refresh did not run —
+## the `code` axis refuses it, or it failed. Both are conditions the reader must act on, so the
+## replacement names the refresh AND the reason it may not have happened by itself.
+_UNEARNED_BY_DRIFT = (
+    " NOT DEFINITIVE: the sources have changed since this index was built (see `staleness` "
+    "below), so a symbol added after the build is missing rather than absent. An automatic "
+    "refresh normally corrects this before answering, so if you are reading this the refresh was "
+    "refused or failed — check the `code` axis. Refresh and ask again before concluding the "
+    "symbol does not exist."
+)
+
 ## What replaces the strong wording. It names the action, because "route, don't disclaim" is the
 ## standing rule here: a hedge that does not say what to do next just spends bytes.
 _UNEARNED_DEFINITIVE = (
@@ -223,19 +249,32 @@ _DEFINITIVE_CLAIMS = ("definitive", "do not retry")
 ## @param payload The reply, staleness already attached.
 ## @param staleness The notices attached to this reply.
 ## @req REQ-DDB-MCP-004
-## @version 1
+## @version 2
 def _withdraw_definitive(payload: dict[str, Any], staleness: list[dict[str, str]]) -> None:
-    """@brief Withdraw a definitive-negative claim a schema-stale index cannot earn. @version 1"""
+    """@brief Withdraw a definitive-negative claim a stale index cannot earn. @version 2"""
     note = payload.get("note")
-    if not isinstance(note, str) or not any(n.get("axis") == _SCHEMA_AXIS for n in staleness):
+    if not isinstance(note, str):
+        return
+    axes = {n.get("axis") for n in staleness}
+    ## Two different unearned-ness conditions, and they need different sentences: `schema` means a
+    ## layer may be MISSING, `data` means the symbol may POSTDATE the build (gh#12). The data case
+    ## is restricted to a subject miss — see `_DATA_AXIS`.
+    replacement = None
+    if _SCHEMA_AXIS in axes:
+        replacement = _UNEARNED_DEFINITIVE
+    elif _DATA_AXIS in axes and payload.get("found") is False:
+        replacement = _UNEARNED_BY_DRIFT
+    if replacement is None:
         return
     lowered = note.lower()
     if not any(claim in lowered for claim in _DEFINITIVE_CLAIMS):
         return
     ## Rewritten rather than appended-to: leaving "this is a definitive empty result" in place and
     ## adding "not definitive" after it is two claims again, in one sentence.
+    ## The split DROPS the old advice as well as the old claim, which is the point: the reported
+    ## note spent its second half telling the reader to check `target`, and `target` was right.
     kept = re.split(r"(?i)this is a definitive|do not retry", note)[0].rstrip()
-    payload["note"] = f"{kept}{_UNEARNED_DEFINITIVE}"
+    payload["note"] = f"{kept}{replacement}"
 
 
 ## @brief Trim a row list to the byte budget, describing what it dropped.
@@ -909,8 +948,8 @@ _DOSSIER_OPTIONAL = (
 ## lock panels that is the LOCK-KEYED inventory, which is a different question class and
 ## survives; for a body it is raising the cap on this same call.
 _DOSSIER_HINTS = {
-    "sections": "call lock_roster() then runs_under_lock() for the unabridged holds",
-    "locks_held": "call lock_roster() then runs_under_lock() for the unabridged holds",
+    "sections": "call search(corpus='locks') for the unabridged lock-keyed inventory",
+    "locks_held": "call search(corpus='locks') for the unabridged lock-keyed inventory",
     "external_callees": (
         "no focused tool returns these — read the body at the reported line range for the remainder"
     ),
@@ -924,7 +963,8 @@ _DOSSIER_HINTS = {
     ## down"). What it still routes for is the question a single payload genuinely cannot hold.
     "gated_by": (
         "each gate symbol's own definition sites are in `gate_definitions` on this reply; call "
-        "kconfig() for the full configuration space — the gates shown are the innermost by line"
+        "search(corpus='config') for the full configuration space — the gates shown are the "
+        "innermost by line"
     ),
     "macros": (
         "no tool enumerates definition sites — search() collapses a name to one row; "
@@ -936,7 +976,7 @@ _DOSSIER_HINTS = {
 ## @brief Trim a serialized dossier's nested lists to the response budget.
 ## @param doss Serialized dossier, or None.
 ## @return The dossier, trimmed and annotated when it exceeded the budget.
-## @version 3
+## @version 4
 ## @dg_internal
 def _budgeted_dossier(doss: dict[str, Any] | None) -> dict[str, Any] | None:
     """`dossier` is the tool a model is told to CALL FIRST, and it was the largest
@@ -977,8 +1017,8 @@ def _budgeted_dossier(doss: dict[str, Any] | None) -> dict[str, Any] | None:
                 len(doss.get(field_name) or []),
                 _DOSSIER_HINTS.get(
                     field_name,
-                    f"call {field_name}() directly for a focused view, or resolve_symbol() "
-                    f"first if the name is overloaded",
+                    f"re-ask dossier for a focused view of `{field_name}`, passing "
+                    f"`qualified` first if the name is overloaded",
                 ),
             )
             for field_name, was in cut.items()
@@ -1693,15 +1733,61 @@ class QueryTools:
     ## @req REQ-DDB-QUERY-010
     def dossier(
         self,
-        subject: str | list[str],
+        subject: Annotated[
+            str | list[str],
+            Field(
+                description=(
+                    "One symbol name, or a list of up to 8 for one reply. A function, variable, "
+                    "macro, class, lock, thread, requirement id or config symbol."
+                )
+            ),
+        ],
         *,
-        kind: str | None = None,
-        depth: int = 1,
-        direction: str = "forward",
-        max_neighbors: int = 8,
-        qualified: str | None = None,
-        target: str | None = None,
-        max_body_lines: int = q.DEFAULT_BODY_LINES,
+        kind: Annotated[
+            str | None,
+            Field(description="Narrow to one kind when a name resolves to several."),
+        ] = None,
+        depth: Annotated[
+            int,
+            Field(
+                description=(
+                    "How far to walk. Depth 1 is the symbol and its immediate neighbours. "
+                    "Depth 2-6 also returns `chain`, a bounded causal walk across call and "
+                    "shared-key edges; 6 is the maximum. Only a function is an endpoint of "
+                    "those edges, so a deeper walk on any other kind returns `depth_note` "
+                    "saying so instead of pretending."
+                )
+            ),
+        ] = 1,
+        direction: Annotated[
+            str, Field(description="'forward' for downstream, 'back' for upstream, on depth >= 2.")
+        ] = "forward",
+        max_neighbors: Annotated[
+            int, Field(description="Cap on callers and callees listed per symbol.")
+        ] = 8,
+        qualified: Annotated[
+            str | None,
+            Field(
+                description=(
+                    "The exact signature from a previous reply's `candidates`, to pick one "
+                    "overload. Single name only."
+                )
+            ),
+        ] = None,
+        target: Annotated[
+            str | None,
+            Field(description="Repo root or slug to query; omit for the default target."),
+        ] = None,
+        max_body_lines: Annotated[
+            int,
+            Field(
+                description=(
+                    "Lines of VERBATIM SOURCE returned in `body`, including inline comments. "
+                    "Raise it when a reply comes back `truncated: true` — this is how you read "
+                    "the actual code without opening the file."
+                )
+            ),
+        ] = q.DEFAULT_BODY_LINES,
     ) -> dict[str, Any]:
         """A LIST IN THE SAME ARGUMENT, NOT A SECOND ARGUMENT. The alternative — keeping
         `function: str` and adding `functions: list[str]` — puts two ways to name a symbol
@@ -1803,7 +1889,7 @@ class QueryTools:
     ## @brief The whole lock layer: every lock, the mutex count, the origin split, the nestings.
     ## @param target Repo root or slug to answer from; omit for the server's derived target.
     ## @return Serialized LockInventory, always present so an empty layer says why.
-    ## @version 5
+    ## @version 6
     ## @req REQ-DDB-MCP-003
     ## @dg_internal
     def _lock_inventory(self, target: str | None = None) -> dict[str, Any]:
@@ -1847,7 +1933,7 @@ class QueryTools:
                     cut["nestings"],
                     len(out["nestings"]),
                     "the locks themselves are complete and untrimmed; only the nesting "
-                    "pairs were reduced. Ask runs_under_lock for a named lock's sections, "
+                    "pairs were reduced. Ask dossier for a named lock's sections, "
                     "or read the full set from the query library's lock_nestings",
                 )
         return self._answered(out, target=target)
@@ -1914,11 +2000,33 @@ class QueryTools:
     ## @req REQ-DDB-MCP-003
     def search(
         self,
-        text: str = "",
+        text: Annotated[
+            str,
+            Field(
+                description=(
+                    "Words to match. EVERY whitespace-separated token must appear in ONE "
+                    "searchable unit, so give the two most distinctive words. Ignored by the "
+                    "`locks` and `threads` corpora, which enumerate everything."
+                )
+            ),
+        ] = "",
         *,
-        corpus: str = "symbols",
-        limit: int = 25,
-        target: str | None = None,
+        corpus: Annotated[
+            str,
+            Field(
+                description=(
+                    "What to read. 'symbols' (default) for functions, variables, macros, types "
+                    "and per-file docs; 'prose' for the repo's markdown, full-text. Or enumerate "
+                    "a whole layer: 'locks', 'threads', 'files', 'config'. Each row's `kind` is "
+                    "what you pass to dossier verbatim."
+                )
+            ),
+        ] = "symbols",
+        limit: Annotated[int, Field(description="Maximum rows returned.")] = 25,
+        target: Annotated[
+            str | None,
+            Field(description="Repo root or slug to query; omit for the default target."),
+        ] = None,
     ) -> dict[str, Any]:
         """ONE FINDER, N CORPORA — `search_prose` WAS NEVER A TOOL, IT WAS AN ARGUMENT.
         The two searches differed in which table they read and in nothing a caller cares

@@ -96,27 +96,50 @@ def test_no_run_time_value_can_reach_the_output() -> None:
     """
     source = HOOK_SOURCE.read_text(encoding="utf-8")
 
-    payload_lines = [ln for ln in source.splitlines() if ln.startswith("_PAYLOAD")]
-    assert len(payload_lines) == 1, (
-        f"_PAYLOAD must be assigned exactly once, as a literal; found {len(payload_lines)} "
-        f"assignments, which means it is being assembled"
+    ## THE RULE IS NOT "NO SUBSTITUTION" ANY MORE, AND THE CHANGE IS DELIBERATE. The tiers embed a
+    ## count so no two injections are byte-identical, because a constant string repeats into
+    ## wallpaper — ~1,900 identical copies were measured changing nothing. So the property pinned
+    ## here is the one that actually protects the consumer: the ONLY run-time value that reaches
+    ## the model is an INT rendered with `%d`, and an int through `%d` cannot emit anything but
+    ## digits. A blanket ban would have forbidden the mechanism while protecting nothing extra.
+    literals = [ln for ln in source.splitlines() if ln.startswith(("_HEAD =", "_TAIL =", "_NOTE_"))]
+    assert len(literals) == 4, (
+        f"the surface must be exactly four assignments (_HEAD, _TAIL, and two _NOTE_*); "
+        f"found {len(literals)} — more means it is being assembled somewhere unreviewed"
     )
-    assignment = payload_lines[0]
-    assert re.match(r"^_PAYLOAD = ['\"]", assignment), (
-        f"_PAYLOAD must be a bare string literal; got: {assignment[:80]}"
-    )
+    for ln in literals:
+        assert re.match(r"^_[A-Z_]+ = [('\"]", ln), f"not a bare literal opener: {ln[:80]}"
+
+    ## The bodies, taken whole, must contain no interpolation machinery at all.
+    body_start = source.index("_HEAD =")
+    body_end = source.index("_NOTE_OPERATOR", body_start)
+    body_end = source.index(")\n", body_end) + 1
+    surface = source[body_start:body_end]
     for forbidden, why in (
         ("f'", "an f-string could interpolate run-time data into the model's context"),
         ('f"', "an f-string could interpolate run-time data into the model's context"),
-        (".format(", "`.format()` on the payload is interpolation"),
-        ("%", "%-formatting on the payload is interpolation"),
-        ("+", "concatenation could append run-time data"),
+        (".format(", "`.format()` accepts arbitrary objects, including strings off stdin"),
+        ("%s", "%s renders arbitrary text; only %d is safe here"),
+        ("os.environ", "the environment must not reach the message"),
+        ("sys.argv", "argv must not reach the message"),
     ):
-        assert forbidden not in assignment, f"{forbidden!r} in the _PAYLOAD assignment: {why}"
+        assert forbidden not in surface, f"{forbidden!r} in the injection surface: {why}"
 
-    ## And the emit itself must write the constant, not something derived from it.
-    assert "sys.stdout.write(_PAYLOAD)" in source, (
-        "the hook must write the constant directly; any transformation at the emit is a channel"
+    ## And the ONLY substitution anywhere is `note % count`, on a value that passed through int().
+    assert "count = int(pressure)" in source, (
+        "the substituted value must be coerced with int(); without it a corrupted tally could "
+        "carry text into the payload"
+    )
+    ## THE ONLY PLACE A `%` OPERATOR IS APPLIED. Counting every `%` in the file was the first
+    ## version of this check and it was over-clever — the module docstring discusses `%d` in
+    ## prose, so the arithmetic never held. What matters is that exactly one expression performs
+    ## a substitution, and that its right-hand side is the int.
+    applications = [ln for ln in source.splitlines() if "note %" in ln or "% count" in ln]
+    assert applications == ["    return _HEAD + (note % count) + _TAIL"], (
+        f"exactly one %-application is permitted, on the int; found {applications}"
+    )
+    assert "sys.stdout.write(_payload_for(pressure))" in source, (
+        "the emit must be the reviewed renderer; anything else at the emit is a channel"
     )
 
 
@@ -453,3 +476,95 @@ def test_the_tally_holds_across_different_parent_processes(tmp_path: Path) -> No
         "not stable across invocations, which is what production does"
     )
     assert not any(spoke[:-1]), "and the earlier searches must still have passed in silence"
+
+
+##
+# @brief Run the hook once as a subprocess and return whatever it wrote.
+# @param tmp_path Marker directory.
+# @param session Session key for the tally.
+# @param used True to pass the manifest's --used flag.
+# @return The payload written on stdout, or "" when the hook stayed silent.
+# @version 1
+def _hook_once(tmp_path: Path, session: str, used: bool = False) -> str:
+    """A SUBPROCESS, NOT AN IMPORT. The hook is a fresh process in production and its whole
+    memory is the marker file; calling `main()` in-process would share module state the real
+    thing never has.
+
+    @brief One hook invocation.
+    @return stdout.
+    @version 1
+    """
+    argv = [sys.executable, "-m", "clew_hook"] + (["--used"] if used else [])
+    return subprocess.run(
+        argv,
+        input=json.dumps(HOSTILE_EVENT),
+        capture_output=True,
+        text=True,
+        env={**os.environ, "TMPDIR": str(tmp_path), "CLAUDE_CODE_SESSION_ID": session},
+    ).stdout.strip()
+
+
+## @brief One index call clears the tally, so the loud tier is escapable.
+## @return None.
+## @version 1
+def test_one_index_call_clears_the_tally(tmp_path: Path) -> None:
+    """THE DECAY THE OLD POLICY DID NOT HAVE, and the reason the note's own promise was a lie.
+    Crediting three per clew call and never resetting made the tally monotonic: a session
+    measured at 1,339 searches against 38 clew calls sat at pressure 1,225 against a threshold of
+    20, needing ~408 consecutive index calls to earn silence. It never would, so the loudest tier
+    became permanent and a banner on every call reads as boilerplate.
+
+    Escalation only carries information if de-escalation is reachable.
+
+    @brief Reset-on-use recovers silence.
+    @return None.
+    @version 1
+    """
+
+    for _ in range(25):
+        _hook_once(tmp_path, "decay-probe")
+    assert "configured expectation" in _hook_once(tmp_path, "decay-probe"), (
+        "25 misses must reach the operator tier"
+    )
+
+    _hook_once(tmp_path, "decay-probe", used=True)
+    assert _hook_once(tmp_path, "decay-probe") == "", "one index call must buy silence immediately"
+    assert [_hook_once(tmp_path, "decay-probe") for _ in range(3)] == ["", "", ""], (
+        "and hold it below the quiet floor"
+    )
+
+
+## @brief The note escalates in TEXT, and no two injections are byte-identical.
+## @return None.
+## @version 1
+def test_text_escalates_and_never_repeats(tmp_path: Path) -> None:
+    """A CONSTANT STRING BECOMES WALLPAPER. Measured: ~1,900 byte-identical injections across one
+    session changed nothing, and that session made 2 index calls against ~1,900 searches. A
+    varying integer invalidates the prompt cache at that point, so the note must be processed
+    rather than replayed — the defence is mechanical, not persuasive.
+
+    Two properties, both load-bearing: the text CHANGES TIER with pressure, and no two payloads
+    are ever equal.
+
+    @brief Escalation and uniqueness.
+    @return None.
+    @version 1
+    """
+
+    emitted = [out for _ in range(30) if (out := _hook_once(tmp_path, "escalate-probe"))]
+    assert len(emitted) > 5, "the policy must emit something over 30 misses"
+    assert len(set(emitted)) == len(emitted), (
+        "every injection must be unique or it is filtered as boilerplate"
+    )
+
+    capability = [e for e in emitted if "configured expectation" not in e]
+    operator = [e for e in emitted if "configured expectation" in e]
+    assert capability and operator, "both tiers must be reachable in one ramp"
+    assert all(emitted.index(c) < emitted.index(o) for c in capability[:1] for o in operator[:1]), (
+        "the capability tier must precede the operator tier"
+    )
+    ## THE FACT THAT MISROUTED A MEASURED SESSION must be in the first tier a reader ever sees.
+    assert "VERBATIM SOURCE BODY" in capability[0], (
+        "the first note must state that dossier returns source; believing otherwise is what sent "
+        "a measured session to grep for twenty turns"
+    )

@@ -38,9 +38,13 @@ from pathlib import Path
 
 import pytest
 
-pytest.importorskip("mcp", reason="MCP server is an optional extra (pip install -e '.[mcp]')")
+pytest.importorskip(
+    "mcp",
+    reason="the MCP SDK is a REQUIRED dependency, so this skipping means a BROKEN install, not an unselected extra",
+)
 
 from clew.mcp_server import freshness as fr
+from clew.mcp_server import server as server_module
 from clew.mcp_server import state as st
 from clew.mcp_server.server import (
     NO_TARGET_ERROR,
@@ -50,6 +54,7 @@ from clew.mcp_server.server import (
     register_query_tools,
     unregister_query_tools,
 )
+from clew.mcp_server._sdk import MCPServer
 from clew.mcp_server.tools_query import TIER1_TOOLS, QueryTools
 from clew.scope import SCOPE_FROM_GUARD
 from clew.signature import (
@@ -1638,24 +1643,43 @@ def test_the_descriptions_name_every_subject_kind_the_tools_accept(tools: QueryT
     reads five and defaults to one. So the description must name every one of both, and
     this is what stops a kind or corpus being added to the dispatch and nowhere else.
     """
-    from clew.mcp_server.tools_query import CORPORA
+    import typing
+
+    from clew.mcp_server.tools_query import CORPORA, QueryTools
     from clew.query import SUBJECT_KINDS
 
-    dossier_desc = TIER1_TOOLS["dossier"]
+    ## THE SCHEMA, NOT THE PROSE. The enumerations moved into the parameter descriptions when the
+    ## prose was cut to fit the client's 2,048-char cap — which is the better home for them
+    ## anyway, because the schema is re-sent whole on every request while a third of the prose was
+    ## being discarded. The requirement is unchanged: a kind the surface does not name is
+    ## unreachable in practice. Only where it must be named moved.
+    def described(fn: object, param: str) -> str:
+        hint = typing.get_type_hints(fn, include_extras=True)[param]
+        return next(m.description for m in hint.__metadata__ if getattr(m, "description", None))
+
+    subject = described(QueryTools.dossier, "subject")
     for kind in SUBJECT_KINDS:
-        assert kind in dossier_desc, f"dossier accepts subject kind {kind!r} and never says so"
-    search_desc = TIER1_TOOLS["search"]
-    for corpus in CORPORA:
-        assert corpus in search_desc, f"search reads corpus {corpus!r} and never says so"
+        assert kind in subject or kind in TIER1_TOOLS["dossier"], (
+            f"dossier accepts subject kind {kind!r} and neither its schema nor its description "
+            f"says so, which makes that kind unreachable in practice"
+        )
+    corpus = described(QueryTools.search, "corpus")
+    for name in CORPORA:
+        assert name in corpus or name in TIER1_TOOLS["search"], (
+            f"search reads corpus {name!r} and neither its schema nor its description says so"
+        )
 
     ## The claim #46 falsified stays falsified, and the split it replaced with stays named.
-    assert "returns strictly less" not in dossier_desc
-    assert "direct CALL edges only" not in dossier_desc
+    ## THE WHOLE DELIVERED SURFACE for dossier is its description plus its parameter schema, and
+    ## both arrive untruncated now, so a capability counts as disclosed if it appears in either.
+    surface = TIER1_TOOLS["dossier"] + " " + described(QueryTools.dossier, "depth")
+    assert "returns strictly less" not in surface
+    assert "direct CALL edges only" not in surface
 
-    ## And the depth fold must be discoverable, or `chain_trace`'s capability is present
-    ## and unreachable — which is a worse outcome than having deleted it.
-    assert "depth" in dossier_desc
-    assert str(q_max_depth()) in dossier_desc, "the depth BOUND must be disclosed, not implied"
+    ## The depth fold must be discoverable, or `chain_trace`'s capability is present and
+    ## unreachable — a worse outcome than having deleted it.
+    assert "depth" in surface.lower()
+    assert str(q_max_depth()) in surface, "the depth BOUND must be disclosed, not implied"
 
 
 ## @brief The traversal depth bound, read from the library rather than restated.
@@ -3373,3 +3397,418 @@ async def test_building_a_target_does_register_it(tmp_path: Path) -> None:
         "a registered target must be listed — this is what `targets` and `cull` operate on"
     )
     assert Path(target.db_path).parent.is_dir(), "a build needs its directory to exist"
+
+
+## @brief NOTHING the server serves exceeds the client's cap, so nothing is ever truncated.
+## @return None.
+## @version 2
+def test_no_served_text_is_ever_truncated() -> None:
+    """OWNER RULING: no truncation should occur, ever — fit everything inside the budget and prove
+    it. This is that proof, and it replaces a weaker test that only asserted the IMPORTANT phrases
+    landed inside the cap. That version tolerated discarded bytes as long as the routing survived,
+    which is a different and much softer promise.
+
+    THE CAP IS MEASURED, NOT ASSUMED. A client truncates each served string at 2,048 characters
+    and reports nothing: verified against one session's own delivered context, where dossier's
+    3,079-char description arrived cut at exactly 2,048 and search's 3,064 at the identical offset.
+    PER TOOL, not a shared budget, so the fix is what occupies each 2 KiB rather than how many
+    tools there are.
+
+    WHY THIS SHIPPED WITHOUT ANYONE NOTICING: the server sends the bytes, gets no error, and
+    `server.py`'s own comment budgets the cost in bytes SENT. Nothing measured bytes RECEIVED. So
+    INSTRUCTIONS carried every routing rule past the cut while the one line that did arrive said
+    the index is not a substitute for reading source — and a session spent twenty turns on grep
+    asserting exactly that.
+
+    A LENGTH ASSERTION CANNOT BE GAMED, which is why it is the whole test now. Reordering satisfies
+    "the important part survives"; only fitting satisfies "nothing is lost".
+
+    @brief Every served string fits the cap.
+    @return None.
+    @version 2
+    """
+    from clew.mcp_server.descriptions import load_descriptions
+    from clew.mcp_server.server import INSTRUCTIONS, TIER0_TOOLS
+
+    cap = 2048
+    surfaces = {"INSTRUCTIONS": INSTRUCTIONS, **load_descriptions(), **TIER0_TOOLS}
+    over = {k: len(v) - cap for k, v in surfaces.items() if len(v) > cap}
+    assert not over, (
+        f"these served strings exceed the {cap}-char cap and will be silently truncated: {over}. "
+        f"Cut them; the parameter schema is the place for per-argument detail, since it is never "
+        f"truncated."
+    )
+
+    ## AND THE ROUTING MUST STILL BE THERE. Fitting by deleting the reason to use the tool would
+    ## pass the length check and defeat the point, so the load-bearing sentences are named.
+    for phrase, why in (
+        ("START AT `dossier`", "the routing rule"),
+        ("VERBATIM SOURCE", "the fact whose absence sent a session to grep for 20 turns"),
+        ("max_body_lines", "how to read past a truncated body"),
+        ("USE `search`", "what to do without a name"),
+    ):
+        assert phrase in INSTRUCTIONS, f"INSTRUCTIONS lost {phrase!r} — {why}"
+
+    ## dossier must say what it returns in its OPENING sentence. It previously said so at char 640,
+    ## inside the cap, and a session still got it wrong; position is doing work presence did not.
+    head = load_descriptions()["dossier"][:200]
+    assert "VERBATIM SOURCE BODY" in head, (
+        f"dossier must state it returns source in its first 200 chars; got: {head!r}"
+    )
+
+
+## @brief Every tool parameter carries a description, in the one channel a client cannot cut.
+## @return None.
+## @version 1
+def test_every_tool_parameter_is_described() -> None:
+    """THE ONLY UNTRUNCATABLE SURFACE, AND IT USED TO CARRY NOTHING. Parameter descriptions land in
+    the JSON Schema, which a client re-sends whole on every request — while a measured 33% of every
+    prose description is discarded at a 2,048-character cap. Before this, every parameter arrived
+    as an auto-generated title and nothing else: `{"default": 120, "title": "Max Body Lines"}`.
+
+    That absence has a measured cost. A session read `Max Body Lines` with no explanation, never
+    learned that `body` is verbatim source with inline comments, and told its operator the index
+    could not return source at all — then spent twenty turns on grep on the strength of it. One
+    schema field would have prevented it, and the schema field is the one thing that always
+    arrives.
+
+    @brief Parameters are described where truncation cannot reach.
+    @return None.
+    @version 1
+    """
+    import typing
+
+    from clew.mcp_server.server import DocsDbServer
+    from clew.mcp_server.tools_query import QueryTools
+
+    for owner, name in (
+        (QueryTools, "dossier"),
+        (QueryTools, "search"),
+        (DocsDbServer, "index"),
+        (DocsDbServer, "propose_declaration"),
+    ):
+        fn = getattr(owner, name)
+        hints = typing.get_type_hints(fn, include_extras=True)
+        undescribed = []
+        for pname, hint in hints.items():
+            if pname in ("return", "self", "ctx"):
+                continue
+            meta = getattr(hint, "__metadata__", ())
+            if not any(getattr(m, "description", None) for m in meta):
+                undescribed.append(pname)
+        assert not undescribed, (
+            f"{name}: {undescribed} carry no schema description, so they reach a model as bare "
+            f"auto-titles in the one channel that is never truncated"
+        )
+
+    ## AND THE ONE THAT MATTERS MOST BY NAME. This is the field whose silence produced a wrong
+    ## claim to an operator, so it is asserted on its content and not merely its presence.
+    body = typing.get_type_hints(QueryTools.dossier, include_extras=True)["max_body_lines"]
+    text = next(m.description for m in body.__metadata__ if getattr(m, "description", None))
+    assert "VERBATIM SOURCE" in text and "truncated" in text, (
+        f"max_body_lines must state that it returns verbatim source and how to read past a "
+        f"truncated body; got: {text!r}"
+    )
+
+
+##
+# @brief The refresh wrapper must not change any tool's JSON Schema.
+# @return None.
+# @version 1
+def test_the_refresh_wrapper_preserves_every_tool_schema() -> None:
+    """AN INVARIANCE, because the schema is the one served surface a client cannot truncate.
+
+    Every parameter description reaches the model through the JSON Schema the SDK derives
+    from each tool's SIGNATURE. Wrapping a tool to refresh before answering replaces that
+    callable, and a wrapper without `functools.wraps` reports `(*args, **kwargs)` — so every
+    tool would register with an EMPTY schema, the only untruncatable routing signal would go
+    to zero, and nothing would error.
+
+    `test_every_tool_parameter_is_described` cannot catch that: it registers with no hook, so
+    it exercises the plain binding. This registers BOTH ways and demands the schemas match,
+    which is the check that actually covers the wrapper.
+
+    @brief Wrapped and unwrapped registration produce identical schemas.
+    @return None.
+    @version 1
+    """
+
+    async def hook(target: str | None) -> None:
+        return None
+
+    tools = QueryTools(lambda: "/nonexistent.db", lambda: "/tmp", lambda: [], None)
+    schemas: dict[bool, dict[str, dict]] = {}
+    for wrapped, before in ((False, None), (True, hook)):
+        mcp = MCPServer("schema-probe")
+        register_query_tools(mcp, tools, before)
+        schemas[wrapped] = {
+            name: mcp._tool_manager.get_tool(name).parameters or {} for name in TIER1_TOOLS
+        }
+
+    for name in TIER1_TOOLS:
+        plain = schemas[False][name].get("properties", {})
+        hooked = schemas[True][name].get("properties", {})
+        assert hooked == plain, (
+            f"{name}'s schema changed when the refresh wrapper was attached, so the "
+            f"parameter descriptions no longer reach the model: {len(plain)} properties "
+            f"unwrapped vs {len(hooked)} wrapped"
+        )
+        assert plain, f"{name} registered with no parameters at all in either shape"
+
+
+##
+# @brief A query refreshes a stale index and leaves a current one alone.
+# @param server The server fixture.
+# @return None.
+# @version 1
+@pytest.mark.anyio
+async def test_a_query_refreshes_only_when_the_data_axis_is_stale(
+    server, monkeypatch, tmp_path
+) -> None:
+    """THE OWNER RULED A QUERY SHOULD BLOCK AND REFRESH rather than answer stale, so both
+    halves are pinned: it builds when the data axis is stale, and it does NOT build otherwise.
+
+    The second half is the one worth writing. A hook that refreshed unconditionally would
+    make every query pay a build, which is the behaviour most likely to get the feature turned
+    off — and no assertion about the stale case would notice.
+
+    `matches_source` false is also pinned as a REFUSAL, because a build through a server older
+    than its source runs old pipeline logic and re-stamps the index with it. That is the one
+    build that can silently drop whole layers and then report health, so an automatic path
+    must never attempt it.
+
+    @brief Auto-refresh fires on data staleness only, and never on a stale process.
+    @return None.
+    @version 1
+    """
+    ## The fixture yields (MCPServer, DocsDbServer); the refresh hook lives on the latter.
+    _mcp, state = server
+    ## The fixture's registry is empty, so `active` is None and the hook would return before
+    ## measuring anything — the test would pass while asserting nothing.
+    state.active = st.target_for(tmp_path, state.registry.home)
+    builds: list[str] = []
+
+    def fake_build(target, doxyfile, *args, **kwargs):
+        builds.append(target.repo_path)
+        return {"ok": True, "built": True}
+
+    monkeypatch.setattr(state, "_run_build", fake_build)
+
+    cases = (
+        ([], True, 0, "a current index must not trigger a build"),
+        ([{"axis": "schema", "message": "x"}], True, 0, "only the data axis is rebuildable"),
+        ([{"axis": "data", "message": "x"}], False, 0, "a stale PROCESS must refuse to build"),
+        ([{"axis": "data", "message": "x"}], True, 1, "a stale data axis must refresh"),
+    )
+    for axes, matches, expected, why in cases:
+        builds.clear()
+        ## Patched so the decision depends ONLY on the axes and the process identity;
+        ## the real reader would raise on this scratch path and mask the assertion.
+        monkeypatch.setattr(server_module, "db_status", lambda *a, **k: {})
+        monkeypatch.setattr(server_module, "notices", lambda *a, **k: axes)
+        monkeypatch.setattr(server_module, "code_identity", lambda: {"matches_source": matches})
+        await state._auto_refresh(None)
+        assert len(builds) == expected, f"{why} (axes={axes}, matches_source={matches})"
+
+
+##
+# @brief A registered tool must actually invoke the refresh hook.
+# @return None.
+# @version 1
+@pytest.mark.anyio
+async def test_invoking_a_registered_tool_runs_the_refresh_hook() -> None:
+    """CLOSES A FAIL-OPEN THAT MUTATION FOUND. `server.py`'s
+    `await before(kwargs.get("target"))` is the ONE line that makes a query refresh, and
+    `register_query_tools(..., before=None)` falls back to a plain binding — so an omitted
+    argument silently disables the feature. Deleting that `await`, or passing `before=None` at
+    either production registration, left the entire suite green.
+
+    Neither sibling test can see it. The schema test reads
+    `_tool_manager.get_tool(name).parameters`, which comes from `__wrapped__`'s signature and
+    is identical either way; the `_auto_refresh` test calls that method DIRECTLY, bypassing the
+    wrapper entirely. Nothing invoked a REGISTERED tool, which is the only path a real client
+    takes.
+
+    So this drives the tool manager and asserts the hook ran with the caller's target. The
+    query itself fails — there is no database — and that is fine and deliberate: the hook runs
+    BEFORE the query, so an exception from the query cannot mask a hook that never fired, while
+    a hook that never fired cannot be hidden by a query that succeeds.
+
+    @brief A registered tool calls the hook with the caller's target.
+    @return None.
+    @version 1
+    """
+    import contextlib
+    import inspect
+
+    seen: list[str | None] = []
+
+    async def hook(target: str | None) -> None:
+        seen.append(target)
+
+    mcp = MCPServer("hook-probe")
+    tools = QueryTools(lambda: "/nonexistent.db", lambda: "/tmp", lambda: [], None)
+    register_query_tools(mcp, tools, hook)
+
+    ## `call_tool` takes a CONTEXT argument. Omitting it raised a TypeError before the
+    ## wrapper ran, so the first version of this test failed with an empty hook list and looked
+    ## exactly like the defect it was written to detect.
+    ##
+    ## `iscoroutinefunction(get_tool("search").fn)` is the check that the async wrapper is what
+    ## got registered — its repr says `QueryTools.search`, because `functools.wraps` copies
+    ## `__qualname__`, which is precisely the property the schema depends on.
+    assert inspect.iscoroutinefunction(mcp._tool_manager.get_tool("search").fn), (
+        "the registered callable is not the async refresh wrapper, so no hook can run"
+    )
+    with contextlib.suppress(Exception):
+        await mcp._tool_manager.call_tool(
+            "search", {"text": "anything", "target": "/some/repo"}, None
+        )
+
+    assert seen == ["/some/repo"], (
+        f"invoking the registered `search` tool did not run the refresh hook with the "
+        f"caller's target (hook calls: {seen}). The wrapper is what makes a stale query "
+        f"refresh, and without this assertion deleting it leaves the suite green"
+    )
+
+
+##
+# @brief Both production registrations must pass the refresh hook.
+# @return None.
+# @version 1
+def test_the_production_registrations_pass_a_refresh_hook() -> None:
+    """THE OTHER HALF OF THE SAME FAIL-OPEN. The wrapper can be perfect and still never be
+    used, because `before` defaults to None — so passing nothing at a call site disables the
+    refresh with no error and no schema change. A structural check on the source is the only
+    thing that pins it: an assertion about behaviour cannot distinguish "registered without a
+    hook" from "registered with a hook that did nothing".
+
+    @brief No production registration omits the hook.
+    @return None.
+    @version 1
+    """
+    import inspect
+
+    source = inspect.getsource(server_module)
+    calls = [
+        line.strip()
+        for line in source.splitlines()
+        if "register_query_tools(self.mcp" in line or "register_query_tools(\n" in line
+    ]
+    assert calls, "no production registration found — did the call sites move?"
+    for call in calls:
+        assert "self._auto_refresh" in call, (
+            f"a production registration omits the refresh hook, so queries against that "
+            f"server never refresh a stale index: {call!r}"
+        )
+
+
+# ─── gh#12: a stale index cannot earn a definitive negative ───────────────────
+
+
+##
+# @brief A symbol added since the build must not be called a definitive negative.
+# @return None.
+# @version 1
+def test_a_data_stale_subject_miss_withdraws_the_definitive_claim() -> None:
+    """gh#12 AS REPORTED. A symbol written minutes earlier came back `found: false` as "a
+    definitive negative from the database", in an envelope that SEPARATELY carried a `data`
+    notice saying 39 files had changed since the build. One reply, two incompatible claims —
+    and the note spent its advice sending the reader to check `target`, which was correct all
+    along.
+
+    The pre-existing withdrawal fired only on the `schema` axis, on the reasoning that data
+    staleness does not undermine "this database holds no such row". That is right for a row
+    list and WRONG for a subject miss: for "does this symbol exist", a newer working tree is
+    the single likeliest explanation.
+
+    @brief A data-stale miss is not definitive.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server import tools_query as tq
+
+    payload = {
+        "kind": "dossier",
+        "subject": "register_looping_anim",
+        "found": False,
+        "note": (
+            "No dossier for 'register_looping_anim' in this index. This is a definitive "
+            "negative from the database, NOT an error and NOT a malformed call. Before "
+            "concluding the symbol does not exist, check `target` below names the repository "
+            "you meant."
+        ),
+    }
+    tq._withdraw_definitive(payload, [{"axis": "data", "message": "39 file(s) have changed"}])
+
+    note = payload["note"]
+    assert "definitive negative" not in note.lower(), (
+        f"the claim must be withdrawn, not annotated — leaving it in place and appending a "
+        f"hedge is two claims again: {note}"
+    )
+    assert "NOT DEFINITIVE" in note
+    assert "missing rather than absent" in note, "it must name the actual cause: drift"
+    ## THE ADVICE THAT WAS WRONG. `target` was fine; sending the reader there was the damage.
+    assert "`target`" not in note, (
+        f"the withdrawn half carried the misleading advice and must go with it: {note}"
+    )
+    assert "refresh" in note.lower(), "route, do not disclaim — name the action that fixes it"
+
+
+##
+# @brief The control: data staleness must NOT hedge an ordinary empty row list.
+# @return None.
+# @version 1
+def test_data_staleness_does_not_hedge_an_empty_row_list() -> None:
+    """THE CONTROL, AND IT IS THE POINT OF SCOPING THIS TO `found is False`. gh#393 built an
+    absent-corpus downgrade and REVERTED it, because hedging every empty answer spends the
+    strong wording gh#31 earned. "This function has no callers" is not undermined by the index
+    describing slightly older code, so a `data` notice must leave it alone.
+
+    Without this test the narrow fix above would be indistinguishable from the broad one that
+    was already rejected.
+
+    @brief An empty list keeps its definitive wording under data staleness.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server import tools_query as tq
+
+    payload = {
+        "kind": "callers",
+        "count": 0,
+        "note": "This is a definitive empty result from the database. Do not retry this query.",
+    }
+    before = payload["note"]
+    tq._withdraw_definitive(payload, [{"axis": "data", "message": "3 file(s) have changed"}])
+    assert payload["note"] == before, (
+        "a row list carries no `found: False`, so data staleness must not touch it — hedging "
+        "here is the over-hedging that was already built and reverted"
+    )
+
+
+##
+# @brief Schema staleness still withdraws with its own wording, on any shape.
+# @return None.
+# @version 1
+def test_schema_staleness_still_withdraws_with_the_missing_layer_wording() -> None:
+    """The pre-existing behaviour, pinned so the gh#12 change cannot displace it. A schema-stale
+    index may be MISSING WHOLE LAYERS, which undermines an empty row list too — so this one is
+    NOT scoped to a subject miss, and its sentence says "missing rather than empty" where the
+    data case says "missing rather than absent".
+
+    @brief Schema staleness withdraws on a row list as well.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server import tools_query as tq
+
+    payload = {
+        "kind": "locks",
+        "count": 0,
+        "note": "This is a definitive empty result from the database. Do not retry this query.",
+    }
+    tq._withdraw_definitive(payload, [{"axis": "schema", "message": "built by an older pipeline"}])
+    assert "NOT DEFINITIVE" in payload["note"]
+    assert "older pipeline" in payload["note"]
+    assert "missing rather than empty" in payload["note"]

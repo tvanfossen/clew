@@ -107,15 +107,32 @@ def package_source_root() -> Path:
 ## @brief Fingerprint the package source's identity on disk.
 ## @param root Package root to fingerprint (defaults to the imported one).
 ## @return Short hex digest, or "" when the tree cannot be read or holds no source.
-## @version 2
+## @version 3
 ## @req REQ-DDB-MCP-004
 def source_fingerprint(root: Path | None = None) -> str:
-    """Hashes RELATIVE path, mtime and size for every `.py` under the package — never
-    file CONTENT, and never an absolute path.
+    """Hashes RELATIVE path and file CONTENT for every `.py` under the package — never
+    mtime, and never an absolute path.
 
-    Not content because the question is "has the tree moved since this process started",
-    which mtime answers for a few hundred stats where reading every byte would cost
-    real time on a surface called once per reply.
+    IT HASHED MTIME UNTIL A LIVE MEASUREMENT KILLED THAT. The reasoning was that "has the
+    tree moved since this process started" is answered by a stat, and reading every byte
+    would cost real time on a surface called once per reply. The cost claim was wrong by
+    measurement — 90 files and 2.6 MB hash in 4.0 ms against 2.2 ms for stat-only, so
+    content costs 1.8 ms — and the correctness cost was much larger than 1.8 ms.
+
+    THE CODE AXIS IS A HARD REFUSAL: `matches_source` false blocks the automatic
+    query-time refresh AND refuses an explicit build, and no rebuild clears it — only
+    restarting the client does. An mtime key trips on `git checkout`, a branch switch,
+    `git stash pop`, rsync and plain `touch`, every one of which leaves byte-identical
+    content. Observed here: reverting ONE file with `git checkout` moved the fingerprint,
+    the axis fired on the next two query replies, and that is what stopped the
+    query-time auto-refresh from ever engaging in this repository. A safety gate that
+    fires on ordinary git operations disables the feature it guards.
+
+    The sibling `IndexCache` already states this codebase's rule — mtime+size is a
+    PREFILTER and the sha256 of the bytes is the AUTHORITY, so a touch with no edit and a
+    checkout that restores identical content both stay HITS. This now follows it. No
+    prefilter here, because there is nothing to compare a prefilter against: the result is
+    a single digest over the whole tree, not a per-file cache lookup.
 
     Not absolute paths because anything reachable over MCP is published, and stamping a
     machine's directory layout into a payload is the disclosure that forced the
@@ -135,18 +152,18 @@ def source_fingerprint(root: Path | None = None) -> str:
     lesson exactly — "no rows" is a claim about the detector — reached by a detector that
     could not look. A package with zero `.py` files is not a package.
 
-    @brief Digest the package source tree's mtime/size identity.
+    @brief Digest the package source tree's CONTENT identity.
     @return Short hex digest, or "" when unreadable or empty.
-    @version 2
+    @version 3
     """
     base = root if root is not None else package_source_root()
     digest = hashlib.sha256()
     seen = 0
     try:
         for path in sorted(base.rglob(_SOURCE_GLOB)):
-            stat = path.stat()
             rel = path.relative_to(base).as_posix()
-            digest.update(f"{rel}:{stat.st_mtime_ns}:{stat.st_size}\n".encode())
+            digest.update(f"{rel}\0".encode())
+            digest.update(hashlib.sha256(path.read_bytes()).digest())
             seen += 1
     except OSError:
         return ""
@@ -228,7 +245,7 @@ def code_identity() -> dict[str, object]:
 ## @brief Human phrasing for what a refresh of this target last cost.
 ## @param refresh The persisted `refresh.*` section, or None.
 ## @return A clause naming the measured cost, or one saying it has not been measured.
-## @version 1
+## @version 2
 ## @dg_internal
 def _cost_clause(refresh: Mapping[str, str] | None) -> str:
     """GROUNDED IN THIS TARGET'S OWN HISTORY, not a constant (gh#9). An agent that
@@ -241,14 +258,21 @@ def _cost_clause(refresh: Mapping[str, str] | None) -> str:
 
     @brief Phrase the measured cost-to-refresh.
     @return Cost clause.
-    @version 1
+    @version 2
     """
     duration = (refresh or {}).get("duration_ms")
     if not duration:
         return "no refresh of this target has been timed yet, so the cost is unmeasured"
-    reprocessed = (refresh or {}).get("files_reprocessed")
-    files = f" reprocessing {reprocessed} file(s)" if reprocessed else ""
-    return f"the last refresh of this target measured {duration} ms{files}"
+    ## NOT "file(s)" (#470). This number counts (file, stage) PAYLOADS recomputed, and there are
+    ## ~10 stages, so it is normally several times the changed-file count. Printed as files it
+    ## landed in the same notice as "18 source file(s) have changed" and read as a broken counter
+    ## — or worse, as the refresh doing four times the necessary work. `files_reprocessed` is
+    ## still read so an index built before the rename keeps reporting its cost.
+    payloads = (refresh or {}).get("payloads_recomputed") or (refresh or {}).get(
+        "files_reprocessed"
+    )
+    work = f" recomputing {payloads} cached stage payload(s)" if payloads else ""
+    return f"the last refresh of this target measured {duration} ms{work}"
 
 
 ## @brief The data-axis notice, when the sources have drifted.

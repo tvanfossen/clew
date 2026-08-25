@@ -1,514 +1,757 @@
 # SPDX-License-Identifier: MIT
 #
-# THE GRADING KEY FOR THE SELF TARGET, AS DATA.
+# THE GRADING KEY FOR THE SELF TARGET. Schema and rules: acceptance/DESIGN.md.
 #
-# WHY THIS TARGET EXISTS. Every other target in the reference set is C or C++. The query
-# surface works on Python — doxygen indexes it, and gh#397 enabled the tree-sitter recovery
-# path — but no graded measurement has ever covered a Python repository, so "it works on
-# Python" has been an assertion about a capability rather than a measurement of one. This
-# rubric is the only Python datapoint in the set.
+# WHY THIS TARGET EXISTS. Every other reference repository is C or C++. The query surface works
+# on Python — doxygen indexes it and the tree-sitter recovery path covers it — but only the
+# richness layers are C/C++-specific, so "it works on Python" has been an assertion about a
+# capability rather than a measurement of one. This is the only Python datapoint in the set.
 #
-# GROUND TRUTH IS SOURCE-DERIVED, WHICH MATTERS MORE HERE THAN ANYWHERE ELSE. The target is
-# this repository, so an index-derived figure would move whenever the pipeline moved and the
-# rubric would silently be grading the tool against itself. Every mark below was verified by
-# reading the source at the pinned commit — the docstrings and code of the modules named,
-# not a query reply.
+# GROUND TRUTH IS SOURCE-DERIVED, WHICH MATTERS MORE HERE THAN ANYWHERE ELSE. The target IS the
+# tool, so an index-derived figure would move whenever the pipeline moved and the rubric would
+# silently grade the tool against its own output. Every mark below was verified by reading the
+# module source at the pinned commit — never a query reply.
 #
-# THE PIN IS LOAD-BEARING AND WILL GO STALE. This repository changes daily, which is exactly
-# why #355 kept it out of the reference set before now. A grid run against a different commit
-# is not comparable to this one; `preflight_target_revision` refuses on a mismatch rather than
-# letting the two drift quietly.
+# THE PIN WILL GO STALE FAST. This repository changes daily. A grid run against a different
+# commit is not comparable to one run against this pin, and `check_revision` refuses on a
+# mismatch rather than letting the two drift quietly. MOVING THE PIN IS ALLOWED ONLY WITH THE
+# DIFF CHECKED: `git diff --stat <old>..<new> -- clew/` must be empty over the modules these
+# marks cite, or the marks must be re-verified.
 #
-# MOVING THE PIN IS ALLOWED ONLY WITH THE DIFF CHECKED. It moved once already, from the commit
-# the marks were read at to the commit that added this file, and that is safe for exactly one
-# reason: `git diff --stat <old>..<new> -- clew/` is EMPTY, so every fact below holds
-# identically at both. A pin advanced without that check is a rubric whose ground truth was
-# verified against code the run will not execute.
-#
-# THE PREDECESSOR IS RETIRED. `questions.md` was an unrun, stale draft explicitly marked in
-# CLAUDE.md as not-a-grading-key. The seven QUESTIONS were good and are kept, re-verified
-# against current behaviour; every MARK is new. Two of the draft's premises had gone stale in
-# ways worth recording: Q1's Doxyfile fallback no longer exists (gh#333 replaced INPUT), and
-# Q6's document-level slip now REFUSES rather than building green.
-#
-# NO COUNTS ARE WRITTEN IN THE FRONT MATTER. `marks` is the list's length.
+# NO MARK GRADES THIS PROJECT'S OWN BUG HISTORY. A rubric must grade the TARGET REPOSITORY —
+# what the code does now — not the sequence of defects that produced it. Where a docstring
+# records why a design was chosen, the mark asks for the DESIGN and its consequence, which is
+# readable from the source, not for the issue number.
+
+# Q3-Q5 were added to reach five questions. THE ONE-FILE HAZARD IS SHARPEST ON THIS TARGET:
+# this repository documents its reasoning in module docstrings, so a question whose answer is
+# one module's docstring cannot discriminate however good the reasoning is. Each of the three
+# is therefore built on a fact that no single file states — the three staleness axes are
+# interpreted, measured, attached, sized and enforced in five different modules; the two
+# neighbour surfaces make OPPOSITE decisions about fuzzy edges with each site documenting only
+# its own; and the precedence rule, its tier-2 source, its tier-1 entry point and its record of
+# what won are four modules of which none holds two.
+
+schema: 1
 
 target: tvanfossen/clew
-commit: d091b1d1860fbf16109a7a01d9350a5aeb388235
-version: 1.0.0
-ground_truth_source: |-
-  THIS REPOSITORY'S OWN SOURCE at the commit above, read directly. Not the index, and not
-  any figure the pipeline reports about itself: the target is the tool, so an index-derived
-  mark would grade the tool against its own output and move whenever the pipeline moved.
+commit: b16379cd8155e3322e7ef1f4aeffb6e432e11528
+version: 3.0.0
+
+ground_truth: |
+  clew's own source at the commit above, read directly. Line numbers were taken from the
+  working tree at that commit with no modifications.
+
+judge:
+  model: claude-sonnet-4-5-20250929
+  samples_when_weight_at_least: 2
 
 questions:
   - id: Q1
-    title: |-
-        What decides which files a build reads?
-    prompt: |-
-        This program hands a file set to an external documentation tool. Something in this codebase decides what that file set is. Find where that decision is made, lay out every input that can influence it and which one wins, and say what happens when a repository states nothing at all.
+    intent: |
+      Probes whether the agent stops at "there is a scope resolver" — one lookup, both arms —
+      or reaches the two design decisions that make the scope what it is: that a Doxyfile's
+      INPUT is deliberately NOT honoured, and that nested git trees are indexed rather than cut
+      out. Both are reversals of the obvious implementation, so an agent that has only located
+      the function will describe the obvious version and be wrong.
+
+    prompt: |
+      When clew indexes a repository, what decides which files end up in the index? Walk
+      through how that decision is made and what happens when nothing has been declared.
+
     marks:
-    - text: |-
-        names `derive_scope` in `clew/scope.py` as where the decision is made
-      symbols: ['derive_scope']
-      refs: [['scope.py']]
-      veto_safe: true
-    - text: |-
-        states that there are exactly TWO outcomes — a declared `index_scope`, or the whole-repository default — rather than describing a longer chain of fallbacks
-      symbols: []
-      refs: []
-    - text: |-
-        identifies the whole-repository tier as the DEFAULT reached whenever no `index_scope` is declared, not as a last resort reached only after other options fail
-      symbols: ['whole_repo_scope']
-      refs: []
-      veto_safe: true
-    - text: |-
-        names `index_scope` as the declaration section that selects the non-default tier
-      symbols: []
-      refs: []
-    - text: |-
-        reports that a declaration can arrive from more than one place — the dedicated `.clew.yaml`, the guard config's `x-` passthrough, or stated by an embedding caller — rather than naming only one
-      symbols: []
-      refs: []
-    - text: |-
-        states that a caller-stated scope reports its provenance differently, as stated by the caller rather than by naming a file, and gives the reason: naming a file that says nothing sends an owner to edit nothing
-      symbols: []
-      refs: []
-    - text: |-
-        **states that a Doxyfile no longer supplies the INPUT** — the doc build is a publishing target, not a reasoning boundary. An answer describing a Doxyfile fallback for INPUT is describing behaviour that was removed
-      symbols: []
-      refs: []
-    - text: |-
-        **states that a Doxyfile is still read for ALIASES and PREDEFINED**, so "the Doxyfile is ignored" is too strong
-      symbols: []
-      refs: []
-      veto_safe: true
-    - text: |-
-        reports that the whole-repo tier subtracts the paths git ignores
-      symbols: []
-      refs: []
-    - text: |-
-        **notices that gitignored paths are gathered on BOTH sides of every nested-tree boundary**, and gives the reason — `git ls-files` stops at a submodule boundary, so the parent sweep reports nothing inside a nested tree
-      symbols: []
-      refs: []
-    - text: |-
-        reports that dot and cache directories are also subtracted, as things no repository restates
-      symbols: []
-      refs: []
-    - text: |-
-        **states that the doxygen-guard gate is NOT consulted for index scope**, and separates the two questions: the gate says what must be DOCUMENTED, the scope says what should be reasoned about
-      symbols: []
-      refs: []
-      veto_safe: true
-    - text: |-
-        states that a nested git tree is INSIDE the whole-repo scope by construction, and that this is the intent rather than an oversight
-      symbols: []
-      refs: []
+      - text: names derive_scope in clew/scope.py as where the decision is resolved
+        type: retrieval
+        weight: 1
+        evidence: |
+          clew/scope.py:187, returning a DerivedScope.
+        refs: [["clew/scope.py", 187, 219]]
+
+      - text: >-
+          states that a repository's own declared index_scope is preferred, and that every
+          failure to find one falls through to indexing the whole repository
+        type: conclusion
+        weight: 3
+        evidence: |
+          derive_scope reads the declaration and returns whole_repo_scope (clew/scope.py:226) on
+          every failure mode — no config, no index_scope section, no declared root that exists.
+        refs: [["clew/scope.py", 187, 219], ["clew/scope.py", 226]]
+
+      - text: >-
+          conveys that the fallback carries a REASON explaining which scope was used and why,
+          so an unstated scope is never silently guessed
+        type: conclusion
+        weight: 2
+        evidence: |
+          whole_repo_scope carries the reason; a rejected declaration is logged as a WARNING as
+          well as returned, because a reason carried only in the payload leaves the log still
+          claiming absence.
+        refs: [["clew/scope.py", 205, 219]]
+
+      - text: >-
+          states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed
+          tree, and explains why — a repository that ships one would get only its documented
+          subset while a repository that ships none gets its whole tree
+        type: conclusion
+        weight: 3
+        evidence: |
+          The Doxyfile fallback was removed from derive_scope. Honouring it made a documentation
+          target stand in for a reasoning boundary, which penalises a repository for documenting
+          itself. The index says what should be REASONED ABOUT; the gate says what must be
+          DOCUMENTED, and coupling them forces a repo to loosen its quality bar to widen its
+          graph.
+        refs: [["clew/scope.py", 193, 198]]
+
+      - text: >-
+          states that nested git trees are INDEXED and tagged rather than excluded from the
+          scope
+        type: conclusion
+        weight: 3
+        evidence: |
+          The containment pass that cut nested trees out of every scope was removed, not
+          bypassed — tagging lives in clew/external.py. A trace that stops at a submodule
+          boundary answers "this call leaves the repo" when it could answer what the call does.
+        refs: [["clew/scope.py", 199, 204]]
+
+      - text: >-
+          conveys that the containment call was REMOVED rather than left in place with its
+          callers dropped
+        type: conclusion
+        weight: 2
+        evidence: |
+          A containment call left in place with its callers removed is a safety property that
+          reads as enforced and is not. Stated explicitly in derive_scope's docstring.
+        refs: [["clew/scope.py", 199, 204]]
 
   - id: Q2
-    title: |-
-        What keeps a foreign codebase out, and what gets through anyway?
-    prompt: |-
-        A repository may contain another repository inside it. Explain what this codebase does about that, how it decides, and where that decision is applied. Then check the decision against the ways a nested repository can actually appear on disk and report what you find.
+    intent: |
+      Probes the difference between "the search returned nothing" and "the search returned
+      nothing AND said how much that is worth". The surface fact is one lookup. The components
+      that matter are why the strong wording is earned per call rather than attached to a
+      result shape, and why exactly one absent-corpus downgrade exists — the second was built
+      and reverted, which is a design conclusion readable from the source and invisible to an
+      agent that only located the function.
+
+    prompt: |
+      A search against a clew index comes back with no rows. How does the reply distinguish
+      "this repository does not contain that" from "I did not look in the place it lives", and
+      how much confidence is each answer entitled to?
+
     marks:
-    - text: |-
-        **states that nested trees are INDEXED AND TAGGED rather than excluded**, and does not describe a containment or exclusion pass as current behaviour
-      symbols: []
-      refs: []
-      veto_safe: true
-    - text: |-
-        gives the reason tagging beat exclusion: a traversal that stops at the boundary can only say a call leaves the repository, when it could say what the call does
-      symbols: []
-      refs: []
-    - text: |-
-        names the test as the presence of a git tree in a directory
-      symbols: ['_holds_git_tree']
-      refs: []
-      veto_safe: true
-    - text: |-
-        **states that the rule is deliberately NOT name-based**, and that `vendor/` or `third_party/` are conventions rather than facts
-      symbols: []
-      refs: []
-      veto_safe: true
-    - text: |-
-        draws the consequence in the other direction: a copied-in third-party file with no git tree of its own is FIRST PARTY, because the repository committed it
-      symbols: []
-      refs: []
-    - text: |-
-        **finds that a submodule's `.git` is a FILE, not a directory** — a pointer written by `git submodule` where a standalone clone has a directory
-      symbols: []
-      refs: []
-      veto_safe: true
-    - text: |-
-        states that the predicate uses an existence test rather than a directory test, so both shapes are caught
-      symbols: []
-      refs: []
-    - text: |-
-        **reports that a directory-only test found nested CLONES while silently missing every SUBMODULE**, and that a plausible non-zero count is what made it look like a working detector
-      symbols: []
-      refs: []
-    - text: |-
-        notices that every unit fixture used a `.git` directory, so the suite was structurally incapable of catching it — the fixture matched the detector rather than the world
-      symbols: []
-      refs: []
-    - text: |-
-        **separates the TWO predicates and says they answer different questions** — one for descent (is there a separate git tree here?), one for ownership (did this repository commit it as a gitlink?)
-      symbols: ['nested_repo_roots', 'dependency_roots']
-      refs: []
-    - text: |-
-        states that ownership is the narrower of the two, a subset of the trees descent finds
-      symbols: []
-      refs: []
-    - text: |-
-        states that the walk is bounded rather than a recursive glob, and gives a reason — descending into a found repository's own object store, or swallowing an unreadable directory
-      symbols: []
-      refs: []
-    - text: |-
-        **reports that an unreadable directory WARNS rather than being skipped silently**, and says why: a swallowed error reads exactly like "no nested repository", which is the answer that lets a foreign codebase in
-      symbols: []
-      refs: []
-    - text: |-
-        states that descent stops at a nested repository once found, and separately that a depth limit also stops it
-      symbols: []
-      refs: []
-    - text: |-
-        states that the root itself never counts as nested, so a root that is a repository does not report itself
-      symbols: []
-      refs: []
+      - text: locates the grading in clew/mcp_server/emptiness.py
+        type: retrieval
+        weight: 1
+        evidence: |
+          The module's whole job. _verdict is at :330.
+        refs: [["clew/mcp_server/emptiness.py", 330, 366]]
+
+      - text: >-
+          states that the strong wording is EARNED PER CALL by querying which corpora the search
+          did not read, rather than being attached to a result shape
+        type: conclusion
+        weight: 3
+        evidence: |
+          _verdict calls unsearched_corpora (clew/query/symbols.py:1760), which asks the database
+          which corpora search did not read and whether any holds this query. "Definitive" is
+          asserted only after that comes back empty.
+        refs: [["clew/mcp_server/emptiness.py", 330, 340], ["clew/query/symbols.py", 1760]]
+
+      - text: >-
+          explains that a single token matching nothing was previously treated as proof of
+          absence, and that this confuses "nothing exists" with "I did not look there"
+        type: conclusion
+        weight: 3
+        evidence: |
+          Stated in _verdict. The distinction is the module's reason for existing.
+        refs: [["clew/mcp_server/emptiness.py", 332, 337]]
+
+      - text: >-
+          states that the downgrades are ORDERED most-specific first, and explains why — a
+          matching row in an unread corpus is a statement about THIS query and outranks
+          statements about the index as a whole
+        type: conclusion
+        weight: 3
+        evidence: |
+          If a typedef matched, saying "rebuild to get file docs" would send the caller to fix
+          the wrong thing.
+        refs: [["clew/mcp_server/emptiness.py", 339, 343]]
+
+      - text: >-
+          conveys that there is exactly ONE absent-corpus downgrade and that keeping it to one is
+          deliberate, because downgrading on every absent layer turns the grading into a blanket
+          hedge
+        type: conclusion
+        weight: 3
+        evidence: |
+          A second downgrade was built and reverted. Most indexes lacking a layer lack it because
+          a hand-built fixture never made one, so downgrading on absence would hedge nearly every
+          reply and spend the strong wording the module exists to earn.
+        refs: [["clew/mcp_server/emptiness.py", 345, 353]]
+
+      - text: >-
+          conveys the general rule the module leaves behind — fix the corpus, not the sentence
+          about the corpus
+        type: conclusion
+        weight: 2
+        evidence: |
+          A wording change that compensates for missing data hedges every honest answer to
+          excuse one dishonest one. The motivating case was fixed upstream in the harvest, after
+          which the query returns rows and never reaches this grading at all.
+        refs: [["clew/mcp_server/emptiness.py", 55, 57]]
+
+      - text: >-
+          distinguishes all three grades an empty reply can receive: definitive for the scope,
+          definitive for a reason that is not absence, and not definitive
+        type: conclusion
+        weight: 3
+        evidence: |
+          The module docstring enumerates exactly three. (1) a single token matched nothing in
+          any corpus, so retrying will not help; (2) the pattern's extension appears in no
+          indexed file at all — certain about the index AND about why, which makes "widen the
+          scope" the next move rather than "give up"; (3) an over-specified conjunction or a
+          corpus this index does not carry, where the reply names the token that emptied it.
+
+          NOT A SET MARK, deliberately. Set members are compared on a normalised key built for
+          paths and identifiers; prose values are fragile under it, since an answer saying
+          "definitive" would not match a member spelled "definitive for the scope". A set mark
+          whose members have no canonical spelling grades phrasing.
+        refs: [["clew/mcp_server/emptiness.py", 31, 37]]
 
   - id: Q3
-    title: |-
-        The configuration it wants is missing, or present and not trusted
-    prompt: |-
-        This program looks for a configuration file belonging to the external tool it drives. Explain everywhere it looks, what it does with files it finds but does not use, and enumerate every distinct outcome the search can produce. For each outcome, say whether the build can continue.
+    intent: |
+      THE TOOL DESCRIBING ITS OWN CURRENCY. "Is the index stale" reads like one boolean, and a
+      single boolean is what the code deliberately does not have — there are three axes, each
+      cleared by a different action, and one of them cannot be cleared by the consumer at all.
+
+      The discriminating shape is that no file holds the whole mechanism. The axes and their
+      remedies are interpreted in one module, measured from a payload produced by another,
+      stamped onto every query reply by a third, sized against a response budget by a fourth,
+      and enforced as a write refusal by a fifth. Reading any one of them yields a coherent and
+      incomplete answer.
+
+      The sharpest component is the read/write asymmetry on the `code` axis. A stale process
+      reads live data — query tools open the database per call — and writes dead logic, so the
+      honest notice has to carry an exemption and a hazard in the same breath, and the refusal
+      is placed where `force` cannot argue past it.
+
+    prompt: |
+      A clew index can be out of date. How does the tool know, what does it tell the caller, and
+      what does the caller do about it?
+
     marks:
-    - text: |-
-        names `discover_doxyfile` as the search
-      symbols: ['discover_doxyfile']
-      refs: [['doxygen.py']]
-      veto_safe: true
-    - text: |-
-        **states that the search matches the NAME `Doxyfile` and only that name**, so a repository whose file is spelled differently is not found
-      symbols: []
-      refs: []
-      veto_safe: true
-    - text: |-
-        gives the search locations as the repository root, then `docs/`, then `doc/`
-      symbols: []
-      refs: []
-      veto_safe: true
-    - text: |-
-        **states that it REFUSES to guess beyond those locations**, rather than describing a wider search
-      symbols: []
-      refs: []
-    - text: |-
-        reports what the earlier wider search cost: it selected a TEST FIXTURE's Doxyfile to index a whole project
-      symbols: []
-      refs: []
-    - text: |-
-        **states the principle that a wrong configuration file is worse than none**, and the reason — none triggers synthesis from the declared scope, while a wrong one produces a well-formed database describing the wrong code
-      symbols: []
-      refs: []
-    - text: |-
-        states that files found but not used are exposed separately rather than adopted or discarded silently
-      symbols: ['rejected_doxyfile_candidates']
-      refs: []
-    - text: |-
-        **enumerates FOUR distinct outcomes**, not two or three
-      symbols: []
-      refs: []
-      veto_safe: true
-    - text: |-
-        identifies the outcome where an explicitly named file does not exist
-      symbols: []
-      refs: []
-    - text: |-
-        identifies the outcome where there is no target repository to search
-      symbols: []
-      refs: []
-    - text: |-
-        identifies the outcome where a repository was searched and genuinely ships none
-      symbols: []
-      refs: []
-    - text: |-
-        identifies the outcome where candidates were found but declined
-      symbols: []
-      refs: []
-    - text: |-
-        **says which outcomes are fatal and which continue: the two REFUSALS are the explicitly-named-but-missing file and the absent target; the other two proceed via synthesis.** An answer treating all four as errors, or all four as survivable, misses the distinction the split exists for
-      symbols: []
-      refs: []
-    - text: |-
-        gives the reason the split is kept explicit — a supported configuration reported as an error costs the reader their next twenty minutes on the wrong hypothesis
-      symbols: []
-      refs: []
-    - text: |-
-        **states that discovery is now a pure query that no longer warns about the strays it declines**, and gives the reason: the same finding reached the user twice, once from discovery and once from the caller
-      symbols: []
-      refs: []
+      - text: >-
+          states that staleness is THREE distinguishable axes rather than one flag, and names
+          them
+        type: retrieval
+        weight: 1
+        evidence: |
+          clew/mcp_server/freshness.py:62-64 declares AXIS_DATA, AXIS_CODE and AXIS_SCHEMA as the
+          stable tokens; the module docstring at :2-21 lays out what each one means.
+        refs:
+          - ["clew/mcp_server/freshness.py", 60, 65]
+
+      - text: >-
+          explains that each axis is cleared by a DIFFERENT action — a rebuild for data, a client
+          restart for code — which is why one flag would not have been enough
+        type: conclusion
+        weight: 3
+        evidence: |
+          freshness.py:2-21. The `data` axis means the database is older than the source and a
+          rebuild clears it; `code` means the running process imported its modules at launch, so
+          only restarting the client clears it. The module exists to turn already-measured fields
+          into the sentence naming the action.
+        refs:
+          - ["clew/mcp_server/freshness.py", 2, 22]
+
+      - text: >-
+          identifies that the schema axis can be UNRESOLVABLE — when the index is newer than the
+          server, no rebuild clears it, because rebuilding re-stamps the same newer version
+        type: conclusion
+        weight: 3
+        evidence: |
+          freshness.py:17-21: build_version against expected_build_version, and when the index is
+          the newer of the two "stale: true is UNRESOLVABLE by any action the consumer can take".
+          This is the axis that changes what advice is correct, and an answer that offers
+          "rebuild" as the universal remedy is wrong here specifically.
+        refs:
+          - ["clew/mcp_server/freshness.py", 16, 22]
+          - ["clew/mcp_server/freshness.py", 288, 292]
+
+      - text: >-
+          states the read/write asymmetry on the code axis: READS stay current because query
+          tools open the database per call, while a BUILD through a stale process writes old
+          pipeline logic
+        type: conclusion
+        weight: 3
+        evidence: |
+          The two halves are written once as constants, freshness.py:69-79 — _READ_EXEMPTION
+          ("query tools open the database per call and read it live") and _WRITE_HAZARD ("can
+          silently DROP WHOLE LAYERS and then report the result as healthy") — precisely so the
+          notice and the refusal cannot drift apart.
+
+          Stating only the read exemption is the failure this wording exists to prevent: it tells
+          a reader not to worry immediately before the case that matters.
+        refs:
+          - ["clew/mcp_server/freshness.py", 66, 80]
+          - ["clew/mcp_server/freshness.py", 24, 41]
+
+      - text: >-
+          identifies that the write path REFUSES rather than warning, and that the refusal is
+          placed ahead of the build decision so a force flag cannot override it
+        type: conclusion
+        weight: 3
+        evidence: |
+          clew/mcp_server/server.py:1113-1118: `stale_code_refusal(identity)` is consulted after
+          target resolution and before the build lock is taken, returning
+          `{"ok": False, "error": refusal}`. The docstring at :1080-1086 states the placement
+          rationale — after target resolution so a missing target keeps its own answer,
+          immediately before the lock so nothing can be written past it.
+
+          The refusal's wording lives in freshness.stale_code_refusal (:370), not at the call
+          site, which is what keeps it identical to the notice.
+        refs:
+          - ["clew/mcp_server/server.py", 1078, 1119]
+          - ["clew/mcp_server/freshness.py", 368, 372]
+
+      - text: >-
+          states that the annotation RIDES ON EVERY QUERY REPLY rather than waiting to be asked
+          for, and that it is empty on a current tool
+        type: conclusion
+        weight: 3
+        evidence: |
+          clew/mcp_server/server.py:549-571 supplies the notices; clew/mcp_server/tools_query.py
+          :1583-1605 attaches them on the way out of each reply. `notices` (freshness.py:412-431)
+          returns only the axes actually in play, and its docstring names the empty case as the
+          load-bearing half: "a warning that is always present is a warning nobody reads".
+
+          A status call reports the same facts, but reading it requires already suspecting a
+          problem — which a consumer holding a fresh-looking answer does not have. That is the
+          design decision the question is asking for.
+        refs:
+          - ["clew/mcp_server/server.py", 549, 572]
+          - ["clew/mcp_server/freshness.py", 410, 431]
+
+      - text: >-
+          identifies that measuring staleness NEVER raises — a failed measurement degrades to no
+          annotation rather than turning a successful reply into an error
+        type: conclusion
+        weight: 2
+        evidence: |
+          server.py:565-571 wraps the measurement in a bare `except Exception` that logs at debug
+          and returns an empty list; tools_query.py:1600-1605 returns [] when no provider is
+          bound. Both docstrings state the contract in the same words, because the function runs
+          on the way out of replies that already succeeded.
+        refs:
+          - ["clew/mcp_server/server.py", 555, 572]
+          - ["clew/mcp_server/tools_query.py", 1586, 1605]
+
+      - text: >-
+          states that a routed reply is annotated for the repository it actually read, not for
+          the server's default target
+        type: conclusion
+        weight: 2
+        evidence: |
+          tools_query.py:1600-1602 takes `answering.staleness` when a target was routed and falls
+          back to the provider only otherwise. The docstring gives the reason: a warning about a
+          database this reply never opened is worse than silence, because the caller would act
+          on it.
+        refs:
+          - ["clew/mcp_server/tools_query.py", 1590, 1605]
+
+      - text: >-
+          identifies that the annotation is fitted to the response budget by degrading its
+          wording rather than by dropping the warning
+        type: conclusion
+        weight: 2
+        evidence: |
+          tools_query.py:152-187. `_staleness_within_budget` measures the room the real payload
+          left, then takes the first of three tiers that fits: full prose, a compact per-axis
+          message (:139-142), and a minimal one (:143). The docstring gives the reason for
+          compacting rather than dropping — a warning that disappears exactly when the answer is
+          largest inverts the point.
+        refs:
+          - ["clew/mcp_server/tools_query.py", 137, 188]
+
+      - text: the modules a staleness warning passes through
+        type: set
+        weight: 1
+        extract: |
+          List every file path the answer names as taking part in measuring staleness, wording
+          it, attaching it to a reply, or acting on it. Paths only, one per line, exactly as the
+          answer writes them. If the answer names none, reply NONE.
+        members:
+          - value: clew/mcp_server/freshness.py
+            evidence: "the axes, their messages, and the write refusal's wording"
+          - value: clew/mcp_server/server.py
+            evidence: ":549-571 supplies the notices, :1113-1118 refuses a stale build"
+          - value: clew/mcp_server/tools_query.py
+            evidence: ":1583-1605 attaches them, :152-187 sizes them"
+          - value: clew/mcp_server/state.py
+            evidence: "db_status, the measured payload the data and schema axes read"
 
   - id: Q4
-    title: |-
-        A declaration and a command-line flag disagree
-    prompt: |-
-        Several of this program's settings can be supplied in more than one way at once — on the command line, in the target repository's own declaration, and from things the program works out for itself. Find the rule that combines them and explain it precisely enough that someone could predict the outcome for a setting you have not looked at. Then say what an empty value on the command line means.
+    intent: |
+      ONE STORED ROW SHAPE, TWO SURFACES THAT READ IT DIFFERENTLY ON PURPOSE. `call_edges`
+      stores one row per extraction LAYER — the uniqueness constraint makes `source` part of the
+      key — so the same logical edge found by two detectors is two rows. Neither surface returns
+      those rows as stored, and they diverge on two separate decisions, each documented at its
+      own site and neither documented at both.
+
+      The question cannot be answered from the storage module, which knows nothing about
+      collapsing; nor from either query surface, since each states its own choice and names the
+      other only in passing; nor from the vocabulary, which holds the ranking that decides the
+      collapse but nothing about who applies it.
+
+      The trap is treating a neighbour list as a list of calls. It is not — `callers` merges
+      shared-key dataflow into the same list, tagged by a field the caller has to read, and a
+      dataflow neighbour does not call the function and may run on another thread.
+
+    prompt: |
+      clew can tell you what calls a function. What is actually in that answer, and what would
+      make it wrong to read it as a list of call sites?
+
     marks:
-    - text: |-
-        states the precedence as an ordered rule with the caller's explicit statement at the top and the built-in defaults at the bottom
-      symbols: []
-      refs: []
-    - text: |-
-        names the target's own declaration file as the tier between them
-      symbols: []
-      refs: []
-    - text: |-
-        **states the naming rule that makes the answer predictable for an unexamined setting: the option name IS the declaration section name**
-      symbols: []
-      refs: []
-      veto_safe: true
-    - text: |-
-        **names the one documented exception to that rule** — a bare macro list kept as an alias for the fuller section form
-      symbols: []
-      refs: []
-    - text: |-
-        states that the exception is asymmetric in a specific way: the section form can express something the alias cannot
-      symbols: []
-      refs: []
-    - text: |-
-        reports that the correspondence is asserted by a test in both directions, so a new section arrives with an option or breaks the test
-      symbols: []
-      refs: []
-    - text: |-
-        **states the THREE-STATE rule for a per-option value: absent INHERITS, empty WITHDRAWS, non-empty REPLACES.** An answer giving only two states, or saying an empty value changes nothing, has missed the distinction the design exists for
-      symbols: []
-      refs: []
-      veto_safe: true
-    - text: |-
-        **separates that from the OPTIONS MAPPING as a whole**, where passing nothing or an empty mapping does change nothing and is not an error — so a caller forwarding its own optional argument inherits by default
-      symbols: []
-      refs: []
-    - text: |-
-        **states that validation happens for every option BEFORE any is assigned**, so one bad entry leaves the namespace untouched
-      symbols: ['apply_options']
-      refs: []
-    - text: |-
-        gives the reason a partial application would be worse than a refusal — it would build with a mixture of what the caller asked for and what they did not, and report success
-      symbols: []
-      refs: []
-    - text: |-
-        **states that an unrecognised option is REFUSED BY NAME rather than ignored**
-      symbols: []
-      refs: []
-      veto_safe: true
-    - text: |-
-        distinguishes settings that are facts about ONE RUN from settings that are standing properties of the repository, and states that only the latter get a declaration section
-      symbols: []
-      refs: []
-    - text: |-
-        names at least one setting deliberately kept out of the declaration on those grounds
-      symbols: []
-      refs: []
+      - text: >-
+          states that call_edges stores one row per extraction LAYER, so the same logical edge
+          found by two detectors is stored twice
+        type: retrieval
+        weight: 1
+        evidence: |
+          clew/call_edges.py:126 declares `UNIQUE(caller_rowid, callee_rowid, source)`, which
+          makes the producing layer part of the key.
+        refs:
+          - ["clew/call_edges.py", 120, 130]
+
+      - text: >-
+          concludes that the query surface returns ONE row per neighbour rather than one per
+          layer, collapsing the variants to the strongest evidence
+        type: conclusion
+        weight: 3
+        evidence: |
+          clew/query/symbols.py:425-426 groups endpoint rows by identity and calls
+          `_collapse_variants`, whose docstring (:279-301) records the measurement that forced it:
+          520 rows for 260 distinct pairs on clew's own index — every neighbour list inflated
+          exactly 2x, and every depth cap truncating half as many real edges as intended.
+
+          The consequence worth stating is the direction: corroboration by two layers made an
+          edge appear TWICE, so it looked like more evidence and was actually the same evidence
+          counted twice.
+        refs:
+          - ["clew/query/symbols.py", 277, 302]
+          - ["clew/query/symbols.py", 418, 427]
+
+      - text: >-
+          identifies that which layer's provenance a collapsed row reports is decided by a
+          RANKING held in the vocabulary module, not by SQL
+        type: conclusion
+        weight: 3
+        evidence: |
+          `_collapse_variants` is `max(variants, key=_variant_rank)`; the ranks live on
+          clew/vocabulary.py:216-253 as CALL_SOURCE's `rank` map. The comment at :418-419 states
+          why the grouping is in Python — "the collapse rule is a ranking over a vocabulary, not
+          something SQL should encode".
+
+          The ranking itself is not the obvious one: a DECLARED dispatch edge outranks doxygen's
+          own exact cross-reference, because the others are inferences graded by how well a name
+          resolved while a declared edge is a statement of fact by whoever wrote the indirection.
+        refs:
+          - ["clew/vocabulary.py", 216, 253]
+
+      - text: >-
+          states that the same collapse function serves BOTH the flat neighbour surface and the
+          traversal surface, so a chain and a neighbour list cannot disagree about one edge's
+          provenance
+        type: conclusion
+        weight: 2
+        evidence: |
+          clew/query/symbols.py:279-285 gives the reason directly, and
+          clew/query/traversal.py:132 calls back into `symbols._collapse_variants`. On the
+          traversal side it was never an inflation bug but a DETERMINISM one: the hop dedup keeps
+          the first row it sees and the query ordered only by neighbour name, so which layer's
+          source a hop reported depended on SQLite's row order.
+        refs:
+          - ["clew/query/symbols.py", 279, 286]
+          - ["clew/query/traversal.py", 124, 138]
+
+      - text: >-
+          identifies that the flat surface KEEPS fuzzy-confidence edges while the traversal
+          surface excludes them, and gives the reason — a walk expands each hop, so one fuzzy
+          edge multiplies into a wrong subtree
+        type: conclusion
+        weight: 3
+        evidence: |
+          clew/query/traversal.py:148 appends `AND e.confidence!='fuzzy'`;
+          clew/query/symbols.py:358-368 states that `_direct_call_edges` deliberately does not,
+          because a flat list has no amplification and the tool descriptions instruct a consumer
+          to weigh `confidence` — filtering would make that field reference a value that can
+          never appear.
+
+          The scale argument is in the same docstring: fuzzy is 21.3% of this repository's own
+          call edges and 79.8% of entropic's (26,101 of 32,720), so filtering on a C++ target
+          would discard three quarters of the graph.
+
+          Two files, opposite decisions, one shared reason. Each site documents its own choice;
+          neither documents both.
+        refs:
+          - ["clew/query/symbols.py", 353, 372]
+          - ["clew/query/traversal.py", 124, 150]
+
+      - text: >-
+          concludes that `callers`/`callees` return TWO KINDS of neighbour in one list —
+          direct calls and shared-key dataflow — distinguished by an `edge_class` field the
+          consumer must read
+        type: conclusion
+        weight: 3
+        evidence: |
+          clew/query/symbols.py:716-731 and :738-753. Both docstrings say it outright: a `'key'`
+          neighbour does NOT call the function, and may run on another thread.
+
+          This is the component that makes reading the reply as a list of call sites wrong, and
+          it is not visible from the storage layer at all — the dataflow half comes from a
+          different table and is merged at :704-707.
+        refs:
+          - ["clew/query/symbols.py", 714, 754]
+          - ["clew/query/symbols.py", 700, 708]
+
+      - text: >-
+          notes that the causal polarity is INVERTED between the two halves — the "callers" of a
+          reader are the functions whose writes it observes
+        type: conclusion
+        weight: 2
+        evidence: |
+          clew/query/symbols.py:680-683: `want_callers=True ⟺ as_writer=False`, stated as the
+          causal analogue rather than a typo. A reader who assumes the two halves share a
+          direction flag has the dataflow half backwards.
+        refs:
+          - ["clew/query/symbols.py", 676, 690]
+
+      - text: >-
+          states that dossier does NOT take the merged form — it asks for the call half only,
+          because it already composes the dataflow separately and merging would report each
+          dataflow edge twice in one payload
+        type: conclusion
+        weight: 3
+        evidence: |
+          clew/query/dossier.py:526-527 calls `_call_edges` without `include_dataflow`, which
+          defaults to False; clew/query/symbols.py:684-686 gives the reason.
+
+          Three files are needed for this one: the default lives in symbols, the reason lives in
+          symbols' docstring, and the fact that dossier relies on the default is only visible at
+          dossier's call site — which passes nothing, so a reader scanning for the flag finds no
+          mention of it there at all.
+        refs:
+          - ["clew/query/dossier.py", 520, 530]
+          - ["clew/query/symbols.py", 681, 690]
+
+      - text: >-
+          identifies that the two surfaces resolve the FOCAL side differently — the flat surface
+          selects by resolved identity while the traversal surface still matches on the bare name
+        type: conclusion
+        weight: 3
+        evidence: |
+          clew/query/symbols.py:398-405 comments that filtering by name unioned every same-named
+          function's edges onto whichever one was described, and :406 resolves
+          `identity_rowids(conn, fn, qualified)` instead. clew/query/traversal.py:148 still reads
+          `WHERE {focal}.name=?`.
+
+          The asymmetry is real and neither file states it about the other. An answer that
+          reports "edges are resolved by identity" without qualifying which surface has
+          generalised from one of the two.
+        refs:
+          - ["clew/query/symbols.py", 394, 410]
+          - ["clew/query/traversal.py", 144, 150]
+
+      - text: the modules that decide what a neighbour list contains
+        type: set
+        weight: 1
+        extract: |
+          List every file path the answer names as taking part in storing call edges, collapsing
+          them, filtering them, or deciding what a neighbour reply contains. Paths only, one per
+          line, exactly as the answer writes them. If the answer names none, reply NONE.
+        members:
+          - value: clew/call_edges.py
+            evidence: "the table and its per-layer uniqueness constraint"
+          - value: clew/query/symbols.py
+            evidence: "the collapse, the fuzzy decision, the dataflow merge"
+          - value: clew/query/traversal.py
+            evidence: "the other surface, with the opposite fuzzy decision"
+          - value: clew/vocabulary.py
+            evidence: "the source ranking the collapse compares"
+          - value: clew/query/dossier.py
+            evidence: ":526-527, the caller that takes the call half only"
 
   - id: Q5
-    title: |-
-        One module owns every enumerated value
-    prompt: |-
-        The values allowed in this program's enumerated fields are defined in exactly one place. Find it, explain how the rest of the codebase is kept from restating them, and say what its dependencies are and why. Then explain what would break if someone merged two of its entries that look identical.
-    marks:
-    - text: |-
-        names `clew/vocabulary.py` as the single source
-      symbols: []
-      refs: [['vocabulary.py']]
-      veto_safe: true
-    - text: |-
-        **states that the database's constraint clauses are GENERATED from it rather than written alongside it**
-      symbols: []
-      refs: []
-      veto_safe: true
-    - text: |-
-        gives the checkable consequence: a search for constraint clauses across the package matches only that one file
-      symbols: []
-      refs: []
-    - text: |-
-        names the method that renders a vocabulary into a constraint clause
-      symbols: []
-      refs: []
-    - text: |-
-        **states that the clause is built by explicit quoting and joining rather than by formatting a Python tuple**
-      symbols: []
-      refs: []
-    - text: |-
-        gives the first reason: a one-element tuple's representation carries a trailing comma the database rejects
-      symbols: []
-      refs: []
-    - text: |-
-        gives the second reason: Python's quoting rules are not the database's, so a value containing an apostrophe would be quoted in a way the database reads as an identifier
-      symbols: []
-      refs: []
-    - text: |-
-        states that an apostrophe inside a value is escaped by doubling it
-      symbols: []
-      refs: []
-    - text: |-
-        **reports that the module is a true LEAF — it imports only from the standard library and nothing from within the package**
-      symbols: []
-      refs: []
-      veto_safe: true
-    - text: |-
-        names its standard-library imports as dataclasses and pathlib
-      symbols: []
-      refs: []
-    - text: |-
-        gives the reason leafness matters: a vocabulary imported by the schema must not import anything that imports the schema
-      symbols: []
-      refs: []
-    - text: |-
-        **states that a vocabulary carries meaning as well as values** — each one holds a human-readable account of what the values mean, so a consumer reading a row is not left to infer it
-      symbols: []
-      refs: []
-    - text: |-
-        **answers the merge question with a consequence beyond the schema**: two entries that look identical are distinguished somewhere that reads them, so merging them silently reclassifies existing rows rather than merely shortening a list
-      symbols: []
-      refs: []
+    intent: |
+      A PRECEDENCE QUESTION WHOSE RULE IS ASYMMETRIC, which is the part an answer most often
+      gets wrong by assuming precedence means "the highest tier wins". Two of the five layers
+      accumulate and cannot be displaced by anything; three replace each other. So a stated
+      value corrects a guess and never removes a discovered fact.
 
-  - id: Q6
-    title: |-
-        A mis-spelled key in a manifest
-    prompt: |-
-        A colleague writes one of the YAML manifests this program reads and mistypes a key — the wrong singular or plural, say. Walk through exactly what happens, at every level of the file where a key can appear. Then confirm what happens to a correctly written one, and say how that differs from a file that is not valid YAML at all.
-    marks:
-    - text: |-
-        **states that a misspelled SECTION name in the declaration file is REFUSED**, with an error rather than a warning
-      symbols: ['DeclarationError']
-      refs: []
-      veto_safe: true
-    - text: |-
-        states that the refusal names the offending key
-      symbols: []
-      refs: []
-    - text: |-
-        states that the refusal also names the allowed set, so the fix does not require reading the source
-      symbols: ['KNOWN_SECTIONS']
-      refs: []
-    - text: |-
-        **gives the reason a misspelled section is treated more harshly than a broken file: it PARSES, so degrading would run on built-in defaults while reporting that the declaration was honoured**
-      symbols: []
-      refs: []
-    - text: |-
-        **states that unparseable YAML is treated as ABSENT with a warning, and that the build CONTINUES on defaults**
-      symbols: []
-      refs: []
-      veto_safe: true
-    - text: |-
-        gives the reason for the asymmetry: an unparseable file is an accident with nothing recoverable in it, while a misspelled key is a document whose author plainly intended something
-      symbols: []
-      refs: []
-    - text: |-
-        **states that an absent declaration is the NORM rather than an error**, and that most repositories run entirely on built-in defaults
-      symbols: []
-      refs: []
-      veto_safe: true
-    - text: |-
-        **distinguishes the ENTRY level from the SECTION level, and reports that the two are not guarded to the same depth by the file path** — a slip inside a section is quieter than a slip in a section name
-      symbols: []
-      refs: []
-    - text: |-
-        **finds that the caller-stated options path DOES validate entry keys and refuses unknown ones**, so the same typo behaves differently depending on which route it arrives by
-      symbols: ['_checked_entry']
-      refs: []
-    - text: |-
-        states why an entry-level slip is the more dangerous kind: it parses to a valid mapping that no consumer reads, so nothing signals it
-      symbols: []
-      refs: []
-    - text: |-
-        confirms the correctly-written case positively: a recognised section is read and its source path is recorded, rather than merely "nothing bad happens"
-      symbols: []
-      refs: []
-    - text: |-
-        **reports that a declaration may live in two places and that the dedicated file WINS when both exist**, rather than the two being merged
-      symbols: []
-      refs: []
-      veto_safe: true
-    - text: |-
-        states that the passthrough location is read only when the dedicated file is absent
-      symbols: []
-      refs: []
-    - text: |-
-        states that the source path travels with the parsed data, and gives the reason — an error that names a file which need not exist sends an owner to edit nothing
-      symbols: []
-      refs: []
+      Four modules hold four different pieces and none holds two: the combination rule and the
+      tier tokens; the tier-2 source with its section vocabulary; the tier-1 entry point with
+      the same vocabulary spelled as option names; and the record of which tier actually won,
+      derived from the stored rows rather than stamped beside them.
 
-  - id: Q7
-    title: |-
-        How does it avoid redoing work, and what makes it decide it must?
-    prompt: |-
-        Re-running this program on a repository that has barely changed should not repeat all of the work. Explain how that is achieved, where the state that makes it possible is kept and why it is kept there, and enumerate everything that can make previously done work count as no longer usable. Then say what is NOT made incremental.
+      The two refusals are the second half. A misspelled SECTION is refused by name against the
+      allowed set; a misspelled ENTRY inside a well-named section is the quieter failure, and a
+      correctly-spelled but derived key is refused with the REASON rather than as unknown —
+      because "unknown option" sends a reader hunting a typo that is not there.
+
+    prompt: |
+      A repository wants clew to index it differently from the defaults. What are the ways to
+      say so, and what happens when two of them disagree?
+
     marks:
-    - text: |-
-        **states that the main database is rebuilt from scratch on every run**, so it cannot itself hold the incrementality state
-      symbols: []
-      refs: []
-      veto_safe: true
-    - text: |-
-        states that the state therefore lives in a SIDECAR database beside the output
-      symbols: []
-      refs: [['indexcache.py']]
-    - text: |-
-        **enumerates THREE tables in the sidecar**, not one or two
-      symbols: []
-      refs: []
-      veto_safe: true
-    - text: |-
-        identifies the per-file identity table
-      symbols: []
-      refs: []
-    - text: |-
-        identifies the per-file extraction payload table
-      symbols: []
-      refs: []
-    - text: |-
-        identifies the table holding the external tool's own output keyed by tree
-      symbols: []
-      refs: []
-    - text: |-
-        **states that size and modification time are only a PREFILTER and the content hash is the authority**
-      symbols: []
-      refs: []
-      veto_safe: true
-    - text: |-
-        **draws the consequence: touching a file without editing it stays a cache HIT**
-      symbols: []
-      refs: []
-    - text: |-
-        draws the second consequence: a branch checkout that restores identical content also stays a hit
-      symbols: []
-      refs: []
-    - text: |-
-        **states that cached extraction payloads hold no database row identifiers**, and gives the reason — the external tool's row identifiers are not stable across runs, so they are re-resolved on every build
-      symbols: []
-      refs: []
-    - text: |-
-        **states the invalidation stance as deliberately trigger-happy — when in doubt, MISS** — and gives the asymmetry behind it: a false miss costs time, a false hit ships a wrong database
-      symbols: []
-      refs: []
-    - text: |-
-        names the global build version as an invalidator that wipes the whole cache
-      symbols: ['CLEW_BUILD_VERSION']
-      refs: []
-      veto_safe: true
-    - text: |-
-        names per-stage versioning as a narrower invalidator, so one stage's change does not wipe the others
-      symbols: []
-      refs: []
-    - text: |-
-        **names the content of the declared manifests as a third invalidator**, folded into the affected stage's key so changing a declaration invalidates only what read it
-      symbols: []
-      refs: []
-    - text: |-
-        **answers the NOT-incremental half: the external documentation tool's own run cannot be made incremental**, so it is skipped wholesale on an unchanged tree rather than partially repeated
-      symbols: []
-      refs: []
-    - text: |-
-        **reports that the tree-keyed row carries a hash of the output as well as the path**, and gives the reason — every key names the same output path, so trusting the path alone produced a false hit
-      symbols: ['output_sha']
-      refs: []
+      - text: >-
+          identifies that layered build options resolve through FIVE named precedence tiers,
+          rather than a single override
+        type: retrieval
+        weight: 1
+        evidence: |
+          clew/tiers.py:60-72 declares explicit, declared, target-fact, ecosystem and heuristic;
+          the table at :8-16 gives each one's source.
+        refs:
+          - ["clew/tiers.py", 2, 20]
+          - ["clew/tiers.py", 58, 73]
+
+      - text: >-
+          concludes that the rule is ASYMMETRIC — the stated tiers REPLACE one another while the
+          discovered layers ACCUMULATE and survive whatever anyone states
+        type: conclusion
+        weight: 3
+        evidence: |
+          clew/tiers.py:5-6 states the combination as
+          `resolved = (tier1 or tier2 or tier5) union tier3 union tier4`, glossed as "you can
+          correct our guesses; you cannot un-discover a fact". `resolve_layered` at :330-338
+          implements exactly that: `_ordered_unique((*facts, *ecosystem, *stated))`.
+
+          The consequence is the point of the design: an operator stating an entry pattern
+          cannot drop a discovered entry point, so reachability cannot collapse because someone
+          passed a flag.
+        refs:
+          - ["clew/tiers.py", 2, 24]
+          - ["clew/tiers.py", 328, 340]
+
+      - text: >-
+          states that tiers 3 and 4 combine IDENTICALLY, so the distinction between them is
+          deliberately inert, and that the load-bearing line is fact-versus-guess
+        type: conclusion
+        weight: 3
+        evidence: |
+          clew/tiers.py:25-32 says so directly: both accumulate and both survive every stated
+          tier, so an arguable 3-vs-4 call changes the label a reader sees and nothing about the
+          resolved set. The distinction that matters is 3-or-4 versus 5 — "calling a fact a guess
+          makes it discardable, and calling a guess a fact makes it permanent".
+
+          An answer that presents five strictly-ordered tiers has described a rule the code does
+          not implement.
+        refs:
+          - ["clew/tiers.py", 24, 33]
+
+      - text: >-
+          identifies `.clew.yaml` as the repository's own standing declaration — tier 2,
+          discovered from the repo root by BOTH entry points rather than plumbed per section
+        type: conclusion
+        weight: 3
+        evidence: |
+          clew/declaration.py:2-19: one discovery path rather than two, both entry points already
+          supplying the repo root. The filename constant is at :65, and :22-36 shows each section
+          holding exactly what the corresponding standalone manifest holds so there is one format
+          to learn.
+
+          The reason it is a repo-level file rather than a flag is stated at :36-38 — the file is
+          the repo's standing statement and a flag is a deliberate one-off override.
+        refs:
+          - ["clew/declaration.py", 2, 40]
+
+      - text: >-
+          states that tier 1 is reachable from BOTH entry points — a CLI flag and a structured
+          options argument — so an embedding caller with no shell can still state the top tier
+        type: conclusion
+        weight: 3
+        evidence: |
+          clew/buildoptions.py:2-9 exists for that caller, and its docstring names the failure a
+          CLI-only top tier produces: "a five-tier precedence rule whose top tier no consumer can
+          reach makes tier 5 the ceiling rather than the floor".
+
+          This is not visible from tiers.py, which defines the rule and knows nothing about who
+          can reach which tier.
+        refs:
+          - ["clew/buildoptions.py", 1, 16]
+
+      - text: >-
+          notes that the option names an embedding caller states are the SAME WORDS as the
+          declaration file's section names, and the same words the diagnostics use
+        type: conclusion
+        weight: 2
+        evidence: |
+          clew/buildoptions.py:10-14: an operator who learns a key here has learned the key they
+          would write into `.clew.yaml`, and the diagnostics name what the build could not see in
+          that same vocabulary. Deliberate: the tool says what it missed in the words you answer
+          in.
+        refs:
+          - ["clew/buildoptions.py", 10, 20]
+
+      - text: >-
+          identifies that an unknown SECTION is refused by name against the allowed set rather
+          than ignored, and gives the reason — an ignored section builds with defaults while
+          reporting the declaration was honoured
+        type: conclusion
+        weight: 3
+        evidence: |
+          clew/declaration.py:327-335 raises with the offending key, the file path it came from,
+          and the full allowed set from KNOWN_SECTIONS (:234). The message states the failure it
+          prevents in those words.
+        refs:
+          - ["clew/declaration.py", 325, 337]
+
+      - text: >-
+          identifies a SECOND refusal one level down — an unknown key INSIDE a well-named section
+          — and that a correctly-spelled derived key is refused with its reason rather than as
+          unknown
+        type: conclusion
+        weight: 3
+        evidence: |
+          clew/buildoptions.py:101-112 states the two levels explicitly, matching
+          declaration.KNOWN_SECTIONS above them. `_refuse` at :383-395 branches: a derived key
+          gets "cannot be stated: <why>", anything else gets "unknown build option — accepted:
+          ...". The comment at :385-388 gives the reason — naming a correctly-spelled derived key
+          "unknown" sends the reader hunting a typo that is not there.
+
+          The entry level is the quieter of the two: a misspelled entry parses into a valid
+          mapping that no consumer reads, so nothing raises and nothing applies.
+        refs:
+          - ["clew/buildoptions.py", 99, 115]
+          - ["clew/buildoptions.py", 378, 396]
+
+      - text: >-
+          states that the winning tier is RECORDED with the index, and that the record is derived
+          from the stored rows rather than stamped as a separate summary
+        type: conclusion
+        weight: 2
+        evidence: |
+          clew/tiers.py:540-565. `stated_options` scans the stored section for keys whose tier
+          value is the explicit token, and its docstring gives the reason for deriving rather
+          than storing: "a stored summary is a second source of truth that can disagree with the
+          rows it summarises, which is exactly where a silent wrong answer hides".
+
+          It also names what the record is FOR — a replayed statement makes the index a function
+          of what an operator once said as well as of the commit, so two operators of one commit
+          can hold different indexes, acceptable only because it is recorded.
+        refs:
+          - ["clew/tiers.py", 538, 566]
+
+      - text: the modules that decide a build option's value
+        type: set
+        weight: 1
+        extract: |
+          List every file path the answer names as taking part in stating, discovering, combining
+          or recording a build option. Paths only, one per line, exactly as the answer writes
+          them. If the answer names none, reply NONE.
+        members:
+          - value: clew/tiers.py
+            evidence: "the tier tokens, the combination rule, and the record of what won"
+          - value: clew/declaration.py
+            evidence: "tier 2, its section vocabulary and the unknown-section refusal"
+          - value: clew/buildoptions.py
+            evidence: "tier 1 for an embedding caller, and the entry-level refusals"

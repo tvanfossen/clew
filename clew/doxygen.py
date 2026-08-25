@@ -14,11 +14,12 @@ that to actually open files).
 
 from __future__ import annotations
 
+import fnmatch
 import shutil
 import sqlite3
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from ._common import active_console, clean_subprocess_env, logger, make_progress
 from .errors import DoxygenUnavailableError
@@ -36,6 +37,68 @@ _DOXYFILE_FORCED_FLAGS = (
     "EXTRACT_STATIC = YES\n"
     "EXTRACT_ANON_NSPACES = YES\n"
     "RECURSIVE = YES\n"
+    ## NO FILTER MAY EVER RUN. `INPUT_FILTER` and `FILTER_PATTERNS` values are COMMANDS
+    ## doxygen executes over each input file, and the target's OWN Doxyfile is read and
+    ## honoured — so without these three lines any indexed repository can obtain arbitrary
+    ## command execution as the developer by simply DECLARING a filter, no injection and no
+    ## cleverness required. clew indexes untrusted third-party code, which makes that a
+    ## remote-ish code execution primitive reachable by cloning.
+    ##
+    ## Forced HERE because this block is concatenated AFTER the repo's Doxyfile, and doxygen
+    ## takes the LAST assignment. It is not sufficient on its own: `extra_input` is appended
+    ## after this block, so a path that injects its own directive still wins — see
+    ## `_reject_uninlineable` for that half.
+    "INPUT_FILTER =\n"
+    "FILTER_PATTERNS =\n"
+    "FILTER_SOURCE_FILES = NO\n"
+    ## EVERY REMAINING COMMAND-VALUED OPTION, enumerated from `doxygen -g`'s own template
+    ## rather than from memory. The first version of this block forced the three above and
+    ## declared the hostile-Doxyfile path closed; `QHG_LOCATION` executed anyway, because
+    ## doxygen runs qhelpgenerator and `HTML_EXTRA_FILES` copies a repo file into the output
+    ## tree with its exec bit intact to supply the path. Verified against 1.9.8.
+    ## `FILE_VERSION_FILTER` is the other one nobody had noticed: a command run per file.
+    "FILTER_SOURCE_PATTERNS =\n"
+    "FILE_VERSION_FILTER =\n"
+    "HHC_LOCATION =\n"
+    "QHG_LOCATION =\n"
+    "LATEX_CMD_NAME =\n"
+    "MAKEINDEX_CMD_NAME =\n"
+    "LATEX_MAKEINDEX_CMD =\n"
+    "DOT_PATH =\n"
+    "DIA_PATH =\n"
+    "MSCGEN_TOOL =\n"
+    ## EVERY GENERATOR clew does not consume. It reads the sqlite3 database and nothing else —
+    ## there is no XML, HTML or LaTeX reader anywhere in `clew/`, so the `cli.py` docstring's
+    ## "SQLite + XML" is stale. Each of these carries its own file-and-command surface, and
+    ## turning them off removes that surface wholesale instead of key by key. It also makes
+    ## builds cheaper, which is a side effect rather than the reason.
+    "GENERATE_HTML = NO\n"
+    "HTML_EXTRA_FILES =\n"
+    "HTML_EXTRA_STYLESHEET =\n"
+    "HTML_HEADER =\n"
+    "HTML_FOOTER =\n"
+    "HTML_STYLESHEET =\n"
+    "GENERATE_LATEX = NO\n"
+    "LATEX_HEADER =\n"
+    "LATEX_FOOTER =\n"
+    "LATEX_EXTRA_FILES =\n"
+    "GENERATE_MAN = NO\n"
+    "GENERATE_RTF = NO\n"
+    "GENERATE_XML = NO\n"
+    "GENERATE_DOCBOOK = NO\n"
+    "GENERATE_AUTOGEN_DEF = NO\n"
+    "GENERATE_PERLMOD = NO\n"
+    "GENERATE_QHP = NO\n"
+    "GENERATE_HTMLHELP = NO\n"
+    "GENERATE_ECLIPSEHELP = NO\n"
+    "GENERATE_DOCSET = NO\n"
+    ## Read-external-file options. Lower severity than a command, but a repo choosing what
+    ## clew reads is still a repo influencing the build.
+    "LAYOUT_FILE =\n"
+    "CITE_BIB_FILES =\n"
+    "TAGFILES =\n"
+    "GENERATE_TAGFILE =\n"
+    "CLANG_DATABASE_PATH =\n"
 )
 
 _DOXY_PHASE_PREFIXES = ("Generating ", "Building ", "Finished", "Running ")
@@ -152,6 +215,60 @@ def effective_file_patterns(doxyfile: Path) -> list[str]:
     @version 2
     """
     return list(DOXYGEN_DEFAULT_FILE_PATTERNS)
+
+
+## @brief Restrict a file list to what a doxygen run over the roots would actually index.
+## @param paths Repo-relative candidate paths.
+## @param doxyfile The Doxyfile the build is based on.
+## @param honor_exclude_patterns True when the whole-tree run keeps the Doxyfile's
+##                              EXCLUDE_PATTERNS, i.e. when it does not replace INPUT.
+## @return The subset a directory-driven run would have picked up, in order.
+## @version 1
+## @req REQ-DDB-INDEX-002
+def in_doxygen_scope(paths: list[str], doxyfile: Path, honor_exclude_patterns: bool) -> list[str]:
+    """A SCOPE STATEMENT HAS THREE KEYS AND THE TREE SCAN READS ONE. `enumerate_tree` honours
+    INPUT and EXCLUDE roots and is DELIBERATELY not extension-filtered — correct for its own
+    job, which is deciding WHETHER anything changed ("when in doubt, MISS"). Reusing that
+    unfiltered set as the doxygen INPUT is what this fixes: `FILE_PATTERNS` and
+    `EXCLUDE_PATTERNS` are the other two keys, and a subset run bypasses both because doxygen
+    applies FILE_PATTERNS only to DIRECTORY entries and the run clears EXCLUDE_PATTERNS in
+    order to list files individually.
+
+    The consequence measured on the C fixture: a `vendor/` file the Doxyfile excludes by glob
+    entered the changed set, was listed explicitly, and was spliced INTO the master — so the
+    incremental index held a file no full rebuild would ever produce, with a healthy report and
+    nothing in `skipped`. Silently WIDENING scope is worse than narrowing it, because every
+    coverage and orphan figure is then computed over a set the operator never asked for.
+
+    EXCLUDE_PATTERNS IS CONDITIONAL, and that asymmetry is deliberate rather than sloppy. A
+    repo with a declared scope builds with `replace_input`, which clears EXCLUDE_PATTERNS for
+    the WHOLE-TREE run too — so honouring them in the subset would make the subset NARROWER
+    than the full build and leave real files stale. The flag says which regime the caller is
+    in, so the subset matches whichever one the master was built under.
+
+    @brief Filter a candidate list down to the doxygen run's real scope.
+    @return The in-scope subset.
+    @version 1
+    """
+    patterns = effective_file_patterns(doxyfile)
+    excluded = parse_doxyfile_values(doxyfile, "EXCLUDE_PATTERNS") if honor_exclude_patterns else []
+    kept: list[str] = []
+    for rel in paths:
+        name = PurePosixPath(rel).name
+        if patterns and not any(fnmatch.fnmatch(name, pat) for pat in patterns):
+            continue
+        if any(fnmatch.fnmatch(rel, pat) or fnmatch.fnmatch("/" + rel, pat) for pat in excluded):
+            continue
+        kept.append(rel)
+    dropped = len(paths) - len(kept)
+    if dropped:
+        logger.info(
+            "scope: %d of %d candidate file(s) are outside the doxygen run's scope "
+            "(FILE_PATTERNS or EXCLUDE_PATTERNS) and are not indexed incrementally either",
+            dropped,
+            len(paths),
+        )
+    return kept
 
 
 ## @brief The FILE_PATTERNS a target's own Doxyfile declares, for reporting only.
@@ -507,7 +624,7 @@ def synthesize_doxyfile(repo_root: Path, output_dir: Path) -> Path:
 
 
 ## @brief Build the augmented Doxyfile content piped to doxygen on stdin.
-## @version 9
+## @version 11
 ## @req REQ-DDB-INDEX-001
 def _build_doxyfile_content(
     doxyfile: Path,
@@ -544,7 +661,12 @@ def _build_doxyfile_content(
     place that decides what doxygen sees and no way for the hashed form and the
     piped form to drift.
     """
-    content = doxyfile.read_text() + _DOXYFILE_FORCED_FLAGS + predefined
+    ## `predefined` COMES FROM THE TARGET REPO'S `.clew.yaml` and lands AFTER the forced
+    ## block, so anything it smuggles wins over every line above. `_declared_macros` applies
+    ## only `str(v).strip()`, so an interior newline survives and a trailing `#` defeats the
+    ## quoting — the same line-based injection as a path, through a different door. Filtered
+    ## here because this is the single choke point every source passes through.
+    content = doxyfile.read_text() + _DOXYFILE_FORCED_FLAGS + _safe_predefined(predefined)
     if output_dir is not None:
         # Forced LAST so it wins over the repo's own OUTPUT_DIRECTORY (doxygen
         # takes the final assignment). Absolute, so it is independent of cwd —
@@ -578,11 +700,11 @@ def _build_doxyfile_content(
         ## repo's own scope statement to be replaced. A plain `--extra-exclude` build
         ## leaves both keys exactly as the repo wrote them.
         content += "EXCLUDE_PATTERNS =\n"
-    for path in extra_input:
+    for path in _inlineable(list(extra_input), "INPUT"):
         content += f"INPUT += {path}\n"
     content += "EXCLUDE =\n"
     if extra_exclude:
-        for path in extra_exclude:
+        for path in _inlineable(list(extra_exclude), "EXCLUDE"):
             content += f"EXCLUDE += {path}\n"
     logger.info(
         "Appending %d extra INPUT entries (EXCLUDE cleared, %d re-excluded)",
@@ -590,6 +712,86 @@ def _build_doxyfile_content(
         len(extra_exclude) if extra_exclude else 0,
     )
     return content
+
+
+## @brief Drop paths that cannot be written as a Doxyfile value.
+## @param paths Candidate INPUT/EXCLUDE entries.
+## @param kind Which key they are destined for, for the warning.
+## @return The paths safe to inline, in order.
+## @version 1
+## @dg_internal
+def _inlineable(paths: list[str], kind: str) -> list[str]:
+    """DOXYGEN'S CONFIG IS LINE-BASED, so a path containing a newline TERMINATES the
+    assignment and everything after it becomes a new directive. POSIX allows every byte
+    except NUL and `/` in a filename and git stores it faithfully, so a hostile repository
+    can ship `a.c\nINPUT_FILTER = /bin/sh -c ...` as a BASENAME and obtain arbitrary command
+    execution from indexing alone.
+
+    Verified by rendering the configuration: the tail arrived as its own `INPUT_FILTER`
+    directive, positioned after the forced flags and therefore winning over them.
+
+    SKIPPED RATHER THAN REFUSED, and that is not leniency. Doxygen's format cannot
+    REPRESENT such a path, so the file was never indexable by any means — skipping loses
+    nothing that was achievable, while refusing the whole build would make one pathological
+    filename render an entire repository unindexable. The skip is logged as a WARNING with a
+    count, because an accepted-but-unread entry is this project's most repeated defect.
+
+    Carriage return and NUL are rejected on the same reasoning; a bare `\r` can terminate a
+    line for some parsers and NUL cannot appear in a path at all.
+
+    @brief Filter out paths that would inject a Doxyfile directive.
+    @return The safe subset.
+    @version 1
+    """
+    safe = [p for p in paths if not any(c in p for c in "\n\r\x00")]
+    dropped = len(paths) - len(safe)
+    if dropped:
+        logger.warning(
+            "%s: skipping %d path(s) containing a control character. A newline in a path "
+            "would terminate the Doxyfile assignment and turn the remainder into a "
+            "directive, and doxygen cannot represent such a path in any case.",
+            kind,
+            dropped,
+        )
+    return safe
+
+
+## @brief Strip any line from a declared PREDEFINED block that is not a macro definition.
+## @param predefined Pre-rendered `PREDEFINED +=` text from the target's declaration.
+## @return The same text with injected directive lines removed.
+## @version 1
+## @dg_internal
+def _safe_predefined(predefined: str) -> str:
+    """A `PREDEFINED` block is a sequence of `PREDEFINED += ...` continuation lines and nothing
+    else. Any line that instead assigns some OTHER doxygen key got there by injection: the
+    declaration parser applies only `str(v).strip()`, so an interior newline in a declared
+    macro survives into this text and becomes a directive that overrides the forced block above
+    it. Verified end to end against doxygen 1.9.8 — an injected `INPUT_FILTER` ran.
+
+    Keeping only the lines that look like part of the block, rather than blacklisting keys, is
+    what makes this hold for a key nobody has thought of yet.
+
+    @brief Drop non-macro lines from a declared PREDEFINED block.
+    @return The filtered text.
+    @version 1
+    """
+    kept, dropped = [], 0
+    for line in predefined.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("PREDEFINED") or stripped.startswith("\\"):
+            kept.append(line)
+        elif "=" in stripped and not stripped.split("=", 1)[0].strip().isupper():
+            kept.append(line)
+        else:
+            dropped += 1
+    if dropped:
+        logger.warning(
+            "preprocessor: dropped %d declared PREDEFINED line(s) that assigned a doxygen "
+            "option rather than defining a macro. A newline inside a declared macro becomes a "
+            "directive that overrides the forced configuration.",
+            dropped,
+        )
+    return "\n".join(kept) + ("\n" if kept else "")
 
 
 ## @brief Bucket a doxygen-stdout line: warning, file, phase, or other.

@@ -111,11 +111,14 @@ still cannot take the server process down.
 from __future__ import annotations
 
 import argparse
+import functools
 import time
 import traceback
 import warnings
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
+
+from pydantic import Field
 
 import anyio
 
@@ -339,52 +342,34 @@ def _listing_row(status: dict[str, Any]) -> dict[str, Any]:
     return {key: status[key] for key in _LISTING_FIELDS if key in status}
 
 
-INSTRUCTIONS = """Queryable knowledge graph over a C, C++, Rust or Python repository.
+INSTRUCTIONS = """Queryable index over a C, C++, Rust or Python repository.
 
-A `clew` is the ball of thread Ariadne gave Theseus: the thing you follow to find your way out of
-the labyrinth. It is the archaic spelling and the direct ancestor of the word "clue". That is the
-whole model for this server — you are somewhere inside a structure too large to hold in your head,
-and this hands you the thread rather than a map of the whole maze. Pull on it: one symbol leads to
-its callers, its locks, the thread it runs on, the requirement it satisfies.
+START AT `dossier` FOR ANY QUESTION ABOUT A NAMED THING. It returns that symbol's VERBATIM SOURCE
+BODY INCLUDING INLINE COMMENTS, plus its file and line span, both neighbour directions, the thread
+it runs on, the locks it takes, the requirements it satisfies and its liveness — in ONE call. Raise
+`max_body_lines` when a reply says `truncated`. There is no separate tool for any of those parts.
 
-WHAT THIS IS FOR. The index holds a repository's symbols, call relationships, threads, locks and
-critical sections, dispatch, requirement links, file inventory and prose. It answers structural
-questions about a symbol and its neighbours in one call where reading source takes several. It is
-NOT a replacement for reading source: a question about how one name is spelled differently for
-different consumers, or about the exact text of a comment, is one the index can point at but not
-settle. Reading source after the index has named the file is the intended path, not a failure.
+USE `search` WHEN YOU DO NOT HAVE A NAME YET, or to enumerate a layer: threads, locks, files,
+config, prose. Each row's `kind` is what you hand back to `dossier`.
 
-NO PERFORMANCE FIGURES ARE QUOTED HERE, deliberately. This text is served to a model that is
-sometimes then graded on the answers it gives, so a number here describing which question types
-the index wins teaches to the test and quietly turns a benchmark into a self-portrait. Measured
-results live in the repository's committed acceptance artifacts, where a reader can check them
-against the transcripts they came from.
-
-ONE SERVER ANSWERS ABOUT ANY INDEXED REPOSITORY. Every tool takes an optional `target` — a repo
-root path, or a slug. Pass it and that repository answers; omit it and the DEFAULT target answers.
-The server keeps nothing between calls, so a `target` on one call never changes what the next one
-sees.
-
-The default target is DERIVED, not set: from --repo, else $CLAUDE_PROJECT_DIR. There is no
-set_target tool. Administration is ONE tool with an `action`: `index(action='targets')` lists every
-indexed repository, `index(action='refresh')` builds or updates one, `index(action='status')` gives
-the full diagnosis WHEN YOU ALREADY HAVE A REASON TO WANT IT, and `index(action='stats')` grades a
-named index.
+WHAT IT CANNOT SETTLE: how one name is spelled for different consumers, and anything outside the
+indexed file set — a Makefile, a CI config. Reading source after the index names the file is the
+intended path, not a failure.
 
 DO NOT OPEN A SESSION WITH `index(action='status')`. Every query reply already carries a `target`
-field naming the repository it answered from, and a `staleness` block IF AND ONLY IF that index is
-stale. So a current index costs zero calls to establish, and a stale one announces itself on the
-first reply you were going to make anyway. Ask your question; read `target` and `staleness` on what
-comes back, and act only if one of them is wrong.
+naming the repository it answered from, and a `staleness` block if and only if that index is stale.
+A current index costs zero calls to establish; a stale one announces itself on the first reply you
+were going to make anyway. CHECK `target` BEFORE CONCLUDING A SYMBOL DOES NOT EXIST.
 
-The query tools appear once this server knows of any repository at all — if the tool list looks
-short, call `index(action='refresh')` and re-read it. START AT dossier for any question about one
-named function: it returns that function's body, locks, threads, requirements and both neighbour
-directions in ONE call, and there is no separate tool for any of those parts. Use search when you
-do not have a name yet.
+TARGETS. One server answers about any indexed repository. Every tool takes an optional `target` —
+a repo root or slug; omit it and the DEFAULT answers, DERIVED from --repo else $CLAUDE_PROJECT_DIR.
+There is no set_target tool and nothing is kept between calls. Query tools appear once the server knows of any
+repository, so if the tool list looks short call `index(action='refresh')` and re-read it.
 
-Check a reply's `target` before concluding a symbol does not exist.
-"""
+SIZED TO ARRIVE WHOLE. A client caps each served string at 2,048 characters and discards the rest
+in silence; this was 3,412 with every routing rule past the cut. A test asserts nothing exceeds
+it. No performance figures, deliberately — this is served to a model sometimes graded on its
+answers."""
 
 
 ## EXEMPT FROM TOOL-SEARCH DEFERRAL (gh#7). A client may present MCP tools as DEFERRED — named
@@ -402,24 +387,67 @@ Check a reply's `target` before concluding a symbol does not exist.
 ALWAYS_LOAD_META: dict[str, object] = {"anthropic/alwaysLoad": True}
 
 
+## @brief Wrap a synchronous query tool so a stale index is refreshed before it answers.
+## @param bound The bound QueryTools method to wrap.
+## @param before Async hook awaited before the query runs.
+## @return An async callable carrying the wrapped method's original signature.
+## @version 1
+## @req REQ-DDB-MCP-004
+def _answering_with_refresh(bound: Any, before: Any) -> Any:
+    """Wrap one synchronous query tool so a stale index is refreshed before it answers.
+
+    `functools.wraps` IS LOAD-BEARING HERE, not tidiness. The SDK derives each tool's JSON
+    Schema from the function SIGNATURE, and that schema is the one surface a client cannot
+    truncate — it carries every parameter description. `wraps` sets `__wrapped__`, which is
+    what makes `inspect.signature` report the wrapped method's real parameters instead of
+    `(*args, **kwargs)`. Without it every tool would register with an empty schema and the
+    only untruncatable routing signal would silently go to zero.
+
+    THE QUERY ITSELF STILL RUNS OFF THE EVENT LOOP. `QueryTools` methods are synchronous, and
+    the SDK runs a sync tool in a worker thread; making them async without `to_thread` would
+    move that work ONTO the loop and stall the transport for every other session — the exact
+    hazard `_build_lock` exists to avoid, reintroduced one layer up.
+
+    @brief Add a pre-answer refresh to a synchronous query tool.
+    @return An async callable with the original signature.
+    @version 1
+    @req REQ-DDB-MCP-004
+    """
+
+    @functools.wraps(bound)
+    async def answering(*args: Any, **kwargs: Any) -> Any:
+        await before(kwargs.get("target"))
+        return await anyio.to_thread.run_sync(functools.partial(bound, *args, **kwargs))
+
+    return answering
+
+
 ## @brief Add the tier-1 query tools to an MCP server instance.
 ## @param mcp MCP server to register on.
 ## @param tools QueryTools bound to the active database.
+## @param before Async hook awaited before each answer, or None for a plain binding.
 ## @return Names of the tools registered.
-## @version 4
+## @version 5
 ## @req REQ-DDB-MCP-003
-def register_query_tools(mcp: MCPServer, tools: QueryTools) -> list[str]:
+## @req REQ-DDB-MCP-004
+def register_query_tools(mcp: MCPServer, tools: QueryTools, before: Any = None) -> list[str]:
     """Register every tier-1 tool declared in TIER1_TOOLS by binding the
     matching `QueryTools` method. Idempotent: an already-registered name is
     replaced (the SDK's tool manager overwrites by name).
 
+    `before` is an async hook awaited before each answer, used to bring a stale index
+    current. It DEFAULTS TO NONE so a caller that only wants the tools — every test that
+    registers against a bare MCPServer — keeps the plain synchronous binding and needs no
+    event loop of its own.
+
     @brief Register the dynamic tier-1 query tools.
     @return List of registered tool names.
-    @version 4
+    @version 5
     """
     for name, description in TIER1_TOOLS.items():
+        bound = getattr(tools, name)
         mcp.add_tool(
-            getattr(tools, name),
+            bound if before is None else _answering_with_refresh(bound, before),
             name=name,
             description=description,
             meta=ALWAYS_LOAD_META,
@@ -542,6 +570,96 @@ class DocsDbServer:
             lock = self._build_locks[repo_path] = anyio.Lock()
         return lock
 
+    ## @brief Whether a rebuild would actually fix this target's staleness.
+    ## @param target The repository about to answer.
+    ## @return True when the DATA axis is stale and this process may safely build.
+    ## @version 1
+    ## @req REQ-DDB-MCP-004
+    def _data_stale(self, target: Target) -> bool:
+        """ONLY THE `data` AXIS IS WORTH REFRESHING FOR, and the other two are refused for
+        different reasons. `schema` means the index was stamped by a NEWER build than this
+        process expects, which no rebuild through this process clears. `code` means this
+        server predates its own source, and a build through it runs old pipeline logic and
+        re-stamps the index with it — dropping whole layers and then reporting health. That
+        is why `matches_source` is checked BEFORE the axes rather than left to the build path
+        to refuse: an auto-refresh must not even attempt the one build that can corrupt.
+
+        Non-raising, like `staleness_notices` beside it. This runs on the way INTO every
+        query, so a failure to measure must degrade to "do not refresh" and let the reply
+        carry its staleness note, never turn a good answer into an error.
+
+        @brief Decide whether an automatic refresh applies.
+        @return True when a data-axis refresh is safe and needed.
+        @version 1
+        """
+        try:
+            status = db_status(target)
+            identity = code_identity()
+        except Exception:
+            logger.debug("auto-refresh: could not measure %s", target.repo_path)
+            return False
+        if not identity.get("matches_source", False):
+            return False
+        return any(notice.get("axis") == "data" for notice in notices(status, identity))
+
+    ## @brief Bring a stale index current before answering from it.
+    ## @param target The caller's target argument, or None for the default.
+    ## @return None.
+    ## @version 2
+    ## @req REQ-DDB-MCP-004
+    async def _auto_refresh(self, target: str | None) -> None:
+        """WHY A QUERY BUILDS AT ALL. Reporting staleness and leaving the fix to the caller
+        made correctness depend on an agent reading the notice and acting on it, which is not
+        what happens — measured in this project's own sessions, a nine-file-stale index was
+        queried and its answers taken, `anchor_mismatch` and all. It also made the index feel
+        expensive to keep current, which is itself a reason agents stop consulting one. Now
+        that a refresh is incremental the cost is small enough to just pay.
+
+        THE RE-CHECK INSIDE THE LOCK IS WHAT MAKES THIS A DEDUPLICATION RATHER THAN A RACE,
+        exactly as `_build_or_skip` does it: four sessions querying one stale repository
+        produce one build and three no-ops, because the three that queue behind the lock
+        re-measure and find the index already current.
+
+        Never raises. A failed refresh degrades to answering from the index as it stands,
+        with its staleness notice intact — a stale answer plus a warning is strictly better
+        than an error, and the caller can still refresh explicitly.
+
+        @brief Refresh a stale index before answering.
+        @return None.
+        @version 2
+        """
+        try:
+            resolved = self.resolve_target(target) if target else self.active
+        except Exception:
+            logger.debug("auto-refresh: %r does not resolve to a target", target)
+            resolved = None
+        if resolved is None or not self._data_stale(resolved):
+            return
+        async with self._build_lock(resolved.repo_path):
+            if self._data_stale(resolved):
+                try:
+                    ## BOUND, NOT DISCARDED. `_run_build` does NOT raise on a failed build: it
+                    ## catches (Exception, SystemExit) and RETURNS a failure dict, and
+                    ## `_failure_result` deliberately emits no separate log line because a
+                    ## raise would land in the same captured buffer. So this dict was the ONLY
+                    ## record of the failure — including the pipeline's captured log records —
+                    ## and discarding it meant a persistently broken build was retried on every
+                    ## query with no trace anywhere. "Silent loss is worse than a crash."
+                    outcome = await anyio.to_thread.run_sync(self._run_build, resolved, None)
+                    if isinstance(outcome, dict) and not outcome.get("ok", True):
+                        logger.warning(
+                            "auto-refresh of %s did not succeed: %s",
+                            resolved.repo_path,
+                            outcome.get("error") or outcome,
+                        )
+                except Exception as exc:
+                    logger.warning(
+                        "auto-refresh of %s failed (%s) — answering from the index as it "
+                        "stands, which still carries its staleness notice",
+                        resolved.repo_path,
+                        exc,
+                    )
+
     ## @brief The staleness axes in play right now, for stamping onto query replies.
     ## @return List of {axis, message}; EMPTY when the tool is current or has no target.
     ## @version 2
@@ -640,7 +758,7 @@ class DocsDbServer:
         return Answering(db=db, repo=Path(resolved.repo_path), staleness=found)
 
     ## @brief Bring tier-1 into line with whether this server knows of any repository.
-    ## @version 2
+    ## @version 3
     ## @req REQ-DDB-MCP-003
     def _sync_tier1(self) -> None:
         """THE GATE IS "IS THERE ANYTHING TO ANSWER ABOUT", not "is a target derived".
@@ -657,7 +775,7 @@ class DocsDbServer:
         reasoning about what the last transition left behind.
 
         @brief Register or unregister tier-1 to match what is answerable.
-        @version 2
+        @version 3
         """
         if self.mcp is None:
             return
@@ -676,7 +794,7 @@ class DocsDbServer:
         ## capability removed while its callers remain is a property that reads as enforced and
         ## is not.
         if not self.tier1_active:
-            register_query_tools(self.mcp, self.tools)
+            register_query_tools(self.mcp, self.tools, self._auto_refresh)
             self.tier1_active = True
 
     ## @brief Make a repo the active target and expose its query tools.
@@ -1303,15 +1421,57 @@ class DocsDbServer:
     async def index(
         self,
         ctx: Context,
-        action: str = "status",
-        target: str | None = None,
-        force: bool = False,
-        doxyfile: str | None = None,
-        scope: str = SCOPE_FROM_GUARD,
-        exclude: list[str] | None = None,
-        options: dict[str, Any] | None = None,
-        max_age_days: float | None = 30.0,
-        include_stale: bool = True,
+        action: Annotated[
+            str,
+            Field(
+                description=(
+                    "'refresh' builds or updates an index; 'targets' lists indexed repositories; "
+                    "'status' is the full diagnosis WHEN YOU ALREADY HAVE A REASON TO WANT IT — "
+                    "every query reply already names its target and flags staleness, so do not "
+                    "open a session with it; 'stats' grades one index; 'cull' deletes stale ones."
+                )
+            ),
+        ] = "status",
+        target: Annotated[
+            str | None,
+            Field(description="Repo root or slug; omit for the default target."),
+        ] = None,
+        force: Annotated[
+            bool, Field(description="Rebuild even when the index is already current.")
+        ] = False,
+        doxyfile: Annotated[
+            str | None,
+            Field(
+                description="Explicit Doxyfile path; discovery refuses to guess beyond root and docs/."
+            ),
+        ] = None,
+        scope: Annotated[
+            str, Field(description="What to index; defaults to the repo's own guard declaration.")
+        ] = SCOPE_FROM_GUARD,
+        exclude: Annotated[
+            list[str] | None,
+            Field(
+                description=(
+                    "Repo-relative paths to leave out. RECORDED and REPLAYED by later builds — "
+                    "omit to inherit, pass an empty list to withdraw."
+                )
+            ),
+        ] = None,
+        options: Annotated[
+            dict[str, Any] | None,
+            Field(
+                description=(
+                    "This repository's own conventions, keyed by `.clew.yaml` section name. An "
+                    "unknown key is REFUSED by name rather than ignored."
+                )
+            ),
+        ] = None,
+        max_age_days: Annotated[
+            float | None, Field(description="For 'cull': age threshold in days.")
+        ] = 30.0,
+        include_stale: Annotated[
+            bool, Field(description="For 'targets': include stale databases in the listing.")
+        ] = True,
     ) -> dict[str, Any]:
         """FIVE ADMINISTRATIVE TOOLS WERE FIVE ENTRIES IN EVERY SESSION'S TOOL LIST, and
         four of them are never called in a session that only asks questions. Tool cost is
@@ -1439,7 +1599,17 @@ class DocsDbServer:
     ## @req REQ-DDB-MCP-001
     ## @req REQ-DDB-CONFIG-008
     async def propose_declaration(
-        self, ctx: Context, ignore_declaration: bool = False
+        self,
+        ctx: Context,
+        ignore_declaration: Annotated[
+            bool,
+            Field(
+                description=(
+                    "True to propose from scratch, ignoring any existing `.clew.yaml` — use it "
+                    "to see what the defaults alone would find."
+                )
+            ),
+        ] = False,
     ) -> dict[str, Any]:
         """TIER-0 on purpose. The proposer's whole reason to exist is a repo that
         has not declared its conventions yet, which is precisely the state in which
@@ -1474,7 +1644,7 @@ class DocsDbServer:
     ## @brief Register tier-1 tools and notify the client of the change.
     ## @param ctx MCP request context carrying the session.
     ## @return Names of the tier-1 tools now registered.
-    ## @version 2
+    ## @version 3
     ## @req REQ-DDB-MCP-003
     async def _activate_tier1(self, ctx: Context) -> list[str]:
         """Add the query tools (once a database exists) and fire
@@ -1482,11 +1652,11 @@ class DocsDbServer:
 
         @brief Activate the tier-1 query tools and notify.
         @return Registered tool names.
-        @version 2
+        @version 3
         """
         if self.mcp is None:
             return []
-        names = register_query_tools(self.mcp, self.tools)
+        names = register_query_tools(self.mcp, self.tools, self._auto_refresh)
         self.tier1_active = True
         await ctx.session.send_tool_list_changed()
         return names

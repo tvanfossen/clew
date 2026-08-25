@@ -40,7 +40,25 @@ from .tiers import OPTIONS_META_PREFIX
 ## A BUMP MAKES EVERY EXISTING INDEX STALE, and the pipeline's own cache honours that — the
 ## sidecar drops all entries when this changes, so a stale payload cannot answer a new question
 ## with silence.
-CLEW_BUILD_VERSION = 1
+##
+## WHY EACH VERSION MOVED. The docstring above asks for this list and it did not exist until 2,
+## because 1 was the value at 1.0.0 and nothing had changed build output since.
+##
+## 2 (clew 1.0.8) — TWO measured changes to build output, either of which alone would qualify:
+##
+##     * `test_scope` is a NEW TABLE, so a build now emits a layer earlier builds did not
+##       (`clew/testscope.py`). Its reader degrades when the table is absent, which is what
+##       makes the bump necessary rather than optional: without it a 1.0.7 index answers
+##       ranking questions as though the repository had no test code at all, and nothing in the
+##       reply says so. That is the "answer a new question with silence" case above.
+##     * `call_edges` holds DIFFERENT ROWS for identical source, because a member call is now
+##       resolved through the receiver's declared type. Measured on the pinned entropic target:
+##       3073 resolved rows became 5040, plus 34 fuzzy overload sets.
+##
+##   NOT a reason, recorded so the next reader does not think it was: `source_fingerprint`
+##   changed from hashing mtime to hashing content in the same release. That moves the CODE
+##   staleness axis of a running server process and leaves build output untouched.
+CLEW_BUILD_VERSION = 2
 
 
 ## @brief Stamp the build version, scope, coverage and preprocessor config into build_meta.

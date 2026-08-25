@@ -63,6 +63,17 @@ as good within a crate and absent between them.
 than overridden; `compoundref`, because Rust has no class inheritance — empty by construction, not
 by gap.
 
+**Incremental refresh cannot see a newly-added cross-file call, for the same reason `xrefs` is
+empty.** A refresh re-runs the changed files plus a closure of their neighbours, and one closure
+pass walks doxygen's `includes` table — populated from `#include` directives, which Rust does not
+have. So that pass contributes nothing here and `use` / module paths are not followed in its place.
+
+The changed file itself is always re-indexed, so a call you *write* is picked up; what is missed is
+a third, unedited file whose resolution changed as a consequence. Given that the Rust graph is
+already absent across crate boundaries, this narrows the gap to within-crate cases. A full build
+(`index(action='refresh', force=True)`) closes it; fixing it properly needs a tree-sitter module
+graph.
+
 ## Cross-compilation
 
 A crate that sets `[build] target` in `.cargo/config.toml` — which is every embedded Rust project

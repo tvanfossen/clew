@@ -25,7 +25,10 @@ from pathlib import Path
 import anyio
 import pytest
 
-pytest.importorskip("mcp", reason="MCP server is an optional extra (pip install -e '.[mcp]')")
+pytest.importorskip(
+    "mcp",
+    reason="the MCP SDK is a REQUIRED dependency, so this skipping means a BROKEN install, not an unselected extra",
+)
 
 from test_mcp_server import _FakeCtx
 

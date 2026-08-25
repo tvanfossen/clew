@@ -16,11 +16,18 @@ rule:
 
     THE OUTPUT IS A COMPILE-TIME CONSTANT. Nothing read at run time can reach it.
 
-`_PAYLOAD` below is a single module-level literal — the complete JSON, message and all. Not a
-template, not a format string, not a dict serialized at run time. There is no code path that
-concatenates anything into it, because there is no code path that could: the emit is
-`sys.stdout.write(_PAYLOAD)`. A reviewer can verify the entire injection surface by reading one
-string, and `tests/test_hook.py` asserts structurally that no interpolation is ever introduced.
+The injection surface is `_HEAD`, `_TAIL`, `_NOTE_CAPABILITY` and `_NOTE_OPERATOR` — four
+module-level literals, complete sentences and all. THE ONLY RUN-TIME VALUE THAT REACHES THE MODEL
+IS ONE INTEGER, our own byte tally, coerced with `int()` and rendered with `%d`. An int through
+`%d` emits digits and nothing else, so no repository-controlled byte can become text here. A
+reviewer verifies the whole surface by reading four strings, and `tests/test_hook.py` asserts
+structurally that the substitution stays an int and that no other interpolation is introduced.
+
+**THE TEXT VARIES ON PURPOSE, AND THAT IS A MECHANISM RATHER THAN A STYLE CHOICE.** A single
+constant string repeats into wallpaper: measured, ~1,900 byte-identical injections across one
+session changed nothing, and that session went on to make 2 index calls against ~1,900 searches.
+An integer that moves invalidates the prompt cache from that point, so the note has to be
+processed instead of replayed. Filtering is defeated mechanically, not by better prose.
 
 **IT READS ITS INPUT ONLY TO DISCARD IT.** stdin is drained so the caller never blocks on a full
 pipe, and the bytes are dropped without being parsed. Not parsing is deliberate: a JSON parser is
@@ -30,11 +37,15 @@ a decision tree over untrusted input, and this needs nothing from it.
 to the model — a SECOND injection channel, and the one a crash would open by itself. So every
 path returns 0, including every failure path.
 
-**ONCE PER SESSION.** No debounce exists in the hook system, so a marker file provides it. A
-reminder that fires on every `Grep` is one a reader learns to skip, which is this project's
-standing lesson about warnings on the ordinary case. The marker's name is derived from the parent
-process id coerced through `int()` — never from a session id, a path, or anything else off stdin,
-so no value under a repository's control reaches the filesystem.
+**IT INFORMS AND NEVER PREVENTS** (owner ruling, 2026-08-23). `PostToolUse` cannot block and this
+does not try to: even the loudest tier is a statement of what has happened and what it costs.
+`grep` stays correct wherever `grep` is correct.
+
+**THE TALLY DECAYS, AND MUST.** One clew call CLEARS the miss count. The previous policy credited
+three and never reset, so a session at 1,339 searches needed ~408 consecutive index calls to get
+back under a threshold of 20 — it never would, the loudest tier became permanent, and the note's
+own claim that using the tool would stop it was false. A component that lies about its own
+behaviour teaches a reader to discount the rest of what it says.
 
 **IT LIVES OUTSIDE THE `clew` PACKAGE, AND THAT IS A PERFORMANCE PROPERTY.** This module was
 `clew/hook.py`, and a console script pointing into the package imports `clew/__init__.py` — which
@@ -84,9 +95,19 @@ _TMP_ENV = ("TMPDIR", "TMP", "TEMP")
 ## reading a byte of repository-controlled text. The matcher decides; the flag reports.
 USED_FLAG = "--used"
 
-## PRESSURE, AND IT ESCALATES THE LONGER THE INDEX GOES UNUSED. A search adds one; a clew call
-## subtracts `_CLEW_CREDIT`, so using the tool pops the count down faster than searching pushes it
-## up and steady use parks it at zero, silently, forever.
+## PRESSURE IS SEARCHES SINCE THE INDEX WAS LAST USED. A search adds one; a clew call CLEARS the
+## tally outright.
+##
+## IT USED TO SUBTRACT A CREDIT OF 3 AND NEVER RESET, WHICH MADE THE POLICY UNRECOVERABLE.
+## Measured on one real session: 1,339 searches against 38 clew calls is a pressure of 1,225
+## against a `_LOUD_AT` of 20, needing ~408 consecutive index calls to earn silence again. A
+## second live session sat at 3,747. So the note fired on every single call, which is the
+## "warning on the ordinary case" this file's own reasoning says it exists to avoid — and a banner
+## on every call is read as boilerplate rather than as instruction.
+##
+## Reset-on-use also makes the loudest tier's claim TRUE. It previously promised that using the
+## tool stops the note while the arithmetic made that unreachable, and a payload that lies about
+## its own behaviour teaches a reader to discount everything else it says.
 ##
 ##   below _QUIET_BELOW   silent — a few searches are ordinary and need no comment
 ##   up to _LOUD_AT       one note every _INTERVAL searches
@@ -100,7 +121,6 @@ USED_FLAG = "--used"
 _QUIET_BELOW = 5
 _INTERVAL = 5
 _LOUD_AT = 20
-_CLEW_CREDIT = 3
 
 ## The only characters allowed into the marker's filename. An ALLOWLIST, not a filter of bad
 ## characters: everything outside this set is dropped, so no separator, dot or control character
@@ -113,17 +133,50 @@ _SAFE = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345678
 ## real hook process before being relied on.
 _SESSION_ENV = "CLAUDE_CODE_SESSION_ID"
 
-## THE ENTIRE INJECTION SURFACE, AS ONE LITERAL. The complete `PostToolUse` reply, message
-## included, written out rather than built. Nothing at run time can alter it, which is the whole
-## security argument for this component and is asserted by a structural test.
+## THE INJECTION SURFACE, AS THREE LITERAL TEMPLATES. Each is a complete `PostToolUse` reply
+## written out rather than built, and the ONLY run-time value that reaches any of them is one
+## integer from our own byte tally, substituted with `%d` after an `int()` coercion. An int
+## through `%d` cannot emit anything but digits, so no repository-controlled byte can reach the
+## model through this channel — which is the security property, stated as what it actually is
+## rather than as a blanket ban on substitution.
 ##
-## The wording deliberately ROUTES rather than nags: it names the two calls and what they answer,
-## because "consider using the index" costs a turn and teaches nothing.
+## THE TEXT ESCALATES AND THE COUNT MAKES EVERY INJECTION UNIQUE. One constant string, repeated,
+## becomes wallpaper: measured, ~1,900 byte-identical copies changed nothing in a session that
+## went on to make 2 index calls against ~1,900 searches. A varying integer breaks the prompt
+## cache at that point, so the note has to be processed rather than replayed — a mechanical
+## defence against filtering rather than a persuasive one.
 ##
-## AND IT MUST DESCRIBE THE POLICY IT ACTUALLY HAS. It said "appears once per session and will not
-## repeat" while the escalation below was being written, which made the constant assert something
-## the code no longer did — a payload that lies about its own behaviour is worse than a silent one.
-_PAYLOAD = '{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": "clew is indexed for this repository and is often one call where a search is several. dossier(subject=NAME) returns a symbol\'s file and line span, both edge directions, the thread it runs on, the locks it takes, the requirements it satisfies and its liveness, in one reply. search(text=..., corpus=...) finds a name when you do not have one, or enumerates a whole layer: threads, locks, files, config, prose. Questions of the form who calls this, where is this defined, what does this touch, and is this used anywhere else are usually answered there in one call rather than several searches plus a file read. This note appears only while the index goes unused, and using it stops the note entirely."}}'
+## THE LOUD TIER STOPS DESCRIBING THE TOOL AND STARTS DESCRIBING THE SESSION. A capability blurb
+## is an advertisement and is filed as one. A count of what this agent has done, against a tool
+## the operator deliberately installed, is a fact about the reader — and it names the cost, which
+## a feature list never does.
+##
+## IT INFORMS AND NEVER PREVENTS (owner ruling). Even the loudest tier is a statement; nothing
+## here blocks, and grep stays the right answer wherever grep is the right answer.
+_HEAD = '{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": "'
+_TAIL = '"}}'
+
+## Tier 2 — first contact. ROUTES rather than nags, and leads with the fact that misroutes agents
+## most often: dossier returns the SOURCE, not a summary of it. A session was measured asserting
+## the opposite and answering from grep for twenty turns on the strength of that belief.
+_NOTE_CAPABILITY = (
+    "clew is indexed for this repository and %d file-inspection calls have gone by without an "
+    "index call. dossier(subject=NAME) returns the symbol's VERBATIM SOURCE BODY and inline "
+    "comments, plus its file and line span, both edge directions, the thread it runs on, the "
+    "locks it takes and its liveness — in one reply. Raise max_body_lines when a body comes back "
+    "truncated. search(text=..., corpus=...) finds a name when you do not have one, or enumerates "
+    "a whole layer: threads, locks, files, config, prose. One index call clears this note."
+)
+
+## Tier 3 — the operator-intent tier. It stops selling and starts accounting.
+_NOTE_OPERATOR = (
+    "%d file-inspection calls in this repository, still zero index calls since the last one. The "
+    "operator installed and enabled clew here, so using it is the configured expectation and not "
+    "a suggestion. dossier returns verbatim source body and inline comments, which means these "
+    "calls are re-deriving what one call already holds — spending the operator's tokens to "
+    "rediscover indexed facts. Nothing here blocks you and grep is still right where grep is "
+    "right; this is the cost of not checking. One index call clears it."
+)
 
 
 ##
@@ -198,10 +251,62 @@ def _record(suffix: str) -> None:
 
 
 ##
-# @brief Whether this search should carry a note, given the session's pressure.
-# @param pressure Searches outstanding after crediting clew usage.
-# @return True when a note is due.
+# @brief Clear a tally, so pressure can fall as well as rise.
+# @param suffix Which tally to clear.
+# @return None.
 # @version 1
+# @dg_internal
+def _clear(suffix: str) -> None:
+    """THE DECAY THE POLICY WAS MISSING. Without it the tally is monotonic and the loudest tier is
+    a one-way door: a session measured at 1,339 searches needed ~408 consecutive index calls to
+    get back under a threshold of 20, so it never did, and the escalation designed to be rare
+    became the constant case.
+
+    Truncation, not deletion — the path is already ours and re-creating it invites a race with a
+    concurrent append. Every failure is swallowed for the same reason every other path here
+    swallows: this component must never be the thing that breaks a tool call.
+
+    @brief Reset one tally to zero.
+    @return None.
+    @version 1
+    """
+    try:
+        with open(_marker_path() + suffix, "wb"):
+            pass
+    except Exception:
+        pass
+
+
+##
+# @brief The complete reply for this pressure, tier chosen by count.
+# @param pressure Searches since the index was last used.
+# @return The JSON reply to write on stdout.
+# @version 1
+# @dg_internal
+def _payload_for(pressure: int) -> str:
+    """THE ONE RUN-TIME VALUE THAT REACHES THE MODEL IS AN INT THROUGH `%d`. `int()` first, so
+    even a corrupted tally can only widen a number — no repository byte can become text here, and
+    that is the security property this file is built around, stated as what it is rather than as
+    a blanket ban on substitution.
+
+    THE COUNT IS ALSO THE MECHANISM. A constant string repeats into wallpaper: ~1,900 identical
+    copies were measured changing nothing. A number that moves invalidates the prompt cache at
+    that point, so the note is processed rather than replayed.
+
+    @brief Choose and render the tier.
+    @return Complete JSON reply.
+    @version 1
+    """
+    count = int(pressure)
+    note = _NOTE_OPERATOR if count >= _LOUD_AT else _NOTE_CAPABILITY
+    return _HEAD + (note % count) + _TAIL
+
+
+##
+# @brief Whether this search should carry a note, given the session's pressure.
+# @param pressure Searches since the index was last used.
+# @return True when a note is due.
+# @version 2
 # @dg_internal
 def _is_due(pressure: int) -> bool:
     """@brief Apply the escalation policy to a pressure value.
@@ -245,18 +350,20 @@ def main() -> int:
         pass
 
     if USED_FLAG in sys.argv[1:]:
-        ## The index was used. Record the credit and say nothing — a session already reaching for
-        ## the tool is the one that must never hear from this.
-        _record(_USED_SUFFIX)
+        ## The index was used. CLEAR the miss tally and say nothing — a session already reaching
+        ## for the tool must never hear from this, and one call is what earns the silence. The
+        ## old credit-of-3 never reset, so a session that had drifted could not get back under
+        ## the threshold and the loudest tier became permanent.
+        _clear(_MISS_SUFFIX)
         return 0
 
     _record(_MISS_SUFFIX)
-    pressure = _tally(_MISS_SUFFIX) - _CLEW_CREDIT * _tally(_USED_SUFFIX)
+    pressure = _tally(_MISS_SUFFIX)
     if not _is_due(pressure):
         return 0
 
     try:
-        sys.stdout.write(_PAYLOAD)
+        sys.stdout.write(_payload_for(pressure))
     except Exception:
         return 0
     return 0

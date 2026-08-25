@@ -148,3 +148,100 @@ def test_a_sidecar_predating_output_sha_is_rebuilt_rather_than_crashing(tmp_path
         "an upgraded sidecar cannot store and serve an entry, so the rebuild left the table "
         "unusable rather than merely empty"
     )
+
+
+##
+# @brief The splice generation counter must advance, reset, and survive reopening.
+# @param tmp_path Pytest scratch directory.
+# @return None.
+# @version 1
+def test_splice_generation_counts_and_resets(tmp_path: Path) -> None:
+    """RUN THE GUARD AGAINST THE CASE IT WAS BUILT FOR. The counter exists to bound a
+    MEASURED error: a spliced database carried one call edge a full rebuild does not emit,
+    out of 5168, and nothing in a splice bounds that across many refreshes. A counter that
+    silently failed to advance would restore the unbounded behaviour while reading as
+    protection, so all three properties are pinned — it advances, a full build clears it, and
+    it PERSISTS, because the sidecar is reopened on every build and an in-memory-only counter
+    would reset itself to zero on each one and never reach any limit.
+
+    @brief The generation counter advances, resets and persists.
+    @return None.
+    @version 1
+    """
+    cache_path = tmp_path / "sidecar.db"
+    cache = IndexCache(cache_path, tmp_path)
+    assert cache.splice_generation() == 0, "a fresh sidecar must start at generation zero"
+    for expected in (1, 2, 3):
+        cache.record_splice()
+        assert cache.splice_generation() == expected
+    cache.commit()
+    cache.close()
+
+    reopened = IndexCache(cache_path, tmp_path)
+    assert reopened.splice_generation() == 3, (
+        "the counter did not survive reopening, so every build would start from zero and no "
+        "generation limit could ever be reached — the bound would be decorative"
+    )
+    reopened.record_splice(reset=True)
+    assert reopened.splice_generation() == 0, "a full build must clear accumulated drift"
+    reopened.commit()
+    reopened.close()
+
+
+##
+# @brief doxygen_any must refuse output produced under a different configuration.
+# @param tmp_path Pytest scratch directory.
+# @return None.
+# @version 1
+def test_doxygen_any_refuses_another_configurations_output(tmp_path: Path) -> None:
+    """THE REGRESSION THIS CLOSES SHIPPED ONCE AND WAS CAUGHT BY SOMEBODY ELSE'S TEST.
+
+    `doxygen_any` serves a previous output for the incremental splice to splice INTO. Its
+    first version returned the newest digest-verified row regardless of which key wrote it,
+    which is exactly the aliasing `doxygen_get` was hardened against in #399: every key in
+    `doxygen_cache` names the SAME path, so "verified" only proves the file still holds what
+    that row recorded — not that the row belongs to this build.
+
+    The consequence was concrete. Withdrawing an `index_scope` statement widened the tree, so
+    the newly-visible files showed up as ADDED and the splice engaged — against output built
+    under the NARROW scope. The file inventory came back and its functions did not.
+    `test_a_stated_index_scope_narrows_the_index_and_a_withdrawal_widens_it` failed at commit
+    time; nothing in this module's own tests noticed.
+
+    So the property is pinned directly: same configuration serves, different configuration
+    refuses, and a legacy row with no recorded configuration refuses rather than being
+    assumed compatible.
+
+    @brief A different configuration's output is never served for splicing.
+    @return None.
+    @version 1
+    """
+    output = tmp_path / "doxygen.db"
+    output.write_bytes(b"pretend this is a doxygen database")
+    cache = IndexCache(tmp_path / "sidecar.db", tmp_path)
+
+    narrow = cache.config_sha("INPUT = src\n", [])
+    wide = cache.config_sha("INPUT = .\n", [])
+    assert narrow != wide, "two different Doxyfiles must not share a configuration hash"
+
+    cache.doxygen_put("tree-1", output, narrow)
+
+    assert cache.doxygen_any(narrow) == output, (
+        "output built under THIS configuration must be available to splice into, or the "
+        "incremental path can never engage at all"
+    )
+    assert cache.doxygen_any(wide) is None, (
+        "output built under a DIFFERENT configuration was served for splicing — this is "
+        "#399's aliasing, and it silently produces an index carrying the old scope's rows"
+    )
+
+    ## A row written before `config_sha` existed carries the empty string. Treating that as
+    ## "matches anything" would restore the bug through the upgrade path, and treating it as
+    ## "matches nothing" costs exactly one full rebuild.
+    cache.conn.execute("UPDATE doxygen_cache SET config_sha = '' WHERE tree_sha = 'tree-1'")
+    assert cache.doxygen_any(narrow) is None, (
+        "a row with no recorded configuration was assumed compatible; an unknown "
+        "configuration must refuse rather than be guessed at"
+    )
+    cache.commit()
+    cache.close()

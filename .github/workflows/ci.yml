@@ -19,6 +19,16 @@ jobs:
   gate:
     name: pre-commit (py${{ matrix.python-version }})
     runs-on: ubuntu-24.04
+    # A HUNG STEP MUST FAIL, NOT WAIT. Without this the job inherits GitHub's 6-hour
+    # default, and a stalled `apt-get install doxygen` — observed once, on one runner of
+    # three, while the other two passed the same commit — blocks a release for hours while
+    # looking exactly like a slow one. That ambiguity is the real cost: nothing
+    # distinguishes "stuck" from "still going" until someone reads the step list by hand.
+    #
+    # 20 minutes is roughly 4x the observed full-matrix run (~2m of pytest plus setup) with
+    # room for a cold pre-commit cache, so a legitimately slow leg still passes and a wedged
+    # one fails inside a coffee break. Raise it if the suite grows, do not remove it.
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -53,6 +63,8 @@ jobs:
   build:
     name: build
     runs-on: ubuntu-24.04
+    # Same reasoning as `gate` above; this job only builds a wheel, so it is tighter.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
