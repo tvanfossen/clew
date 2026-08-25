@@ -624,6 +624,61 @@ def cmd_compare(args: argparse.Namespace) -> int:
         print(f"scratch kept at {work}")
 
 
+##
+# @brief Build one unmodified tree twice and compare, to establish the harness's noise floor.
+# @param args Parsed arguments carrying the target repo.
+# @return 0 when two full builds of identical source agree on every compared table.
+# @version 1
+def cmd_control(args: argparse.Namespace) -> int:
+    """THE CONTROL `compare` NEEDS AND DID NOT HAVE. `compare` treats a full rebuild as ground
+    truth and reports any difference as a splice defect. That inference is only valid if two
+    full builds of the SAME source agree -- and nothing had checked. It was written after
+    `compare` reported the incremental index holding two edges the full build LACKED, both of
+    them real calls, which cannot be a splice fabricating rows and points instead at the
+    baseline moving.
+
+    If this reports a delta, every number `compare` has produced is inside the noise and the
+    conclusions drawn from them have to be re-derived rather than inherited.
+
+    No edit is made and the repo is never written to, so this is safe on a dirty tree.
+
+    @brief Two full builds of one unmodified tree.
+    @return 0 on agreement, 1 on any divergence.
+    @version 1
+    """
+    repo = Path(args.repo).resolve()
+    work = Path(tempfile.mkdtemp(prefix="clew-control-"))
+    first, second = work / "a.db", work / "b.db"
+    print(f"control: two full builds of {repo}, no edit between them")
+    print(f"build A : {_build(repo, first)} ms")
+    print(f"build B : {_build(repo, second)} ms\n")
+
+    a_counts, a_paths = _summarise(first)
+    b_counts, b_paths = _summarise(second)
+    print(f"{'table':<24}{'build A':>10}{'build B':>10}{'delta':>8}")
+    bad = []
+    for label in _COMPARED:
+        x, y = a_counts[label], b_counts[label]
+        if x != y:
+            bad.append((label, x, y))
+        print(f"{label:<24}{x:>10}{y:>10}{x - y:>8}{'  <-- UNSTABLE' if x != y else ''}")
+    if a_paths != b_paths:
+        bad.append(("indexed file SET", len(a_paths - b_paths), len(b_paths - a_paths)))
+
+    if bad:
+        print("\nTHE BASELINE IS NOT STABLE. Two builds of identical source disagree:")
+        for label, x, y in bad:
+            print(f"  {label}: A={x} B={y}")
+        print(
+            "\nSo a `compare` delta of this size or smaller means NOTHING, and any conclusion "
+            "already drawn from one must be re-derived."
+        )
+        return 1
+    print("\nSTABLE: two full builds of identical source agree on every compared table.")
+    print(f"scratch kept at {work}")
+    return 0
+
+
 def main() -> int:
     """@brief Entry point.
     @return Exit status.
@@ -649,6 +704,7 @@ def main() -> int:
     sub.add_parser("outbound", help="outbound xref loss under a subset run")
     sub.add_parser("refids", help="refid stability across input sets")
     sub.add_parser("autorefresh", help="drive the MCP auto-refresh hook in-process")
+    sub.add_parser("control", help="two full builds of one unmodified tree (noise floor)")
     cmp_p = sub.add_parser(
         "compare", help="incremental refresh versus a full rebuild of the same tree"
     )
@@ -669,6 +725,7 @@ def main() -> int:
         "refids": cmd_refids,
         "autorefresh": cmd_autorefresh,
         "compare": cmd_compare,
+        "control": cmd_control,
     }[args.cmd](args)
 
 
