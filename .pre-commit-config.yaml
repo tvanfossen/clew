@@ -62,7 +62,13 @@ repos:
         ## measurement, not about this source, and they are gated separately.
         ##
         ## The cost is real and accepted: ~59s unit + ~124s integration.
-        entry: .venv/bin/python -m pytest tests/ -q --integration
+        ## ONE DEFINITION, and it lives in the script. The arguments used to be this
+        ## literal, which is a fine single source for the GATE and none at all for a human:
+        ## running `pytest tests/ -q` by hand deselects the integration tier and reports
+        ## green on a tree this rejects, and reproducing a CI matrix leg meant retyping the
+        ## arguments against another interpreter. `scripts/run_tests.py --python 3.10` is
+        ## now that operation, using these exact arguments.
+        entry: .venv/bin/python scripts/run_tests.py
         language: system
         pass_filenames: false
         always_run: true
