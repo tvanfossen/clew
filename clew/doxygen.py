@@ -50,6 +50,54 @@ _DOXYFILE_FORCED_FLAGS = (
     "INPUT_FILTER =\n"
     "FILTER_PATTERNS =\n"
     "FILTER_SOURCE_FILES = NO\n"
+    ## EVERY REMAINING COMMAND-VALUED OPTION, enumerated from `doxygen -g`'s own template
+    ## rather than from memory. The first version of this block forced the three above and
+    ## declared the hostile-Doxyfile path closed; `QHG_LOCATION` executed anyway, because
+    ## doxygen runs qhelpgenerator and `HTML_EXTRA_FILES` copies a repo file into the output
+    ## tree with its exec bit intact to supply the path. Verified against 1.9.8.
+    ## `FILE_VERSION_FILTER` is the other one nobody had noticed: a command run per file.
+    "FILTER_SOURCE_PATTERNS =\n"
+    "FILE_VERSION_FILTER =\n"
+    "HHC_LOCATION =\n"
+    "QHG_LOCATION =\n"
+    "LATEX_CMD_NAME =\n"
+    "MAKEINDEX_CMD_NAME =\n"
+    "LATEX_MAKEINDEX_CMD =\n"
+    "DOT_PATH =\n"
+    "DIA_PATH =\n"
+    "MSCGEN_TOOL =\n"
+    ## EVERY GENERATOR clew does not consume. It reads the sqlite3 database and nothing else —
+    ## there is no XML, HTML or LaTeX reader anywhere in `clew/`, so the `cli.py` docstring's
+    ## "SQLite + XML" is stale. Each of these carries its own file-and-command surface, and
+    ## turning them off removes that surface wholesale instead of key by key. It also makes
+    ## builds cheaper, which is a side effect rather than the reason.
+    "GENERATE_HTML = NO\n"
+    "HTML_EXTRA_FILES =\n"
+    "HTML_EXTRA_STYLESHEET =\n"
+    "HTML_HEADER =\n"
+    "HTML_FOOTER =\n"
+    "HTML_STYLESHEET =\n"
+    "GENERATE_LATEX = NO\n"
+    "LATEX_HEADER =\n"
+    "LATEX_FOOTER =\n"
+    "LATEX_EXTRA_FILES =\n"
+    "GENERATE_MAN = NO\n"
+    "GENERATE_RTF = NO\n"
+    "GENERATE_XML = NO\n"
+    "GENERATE_DOCBOOK = NO\n"
+    "GENERATE_AUTOGEN_DEF = NO\n"
+    "GENERATE_PERLMOD = NO\n"
+    "GENERATE_QHP = NO\n"
+    "GENERATE_HTMLHELP = NO\n"
+    "GENERATE_ECLIPSEHELP = NO\n"
+    "GENERATE_DOCSET = NO\n"
+    ## Read-external-file options. Lower severity than a command, but a repo choosing what
+    ## clew reads is still a repo influencing the build.
+    "LAYOUT_FILE =\n"
+    "CITE_BIB_FILES =\n"
+    "TAGFILES =\n"
+    "GENERATE_TAGFILE =\n"
+    "CLANG_DATABASE_PATH =\n"
 )
 
 _DOXY_PHASE_PREFIXES = ("Generating ", "Building ", "Finished", "Running ")
@@ -521,7 +569,7 @@ def synthesize_doxyfile(repo_root: Path, output_dir: Path) -> Path:
 
 
 ## @brief Build the augmented Doxyfile content piped to doxygen on stdin.
-## @version 10
+## @version 11
 ## @req REQ-DDB-INDEX-001
 def _build_doxyfile_content(
     doxyfile: Path,
@@ -558,7 +606,12 @@ def _build_doxyfile_content(
     place that decides what doxygen sees and no way for the hashed form and the
     piped form to drift.
     """
-    content = doxyfile.read_text() + _DOXYFILE_FORCED_FLAGS + predefined
+    ## `predefined` COMES FROM THE TARGET REPO'S `.clew.yaml` and lands AFTER the forced
+    ## block, so anything it smuggles wins over every line above. `_declared_macros` applies
+    ## only `str(v).strip()`, so an interior newline survives and a trailing `#` defeats the
+    ## quoting — the same line-based injection as a path, through a different door. Filtered
+    ## here because this is the single choke point every source passes through.
+    content = doxyfile.read_text() + _DOXYFILE_FORCED_FLAGS + _safe_predefined(predefined)
     if output_dir is not None:
         # Forced LAST so it wins over the repo's own OUTPUT_DIRECTORY (doxygen
         # takes the final assignment). Absolute, so it is independent of cwd —
@@ -646,6 +699,44 @@ def _inlineable(paths: list[str], kind: str) -> list[str]:
             dropped,
         )
     return safe
+
+
+## @brief Strip any line from a declared PREDEFINED block that is not a macro definition.
+## @param predefined Pre-rendered `PREDEFINED +=` text from the target's declaration.
+## @return The same text with injected directive lines removed.
+## @version 1
+## @dg_internal
+def _safe_predefined(predefined: str) -> str:
+    """A `PREDEFINED` block is a sequence of `PREDEFINED += ...` continuation lines and nothing
+    else. Any line that instead assigns some OTHER doxygen key got there by injection: the
+    declaration parser applies only `str(v).strip()`, so an interior newline in a declared
+    macro survives into this text and becomes a directive that overrides the forced block above
+    it. Verified end to end against doxygen 1.9.8 — an injected `INPUT_FILTER` ran.
+
+    Keeping only the lines that look like part of the block, rather than blacklisting keys, is
+    what makes this hold for a key nobody has thought of yet.
+
+    @brief Drop non-macro lines from a declared PREDEFINED block.
+    @return The filtered text.
+    @version 1
+    """
+    kept, dropped = [], 0
+    for line in predefined.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("PREDEFINED") or stripped.startswith("\\"):
+            kept.append(line)
+        elif "=" in stripped and not stripped.split("=", 1)[0].strip().isupper():
+            kept.append(line)
+        else:
+            dropped += 1
+    if dropped:
+        logger.warning(
+            "preprocessor: dropped %d declared PREDEFINED line(s) that assigned a doxygen "
+            "option rather than defining a macro. A newline inside a declared macro becomes a "
+            "directive that overrides the forced configuration.",
+            dropped,
+        )
+    return "\n".join(kept) + ("\n" if kept else "")
 
 
 ## @brief Bucket a doxygen-stdout line: warning, file, phase, or other.

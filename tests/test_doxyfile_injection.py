@@ -130,3 +130,120 @@ def test_a_repos_own_doxyfile_cannot_declare_a_filter_command(tmp_path: Path) ->
     assert sources and sources[-1].upper() == "NO", (
         f"FILTER_SOURCE_FILES ends as {sources[-1:]!r}, so a filter still runs over sources"
     )
+
+
+## EVERY doxygen option whose value is a COMMAND doxygen executes. Enumerated from
+## `doxygen -g`'s own template against the 1.9.8 binary, not from memory — the first version
+## of this fix forced three of them and called it closed, which is how `QHG_LOCATION` survived.
+_EXEC_VALUED = (
+    "INPUT_FILTER",
+    "FILTER_PATTERNS",
+    "FILTER_SOURCE_PATTERNS",
+    "FILE_VERSION_FILTER",
+    "HHC_LOCATION",
+    "QHG_LOCATION",
+    "LATEX_CMD_NAME",
+    "MAKEINDEX_CMD_NAME",
+    "LATEX_MAKEINDEX_CMD",
+    "DOT_PATH",
+    "DIA_PATH",
+    "MSCGEN_TOOL",
+    "PLANTUML_JAR_PATH",
+)
+
+## Generators clew does not consume. It reads the sqlite3 database and NOTHING else — there is
+## no XML, HTML or LaTeX reader anywhere in `clew/` (the `cli.py` module docstring's "SQLite +
+## XML" is stale). Every one of these carries its own file-and-command surface, and
+## `HTML_EXTRA_FILES` in particular COPIES a repo file into the output directory preserving its
+## exec bit, which is what supplied the cwd-relative path a `QHG_LOCATION` attack needs.
+_UNUSED_GENERATORS = (
+    "GENERATE_HTML",
+    "GENERATE_LATEX",
+    "GENERATE_MAN",
+    "GENERATE_RTF",
+    "GENERATE_XML",
+    "GENERATE_DOCBOOK",
+    "GENERATE_AUTOGEN_DEF",
+    "GENERATE_PERLMOD",
+    "GENERATE_QHP",
+    "GENERATE_HTMLHELP",
+    "GENERATE_ECLIPSEHELP",
+    "GENERATE_DOCSET",
+)
+
+
+##
+# @brief A hostile Doxyfile cannot leave any command-valued option set.
+# @param tmp_path Pytest scratch directory.
+# @return None.
+# @version 1
+def test_no_command_valued_option_survives_a_hostile_doxyfile(tmp_path: Path) -> None:
+    """TABLE-DRIVEN ON PURPOSE. The previous fix forced INPUT_FILTER, FILTER_PATTERNS and
+    FILTER_SOURCE_FILES and its docstring declared the path closed. `QHG_LOCATION` then
+    executed anyway — doxygen runs qhelpgenerator, and `HTML_EXTRA_FILES` copies a repo file
+    into the output tree with its exec bit intact to supply the path. Verified against 1.9.8.
+
+    Driving the assertion off an enumerated list means the only way to satisfy it is to
+    actually force the option, so a newly-discovered option cannot be quietly omitted.
+
+    @brief Every exec-valued option ends empty.
+    @return None.
+    @version 1
+    """
+    doxyfile = tmp_path / "Doxyfile"
+    doxyfile.write_text(
+        "PROJECT_NAME = probe\nINPUT = .\n"
+        + "".join(f"{k} = /bin/sh\n" for k in _EXEC_VALUED)
+        + "GENERATE_QHP = YES\nGENERATE_HTML = YES\nHTML_EXTRA_FILES = ./pwn.sh\n",
+        encoding="utf-8",
+    )
+    text = _build_doxyfile_content(doxyfile, None, None, False, tmp_path, "")
+
+    for key in _EXEC_VALUED:
+        values = _assignments(text, key)
+        assert values, f"{key} is never assigned, so the repo's value stands"
+        assert not values[-1], (
+            f"the LAST {key} assignment is {values[-1]!r}; doxygen takes the last one, so the "
+            f"repo's command still runs"
+        )
+    for key in _UNUSED_GENERATORS:
+        values = _assignments(text, key)
+        assert values and values[-1].upper() == "NO", (
+            f"{key} ends as {values[-1:]!r}; clew reads only the sqlite3 database, so every "
+            f"other generator is surface it does not need"
+        )
+    assert _assignments(text, "HTML_EXTRA_FILES")[-1] == "", (
+        "HTML_EXTRA_FILES still copies a repo-chosen file into the output tree with its exec "
+        "bit preserved, which is what supplies an attacker a runnable path"
+    )
+
+
+##
+# @brief A declared `predefined` value cannot inject a directive.
+# @param tmp_path Pytest scratch directory.
+# @return None.
+# @version 1
+def test_declared_predefined_cannot_inject_a_directive(tmp_path: Path) -> None:
+    """THE THIRD CHANNEL, and the one the previous fix missed entirely. `predefined` is
+    concatenated AFTER the forced block, so anything it smuggles wins — and it comes from the
+    TARGET REPO's own `.clew.yaml`, parsed by `_declared_macros` with only `str(v).strip()`,
+    so an interior newline survives and a trailing `#` defeats the quoting.
+
+    Both existing tests in this module pass `""` here, which is why this was invisible.
+
+    @brief A predefined macro cannot become a directive.
+    @return None.
+    @version 1
+    """
+    doxyfile = tmp_path / "Doxyfile"
+    doxyfile.write_text("PROJECT_NAME = probe\nINPUT = .\n", encoding="utf-8")
+    hostile = "PREDEFINED += X=1\nINPUT_FILTER = /bin/sh -c 'pwn' #\n"
+
+    text = _build_doxyfile_content(doxyfile, None, None, False, tmp_path, hostile)
+
+    for value in _assignments(text, "INPUT_FILTER"):
+        assert not value, (
+            f"a declared predefined macro injected INPUT_FILTER = {value!r}, which doxygen "
+            f"runs as a command over every input file"
+        )
+    assert "/bin/sh" not in text, "the injected command survived into the configuration"

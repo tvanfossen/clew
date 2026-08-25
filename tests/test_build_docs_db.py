@@ -238,7 +238,10 @@ def test_build_doxyfile_appends_forced_flags(tmp_path: Path) -> None:
     f.write_text("PROJECT_NAME = test\n")
     out = _build_doxyfile_content(f, extra_input=None, extra_exclude=None)
     assert "GENERATE_SQLITE3 = YES" in out
-    assert "GENERATE_XML" not in out
+    ## THE INTENT IS "no XML is generated", and asserting the STRING is absent was the
+    ## wrong shape for it: the hardening now sets `GENERATE_XML = NO` explicitly, which
+    ## satisfies the intent more strongly and tripped a substring check. Assert the VALUE.
+    assert "GENERATE_XML = YES" not in out
     assert "EXTRACT_ALL = YES" in out
     # Static funcs (common in generated gen/ code) + nested extra-input trees
     # must be indexed, or setters/callers in those dirs silently vanish.
