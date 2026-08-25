@@ -3701,3 +3701,114 @@ def test_the_production_registrations_pass_a_refresh_hook() -> None:
             f"a production registration omits the refresh hook, so queries against that "
             f"server never refresh a stale index: {call!r}"
         )
+
+
+# ─── gh#12: a stale index cannot earn a definitive negative ───────────────────
+
+
+##
+# @brief A symbol added since the build must not be called a definitive negative.
+# @return None.
+# @version 1
+def test_a_data_stale_subject_miss_withdraws_the_definitive_claim() -> None:
+    """gh#12 AS REPORTED. A symbol written minutes earlier came back `found: false` as "a
+    definitive negative from the database", in an envelope that SEPARATELY carried a `data`
+    notice saying 39 files had changed since the build. One reply, two incompatible claims —
+    and the note spent its advice sending the reader to check `target`, which was correct all
+    along.
+
+    The pre-existing withdrawal fired only on the `schema` axis, on the reasoning that data
+    staleness does not undermine "this database holds no such row". That is right for a row
+    list and WRONG for a subject miss: for "does this symbol exist", a newer working tree is
+    the single likeliest explanation.
+
+    @brief A data-stale miss is not definitive.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server import tools_query as tq
+
+    payload = {
+        "kind": "dossier",
+        "subject": "register_looping_anim",
+        "found": False,
+        "note": (
+            "No dossier for 'register_looping_anim' in this index. This is a definitive "
+            "negative from the database, NOT an error and NOT a malformed call. Before "
+            "concluding the symbol does not exist, check `target` below names the repository "
+            "you meant."
+        ),
+    }
+    tq._withdraw_definitive(payload, [{"axis": "data", "message": "39 file(s) have changed"}])
+
+    note = payload["note"]
+    assert "definitive negative" not in note.lower(), (
+        f"the claim must be withdrawn, not annotated — leaving it in place and appending a "
+        f"hedge is two claims again: {note}"
+    )
+    assert "NOT DEFINITIVE" in note
+    assert "missing rather than absent" in note, "it must name the actual cause: drift"
+    ## THE ADVICE THAT WAS WRONG. `target` was fine; sending the reader there was the damage.
+    assert "`target`" not in note, (
+        f"the withdrawn half carried the misleading advice and must go with it: {note}"
+    )
+    assert "refresh" in note.lower(), "route, do not disclaim — name the action that fixes it"
+
+
+##
+# @brief The control: data staleness must NOT hedge an ordinary empty row list.
+# @return None.
+# @version 1
+def test_data_staleness_does_not_hedge_an_empty_row_list() -> None:
+    """THE CONTROL, AND IT IS THE POINT OF SCOPING THIS TO `found is False`. gh#393 built an
+    absent-corpus downgrade and REVERTED it, because hedging every empty answer spends the
+    strong wording gh#31 earned. "This function has no callers" is not undermined by the index
+    describing slightly older code, so a `data` notice must leave it alone.
+
+    Without this test the narrow fix above would be indistinguishable from the broad one that
+    was already rejected.
+
+    @brief An empty list keeps its definitive wording under data staleness.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server import tools_query as tq
+
+    payload = {
+        "kind": "callers",
+        "count": 0,
+        "note": "This is a definitive empty result from the database. Do not retry this query.",
+    }
+    before = payload["note"]
+    tq._withdraw_definitive(payload, [{"axis": "data", "message": "3 file(s) have changed"}])
+    assert payload["note"] == before, (
+        "a row list carries no `found: False`, so data staleness must not touch it — hedging "
+        "here is the over-hedging that was already built and reverted"
+    )
+
+
+##
+# @brief Schema staleness still withdraws with its own wording, on any shape.
+# @return None.
+# @version 1
+def test_schema_staleness_still_withdraws_with_the_missing_layer_wording() -> None:
+    """The pre-existing behaviour, pinned so the gh#12 change cannot displace it. A schema-stale
+    index may be MISSING WHOLE LAYERS, which undermines an empty row list too — so this one is
+    NOT scoped to a subject miss, and its sentence says "missing rather than empty" where the
+    data case says "missing rather than absent".
+
+    @brief Schema staleness withdraws on a row list as well.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server import tools_query as tq
+
+    payload = {
+        "kind": "locks",
+        "count": 0,
+        "note": "This is a definitive empty result from the database. Do not retry this query.",
+    }
+    tq._withdraw_definitive(payload, [{"axis": "schema", "message": "built by an older pipeline"}])
+    assert "NOT DEFINITIVE" in payload["note"]
+    assert "older pipeline" in payload["note"]
+    assert "missing rather than empty" in payload["note"]

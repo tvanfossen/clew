@@ -193,6 +193,30 @@ def _staleness_within_budget(
 ## which undermines exactly that.
 _SCHEMA_AXIS = "schema"
 
+## AND `data` UNDOES IT TOO, BUT ONLY FOR A MISSING SUBJECT (gh#12). The comment above is right
+## about row lists and wrong about subject misses, which is the case that got reported: a symbol
+## written minutes earlier came back `found: false` as "a definitive negative", beside a `data`
+## notice in the SAME envelope saying 39 files had changed since the build. For "does this symbol
+## exist", data staleness is not a footnote — it is the single likeliest explanation, and the note
+## spent its advice sending the reader to check `target`, which was correct all along.
+##
+## SCOPED TO `found is False` ON PURPOSE. Applying it to every empty list would hedge "no callers"
+## and "no locks" on any slightly-stale index, which is the over-hedging gh#393 built and reverted.
+## A subject miss is the one shape where a newer working tree fully explains the answer.
+_DATA_AXIS = "data"
+
+## Why this is still the residual case in 1.0.8 rather than a solved one: a data-stale query now
+## refreshes BEFORE answering, so a miss with a live `data` notice means the refresh did not run —
+## the `code` axis refuses it, or it failed. Both are conditions the reader must act on, so the
+## replacement names the refresh AND the reason it may not have happened by itself.
+_UNEARNED_BY_DRIFT = (
+    " NOT DEFINITIVE: the sources have changed since this index was built (see `staleness` "
+    "below), so a symbol added after the build is missing rather than absent. An automatic "
+    "refresh normally corrects this before answering, so if you are reading this the refresh was "
+    "refused or failed — check the `code` axis. Refresh and ask again before concluding the "
+    "symbol does not exist."
+)
+
 ## What replaces the strong wording. It names the action, because "route, don't disclaim" is the
 ## standing rule here: a hedge that does not say what to do next just spends bytes.
 _UNEARNED_DEFINITIVE = (
@@ -225,19 +249,32 @@ _DEFINITIVE_CLAIMS = ("definitive", "do not retry")
 ## @param payload The reply, staleness already attached.
 ## @param staleness The notices attached to this reply.
 ## @req REQ-DDB-MCP-004
-## @version 1
+## @version 2
 def _withdraw_definitive(payload: dict[str, Any], staleness: list[dict[str, str]]) -> None:
-    """@brief Withdraw a definitive-negative claim a schema-stale index cannot earn. @version 1"""
+    """@brief Withdraw a definitive-negative claim a stale index cannot earn. @version 2"""
     note = payload.get("note")
-    if not isinstance(note, str) or not any(n.get("axis") == _SCHEMA_AXIS for n in staleness):
+    if not isinstance(note, str):
+        return
+    axes = {n.get("axis") for n in staleness}
+    ## Two different unearned-ness conditions, and they need different sentences: `schema` means a
+    ## layer may be MISSING, `data` means the symbol may POSTDATE the build (gh#12). The data case
+    ## is restricted to a subject miss — see `_DATA_AXIS`.
+    replacement = None
+    if _SCHEMA_AXIS in axes:
+        replacement = _UNEARNED_DEFINITIVE
+    elif _DATA_AXIS in axes and payload.get("found") is False:
+        replacement = _UNEARNED_BY_DRIFT
+    if replacement is None:
         return
     lowered = note.lower()
     if not any(claim in lowered for claim in _DEFINITIVE_CLAIMS):
         return
     ## Rewritten rather than appended-to: leaving "this is a definitive empty result" in place and
     ## adding "not definitive" after it is two claims again, in one sentence.
+    ## The split DROPS the old advice as well as the old claim, which is the point: the reported
+    ## note spent its second half telling the reader to check `target`, and `target` was right.
     kept = re.split(r"(?i)this is a definitive|do not retry", note)[0].rstrip()
-    payload["note"] = f"{kept}{_UNEARNED_DEFINITIVE}"
+    payload["note"] = f"{kept}{replacement}"
 
 
 ## @brief Trim a row list to the byte budget, describing what it dropped.
