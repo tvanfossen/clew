@@ -132,7 +132,7 @@ from .errors import DoxygenUnavailableError, RustdocUnavailableError
 from .event_edges import import_event_edges
 from .filedocs import ingest_file_docs
 from .harvest_plan import build_harvest_plan, warm_harvest_plan
-from .doxygen_splice import splice_doxygen, xref_closure
+from .doxygen_splice import include_expansion, splice_doxygen, xref_closure
 from .indexcache import IndexCache
 from .datamodel import import_data_model_keys
 from .kconfig import import_kconfig
@@ -883,6 +883,40 @@ def _run_doxygen_from_args(doxyfile: Path, args: argparse.Namespace, predefined:
     )
 
 
+## @brief Run doxygen over an explicit file list, replacing the Doxyfile's own INPUT.
+## @param doxyfile The Doxyfile to base the run on.
+## @param args Parsed CLI arguments.
+## @param predefined Pre-rendered PREDEFINED text.
+## @param repo_root Absolute repository root.
+## @param subset Repo-relative paths to make the whole INPUT.
+## @return The generated database path.
+## @version 1
+## @req REQ-DDB-INDEX-002
+def _run_subset(
+    doxyfile: Path,
+    args: argparse.Namespace,
+    predefined: str,
+    repo_root: Path,
+    subset: list[str],
+) -> Path:
+    """Extracted because the incremental path runs doxygen TWICE and the two invocations must
+    be identical in configuration. Spelling them out separately is how the second pass would
+    quietly drift from the first.
+
+    @brief Run one subset doxygen pass.
+    @return Path to the generated database.
+    @version 1
+    """
+    return run_doxygen(
+        doxyfile,
+        doxyfile.parent,
+        extra_input=[str(repo_root / rel) for rel in subset],
+        replace_input=True,
+        output_dir=_doxygen_out_dir(args),
+        predefined=predefined,
+    )
+
+
 ## How many consecutive splices are allowed before a whole-tree build is forced. A spliced
 ## database is not bit-identical to a rebuild — measured on this repository, one stale call
 ## edge in 5168 with nothing missing — and nothing in a splice bounds the accumulation of
@@ -949,7 +983,7 @@ def _incremental_plan(
 ## @param repo_root Absolute repository root.
 ## @param config_sha This build's configuration hash.
 ## @return The spliced database, or None when a full run is required.
-## @version 1
+## @version 2
 ## @req REQ-DDB-INDEX-002
 def _incremental_doxygen(
     doxyfile: Path,
@@ -971,7 +1005,7 @@ def _incremental_doxygen(
 
     @brief Run doxygen incrementally and splice the result.
     @return The spliced database, or None.
-    @version 1
+    @version 2
     """
     plan = _incremental_plan(cache, summary, repo_root, config_sha)
     if plan is None:
@@ -982,14 +1016,22 @@ def _incremental_doxygen(
     try:
         shutil.copy2(previous, keep)
         if subset:
-            produced = run_doxygen(
-                doxyfile,
-                doxyfile.parent,
-                extra_input=[str(repo_root / rel) for rel in subset],
-                replace_input=True,
-                output_dir=_doxygen_out_dir(args),
-                predefined=predefined,
-            )
+            produced = _run_subset(doxyfile, args, predefined, repo_root, subset)
+            ## SECOND PASS, BOUNDED AT ONE. `xref_closure` is derived from the PRE-EDIT
+            ## master, so it can only re-supply callees the changed file ALREADY called — and
+            ## a change set is exactly where NEW calls appear. Measured: adding one call to a
+            ## previously-uncalled function produced a subset with none of that callee's files
+            ## and lost the edge against a full rebuild, with `xrefs_unresolved` at zero
+            ## because the row never existed to be dropped.
+            extra = include_expansion(produced, keep, changed, set(subset), repo_root)
+            if extra:
+                logger.info(
+                    "doxygen: incremental second pass — the include graph adds %d file(s) "
+                    "the pre-edit xref table could not have named",
+                    len(extra),
+                )
+                subset = sorted(set(subset) | extra)
+                produced = _run_subset(doxyfile, args, predefined, repo_root, subset)
             staged = produced.with_name(produced.name + ".subset")
             shutil.copy2(produced, staged)
         report = splice_doxygen(keep, staged, changed, previous, repo_root, removed=removed)

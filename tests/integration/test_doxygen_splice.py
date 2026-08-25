@@ -29,7 +29,12 @@ from pathlib import Path
 import pytest
 
 from clew.doxygen import run_doxygen
-from clew.doxygen_splice import normalize_path, splice_doxygen, xref_closure
+from clew.doxygen_splice import (
+    include_expansion,
+    normalize_path,
+    splice_doxygen,
+    xref_closure,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -170,6 +175,18 @@ def _snapshot(db: Path, root: Path) -> dict[str, set]:
                 "JOIN refid rb ON rb.rowid = x.derived_rowid"
             )
         }
+        ## NAME-KEYED EDGES, alongside the refid-keyed set. refids are HASHED
+        ## (`main_8c_1a9f...`), so no assertion about a particular function can match on the
+        ## refid text — a gate that tried found nothing and reported the rebuild had no edge.
+        ## Names are also what a reader of a failure message can act on.
+        named_edges = {
+            (str(a), str(b))
+            for a, b in conn.execute(
+                "SELECT cs.name, cd.name FROM xrefs x "
+                "JOIN memberdef cs ON cs.rowid = x.src_rowid "
+                "JOIN memberdef cd ON cd.rowid = x.dst_rowid"
+            )
+        }
         incl = {
             (normalize_path(str(a), root), normalize_path(str(b), root))
             for a, b in conn.execute(
@@ -188,6 +205,7 @@ def _snapshot(db: Path, root: Path) -> dict[str, set]:
         "reimplements": reimpl,
         "compoundref": bases,
         "includes": incl,
+        "named_edges": named_edges,
     }
 
 
@@ -214,10 +232,21 @@ def _make_edit(root: Path) -> set[str]:
     @return The edited files' repo-relative paths.
     @version 2
     """
+    ## A NEW CROSS-FILE CALL TO A FUNCTION THAT ACTUALLY EXISTS. The previous version called
+    ## `sound_service_init()`, which the fixture declares NOWHERE — so no edge existed in the
+    ## rebuild either and the comparison was vacuous for exactly the case the closure is meant
+    ## to protect. `sound_play_findme` is declared in src/sound/sound_service.h and `main.c`
+    ## did not call it, so this edit introduces a call whose callee's file was NOT in the
+    ## pre-edit xref table — which is the shape a closure computed from the OLD master misses.
+    ## The added `#include` exercises the includes restoration at the same time.
     main = root / "src" / "main.c"
     main.write_text(
-        main.read_text(encoding="utf-8")
-        + "\n\nvoid splice_probe_added(void)\n{\n    sound_service_init();\n}\n",
+        main.read_text(encoding="utf-8").replace(
+            '#include "telemetry/telemetry.h"',
+            '#include "telemetry/telemetry.h"\n#include "sound/sound_service.h"',
+            1,
+        )
+        + "\n\nvoid splice_probe_added(void)\n{\n    sound_play_findme(1);\n}\n",
         encoding="utf-8",
     )
     shapes = root / "src" / "shapes.cpp"
@@ -275,6 +304,14 @@ def test_incremental_splice_matches_a_full_rebuild(tmp_path: Path) -> None:
     )
 
     subset_db = _run(doxyfile, tmp_path / "subset", root, subset=subset)
+
+    ## SECOND PASS. The first subset is built from the PRE-EDIT xref table, so it cannot know
+    ## about a callee the edit newly calls. `include_expansion` reads the first pass's include
+    ## graph — doxygen's own resolution, not a regex — and names the files that graph implies.
+    extra = include_expansion(subset_db, master_kept, changed, set(subset), root)
+    if extra:
+        subset = sorted(set(subset) | extra)
+        subset_db = _run(doxyfile, tmp_path / "subset2", root, subset=subset)
     spliced = tmp_path / "spliced.db"
     report = splice_doxygen(master_kept, subset_db, changed, spliced, root)
 
@@ -320,6 +357,20 @@ def test_incremental_splice_matches_a_full_rebuild(tmp_path: Path) -> None:
     added = [m for m in got["members"] if m[1] == "splice_probe_added"]
     assert added, "the edit's new function is absent from the spliced database"
 
+    ## THE NEW CROSS-FILE EDGE, PINNED BY NAME. The set comparison below would catch its
+    ## absence too, but only as one line among many — and this exact edge is what the closure
+    ## exists to preserve, so it gets its own assertion with its own message.
+    probe = ("splice_probe_added", "sound_play_findme")
+    assert probe in want["named_edges"], (
+        f"the rebuild produced no {probe[0]} -> {probe[1]} edge, so this test cannot see "
+        f"whether the splice preserves a NEWLY-ADDED cross-file call at all"
+    )
+    assert probe in got["named_edges"], (
+        f"the splice lost the new cross-file edge {probe[0]} -> {probe[1]}. The outbound "
+        f"closure is computed from the PRE-EDIT master, where this call did not exist, so "
+        f"{probe[1]}'s file never joined the subset and doxygen could not resolve the name"
+    )
+
     for layer in (
         "members",
         "compounds",
@@ -329,6 +380,7 @@ def test_incremental_splice_matches_a_full_rebuild(tmp_path: Path) -> None:
         "reimplements",
         "compoundref",
         "includes",
+        "named_edges",
     ):
         missing = want[layer] - got[layer]
         extra = got[layer] - want[layer]

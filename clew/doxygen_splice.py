@@ -220,6 +220,122 @@ def xref_closure(master_db: Path, changed: set[str], repo_root: Path) -> set[str
 
 
 ##
+# @brief Files a first subset run reveals it needs but did not have.
+# @param subset_db The database the first subset run produced.
+# @param master_db The previous whole-tree database.
+# @param changed Repo-relative paths whose content changed.
+# @param have Paths already in the subset.
+# @param repo_root Absolute repository root.
+# @return Repo-relative paths to add for a second pass; empty when the first pass sufficed.
+# @version 1
+# @req REQ-DDB-INDEX-002
+def include_expansion(
+    subset_db: Path,
+    master_db: Path,
+    changed: set[str],
+    have: set[str],
+    repo_root: Path,
+) -> set[str]:
+    """WHY `xref_closure` ALONE IS NOT ENOUGH, and this is the defect that motivated it.
+    `xref_closure` reads the PRE-EDIT master, so it can only re-supply the callees a changed
+    file ALREADY called. A change set is exactly where NEW calls appear: the callee's file was
+    never in the old xref table, never joins the subset, and doxygen cannot resolve the name —
+    so the edge is silently absent, `xrefs_unresolved` cannot count it because the row never
+    exists, and the report looks healthy. Reproduced on the C fixture: adding
+    `sound_play_findme(1)` to `main.c` produced a subset with no `src/sound/*` file and lost
+    exactly that edge against a full rebuild.
+
+    THE SIGNAL IS THE INCLUDE GRAPH, AND IT COMES FROM DOXYGEN RATHER THAN FROM A REGEX. In
+    C and C++ a cross-file call requires a visible declaration, so a NEW call implies a header
+    the changed file includes. The first subset run records those includes even for a header
+    it could not follow, so pass one tells us what pass two needs. Every header the changed
+    files include is considered, not only the newly added ones: a file may already have
+    included a header it never called into, which leaves no xref to close over either.
+
+    Mapping a header to its implementation uses the MASTER, which is sound because a header's
+    definitions living elsewhere is not something the edit changed.
+
+    ONE EXTRA ITERATION, not a fixed point. That resolves a call introduced directly by the
+    edit, which is the measured case. A call reachable only through two new hops would still
+    need a full rebuild, and the generation limit bounds how long any such gap can persist.
+
+    C AND C++ ONLY, AND THAT IS A REAL GAP RATHER THAN A CAVEAT. The signal is the `includes`
+    table, and doxygen populates it from `#include`. Measured: this repository's own index has
+    42 include rows and ZERO of them come from a `.py` file, against 2130 on a C++ target. So
+    on a Python or Rust target this function returns the empty set and a newly-added cross-file
+    call is still lost until the next full rebuild. The equivalent signal there is `import`,
+    which doxygen does not record — closing it needs the tree-sitter layer, not this one. Said
+    plainly because the sibling fix for the Doxyfile surface claimed a closure it did not have,
+    and an overclaim is worse than an open gap.
+
+    @brief Compute the second-pass expansion from the include graph.
+    @return Paths to add, empty when none are needed.
+    @version 1
+    """
+    if not changed:
+        return set()
+    headers: set[str] = set()
+    sub = sqlite3.connect(subset_db)
+    try:
+        rows = sub.execute(
+            "SELECT s.name, d.name FROM includes i "
+            "JOIN path s ON s.rowid = i.src_id JOIN path d ON d.rowid = i.dst_id"
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return set()
+    finally:
+        sub.close()
+    for raw_src, raw_dst in rows:
+        if normalize_path(str(raw_src), repo_root) in changed:
+            headers.add(normalize_path(str(raw_dst), repo_root))
+    if not headers:
+        return set()
+
+    wanted: set[str] = set()
+    conn = sqlite3.connect(master_db)
+    try:
+        known = [
+            normalize_path(str(name), repo_root)
+            for (name,) in conn.execute("SELECT name FROM path WHERE type = 1")
+        ]
+        ## AN UNRESOLVED INCLUDE IS RECORDED AS ITS LITERAL TEXT, and that is the whole reason
+        ## the first version of this found nothing. When the includee is not in the subset
+        ## INPUT, doxygen stores the `#include` string itself — `sound/sound_service.h`,
+        ## `../sound/sound_service.h` — with `found = 0`, NOT the repo-relative path. Matching
+        ## those against the master's `src/sound/sound_service.h` by equality misses every
+        ## time, which is exactly the case this function exists to catch.
+        ##
+        ## Resolved by PATH-SUFFIX at a `/` boundary. Over-matching is safe here: the only
+        ## effect is a slightly wider second-pass INPUT, and a wider subset cannot produce a
+        ## wrong edge — it can only resolve more of them.
+        resolved: set[str] = set()
+        for header in headers:
+            fragment = header.lstrip("./")
+            for candidate in known:
+                if candidate == fragment or candidate.endswith("/" + fragment):
+                    resolved.add(candidate)
+        wanted |= resolved
+        ## NORMALISED IN PYTHON, NOT MATCHED IN SQL. `path.name` in a raw doxygen database is
+        ## ABSOLUTE whenever the Doxyfile's INPUT was absolute, so an `IN (...)` against
+        ## repo-relative names silently returns nothing — the same absolute-versus-relative
+        ## mismatch as the unresolved include text above, one query over. Pulling the pairs and
+        ## comparing after normalisation cannot drift from whatever spelling doxygen chose.
+        for raw_decl, raw_body in conn.execute(
+            "SELECT fp.name, bp.name FROM memberdef m "
+            "JOIN path fp ON fp.rowid = m.file_id "
+            "JOIN path bp ON bp.rowid = m.bodyfile_id "
+            "WHERE m.bodyfile_id IS NOT NULL"
+        ):
+            if normalize_path(str(raw_decl), repo_root) in resolved:
+                wanted.add(normalize_path(str(raw_body), repo_root))
+    except sqlite3.OperationalError:
+        return set()
+    finally:
+        conn.close()
+    return {p for p in wanted if p and p not in have}
+
+
+##
 # @brief Resolve a refid string to a rowid in the target database, creating it if absent.
 # @param conn Open connection to the database being written.
 # @param refid The refid TEXT to resolve.
