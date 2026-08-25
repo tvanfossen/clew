@@ -1113,6 +1113,7 @@ def run_real_stages(db: Path, repo_root: Path) -> None:
         import_shared_key_edges_inferred,
     )
     from clew.signature import write_build_signature
+    from clew.testscope import TEST_PATH_FACTS, mark_test_scope
     from clew.threads import annotate_thread_boundaries, extract_threads
 
     ingest_supplementary_docs(db, repo_root)
@@ -1143,6 +1144,12 @@ def run_real_stages(db: Path, repo_root: Path) -> None:
     import_req_edges(db, resolve_req_id_pattern(guard_cfg))
     import_req_test_edges(db)
     mark_reachability(db)
+    ## Runs the REAL stage with the REAL defaults, like every other stage here — the
+    ## fixture-fidelity gate compares this database's table set against a live build, and
+    ## it caught `test_scope` missing the moment the stage was added to the pipeline. A
+    ## fixture that hand-rolls the table instead would be free to drift from it.
+    with sqlite3.connect(db) as _ts:
+        mark_test_scope(_ts, list(TEST_PATH_FACTS))
     write_build_signature(db)
 
 

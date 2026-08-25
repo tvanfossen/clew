@@ -130,7 +130,15 @@ from .event_edges import CONSUMER, PRODUCER
 ## so it rides the same inline route. It has to be statable at TIER 1 for the case it exists
 ## for: a third-party target whose tree must stay byte-identical cannot carry a
 ## `.clew.yaml`, so an agent or an acceptance harness states it on the call.
-INLINE_LIST_OPTIONS: tuple[str, ...] = ("entry_patterns", "predefined", "vendored")
+INLINE_LIST_OPTIONS: tuple[str, ...] = (
+    "entry_patterns",
+    "predefined",
+    "vendored",
+    ## Reachable from an embedding caller and from MCP, not only from `.clew.yaml` — "a
+    ## declaration reachable only from argv is not a declaration", and the inverse holds
+    ## too: an option only a file can state is unreachable for a caller building in-process.
+    "test_paths",
+)
 
 ## Keys whose value is a MAPPING, applied inline. `event_tags` maps a tag name to a role.
 INLINE_MAPPING_OPTIONS: tuple[str, ...] = ("event_tags",)

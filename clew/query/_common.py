@@ -157,12 +157,44 @@ def meta_section(db: str | Path, prefix: str) -> dict[str, str]:
     return {key.split(".", 1)[1]: value for key, value in rows}
 
 
+## @brief The ORDER BY fragment that ranks library definitions above test-code ones.
+## @param conn Open connection to the index.
+## @param column The file-id column to test, qualified as the caller's SQL needs.
+## @return A trailing-comma fragment, or '' on an index built before the stage existed.
+## @version 1
+## @dg_internal
+def _test_scope_term(conn: sqlite3.Connection, column: str) -> str:
+    """WHY THIS IS A TERM AND NOT A FILTER. A test-code definition is a real definition and
+    must stay reachable — `candidates` lists it, a qualified name selects it, and a repo whose
+    only definition of a name is in a test still resolves. It is only DEPRIORITISED, so nothing
+    becomes unanswerable.
+
+    RETURNS '' WHEN THE TABLE IS ABSENT, which is what keeps an index built before this stage
+    readable: the resolver falls back to its previous ordering rather than raising on a missing
+    table. An index where the stage RAN and matched nothing has an EMPTY table, not a missing
+    one, and behaves identically to a repo with no tests — the distinction `mark_test_scope`
+    exists to preserve.
+
+    Ordered FIRST, ahead of the in-place term, and that ordering is the whole fix. On entropic
+    the real `AgentEngine::run_turn` is declared in a header and defined out of line, so
+    `file_id == bodyfile_id` is FALSE for it and TRUE for two file-local test helpers — the
+    in-place term alone hands a bare name to a test.
+
+    @brief Build the test-scope ranking fragment.
+    @return SQL fragment ending in ', ', or ''.
+    @version 1
+    """
+    if not table_exists(conn, "test_scope"):
+        return ""
+    return f"(EXISTS (SELECT 1 FROM test_scope ts WHERE ts.path_rowid = {column})) ASC, "
+
+
 ## @brief Definition-preferring function name→rowid (decl/def duality).
 ## @param conn Open connection.
 ## @param name Bare function name.
 ## @param qualified Optional identity selector; see `matching_identity`.
 ## @return The definition-preferring memberdef rowid, or None if no such function (or none of that identity).
-## @version 7
+## @version 8
 ## @req REQ-DDB-QUERY-003
 ## @req REQ-DDB-QUERY-010
 def resolve_rowid(conn: sqlite3.Connection, name: str, qualified: str | None = None) -> int | None:
@@ -178,7 +210,7 @@ def resolve_rowid(conn: sqlite3.Connection, name: str, qualified: str | None = N
     bare branch would have, for the subset it keeps.
 
     @brief Resolve a function name to its definition-preferring rowid.
-    @version 7
+    @version 8
     """
     if not table_exists(conn, "memberdef"):
         return None
@@ -187,7 +219,8 @@ def resolve_rowid(conn: sqlite3.Connection, name: str, qualified: str | None = N
         return cands[0][0] if cands else None
     row = conn.execute(
         "SELECT rowid FROM memberdef WHERE name=? AND kind='function' "
-        "ORDER BY (file_id = bodyfile_id) DESC, "
+        f"ORDER BY {_test_scope_term(conn, 'file_id')}"
+        "(file_id = bodyfile_id) DESC, "
         "(COALESCE(bodyfile_id, 0) > 0 AND COALESCE(bodystart, 0) > 0) DESC, "
         "rowid LIMIT 1",
         (name,),
@@ -200,7 +233,7 @@ def resolve_rowid(conn: sqlite3.Connection, name: str, qualified: str | None = N
 ## @param name Bare function name (`memberdef.name`).
 ## @param qualified Optional identity selector; see `matching_identity`. None keeps every same-named row.
 ## @return List of (rowid, signature, file, line_start, has_body) tuples, definition rows first then by rowid; empty when the name is unknown or no row carries that identity.
-## @version 6
+## @version 7
 ## @req REQ-DDB-QUERY-003
 ## @req REQ-DDB-QUERY-010
 def function_candidates(
@@ -228,7 +261,7 @@ def function_candidates(
     identity rule in ONE place instead of a second, SQL-shaped copy of it.
 
     @brief List same-named function rows, definition-preferring, with signatures.
-    @version 6
+    @version 7
     """
     if not table_exists(conn, "memberdef"):
         return []
@@ -237,7 +270,8 @@ def function_candidates(
         "m.bodystart, (COALESCE(m.bodyfile_id, 0) > 0 AND COALESCE(m.bodystart, 0) > 0) AS has_body "
         "FROM memberdef m LEFT JOIN path p ON p.rowid = m.file_id "
         "WHERE m.name=? AND m.kind='function' "
-        "ORDER BY (m.file_id = m.bodyfile_id) DESC, has_body DESC, m.rowid",
+        f"ORDER BY {_test_scope_term(conn, 'm.file_id')}"
+        "(m.file_id = m.bodyfile_id) DESC, has_body DESC, m.rowid",
         (name,),
     ).fetchall()
     cands = [(r[0], r[1], r[2], r[3], bool(r[4])) for r in rows]

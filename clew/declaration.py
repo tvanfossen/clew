@@ -135,6 +135,11 @@ SECTION_LOCKS = "locks"
 ## the same values mean something different when moved onto `--entry-patterns`, which
 ## replaced everything including `main`.
 SECTION_ENTRY_PATTERNS = "entry_patterns"
+## Which paths hold TEST code, so a bare ambiguous name prefers the library definition.
+## Declared rather than hardcoded because `tests/` is a convention: repos use `test/`,
+## `spec/`, `t/` or colocate `foo_test.cpp` beside the code. A declaration DISPLACES the
+## built-in guesses rather than extending them, per the layered rule.
+SECTION_TEST_PATHS = "test_paths"
 ## VENDORED THIRD-PARTY PATHS — a plain list of repo-relative directories the repository did
 ## not write but DOES own, because it committed them.
 ##
@@ -241,6 +246,7 @@ KNOWN_SECTIONS = frozenset(
         SECTION_ENRICH,
         SECTION_LOCKS,
         SECTION_ENTRY_PATTERNS,
+        SECTION_TEST_PATHS,
         SECTION_VENDORED,
         SECTION_DISPATCH,
         SECTION_PREPROCESSOR,

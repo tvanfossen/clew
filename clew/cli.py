@@ -89,6 +89,7 @@ from .callback_edges import import_callback_registration_edges
 from .coverage import report_index_coverage
 from .external import EXTERNAL_ROOTS_META_KEY, stamp_external_provenance
 from .declaration import (
+    SECTION_TEST_PATHS,
     SECTION_DATA_MODEL,
     SECTION_DISPATCH,
     SECTION_ENRICH,
@@ -135,6 +136,7 @@ from .filedocs import ingest_file_docs
 from .harvest_plan import build_harvest_plan, warm_harvest_plan
 from .doxygen_splice import include_expansion, splice_doxygen, xref_closure
 from .indexcache import IndexCache
+from .testscope import TEST_PATH_FACTS, mark_test_scope
 from .datamodel import import_data_model_keys
 from .kconfig import import_kconfig
 from .kconfig_gates import import_kconfig_gates
@@ -345,6 +347,9 @@ _FOLDED_BUILD_DEFAULTS: dict[str, Any] = {
     ## stated section onto args, and a test asserts every accepted option can actually be
     ## applied — which is what caught this missing.
     "vendored": None,
+    ## Same requirement as `vendored`: a dest is REQUIRED, and a test asserts every
+    ## accepted option can actually be applied.
+    "test_paths": None,
     "index_cache": None,
     "no_index_cache": False,
 }
@@ -1068,6 +1073,36 @@ def _incremental_doxygen(
     return previous
 
 
+## @brief Which paths hold test code, resolved through the five-tier rule.
+## @param args Parsed CLI arguments (uses --test-paths / the stated option).
+## @param decl The repo's parsed `.clew.yaml`.
+## @return The resolution: the pattern set plus the stated tier that won.
+## @version 1
+## @req REQ-DDB-CONFIG-006
+## @req REQ-DDB-QUERY-003
+def _test_paths(args: argparse.Namespace, decl: dict) -> LayeredResolution:
+    """`TEST_PATH_FACTS` enters as HEURISTICS, not facts, and the distinction is the whole
+    point of the tier rule here. A repo that declares `test_paths:` is stating its layout, so
+    the guesses must be DISPLACED rather than accumulated — otherwise declaring `t/*` would
+    still leave `tests/*` and `*_test.*` in force, and an operator could not narrow the rule at
+    all, only widen it.
+
+    Contrast `entry_patterns`, where the built-ins are facts that accumulate beneath a
+    statement. Reachability wants every plausible seed; this wants exactly the caller's notion
+    of "test".
+
+    @brief Resolve the test-path patterns and their provenance.
+    @return The LayeredResolution for `test_paths`.
+    @version 1
+    """
+    return resolve_layered(
+        facts=(),
+        explicit=getattr(args, "test_paths", None),
+        declared=decl.get(SECTION_TEST_PATHS),
+        heuristics=TEST_PATH_FACTS,
+    )
+
+
 ## @brief Reachability entry patterns, resolved through the five-tier rule.
 ## @param args Parsed CLI arguments (uses --entry-patterns).
 ## @param decl The repo's parsed `.clew.yaml`.
@@ -1583,7 +1618,7 @@ def _doxygen_stage(
 
 ## @brief Run every build stage against one (temp) output DB path.
 ## @param timer Stage timer; one `mark` closes each stage below. A fresh one when omitted.
-## @version 50
+## @version 51
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -1613,7 +1648,7 @@ def _build_stages(
     per file. It changes no stage's position and emits nothing — see harvest.py.
 
     @brief Execute every augmentation stage against one output database.
-    @version 45
+    @version 46
     """
     timer = timer or StageTimer()
     repo_root = Path(args.repo_root).resolve() if args.repo_root else doxyfile.parent
@@ -1954,6 +1989,13 @@ def _build_stages(
         extra_seeds=python_entry_seeds(output, repo_root, cache),
     )
     timer.mark("reachability")
+
+    ## AFTER the path table is complete, and stamped into the index because the resolver runs
+    ## against a database with no repo root and no `.clew.yaml` to re-read.
+    test_scope = _test_paths(args, decl)
+    with sqlite3.connect(output) as _ts_conn:
+        mark_test_scope(_ts_conn, list(test_scope.values))
+    timer.mark("test_scope")
 
     # Stamp the build-version signature last so a partial build never leaves a
     # DB looking current. Consumers' freshness checks treat a mismatch as stale.

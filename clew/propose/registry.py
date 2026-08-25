@@ -38,6 +38,7 @@ from ..declaration import (
     SECTION_DOXYFILE,
     SECTION_ENRICH,
     SECTION_ENTRY_PATTERNS,
+    SECTION_TEST_PATHS,
     SECTION_EVENT_TAGS,
     SECTION_KCONFIG,
     SECTION_LOCKS,
@@ -136,6 +137,17 @@ HAND_DECLARED: dict[str, str] = {
         "false orphan — a false orphan is visible, a false live is not — so clew "
         "keeps them declared rather than guessed (clew/declaration.py, "
         "SECTION_ENTRY_PATTERNS)."
+    ),
+    SECTION_TEST_PATHS: (
+        "these are glob patterns naming the paths that hold TEST code, so a bare ambiguous "
+        "function name resolves to the library definition rather than a same-named test "
+        "helper. Measured on a real C++ target: `run_turn` had four definitions and the "
+        "resolver picked a file-local helper in tests/, because the real method is declared "
+        "in a header and defined out of line and so loses the in-place tie-break. Declared "
+        "rather than guessed because `tests/` is a convention — `test/`, `spec/`, `t/` and "
+        "colocated `foo_test.cpp` are all in the wild — and a DECLARATION DISPLACES the "
+        "built-in guesses rather than extending them, so stating your layout narrows the rule "
+        "instead of only widening it (clew/testscope.py, TEST_PATH_FACTS)."
     ),
     SECTION_DISPATCH: (
         "all three dispatch shapes (interface bindings, fnptr registration sites, "
