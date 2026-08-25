@@ -28,7 +28,7 @@ from pathlib import Path
 
 import pytest
 
-from clew.doxygen import run_doxygen
+from clew.doxygen import in_doxygen_scope, run_doxygen
 from clew.doxygen_splice import (
     include_expansion,
     normalize_path,
@@ -58,7 +58,13 @@ def _doxyfile(root: Path, out: Path) -> Path:
     """
     out.write_text(
         f"PROJECT_NAME = splice\nINPUT = {root}\nGENERATE_SQLITE3 = YES\n"
-        "EXTRACT_ALL = YES\nREFERENCED_BY_RELATION = YES\nREFERENCES_RELATION = YES\n",
+        "EXTRACT_ALL = YES\nREFERENCED_BY_RELATION = YES\nREFERENCES_RELATION = YES\n"
+        ## A DECLARED EXCLUDE_PATTERNS, because that is what real targets ship — entropic
+        ## declares `*/extern/* */build/* */tests/*`. The tree scan honours EXCLUDE roots but
+        ## NOT this glob spelling, so an excluded file still lands in the changed set; and the
+        ## subset run emits `EXCLUDE_PATTERNS =` while listing paths individually, which is how
+        ## a file a full build never indexes gets spliced INTO the master.
+        "EXCLUDE_PATTERNS = */vendor/*\n",
         encoding="utf-8",
     )
     return out
@@ -175,6 +181,17 @@ def _snapshot(db: Path, root: Path) -> dict[str, set]:
                 "JOIN refid rb ON rb.rowid = x.derived_rowid"
             )
         }
+        ## THE INDEXED FILE SET. The general guard for scope: whatever the splice does, the
+        ## set of files doxygen actually PROCESSED must equal what a full rebuild processes.
+        ## `compounddef` of kind 'file' is that set — a `path` row also exists for unresolved
+        ## includes, which legitimately differ between runs.
+        indexed = {
+            normalize_path(str(name), root)
+            for (name,) in conn.execute(
+                "SELECT p.name FROM compounddef cd JOIN path p ON p.rowid = cd.file_id "
+                "WHERE cd.kind = 'file'"
+            )
+        }
         ## NAME-KEYED EDGES, alongside the refid-keyed set. refids are HASHED
         ## (`main_8c_1a9f...`), so no assertion about a particular function can match on the
         ## refid text — a gate that tried found nothing and reported the rebuild had no edge.
@@ -206,6 +223,7 @@ def _snapshot(db: Path, root: Path) -> dict[str, set]:
         "compoundref": bases,
         "includes": incl,
         "named_edges": named_edges,
+        "indexed": indexed,
     }
 
 
@@ -256,7 +274,14 @@ def _make_edit(root: Path) -> set[str]:
         + "int Extra::area() const { return 2; }\n",
         encoding="utf-8",
     )
-    return {"src/main.c", "src/shapes.cpp"}
+    ## The vendored file is EDITED TOO. The tree scan does not know it is excluded, so it
+    ## enters the changed set — which is exactly the path by which the splice indexes it.
+    vendored = root / "vendor" / "third_party.c"
+    vendored.write_text(
+        vendored.read_text(encoding="utf-8") + "int vendored_added(void) { return 8; }\n",
+        encoding="utf-8",
+    )
+    return {"src/main.c", "src/shapes.cpp", "vendor/third_party.c"}
 
 
 ##
@@ -284,13 +309,22 @@ def test_incremental_splice_matches_a_full_rebuild(tmp_path: Path) -> None:
         "int Derived::area() const { return 1; }\n",
         encoding="utf-8",
     )
+    ## A real C file inside a directory the Doxyfile EXCLUDES by glob. A full rebuild must
+    ## never index it; the splice must not either.
+    (root / "vendor").mkdir(parents=True, exist_ok=True)
+    (root / "vendor" / "third_party.c").write_text(
+        "int vendored_helper(void) { return 7; }\n", encoding="utf-8"
+    )
     doxyfile = _doxyfile(root, tmp_path / "Doxyfile")
 
     master = _run(doxyfile, tmp_path / "master", root)
     master_kept = tmp_path / "master-kept.db"
     shutil.copy2(master, master_kept)
 
-    changed = _make_edit(root)
+    ## THE SAME SCOPE FILTER THE PIPELINE APPLIES. `_make_edit` also touches a file the
+    ## Doxyfile excludes by glob, because the tree scan cannot see that exclusion — narrowing
+    ## here is what keeps the splice from indexing a file no full rebuild produces.
+    changed = set(in_doxygen_scope(sorted(_make_edit(root)), doxyfile, True))
 
     truth = _run(doxyfile, tmp_path / "truth", root)
     truth_kept = tmp_path / "truth-kept.db"
@@ -316,7 +350,7 @@ def test_incremental_splice_matches_a_full_rebuild(tmp_path: Path) -> None:
     report = splice_doxygen(master_kept, subset_db, changed, spliced, root)
 
     assert not report.skipped, f"splice skipped files: {report.skipped}"
-    assert report.files_replaced == 2
+    assert report.files_replaced >= 2
     assert report.members_inserted > 0, "no members inserted — the splice did nothing"
     assert report.relations_dropped == 0, (
         "a relation endpoint was missing from the working copy, which means the closure did "
@@ -360,6 +394,14 @@ def test_incremental_splice_matches_a_full_rebuild(tmp_path: Path) -> None:
     ## THE NEW CROSS-FILE EDGE, PINNED BY NAME. The set comparison below would catch its
     ## absence too, but only as one line among many — and this exact edge is what the closure
     ## exists to preserve, so it gets its own assertion with its own message.
+    ## SCOPE NON-VACUITY. If the rebuild indexed the vendored file too, the exclusion is not
+    ## in force and the scope comparison below proves nothing.
+    assert not any("vendor/" in f for f in want["indexed"]), (
+        f"the full rebuild indexed the excluded vendor/ tree, so EXCLUDE_PATTERNS is not "
+        f"taking effect and this test cannot see a scope widening: "
+        f"{sorted(f for f in want['indexed'] if 'vendor' in f)}"
+    )
+
     probe = ("splice_probe_added", "sound_play_findme")
     assert probe in want["named_edges"], (
         f"the rebuild produced no {probe[0]} -> {probe[1]} edge, so this test cannot see "
@@ -381,6 +423,7 @@ def test_incremental_splice_matches_a_full_rebuild(tmp_path: Path) -> None:
         "compoundref",
         "includes",
         "named_edges",
+        "indexed",
     ):
         missing = want[layer] - got[layer]
         extra = got[layer] - want[layer]

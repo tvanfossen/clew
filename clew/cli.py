@@ -112,6 +112,7 @@ from .dispatch import load_dispatch_manifest, shared_key_document
 from .dispatch_edges import import_declared_dispatch_edges
 from .dominated_edges import prune_dominated_fuzzy_call_edges
 from .doxygen import (
+    in_doxygen_scope,
     copy_database,
     declared_file_patterns,
     describe_doxyfile_resolution,
@@ -930,14 +931,18 @@ SPLICE_GENERATION_LIMIT = 20
 ## @param summary This run's tree classification.
 ## @param repo_root Absolute repository root.
 ## @param config_sha This build's configuration hash; only matching output may be spliced.
+## @param doxyfile The Doxyfile, read for the scope patterns.
+## @param args Parsed CLI arguments, for the replace_input regime.
 ## @return (previous output, changed set, removed set, subset list), or None to run in full.
-## @version 1
+## @version 2
 ## @req REQ-DDB-INDEX-002
 def _incremental_plan(
     cache: IndexCache,
     summary: ScanSummary,
     repo_root: Path,
     config_sha: str,
+    doxyfile: Path,
+    args: argparse.Namespace,
 ) -> tuple[Path, set[str], set[str], list[str]] | None:
     """SEPARATED FROM THE ACTION so the decision is readable on its own and so the guard
     conditions cannot be lost among the file shuffling that follows.
@@ -954,10 +959,22 @@ def _incremental_plan(
 
     @brief Plan an incremental doxygen run.
     @return The plan, or None.
-    @version 1
+    @version 2
     """
-    changed = set(summary.modified) | set(summary.added)
-    removed = set(summary.removed)
+    ## THE SCAN IS UNFILTERED BY DESIGN — it answers "did anything change", where a false
+    ## positive only costs a rebuild. Using that same set as the doxygen INPUT is what let a
+    ## glob-excluded file be spliced into the master, so the changed set is narrowed to the
+    ## run's REAL scope here, before it becomes either a delete target or an INPUT entry.
+    ## Filtered at the plan, not at the run, so `changed` and `subset` cannot disagree about
+    ## what is in scope — a file dropped from one but not the other lands in `skipped` and
+    ## reads as "left stale" when it should never have been a candidate.
+    honor_exclude = not getattr(args, "replace_input", False)
+    changed = set(
+        in_doxygen_scope(
+            sorted(set(summary.modified) | set(summary.added)), doxyfile, honor_exclude
+        )
+    )
+    removed = set(in_doxygen_scope(sorted(summary.removed), doxyfile, honor_exclude))
     if cache.splice_generation() >= SPLICE_GENERATION_LIMIT:
         logger.info(
             "doxygen: %d consecutive incremental splices — running in full to reset "
@@ -983,7 +1000,7 @@ def _incremental_plan(
 ## @param repo_root Absolute repository root.
 ## @param config_sha This build's configuration hash.
 ## @return The spliced database, or None when a full run is required.
-## @version 2
+## @version 3
 ## @req REQ-DDB-INDEX-002
 def _incremental_doxygen(
     doxyfile: Path,
@@ -1005,9 +1022,9 @@ def _incremental_doxygen(
 
     @brief Run doxygen incrementally and splice the result.
     @return The spliced database, or None.
-    @version 2
+    @version 3
     """
-    plan = _incremental_plan(cache, summary, repo_root, config_sha)
+    plan = _incremental_plan(cache, summary, repo_root, config_sha, doxyfile, args)
     if plan is None:
         return None
     previous, changed, removed, subset = plan

@@ -2211,3 +2211,61 @@ def test_an_unstated_scope_keeps_the_parsers_default(monkeypatch: pytest.MonkeyP
     ## AND A STATED SCOPE STILL WINS, or the fix has made the parameter inert.
     cli.build_index(output="/tmp/unused.db", scope=SCOPE_DOXYFILE)
     assert seen[-1] == SCOPE_DOXYFILE
+
+
+##
+# @brief The incremental plan must not offer out-of-scope files to the splice.
+# @param tmp_path Pytest scratch directory.
+# @return None.
+# @version 1
+def test_in_doxygen_scope_drops_what_a_full_run_would_not_index(tmp_path: Path) -> None:
+    """A SCOPE STATEMENT HAS THREE KEYS AND THE TREE SCAN READS ONE. `enumerate_tree` honours
+    INPUT and EXCLUDE roots and is deliberately NOT extension-filtered, because its job is
+    "did anything change" where a false positive only costs a rebuild. Reusing that set as the
+    doxygen INPUT is the defect: doxygen applies FILE_PATTERNS only to DIRECTORY entries, and a
+    subset run clears EXCLUDE_PATTERNS in order to list files individually — so both remaining
+    keys are bypassed and a glob-excluded file gets spliced INTO the master.
+
+    Measured on the C fixture before the fix: a `vendor/` file the Doxyfile excludes entered
+    the changed set and was indexed, giving an incremental index a file no full rebuild would
+    ever produce, with a healthy report and nothing in `skipped`.
+
+    The conditional half is asserted too. A repo with a declared scope builds with
+    `replace_input`, which clears EXCLUDE_PATTERNS for the WHOLE-TREE run as well, so honouring
+    them in the subset would make the subset narrower than the master and leave real files
+    stale. Both regimes are pinned so neither can be quietly dropped.
+
+    @brief Out-of-scope candidates are filtered; the exclude half is regime-dependent.
+    @return None.
+    @version 1
+    """
+    from clew.doxygen import in_doxygen_scope
+
+    doxyfile = tmp_path / "Doxyfile"
+    doxyfile.write_text(
+        "PROJECT_NAME = t\nINPUT = .\nEXCLUDE_PATTERNS = */vendor/*\n", encoding="utf-8"
+    )
+    candidates = ["src/main.c", "vendor/third_party.c", "docs/notes.txt", "src/app.cpp"]
+
+    honoured = in_doxygen_scope(candidates, doxyfile, True)
+    assert "src/main.c" in honoured and "src/app.cpp" in honoured, (
+        f"an ordinary source file was filtered out: {honoured}"
+    )
+    assert "docs/notes.txt" not in honoured, (
+        "a .txt file is not in FILE_PATTERNS, so a directory-driven run never indexes it — "
+        "listing it explicitly in a subset run would bypass that"
+    )
+    assert "vendor/third_party.c" not in honoured, (
+        "a file the Doxyfile EXCLUDE_PATTERNS excludes was kept, so the splice would index a "
+        "file no full rebuild produces"
+    )
+
+    ignored = in_doxygen_scope(candidates, doxyfile, False)
+    assert "vendor/third_party.c" in ignored, (
+        "EXCLUDE_PATTERNS was applied even though the whole-tree run clears it under "
+        "replace_input, which would make the subset NARROWER than the master and leave real "
+        "files stale"
+    )
+    assert "docs/notes.txt" not in ignored, (
+        "FILE_PATTERNS is forced in both regimes, so it must filter regardless"
+    )

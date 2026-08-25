@@ -14,11 +14,12 @@ that to actually open files).
 
 from __future__ import annotations
 
+import fnmatch
 import shutil
 import sqlite3
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from ._common import active_console, clean_subprocess_env, logger, make_progress
 from .errors import DoxygenUnavailableError
@@ -214,6 +215,60 @@ def effective_file_patterns(doxyfile: Path) -> list[str]:
     @version 2
     """
     return list(DOXYGEN_DEFAULT_FILE_PATTERNS)
+
+
+## @brief Restrict a file list to what a doxygen run over the roots would actually index.
+## @param paths Repo-relative candidate paths.
+## @param doxyfile The Doxyfile the build is based on.
+## @param honor_exclude_patterns True when the whole-tree run keeps the Doxyfile's
+##                              EXCLUDE_PATTERNS, i.e. when it does not replace INPUT.
+## @return The subset a directory-driven run would have picked up, in order.
+## @version 1
+## @req REQ-DDB-INDEX-002
+def in_doxygen_scope(paths: list[str], doxyfile: Path, honor_exclude_patterns: bool) -> list[str]:
+    """A SCOPE STATEMENT HAS THREE KEYS AND THE TREE SCAN READS ONE. `enumerate_tree` honours
+    INPUT and EXCLUDE roots and is DELIBERATELY not extension-filtered — correct for its own
+    job, which is deciding WHETHER anything changed ("when in doubt, MISS"). Reusing that
+    unfiltered set as the doxygen INPUT is what this fixes: `FILE_PATTERNS` and
+    `EXCLUDE_PATTERNS` are the other two keys, and a subset run bypasses both because doxygen
+    applies FILE_PATTERNS only to DIRECTORY entries and the run clears EXCLUDE_PATTERNS in
+    order to list files individually.
+
+    The consequence measured on the C fixture: a `vendor/` file the Doxyfile excludes by glob
+    entered the changed set, was listed explicitly, and was spliced INTO the master — so the
+    incremental index held a file no full rebuild would ever produce, with a healthy report and
+    nothing in `skipped`. Silently WIDENING scope is worse than narrowing it, because every
+    coverage and orphan figure is then computed over a set the operator never asked for.
+
+    EXCLUDE_PATTERNS IS CONDITIONAL, and that asymmetry is deliberate rather than sloppy. A
+    repo with a declared scope builds with `replace_input`, which clears EXCLUDE_PATTERNS for
+    the WHOLE-TREE run too — so honouring them in the subset would make the subset NARROWER
+    than the full build and leave real files stale. The flag says which regime the caller is
+    in, so the subset matches whichever one the master was built under.
+
+    @brief Filter a candidate list down to the doxygen run's real scope.
+    @return The in-scope subset.
+    @version 1
+    """
+    patterns = effective_file_patterns(doxyfile)
+    excluded = parse_doxyfile_values(doxyfile, "EXCLUDE_PATTERNS") if honor_exclude_patterns else []
+    kept: list[str] = []
+    for rel in paths:
+        name = PurePosixPath(rel).name
+        if patterns and not any(fnmatch.fnmatch(name, pat) for pat in patterns):
+            continue
+        if any(fnmatch.fnmatch(rel, pat) or fnmatch.fnmatch("/" + rel, pat) for pat in excluded):
+            continue
+        kept.append(rel)
+    dropped = len(paths) - len(kept)
+    if dropped:
+        logger.info(
+            "scope: %d of %d candidate file(s) are outside the doxygen run's scope "
+            "(FILE_PATTERNS or EXCLUDE_PATTERNS) and are not indexed incrementally either",
+            dropped,
+            len(paths),
+        )
+    return kept
 
 
 ## @brief The FILE_PATTERNS a target's own Doxyfile declares, for reporting only.
