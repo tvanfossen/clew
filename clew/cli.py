@@ -1005,7 +1005,7 @@ def _incremental_plan(
 ## @param repo_root Absolute repository root.
 ## @param config_sha This build's configuration hash.
 ## @return The spliced database, or None when a full run is required.
-## @version 3
+## @version 4
 ## @req REQ-DDB-INDEX-002
 def _incremental_doxygen(
     doxyfile: Path,
@@ -1027,7 +1027,7 @@ def _incremental_doxygen(
 
     @brief Run doxygen incrementally and splice the result.
     @return The spliced database, or None.
-    @version 3
+    @version 4
     """
     plan = _incremental_plan(cache, summary, repo_root, config_sha, doxyfile, args)
     if plan is None:
@@ -1037,8 +1037,24 @@ def _incremental_doxygen(
     staged: Path | None = None
     try:
         shutil.copy2(previous, keep)
+        ## BEFORE ANY READER, not just before the splice (#492). `include_expansion`
+        ## draws its candidate paths from this master, and normalising it later meant a
+        ## fixed-up header `include/entropic/entropic.h` was suffix-matched against a
+        ## still-stripped `entropic/entropic.h` and missed — so the expansion returned
+        ## empty, the second pass never ran, and the new cross-file call stayed lost.
+        ## Fixing the two operands at different times is what made this a THIRD symptom
+        ## of one defect: every consumer of a doxygen path must see the same spelling.
+        fix_doxygen_paths(keep, doxyfile, repo_root)
         if subset:
             produced = _run_subset(doxyfile, args, predefined, repo_root, subset)
+            ## NORMALISED THE MOMENT IT EXISTS, not just before the splice (#492). Fixing only
+            ## the splice's operands left `include_expansion` reading this database RAW, where
+            ## it tests `normalize_path(includer) in changed` — a stripped `mcp/foo.cpp` against
+            ## a git-derived `src/mcp/foo.cpp`. It missed, `headers` came back empty, the second
+            ## pass never ran, and a newly-added cross-file call was lost with no log line to
+            ## say so. Same defect as the splice's, one layer down, and fixing the splice alone
+            ## moved the symptom instead of removing it.
+            fix_doxygen_paths(produced, doxyfile, repo_root)
             ## SECOND PASS, BOUNDED AT ONE. `xref_closure` is derived from the PRE-EDIT
             ## master, so it can only re-supply callees the changed file ALREADY called — and
             ## a change set is exactly where NEW calls appear. Measured: adding one call to a
@@ -1056,6 +1072,26 @@ def _incremental_doxygen(
                 produced = _run_subset(doxyfile, args, predefined, repo_root, subset)
             staged = produced.with_name(produced.name + ".subset")
             shutil.copy2(produced, staged)
+        ## BOTH SIDES SPELL PATHS THE WAY GIT DOES, BEFORE ANY COMPARISON (#492). The splice
+        ## matches the git-derived changed set against `path.name` rows, and a target whose own
+        ## Doxyfile declares STRIP_FROM_PATH stores those rows with the prefix REMOVED — so
+        ## `src/mcp/health_monitor.cpp` was compared against a stored `mcp/health_monitor.cpp`,
+        ## missed, and EVERY changed file was declared absent from the subset run. The splice
+        ## then fail-closed and respliced ZERO files while the build reported success. Measured
+        ## on a target declaring `STRIP_FROM_PATH = include src`: 615 of 2133 file rows stored
+        ## stripped, and every refresh a silent no-op.
+        ##
+        ## `normalize_path` could not have caught it. It handles the ABSOLUTE case, and a
+        ## stripped name is already RELATIVE, so it returned the short name verbatim and looked
+        ## like it had done its job. Reconstruction needs the STRIP_FROM_PATH prefixes, which
+        ## only the Doxyfile has.
+        ##
+        ## So run the pipeline's OWN fixup rather than re-deriving one here: it is the same
+        ## function, reading the same Doxyfile, that the full build already applies, so the two
+        ## paths cannot drift into disagreeing about what a file is called. Both operands are
+        ## scratch COPIES, so the cached doxygen output is untouched.
+        if staged is not None:
+            fix_doxygen_paths(staged, doxyfile, repo_root)
         report = splice_doxygen(keep, staged, changed, previous, repo_root, removed=removed)
     except (OSError, sqlite3.Error) as exc:
         logger.warning("doxygen: incremental splice failed (%s) — running in full", exc)
