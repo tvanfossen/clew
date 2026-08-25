@@ -137,6 +137,44 @@ TIER0 = {
 ## a function POINTER, i.e. a variable. Every other subject type needed its own tool
 ## BECAUSE the composite would not take it. Nineteen tools were one capability that could
 ## not be pointed at eight kinds of subject.
+
+
+##
+# @brief Whether a parameter's description survives into the SERVED JSON Schema.
+# @param hint The resolved type hint, extras included.
+# @return True when the generated schema carries a description.
+# @version 1
+def _described_in_schema(hint: object) -> bool:
+    """ASSERT ON THE ARTIFACT, NOT ON THE ANNOTATION SHAPE. Reading `hint.__metadata__`
+    directly passed on 3.11/3.12 and FAILED ON 3.10 for exactly the parameters whose default
+    is `None`: 3.10's `get_type_hints` wraps those in `Optional[...]`, which hides
+    `__metadata__` from the outer type, and 3.11 dropped that implicit wrapping. That cost a
+    release -- CI red on the minimum supported version while the local 3.12 gate was green.
+
+    MEASURED ON REAL 3.10 BEFORE CHANGING THIS: every parameter's description IS present in the
+    generated schema, `kind`/`qualified`/`target` included, while their outer `__metadata__` is
+    empty. So the product was correct and only the introspection was version-dependent —
+    which is why this now generates the schema pydantic will actually serve. That is also the
+    property the test claims to protect: what reaches the model, in the one channel a client
+    cannot truncate.
+
+    An `Optional[Annotated[...]]` renders as `anyOf`, so a description may sit in a branch
+    rather than at the top level; both count.
+
+    @brief True when the served schema describes this parameter.
+    @return Whether a description is present.
+    @version 1
+    """
+    from pydantic import TypeAdapter
+
+    schema = TypeAdapter(hint).json_schema()
+    if schema.get("description"):
+        return True
+    return any(
+        isinstance(branch, dict) and branch.get("description") for branch in schema.get("anyOf", ())
+    )
+
+
 ##
 ## NOTE THE MISSING APOSTROPHE two paragraphs up, which is load-bearing: an ODD number of
 ## apostrophes in a comment INSIDE a multi-line literal makes doxygen read the rest of the
@@ -3493,8 +3531,7 @@ def test_every_tool_parameter_is_described() -> None:
         for pname, hint in hints.items():
             if pname in ("return", "self", "ctx"):
                 continue
-            meta = getattr(hint, "__metadata__", ())
-            if not any(getattr(m, "description", None) for m in meta):
+            if not _described_in_schema(hint):
                 undescribed.append(pname)
         assert not undescribed, (
             f"{name}: {undescribed} carry no schema description, so they reach a model as bare "
