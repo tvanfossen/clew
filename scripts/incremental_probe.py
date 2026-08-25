@@ -419,10 +419,15 @@ def main() -> int:
     @version 1
     """
     parser = argparse.ArgumentParser(description=__doc__)
-    default_db = Path.home() / ".local/state/clew/targets/docs-db-57bf14/clew.db"
-    default_doxyfile = (
-        Path.home() / ".local/state/clew/targets/docs-db-57bf14/clew.doxygen/Doxyfile.synth"
-    )
+    ## DERIVED, NEVER BAKED IN. This shipped with one machine's target slug
+    ## (`docs-db-57bf14`) hardcoded, which is both a footgun — `autorefresh` builds against
+    ## whatever that path names, i.e. the operator's LIVE index — and a violation of this
+    ## repo's own no-hardcoding rule. The slug is a function of the repo path, so ask for it.
+    from clew.mcp_server.state import TargetRegistry, target_for
+
+    _target = target_for(REPO, TargetRegistry().home)
+    default_db = Path(_target.db_path)
+    default_doxyfile = default_db.parent / "clew.doxygen" / "Doxyfile.synth"
     parser.add_argument("--db", default=str(default_db))
     parser.add_argument("--doxyfile", default=str(default_doxyfile))
     parser.add_argument("--repo", default=str(REPO))

@@ -3606,3 +3606,95 @@ async def test_a_query_refreshes_only_when_the_data_axis_is_stale(
         monkeypatch.setattr(server_module, "code_identity", lambda: {"matches_source": matches})
         await state._auto_refresh(None)
         assert len(builds) == expected, f"{why} (axes={axes}, matches_source={matches})"
+
+
+##
+# @brief A registered tool must actually invoke the refresh hook.
+# @return None.
+# @version 1
+@pytest.mark.anyio
+async def test_invoking_a_registered_tool_runs_the_refresh_hook() -> None:
+    """CLOSES A FAIL-OPEN THAT MUTATION FOUND. `server.py`'s
+    `await before(kwargs.get("target"))` is the ONE line that makes a query refresh, and
+    `register_query_tools(..., before=None)` falls back to a plain binding — so an omitted
+    argument silently disables the feature. Deleting that `await`, or passing `before=None` at
+    either production registration, left the entire suite green.
+
+    Neither sibling test can see it. The schema test reads
+    `_tool_manager.get_tool(name).parameters`, which comes from `__wrapped__`'s signature and
+    is identical either way; the `_auto_refresh` test calls that method DIRECTLY, bypassing the
+    wrapper entirely. Nothing invoked a REGISTERED tool, which is the only path a real client
+    takes.
+
+    So this drives the tool manager and asserts the hook ran with the caller's target. The
+    query itself fails — there is no database — and that is fine and deliberate: the hook runs
+    BEFORE the query, so an exception from the query cannot mask a hook that never fired, while
+    a hook that never fired cannot be hidden by a query that succeeds.
+
+    @brief A registered tool calls the hook with the caller's target.
+    @return None.
+    @version 1
+    """
+    import contextlib
+    import inspect
+
+    seen: list[str | None] = []
+
+    async def hook(target: str | None) -> None:
+        seen.append(target)
+
+    mcp = MCPServer("hook-probe")
+    tools = QueryTools(lambda: "/nonexistent.db", lambda: "/tmp", lambda: [], None)
+    register_query_tools(mcp, tools, hook)
+
+    ## `call_tool` takes a CONTEXT argument. Omitting it raised a TypeError before the
+    ## wrapper ran, so the first version of this test failed with an empty hook list and looked
+    ## exactly like the defect it was written to detect.
+    ##
+    ## `iscoroutinefunction(get_tool("search").fn)` is the check that the async wrapper is what
+    ## got registered — its repr says `QueryTools.search`, because `functools.wraps` copies
+    ## `__qualname__`, which is precisely the property the schema depends on.
+    assert inspect.iscoroutinefunction(mcp._tool_manager.get_tool("search").fn), (
+        "the registered callable is not the async refresh wrapper, so no hook can run"
+    )
+    with contextlib.suppress(Exception):
+        await mcp._tool_manager.call_tool(
+            "search", {"text": "anything", "target": "/some/repo"}, None
+        )
+
+    assert seen == ["/some/repo"], (
+        f"invoking the registered `search` tool did not run the refresh hook with the "
+        f"caller's target (hook calls: {seen}). The wrapper is what makes a stale query "
+        f"refresh, and without this assertion deleting it leaves the suite green"
+    )
+
+
+##
+# @brief Both production registrations must pass the refresh hook.
+# @return None.
+# @version 1
+def test_the_production_registrations_pass_a_refresh_hook() -> None:
+    """THE OTHER HALF OF THE SAME FAIL-OPEN. The wrapper can be perfect and still never be
+    used, because `before` defaults to None — so passing nothing at a call site disables the
+    refresh with no error and no schema change. A structural check on the source is the only
+    thing that pins it: an assertion about behaviour cannot distinguish "registered without a
+    hook" from "registered with a hook that did nothing".
+
+    @brief No production registration omits the hook.
+    @return None.
+    @version 1
+    """
+    import inspect
+
+    source = inspect.getsource(server_module)
+    calls = [
+        line.strip()
+        for line in source.splitlines()
+        if "register_query_tools(self.mcp" in line or "register_query_tools(\n" in line
+    ]
+    assert calls, "no production registration found — did the call sites move?"
+    for call in calls:
+        assert "self._auto_refresh" in call, (
+            f"a production registration omits the refresh hook, so queries against that "
+            f"server never refresh a stale index: {call!r}"
+        )

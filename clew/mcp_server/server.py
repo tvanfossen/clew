@@ -605,7 +605,7 @@ class DocsDbServer:
     ## @brief Bring a stale index current before answering from it.
     ## @param target The caller's target argument, or None for the default.
     ## @return None.
-    ## @version 1
+    ## @version 2
     ## @req REQ-DDB-MCP-004
     async def _auto_refresh(self, target: str | None) -> None:
         """WHY A QUERY BUILDS AT ALL. Reporting staleness and leaving the fix to the caller
@@ -626,7 +626,7 @@ class DocsDbServer:
 
         @brief Refresh a stale index before answering.
         @return None.
-        @version 1
+        @version 2
         """
         try:
             resolved = self.resolve_target(target) if target else self.active
@@ -638,7 +638,20 @@ class DocsDbServer:
         async with self._build_lock(resolved.repo_path):
             if self._data_stale(resolved):
                 try:
-                    await anyio.to_thread.run_sync(self._run_build, resolved, None)
+                    ## BOUND, NOT DISCARDED. `_run_build` does NOT raise on a failed build: it
+                    ## catches (Exception, SystemExit) and RETURNS a failure dict, and
+                    ## `_failure_result` deliberately emits no separate log line because a
+                    ## raise would land in the same captured buffer. So this dict was the ONLY
+                    ## record of the failure — including the pipeline's captured log records —
+                    ## and discarding it meant a persistently broken build was retried on every
+                    ## query with no trace anywhere. "Silent loss is worse than a crash."
+                    outcome = await anyio.to_thread.run_sync(self._run_build, resolved, None)
+                    if isinstance(outcome, dict) and not outcome.get("ok", True):
+                        logger.warning(
+                            "auto-refresh of %s did not succeed: %s",
+                            resolved.repo_path,
+                            outcome.get("error") or outcome,
+                        )
                 except Exception as exc:
                     logger.warning(
                         "auto-refresh of %s failed (%s) — answering from the index as it "
