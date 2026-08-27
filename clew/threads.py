@@ -832,7 +832,7 @@ def _walk_spawn_sites(
 ## @param src_bytes The file's raw bytes.
 ## @param patterns_by_name Spawn patterns keyed by callee name.
 ## @return List of [thread_name, entry_name, kind, qualified_entry, separator, spawn_line, spawn_function] septets.
-## @version 4
+## @version 5
 ## @dg_internal
 def _walk_py_spawn_sites(
     tree: Any,
@@ -851,7 +851,7 @@ def _walk_py_spawn_sites(
 
     @brief Harvest Python spawn call sites via import-resolved callee names.
     @return Rowid-free spawn-site quints.
-    @version 3
+    @version 4
     """
     bindings = collect_bindings(tree, src_bytes)
     classes = class_ranges(tree, src_bytes)
@@ -866,7 +866,7 @@ def _walk_py_spawn_sites(
         pattern = _py_matched_pattern(node, src_bytes, bindings, patterns_by_name)
         if pattern is None:
             continue
-        site = _resolve_py_spawn_site(node, src_bytes, pattern, classes)
+        site = _resolve_py_spawn_site(node, src_bytes, pattern, classes, bindings)
         if site is not None:
             sites.append(
                 [
@@ -928,6 +928,7 @@ def _resolve_py_spawn_site(
     src_bytes: bytes,
     pattern: SpawnPattern,
     classes: list[tuple[int, int, str]],
+    bindings: PyBindings,
 ) -> _SpawnSite | None:
     """The entry comes from the pattern's keyword when the call passes one
     (`target=`, the near-universal real form), else from its positional index.
@@ -937,7 +938,7 @@ def _resolve_py_spawn_site(
 
     @brief Resolve a matched Python spawn call into name + entry + kind.
     @return The spawn site, or None.
-    @version 1
+    @version 2
     """
     arg = _py_entry_argument(node, pattern)
     class_name = enclosing_class(classes, node.start_byte)
@@ -945,6 +946,28 @@ def _resolve_py_spawn_site(
     if names is None:
         return None
     qualified_entry, entry_tail = names
+    ## RESOLVE A MODULE ALIAS THROUGH THE SAME IMPORT MAP THE CALLEE ALREADY USES (#498).
+    ## `threading.Thread(target=dox.func)` stored the raw source text `dox.func`, while doxygen
+    ## records the real `clew.doxygen.func` — so `_resolve_qualified_entry` could never match and
+    ## the thread was inserted with a NULL entry rowid. The tail was indexed and unique, which by
+    ## this repo's own invariant makes it a resolution failure rather than fail-closed behaviour.
+    ##
+    ## NOT A TAIL FALLBACK, and the distinction is the whole design. Matching on the bare tail
+    ## would fix this case and then silently borrow a same-named stranger's rowid the day a second
+    ## `func` appears — the gh#347 shape the no-fallback rule in `_insert_threads` exists to
+    ## prevent. Resolving the ALIAS keeps the lookup exact: the module becomes KNOWN rather than
+    ## guessed, so a wrong match is impossible rather than merely unlikely.
+    ##
+    ## Costs nothing: `collect_bindings` already runs per file for the CALLEE match, and its
+    ## `resolve` rewrites exactly the head segment. The entry path simply never consulted it.
+    ##
+    ## `or qualified_entry` IS LOAD-BEARING, NOT DEFENSIVE PADDING. `resolve` returns None — not
+    ## the input — when the head is not bound by an import, and the commonest entry form has
+    ## exactly that shape: `entry_names` has already rewritten `self._run` to `Holder._run`, whose
+    ## head is a CLASS. Assigning the bare call would have turned every working class-qualified
+    ## entry into None and destroyed the one form that already resolved. The test that caught this
+    ## asserts `Holder._run` survives, which is why it is in the same test as the fix.
+    qualified_entry = bindings.resolve(qualified_entry) or qualified_entry
     thread_name = _py_thread_name(node, src_bytes, pattern) or qualified_entry
     return _SpawnSite(thread_name, entry_tail, pattern.kind, qualified_entry, SCOPE_SEP_PY)
 
@@ -1012,7 +1035,11 @@ class _SpawnHarvester(Harvester):
     # it and not only where. The bump is what makes v3 payloads cold — they fold
     # tolerantly to "" rather than raising, but an index served from them would answer
     # the new question with silence, which is the state this field exists to remove.
-    stage_version = 4
+    ## BUMPED FOR #498: a module-aliased entry is now stored RESOLVED
+    ## (`clew.doxygen.func`) where it used to be the raw source text (`dox.func`). The cached
+    ## payload therefore holds a different string, and serving an old one would keep the NULL
+    ## entry rowid this fix exists to remove — silently, on every warm build.
+    stage_version = 5
     label = "thread spawns"
 
     ## @brief Store the spawn-pattern map plus the manifest-derived cache key.

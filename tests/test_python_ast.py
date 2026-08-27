@@ -821,3 +821,73 @@ def test_new_thread_kinds_are_registered_in_the_vocabulary(kind: str) -> None:
 
     assert kind in THREAD_KIND
     assert THREAD_KIND.validated(kind, owner="test", field="kind") == kind
+
+
+##
+# @brief A module-aliased thread ENTRY must be resolved through the same import map as the callee.
+# @param tmp_path Pytest temp dir.
+# @return None.
+# @version 1
+def test_an_aliased_thread_entry_is_resolved_through_the_import_map(tmp_path: Path) -> None:
+    """#498. The CALLEE has been resolved through `PyBindings` since the Python thread layer
+    landed — `bindings.resolve("th.Thread") == "threading.Thread"` is asserted just above. The
+    ENTRY was not, so `threading.Thread(target=dox.func)` stored the raw source text
+    `"dox.func"`, doxygen's `definition` holds the real `clew.doxygen.func`, and the qualified
+    lookup could never match. The row was inserted with a NULL entry rowid.
+
+    THAT IS A RESOLUTION FAILURE RATHER THAN FAIL-CLOSED BEHAVIOUR, by this repo's own invariant:
+    `test_self_index_thread_layer_resolves_its_entries` says a NULL is correct ONLY when the
+    entry's own tail is genuinely absent from the index. Here the tail is present and unique.
+
+    THE FIX IS NOT A TAIL MATCH, deliberately. Falling back to the bare tail would resolve this
+    case and silently borrow a same-named stranger's rowid the day a second `func` appears —
+    the gh#347 shape, and exactly what the no-fallback rule in `_insert_threads` exists to
+    prevent. Resolving the ALIAS is different in kind: the module is then KNOWN rather than
+    guessed, so the qualified lookup stays exact.
+
+    @brief An aliased entry resolves to its real dotted path.
+    @return None.
+    @version 1
+    """
+    src = tmp_path / "c.py"
+    src.write_text(
+        "import threading\n"
+        "from clew import doxygen as dox\n"
+        "import clew.testscope as ts\n"
+        "\n"
+        "class Holder:\n"
+        "    def _run(self):\n"
+        "        pass\n"
+        "    def go(self):\n"
+        "        threading.Thread(target=self._run).start()\n"
+        "\n"
+        "def spawn():\n"
+        "    threading.Thread(target=dox._write_doxyfile_stdin).start()\n"
+        "    threading.Thread(target=ts.is_test_path).start()\n",
+        encoding="utf-8",
+    )
+    tree, data = _parse(tmp_path, "c.py")
+    bindings = collect_bindings(tree, data)
+
+    ## The import map already knows both aliases — this is the machinery the entry path must use.
+    assert bindings.resolve("dox") == "clew.doxygen"
+    assert bindings.resolve("ts") == "clew.testscope"
+
+    sites = _walk_spawn_sites(tree, data, {p.name: p for p in load_thread_patterns(None)})
+    ## A site is a flat septet; index 3 is the QUALIFIED entry, which is the field the
+    ## resolver matches against doxygen's `definition`. Indexed rather than named because the
+    ## walker returns plain lists for the harvest cache, not `_SpawnSite` objects.
+    qualified = {row[3] for row in sites}
+
+    assert "clew.doxygen._write_doxyfile_stdin" in qualified, (
+        f"an aliased entry was stored unresolved; doxygen records the real module path, so a "
+        f"raw alias can never match the qualified lookup. Got: {sorted(qualified)}"
+    )
+    assert "clew.testscope.is_test_path" in qualified, (
+        f"`import x.y as z` form not resolved either. Got: {sorted(qualified)}"
+    )
+    ## AND THE self.method REWRITE MUST SURVIVE. It is the one entry form that already worked, so
+    ## it is the regression most worth pinning while changing this code path.
+    assert "Holder._run" in qualified, (
+        f"the self.method -> Class.method rewrite regressed. Got: {sorted(qualified)}"
+    )
