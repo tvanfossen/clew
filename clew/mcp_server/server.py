@@ -510,6 +510,14 @@ def _failure_result(exc: BaseException, rendered: str) -> dict[str, Any]:
     }
 
 
+## HOW LONG A QUERY WILL WAIT FOR ANOTHER REFRESH TO FINISH BEFORE ANSWERING STALE. Generous on
+## purpose: the common case is a concurrent refresh that finishes and is DEDUPLICATED, which is the
+## whole point of the lock, and a short wait would throw that away. Only a pathological build trips
+## it — and when one does, a stale answer carrying its staleness notice beats a call that never
+## returns. A single hung MCP call was the field failure that motivated bounding this at all.
+_LOCK_WAIT_SECONDS = 120
+
+
 ## @brief Lifecycle state + tier-0 tool implementations for one server.
 ## @version 1
 class DocsDbServer:
@@ -605,7 +613,7 @@ class DocsDbServer:
     ## @brief Bring a stale index current before answering from it.
     ## @param target The caller's target argument, or None for the default.
     ## @return None.
-    ## @version 2
+    ## @version 3
     ## @req REQ-DDB-MCP-004
     async def _auto_refresh(self, target: str | None) -> None:
         """WHY A QUERY BUILDS AT ALL. Reporting staleness and leaving the fix to the caller
@@ -626,7 +634,7 @@ class DocsDbServer:
 
         @brief Refresh a stale index before answering.
         @return None.
-        @version 2
+        @version 3
         """
         try:
             resolved = self.resolve_target(target) if target else self.active
@@ -635,7 +643,31 @@ class DocsDbServer:
             resolved = None
         if resolved is None or not self._data_stale(resolved):
             return
-        async with self._build_lock(resolved.repo_path):
+        ## BOUNDED ACQUIRE, BECAUSE AN UNBOUNDED ONE TURNS ONE SLOW BUILD INTO A HUNG SESSION.
+        ## This method's own docstring promises "a stale answer plus a warning is strictly better
+        ## than an error" — and it did not honour that when the failure was a STALL rather than an
+        ## exception. Field-observed: a single MCP call hanging indefinitely.
+        ##
+        ## The holder keeps this lock across `to_thread.run_sync` for the whole build, so every
+        ## later query that finds the index stale queued here with no way out. A queued waiter that
+        ## gives up is strictly better than one that never returns: the index it would have read is
+        ## exactly the one it now reads, and the staleness notice still rides along to say so.
+        ##
+        ## The wait is generous on purpose — it is sized to let a NORMAL concurrent refresh finish
+        ## and be deduplicated, which is the case this lock exists to serve. Only a pathological
+        ## build trips it.
+        with anyio.move_on_after(_LOCK_WAIT_SECONDS) as scope:
+            await self._build_lock(resolved.repo_path).acquire()
+        if scope.cancelled_caught:
+            logger.warning(
+                "auto-refresh of %s: another refresh has held the build lock for over %d s, so "
+                "this query is answering from the index as it stands rather than waiting. The "
+                "reply still carries its staleness notice.",
+                resolved.repo_path,
+                _LOCK_WAIT_SECONDS,
+            )
+            return
+        try:
             if self._data_stale(resolved):
                 try:
                     ## BOUND, NOT DISCARDED. `_run_build` does NOT raise on a failed build: it
@@ -659,6 +691,12 @@ class DocsDbServer:
                         resolved.repo_path,
                         exc,
                     )
+        finally:
+            ## RELEASED IN A `finally` BECAUSE THE ACQUIRE IS NOW EXPLICIT. `async with` used to
+            ## guarantee this; a bounded acquire cannot use the context manager, so the release
+            ## has to be unconditional here. Leaking it would recreate the very hang this change
+            ## removes, permanently and for every later query.
+            self._build_lock(resolved.repo_path).release()
 
     ## @brief The staleness axes in play right now, for stamping onto query replies.
     ## @return List of {axis, message}; EMPTY when the tool is current or has no target.

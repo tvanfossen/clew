@@ -32,6 +32,7 @@ pytest.importorskip(
 
 from test_mcp_server import _FakeCtx
 
+from clew.mcp_server import server as server_module
 from clew.mcp_server import state as st
 from clew.mcp_server.server import build_server
 from clew.mcp_server.tools_query import TIER1_TOOLS, QueryTools
@@ -516,3 +517,73 @@ async def test_a_routed_build_registers_the_target_without_adopting_it(
     assert result["target"] == str(fresh)
     assert Path(state.active.repo_path) == derived, "a routed build must not retarget"
     assert str(fresh) in [t.repo_path for t in reg.targets()], "but must be registered"
+
+
+@pytest.mark.anyio
+async def test_a_stalled_refresh_does_not_hang_a_later_query(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """FIELD-OBSERVED, 2026-08-26: a single MCP call hung indefinitely. The build lock is held
+    across the whole build, and the acquire was unbounded, so one stalled build queued every later
+    query that found the index stale — with no way out. `_auto_refresh`'s own docstring promised
+    the opposite: "a stale answer plus a warning is strictly better than an error." It honoured
+    that for an exception and not for a STALL.
+
+    THE STALL HAS TO BE DELIBERATE OR THIS CANNOT BE TESTED AT ALL. The sibling
+    `test_concurrent_refreshes_of_one_target_build_it_once` passes today and always did, because
+    its stand-in build returns promptly — a fast build never exercises the queue. So this one holds
+    the lock for longer than the bounded wait and asserts the waiter RETURNS.
+
+    Asserted as "returns within a bound", not on wall-clock precision: the point is termination,
+    not latency.
+
+    @brief A query behind a stalled refresh answers stale instead of hanging.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "stalled"
+    repo.mkdir()
+    (repo / "a.c").write_text("int main(void){return 0;}\n", encoding="utf-8")
+
+    ## Shrink the wait so the test is fast; the production value is a backstop, not a budget.
+    monkeypatch.setattr(server_module, "_LOCK_WAIT_SECONDS", 1)
+
+    target = state.resolve_target(str(repo))
+    monkeypatch.setattr(state, "_data_stale", lambda _t: True)
+
+    released = anyio.Event()
+    waiter_returned = anyio.Event()
+
+    async def _hold_the_lock() -> None:
+        """@brief Occupy the build lock far longer than the bounded wait.
+        @version 1
+        """
+        async with state._build_lock(target.repo_path):
+            await anyio.sleep(5)
+            released.set()
+
+    async def _query_behind_it() -> None:
+        """@brief A second query that must not wait for the holder.
+        @version 1
+        """
+        await state._auto_refresh(str(repo))
+        waiter_returned.set()
+
+    with anyio.move_on_after(4):
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(_hold_the_lock)
+            await anyio.sleep(0.1)  # let the holder take it
+            tg.start_soon(_query_behind_it)
+            await waiter_returned.wait()
+            tg.cancel_scope.cancel()
+
+    assert waiter_returned.is_set(), (
+        "the query behind a stalled refresh never returned. That is the hang: the build lock is "
+        "held across the whole build, so an unbounded acquire makes one slow build block every "
+        "later stale query in the process."
+    )
+    assert not released.is_set(), (
+        "the holder finished, so the waiter was never actually made to queue — this test would "
+        "be vacuous"
+    )

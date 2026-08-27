@@ -18,6 +18,7 @@ import fnmatch
 import shutil
 import sqlite3
 import subprocess
+import threading
 import sys
 from pathlib import Path, PurePosixPath
 
@@ -100,6 +101,15 @@ _DOXYFILE_FORCED_FLAGS = (
     "GENERATE_TAGFILE =\n"
     "CLANG_DATABASE_PATH =\n"
 )
+
+## HOW LONG A SINGLE doxygen RUN MAY TAKE BEFORE IT IS KILLED. A BACKSTOP, NOT A BUDGET — the
+## point is that a wedged run ENDS, not that a slow one is punished. Full builds measured here run
+## ~5 s (this repo) and ~130 s (a 2,359-file C++ target), so 15 minutes is far outside any
+## legitimate run while still bounding the failure the MCP server cannot otherwise recover from:
+## it holds its per-target build lock across this call, so one stall queues every later stale
+## query in that process forever.
+_DOXYGEN_TIMEOUT = 900
+
 
 _DOXY_PHASE_PREFIXES = ("Generating ", "Building ", "Finished", "Running ")
 _DOXY_FILE_PREFIXES = ("Preprocessing ", "Parsing file ")
@@ -808,6 +818,35 @@ def _classify_doxygen_line(line: str) -> str:
     return "phase" if line.startswith(_DOXY_PHASE_PREFIXES) else "other"
 
 
+## @brief Feed the generated Doxyfile to doxygen's stdin, from a thread.
+## @param proc The running doxygen process.
+## @param content The complete generated Doxyfile text.
+## @return None.
+## @version 1
+## @dg_internal
+def _write_doxyfile_stdin(proc: subprocess.Popen, content: str) -> None:
+    """RUNS ON A THREAD SO BOTH PIPES ARE SERVICED AT ONCE. Writing the config from the main
+    thread and only then reading stdout deadlocks whenever the config exceeds the pipe buffer and
+    doxygen emits output before consuming all of it — measured at 356 KB of config against a
+    64 KiB buffer, and observed in the field as a hung MCP call.
+
+    SWALLOWS ITS ERRORS ON PURPOSE. If doxygen dies early the write fails with EPIPE, and that is
+    not the interesting failure: the reader will see the closed stdout and `proc.wait()` will
+    report the real exit code. Raising here would replace a useful diagnostic with a traceback
+    from a daemon thread that nobody joins on the error path.
+
+    @brief Write the config to stdin and close it.
+    @return None.
+    @version 1
+    """
+    try:
+        if proc.stdin is not None:
+            proc.stdin.write(content)
+            proc.stdin.close()
+    except (BrokenPipeError, OSError, ValueError):
+        pass
+
+
 ## @brief Drive a progress bar from doxygen's stdout.
 ## @version 1
 ## @return Tuple of (total warning/error count, up to the first 3 warning lines).
@@ -1042,7 +1081,7 @@ def doxygen_supports_sqlite3(binary: str = "doxygen") -> bool | None:
 
 
 ## @brief Run doxygen with GENERATE_SQLITE3 and return the database path.
-## @version 9
+## @version 10
 ## @req REQ-DDB-INDEX-001
 def run_doxygen(
     doxyfile: Path,
@@ -1080,7 +1119,7 @@ def run_doxygen(
 
     @brief Run doxygen and return path to generated sqlite3 database.
     @raises DoxygenUnavailableError When the doxygen binary is not on PATH.
-    @version 9
+    @version 10
     """
     if shutil.which("doxygen") is None:
         raise DoxygenUnavailableError(
@@ -1111,10 +1150,45 @@ def run_doxygen(
         env=clean_subprocess_env(),
     )
     assert proc.stdin is not None and proc.stdout is not None
-    proc.stdin.write(doxyfile_content)
-    proc.stdin.close()
+    ## STDIN IS WRITTEN ON A THREAD, AND THAT IS A DEADLOCK FIX RATHER THAN A TIDY-UP.
+    ##
+    ## This used to be `write(...)` then `close()` then read stdout — nobody read stdout until the
+    ## WHOLE config had been written. Both pipes have a ~64 KiB OS buffer, and the config is not
+    ## small: clew writes explicit file lists into INPUT, so it scales with the repo.
+    ## MEASURED: 356,077 bytes for a 4,878-file INPUT — 5.4x the buffer. doxygen emits
+    ## config-parse warnings while it is still reading, so its stdout fills, it blocks on write,
+    ## we block on write, and neither side can ever proceed. Reproduced with this exact spawn
+    ## shape: hung until killed.
+    ##
+    ## Observed in the field as a single MCP call hanging with no concurrency at all, which is
+    ## what ruled out the concurrent-build theory this was first attributed to.
+    ##
+    ## `communicate()` is the textbook fix and is NOT used here, deliberately: it buffers stdout
+    ## and would delete the live progress bar `_consume_doxygen_output` drives off the stream, on
+    ## a stage that routinely runs for seconds. A writer thread fixes the deadlock and keeps the
+    ## bar — both pipes are serviced at once, which is the actual requirement.
+    writer = threading.Thread(
+        target=_write_doxyfile_stdin, args=(proc, doxyfile_content), daemon=True
+    )
+    writer.start()
     warn_count, first_warnings = _consume_doxygen_output(proc)
-    rc = proc.wait()
+    ## BOUNDED, because an unbounded wait here is the second half of the same incident: the MCP
+    ## server holds its per-target build lock across this call, so one stalled doxygen makes every
+    ## later stale query in that process queue forever. The value is a BACKSTOP, not a budget — no
+    ## legitimate build approaches it, and the point is that a wedged one ends.
+    try:
+        rc = proc.wait(timeout=_DOXYGEN_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
+        logger.error(
+            "doxygen did not finish within %d s and was killed. The index was NOT updated; the "
+            "previous one is untouched, because the build stages into a temp file and only "
+            "swaps on success.",
+            _DOXYGEN_TIMEOUT,
+        )
+        sys.exit(1)
+    writer.join(timeout=5)
     _surface_doxygen_warnings(warn_count, first_warnings)
     if rc != 0:
         logger.error("Doxygen exited with code %d", rc)
