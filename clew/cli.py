@@ -2436,7 +2436,7 @@ def _open_index_cache(
 
 
 ## @brief Execute the build pipeline, writing atomically to --output.
-## @version 17
+## @version 18
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-PIPE-002
 ## @req REQ-DDB-MCP-004
@@ -2456,7 +2456,7 @@ def _run_pipeline(args: argparse.Namespace) -> None:
     partition the duration it is reported beside instead of some inner part of it.
 
     @brief Run the build pipeline, recording what it cost.
-    @version 17
+    @version 18
     """
     started = time.perf_counter()
     timer = StageTimer()
@@ -2517,7 +2517,7 @@ def _run_pipeline(args: argparse.Namespace) -> None:
         )
     cache = _open_index_cache(args, output, repo_root)
     timer.mark("resolve")
-    tmp = output.with_name(output.name + ".tmp")
+    tmp = staging_path(output)
     counts: tuple[int, int] | None = None
     try:
         _build_stages(tmp, doxyfile, args, cache, timer)
@@ -2541,6 +2541,41 @@ def _run_pipeline(args: argparse.Namespace) -> None:
     report_stats(output)
     timer.mark("report_stats")
     _stamp_refresh_metrics(output, started, counts, timer)
+
+
+##
+## @brief This process's private staging path for a build's output database.
+## @param output The live database path the build will atomically replace.
+## @return A sibling path unique to this process.
+## @version 1
+## @req REQ-DDB-INDEX-002
+def staging_path(output: Path) -> Path:
+    """PER-PROCESS, AND THAT IS THE WHOLE POINT OF THE FUNCTION EXISTING. This was an inline
+    `output.name + ".tmp"`, so two processes building one target staged into the SAME file — and
+    either one's `except BaseException: tmp.unlink()` deleted the other's work.
+
+    MEASURED BEFORE THE FIX: two concurrent builds left a 12 KB database holding only
+    `build_meta` — no memberdef, no call_edges, the entire graph gone — while
+    `PRAGMA integrity_check` returned `ok` and one of the two processes exited 0 reporting
+    success. A single build of the same tree yields ~5,200 symbols.
+
+    Copied from `mcp_server/state.py`, which has staged its registry writes with the pid all
+    along and for exactly this reason; the protection was simply never applied to the build.
+
+    EXTRACTED RATHER THAN LEFT INLINE so the property is testable WITHOUT a race. The obvious
+    test — run two builds and see — catches the defect only about half the time, because the
+    collision depends on the two processes overlapping in a narrow window. A 50% detector is not
+    a gate. This function makes "the staging path is private to this process" a deterministic
+    assertion instead.
+
+    The SWAP is unaffected and was always correct: `os.replace` onto the live path is atomic, and
+    readers holding the old inode are never disturbed.
+
+    @brief Derive a per-process staging path.
+    @return The staging path.
+    @version 1
+    """
+    return output.with_name(f"{output.name}.{os.getpid()}.tmp")
 
 
 ## @brief Run one build in-process, without composing a command line.
