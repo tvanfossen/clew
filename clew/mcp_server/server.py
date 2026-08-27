@@ -123,6 +123,7 @@ from pydantic import Field
 import anyio
 
 from .._common import captured_output, logger
+from ..buildlock import build_lock
 from ..scope import SCOPE_FROM_GUARD
 from ._sdk import Context, MCPServer, lowlevel
 from .descriptions import load_descriptions
@@ -613,7 +614,7 @@ class DocsDbServer:
     ## @brief Bring a stale index current before answering from it.
     ## @param target The caller's target argument, or None for the default.
     ## @return None.
-    ## @version 3
+    ## @version 4
     ## @req REQ-DDB-MCP-004
     async def _auto_refresh(self, target: str | None) -> None:
         """WHY A QUERY BUILDS AT ALL. Reporting staleness and leaving the fix to the caller
@@ -634,7 +635,7 @@ class DocsDbServer:
 
         @brief Refresh a stale index before answering.
         @return None.
-        @version 3
+        @version 4
         """
         try:
             resolved = self.resolve_target(target) if target else self.active
@@ -677,7 +678,12 @@ class DocsDbServer:
                     ## record of the failure — including the pipeline's captured log records —
                     ## and discarding it meant a persistently broken build was retried on every
                     ## query with no trace anywhere. "Silent loss is worse than a crash."
-                    outcome = await anyio.to_thread.run_sync(self._run_build, resolved, None)
+                    ## `skip_if_fresh=True`: this path exists only to make a STALE index
+                    ## current, so if another process got there first there is nothing
+                    ## left to do. Positional, because `to_thread.run_sync` takes no kwargs.
+                    outcome = await anyio.to_thread.run_sync(
+                        self._run_build, resolved, None, SCOPE_FROM_GUARD, None, None, True
+                    )
                     if isinstance(outcome, dict) and not outcome.get("ok", True):
                         logger.warning(
                             "auto-refresh of %s did not succeed: %s",
@@ -1307,7 +1313,7 @@ class DocsDbServer:
     ## @param exclude Operator-stated exclusions; None inherits the recorded ones, [] withdraws them.
     ## @param options Tier-1 build options; a stated one makes this a build, like an exclusion does.
     ## @return Build result dict (built true) or the skip result (built false).
-    ## @version 2
+    ## @version 3
     ## @req REQ-DDB-MCP-002
     ## @req REQ-DDB-CONFIG-008
     async def _build_once(
@@ -1338,13 +1344,22 @@ class DocsDbServer:
 
         @brief Run or skip the build for one target.
         @return Build or skip result dict.
-        @version 2
+        @version 3
         """
         status = db_status(target)
         if not status["stale"] and not force and exclude is None and not options:
             return {"ok": True, "built": False, "status": status}
         return await anyio.to_thread.run_sync(
-            self._run_build, target, doxyfile, scope, exclude, options
+            self._run_build,
+            target,
+            doxyfile,
+            scope,
+            exclude,
+            options,
+            ## The same condition this method already used to skip BEFORE taking the
+            ## cross-process lock: a forced build, a stated exclude or declared options
+            ## must run even against a fresh index, so they forbid the post-lock skip too.
+            not force and exclude is None and not options,
         )
 
     ## @brief Current target, how it was resolved, database freshness and tier-1 state.
@@ -1716,6 +1731,7 @@ class DocsDbServer:
         scope: str = SCOPE_FROM_GUARD,
         exclude: list[str] | None = None,
         options: dict[str, Any] | None = None,
+        skip_if_fresh: bool = False,
     ) -> dict[str, Any]:
         """Call `cli.build_index` directly, with the pipeline's whole rendered output
         captured so none of it reaches the stdio transport. Blocking — callers
@@ -1784,15 +1800,62 @@ class DocsDbServer:
         # which is the truth: a build through MCP states no catalog path.
         with captured_output() as rendered:
             try:
-                build_index(
-                    output=Path(target.db_path),
-                    repo_root=repo,
-                    doxyfile=doxy_arg,
-                    scope=scope,
-                    requirements=None,
-                    exclude=exclude,
-                    options=options,
-                )
+                ## CROSS-PROCESS DEDUPLICATION (#497). The `anyio.Lock` above this is per PROCESS,
+                ## and one clew-mcp runs per session PLUS one per subagent — so two sessions
+                ## sharing a target ran two full redundant builds where one build and one skip was
+                ## intended. This is the only chokepoint both MCP paths pass through:
+                ## `_auto_refresh` and `_build_once` each call `_run_build` directly.
+                ##
+                ## RE-CHECKED AFTER ACQUIRING, WHICH IS WHERE THE SAVING COMES FROM. Waiting alone
+                ## would merely serialise the two builds; re-measuring is what turns the second one
+                ## into a skip, exactly as the in-process lock already does.
+                ##
+                ## FAILS OPEN IN EVERY DIRECTION. `held=False` means another process is building,
+                ## or locking is unavailable on this platform or filesystem — and in every one of
+                ## those cases this proceeds to build. That is deliberate: since 1.0.12 staging
+                ## paths carry the pid and the swap is atomic, so a duplicate build is merely
+                ## wasteful, while a lock that could block would be a new hang. Three releases in
+                ## a row were hangs; none of them will be this one.
+                with build_lock(Path(target.db_path)) as held:
+                    ## RE-CHECKED WHETHER OR NOT THE LOCK WAS HELD, and the first version of this
+                    ## got it wrong: it re-checked only on `not held`, so a waiter that eventually
+                    ## ACQUIRED the lock — the common case, because the holder usually finishes
+                    ## inside the bound — went straight on to rebuild what had just been built.
+                    ## Measured: two processes, two builds, no skip. The lock had serialised the
+                    ## work without deduplicating it, which is the entire point missed.
+                    ##
+                    ## `skip_if_fresh` comes from the caller because only the caller knows whether
+                    ## a rebuild was DEMANDED. `_auto_refresh` only ever refreshes a stale index so
+                    ## it always allows the skip; `build_or_refresh` withholds it for `force`, an
+                    ## explicit `exclude`, or declared `options`, exactly as `_build_once` does.
+                    ## `held` NO LONGER DECIDES ANYTHING, and that is the point rather than an
+                    ## oversight: both cases re-check and both skip a fresh index. The lock's whole
+                    ## job is to make this process WAIT so the re-check below sees the other
+                    ## build's result. It is kept for the log line, because "did we own the lock"
+                    ## is the first thing worth knowing when a contended target misbehaves.
+                    if skip_if_fresh and not db_status(target)["stale"]:
+                        logger.info(
+                            "build: %s was refreshed by another process while waiting — skipping "
+                            "a redundant build (lock held here: %s)",
+                            target.repo_path,
+                            held,
+                        )
+                        return {
+                            "ok": True,
+                            "built": False,
+                            "doxyfile": described,
+                            "output": rendered.getvalue(),
+                            "status": db_status(target),
+                        }
+                    build_index(
+                        output=Path(target.db_path),
+                        repo_root=repo,
+                        doxyfile=doxy_arg,
+                        scope=scope,
+                        requirements=None,
+                        exclude=exclude,
+                        options=options,
+                    )
             except (Exception, SystemExit) as exc:
                 return {
                     **_failure_result(exc, rendered.getvalue()),

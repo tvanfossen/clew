@@ -685,7 +685,9 @@ async def test_a_stated_option_forces_a_build_on_a_current_index(
 
     seen: list[object] = []
 
-    def _record_build(_target, _doxyfile, _scope=None, _exclude=None, options=None):
+    def _record_build(
+        _target, _doxyfile, _scope=None, _exclude=None, options=None, _skip_if_fresh=False
+    ):
         seen.append(options)
         return {"ok": True, "built": True, "output": "stubbed build"}
 

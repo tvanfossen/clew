@@ -319,7 +319,9 @@ async def test_concurrent_refreshes_of_one_target_build_it_once(tmp_path: Path) 
     repo.mkdir()
     builds: list[str] = []
 
-    def _fake_build(target, doxyfile, scope="from-guard", exclude=None, options=None):
+    def _fake_build(
+        target, doxyfile, scope="from-guard", exclude=None, options=None, skip_if_fresh=False
+    ):
         """@brief Stand-in build that records its call and leaves a current index.
         @version 1
         """
@@ -369,7 +371,9 @@ async def test_concurrent_refreshes_of_different_targets_are_not_serialised(
         repo.mkdir()
     spans: list[tuple[float, float]] = []
 
-    def _fake_build(target, doxyfile, scope="from-guard", exclude=None, options=None):
+    def _fake_build(
+        target, doxyfile, scope="from-guard", exclude=None, options=None, skip_if_fresh=False
+    ):
         """@brief Stand-in build recording when it started and finished.
         @version 1
         """
@@ -501,7 +505,9 @@ async def test_a_routed_build_registers_the_target_without_adopting_it(
     fresh.mkdir()
     state.adopt(str(derived), st.TARGET_SOURCE_FLAG)
 
-    def _fake_build(target, doxyfile, scope="from-guard", exclude=None, options=None):
+    def _fake_build(
+        target, doxyfile, scope="from-guard", exclude=None, options=None, skip_if_fresh=False
+    ):
         """@brief Stand-in build leaving a current index.
         @version 1
         """
