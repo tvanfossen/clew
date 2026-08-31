@@ -14,6 +14,8 @@ that to actually open files).
 
 from __future__ import annotations
 
+import os
+import signal
 import fnmatch
 import shutil
 import sqlite3
@@ -635,7 +637,7 @@ def synthesize_doxyfile(repo_root: Path, output_dir: Path) -> Path:
 
 
 ## @brief Build the augmented Doxyfile content piped to doxygen on stdin.
-## @version 11
+## @version 12
 ## @req REQ-DDB-INDEX-001
 def _build_doxyfile_content(
     doxyfile: Path,
@@ -817,6 +819,37 @@ def _classify_doxygen_line(line: str) -> str:
     if line.startswith(_DOXY_FILE_PREFIXES):
         return "file"
     return "phase" if line.startswith(_DOXY_PHASE_PREFIXES) else "other"
+
+
+## @brief Kill a doxygen child and everything it started.
+## @param proc The running doxygen process, spawned as its own session leader.
+## @return None.
+## @version 1
+## @dg_internal
+def _reap_process_group(proc: subprocess.Popen) -> None:
+    """KILLS THE GROUP, NOT THE PID. `proc.kill()` reaches the process we hold and nothing it
+    spawned; the observed leak was a child outliving the call entirely, at multi-GB resident,
+    still parented to a long-lived MCP server.
+
+    FALLS BACK TO THE PID rather than raising. `killpg` fails if the child was never made a
+    session leader (a platform without `start_new_session`, or a caller that changed the spawn),
+    and the correct response to "I could not kill the group" is to kill what we can — not to
+    replace a leaked process with a traceback on an unwind path that is already handling
+    something else.
+
+    SILENT ON EVERY ERROR, deliberately: this runs from `finally` and from a watchdog thread,
+    where the process is usually already gone (`ProcessLookupError`) and where raising would
+    mask the exception actually being propagated.
+
+    @brief Terminate the doxygen process group.
+    @return None.
+    @version 1
+    """
+    with contextlib.suppress(OSError, AttributeError, ValueError):
+        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        return
+    with contextlib.suppress(OSError):
+        proc.kill()
 
 
 ## @brief Feed the generated Doxyfile to doxygen's stdin, from a thread.
@@ -1082,7 +1115,7 @@ def doxygen_supports_sqlite3(binary: str = "doxygen") -> bool | None:
 
 
 ## @brief Run doxygen with GENERATE_SQLITE3 and return the database path.
-## @version 11
+## @version 12
 ## @req REQ-DDB-INDEX-001
 def run_doxygen(
     doxyfile: Path,
@@ -1120,7 +1153,7 @@ def run_doxygen(
 
     @brief Run doxygen and return path to generated sqlite3 database.
     @raises DoxygenUnavailableError When the doxygen binary is not on PATH.
-    @version 11
+    @version 12
     """
     if shutil.which("doxygen") is None:
         raise DoxygenUnavailableError(
@@ -1149,6 +1182,18 @@ def run_doxygen(
         text=True,
         bufsize=1,
         env=clean_subprocess_env(),
+        ## ITS OWN PROCESS GROUP, SO ABANDONING THIS CALL CAN REAP EVERYTHING IT STARTED.
+        ##
+        ## FIELD-OBSERVED TWICE: aborting a slow refresh reported success while doxygen kept
+        ## running, still parented to the MCP server at ~4 GB resident, and had to be killed by
+        ## hand. The next attempt then competed with its own orphans for the machine, which is
+        ## how one of them was misread as a concurrency problem.
+        ##
+        ## `proc.kill()` alone is not enough: it reaches the pid we hold and nothing that pid
+        ## spawned. A leader plus `killpg` reaches the whole tree whatever the failure path was —
+        ## demonstrated by the reap test's stub, which leaves a shell AND a sleeping child, and
+        ## whose first version was itself fooled into finding only one of the two.
+        start_new_session=True,
     )
     assert proc.stdin is not None and proc.stdout is not None
     ## STDIN IS WRITTEN ON A THREAD, AND THAT IS A DEADLOCK FIX RATHER THAN A TIDY-UP.
@@ -1194,8 +1239,7 @@ def run_doxygen(
 
     def _kill_on_deadline() -> None:
         timed_out.set()
-        with contextlib.suppress(OSError):
-            proc.kill()
+        _reap_process_group(proc)
 
     watchdog = threading.Timer(_DOXYGEN_TIMEOUT, _kill_on_deadline)
     watchdog.daemon = True
@@ -1203,6 +1247,13 @@ def run_doxygen(
     try:
         warn_count, first_warnings = _consume_doxygen_output(proc)
         rc = proc.wait()
+    except BaseException:
+        ## `BaseException`, NOT `Exception`, and that choice is the whole point. Every way this
+        ## call actually gets abandoned in the field is outside `Exception` — KeyboardInterrupt,
+        ## SystemExit, anyio's cancellation — so a handler that caught only `Exception` would
+        ## leak on precisely the paths that leaked.
+        _reap_process_group(proc)
+        raise
     finally:
         watchdog.cancel()
     writer.join(timeout=5)

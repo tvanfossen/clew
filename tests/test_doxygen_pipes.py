@@ -204,12 +204,23 @@ def test_the_bound_on_doxygen_starts_before_the_read() -> None:
 
     ## A bound that does not kill the child leaks a process and leaves the pipes open — and the
     ## kill is also what UNBLOCKS the reader, by closing the fds it is waiting on.
-    killers = [
+    ##
+    ## MATCHED ON THE REAP HELPER, NOT ON `.kill`. The literal `proc.kill()` that used to sit
+    ## here moved into `_reap_process_group` when the reap became a process-group kill (#499b),
+    ## and a `.kill`-shaped check would have failed on a change that made the reaping STRONGER.
+    ## That is the same mistake as the assertion this test replaced: pinning a spelling rather
+    ## than the property.
+    reapers = [
         n
         for n in ast.walk(run)
-        if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "kill"
+        if isinstance(n, ast.Call)
+        and isinstance(n.func, ast.Name)
+        and n.func.id == "_reap_process_group"
     ]
-    assert killers, "the timeout path must kill the child rather than leaking it"
+    assert reapers, (
+        "the timeout path must reap the child rather than leaking it. `proc.kill()` alone is "
+        "not sufficient — it reaches the pid we hold and nothing that pid spawned."
+    )
 
 
 ##
