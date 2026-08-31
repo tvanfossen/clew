@@ -514,6 +514,53 @@ def _build_argparser() -> argparse.ArgumentParser:
     return parser
 
 
+## Environment variable overriding the shared parse's worker count. `1` forces the serial path.
+##
+## AN ENVIRONMENT VARIABLE AND DELIBERATELY NOT A FLAG OR A DECLARATION, on both counts for
+## reasons this repo has already written down. Not a flag: the build surface is a pinned set of
+## six, and "a declaration reachable only from argv is not a declaration" — `build_argv` would
+## have to learn it or the MCP server could never see it. Not a `.clew.yaml` key either, because
+## a worker count is a property of the MACHINE, not of the repository: a target declaring "8
+## workers" would carry one laptop's core count into everyone else's build. `CLEW_STATE_HOME`
+## and `CLAUDE_CONFIG_DIR` are the existing precedent for host-scoped settings.
+JOBS_ENV = "CLEW_JOBS"
+
+
+## @brief Resolve the worker count for the shared parse.
+## @param env Environment to read; injected for testing.
+## @return A worker count of at least 1.
+## @version 1
+## @dg_internal
+def _resolve_jobs(env: dict[str, str] | None = None) -> int:
+    """CAPPED AT 8 RATHER THAN cpu_count(). Each worker holds its own grammars and parsed trees,
+    and the corpora that make this worth doing are the large ones, so opening a 32-core machine's
+    full width trades a wall-clock win for a swap risk on exactly the targets that need the win.
+    Eight is where the measured return flattens.
+
+    AN UNPARSEABLE OR NONSENSE VALUE FALLS BACK RATHER THAN REFUSING. This setting only affects
+    speed, so failing a twenty-minute build over `CLEW_JOBS=eight` would spend far more than it
+    protects. It is logged, so a typo is visible rather than silent.
+
+    @brief Pick the shared-parse worker count.
+    @return Workers to run, never below 1.
+    @version 1
+    """
+    auto = max(1, min(os.cpu_count() or 1, 8))
+    raw = (env if env is not None else os.environ).get(JOBS_ENV)
+    if not raw:
+        return auto
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        logger.warning(
+            "%s=%r is not an integer — using %d worker(s) for the shared parse",
+            JOBS_ENV,
+            raw,
+            auto,
+        )
+        return auto
+
+
 ## @brief Apply a `--declare` document through the tier-1 options route.
 ## @param args Parsed CLI arguments, mutated in place; `declare` is None when unstated.
 ## @return The option names applied, sorted, for logging.
@@ -1654,7 +1701,7 @@ def _doxygen_stage(
 
 ## @brief Run every build stage against one (temp) output DB path.
 ## @param timer Stage timer; one `mark` closes each stage below. A fresh one when omitted.
-## @version 51
+## @version 52
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -1789,7 +1836,7 @@ def _build_stages(
         dispatch_key=manifest_key(dispatch_source),
         mqtt_dispatch=mqtt_dispatch,
     )
-    warm_harvest_plan(output, repo_root, plan, cache)
+    warm_harvest_plan(output, repo_root, plan, cache, _resolve_jobs())
     timer.mark("shared_parse")
     ## gh#18 part 3, and INDEPENDENT of the line above on purpose: a gate on a symbol no
     ## Kconfig declares is dead code behind a symbol nobody can set, which is a finding

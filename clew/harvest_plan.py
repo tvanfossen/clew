@@ -177,21 +177,23 @@ def build_harvest_plan(
 ## @param repo_root Repository root the indexed paths are relative to.
 ## @param plan The build's harvester plan.
 ## @param cache Live index cache; None disables the pass.
+## @param jobs Worker processes for the parse; 1 keeps the serial path.
 ## @return The shared pass's tally.
-## @version 1
+## @version 2
 ## @req REQ-DDB-PIPE-003
 def warm_harvest_plan(
     db_path: Path,
     repo_root: Path,
     plan: HarvestPlan,
     cache: IndexCache | None = None,
+    jobs: int = 1,
 ) -> HarvestTally:
     """Opens its own connection because it runs between two stages that each own
     theirs, and READS ONLY — the `path` table, to enumerate the file set. Everything
     it writes goes to the sidecar cache, never to the index.
 
     @brief Drive the shared parse pass over one build's plan.
-    @version 1
+    @version 2
     """
     from .harvest import try_import_tree_sitter
 
@@ -200,6 +202,6 @@ def warm_harvest_plan(
         return HarvestTally()
     conn = sqlite3.connect(str(db_path))
     try:
-        return run_shared_parse(conn, repo_root, plan.active(), ts_classes, cache)
+        return run_shared_parse(conn, repo_root, plan.active(), ts_classes, cache, jobs)
     finally:
         conn.close()

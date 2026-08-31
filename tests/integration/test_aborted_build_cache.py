@@ -155,7 +155,13 @@ def test_a_build_killed_during_the_shared_parse_keeps_what_it_parsed(
     @version 1
     """
     from clew import harvest
+    from clew.cli import JOBS_ENV
 
+    ## SERIAL, because this aborts by patching `_shared_parse_one_file` — a function the
+    ## parallel path does not call and which, in a worker process, this patch would not reach
+    ## anyway. The parallel path flushes on the same `_FLUSH_EVERY` interval in
+    ## `_shared_parse_pooled`; what pins THAT is the index-identity test against this path.
+    monkeypatch.setenv(JOBS_ENV, "1")
     monkeypatch.setattr(harvest, "_FLUSH_EVERY", 5)
     real = harvest._shared_parse_one_file
     seen = {"n": 0}
