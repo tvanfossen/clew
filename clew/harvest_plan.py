@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: MIT
-"""The ten per-file AST stages of one build, assembled before any of them runs.
+"""The eleven per-file AST stages of one build, assembled before any of them runs.
 
 gh#358. Every stage here walks the same file set and each used to drive its own
-`run_harvest`, so a cold build parsed every file once per stage — ten times, and
+`run_harvest`, so a cold build parsed every file once per stage — eleven times, and
 `parser_cache` could not help because it memoizes tree-sitter *Parser* objects,
 not parsed trees. This module names the stages ONCE so `run_shared_parse` can
-parse each file once and warm all ten of their cache rows from that single tree.
+parse each file once and warm all eleven of their cache rows from that single tree.
 
 **IT IS A PLAN OF HARVESTS, NOT OF EMITS.** Nothing here emits a row or decides
 an order. The stages still run where the pipeline puts them, in the order their
@@ -32,7 +32,7 @@ factories, so that this module never reaches into another's privates and so each
 class has exactly one construction site.
 
 @brief The build's per-file AST stages, named once for the shared parse pass.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -51,6 +51,7 @@ from .harvest import Harvester, HarvestTally, run_shared_parse
 from .indexcache import IndexCache
 from .kconfig_gates import gate_harvester
 from .locks import lock_harvester
+from .macro_refs import MacroRefHarvester
 from .py_entrypoints import main_guard_harvester
 from .shared_key_edges import shared_key_harvester, subscribe_harvester
 from .threads import spawn_harvester
@@ -79,19 +80,31 @@ class HarvestPlan:
     threads: Harvester
     shared_key: Any
     py_entrypoints: Harvester
+    ## MEASURED ABSENT, not designed absent. `macro_refs` drove its own full-tree `run_harvest`
+    ## while every sibling read the shared pass's rows — `1 payload(s) from cache, 1548 parsed
+    ## here` against the inverse everywhere else. It cost 29.5 s of a 130 s cold build on a
+    ## 1,549-file target, very nearly a second copy of the 32.1 s shared pass it should have been
+    ## reading. Membership here is the entire fix.
+    macro_refs: Harvester
     dispatch: Harvester | None = None
     subscribe: Harvester | None = None
 
     ## @brief The stages the shared parse pass should warm.
     ## @return Every non-None harvester in this plan.
-    ## @version 1
+    ## @version 2
     ## @req REQ-DDB-PIPE-003
     def active(self) -> list[Harvester]:
         """Order is irrelevant to the shared pass — it warms cache rows and emits
         nothing — so this is simply "all of them that will run".
 
+        A HARVESTER OMITTED HERE STILL WORKS, and that is what makes the omission
+        expensive rather than loud: it falls back to its own full-tree parse and
+        produces identical rows, so the only symptom is the build getting slower.
+        `test_every_harvester_subclass_is_reachable_from_the_plan` enumerates the
+        package's `Harvester` subclasses instead of trusting this tuple.
+
         @brief The plan's live harvesters.
-        @version 1
+        @version 2
         """
         return [
             h
@@ -104,6 +117,7 @@ class HarvestPlan:
                 self.threads,
                 self.shared_key,
                 self.py_entrypoints,
+                self.macro_refs,
                 self.dispatch,
                 self.subscribe,
             )
@@ -120,7 +134,7 @@ class HarvestPlan:
 ## @param dispatch_key Manifest-derived cache-key component for the dispatch harvest.
 ## @param mqtt_dispatch The --mqtt-dispatch manifest, or None.
 ## @return The assembled plan.
-## @version 1
+## @version 2
 ## @req REQ-DDB-PIPE-003
 def build_harvest_plan(
     lock_patterns: Path | dict | None = None,
@@ -136,8 +150,8 @@ def build_harvest_plan(
     part-way down the stage list. That is the right direction for a refusal, and it
     is a behaviour change worth naming: the same bad declaration used to fail later.
 
-    @brief Resolve every declaration and construct all ten harvesters.
-    @version 1
+    @brief Resolve every declaration and construct all eleven harvesters.
+    @version 2
     """
     return HarvestPlan(
         kconfig_gates=gate_harvester(),
@@ -148,6 +162,11 @@ def build_harvest_plan(
         threads=spawn_harvester(thread_patterns),
         shared_key=shared_key_harvester(shared_key_patterns, shared_key_wrappers),
         py_entrypoints=main_guard_harvester(),
+        ## Constructed with no arguments, exactly as `import_ast_macro_refs` constructs it, so
+        ## the two agree on the (stage, stage_version, extra_key) half of the cache key and the
+        ## stage genuinely finds the warmed row. A harvester built differently here would warm a
+        ## row the stage then misses, and the only symptom would be the cost coming back.
+        macro_refs=MacroRefHarvester(),
         dispatch=(dispatch_harvester(dispatch, dispatch_key) if dispatch is not None else None),
         subscribe=subscribe_harvester(mqtt_dispatch),
     )

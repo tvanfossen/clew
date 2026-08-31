@@ -1,19 +1,29 @@
 # SPDX-License-Identifier: MIT
 """Per-file tree-sitter parse plumbing + the cached harvest driver.
 
-TEN pipeline stages walk EVERY indexed C/C++ file's AST (kconfig gates,
+ELEVEN pipeline stages walk EVERY indexed C/C++ file's AST (kconfig gates,
 recovered symbols, call edges Layer 3, callback/fnptr Layer 4, locks, declared
 dispatch tables, thread spawns, inferred shared-key Layer 5a, MQTT subscribe
-sites, Python `__main__` guards). That per-file work is the pipeline's dominant
-cost and the only part that is genuinely incrementable: each file's harvest
-depends on that file's bytes alone.
+sites, Python `__main__` guards, macro references). That per-file work is the
+pipeline's dominant cost and the only part that is genuinely incrementable: each
+file's harvest depends on that file's bytes alone.
 
-**ONE PARSE FEEDS ALL TEN (gh#358).** Each stage used to drive its own full-tree
-`run_harvest`, and `parser_cache` memoizes tree-sitter *Parser* objects, not
-parsed trees — so a cold build parsed every file ten times and a release-blocking
-three minutes was nine tenths redundant. `run_shared_parse` walks the tree ONCE
-before the stages, parses each file once, and warms each stage's OWN cache row
-from that single tree; every stage then finds its payload already there.
+**ONE PARSE FEEDS ALL ELEVEN (gh#358).** Each stage used to drive its own
+full-tree `run_harvest`, and `parser_cache` memoizes tree-sitter *Parser*
+objects, not parsed trees — so a cold build parsed every file once per stage and
+a release-blocking three minutes was overwhelmingly redundant.
+`run_shared_parse` walks the tree ONCE before the stages, parses each file once,
+and warms each stage's OWN cache row from that single tree; every stage then
+finds its payload already there.
+
+**MEMBERSHIP IS THE WHOLE MECHANISM, AND IT IS EASY TO MISS.** `macro_refs` was
+absent from the plan for as long as the plan existed, so it kept driving its own
+full-tree parse while every sibling read cached rows — `1 payload(s) from cache,
+1548 parsed here` against the inverse everywhere else, costing 29.5 s of a 130 s
+cold build. Nothing failed; the only symptom was the time. A stage outside the
+plan is correct and slow, which is why the guard for this is structural
+(`test_every_harvester_subclass_is_reachable_from_the_plan`) rather than a list
+someone has to remember to extend.
 
 The cache KEY IS NOT MERGED, deliberately. Each stage keeps its own
 `(content_sha, stage, stage_version, extra_key)` row, so bumping one stage's
@@ -34,7 +44,7 @@ stages — reachability, thread membership, boundary annotation, requirements �
 are never cached: they depend on the whole assembled graph and are cheap.
 
 @brief Per-file AST parse + content-addressed harvest driver.
-@version 2
+@version 3
 """
 
 from __future__ import annotations
@@ -577,7 +587,7 @@ def _shared_parse_one_file(
         tally.computed += 1
 
 
-## @brief Parse every indexed file ONCE, warming all ten stages' cache rows.
+## @brief Parse every indexed file ONCE, warming all eleven stages' cache rows.
 ## @param conn Open connection to the database being built.
 ## @param repo_root Repository root the indexed paths are relative to.
 ## @param harvesters Every per-file stage this build will run.

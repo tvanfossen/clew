@@ -351,3 +351,62 @@ def test_pair_accounting_is_not_double_counted(
         run_harvest(conn, repo, stage, try_import_tree_sitter(), warm)
     conn.close()
     assert (warm.hits, warm.misses) == (len(_FILES) * len(stages), 0)
+
+
+## Stages the plan holds as OPTIONAL fields, present only when a manifest declares them. They are
+## still plan-managed — which is the property under test — so the check below requires them to be
+## FIELDS of `HarvestPlan` rather than instances in a plan built without their declarations.
+_CONDITIONAL_STAGES = {"dispatch", "mqtt"}
+
+
+## @brief Every harvester the codebase defines is one the shared pass warms.
+## @return None.
+## @version 1
+def test_every_harvester_subclass_is_reachable_from_the_plan() -> None:
+    """THE GUARD THAT WOULD HAVE CAUGHT `macro_refs`, AND THE REASON IT IS STRUCTURAL.
+
+    `test_stages_after_shared_pass_do_not_parse` iterates a hand-built list, so a stage absent
+    from that list is invisible to it — it passed for as long as `macro_refs` drove its own
+    full-tree parse, costing 29.5 s of a 130 s cold build. A test that enumerates the thing it
+    is checking cannot detect an omission FROM that thing.
+
+    So this enumerates `Harvester.__subclasses__()` after importing the whole package: the
+    codebase's own answer to "what harvesters exist", which no plan edit can shrink. A new
+    harvester that forgets the plan fails here on the day it is written, with a message naming
+    the cost of not fixing it.
+
+    @brief No harvester runs outside the shared parse.
+    @version 1
+    """
+    import importlib
+    import pkgutil
+
+    import clew
+    from clew.harvest_plan import HarvestPlan, build_harvest_plan
+
+    ## Subclasses only register once their module is imported, and the pipeline imports them
+    ## lazily — so without this walk the set is whatever earlier tests happened to touch, and
+    ## the assertion would silently weaken as import order changed.
+    for mod in pkgutil.iter_modules(clew.__path__):
+        importlib.import_module(f"clew.{mod.name}")
+
+    ## SCOPED TO THE PACKAGE. `__subclasses__()` sees every subclass alive in the interpreter,
+    ## including this module's own `_CountingHarvester` test double — which carries the base
+    ## class's empty `stage` and made the first run of this guard fail on `['']`. Filtering by
+    ## `__module__` asks the question that was meant: what does *clew* define?
+    defined = {
+        cls.stage for cls in Harvester.__subclasses__() if cls.__module__.startswith("clew.")
+    }
+    warmed = {h.stage for h in build_harvest_plan().active()}
+    fields = set(HarvestPlan.__dataclass_fields__)
+
+    missing = defined - warmed - _CONDITIONAL_STAGES
+    assert not missing, (
+        f"harvester stage(s) {sorted(missing)} run outside the shared parse, so each one "
+        "re-parses every indexed file — the defect that cost 29.5 s of a 130 s cold build "
+        "when macro_refs did it. Add the harvester to HarvestPlan and to active()."
+    )
+    ## The conditional half: absent from a plan built with no manifests, but they must still be
+    ## the PLAN's to construct. Named fields rather than instances, because that is the property
+    ## that survives a build which declares nothing.
+    assert {"dispatch", "subscribe"} <= fields
