@@ -17,6 +17,7 @@ from __future__ import annotations
 import fnmatch
 import shutil
 import sqlite3
+import contextlib
 import subprocess
 import threading
 import sys
@@ -1081,7 +1082,7 @@ def doxygen_supports_sqlite3(binary: str = "doxygen") -> bool | None:
 
 
 ## @brief Run doxygen with GENERATE_SQLITE3 and return the database path.
-## @version 10
+## @version 11
 ## @req REQ-DDB-INDEX-001
 def run_doxygen(
     doxyfile: Path,
@@ -1119,7 +1120,7 @@ def run_doxygen(
 
     @brief Run doxygen and return path to generated sqlite3 database.
     @raises DoxygenUnavailableError When the doxygen binary is not on PATH.
-    @version 10
+    @version 11
     """
     if shutil.which("doxygen") is None:
         raise DoxygenUnavailableError(
@@ -1171,16 +1172,44 @@ def run_doxygen(
         target=_write_doxyfile_stdin, args=(proc, doxyfile_content), daemon=True
     )
     writer.start()
-    warn_count, first_warnings = _consume_doxygen_output(proc)
-    ## BOUNDED, because an unbounded wait here is the second half of the same incident: the MCP
-    ## server holds its per-target build lock across this call, so one stalled doxygen makes every
-    ## later stale query in that process queue forever. The value is a BACKSTOP, not a budget — no
-    ## legitimate build approaches it, and the point is that a wedged one ends.
+    ## THE TIMEOUT MUST FIRE FROM A TIMER, NOT FROM `proc.wait`, AND THAT IS THE WHOLE FIX.
+    ##
+    ## This was `_consume_doxygen_output(proc)` followed by `proc.wait(timeout=...)`, which reads
+    ## as bounded and is not: the read loop is `for raw in proc.stdout`, which blocks until the
+    ## child closes the pipe. A doxygen that is alive — working OR wedged — never does, so the
+    ## line carrying the timeout is not reached and the bound can never be evaluated.
+    ##
+    ## PROVED, not reasoned. With a stub holding the pipe open, the call was still running at
+    ## 20 s against a 3 s timeout; with the stub closing its fds, the same timeout fired at
+    ## 3.0 s. In the field this was six consecutive builds of one target, each ending only when
+    ## a human or the client killed it — nothing in clew would ever have ended any of them.
+    ##
+    ## BOTH FDS, because `stderr=subprocess.STDOUT` above puts two descriptors on one pipe.
+    ## Closing stdout alone yields no EOF; the first version of the control test missed this and
+    ## reported a hang where the mechanism was sound.
+    ##
+    ## Killing is what UNBLOCKS the reader: the fds close, the loop takes EOF, and the existing
+    ## reporting path runs with the flag telling it what happened.
+    timed_out = threading.Event()
+
+    def _kill_on_deadline() -> None:
+        timed_out.set()
+        with contextlib.suppress(OSError):
+            proc.kill()
+
+    watchdog = threading.Timer(_DOXYGEN_TIMEOUT, _kill_on_deadline)
+    watchdog.daemon = True
+    watchdog.start()
     try:
-        rc = proc.wait(timeout=_DOXYGEN_TIMEOUT)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        proc.wait()
+        warn_count, first_warnings = _consume_doxygen_output(proc)
+        rc = proc.wait()
+    finally:
+        watchdog.cancel()
+    writer.join(timeout=5)
+    ## THE FLAG, NOT THE RETURN CODE. A watchdog kill arrives as `rc == -SIGKILL`, which is
+    ## indistinguishable from doxygen crashing — and reporting "doxygen exited with code -9"
+    ## sends the reader hunting a doxygen bug instead of a build that ran out of time.
+    if timed_out.is_set():
         logger.error(
             "doxygen did not finish within %d s and was killed. The index was NOT updated; the "
             "previous one is untouched, because the build stages into a temp file and only "
@@ -1188,7 +1217,6 @@ def run_doxygen(
             _DOXYGEN_TIMEOUT,
         )
         sys.exit(1)
-    writer.join(timeout=5)
     _surface_doxygen_warnings(warn_count, first_warnings)
     if rc != 0:
         logger.error("Doxygen exited with code %d", rc)
