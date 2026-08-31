@@ -60,6 +60,35 @@ _SKIP_DIR_NAMES = frozenset({"__pycache__", "node_modules"})
 # source layout, so this is a runaway guard, not a policy.
 _MAX_DEPTH = 16
 
+## Directories the last derivation stopped descending into, absolute, in walk order.
+##
+## RECORDED BECAUSE "REPORTED" MEANT "LOGGED", AND A LOG IS GONE BY QUERY TIME. Hitting the
+## limit is not a neutral event: below that point nothing is pruned and nothing is checked for
+## nested trees, so the walk admits whatever is there — which on a deeply nested vendored
+## dependency is tens of thousands of files nobody asked for. The build said so at WARNING and
+## then threw it away, so the index could not answer why its corpus was the size it was. This is
+## the same "persisting what the pipeline already computed" shape as scope provenance itself.
+##
+## MODULE STATE, RESET PER DERIVATION by `derive_scope`, which is the single entry point. Read
+## through `depth_limited_paths()` immediately after a derivation; anything else is reading
+## somebody else's walk.
+_DEPTH_LIMITED: list[Path] = []
+
+
+## @brief Directories the last derivation refused to descend past.
+## @return Absolute paths, in walk order.
+## @version 1
+## @utility
+def depth_limited_paths() -> list[Path]:
+    """A COPY, so a caller cannot mutate the record it is reading.
+
+    @brief Report where the walk hit its depth limit.
+    @return The recorded directories.
+    @version 1
+    """
+    return list(_DEPTH_LIMITED)
+
+
 # Scope provenance markers reported to the caller and the log.
 ## HISTORICAL SINCE gh#333, and kept for exactly that reason: no build produces it
 ## any more, but an index built before gh#333 has it STAMPED in `build_meta`, and a
@@ -180,7 +209,7 @@ def _declaration_advice() -> str:
 ## @param repo_root Repo root to resolve scope for.
 ## @param guard_config Explicit guard-config path overriding discovery, or None.
 ## @return DerivedScope; the whole-repo tier when no usable declaration exists.
-## @version 8
+## @version 9
 ## @req REQ-DDB-CONFIG-001
 def derive_scope(
     repo_root: Path, guard_config: Path | str | None = None, stated: dict | None = None
@@ -204,8 +233,14 @@ def derive_scope(
 
     @brief Resolve INPUT roots from the repo's own index-scope declaration.
     @return The declared scope, or the whole-repo tier.
-    @version 8
+    @version 9
     """
+    ## CLEARED HERE BECAUSE THIS IS THE SINGLE ENTRY POINT, so `depth_limited_paths()` after a
+    ## derivation describes THAT derivation and not an accumulation across several. The build
+    ## derives more than once — `_scope_provenance` re-derives on the whole-repo tier — and a
+    ## record that grew across them would report the same directory two or three times and read
+    ## as a wider problem than exists.
+    _DEPTH_LIMITED.clear()
     root = Path(repo_root).expanduser().resolve()
     declared = _declared_index_scope(root, guard_config, stated)
     if isinstance(declared, _Rejected):
@@ -381,7 +416,7 @@ def _gitignored_paths(root: Path) -> list[Path]:
 ## @param root Resolved repo root.
 ## @param already Paths already excluded, which are neither re-reported nor walked.
 ## @return Absolute paths of directories the index should never be handed.
-## @version 1
+## @version 2
 ## @dg_internal
 def _pruned_dirs(root: Path, already: set[Path]) -> list[Path]:
     """`_skip_dir` is this module's rule for a directory no repo declares and none
@@ -400,6 +435,7 @@ def _pruned_dirs(root: Path, already: set[Path]) -> list[Path]:
             logger.warning(
                 "index_scope: depth limit reached under %s — not pruning below %s", root, here
             )
+            _DEPTH_LIMITED.append(here)
             dirnames[:] = []
             continue
         dirnames[:] = _descendable(here, dirnames, already, found)
@@ -542,7 +578,7 @@ def _declared_index_scope(
 ## @brief Directories holding a `.git` strictly beneath one declared root.
 ## @param input_root Declared INPUT root to search under.
 ## @return Absolute paths of nested repository directories, outermost first.
-## @version 2
+## @version 3
 ## @dg_internal
 def _nested_repos_under(input_root: Path) -> list[Path]:
     """A BOUNDED walk, not `rglob`. `rglob` would descend into the object stores of the
@@ -573,6 +609,7 @@ def _nested_repos_under(input_root: Path) -> list[Path]:
                 input_root,
                 here,
             )
+            _DEPTH_LIMITED.append(here)
             dirnames[:] = []
             continue
         dirnames[:] = [d for d in dirnames if not _skip_dir(d)]

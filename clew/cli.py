@@ -166,6 +166,7 @@ from .scope import (
     SCOPE_FROM_GUARD,
     SOURCE_DOXYFILE,
     DerivedScope,
+    depth_limited_paths,
     derive_scope,
     derive_scope_logged,
 )
@@ -2207,6 +2208,40 @@ def _build_stages(
     timer.mark("signature")
 
 
+## Directories named in the stamp before it stops listing and only counts. Enough to identify
+## WHICH tree is deep — which is the actionable half — without turning one metadata value into a
+## page of paths on a repo that hits the limit everywhere.
+_DEPTH_LIMIT_NAMED = 5
+
+
+## @brief Record where the scope walk stopped descending, if anywhere.
+## @param rel Callable rendering a path repo-relative.
+## @return Mapping of `depth_limited_*` keys, empty when the limit was never reached.
+## @version 1
+## @dg_internal
+def _depth_limit_scope(rel: Any) -> dict[str, str]:
+    """EMPTY WHEN IT NEVER FIRED, so the falsy-drop rule renders the ordinary case as absence
+    rather than as a recorded zero. That distinction is this repo's most-repeated lesson in
+    miniature: "the limit was not reached" and "nobody looked" must not read the same, and here
+    the presence of the key IS the signal.
+
+    REPO-RELATIVE, because anything stamped is published over MCP and the build machine's
+    directory layout is not the consumer's business.
+
+    @brief Stamp the depth-limit prune, if it happened.
+    @return Mapping of depth-limit keys, or {}.
+    @version 1
+    """
+    hit = depth_limited_paths()
+    if not hit:
+        return {}
+    named = SCOPE_LIST_SEPARATOR.join(rel(p) for p in hit[:_DEPTH_LIMIT_NAMED])
+    return {
+        "depth_limited_count": str(len(hit)),
+        "depth_limited": named,
+    }
+
+
 ## @brief Record the vendored paths a repository declares, and which of them exist.
 ## @param root Repository root, already resolved.
 ## @param rel Callable rendering a path repo-relative.
@@ -2342,7 +2377,7 @@ def _doxyfile_scope(root: Path, rel: Any, stated: str | None = None) -> dict[str
 ## @param repo_root Repository root, or None when unknown.
 ## @param args Parsed CLI arguments, which carry the tier the build actually took.
 ## @return {source, reason, roots, excludes, operator_excludes, doxyfile_*} as strings; empty when nothing was resolved.
-## @version 8
+## @version 9
 ## @req REQ-DDB-CONFIG-001
 def _scope_provenance(repo_root: Path | None, args: argparse.Namespace) -> dict[str, str]:
     """A PURE FUNCTION OF THE REPO AGAIN (gh#333). It used to read the tier from
@@ -2376,7 +2411,7 @@ def _scope_provenance(repo_root: Path | None, args: argparse.Namespace) -> dict[
 
     @brief Flatten the resolved scope into build_meta values, repo-relative.
     @return Mapping of provenance keys to strings.
-    @version 6
+    @version 7
     """
     if repo_root is None:
         return {}
@@ -2434,6 +2469,17 @@ def _scope_provenance(repo_root: Path | None, args: argparse.Namespace) -> dict[
         ## would be a schema change plus a filter that no query may honour — the emptiness
         ## rule: an answer that is silently filtered is worse than one that is merely absent.
         **_vendored_scope(root, _rel, args),
+        ## WHERE THE WALK GAVE UP, and it is a fact about the corpus rather than a curiosity.
+        ## Past the depth limit nothing is pruned and nothing is checked for nested trees, so
+        ## everything below is admitted wholesale — which on a deeply nested vendored dependency
+        ## is tens of thousands of files the operator never chose. The build already knew this
+        ## and said it at WARNING; by query time the log was gone, so the index could not answer
+        ## why its corpus was the size it was.
+        ##
+        ## REPORT-ONLY BY OWNER RULING: what gets indexed is unchanged, so `CLEW_BUILD_VERSION`
+        ## does not move and no existing index is invalidated. This makes the condition VISIBLE
+        ## so the decision about it can be taken with a number in hand.
+        **_depth_limit_scope(_rel),
         ## NAMES THE TIER, and the tier is now the whole answer to "was this boundary
         ## chosen": `clew-declaration` is a decision, `doxyfile` is the repo's
         ## documentation scope standing in, `whole-repo` is what a repo gets for saying
