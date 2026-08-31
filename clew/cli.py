@@ -1626,7 +1626,7 @@ def _is_rust_only_repo(repo_root: Path) -> bool:
 ## @param preprocessor The resolved preprocessor configuration this index represents.
 ## @param timer Stage timer, marked once the tree scan and its hash are complete.
 ## @return Path to the doxygen SQLite output (cached or freshly generated).
-## @version 8
+## @version 9
 ## @dg_internal
 def _doxygen_stage(
     doxyfile: Path,
@@ -1657,11 +1657,9 @@ def _doxygen_stage(
     caller's `doxygen` segment covers the whole stage — which is what happened.
 
     @brief Doxygen stage with tree-hash-based skip.
-    @version 6
+    @version 7
     """
     predefined = doxyfile_lines(preprocessor or PreprocessorConfig())
-    if cache is None:
-        return _run_doxygen_from_args(doxyfile, args, predefined)
     replace_input = getattr(args, "replace_input", False)
     roots, excludes = doxygen_input_roots(
         doxyfile,
@@ -1670,7 +1668,25 @@ def _doxygen_stage(
         args.extra_exclude,
         replace_input,
     )
-    summary = cache.scan(enumerate_tree(roots, excludes, repo_root))
+    in_scope = enumerate_tree(roots, excludes, repo_root)
+    ## THE SIZE OF THE JOB, WHICH NOTHING RECORDED. `coverage.indexed_files` counts first-party
+    ## rows doxygen produced; this counts files the build was ASKED to index. On a vendored C++
+    ## target those were 526 and 84,502 — a 160x gap, and the small number is the one everybody
+    ## reasoned from, including two agents and the operator, in an investigation about why the
+    ## build took half an hour. Carried on `args` because it is measured here, in the doxygen
+    ## stage, and stamped much later by `_scope_provenance`; `args` already ferries replayed
+    ## build options the same way.
+    ##
+    ## MEASURED ABOVE THE NO-CACHE RETURN, and that placement is a correctness fix rather than
+    ## tidiness. Enumerating only on the cached path made one repository stamp different
+    ## metadata depending on `--no-index-cache`, which `test_cache_output_matches_no_cache`
+    ## caught immediately — correctly, because how many files the scope selects is a fact about
+    ## the SCOPE and has nothing to do with whether results were cached. The cost is one tree
+    ## walk on a path that is already doing a full doxygen run.
+    args.files_in_scope = len(in_scope)
+    if cache is None:
+        return _run_doxygen_from_args(doxyfile, args, predefined)
+    summary = cache.scan(in_scope)
     content = doxyfile_content_for(
         doxyfile,
         args.extra_input,
@@ -2214,6 +2230,26 @@ def _build_stages(
 _DEPTH_LIMIT_NAMED = 5
 
 
+## @brief Record how many files this build's scope selected.
+## @param args Parsed CLI arguments, carrying the count measured during enumeration.
+## @return Mapping with `files_in_scope`, empty when nothing enumerated the tree.
+## @version 1
+## @dg_internal
+def _in_scope_count(args: argparse.Namespace) -> dict[str, str]:
+    """THE DENOMINATOR THE INDEX NEVER HAD. `coverage.indexed_files` answers "how many
+    first-party files produced rows", which reads like the size of the job and is not: doxygen
+    records what it parsed, and a corpus can be two orders of magnitude larger than that. The
+    absent number is what the build was ASKED to index, and its absence sent an entire
+    investigation reasoning from 526 files about a build over 84,502.
+
+    @brief Stamp the in-scope file count.
+    @return Mapping with the count, or {}.
+    @version 1
+    """
+    count = getattr(args, "files_in_scope", None)
+    return {"files_in_scope": str(count)} if count else {}
+
+
 ## @brief Record where the scope walk stopped descending, if anywhere.
 ## @param rel Callable rendering a path repo-relative.
 ## @return Mapping of `depth_limited_*` keys, empty when the limit was never reached.
@@ -2377,7 +2413,7 @@ def _doxyfile_scope(root: Path, rel: Any, stated: str | None = None) -> dict[str
 ## @param repo_root Repository root, or None when unknown.
 ## @param args Parsed CLI arguments, which carry the tier the build actually took.
 ## @return {source, reason, roots, excludes, operator_excludes, doxyfile_*} as strings; empty when nothing was resolved.
-## @version 9
+## @version 10
 ## @req REQ-DDB-CONFIG-001
 def _scope_provenance(repo_root: Path | None, args: argparse.Namespace) -> dict[str, str]:
     """A PURE FUNCTION OF THE REPO AGAIN (gh#333). It used to read the tier from
@@ -2411,7 +2447,7 @@ def _scope_provenance(repo_root: Path | None, args: argparse.Namespace) -> dict[
 
     @brief Flatten the resolved scope into build_meta values, repo-relative.
     @return Mapping of provenance keys to strings.
-    @version 7
+    @version 8
     """
     if repo_root is None:
         return {}
@@ -2480,6 +2516,10 @@ def _scope_provenance(repo_root: Path | None, args: argparse.Namespace) -> dict[
         ## does not move and no existing index is invalidated. This makes the condition VISIBLE
         ## so the decision about it can be taken with a number in hand.
         **_depth_limit_scope(_rel),
+        ## HOW MANY FILES THIS SCOPE SELECTED, beside the roots and excludes that selected them.
+        ## Absent under `--no-index-cache`, where nothing enumerates the tree — which the
+        ## falsy-drop rule renders as "not recorded" rather than as a repo with no files.
+        **_in_scope_count(args),
         ## NAMES THE TIER, and the tier is now the whole answer to "was this boundary
         ## chosen": `clew-declaration` is a decision, `doxyfile` is the repo's
         ## documentation scope standing in, `whole-repo` is what a repo gets for saying
