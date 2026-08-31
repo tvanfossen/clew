@@ -72,6 +72,7 @@ from pathlib import Path
 from typing import Any
 
 from ._common import active_console, console, logger
+from .buildlog import build_log
 from .ast_symbols import recover_ast_symbols
 from .buildoptions import (
     MANIFEST_OPTIONS,
@@ -2483,12 +2484,37 @@ def _open_index_cache(
 
 
 ## @brief Execute the build pipeline, writing atomically to --output.
-## @version 18
+## @version 19
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-PIPE-002
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-008
 def _run_pipeline(args: argparse.Namespace) -> None:
+    """A THIN WRAPPER SO THE BUILD LOG SPANS THE WHOLE BUILD, including the failure paths.
+
+    Split out rather than wrapping the body in place: `_run_pipeline_inner` is several hundred
+    lines and re-indenting all of it under a `with` would bury a one-line behaviour change in an
+    unreviewable diff. The log has to be attached before anything interesting is logged and
+    detached after everything is — including when the build raises, which is the case its whole
+    reason for existing is about.
+
+    `output` is resolved twice, here and inside. It is idempotent and cheap, and the alternative
+    is threading a resolved path through a signature that every caller would have to learn.
+
+    @brief Attach the build log, then run the pipeline.
+    @version 19
+    """
+    output = Path(args.output).resolve()
+    with build_log(output):
+        _run_pipeline_inner(args)
+
+
+## @brief Run every build stage and swap the result onto --output.
+## @param args Parsed CLI arguments.
+## @return None.
+## @version 18
+## @req REQ-DDB-CLI-001
+def _run_pipeline_inner(args: argparse.Namespace) -> None:
     """Build into a sibling temp DB, then os.replace() it onto --output.
 
     The swap is atomic (same filesystem), so a concurrent reader — the
