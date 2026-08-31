@@ -131,53 +131,96 @@ def test_stdin_is_written_concurrently_with_reading_stdout() -> None:
 
 
 ##
-# @brief The wait on doxygen must be bounded.
+# @brief The bound on doxygen is a watchdog, started before the blocking read.
 # @return None.
-# @version 1
-def test_the_wait_on_doxygen_is_bounded() -> None:
-    """THE SECOND HALF OF THE SAME INCIDENT. Even with both pipes serviced, an unbounded
-    `proc.wait()` means a doxygen that stalls for any other reason — a full disk, a wedged child,
-    a paused filesystem — hangs the caller forever. The MCP server holds its per-target build lock
-    across this call, so one stall queues every later stale query in that process indefinitely.
+# @version 2
+def test_the_bound_on_doxygen_starts_before_the_read() -> None:
+    """THIS TEST USED TO ASSERT THE DEFECT AND CALL IT A BOUND, which is the reason its
+    replacement is written the way it is.
 
-    The timeout VALUE is deliberately not asserted: it is a backstop, not a budget, and pinning a
-    number here would turn a tuning change into a test failure. What is pinned is that a bound
-    EXISTS and that the timeout path kills the child rather than leaking it.
+    The old version walked `run_doxygen` for a `proc.wait(...)` carrying a `timeout=` keyword and
+    passed the entire time the timeout was UNREACHABLE. The call really did have the argument;
+    what it did not have was a way to be evaluated, because `_consume_doxygen_output` blocks on
+    `for raw in proc.stdout` until the child closes the pipe, and a live doxygen never does. So a
+    structural check on the SHAPE of a call said "bounded" while six consecutive builds of a real
+    target ran until a human killed them.
 
-    @brief proc.wait carries a timeout and the timeout path kills the process.
+    THE LESSON, AND WHY THE SPLIT: reachability cannot be asserted from the AST. Only driving the
+    thing proves it, and that is `tests/test_doxygen_timeout.py`, whose `pipe-held-open` case
+    fails against the old code and passes against this one. What is still worth pinning here is
+    the ORDERING that made the old arrangement wrong — the bound must be armed BEFORE the read
+    that can block, which is a property the AST can see and a reader can get wrong again.
+
+    The timeout VALUE is deliberately not asserted: it is a backstop, not a budget.
+
+    @brief A timer arms the bound before stdout is consumed.
     @return None.
-    @version 1
+    @version 2
     """
     tree = ast.parse(DOX_SOURCE.read_text(encoding="utf-8"))
     run = next(
         n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == "run_doxygen"
     )
 
-    waits = [
+    ## A `threading.Timer(...)` constructed with the timeout constant is the only thing that can
+    ## interrupt a blocked read; `proc.wait(timeout=)` demonstrably cannot.
+    timers = [
         n
         for n in ast.walk(run)
         if isinstance(n, ast.Call)
         and isinstance(n.func, ast.Attribute)
-        and n.func.attr == "wait"
-        and isinstance(n.func.value, ast.Name)
-        and n.func.value.id == "proc"
+        and n.func.attr == "Timer"
+        and any(isinstance(a, ast.Name) and a.id == "_DOXYGEN_TIMEOUT" for a in n.args)
     ]
-    assert waits, "run_doxygen no longer waits on the process — this test would be vacuous"
-    bounded = [w for w in waits if any(k.arg == "timeout" for k in w.keywords)]
-    assert bounded, (
-        "proc.wait() in run_doxygen has no timeout. An unbounded wait is how one stalled doxygen "
-        "hung an MCP call indefinitely, because the server holds its build lock across it."
+    assert timers, (
+        "run_doxygen has no threading.Timer armed with _DOXYGEN_TIMEOUT. A timeout passed to "
+        "proc.wait() is NOT a bound here: the read loop upstream of it blocks until the child "
+        "closes its pipe, so the wait is never reached while doxygen is alive."
     )
 
-    ## A timeout that does not kill the child leaks a process and leaves the pipes open.
-    handlers = [n for n in ast.walk(run) if isinstance(n, ast.ExceptHandler)]
-    killers = [
-        n
-        for h in handlers
-        for n in ast.walk(h)
-        if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "kill"
+    ## The ordering that was the defect: arming after the blocking read bounds nothing.
+    starts = [
+        n.lineno
+        for n in ast.walk(run)
+        if isinstance(n, ast.Call)
+        and isinstance(n.func, ast.Attribute)
+        and n.func.attr == "start"
+        and isinstance(n.func.value, ast.Name)
+        and n.func.value.id == "watchdog"
     ]
-    assert killers, "the timeout path must kill the child rather than leaking it"
+    reads = [
+        n.lineno
+        for n in ast.walk(run)
+        if isinstance(n, ast.Call)
+        and isinstance(n.func, ast.Name)
+        and n.func.id == "_consume_doxygen_output"
+    ]
+    assert starts, "the watchdog is never started"
+    assert reads, "run_doxygen no longer reads stdout — this test would be vacuous"
+    assert min(starts) < min(reads), (
+        "the watchdog must be armed BEFORE the blocking read of doxygen's output. Armed after, "
+        "it is exactly the unreachable bound this replaced."
+    )
+
+    ## A bound that does not kill the child leaks a process and leaves the pipes open — and the
+    ## kill is also what UNBLOCKS the reader, by closing the fds it is waiting on.
+    ##
+    ## MATCHED ON THE REAP HELPER, NOT ON `.kill`. The literal `proc.kill()` that used to sit
+    ## here moved into `_reap_process_group` when the reap became a process-group kill (#499b),
+    ## and a `.kill`-shaped check would have failed on a change that made the reaping STRONGER.
+    ## That is the same mistake as the assertion this test replaced: pinning a spelling rather
+    ## than the property.
+    reapers = [
+        n
+        for n in ast.walk(run)
+        if isinstance(n, ast.Call)
+        and isinstance(n.func, ast.Name)
+        and n.func.id == "_reap_process_group"
+    ]
+    assert reapers, (
+        "the timeout path must reap the child rather than leaking it. `proc.kill()` alone is "
+        "not sufficient — it reaches the pid we hold and nothing that pid spawned."
+    )
 
 
 ##

@@ -1,19 +1,29 @@
 # SPDX-License-Identifier: MIT
 """Per-file tree-sitter parse plumbing + the cached harvest driver.
 
-TEN pipeline stages walk EVERY indexed C/C++ file's AST (kconfig gates,
+ELEVEN pipeline stages walk EVERY indexed C/C++ file's AST (kconfig gates,
 recovered symbols, call edges Layer 3, callback/fnptr Layer 4, locks, declared
 dispatch tables, thread spawns, inferred shared-key Layer 5a, MQTT subscribe
-sites, Python `__main__` guards). That per-file work is the pipeline's dominant
-cost and the only part that is genuinely incrementable: each file's harvest
-depends on that file's bytes alone.
+sites, Python `__main__` guards, macro references). That per-file work is the
+pipeline's dominant cost and the only part that is genuinely incrementable: each
+file's harvest depends on that file's bytes alone.
 
-**ONE PARSE FEEDS ALL TEN (gh#358).** Each stage used to drive its own full-tree
-`run_harvest`, and `parser_cache` memoizes tree-sitter *Parser* objects, not
-parsed trees — so a cold build parsed every file ten times and a release-blocking
-three minutes was nine tenths redundant. `run_shared_parse` walks the tree ONCE
-before the stages, parses each file once, and warms each stage's OWN cache row
-from that single tree; every stage then finds its payload already there.
+**ONE PARSE FEEDS ALL ELEVEN (gh#358).** Each stage used to drive its own
+full-tree `run_harvest`, and `parser_cache` memoizes tree-sitter *Parser*
+objects, not parsed trees — so a cold build parsed every file once per stage and
+a release-blocking three minutes was overwhelmingly redundant.
+`run_shared_parse` walks the tree ONCE before the stages, parses each file once,
+and warms each stage's OWN cache row from that single tree; every stage then
+finds its payload already there.
+
+**MEMBERSHIP IS THE WHOLE MECHANISM, AND IT IS EASY TO MISS.** `macro_refs` was
+absent from the plan for as long as the plan existed, so it kept driving its own
+full-tree parse while every sibling read cached rows — `1 payload(s) from cache,
+1548 parsed here` against the inverse everywhere else, costing 29.5 s of a 130 s
+cold build. Nothing failed; the only symptom was the time. A stage outside the
+plan is correct and slow, which is why the guard for this is structural
+(`test_every_harvester_subclass_is_reachable_from_the_plan`) rather than a list
+someone has to remember to extend.
 
 The cache KEY IS NOT MERGED, deliberately. Each stage keeps its own
 `(content_sha, stage, stage_version, extra_key)` row, so bumping one stage's
@@ -34,7 +44,7 @@ stages — reachability, thread membership, boundary annotation, requirements �
 are never cached: they depend on the whole assembled graph and are cheap.
 
 @brief Per-file AST parse + content-addressed harvest driver.
-@version 2
+@version 3
 """
 
 from __future__ import annotations
@@ -117,6 +127,15 @@ def _ts_language_for(path: str):
 # the C grammar yields 7 ERROR/MISSING nodes and reports TWO function
 # definitions where one exists; the C++ grammar yields 0 errors and one.
 _AMBIGUOUS_EXTS = (".h",)
+
+## How many files the shared parse may process before flushing payload rows to the sidecar.
+##
+## A DURABILITY INTERVAL, NOT A BATCH SIZE — nothing accumulates in memory waiting for it, and
+## raising it buys no throughput. It bounds how much parsing a killed build throws away: at 500
+## files a kill loses at most the tail, against the whole pass before #505. Low enough that a
+## large corpus banks steadily, high enough that the commits are lost in the noise of parsing
+## (one fsync per 500 tree-sitter parses).
+_FLUSH_EVERY = 500
 
 
 ## @brief Memoized tree-sitter parser for one grammar module name.
@@ -434,7 +453,7 @@ def _store_payload(cache: IndexCache, harvester: Harvester, sha: str, payload: A
 
 ## @brief Run one harvester over every indexed file, cache-first.
 ## @return List of (path_rowid, payload) in `path`-table order.
-## @version 2
+## @version 3
 ## @req REQ-DDB-PIPE-003
 def run_harvest(
     conn: sqlite3.Connection,
@@ -458,8 +477,11 @@ def run_harvest(
     The per-stage `cached`/`computed` split is LOGGED, because it is the only
     direct evidence that invalidating one stage recomputed one stage.
 
+    Payloads this stage had to parse for itself are flushed before it returns, so an
+    abort in a later stage does not discard them (#505).
+
     @brief Drive one cacheable per-file stage across the whole index.
-    @version 2
+    @version 3
     """
     parser_cache: dict = {}
     results: list[tuple[int, Any]] = []
@@ -480,6 +502,12 @@ def run_harvest(
             )
             if payload is not None:
                 results.append((path_rowid, payload))
+    ## Whatever THIS stage had to parse for itself is banked before the next one starts (#505).
+    ## Normally near-free: since the shared pass most payloads are already cached and already
+    ## flushed, so this commits nothing. It earns its place on the stages the shared pass does
+    ## not cover, and on a build with no shared pass at all (`--no-index-cache` aside).
+    if cache is not None:
+        cache.flush()
     logger.info(
         "harvest %s: %d payload(s) from cache, %d parsed here",
         harvester.stage,
@@ -559,14 +587,176 @@ def _shared_parse_one_file(
         tally.computed += 1
 
 
-## @brief Parse every indexed file ONCE, warming all ten stages' cache rows.
+## Per-worker state for the parallel shared parse, populated by `_worker_init` in each child.
+##
+## A MODULE GLOBAL BECAUSE THAT IS THE ONLY CHANNEL A POOL INITIALIZER HAS. The alternative —
+## shipping the harvesters with every job — would pickle 3 KB per file instead of once per worker,
+## which on a large corpus is the same order as the work being parallelised.
+_WORKER: dict[str, Any] = {}
+
+
+## @brief Prepare one pool worker: keep the harvesters, import tree-sitter, own a parser cache.
+## @param harvesters The plan's harvesters, pickled once per worker rather than once per file.
+## @return None.
+## @version 1
+## @dg_internal
+def _worker_init(harvesters: list[Harvester]) -> None:
+    """TREE-SITTER IS IMPORTED HERE, NOT SENT. `Language` and `Parser` are C extension types and
+    do not pickle, so the parent cannot hand them over; each worker imports its own. The same is
+    true of `parser_cache`, which memoizes live `Parser` objects — per-worker by necessity, which
+    costs one grammar construction per worker rather than per file.
+
+    @brief Initialise one shared-parse worker.
+    @version 1
+    """
+    _WORKER["harvesters"] = harvesters
+    _WORKER["parser_cache"] = {}
+    _WORKER["ts"] = try_import_tree_sitter()
+
+
+## @brief Parse one file in a worker and harvest every stage that asked for it.
+## @param job (rel_path, absolute path as str, indices of the harvesters still needed).
+## @return (rel_path, {harvester index: payload}) or (rel_path, None) when unparseable.
+## @version 1
+## @dg_internal
+def _worker_parse(job: tuple[str, str, tuple[int, ...]]) -> tuple[str, dict[int, Any] | None]:
+    """RETURNS PAYLOADS RATHER THAN WRITING THEM. Every cache write stays in the parent, so there
+    is exactly one writer to the sidecar and none of the sqlite contention that N writers would
+    need locking to survive. Payloads are JSON-serialisable by the harvest contract, so they
+    cross the boundary without any new constraint on what a harvester may return.
+
+    NOTHING IS CAUGHT HERE. An exception propagates through the future and fails the build, which
+    is the intended behaviour: a worker that swallowed its error would silently drop one file's
+    payloads and leave a quietly under-populated index — the failure shape this repository has
+    recorded more than any other.
+
+    @brief Parse and harvest one file inside a pool worker.
+    @version 1
+    """
+    rel_path, abs_path, pending = job
+    ts = _WORKER["ts"]
+    if ts is None:
+        return rel_path, None
+    language_cls, parser_cls = ts
+    parsed = _ast_parse_one_file(
+        rel_path, Path(abs_path), _WORKER["parser_cache"], parser_cls, language_cls
+    )
+    if parsed is None:
+        return rel_path, None
+    harvesters = _WORKER["harvesters"]
+    return rel_path, {i: harvesters[i].harvest(parsed[0], parsed[1]) for i in pending}
+
+
+## @brief Decide which files need parsing and for which stages, without parsing anything.
+## @param conn Open connection to the database being built.
+## @param repo_root Repository root the indexed paths are relative to.
+## @param harvesters Every per-file stage this build will run.
+## @param cache Live index cache.
+## @param tally Updated in place with the cache hits this planning pass observes.
+## @return List of (rel_path, abs_path str, pending harvester indices) and the shas keyed by path.
+## @version 1
+## @dg_internal
+def _plan_shared_jobs(
+    conn: sqlite3.Connection,
+    repo_root: Path,
+    harvesters: list[Harvester],
+    cache: IndexCache,
+    tally: HarvestTally,
+) -> tuple[list[tuple[str, str, tuple[int, ...]]], dict[str, str]]:
+    """THE CACHE IS READ ONLY IN THE PARENT, which is what lets the workers be cache-free. It also
+    keeps a warm refresh cheap in the same way the serial path does: a file every stage already
+    holds contributes no job at all, so parallelism costs nothing when there is nothing to parse.
+
+    @brief Build the parallel work list from cache state.
+    @return The jobs, and each job path's content sha.
+    @version 1
+    """
+    jobs: list[tuple[str, str, tuple[int, ...]]] = []
+    shas: dict[str, str] = {}
+    ## DEDUPED BY CONTENT, and the serial path gets this for free in a way this one cannot.
+    ## Payloads are keyed by `content_sha`, so two paths with identical bytes need ONE parse.
+    ## Walking file-by-file, the second copy simply finds the first's row already stored; but
+    ## planning happens entirely BEFORE any result comes back, so without this every duplicate
+    ## is queued and parsed again. Caught by the invariance check against the serial path —
+    ## which found identical output and 9 extra payload computations, i.e. exactly one
+    ## duplicated file across the target. A vendored tree full of copied headers would pay
+    ## considerably more than that.
+    queued: set[str] = set()
+    for _rowid, rel_path in conn.execute("SELECT rowid, name FROM path").fetchall():
+        abs_path = repo_root / rel_path
+        sha = _shareable_sha(rel_path, abs_path, cache)
+        if sha is None:
+            continue
+        pending = tuple(
+            i
+            for i, h in enumerate(harvesters)
+            if not cache.extract_has(sha, h.stage, h.stage_version, h.extra_key)
+        )
+        tally.cached += len(harvesters) - len(pending)
+        if pending and sha not in queued:
+            queued.add(sha)
+            jobs.append((rel_path, str(abs_path), pending))
+            shas[rel_path] = sha
+    return jobs, shas
+
+
+## @brief Run the shared parse across a process pool.
+## @param jobs The work list from `_plan_shared_jobs`.
+## @param shas Content sha per job path.
+## @param harvesters Every per-file stage this build will run.
+## @param cache Live index cache; the ONLY writer, and it lives here in the parent.
+## @param tally Updated in place with parses and payloads computed.
+## @param workers How many worker processes to run.
+## @return None.
+## @version 1
+## @dg_internal
+def _shared_parse_pooled(
+    jobs: list[tuple[str, str, tuple[int, ...]]],
+    shas: dict[str, str],
+    harvesters: list[Harvester],
+    cache: IndexCache,
+    tally: HarvestTally,
+    workers: int,
+) -> None:
+    """`chunksize` matters more than it looks: one IPC round trip per file would dominate a
+    corpus of tens of thousands of small headers, so files are handed over in batches. It is
+    derived from the work rather than fixed, so a small repo does not get one worker doing
+    everything.
+
+    @brief Drive the shared parse across N processes, writing results in the parent.
+    @version 1
+    """
+    from concurrent.futures import ProcessPoolExecutor
+
+    chunk = max(1, min(64, len(jobs) // (workers * 4) or 1))
+    with ProcessPoolExecutor(
+        max_workers=workers, initializer=_worker_init, initargs=(harvesters,)
+    ) as pool:
+        with make_progress(known_total=True) as progress:
+            task = progress.add_task(f"shared ast parse ({workers} jobs)", total=len(jobs))
+            for done, (rel_path, payloads) in enumerate(
+                pool.map(_worker_parse, jobs, chunksize=chunk), start=1
+            ):
+                progress.advance(task)
+                if payloads is None:
+                    continue
+                tally.parsed += 1
+                for idx, payload in payloads.items():
+                    _store_payload(cache, harvesters[idx], shas[rel_path], payload)
+                    tally.computed += 1
+                if done % _FLUSH_EVERY == 0:
+                    cache.flush()
+
+
+## @brief Parse every indexed file ONCE, warming all eleven stages' cache rows.
 ## @param conn Open connection to the database being built.
 ## @param repo_root Repository root the indexed paths are relative to.
 ## @param harvesters Every per-file stage this build will run.
 ## @param ts_classes (Language, Parser) from tree_sitter.
 ## @param cache Live index cache; None disables the pass entirely.
+## @param jobs Worker processes for the parse; 1 keeps the serial path.
 ## @return The tally of payloads cached/computed and files parsed.
-## @version 1
+## @version 3
 ## @req REQ-DDB-PIPE-003
 def run_shared_parse(
     conn: sqlite3.Connection,
@@ -574,6 +764,7 @@ def run_shared_parse(
     harvesters: list[Harvester],
     ts_classes: tuple[Any, Any],
     cache: IndexCache | None = None,
+    jobs: int = 1,
 ) -> HarvestTally:
     """gh#358. Nothing here EMITS: it only fills the per-stage cache rows the
     stages are about to read, so stage ordering — `ast_symbols` before every
@@ -588,18 +779,47 @@ def run_shared_parse(
     this no-ops and every stage parses for itself exactly as it did before —
     slower, identical output.
 
+    Payload rows are flushed every `_FLUSH_EVERY` files and once more at the end, so a
+    build killed part-way through keeps what it has already parsed (#505).
+
+    `jobs > 1` RUNS THE PARSE ACROSS PROCESSES and takes a different code path, but the
+    serial one is kept rather than reimplemented in terms of the pool: `jobs=1` must stay
+    the exact code that has been shipping, so the parallel path can be switched off in one
+    flag and the two compared as independent implementations of the same contract. The
+    invariance test asserts they produce identical indexes.
+
+    THE PARENT REMAINS THE ONLY CACHE WRITER either way. Workers receive files and return
+    payloads; nothing in a worker touches the sidecar. That is what keeps the parallel path
+    free of sqlite locking rather than merely careful about it.
+
     @brief One parse per file, feeding every stage's own cache row.
-    @version 1
+    @version 3
     """
     if cache is None or not harvesters:
         logger.info("shared ast parse: skipped (no index cache or no per-file stages)")
         return HarvestTally()
+    if jobs > 1:
+        tally = HarvestTally()
+        work, shas = _plan_shared_jobs(conn, repo_root, harvesters, cache, tally)
+        if work:
+            _shared_parse_pooled(work, shas, harvesters, cache, tally, jobs)
+        cache.flush()
+        logger.info(
+            "shared ast parse: %d file(s) parsed once across %d worker(s) for %d stage "
+            "payload(s); %d payload(s) already cached across %d stage(s)",
+            tally.parsed,
+            jobs,
+            tally.computed,
+            tally.cached,
+            len(harvesters),
+        )
+        return tally
     parser_cache: dict = {}
     tally = HarvestTally()
     all_paths = conn.execute("SELECT rowid, name FROM path").fetchall()
     with make_progress(known_total=True) as progress:
         task = progress.add_task("shared ast parse", total=len(all_paths))
-        for _path_rowid, rel_path in all_paths:
+        for done, (_path_rowid, rel_path) in enumerate(all_paths, start=1):
             progress.advance(task)
             _shared_parse_one_file(
                 rel_path,
@@ -610,6 +830,16 @@ def run_shared_parse(
                 cache,
                 tally,
             )
+            ## FLUSHED PART-WAY THROUGH, not merely at the end, and on a large target that is
+            ## the whole value. This pass is the single longest stage there — a kill fifteen
+            ## minutes into a twenty-minute parse banked NOTHING when the only flush was after
+            ## the loop, which is the shape that made a big corpus unbuildable no matter how
+            ## many times it was retried.
+            if done % _FLUSH_EVERY == 0 and cache is not None:
+                cache.flush()
+    ## The tail the periodic flush above did not reach. `flush` persists payload rows only; the
+    ## "this tree was indexed" claim stays with `commit`, after the swap.
+    cache.flush()
     logger.info(
         "shared ast parse: %d file(s) parsed once for %d stage payload(s); "
         "%d payload(s) already cached across %d stage(s)",

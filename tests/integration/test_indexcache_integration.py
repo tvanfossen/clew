@@ -42,7 +42,7 @@ from pathlib import Path
 import pytest
 
 from clew import harvest
-from clew.cli import _build_argparser, _run_pipeline
+from clew.cli import JOBS_ENV, _build_argparser, _run_pipeline
 from clew.indexcache import IndexCache
 
 pytestmark = pytest.mark.integration
@@ -243,10 +243,24 @@ class _ParseCounter:
 ## @version 1
 @pytest.fixture
 def parse_counter(monkeypatch: pytest.MonkeyPatch) -> _ParseCounter:
-    """@brief Fixture patching the harvest driver's parse entry point.
+    """PINS THE BUILD TO ONE PROCESS, and that is a real limitation rather than a tidy-up.
 
-    @version 1
+    This counter works by patching a function IN THIS PROCESS. Since the shared parse became
+    parallel by default, the parse it is counting happens in worker processes where the patch
+    does not exist — so without `CLEW_JOBS=1` the counter observes zero parses and every
+    assertion built on it becomes vacuous rather than failing honestly.
+
+    WHAT THAT COSTS, stated plainly: these tests now describe the SERIAL path, not the shipped
+    default. What carries the default is
+    `tests/integration/test_parallel_shared_parse.py::test_parallel_shared_parse_is_index_identical`,
+    which asserts the two produce the same index row for row. The invalidation rules pinned here
+    are therefore verified on one path and transported to the other by that equality — which is
+    exactly as strong as the equality test and no stronger.
+
+    @brief Fixture patching the harvest driver's parse entry point, serial builds only.
+    @version 2
     """
+    monkeypatch.setenv(JOBS_ENV, "1")
     counter = _ParseCounter()
     monkeypatch.setattr(harvest, "_ast_parse_one_file", counter)
     return counter

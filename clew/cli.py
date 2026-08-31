@@ -72,6 +72,7 @@ from pathlib import Path
 from typing import Any
 
 from ._common import active_console, console, logger
+from .buildlog import build_log
 from .ast_symbols import recover_ast_symbols
 from .buildoptions import (
     MANIFEST_OPTIONS,
@@ -165,6 +166,7 @@ from .scope import (
     SCOPE_FROM_GUARD,
     SOURCE_DOXYFILE,
     DerivedScope,
+    depth_limited_paths,
     derive_scope,
     derive_scope_logged,
 )
@@ -512,6 +514,53 @@ def _build_argparser() -> argparse.ArgumentParser:
         help="Enable verbose logging",
     )
     return parser
+
+
+## Environment variable overriding the shared parse's worker count. `1` forces the serial path.
+##
+## AN ENVIRONMENT VARIABLE AND DELIBERATELY NOT A FLAG OR A DECLARATION, on both counts for
+## reasons this repo has already written down. Not a flag: the build surface is a pinned set of
+## six, and "a declaration reachable only from argv is not a declaration" — `build_argv` would
+## have to learn it or the MCP server could never see it. Not a `.clew.yaml` key either, because
+## a worker count is a property of the MACHINE, not of the repository: a target declaring "8
+## workers" would carry one laptop's core count into everyone else's build. `CLEW_STATE_HOME`
+## and `CLAUDE_CONFIG_DIR` are the existing precedent for host-scoped settings.
+JOBS_ENV = "CLEW_JOBS"
+
+
+## @brief Resolve the worker count for the shared parse.
+## @param env Environment to read; injected for testing.
+## @return A worker count of at least 1.
+## @version 1
+## @dg_internal
+def _resolve_jobs(env: dict[str, str] | None = None) -> int:
+    """CAPPED AT 8 RATHER THAN cpu_count(). Each worker holds its own grammars and parsed trees,
+    and the corpora that make this worth doing are the large ones, so opening a 32-core machine's
+    full width trades a wall-clock win for a swap risk on exactly the targets that need the win.
+    Eight is where the measured return flattens.
+
+    AN UNPARSEABLE OR NONSENSE VALUE FALLS BACK RATHER THAN REFUSING. This setting only affects
+    speed, so failing a twenty-minute build over `CLEW_JOBS=eight` would spend far more than it
+    protects. It is logged, so a typo is visible rather than silent.
+
+    @brief Pick the shared-parse worker count.
+    @return Workers to run, never below 1.
+    @version 1
+    """
+    auto = max(1, min(os.cpu_count() or 1, 8))
+    raw = (env if env is not None else os.environ).get(JOBS_ENV)
+    if not raw:
+        return auto
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        logger.warning(
+            "%s=%r is not an integer — using %d worker(s) for the shared parse",
+            JOBS_ENV,
+            raw,
+            auto,
+        )
+        return auto
 
 
 ## @brief Apply a `--declare` document through the tier-1 options route.
@@ -1577,7 +1626,7 @@ def _is_rust_only_repo(repo_root: Path) -> bool:
 ## @param preprocessor The resolved preprocessor configuration this index represents.
 ## @param timer Stage timer, marked once the tree scan and its hash are complete.
 ## @return Path to the doxygen SQLite output (cached or freshly generated).
-## @version 8
+## @version 9
 ## @dg_internal
 def _doxygen_stage(
     doxyfile: Path,
@@ -1608,11 +1657,9 @@ def _doxygen_stage(
     caller's `doxygen` segment covers the whole stage — which is what happened.
 
     @brief Doxygen stage with tree-hash-based skip.
-    @version 6
+    @version 7
     """
     predefined = doxyfile_lines(preprocessor or PreprocessorConfig())
-    if cache is None:
-        return _run_doxygen_from_args(doxyfile, args, predefined)
     replace_input = getattr(args, "replace_input", False)
     roots, excludes = doxygen_input_roots(
         doxyfile,
@@ -1621,7 +1668,25 @@ def _doxygen_stage(
         args.extra_exclude,
         replace_input,
     )
-    summary = cache.scan(enumerate_tree(roots, excludes, repo_root))
+    in_scope = enumerate_tree(roots, excludes, repo_root)
+    ## THE SIZE OF THE JOB, WHICH NOTHING RECORDED. `coverage.indexed_files` counts first-party
+    ## rows doxygen produced; this counts files the build was ASKED to index. On a vendored C++
+    ## target those were 526 and 84,502 — a 160x gap, and the small number is the one everybody
+    ## reasoned from, including two agents and the operator, in an investigation about why the
+    ## build took half an hour. Carried on `args` because it is measured here, in the doxygen
+    ## stage, and stamped much later by `_scope_provenance`; `args` already ferries replayed
+    ## build options the same way.
+    ##
+    ## MEASURED ABOVE THE NO-CACHE RETURN, and that placement is a correctness fix rather than
+    ## tidiness. Enumerating only on the cached path made one repository stamp different
+    ## metadata depending on `--no-index-cache`, which `test_cache_output_matches_no_cache`
+    ## caught immediately — correctly, because how many files the scope selects is a fact about
+    ## the SCOPE and has nothing to do with whether results were cached. The cost is one tree
+    ## walk on a path that is already doing a full doxygen run.
+    args.files_in_scope = len(in_scope)
+    if cache is None:
+        return _run_doxygen_from_args(doxyfile, args, predefined)
+    summary = cache.scan(in_scope)
     content = doxyfile_content_for(
         doxyfile,
         args.extra_input,
@@ -1654,7 +1719,7 @@ def _doxygen_stage(
 
 ## @brief Run every build stage against one (temp) output DB path.
 ## @param timer Stage timer; one `mark` closes each stage below. A fresh one when omitted.
-## @version 51
+## @version 52
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -1789,7 +1854,7 @@ def _build_stages(
         dispatch_key=manifest_key(dispatch_source),
         mqtt_dispatch=mqtt_dispatch,
     )
-    warm_harvest_plan(output, repo_root, plan, cache)
+    warm_harvest_plan(output, repo_root, plan, cache, _resolve_jobs())
     timer.mark("shared_parse")
     ## gh#18 part 3, and INDEPENDENT of the line above on purpose: a gate on a symbol no
     ## Kconfig declares is dead code behind a symbol nobody can set, which is a finding
@@ -2159,6 +2224,60 @@ def _build_stages(
     timer.mark("signature")
 
 
+## Directories named in the stamp before it stops listing and only counts. Enough to identify
+## WHICH tree is deep — which is the actionable half — without turning one metadata value into a
+## page of paths on a repo that hits the limit everywhere.
+_DEPTH_LIMIT_NAMED = 5
+
+
+## @brief Record how many files this build's scope selected.
+## @param args Parsed CLI arguments, carrying the count measured during enumeration.
+## @return Mapping with `files_in_scope`, empty when nothing enumerated the tree.
+## @version 1
+## @dg_internal
+def _in_scope_count(args: argparse.Namespace) -> dict[str, str]:
+    """THE DENOMINATOR THE INDEX NEVER HAD. `coverage.indexed_files` answers "how many
+    first-party files produced rows", which reads like the size of the job and is not: doxygen
+    records what it parsed, and a corpus can be two orders of magnitude larger than that. The
+    absent number is what the build was ASKED to index, and its absence sent an entire
+    investigation reasoning from 526 files about a build over 84,502.
+
+    @brief Stamp the in-scope file count.
+    @return Mapping with the count, or {}.
+    @version 1
+    """
+    count = getattr(args, "files_in_scope", None)
+    return {"files_in_scope": str(count)} if count else {}
+
+
+## @brief Record where the scope walk stopped descending, if anywhere.
+## @param rel Callable rendering a path repo-relative.
+## @return Mapping of `depth_limited_*` keys, empty when the limit was never reached.
+## @version 1
+## @dg_internal
+def _depth_limit_scope(rel: Any) -> dict[str, str]:
+    """EMPTY WHEN IT NEVER FIRED, so the falsy-drop rule renders the ordinary case as absence
+    rather than as a recorded zero. That distinction is this repo's most-repeated lesson in
+    miniature: "the limit was not reached" and "nobody looked" must not read the same, and here
+    the presence of the key IS the signal.
+
+    REPO-RELATIVE, because anything stamped is published over MCP and the build machine's
+    directory layout is not the consumer's business.
+
+    @brief Stamp the depth-limit prune, if it happened.
+    @return Mapping of depth-limit keys, or {}.
+    @version 1
+    """
+    hit = depth_limited_paths()
+    if not hit:
+        return {}
+    named = SCOPE_LIST_SEPARATOR.join(rel(p) for p in hit[:_DEPTH_LIMIT_NAMED])
+    return {
+        "depth_limited_count": str(len(hit)),
+        "depth_limited": named,
+    }
+
+
 ## @brief Record the vendored paths a repository declares, and which of them exist.
 ## @param root Repository root, already resolved.
 ## @param rel Callable rendering a path repo-relative.
@@ -2294,7 +2413,7 @@ def _doxyfile_scope(root: Path, rel: Any, stated: str | None = None) -> dict[str
 ## @param repo_root Repository root, or None when unknown.
 ## @param args Parsed CLI arguments, which carry the tier the build actually took.
 ## @return {source, reason, roots, excludes, operator_excludes, doxyfile_*} as strings; empty when nothing was resolved.
-## @version 8
+## @version 10
 ## @req REQ-DDB-CONFIG-001
 def _scope_provenance(repo_root: Path | None, args: argparse.Namespace) -> dict[str, str]:
     """A PURE FUNCTION OF THE REPO AGAIN (gh#333). It used to read the tier from
@@ -2328,7 +2447,7 @@ def _scope_provenance(repo_root: Path | None, args: argparse.Namespace) -> dict[
 
     @brief Flatten the resolved scope into build_meta values, repo-relative.
     @return Mapping of provenance keys to strings.
-    @version 6
+    @version 8
     """
     if repo_root is None:
         return {}
@@ -2386,6 +2505,21 @@ def _scope_provenance(repo_root: Path | None, args: argparse.Namespace) -> dict[
         ## would be a schema change plus a filter that no query may honour — the emptiness
         ## rule: an answer that is silently filtered is worse than one that is merely absent.
         **_vendored_scope(root, _rel, args),
+        ## WHERE THE WALK GAVE UP, and it is a fact about the corpus rather than a curiosity.
+        ## Past the depth limit nothing is pruned and nothing is checked for nested trees, so
+        ## everything below is admitted wholesale — which on a deeply nested vendored dependency
+        ## is tens of thousands of files the operator never chose. The build already knew this
+        ## and said it at WARNING; by query time the log was gone, so the index could not answer
+        ## why its corpus was the size it was.
+        ##
+        ## REPORT-ONLY BY OWNER RULING: what gets indexed is unchanged, so `CLEW_BUILD_VERSION`
+        ## does not move and no existing index is invalidated. This makes the condition VISIBLE
+        ## so the decision about it can be taken with a number in hand.
+        **_depth_limit_scope(_rel),
+        ## HOW MANY FILES THIS SCOPE SELECTED, beside the roots and excludes that selected them.
+        ## Absent under `--no-index-cache`, where nothing enumerates the tree — which the
+        ## falsy-drop rule renders as "not recorded" rather than as a repo with no files.
+        **_in_scope_count(args),
         ## NAMES THE TIER, and the tier is now the whole answer to "was this boundary
         ## chosen": `clew-declaration` is a decision, `doxyfile` is the repo's
         ## documentation scope standing in, `whole-repo` is what a repo gets for saying
@@ -2436,12 +2570,37 @@ def _open_index_cache(
 
 
 ## @brief Execute the build pipeline, writing atomically to --output.
-## @version 18
+## @version 19
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-PIPE-002
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-008
 def _run_pipeline(args: argparse.Namespace) -> None:
+    """A THIN WRAPPER SO THE BUILD LOG SPANS THE WHOLE BUILD, including the failure paths.
+
+    Split out rather than wrapping the body in place: `_run_pipeline_inner` is several hundred
+    lines and re-indenting all of it under a `with` would bury a one-line behaviour change in an
+    unreviewable diff. The log has to be attached before anything interesting is logged and
+    detached after everything is — including when the build raises, which is the case its whole
+    reason for existing is about.
+
+    `output` is resolved twice, here and inside. It is idempotent and cheap, and the alternative
+    is threading a resolved path through a signature that every caller would have to learn.
+
+    @brief Attach the build log, then run the pipeline.
+    @version 19
+    """
+    output = Path(args.output).resolve()
+    with build_log(output):
+        _run_pipeline_inner(args)
+
+
+## @brief Run every build stage and swap the result onto --output.
+## @param args Parsed CLI arguments.
+## @return None.
+## @version 18
+## @req REQ-DDB-CLI-001
+def _run_pipeline_inner(args: argparse.Namespace) -> None:
     """Build into a sibling temp DB, then os.replace() it onto --output.
 
     The swap is atomic (same filesystem), so a concurrent reader — the

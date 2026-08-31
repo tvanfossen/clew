@@ -242,10 +242,49 @@ def code_identity() -> dict[str, object]:
     }
 
 
+## @brief Spell a millisecond count the way a reader would say it.
+## @param raw The stored `duration_ms` value, as the string it is persisted as.
+## @return A phrase like "8 min 27 s", or the raw milliseconds when it is not a number.
+## @version 1
+## @dg_internal
+def _humanise_ms(raw: str) -> str:
+    """KEEPS MILLISECONDS BELOW TEN SECONDS, because at that scale they are the informative
+    unit and rounding a 2.7 s refresh to "3 s" throws away the thing that makes it obviously
+    cheap. Above it, minutes are what a reader compares against their own patience.
+
+    FALLS BACK TO THE RAW STRING rather than raising or guessing. `duration_ms` is persisted as
+    text and an index written by a future version could hold something else; a notice that
+    printed a traceback, or invented a number, would be worse than one that quotes what it
+    found.
+
+    @brief Render a stored duration in readable units.
+    @return The spelled duration.
+    @version 1
+    """
+    try:
+        ms = int(float(raw))
+    except (TypeError, ValueError, OverflowError):
+        ## `OverflowError` IS NOT THEORETICAL and is not a subclass of the other two: `float`
+        ## accepts "1e9999" happily and returns `inf`, which `int()` then refuses. Caught by the
+        ## test that feeds this function junk — without it a staleness notice raises and takes
+        ## down a query that was otherwise answerable, which is the opposite of what a notice is
+        ## for.
+        return f"{raw} ms"
+    if ms < 10_000:
+        return f"{ms} ms"
+    seconds = round(ms / 1000)
+    if seconds < 60:
+        return f"{seconds} s"
+    minutes, rest = divmod(seconds, 60)
+    ## Both parts, always, above a minute: "8 min" alone loses the half-minute that decides
+    ## whether a refresh fits inside somebody's threshold.
+    return f"{minutes} min {rest} s"
+
+
 ## @brief Human phrasing for what a refresh of this target last cost.
 ## @param refresh The persisted `refresh.*` section, or None.
 ## @return A clause naming the measured cost, or one saying it has not been measured.
-## @version 2
+## @version 3
 ## @dg_internal
 def _cost_clause(refresh: Mapping[str, str] | None) -> str:
     """GROUNDED IN THIS TARGET'S OWN HISTORY, not a constant (gh#9). An agent that
@@ -256,13 +295,19 @@ def _cost_clause(refresh: Mapping[str, str] | None) -> str:
     representative number. A fabricated estimate presented as a measurement is the
     failure this repo has recorded most often.
 
+    IN UNITS A READER ACTS ON. This said "506974 ms", which is eight and a half minutes and
+    does not scan like it — the tool recommended a refresh and then priced it in a unit that
+    reads as small. That exact number sat in a real target's metadata while the operator's
+    stated bar was ten minutes, and nobody noticed the two were in tension.
+
     @brief Phrase the measured cost-to-refresh.
     @return Cost clause.
-    @version 2
+    @version 3
     """
     duration = (refresh or {}).get("duration_ms")
     if not duration:
         return "no refresh of this target has been timed yet, so the cost is unmeasured"
+    spelled = _humanise_ms(duration)
     ## NOT "file(s)" (#470). This number counts (file, stage) PAYLOADS recomputed, and there are
     ## ~10 stages, so it is normally several times the changed-file count. Printed as files it
     ## landed in the same notice as "18 source file(s) have changed" and read as a broken counter
@@ -272,7 +317,7 @@ def _cost_clause(refresh: Mapping[str, str] | None) -> str:
         "files_reprocessed"
     )
     work = f" recomputing {payloads} cached stage payload(s)" if payloads else ""
-    return f"the last refresh of this target measured {duration} ms{work}"
+    return f"the last refresh of this target measured {spelled}{work}"
 
 
 ## @brief The data-axis notice, when the sources have drifted.

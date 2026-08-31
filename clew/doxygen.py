@@ -14,9 +14,12 @@ that to actually open files).
 
 from __future__ import annotations
 
+import os
+import signal
 import fnmatch
 import shutil
 import sqlite3
+import contextlib
 import subprocess
 import threading
 import sys
@@ -634,7 +637,7 @@ def synthesize_doxyfile(repo_root: Path, output_dir: Path) -> Path:
 
 
 ## @brief Build the augmented Doxyfile content piped to doxygen on stdin.
-## @version 11
+## @version 12
 ## @req REQ-DDB-INDEX-001
 def _build_doxyfile_content(
     doxyfile: Path,
@@ -816,6 +819,86 @@ def _classify_doxygen_line(line: str) -> str:
     if line.startswith(_DOXY_FILE_PREFIXES):
         return "file"
     return "phase" if line.startswith(_DOXY_PHASE_PREFIXES) else "other"
+
+
+## Output subdirectories doxygen creates for generators clew forces OFF. Named explicitly rather
+## than derived by "anything that is not sqlite3", because this deletes directories: an
+## allowlist of what we know doxygen produces is refusable and a denylist of everything else is
+## not. Each one corresponds to a `GENERATE_* = NO` line in `_DOXYFILE_FORCED_FLAGS`.
+_ABANDONED_OUTPUT_DIRS = ("xml", "html", "latex", "rtf", "man", "docbook")
+
+
+## @brief Remove doxygen output directories this build's configuration no longer generates.
+## @param output_dir The forced doxygen output directory for this target.
+## @return Number of directories removed.
+## @version 1
+## @dg_internal
+def _prune_abandoned_output(output_dir: Path) -> int:
+    """MEASURED WASTE, not hygiene theatre: 1,017 MB across 14,630 files sat in one target's
+    `clew.doxygen/xml/`, produced before `GENERATE_XML = NO` became a forced flag and never
+    touched since. Nothing reads it, nothing removes it, and it grows again on every target that
+    predates a generator being switched off.
+
+    ONLY UNDER OUR OWN OUTPUT DIRECTORY, and only names doxygen itself creates. `output_dir` is
+    the directory the pipeline FORCES (see `effective_output_dir`), never a path derived from a
+    target's own `OUTPUT_DIRECTORY` — clew is a read-only consumer of target repositories, and a
+    delete that could reach a repo's own doxygen output would be the worst possible way to
+    discover that distinction had blurred.
+
+    BEST-EFFORT. A directory that cannot be removed is logged and left; failing a build over
+    reclaimed disk space would trade a real capability for a housekeeping one.
+
+    @brief Delete output directories the current configuration does not produce.
+    @return How many were removed.
+    @version 1
+    """
+    removed = 0
+    for name in _ABANDONED_OUTPUT_DIRS:
+        stale = output_dir / name
+        if not stale.is_dir():
+            continue
+        try:
+            shutil.rmtree(stale)
+        except OSError as exc:
+            logger.debug("doxygen output: could not remove %s (%s)", stale, exc)
+            continue
+        removed += 1
+        logger.info(
+            "doxygen output: removed %s, which this build's configuration does not generate",
+            name,
+        )
+    return removed
+
+
+## @brief Kill a doxygen child and everything it started.
+## @param proc The running doxygen process, spawned as its own session leader.
+## @return None.
+## @version 1
+## @dg_internal
+def _reap_process_group(proc: subprocess.Popen) -> None:
+    """KILLS THE GROUP, NOT THE PID. `proc.kill()` reaches the process we hold and nothing it
+    spawned; the observed leak was a child outliving the call entirely, at multi-GB resident,
+    still parented to a long-lived MCP server.
+
+    FALLS BACK TO THE PID rather than raising. `killpg` fails if the child was never made a
+    session leader (a platform without `start_new_session`, or a caller that changed the spawn),
+    and the correct response to "I could not kill the group" is to kill what we can — not to
+    replace a leaked process with a traceback on an unwind path that is already handling
+    something else.
+
+    SILENT ON EVERY ERROR, deliberately: this runs from `finally` and from a watchdog thread,
+    where the process is usually already gone (`ProcessLookupError`) and where raising would
+    mask the exception actually being propagated.
+
+    @brief Terminate the doxygen process group.
+    @return None.
+    @version 1
+    """
+    with contextlib.suppress(OSError, AttributeError, ValueError):
+        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        return
+    with contextlib.suppress(OSError):
+        proc.kill()
 
 
 ## @brief Feed the generated Doxyfile to doxygen's stdin, from a thread.
@@ -1081,7 +1164,7 @@ def doxygen_supports_sqlite3(binary: str = "doxygen") -> bool | None:
 
 
 ## @brief Run doxygen with GENERATE_SQLITE3 and return the database path.
-## @version 10
+## @version 13
 ## @req REQ-DDB-INDEX-001
 def run_doxygen(
     doxyfile: Path,
@@ -1119,7 +1202,7 @@ def run_doxygen(
 
     @brief Run doxygen and return path to generated sqlite3 database.
     @raises DoxygenUnavailableError When the doxygen binary is not on PATH.
-    @version 10
+    @version 13
     """
     if shutil.which("doxygen") is None:
         raise DoxygenUnavailableError(
@@ -1148,6 +1231,18 @@ def run_doxygen(
         text=True,
         bufsize=1,
         env=clean_subprocess_env(),
+        ## ITS OWN PROCESS GROUP, SO ABANDONING THIS CALL CAN REAP EVERYTHING IT STARTED.
+        ##
+        ## FIELD-OBSERVED TWICE: aborting a slow refresh reported success while doxygen kept
+        ## running, still parented to the MCP server at ~4 GB resident, and had to be killed by
+        ## hand. The next attempt then competed with its own orphans for the machine, which is
+        ## how one of them was misread as a concurrency problem.
+        ##
+        ## `proc.kill()` alone is not enough: it reaches the pid we hold and nothing that pid
+        ## spawned. A leader plus `killpg` reaches the whole tree whatever the failure path was —
+        ## demonstrated by the reap test's stub, which leaves a shell AND a sleeping child, and
+        ## whose first version was itself fooled into finding only one of the two.
+        start_new_session=True,
     )
     assert proc.stdin is not None and proc.stdout is not None
     ## STDIN IS WRITTEN ON A THREAD, AND THAT IS A DEADLOCK FIX RATHER THAN A TIDY-UP.
@@ -1171,16 +1266,50 @@ def run_doxygen(
         target=_write_doxyfile_stdin, args=(proc, doxyfile_content), daemon=True
     )
     writer.start()
-    warn_count, first_warnings = _consume_doxygen_output(proc)
-    ## BOUNDED, because an unbounded wait here is the second half of the same incident: the MCP
-    ## server holds its per-target build lock across this call, so one stalled doxygen makes every
-    ## later stale query in that process queue forever. The value is a BACKSTOP, not a budget — no
-    ## legitimate build approaches it, and the point is that a wedged one ends.
+    ## THE TIMEOUT MUST FIRE FROM A TIMER, NOT FROM `proc.wait`, AND THAT IS THE WHOLE FIX.
+    ##
+    ## This was `_consume_doxygen_output(proc)` followed by `proc.wait(timeout=...)`, which reads
+    ## as bounded and is not: the read loop is `for raw in proc.stdout`, which blocks until the
+    ## child closes the pipe. A doxygen that is alive — working OR wedged — never does, so the
+    ## line carrying the timeout is not reached and the bound can never be evaluated.
+    ##
+    ## PROVED, not reasoned. With a stub holding the pipe open, the call was still running at
+    ## 20 s against a 3 s timeout; with the stub closing its fds, the same timeout fired at
+    ## 3.0 s. In the field this was six consecutive builds of one target, each ending only when
+    ## a human or the client killed it — nothing in clew would ever have ended any of them.
+    ##
+    ## BOTH FDS, because `stderr=subprocess.STDOUT` above puts two descriptors on one pipe.
+    ## Closing stdout alone yields no EOF; the first version of the control test missed this and
+    ## reported a hang where the mechanism was sound.
+    ##
+    ## Killing is what UNBLOCKS the reader: the fds close, the loop takes EOF, and the existing
+    ## reporting path runs with the flag telling it what happened.
+    timed_out = threading.Event()
+
+    def _kill_on_deadline() -> None:
+        timed_out.set()
+        _reap_process_group(proc)
+
+    watchdog = threading.Timer(_DOXYGEN_TIMEOUT, _kill_on_deadline)
+    watchdog.daemon = True
+    watchdog.start()
     try:
-        rc = proc.wait(timeout=_DOXYGEN_TIMEOUT)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        proc.wait()
+        warn_count, first_warnings = _consume_doxygen_output(proc)
+        rc = proc.wait()
+    except BaseException:
+        ## `BaseException`, NOT `Exception`, and that choice is the whole point. Every way this
+        ## call actually gets abandoned in the field is outside `Exception` — KeyboardInterrupt,
+        ## SystemExit, anyio's cancellation — so a handler that caught only `Exception` would
+        ## leak on precisely the paths that leaked.
+        _reap_process_group(proc)
+        raise
+    finally:
+        watchdog.cancel()
+    writer.join(timeout=5)
+    ## THE FLAG, NOT THE RETURN CODE. A watchdog kill arrives as `rc == -SIGKILL`, which is
+    ## indistinguishable from doxygen crashing — and reporting "doxygen exited with code -9"
+    ## sends the reader hunting a doxygen bug instead of a build that ran out of time.
+    if timed_out.is_set():
         logger.error(
             "doxygen did not finish within %d s and was killed. The index was NOT updated; the "
             "previous one is untouched, because the build stages into a temp file and only "
@@ -1188,11 +1317,16 @@ def run_doxygen(
             _DOXYGEN_TIMEOUT,
         )
         sys.exit(1)
-    writer.join(timeout=5)
     _surface_doxygen_warnings(warn_count, first_warnings)
     if rc != 0:
         logger.error("Doxygen exited with code %d", rc)
         sys.exit(1)
+
+    ## AFTER THE RUN, NOT BEFORE. Removing these first would delete output the run is about to
+    ## regenerate if a forced flag ever changes back, and would do it before knowing the run
+    ## succeeded. Here, what is left is exactly what this configuration produced plus whatever
+    ## an older configuration abandoned.
+    _prune_abandoned_output(effective_output_dir(doxyfile, work_dir, output_dir))
 
     db_path = doxygen_db_path(doxyfile, work_dir, output_dir)
     if not db_path.exists():
