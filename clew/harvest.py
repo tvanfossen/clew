@@ -118,6 +118,15 @@ def _ts_language_for(path: str):
 # definitions where one exists; the C++ grammar yields 0 errors and one.
 _AMBIGUOUS_EXTS = (".h",)
 
+## How many files the shared parse may process before flushing payload rows to the sidecar.
+##
+## A DURABILITY INTERVAL, NOT A BATCH SIZE — nothing accumulates in memory waiting for it, and
+## raising it buys no throughput. It bounds how much parsing a killed build throws away: at 500
+## files a kill loses at most the tail, against the whole pass before #505. Low enough that a
+## large corpus banks steadily, high enough that the commits are lost in the noise of parsing
+## (one fsync per 500 tree-sitter parses).
+_FLUSH_EVERY = 500
+
 
 ## @brief Memoized tree-sitter parser for one grammar module name.
 ## @param mod_name Grammar module to load ("tree_sitter_c" / "tree_sitter_cpp").
@@ -434,7 +443,7 @@ def _store_payload(cache: IndexCache, harvester: Harvester, sha: str, payload: A
 
 ## @brief Run one harvester over every indexed file, cache-first.
 ## @return List of (path_rowid, payload) in `path`-table order.
-## @version 2
+## @version 3
 ## @req REQ-DDB-PIPE-003
 def run_harvest(
     conn: sqlite3.Connection,
@@ -458,8 +467,11 @@ def run_harvest(
     The per-stage `cached`/`computed` split is LOGGED, because it is the only
     direct evidence that invalidating one stage recomputed one stage.
 
+    Payloads this stage had to parse for itself are flushed before it returns, so an
+    abort in a later stage does not discard them (#505).
+
     @brief Drive one cacheable per-file stage across the whole index.
-    @version 2
+    @version 3
     """
     parser_cache: dict = {}
     results: list[tuple[int, Any]] = []
@@ -480,6 +492,12 @@ def run_harvest(
             )
             if payload is not None:
                 results.append((path_rowid, payload))
+    ## Whatever THIS stage had to parse for itself is banked before the next one starts (#505).
+    ## Normally near-free: since the shared pass most payloads are already cached and already
+    ## flushed, so this commits nothing. It earns its place on the stages the shared pass does
+    ## not cover, and on a build with no shared pass at all (`--no-index-cache` aside).
+    if cache is not None:
+        cache.flush()
     logger.info(
         "harvest %s: %d payload(s) from cache, %d parsed here",
         harvester.stage,
@@ -566,7 +584,7 @@ def _shared_parse_one_file(
 ## @param ts_classes (Language, Parser) from tree_sitter.
 ## @param cache Live index cache; None disables the pass entirely.
 ## @return The tally of payloads cached/computed and files parsed.
-## @version 1
+## @version 2
 ## @req REQ-DDB-PIPE-003
 def run_shared_parse(
     conn: sqlite3.Connection,
@@ -588,8 +606,11 @@ def run_shared_parse(
     this no-ops and every stage parses for itself exactly as it did before —
     slower, identical output.
 
+    Payload rows are flushed every `_FLUSH_EVERY` files and once more at the end, so a
+    build killed part-way through keeps what it has already parsed (#505).
+
     @brief One parse per file, feeding every stage's own cache row.
-    @version 1
+    @version 2
     """
     if cache is None or not harvesters:
         logger.info("shared ast parse: skipped (no index cache or no per-file stages)")
@@ -599,7 +620,7 @@ def run_shared_parse(
     all_paths = conn.execute("SELECT rowid, name FROM path").fetchall()
     with make_progress(known_total=True) as progress:
         task = progress.add_task("shared ast parse", total=len(all_paths))
-        for _path_rowid, rel_path in all_paths:
+        for done, (_path_rowid, rel_path) in enumerate(all_paths, start=1):
             progress.advance(task)
             _shared_parse_one_file(
                 rel_path,
@@ -610,6 +631,16 @@ def run_shared_parse(
                 cache,
                 tally,
             )
+            ## FLUSHED PART-WAY THROUGH, not merely at the end, and on a large target that is
+            ## the whole value. This pass is the single longest stage there — a kill fifteen
+            ## minutes into a twenty-minute parse banked NOTHING when the only flush was after
+            ## the loop, which is the shape that made a big corpus unbuildable no matter how
+            ## many times it was retried.
+            if done % _FLUSH_EVERY == 0 and cache is not None:
+                cache.flush()
+    ## The tail the periodic flush above did not reach. `flush` persists payload rows only; the
+    ## "this tree was indexed" claim stays with `commit`, after the swap.
+    cache.flush()
     logger.info(
         "shared ast parse: %d file(s) parsed once for %d stage payload(s); "
         "%d payload(s) already cached across %d stage(s)",

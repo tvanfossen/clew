@@ -627,15 +627,61 @@ class IndexCache:
         self._accounted.add(key)
         self.record(hit)
 
-    ## @brief Persist this run's file identities and commit; then close.
+    ## @brief Durably persist payload rows without asserting the build succeeded.
     ## @version 1
+    ## @req REQ-DDB-INDEX-002
+    def flush(self) -> None:
+        """THE HALF OF `commit` THAT AN ABORTED BUILD IS STILL ENTITLED TO, and the reason a
+        large target can now get warm at all.
+
+        Payload rows and the `source_files` claim used to share one transaction that was
+        committed only after the atomic swap, so a killed build discarded every parsed payload.
+        Measured in the field: a 103 MB sidecar whose mtime did not move across six build
+        attempts, several running twenty minutes. Attempt N+1 cost exactly what attempt 1 cost,
+        which is a trap a target cannot climb out of once its corpus outgrows one sitting.
+
+        THE TWO CLAIMS ARE NOT THE SAME CLAIM, which is what makes this safe:
+
+          * a `(file, stage)` payload is keyed by the file's `content_sha`, so it is TRUE
+            whether or not the build that computed it finished;
+          * `source_files` asserts "this tree was successfully indexed" — which an aborted
+            build has NOT earned, and which is written ONLY by `commit`.
+
+        WHAT ELSE RIDES ALONG, because a bare `commit()` flushes the whole connection and a
+        reviewer will ask. Each is safe for its own reason, not by a blanket argument:
+
+          * `doxygen_cache` — `doxygen_put` records output that EXISTS on disk, and
+            `doxygen_any` re-verifies before serving it, so a row describing output a later
+            failure removed is rejected rather than trusted.
+          * `splice_generation` — `record_splice` runs immediately after the doxygen pass it
+            describes, so a persisted value describes a pass that genuinely ran. Persisting it
+            early can only over-state drift by one, which biases the NEXT build toward a full
+            run: the fail-safe direction.
+
+        Called from `harvest.run_shared_parse` (periodically, so a kill part-way through a long
+        parse still banks most of it) and at the end of `harvest.run_harvest`. Deliberately NOT
+        scattered across `_build_stages`: one call per mechanism means a stage added later
+        inherits the durability instead of silently missing it.
+
+        @brief Commit payload rows, leaving the success claim ungranted.
+        @version 1
+        """
+        self.conn.commit()
+
+    ## @brief Persist this run's file identities and commit; then close.
+    ## @version 2
     ## @req REQ-DDB-INDEX-002
     def commit(self) -> None:
         """Replace `source_files` with this run's scan — rows for files that
         disappeared are dropped, so a removed file stops hitting the cache.
 
+        THE SUCCESS CLAIM LIVES HERE AND ONLY HERE. `flush` persists payload rows during the
+        build; this is what additionally asserts the tree was indexed, so it must stay gated on
+        the atomic swap. Moving the `source_files` write into `flush` would let an aborted build
+        claim a tree it never finished — the failure this split exists to keep impossible.
+
         @brief Flush the cache to disk.
-        @version 1
+        @version 2
         """
         self.conn.execute("DELETE FROM source_files")
         self.conn.executemany(
