@@ -821,6 +821,55 @@ def _classify_doxygen_line(line: str) -> str:
     return "phase" if line.startswith(_DOXY_PHASE_PREFIXES) else "other"
 
 
+## Output subdirectories doxygen creates for generators clew forces OFF. Named explicitly rather
+## than derived by "anything that is not sqlite3", because this deletes directories: an
+## allowlist of what we know doxygen produces is refusable and a denylist of everything else is
+## not. Each one corresponds to a `GENERATE_* = NO` line in `_DOXYFILE_FORCED_FLAGS`.
+_ABANDONED_OUTPUT_DIRS = ("xml", "html", "latex", "rtf", "man", "docbook")
+
+
+## @brief Remove doxygen output directories this build's configuration no longer generates.
+## @param output_dir The forced doxygen output directory for this target.
+## @return Number of directories removed.
+## @version 1
+## @dg_internal
+def _prune_abandoned_output(output_dir: Path) -> int:
+    """MEASURED WASTE, not hygiene theatre: 1,017 MB across 14,630 files sat in one target's
+    `clew.doxygen/xml/`, produced before `GENERATE_XML = NO` became a forced flag and never
+    touched since. Nothing reads it, nothing removes it, and it grows again on every target that
+    predates a generator being switched off.
+
+    ONLY UNDER OUR OWN OUTPUT DIRECTORY, and only names doxygen itself creates. `output_dir` is
+    the directory the pipeline FORCES (see `effective_output_dir`), never a path derived from a
+    target's own `OUTPUT_DIRECTORY` — clew is a read-only consumer of target repositories, and a
+    delete that could reach a repo's own doxygen output would be the worst possible way to
+    discover that distinction had blurred.
+
+    BEST-EFFORT. A directory that cannot be removed is logged and left; failing a build over
+    reclaimed disk space would trade a real capability for a housekeeping one.
+
+    @brief Delete output directories the current configuration does not produce.
+    @return How many were removed.
+    @version 1
+    """
+    removed = 0
+    for name in _ABANDONED_OUTPUT_DIRS:
+        stale = output_dir / name
+        if not stale.is_dir():
+            continue
+        try:
+            shutil.rmtree(stale)
+        except OSError as exc:
+            logger.debug("doxygen output: could not remove %s (%s)", stale, exc)
+            continue
+        removed += 1
+        logger.info(
+            "doxygen output: removed %s, which this build's configuration does not generate",
+            name,
+        )
+    return removed
+
+
 ## @brief Kill a doxygen child and everything it started.
 ## @param proc The running doxygen process, spawned as its own session leader.
 ## @return None.
@@ -1115,7 +1164,7 @@ def doxygen_supports_sqlite3(binary: str = "doxygen") -> bool | None:
 
 
 ## @brief Run doxygen with GENERATE_SQLITE3 and return the database path.
-## @version 12
+## @version 13
 ## @req REQ-DDB-INDEX-001
 def run_doxygen(
     doxyfile: Path,
@@ -1153,7 +1202,7 @@ def run_doxygen(
 
     @brief Run doxygen and return path to generated sqlite3 database.
     @raises DoxygenUnavailableError When the doxygen binary is not on PATH.
-    @version 12
+    @version 13
     """
     if shutil.which("doxygen") is None:
         raise DoxygenUnavailableError(
@@ -1272,6 +1321,12 @@ def run_doxygen(
     if rc != 0:
         logger.error("Doxygen exited with code %d", rc)
         sys.exit(1)
+
+    ## AFTER THE RUN, NOT BEFORE. Removing these first would delete output the run is about to
+    ## regenerate if a forced flag ever changes back, and would do it before knowing the run
+    ## succeeded. Here, what is left is exactly what this configuration produced plus whatever
+    ## an older configuration abandoned.
+    _prune_abandoned_output(effective_output_dir(doxyfile, work_dir, output_dir))
 
     db_path = doxygen_db_path(doxyfile, work_dir, output_dir)
     if not db_path.exists():
