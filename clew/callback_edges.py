@@ -198,13 +198,25 @@ class _CallbackCollector:
     @version 2
     """
 
-    __slots__ = ("call_sites", "direct_bindings", "registrations", "signatures")
+    __slots__ = (
+        "_known_names",
+        "_known_names_at",
+        "call_sites",
+        "direct_bindings",
+        "registrations",
+        "signatures",
+    )
 
     ## @brief Initialize empty signature, registration, and call-site maps.
-    ## @version 3
+    ## @version 4
     ## @dg_internal
     def __init__(self) -> None:
         self.signatures: dict[int, _FunctionSignature] = {}
+        ## Memoised set of `signatures`' names, with the size it was built at. See
+        ## `known_names`; rebuilt rather than maintained so nothing has to remember to
+        ## invalidate it when a signature is added.
+        self._known_names: frozenset[str] | None = None
+        self._known_names_at: int = -1
         # global_name -> list of (registering_func_rowid, param_index)
         self.registrations: dict[str, list[tuple[int, int]]] = {}
         ## global_name -> candidate function names bound DIRECTLY by
@@ -222,6 +234,35 @@ class _CallbackCollector:
         # callee_name -> list of (caller_rowid, ordered arg identifier
         # texts, None where an argument isn't a plain identifier)
         self.call_sites: dict[str, list[tuple[int, list[str | None]]]] = {}
+
+    ## @brief The set of function names any collected signature uses.
+    ## @return Frozen set of signature names.
+    ## @version 1
+    ## @dg_internal
+    def known_names(self) -> frozenset[str]:
+        """MEMOISED BECAUSE THE SCAN IT REPLACES WAS THE BUILD'S LARGEST SINGLE COST. See
+        `_is_known_function`: the linear form evaluated 180 million comparisons on a
+        1,549-file target and grows with the square of the corpus.
+
+        REBUILT ON A SIZE CHANGE RATHER THAN INVALIDATED BY WRITERS. Every signature is added
+        during collection and read during resolution, so a cache built once would be correct —
+        but that is a phase-ordering assumption, and this project's most repeated defect is an
+        assumption that holds until someone adds a caller. Comparing the recorded size costs one
+        integer compare per lookup and removes the need to be right about ordering.
+
+        HONEST LIMIT: a mutation that REPLACES a signature without changing the dict's size
+        would not be noticed. Signatures are keyed by rowid and only ever added, so that shape
+        does not occur today; if a writer ever starts replacing them, this needs a real
+        invalidation rather than a size check.
+
+        @brief Names of every collected signature.
+        @return The name set.
+        @version 1
+        """
+        if self._known_names is None or self._known_names_at != len(self.signatures):
+            self._known_names = frozenset(sig.name for sig in self.signatures.values())
+            self._known_names_at = len(self.signatures)
+        return self._known_names
 
 
 ## @brief Find the innermost function_declarator inside a possibly-wrapped declarator.
@@ -1060,17 +1101,32 @@ def _resolve_one_call_site(
 
 ## @brief True if `name` is a known indexed function (per collected signatures).
 ## @return True if `name` is non-None and matches a collected function signature, else False.
-## @version 1
+## @version 2
 ## @dg_internal
 def _is_known_function(name: str | None, collector: _CallbackCollector) -> bool:
     """A name is "known" if some collected function signature uses it —
     cheaper than a DB round-trip, and sufficient since only indexed
     functions ever get a signature recorded.
 
+    THIS WAS QUADRATIC IN THE CORPUS AND IT DOMINATED LARGE BUILDS. The predicate was
+    `any(sig.name == name for sig in collector.signatures.values())` — a linear scan of every
+    collected signature, on every lookup. Both sides grow with the repository, so the product
+    grows with its SQUARE.
+
+    MEASURED by profiling a real build of a 1,549-file target: 180,095,420 evaluations of that
+    generator, 13.8 s in it and 32.1 s cumulative through `any` — about 40% of the parent
+    process's CPU, on a build where this stage parsed nothing at all and served every payload
+    from cache. Scaled to a 84,500-file corpus that is ~2,900x the work, which is the real
+    reason a large target's build was measured in tens of minutes. Not scope, not the timeout.
+
+    A set membership test is the same predicate: `any(s.name == name)` and `name in {s.name}`
+    agree on every input by construction, so this is a pure cost change with no behaviour to
+    re-verify beyond the suite already passing.
+
     @brief Check whether a name matches a collected function signature.
-    @version 1
+    @version 2
     """
-    return name is not None and any(sig.name == name for sig in collector.signatures.values())
+    return name is not None and name in collector.known_names()
 
 
 ## @brief Return the calling function's signature, if known.
