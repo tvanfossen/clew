@@ -48,6 +48,7 @@ skip without aborting.
 
 from __future__ import annotations
 
+import bisect
 import sqlite3
 from collections.abc import Iterable
 from pathlib import Path
@@ -267,7 +268,7 @@ def import_macro_hop_edges(db_path: Path) -> int:
 
 
 ## @brief Build name->rowids and bodyfile_id->function-range indexes.
-## @version 2
+## @version 3
 ## @dg_internal
 def _build_function_indexes(
     conn: sqlite3.Connection,
@@ -287,7 +288,7 @@ def _build_function_indexes(
     a cross-file callback-registration chain was misattributed this way).
 
     @brief Build name->rowids and bodyfile_id->function-range indexes.
-    @version 2
+    @version 3
     """
     name_to_rowids: dict[str, list[int]] = {}
     for rowid, name in conn.execute(
@@ -302,7 +303,7 @@ def _build_function_indexes(
         WHERE kind = 'function' AND bodystart > 0
         """,
     ).fetchall():
-        file_funcs.setdefault(bodyfile_id or file_id, []).append(
+        file_funcs.setdefault(bodyfile_id or file_id, _FuncRanges()).append(
             (rowid, name, bodystart, bodyend),
         )
     return name_to_rowids, file_funcs
@@ -335,13 +336,99 @@ SOURCE_FNPTR = CALL_SOURCE_FNPTR
 SOURCE_BINDING = CALL_SOURCE_BINDING
 
 
-## @brief Ast caller at line.
+## @brief One file's function body ranges, with a bisect index when they do not nest.
 ## @version 1
+## @dg_internal
+class _FuncRanges(list):
+    """A `list` SUBCLASS SO EVERY EXISTING CONSUMER IS UNTOUCHED. Nine call sites across four
+    modules take this value and most only iterate it; making the acceleration a separate
+    structure would mean changing all of them and their signatures to gain the same answer.
+
+    THE DISJOINT TEST IS WHAT MAKES THE FAST PATH SAFE. When no two body ranges overlap, exactly
+    one can contain a given line, so bisect and a scan cannot disagree — the result is identical
+    by construction rather than by testing. Nesting is the only case where "the enclosing
+    function" is ambiguous, and there the scan is kept.
+
+    In C and C++ most files are entirely disjoint: bodies sit side by side. Lambdas, nested
+    classes and in-class method definitions are what produce nesting, so the fallback is the
+    exception rather than the rule.
+
+    @brief A file's function ranges with an optional bisect index.
+    @version 1
+    """
+
+    __slots__ = ("_starts", "_index")
+
+    ## @brief Build the bisect index, or record that this file must use the scan.
+    ## @return None.
+    ## @version 1
+    ## @dg_internal
+    def _prepare(self) -> None:
+        """Sorted by body start, then checked for overlap in one pass: ranges are disjoint when
+        each start is strictly after the previous end.
+
+        @brief Prepare the lookup index.
+        @version 1
+        """
+        ordered = sorted(self, key=lambda row: (row[2], row[3]))
+        disjoint = all(ordered[i][2] > ordered[i - 1][3] for i in range(1, len(ordered)))
+        self._index = ordered if disjoint else None
+        self._starts = [row[2] for row in ordered] if disjoint else []
+
+    ## @brief The rowid of the function whose body contains `line`.
+    ## @param line Source line to locate.
+    ## @return The enclosing function's rowid, or None.
+    ## @version 1
+    ## @dg_internal
+    def caller_at(self, line: int) -> int | None:
+        """@brief Locate the enclosing function.
+        @return Its rowid, or None.
+        @version 1
+        """
+        if getattr(self, "_index", ...) is ...:
+            self._prepare()
+        if self._index is None:
+            ## Nested bodies: preserve the existing answer exactly.
+            for rid, _name, bs, be in self:
+                if bs <= line <= be:
+                    return rid
+            return None
+        at = bisect.bisect_right(self._starts, line) - 1
+        if at < 0:
+            return None
+        rid, _name, bs, be = self._index[at]
+        return rid if bs <= line <= be else None
+
+
+## @brief Ast caller at line.
+## @version 2
 ## @dg_internal
 def _ast_caller_at_line(
     funcs_in_file: list[tuple[int, str, int, int]],
     call_line: int,
 ) -> int | None:
+    """WHICH FUNCTION'S BODY CONTAINS THIS LINE. Linear in the file's function count and called
+    once per call site, so its cost is O(functions x call sites) per file — 466,595 calls on a
+    1,549-file target, and the shape that grows worst on the corpora that already build slowly.
+
+    THE FAST PATH IS ONLY TAKEN WHEN IT IS PROVABLY IDENTICAL. `_FuncRanges.caller_at` uses a
+    bisect when a file's body ranges are DISJOINT, where the containing range is unique and any
+    correct method must return it. When ranges nest — a lambda inside a function, a method inside
+    a class body — it falls back to this scan, because then "the enclosing function" has more
+    than one answer and the existing one must be preserved.
+
+    THAT EXISTING ANSWER IS AN ACCIDENT, WHICH IS WHY IT IS NOT REDEFINED HERE.
+    `_build_function_indexes` issues its SELECT with no ORDER BY, so "first in list order" is
+    whatever order SQLite happened to return — not a chosen rule. Picking a better one
+    (innermost, say) is defensible and is a BEHAVIOUR change: it would move call-edge
+    attribution and needs a build-version bump, not a performance patch.
+
+    @brief The rowid of the function whose body contains a line.
+    @return The enclosing function's rowid, or None.
+    @version 2
+    """
+    if isinstance(funcs_in_file, _FuncRanges):
+        return funcs_in_file.caller_at(call_line)
     for rid, _name, bs, be in funcs_in_file:
         if bs <= call_line <= be:
             return rid
