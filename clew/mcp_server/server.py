@@ -144,7 +144,6 @@ from .state import (
     root_uri_to_path,
     roots_request_supported,
     startup_target,
-    registry_key,
     target_for,
 )
 from .tools_query import TIER1_TOOLS, QueryTools
@@ -314,6 +313,7 @@ def unknown_target_error(target: str, known: list[Target]) -> str:
 _LISTING_FIELDS = (
     "repo_path",
     "db_path",
+    "sub_index",
     "exists",
     "build_version",
     "expected_build_version",
@@ -789,10 +789,11 @@ class DocsDbServer:
 
     ## @brief Resolve a caller-supplied target string to a known repository.
     ## @param target Repo root path, or a slug from `list_targets`.
+    ## @param sub_index Name of the part to read, or None for the whole repository.
     ## @return The Target it names.
-    ## @version 2
+    ## @version 3
     ## @req REQ-DDB-MCP-001
-    def resolve_target(self, target: str) -> Target:
+    def resolve_target(self, target: str, sub_index: str | None = None) -> Target:
         """THREE SPELLINGS OF ONE REPOSITORY, resolved to one record. The registry is
         consulted first by exact repo path and by slug, because both are strings this
         server itself handed the caller — `list_targets` reports the first and `status`
@@ -800,42 +801,57 @@ class DocsDbServer:
         string is treated as a path and normalised the way `target_for` normalises every
         path, which makes `~/proj` and `/home/me/proj` the same target.
 
-        A directory that is not registered still resolves, and that is deliberate: the
-        slug is derived from the path, so an index built by the CLI is found by the same
-        allocation rule that built it. It does not get REGISTERED here — that is a
-        build-time act, and a query has no business writing to the registry.
+        `sub_index` IS ITS OWN PARAMETER, deliberately, not a suffix folded into `target`. A
+        caller composing `f"{target}#{name}"` has to know the separator exists; a caller passed
+        `sub_index` as a named argument has a schema entry that says what it is, and
+        `list_targets` reports the legal values without anyone needing to construct a string.
 
-        A registered target whose directory has since moved keeps resolving, because the
-        registry match is tried first. Its index is still readable and still worth
-        querying.
+        A DIRECTORY THAT IS NOT REGISTERED still resolves when `sub_index` is None, and that is
+        deliberate: the slug is derived from the path, so an index built by the CLI is found by
+        the same allocation rule that built it. It does not get REGISTERED here — that is a
+        build-time act, and a query has no business writing to the registry. A `sub_index` on an
+        unregistered path has nothing to derive against and is refused by name.
 
-        @brief Resolve a target string to its Target record.
+        A REGISTERED TARGET WHOSE DIRECTORY HAS SINCE MOVED keeps resolving, because the registry
+        match is tried first. Its index is still readable and still worth querying.
+
+        @brief Resolve a target string, plus an optional sub-index name, to its Target record.
         @return The resolved Target.
-        @version 2
+        @version 3
         """
         known = self.registry.targets()
-        ## SLUG AND COMPOSITE KEY FIRST, because both are unique and both are strings this server
-        ## handed the caller. A sub-index is addressed as `<repo>#<name>` or by its slug.
+        ## THE SLUG FIRST, because it is unique and it is a string this server handed the
+        ## caller — `list_targets`/`status` report it, and a caller who echoes it back must be
+        ## understood without also stating `sub_index`.
         for candidate in known:
-            if target in (candidate.slug, registry_key(candidate.repo_path, candidate.name)):
+            if target == candidate.slug:
                 return candidate
+        siblings = [c for c in known if c.repo_path == target]
+        if sub_index is not None:
+            for candidate in siblings:
+                if candidate.name == sub_index:
+                    return candidate
+            names = sorted(c.name for c in siblings if c.name is not None)
+            raise RuntimeError(
+                f"{target!r} has no sub_index named {sub_index!r}. "
+                + (f"Available: {', '.join(names)}" if names else "It has no sub-indexes.")
+            )
         ## A BARE REPOSITORY PATH MAY NOW MATCH SEVERAL RECORDS, and choosing among them
         ## arbitrarily is the one failure this module's own docstring calls the most expensive
         ## defect on record: a reply that read one index and stamped another's identity is
         ## indistinguishable from a correct answer.
         ##
-        ## So a bare path means the UNNAMED index — the whole repository — and nothing else. When
-        ## a root has only sub-indexes, the call is REFUSED with their names rather than served
-        ## from whichever happened to sort first.
-        siblings = [c for c in known if c.repo_path == target]
+        ## So a bare path with no `sub_index` means the UNNAMED index — the whole repository —
+        ## and nothing else. When a root has only sub-indexes, the call is REFUSED with their
+        ## names rather than served from whichever happened to sort first.
         whole = [c for c in siblings if c.name is None]
         if whole:
             return whole[0]
         if siblings:
-            names = ", ".join(sorted(f"{target}#{c.name}" for c in siblings))
+            names = ", ".join(sorted(c.name for c in siblings if c.name is not None))
             raise RuntimeError(
                 f"{target} is indexed as {len(siblings)} sub-index(es) and has no whole-repository "
-                f"index, so this call cannot say which one to read. Name one: {names}"
+                f"index, so this call cannot say which one to read. Pass sub_index=<name>: {names}"
             )
         path = Path(target).expanduser()
         if path.is_dir():
@@ -844,10 +860,11 @@ class DocsDbServer:
 
     ## @brief Resolve a routed target into the database, tree and staleness to answer with.
     ## @param target Repo root path, or a slug from `list_targets`.
+    ## @param sub_index Name of the part to read, or None for the whole repository.
     ## @return Everything one query needs about that repository.
-    ## @version 2
+    ## @version 3
     ## @req REQ-DDB-MCP-001
-    def answering(self, target: str) -> Answering:
+    def answering(self, target: str, sub_index: str | None = None) -> Answering:
         """The query-side half of resolution, and the reason it is separate from
         `resolve_target`: a query needs a BUILT index and a build does not. Refusing an
         unbuilt target here — by name, with the exact call that fixes it — is what stops
@@ -860,9 +877,9 @@ class DocsDbServer:
 
         @brief Resolve a routed target for querying.
         @return The database, working tree and staleness for it.
-        @version 2
+        @version 3
         """
-        resolved = self.resolve_target(target)
+        resolved = self.resolve_target(target, sub_index)
         db = Path(resolved.db_path)
         if not db.is_file():
             raise RuntimeError(

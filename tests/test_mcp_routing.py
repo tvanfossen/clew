@@ -600,15 +600,17 @@ async def test_a_stalled_refresh_does_not_hang_a_later_query(
 ## @return None.
 ## @version 1
 def test_a_sub_index_resolves_by_name(tmp_path: Path) -> None:
-    """Both spellings this server hands a caller must come back: the composite `<repo>#<name>`
-    and the slug reported by `status`. A caller who echoes either one must be understood, which
-    is the rule `resolve_target` already followed for whole-repo targets.
+    """TWO SPELLINGS, NOT THREE. `sub_index` is its own parameter rather than a suffix folded
+    into `target` — a composite string a caller has to construct has no schema of its own for a
+    model to read, while a second named parameter does, and `index(action='targets')` reports the
+    legal values without anyone building a string. So a sub-index resolves by (`target`,
+    `sub_index`) together, or by its bare slug alone.
 
-    A BARE ROOT MEANS THE WHOLE REPOSITORY when one is indexed — not "whichever sub-index sorted
-    first". That distinction is the point of the next test.
+    A BARE ROOT WITH NO `sub_index` MEANS THE WHOLE REPOSITORY when one is indexed — not
+    "whichever sub-index sorted first". That distinction is the point of the next test.
 
-    @brief Sub-indexes resolve by composite key and by slug.
-    @version 1
+    @brief Sub-indexes resolve by (target, sub_index) and by slug.
+    @version 2
     """
     reg = st.TargetRegistry(tmp_path / "state")
     _mcp, state = build_server(reg)
@@ -618,7 +620,7 @@ def test_a_sub_index_resolves_by_name(tmp_path: Path) -> None:
     whole = reg.register(repo)
     vendor = reg.register(repo, name="llama-cpp")
 
-    assert state.resolve_target(f"{repo.resolve()}#llama-cpp").slug == vendor.slug
+    assert state.resolve_target(str(repo.resolve()), "llama-cpp").slug == vendor.slug
     assert state.resolve_target(vendor.slug).slug == vendor.slug
     assert state.resolve_target(str(repo.resolve())).slug == whole.slug, (
         "a bare repository path must resolve to the whole-repository index, not a sub-index"
@@ -655,3 +657,66 @@ def test_an_ambiguous_bare_root_is_refused(tmp_path: Path) -> None:
     message = str(excinfo.value)
     ## The names are the actionable half; without them the caller knows only that it failed.
     assert "first-party" in message and "llama-cpp" in message, message
+
+
+## @brief dossier() and search() reach the named sub-index's own database.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_dossier_and_search_route_to_the_named_sub_index(tmp_path: Path) -> None:
+    """END TO END THROUGH THE TOOL METHODS THEMSELVES, not through `resolve_target` alone —
+    `sub_index` was threaded through `db()`, `_route()`, `_answered()` and every `_search_*`
+    handler individually, and a routing-layer test cannot see a spot where one of those forwards
+    stayed `None` on its way to `self.db(...)`. Each sub-index gets its own marker table, so the
+    only way `dossier`/`search` can see the right marker is if `sub_index` reached the file.
+
+    ALSO PINS THE REPLY'S OWN `sub_index` FIELD. `_target_name` reports the shared repo root for
+    every sub-index of one repository, so a reply that omitted `sub_index` would make a
+    first-party answer and a vendored answer read as indistinguishable — the wrong-index failure
+    this module's docstring names as the project's most expensive.
+
+    @brief dossier/search reach the sub-index's own file and label their reply with its name.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "split"
+    repo.mkdir()
+
+    first = reg.register(repo, name="first-party")
+    vendor = reg.register(repo, name="llama-cpp")
+    for target, marker in ((first, "FIRST_PARTY_MARK"), (vendor, "VENDOR_MARK")):
+        Path(target.db_path).parent.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(target.db_path)
+        conn.execute(f"CREATE TABLE {marker} (x INTEGER)")
+        conn.commit()
+        conn.close()
+        write_build_signature(Path(target.db_path))
+
+    def _table_exists(db_path: str, name: str) -> bool:
+        conn = sqlite3.connect(db_path)
+        try:
+            row = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
+            ).fetchone()
+        finally:
+            conn.close()
+        return row is not None
+
+    ## db() is the seam every tool method funnels through; proving it resolves to the right
+    ## FILE is the load-bearing half of this test.
+    db_first = state.tools.db(str(repo.resolve()), "first-party")
+    db_vendor = state.tools.db(str(repo.resolve()), "llama-cpp")
+    assert _table_exists(str(db_first), "FIRST_PARTY_MARK")
+    assert not _table_exists(str(db_first), "VENDOR_MARK")
+    assert _table_exists(str(db_vendor), "VENDOR_MARK")
+    assert not _table_exists(str(db_vendor), "FIRST_PARTY_MARK")
+
+    ## And a reply is labelled with the sub-index that actually answered it, not merely the
+    ## shared repo root both would report identically.
+    reply = state.tools.search(
+        "nonexistent-symbol", target=str(repo.resolve()), sub_index="llama-cpp"
+    )
+    assert reply.get("sub_index") == "llama-cpp", (
+        f"reply did not name which sub-index answered: {reply.get('sub_index')!r}"
+    )

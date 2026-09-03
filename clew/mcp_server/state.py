@@ -354,20 +354,15 @@ def target_for(repo_path: Path | str, home: Path | None = None, name: str | None
 ## @return The key to store and match on.
 ## @version 1
 ## @utility
-def registry_key(repo_path: str, name: str | None = None) -> str:
-    """A COMPOSITE KEY THAT STAYS A STRING, so `resolve_target`'s existing exact-match loop finds
-    a sub-index with no change to its matching logic — it already compares the caller's string
-    against stored keys and slugs.
-
-    THE UNNAMED KEY IS THE BARE PATH, unchanged, because every registry already on disk uses it
-    and `targets()` reconstructs a Target from the key when a record predates the `repo_path`
-    field. Prefixing or reformatting it would orphan those entries.
-
-    @brief Compose the registry key.
-    @return The key string.
-    @version 1
-    """
-    return repo_path if name is None else f"{repo_path}#{name}"
+## THE REGISTRY IS KEYED BY SLUG, and there is no `registry_key()` function because none is
+## needed: the slug a `Target` already carries IS the key. This used to compose
+## `<repo_path>#<name>` — a delimiter invented for a general-purpose string key that no caller
+## ever had a reason to see, since a sub-index is addressed through its own `sub_index`
+## parameter rather than by reconstructing this string. `target_for` already derives a slug
+## unique per `(repo_path, name)`, so reusing it as the key adds nothing and removes a format.
+##
+## LEGACY ENTRIES STAY KEYED BY BARE `repo_path`, on disk, until the next `register` call
+## rewrites them — `targets()` reads either shape.
 
 
 ## Characters a sub-index name may contribute to a directory name. An ALLOWLIST rather than a
@@ -568,7 +563,7 @@ class TargetRegistry:
     ## @brief Register (or re-register) a repo and allocate its db path.
     ## @param repo_path Repo root to register.
     ## @return The Target recorded for that repo.
-    ## @version 1
+    ## @version 2
     ## @req REQ-DDB-MCP-001
     def register(self, repo_path: Path | str, name: str | None = None) -> Target:
         """Allocate the Target for `repo_path`, persist it, and ensure its
@@ -585,7 +580,7 @@ class TargetRegistry:
 
         @brief Register a target repo, or one of its sub-indexes.
         @return The registered Target.
-        @version 2
+        @version 3
         """
         target = target_for(repo_path, self.home, name)
         data = self.load()
@@ -596,7 +591,7 @@ class TargetRegistry:
         }
         if name is not None:
             record["name"] = name
-        data[registry_key(target.repo_path, name)] = record
+        data[target.slug] = record
         self.save(data)
         Path(target.db_path).parent.mkdir(parents=True, exist_ok=True)
         return target
@@ -626,24 +621,34 @@ class TargetRegistry:
         ]
 
     ## @brief Forget a target and delete its built database directory.
-    ## @param repo_path Repo root to drop.
-    ## @return True when the repo was registered (and has now been removed).
-    ## @version 1
+    ## @param repo_path Repo root to drop every sub-index of, or an exact slug.
+    ## @return True when at least one entry was registered (and has now been removed).
+    ## @version 2
     ## @req REQ-DDB-MCP-001
     def drop(self, repo_path: str) -> bool:
-        """Remove the registry entry and the db directory it owns.
+        """DROPS EVERY SUB-INDEX OF A REPOSITORY, not just the one keyed under the bare path.
+        Since the registry is keyed by slug, one repository can own several entries, and a caller
+        passing its root almost always means "forget this repo", not "forget whichever entry
+        happens to be keyed under this exact string". The argument is still accepted as an exact
+        slug too, for a caller that named one sub-index specifically.
 
-        @brief Drop a target and its database.
-        @return Whether an entry was removed.
-        @version 1
+        @brief Drop a target and its database — every sub-index if a repo root was given.
+        @return Whether anything was removed.
+        @version 2
         """
         data = self.load()
-        record = data.pop(repo_path, None)
-        if record is None:
+        matches = [
+            key
+            for key, rec in data.items()
+            if key == repo_path or rec.get("repo_path") == repo_path
+        ]
+        if not matches:
             return False
-        db_dir = Path(record.get("db_path", "")).parent
-        if db_dir.is_dir() and db_dir.is_relative_to(self.home):
-            shutil.rmtree(db_dir, ignore_errors=True)
+        for key in matches:
+            record = data.pop(key)
+            db_dir = Path(record.get("db_path", "")).parent
+            if db_dir.is_dir() and db_dir.is_relative_to(self.home):
+                shutil.rmtree(db_dir, ignore_errors=True)
         self.save(data)
         return True
 
@@ -888,7 +893,7 @@ def _data_model_meta(db: Path) -> dict[str, str]:
 ## @brief Freshness/identity report for one target's database.
 ## @param target Target to inspect.
 ## @return Dict with existence, stamped/expected build version, source drift, staleness, age, scope, coverage, refresh cost, layered-option tiers, the options an operator stated, build diagnostics, the declared data model, code identity and interpreted notices.
-## @version 10
+## @version 11
 ## @req REQ-DDB-MCP-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-006
@@ -926,7 +931,7 @@ def db_status(target: Target) -> dict[str, object]:
 
     @brief Report a target database's freshness, coverage, refresh cost, option tiers, stated options, build diagnostics, declared data model and code identity.
     @return Status dict (exists / build_version / drift / stale / age_days / coverage / refresh / options / stated_options / diagnostics / data_model / code / staleness).
-    @version 9
+    @version 10
     """
     db = Path(target.db_path)
     exists = db.is_file()
@@ -941,6 +946,10 @@ def db_status(target: Target) -> dict[str, object]:
     status: dict[str, object] = {
         "repo_path": target.repo_path,
         "db_path": target.db_path,
+        ## ABSENT FOR A WHOLE-REPO TARGET, present and named for a sub-index — so a caller can
+        ## tell the two apart without parsing anything, and `list_targets` can offer every
+        ## sub_index name a repository has without a second call.
+        **({"sub_index": target.name} if target.name is not None else {}),
         "exists": exists,
         "build_version": stamped,
         "expected_build_version": CLEW_BUILD_VERSION,
