@@ -15,6 +15,8 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
+import pytest
+
 from clew import precommit as pc
 from clew import scope as sc
 
@@ -609,3 +611,68 @@ def test_a_repo_declaring_nothing_still_reports_absence(tmp_path: Path) -> None:
     assert "no index_scope is declared" in derived.reason, (
         f"a repo that declares nothing must still report absence; got: {derived.reason}"
     )
+
+
+## @brief declared_scope_rejection reports the reason without derive_scope's fallback.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_declared_scope_rejection_reports_without_falling_back(tmp_path: Path) -> None:
+    """THE SEPARATE, BUILD-TIME CHECK a caller who can still refuse uses — `derive_scope`
+    itself keeps absorbing a rejected declaration into the whole-repo tier for every other
+    caller (the test right above this one asserts exactly that, unchanged). This one is
+    for the NEW build-time guard, `_apply_scope`, to consult before committing to a scope.
+
+    @brief An excludes-only declaration is reported as rejected by name.
+    @return None.
+    @version 1
+    """
+    root = tmp_path / "repo"
+    (root / "src").mkdir(parents=True)
+    (root / ".clew.yaml").write_text("index_scope:\n  excludes:\n    - src\n", encoding="utf-8")
+
+    rejection = sc.declared_scope_rejection(root)
+
+    assert rejection is not None
+    assert "roots" in rejection and "REPLACES" in rejection
+
+    ## AND THE CONTROL: a repo with no declaration at all, or a usable one, is None —
+    ## not "rejected", which would make every ordinary repo refuse to build.
+    plain = tmp_path / "plain"
+    (plain / "src").mkdir(parents=True)
+    assert sc.declared_scope_rejection(plain) is None
+
+    usable = tmp_path / "usable"
+    (usable / "src").mkdir(parents=True)
+    (usable / ".clew.yaml").write_text("index_scope:\n  roots: [src]\n", encoding="utf-8")
+    assert sc.declared_scope_rejection(usable) is None
+
+
+## @brief A rejected declaration refuses the build rather than silently widening it.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_cli_apply_scope_refuses_a_rejected_declaration(tmp_path: Path) -> None:
+    """FIELD-REPORTED: an excludes-only `.clew.yaml` — written by an operator trying to
+    keep a 1.2GB vendored tree out of the index — was silently absorbed into the
+    whole-repo tier (a buildlog WARNING, then the widest possible scope anyway), and cost
+    a real build a 900s doxygen timeout under exactly the tree the declaration was trying
+    to exclude. `_apply_scope` must now refuse instead, before doxygen ever runs.
+
+    @brief An excludes-only declaration makes `_apply_scope` exit rather than fold.
+    @return None.
+    @version 1
+    """
+    from clew.cli import _apply_scope
+
+    root = tmp_path / "repo"
+    _write(root / "src" / "a.c")
+    (root / ".clew.yaml").write_text("index_scope:\n  excludes:\n    - src\n", encoding="utf-8")
+    args = _args(
+        tmp_path / "clew.db",
+        doxyfile=str(root / "Doxyfile"),
+        scope=sc.SCOPE_FROM_GUARD,
+    )
+
+    with pytest.raises(SystemExit):
+        _apply_scope(args, root)

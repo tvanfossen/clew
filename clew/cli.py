@@ -166,6 +166,7 @@ from .scope import (
     SCOPE_FROM_GUARD,
     SOURCE_DOXYFILE,
     DerivedScope,
+    declared_scope_rejection,
     depth_limited_paths,
     derive_scope,
     derive_scope_logged,
@@ -739,7 +740,7 @@ def _fold_scope_into_args(args: argparse.Namespace, scope: DerivedScope) -> None
 ## @brief Apply `--scope from-guard` by folding the resolved roots into the args.
 ## @param args Parsed CLI arguments (mutated in place).
 ## @param repo_root Repo root whose declaration is read.
-## @version 7
+## @version 8
 ## @req REQ-DDB-CLI-001
 def _apply_scope(args: argparse.Namespace, repo_root: Path) -> None:
     """`--scope from-guard` RESOLVES the indexed file set from the target's own
@@ -760,7 +761,7 @@ def _apply_scope(args: argparse.Namespace, repo_root: Path) -> None:
     would only be a way for the two to disagree.
 
     @brief Resolve the build's file scope from the requested source.
-    @version 7
+    @version 8
     """
     args.replace_input = False
     if args.scope != SCOPE_FROM_GUARD:
@@ -789,6 +790,28 @@ def _apply_scope(args: argparse.Namespace, repo_root: Path) -> None:
     ## `_declared_index_scope`, which builds it through the same construction a written one
     ## takes; only the reported `reason` differs, and it must, or an owner reading
     ## "declared in <file>" would go and edit a file that says nothing.
+    ##
+    ## A REJECTED DECLARATION IS REFUSED HERE, NOT ABSORBED. `derive_scope` itself still
+    ## falls back to the whole-repo tier for every OTHER caller (every test exercising it
+    ## directly, every internal pipeline stage) — that fallback is correct for a function
+    ## that must always hand back a usable scope. But at the one point a build can still
+    ## say no, silently absorbing the rejection is the WIDEST possible scope standing in for
+    ## the NARROWEST one an operator asked for. Measured cost on a real repo: a WARNING line
+    ## nobody was reading, and a 900s doxygen timeout under a vendored tree the rejected
+    ## declaration was trying to keep out.
+    rejection = declared_scope_rejection(
+        repo_root,
+        getattr(args, "guard_config", None),
+        getattr(args, INDEX_SCOPE_SECTION, None),
+    )
+    if rejection is not None:
+        logger.error(
+            "%s — refusing rather than silently falling back to the whole repository, "
+            "which is exactly the scope this declaration was narrowing away from. Fix the "
+            "declaration (`roots:` is required; `excludes:` alone does nothing) or drop it.",
+            rejection,
+        )
+        sys.exit(1)
     _fold_scope_into_args(
         args,
         derive_scope_logged(

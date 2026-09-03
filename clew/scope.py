@@ -322,6 +322,37 @@ def _declaration_advice() -> str:
     )
 
 
+## @brief Whether the repo's own index_scope would be REJECTED, without the fallback.
+## @param repo_root Repo root to check.
+## @param guard_config Explicit guard-config path overriding discovery, or None.
+## @param stated A tier-1 caller's own stated index_scope, or None to read the declared one.
+## @return The rejection reason, or None when the declaration is usable or absent entirely.
+## @version 1
+## @req REQ-DDB-CONFIG-001
+def declared_scope_rejection(
+    repo_root: Path, guard_config: Path | str | None = None, stated: dict | None = None
+) -> str | None:
+    """`derive_scope` ABSORBS a rejected declaration into the whole-repo tier — a
+    deliberate choice for every INTERNAL pipeline caller, which must always get back a
+    usable scope rather than an exception. That absorption is exactly what let an
+    excludes-only `.clew.yaml` cost B12_single_rgb a 900s doxygen timeout under a
+    vendored tree its own declaration was trying to keep out: the WARNING logged the
+    contradiction, and the build proceeded into the widest possible scope anyway.
+
+    This is the SEPARATE, BUILD-TIME check a caller who can still refuse (the MCP refresh
+    path, the CLI) runs before committing to a scope — the same relationship
+    `stale_code_refusal` has to the build it guards: a guard function, not a change to
+    what the guarded thing itself does. `derive_scope`'s own contract is untouched, so
+    every existing caller of THAT function keeps its current behaviour exactly.
+
+    @brief Report whether the declared or stated index_scope would be rejected.
+    @return The rejection reason, or None.
+    @version 1
+    """
+    declared = _declared_index_scope(Path(repo_root).expanduser().resolve(), guard_config, stated)
+    return str(declared) if isinstance(declared, _Rejected) else None
+
+
 ## @brief Resolve the index scope: a declared index_scope, else the whole repository.
 ## @param repo_root Repo root to resolve scope for.
 ## @param guard_config Explicit guard-config path overriding discovery, or None.
