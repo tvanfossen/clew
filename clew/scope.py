@@ -75,6 +75,90 @@ _MAX_DEPTH = 16
 _DEPTH_LIMITED: list[Path] = []
 
 
+## The sub-index holding everything the repository itself owns — every file not inside a nested
+## git tree. Named rather than left implicit because it is addressed like any other sub-index
+## (`<repo>#first-party`) and appears in slugs, logs and replies.
+FIRST_PARTY_INDEX = "first-party"
+
+
+## @brief One index of a repository: a name, its roots, and what it leaves out.
+## @version 1
+@dataclass(frozen=True)
+class SubIndex:
+    """A repository split into several indexes, so the parts that never change are built once.
+
+    THE SPLIT IS ALONG GIT TREES, WHICH IS WHY IT PAYS. A vendored dependency is pinned by its
+    gitlink, so its index is immutable — built once and never rebuilt — while the recurring loop
+    touches only first-party code. Measured on a target vendoring llama.cpp: 592 files and 13.9 s
+    for first-party against 3,521 files and 69.0 s for the whole repository, losing 13 of 4,968
+    first-party-internal call edges (0.26%).
+
+    A git tree is also a natural SEAM, which the rejected chunking attempt was not: 82.5% of that
+    target's call graph never leaves the vendored tree, and only 2.6% crosses the boundary at all,
+    against the 18% of edges arbitrary directory chunks destroyed.
+
+    @brief One named index of a repository.
+    @version 1
+    """
+
+    name: str
+    roots: tuple[Path, ...]
+    excludes: tuple[Path, ...]
+
+
+## @brief Name a nested tree by its repo-relative path, safe as a directory component.
+## @param nested Absolute path of the nested tree.
+## @param repo_root Absolute repository root.
+## @return A unique, stable, path-safe name.
+## @version 1
+## @dg_internal
+def _sub_index_name(nested: Path, repo_root: Path) -> str:
+    """DERIVED FROM THE RELATIVE PATH, NOT THE BASENAME, because two vendored trees can share a
+    basename — `a/dep` and `b/dep` — and colliding names would land both on one database, which
+    is the wrong-index failure this project has recorded as its most expensive.
+
+    Stability matters as much as uniqueness: nothing persists a mapping from name to database, so
+    this derivation IS the mapping, exactly as the path digest is for a whole-repo slug.
+
+    @brief Name one nested tree.
+    @return The sub-index name.
+    @version 1
+    """
+    relative = nested.relative_to(repo_root).as_posix()
+    return "-".join(part for part in relative.split("/") if part)
+
+
+## @brief Split a repository into first-party and per-nested-tree indexes.
+## @param repo_root The repository root.
+## @return The sub-indexes, or an empty list when the repo holds no nested trees.
+## @version 1
+## @req REQ-DDB-INDEX-002
+def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
+    """EMPTY MEANS "DO NOT SPLIT", and that is the compatibility contract. A repository with
+    nothing vendored must keep building to one index under the slug it already has — splitting it
+    would allocate a new slug and strand the index on disk, whose symptom is "no database has been
+    built" against a perfectly good one.
+
+    REUSES `nested_repo_roots`, which the pipeline already runs on every build and which handles
+    BOTH on-disk shapes of a nested repository: a clone's `.git` directory and a submodule's
+    `gitdir:` pointer FILE. That distinction is not academic — a detector seeing only directories
+    finds nested clones and silently skips every submodule, which is the case this split exists
+    for.
+
+    @brief Derive the sub-index split from nested git trees.
+    @return The split, or [] to build the repository whole.
+    @version 1
+    """
+    root = Path(repo_root).expanduser().resolve()
+    nested = sorted({p.resolve() for p in nested_repo_roots(root)})
+    if not nested:
+        return []
+    first = SubIndex(name=FIRST_PARTY_INDEX, roots=(root,), excludes=tuple(nested))
+    return [first] + [
+        SubIndex(name=_sub_index_name(tree, root), roots=(tree,), excludes=()) for tree in nested
+    ]
+
+
 ## @brief Directories the last derivation refused to descend past.
 ## @return Absolute paths, in walk order.
 ## @version 1
