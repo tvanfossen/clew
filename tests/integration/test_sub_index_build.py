@@ -165,3 +165,115 @@ def test_an_unvendored_repo_is_not_split(tmp_path: Path) -> None:
 
     with captured_output():
         assert build_sub_indexes(repo, home=tmp_path / "state") == []
+
+
+## @brief A repo with a vendored submodule that itself vendors another one.
+## @param root Directory to build the repository in.
+## @return The repository root.
+## @version 1
+def _deeply_nested_repo(root: Path) -> Path:
+    """Two levels of vendoring: `vendor` is the repo's own submodule, and `vendor/subdep` is
+    a submodule of `vendor` — the shape a real vendored dependency graph actually has (a
+    library that itself vendors several more).
+
+    @brief Build a repository with a submodule that itself has a submodule.
+    @return The repository root.
+    @version 1
+    """
+    (root / "app").mkdir(parents=True)
+    (root / "app" / "main.c").write_text("int app_entry(void) { return 0; }\n", encoding="utf-8")
+    vendor = root / "deps" / "vendor"
+    vendor.mkdir(parents=True)
+    (vendor / "vendor.c").write_text("int vendor_fn(void) { return 1; }\n", encoding="utf-8")
+    (vendor / ".git").write_text("gitdir: ../../.git/modules/vendor\n", encoding="utf-8")
+    subdep = vendor / "subdep"
+    subdep.mkdir(parents=True)
+    (subdep / "subdep.c").write_text("int subdep_fn(void) { return 2; }\n", encoding="utf-8")
+    (subdep / ".git").write_text("gitdir: ../../../.git/modules/subdep\n", encoding="utf-8")
+    (root / "Doxyfile").write_text("PROJECT_NAME = deep\nINPUT = .\n", encoding="utf-8")
+    return root
+
+
+## @brief A vendored tree's own vendored tree gets its own index, real doxygen included.
+## @version 1
+def test_a_vendored_trees_own_vendored_tree_is_not_swallowed(tmp_path: Path) -> None:
+    """FIELD-REPORTED: `sub_index='deps-vendor'` built OK, but its 23,893 files in scope were
+    almost entirely `subdep`'s own code, none of which belongs to `vendor` itself — a nested
+    tree's own nested tree was indexed as PART of it rather than getting its own identity.
+    `test_sub_index_split.py` already proves `derive_sub_indexes` computes the right split and
+    the right excludes; this proves the BUILD actually applies them — `_sub_index_scope`'s
+    vendored branch used to construct `options.index_scope.roots` and drop `SubIndex.excludes`
+    entirely, so even a correct derivation changed nothing about what got indexed.
+
+    @brief Building the middle sub-index alone excludes its own child's code, real doxygen run.
+    @version 1
+    """
+    repo = _deeply_nested_repo(tmp_path / "repo")
+    with captured_output():
+        built = build_sub_indexes(repo, home=tmp_path / "state")
+
+    by_name = {t.name: t for t in built}
+    assert set(by_name) == {FIRST_PARTY_INDEX, "deps-vendor", "deps-vendor-subdep"}, sorted(by_name)
+
+    def _functions(db: str) -> set[str]:
+        conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+        try:
+            return {r[0] for r in conn.execute("SELECT name FROM memberdef WHERE kind='function'")}
+        finally:
+            conn.close()
+
+    first = _functions(by_name[FIRST_PARTY_INDEX].db_path)
+    vendor = _functions(by_name["deps-vendor"].db_path)
+    subdep = _functions(by_name["deps-vendor-subdep"].db_path)
+
+    assert first == {"app_entry"}, f"first-party must hold only its own code: {first}"
+    assert vendor == {"vendor_fn"}, (
+        f"vendor's own sub-index must hold only ITS code, not subdep's too — the swallowing "
+        f"this fix closes: {vendor}"
+    )
+    assert subdep == {"subdep_fn"}, f"subdep must be indexed as its own tree: {subdep}"
+
+
+## @brief The MCP refresh path also excludes a vendored tree's own nested children.
+## @version 1
+def test_mcp_refresh_of_a_vendored_sub_index_excludes_its_own_children(tmp_path: Path) -> None:
+    """THE ACTUAL PATH A REAL SESSION USES. `build_sub_indexes` (above) and `_sub_index_scope`
+    (server.py, driving `index(action='refresh', sub_index=...)`) are two SEPARATE
+    implementations of the same idea — this project's own history already has one instance of
+    fixing a bug in one and not the other. Real doxygen, through `build_or_refresh` exactly as
+    a client calls it, not the CLI helper.
+
+    @brief index(action='refresh', sub_index='deps-vendor') excludes deps/vendor/subdep too.
+    @version 1
+    """
+    import sys
+
+    import anyio
+
+    from clew.mcp_server.server import build_server
+    from clew.mcp_server.state import TargetRegistry
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from test_mcp_server import _FakeCtx  # noqa: PLC0415 -- reused test helper, deliberately
+
+    repo = _deeply_nested_repo(tmp_path / "repo")
+    reg = TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+
+    async def _run() -> str:
+        with captured_output():
+            result = await state.build_or_refresh(
+                _FakeCtx(), target=str(repo), sub_index="deps-vendor", force=True
+            )
+        assert result.get("ok") is True, result
+        target = state.registry.register(repo, "deps-vendor")
+        conn = sqlite3.connect(f"file:{target.db_path}?mode=ro", uri=True)
+        try:
+            return {r[0] for r in conn.execute("SELECT name FROM memberdef WHERE kind='function'")}
+        finally:
+            conn.close()
+
+    functions = anyio.run(_run)
+    assert functions == {"vendor_fn"}, (
+        f"the MCP refresh path must also exclude a vendored sub-index's own children: {functions}"
+    )

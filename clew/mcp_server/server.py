@@ -555,7 +555,7 @@ _LOCK_WAIT_SECONDS = 120
 ## @param exclude The caller's exclusions, forwarded unchanged for a whole-repo target.
 ## @param options The caller's tier-1 options, forwarded unchanged for a whole-repo target.
 ## @return (exclude, options) to pass to `build_index`.
-## @version 2
+## @version 3
 ## @dg_internal
 def _sub_index_scope(
     target: Target,
@@ -576,7 +576,7 @@ def _sub_index_scope(
 
     @brief Resolve build scope for a sub-index target.
     @return The exclude list and options to build with.
-    @version 2
+    @version 3
     """
     if target.name is None:
         return exclude, options
@@ -594,13 +594,20 @@ def _sub_index_scope(
             repo,
         )
         return exclude, options
+    nested = [str(p.relative_to(repo)) for p in match.excludes]
     if target.name == FIRST_PARTY_INDEX:
-        nested = [str(p.relative_to(repo)) for p in match.excludes]
         return list(exclude or []) + nested, options
+    ## A VENDORED SUB-INDEX EXCLUDES ITS OWN CHILDREN TOO, now that `derive_sub_indexes`
+    ## recurses: `roots=[tree]` bounds INPUT to everything under `tree`, and a nested tree
+    ## one level further down is still inside that boundary — `match.excludes` names exactly
+    ## those children, the same relationship first-party already has to depth 1. Dropping
+    ## this (as this branch did before recursion existed, when a vendored SubIndex's
+    ## `excludes` was always empty) is exactly the swallowing Finding B reported: a nested
+    ## tree's OWN nested trees indexed as part of it instead of getting their own identity.
     root = str(match.roots[0].relative_to(repo))
     merged = dict(options or {})
     merged["index_scope"] = {"roots": [root]}
-    return exclude, merged
+    return list(exclude or []) + nested, merged
 
 
 ## @brief Lifecycle state + tier-0 tool implementations for one server.

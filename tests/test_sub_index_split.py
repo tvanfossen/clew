@@ -172,3 +172,51 @@ def test_ignored_nested_trees_are_not_sub_indexes(tmp_path: Path) -> None:
         "same rule the build uses, or it indexes trees the build would never touch"
     )
     assert vendored.exists()
+
+
+## @brief A nested tree's own nested trees become sub-sub-indexes, not part of it.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_a_nested_trees_own_nested_trees_get_their_own_sub_index(tmp_path: Path) -> None:
+    """FIELD-REPORTED: a vendored dependency that itself vendors several more (a 1.2GB tree
+    carrying boost, opencv, pcl and others as its own submodules) was getting ONE sub-index for
+    the whole thing — `nested_repo_roots` stops descent at the FIRST `.git` it finds, by design,
+    which is exactly right for one level and exactly wrong for splitting: it swallowed the
+    vendored tree's own vendored trees whole instead of giving them their own identity.
+
+    THREE LEVELS: repo -> `deps/vendor` (a submodule) -> `deps/vendor/subdep` (vendor's OWN
+    submodule, nested two deep). Each of the three must be its own sub-index, and each must
+    exclude exactly its own direct child — not every deeper descendant, and not none at all.
+
+    @brief A grandchild nested tree becomes its own sub-index, excluded from its parent's.
+    @version 1
+    """
+    repo = tmp_path / "deep"
+    (repo / "app").mkdir(parents=True)
+    (repo / "app" / "main.c").write_text("int main(void){return 0;}\n", encoding="utf-8")
+    vendor = _nested(repo / "deps" / "vendor", as_pointer=True)
+    subdep = _nested(repo / "deps" / "vendor" / "subdep", as_pointer=True)
+
+    split = derive_sub_indexes(repo)
+    by_name = {s.name: s for s in split}
+
+    assert len(split) == 3, f"expected first-party + vendor + subdep, got {sorted(by_name)}"
+    assert "deps-vendor" in by_name and "deps-vendor-subdep" in by_name, sorted(by_name)
+
+    first = by_name[FIRST_PARTY_INDEX]
+    assert set(first.excludes) == {vendor.resolve()}, (
+        f"first-party must exclude only its DIRECT child (vendor), not the grandchild too: "
+        f"{first.excludes}"
+    )
+
+    vendor_sub = by_name["deps-vendor"]
+    assert vendor_sub.roots == (vendor.resolve(),)
+    assert set(vendor_sub.excludes) == {subdep.resolve()}, (
+        f"vendor's own sub-index must exclude ITS direct child (subdep), which is exactly the "
+        f"swallowing this fix closes: {vendor_sub.excludes}"
+    )
+
+    subdep_sub = by_name["deps-vendor-subdep"]
+    assert subdep_sub.roots == (subdep.resolve(),)
+    assert subdep_sub.excludes == (), "the deepest tree has no children of its own to exclude"

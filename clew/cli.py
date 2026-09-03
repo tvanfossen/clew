@@ -2791,7 +2791,7 @@ def staging_path(output: Path) -> Path:
 ## @param home State root to allocate databases under; defaults to the server's state home.
 ## @param only Build just this sub-index by name, or None for all of them.
 ## @return The Targets built, in derivation order; empty when the repo is not split.
-## @version 1
+## @version 2
 ## @req REQ-DDB-INDEX-002
 def build_sub_indexes(
     repo_root: Path | str, home: Path | None = None, only: str | None = None
@@ -2802,13 +2802,17 @@ def build_sub_indexes(
     that is 13.9 s against 69.0 s — and on one vendoring boost it is the difference between a
     loop that runs and one that does not.
 
-    FIRST-PARTY USES `exclude`, VENDORED USES `index_scope.roots`, and the asymmetry is
-    deliberate. First-party means "the whole repository except these trees", which is exactly
-    what the operator-exclusion route expresses, and is the command measured by hand before any
-    of this was written. A vendored sub-index means "only this tree", which is a scope
-    DECLARATION. Expressing either through the other's route would mean enumerating every
-    first-party directory — and silently missing new ones — or writing an exclusion list that
-    grows with the repository.
+    FIRST-PARTY USES `exclude` ALONE, A VENDORED SUB-INDEX USES `index_scope.roots` PLUS
+    `exclude`, and the difference in ROOT is deliberate. First-party means "the whole
+    repository except these trees", which is exactly what the operator-exclusion route
+    expresses, and is the command measured by hand before any of this was written. A
+    vendored sub-index means "only this tree", which is a scope DECLARATION — but now that
+    `derive_sub_indexes` recurses, "this tree" can itself contain further nested trees
+    (a vendored dependency that vendors several more), and those need excluding from THIS
+    build the same way first-party excludes depth 1. `sub.excludes` already names exactly
+    them, at every level, so both branches thread it through identically now; only the
+    scope-DECLARATION half of a vendored build (`index_scope.roots`) has no first-party
+    equivalent, since first-party's root is always the whole repository.
 
     RETURNS EMPTY WHEN THE REPO HOLDS NO NESTED TREES, so a caller falls back to the ordinary
     whole-repo build without comparing counts, and a repository with nothing vendored keeps the
@@ -2816,7 +2820,7 @@ def build_sub_indexes(
 
     @brief Build each of a repository's sub-indexes.
     @return The Targets built, or [] when the repository is not split.
-    @version 1
+    @version 2
     """
     from .mcp_server.state import TargetRegistry
     from .scope import FIRST_PARTY_INDEX, derive_sub_indexes
@@ -2831,16 +2835,14 @@ def build_sub_indexes(
         if only is not None and sub.name != only:
             continue
         target = registry.register(root, sub.name)
+        own_children = [str(p.relative_to(root)) for p in sub.excludes]
         if sub.name == FIRST_PARTY_INDEX:
-            build_index(
-                output=target.db_path,
-                repo_root=root,
-                exclude=[str(p.relative_to(root)) for p in sub.excludes],
-            )
+            build_index(output=target.db_path, repo_root=root, exclude=own_children)
         else:
             build_index(
                 output=target.db_path,
                 repo_root=root,
+                exclude=own_children,
                 options={"index_scope": {"roots": [str(sub.roots[0].relative_to(root))]}},
             )
         built.append(target)

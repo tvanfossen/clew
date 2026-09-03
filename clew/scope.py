@@ -146,10 +146,75 @@ def _under_any(path: Path, roots: set[Path]) -> bool:
     return path in roots or any(parent in roots for parent in path.parents)
 
 
-## @brief Split a repository into first-party and per-nested-tree indexes.
+## @brief Every nested git tree under one root, at ANY depth.
+## @param under Directory to walk (a repo root, or a previously found nested tree).
+## @param ignored Resolved paths to filter out at every level (gitignored clones, etc.).
+## @return Resolved paths of every nested tree found, at any depth, unsorted.
+## @version 1
+## @dg_internal
+def _nested_trees_recursive(under: Path, ignored: set[Path]) -> list[Path]:
+    """`nested_repo_roots` ITSELF ALREADY STOPS DESCENT at the first `.git` it finds — by
+    design, so a submodule's OWN internals are not walked for the boundary that owns them.
+    That is exactly right for ONE level and exactly wrong for splitting: it is also why a
+    vendored tree's OWN vendored trees (b12-slam's boost/opencv/pcl, libBissellIoT's own
+    curl/mbedtls/paho) were swallowed whole into their parent's sub-index instead of getting
+    their own. Recursing HERE — calling `nested_repo_roots` again from INSIDE each tree it
+    finds — is what gives each of those its own identity, without changing what any single
+    call does.
+
+    `ignored` IS EXTENDED PER LEVEL, not reused unchanged. A tree's own `.gitignore` is
+    invisible to a walk rooted above it (`git ls-files` stops at every boundary, the same
+    reason `whole_repo_scope` asks each nested tree for its own ignores rather than the
+    parent's), so a CMake `_deps`-style throwaway clone nested two levels down needs the
+    SAME filtering a one-level-down one already gets — extending the set per level is what
+    makes that consistent at any depth rather than only the first.
+
+    BOUNDED BY THE FILESYSTEM, NOT BY A COUNTER. Each call's own walk is capped by
+    `_MAX_DEPTH` as always; recursion terminates because real nesting bottoms out at a
+    finite number of actual git-tree boundaries, which a vendored dependency graph never
+    has many of even when it has more than one.
+
+    @brief Recursively find nested git trees at every depth under one root.
+    @return Every nested tree found, unsorted, at any depth.
+    @version 1
+    """
+    direct = sorted(
+        p for p in {q.resolve() for q in nested_repo_roots(under)} if not _under_any(p, ignored)
+    )
+    found = list(direct)
+    for tree in direct:
+        deeper_ignored = ignored | {p.resolve() for p in _gitignored_paths(tree)}
+        found.extend(_nested_trees_recursive(tree, deeper_ignored))
+    return found
+
+
+## @brief The closest containing root for one nested tree, among a repo's own split.
+## @param tree A nested tree found somewhere under `root`.
+## @param root The repository root.
+## @param all_nested Every nested tree found anywhere in the repo (any depth).
+## @return The nearest ancestor — `root` itself, or the closest containing nested tree.
+## @version 1
+## @dg_internal
+def _direct_parent(tree: Path, root: Path, all_nested: list[Path]) -> Path:
+    """A TREE'S OWN SUB-INDEX MUST EXCLUDE ITS DIRECT CHILDREN ONLY, mirroring exactly what
+    first-party already does relative to depth 1: `roots=[tree]` bounds a build's INPUT to
+    everything under `tree`, so a GRANDCHILD nested tree is still inside that boundary and
+    still needs an explicit exclude to stay out of it — this is what supplies that exclude
+    to the right level, rather than every nested tree's exclude list naming every deeper
+    descendant regardless of which parent actually contains it directly.
+
+    @brief Find which root (the repo, or another nested tree) directly contains `tree`.
+    @return The nearest containing ancestor.
+    @version 1
+    """
+    ancestors = [c for c in (root, *all_nested) if c != tree and c in tree.parents]
+    return max(ancestors, key=lambda p: len(p.parts))
+
+
+## @brief Split a repository into first-party and per-nested-tree indexes, at any depth.
 ## @param repo_root The repository root.
 ## @return The sub-indexes, or an empty list when the repo holds no nested trees.
-## @version 2
+## @version 3
 ## @req REQ-DDB-INDEX-002
 def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
     """EMPTY MEANS "DO NOT SPLIT", and that is the compatibility contract. A repository with
@@ -163,9 +228,17 @@ def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
     finds nested clones and silently skips every submodule, which is the case this split exists
     for.
 
-    @brief Derive the sub-index split from nested git trees.
+    N LEVELS DEEP, NOT ONE. Field-reported: a vendored dependency that itself vendors several
+    more (a 1.2GB tree carrying boost, opencv, pcl and six others as its own submodules) was
+    getting ONE sub-index for the whole thing, dominated entirely by code none of it wrote.
+    Every nested tree found anywhere in the repository — at any depth — gets its own name and
+    its own sub-index; each one's `excludes` names exactly its own direct children, the same
+    relationship first-party already has to depth 1, so building it does not silently swallow
+    what belongs one level further down.
+
+    @brief Derive the sub-index split from nested git trees, at any depth.
     @return The split, or [] to build the repository whole.
-    @version 2
+    @version 3
     """
     root = Path(repo_root).expanduser().resolve()
     ## THE SPLIT USES THE BUILD'S OWN RULE, and skipping this cost a real target twenty minutes.
@@ -181,15 +254,28 @@ def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
     ## second rule here would leave the split free to index trees the build would never touch,
     ## and the split is the one nobody looks at.
     ignored = {p.resolve() for p in whole_repo_scope(root).excludes}
-    nested = sorted(
-        p for p in {q.resolve() for q in nested_repo_roots(root)} if not _under_any(p, ignored)
-    )
+    nested = sorted(set(_nested_trees_recursive(root, ignored)))
     if not nested:
         return []
-    first = SubIndex(name=FIRST_PARTY_INDEX, roots=(root,), excludes=tuple(nested))
-    return [first] + [
-        SubIndex(name=_sub_index_name(tree, root), roots=(tree,), excludes=()) for tree in nested
+    ## EACH TREE EXCLUDES ONLY ITS OWN DIRECT CHILDREN, not every deeper descendant — a
+    ## grandchild is already excluded from ITS OWN parent's build, which is the tree one level
+    ## up from it, not from every ancestor above that.
+    children_of: dict[Path, list[Path]] = {}
+    for tree in nested:
+        parent = _direct_parent(tree, root, nested)
+        children_of.setdefault(parent, []).append(tree)
+    first = SubIndex(
+        name=FIRST_PARTY_INDEX, roots=(root,), excludes=tuple(children_of.get(root, []))
+    )
+    others = [
+        SubIndex(
+            name=_sub_index_name(tree, root),
+            roots=(tree,),
+            excludes=tuple(children_of.get(tree, [])),
+        )
+        for tree in nested
     ]
+    return [first] + others
 
 
 ## @brief Directories the last derivation refused to descend past.
