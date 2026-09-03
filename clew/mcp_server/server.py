@@ -124,7 +124,7 @@ import anyio
 
 from .._common import captured_output, logger
 from ..buildlock import build_lock
-from ..scope import SCOPE_FROM_GUARD
+from ..scope import FIRST_PARTY_INDEX, SCOPE_FROM_GUARD
 from ._sdk import Context, MCPServer, lowlevel
 from .descriptions import load_descriptions
 from .freshness import code_identity, notices, stale_code_refusal
@@ -239,31 +239,46 @@ _NO_TARGET_REASON: dict[str, str] = {
 
 ## @brief Explain that a registry-wide index action will not honour a supplied target.
 ## @param action The action that cannot route.
-## @param target The target string the caller passed.
+## @param target The target string the caller passed, or None when only sub_index was.
+## @param sub_index The sub_index string the caller passed, or None.
 ## @return The refusal message.
-## @version 1
+## @version 2
 ## @req REQ-DDB-MCP-002
-def registry_wide_target_error(action: str, target: str) -> str:
+def registry_wide_target_error(
+    action: str, target: str | None, sub_index: str | None = None
+) -> str:
     """REFUSING BEATS IGNORING, and it beats it for a measurable reason: an ignored argument
     produces a confident, complete, well-formed answer about the wrong repository, which no
     caller can detect from the payload. A refusal costs one round trip and cannot be mistaken
     for a result.
 
-    Names the action, the string, why that pairing has no meaning, and the nearest thing that
-    does — the same four parts as `unknown_target_error`, because the caller's next move is
-    what a refusal is for.
+    `sub_index` ALONE IS THE SAME MISTAKE AS `target` ALONE, and this used to only catch the
+    second. `status`/`targets`/`cull` accepted `sub_index` into their dispatch with `target`
+    left `None` and never read it — an accepted-but-unread key, this project's own most
+    repeated defect. Naming just `target=repo` and being ignored is loud; naming just
+    `sub_index='llama-cpp'` on a registry-wide action was silent, because nothing in the
+    signature checked for it alone.
 
-    @brief Compose the refusal for a target passed to a non-routing index action.
+    Names the action, the string(s), why that pairing has no meaning, and the nearest thing
+    that does — the same four parts as `unknown_target_error`, because the caller's next move
+    is what a refusal is for.
+
+    @brief Compose the refusal for a target and/or sub_index passed to a non-routing action.
     @return The message.
-    @version 1
+    @version 2
     """
     reason = _NO_TARGET_REASON.get(
         action,
         "does not route to a repository named on the call; it reports on the derived target "
         "or on the registry as a whole",
     )
+    supplied = ", ".join(
+        f"{name}={value!r}"
+        for name, value in (("target", target), ("sub_index", sub_index))
+        if value is not None
+    )
     return (
-        f"index(action={action!r}) does not take a target, and {target!r} was supplied. "
+        f"index(action={action!r}) does not take {supplied}, but it was supplied. "
         f"Refusing rather than ignoring it, because this action {reason} "
         f"Routing actions: {', '.join(sorted(TARGET_ROUTING_ACTIONS))}."
     )
@@ -313,6 +328,7 @@ def unknown_target_error(target: str, known: list[Target]) -> str:
 _LISTING_FIELDS = (
     "repo_path",
     "db_path",
+    "sub_index",
     "exists",
     "build_version",
     "expected_build_version",
@@ -392,7 +408,7 @@ ALWAYS_LOAD_META: dict[str, object] = {"anthropic/alwaysLoad": True}
 ## @param bound The bound QueryTools method to wrap.
 ## @param before Async hook awaited before the query runs.
 ## @return An async callable carrying the wrapped method's original signature.
-## @version 1
+## @version 2
 ## @req REQ-DDB-MCP-004
 def _answering_with_refresh(bound: Any, before: Any) -> Any:
     """Wrap one synchronous query tool so a stale index is refreshed before it answers.
@@ -411,13 +427,20 @@ def _answering_with_refresh(bound: Any, before: Any) -> Any:
 
     @brief Add a pre-answer refresh to a synchronous query tool.
     @return An async callable with the original signature.
-    @version 1
+    @version 2
     @req REQ-DDB-MCP-004
     """
 
     @functools.wraps(bound)
     async def answering(*args: Any, **kwargs: Any) -> Any:
-        await before(kwargs.get("target"))
+        ## BOTH KEYS, NOT ONLY `target`. Every tool call answers from ONE database — the target
+        ## PLUS its sub_index when one was named — and refreshing on `target` alone would either
+        ## rebuild the wrong sibling (a first-party call auto-refreshing a stale vendored index
+        ## nobody asked about) or find nothing stale to fix (a vendored call's own staleness
+        ## invisible to a check that never looked at sub_index). The tool call and the refresh
+        ## must agree on which database answers, for the same reason `answering()` resolves both
+        ## together rather than `target` alone.
+        await before(kwargs.get("target"), kwargs.get("sub_index"))
         return await anyio.to_thread.run_sync(functools.partial(bound, *args, **kwargs))
 
     return answering
@@ -519,6 +542,60 @@ def _failure_result(exc: BaseException, rendered: str) -> dict[str, Any]:
 _LOCK_WAIT_SECONDS = 120
 
 
+## @brief The scope arguments a build of one sub-index needs, or the caller's unchanged.
+## @param target The target being built; `name` says which sub-index, or None for the whole repo.
+## @param repo The repository root.
+## @param exclude The caller's exclusions, forwarded unchanged for a whole-repo target.
+## @param options The caller's tier-1 options, forwarded unchanged for a whole-repo target.
+## @return (exclude, options) to pass to `build_index`.
+## @version 2
+## @dg_internal
+def _sub_index_scope(
+    target: Target,
+    repo: Path,
+    exclude: list[str] | None,
+    options: dict[str, Any] | None,
+) -> tuple[list[str] | None, dict[str, Any] | None]:
+    """RETURNS THE CALLER'S ARGUMENTS UNTOUCHED FOR A WHOLE-REPO TARGET, which is most of the
+    point. A repository that COULD be split must keep building whole until someone builds its
+    named targets — narrowing it here would shrink an index nobody asked to shrink and report
+    success, which is the silent-narrowing failure recorded as #511.
+
+    THE CALLER'S EXCLUSIONS ARE PRESERVED AND ADDED TO, never replaced. `exclude=None` means
+    "inherit what an earlier session stated", and that distinction is the reason `_run_build`
+    forwards None rather than defaulting to []. A first-party sub-index needs the nested trees
+    excluded ON TOP of whatever the operator already decided, so None stays None-shaped only
+    when there is nothing to add.
+
+    @brief Resolve build scope for a sub-index target.
+    @return The exclude list and options to build with.
+    @version 2
+    """
+    if target.name is None:
+        return exclude, options
+    from ..scope import derive_sub_indexes
+
+    match = next((s for s in derive_sub_indexes(repo) if s.name == target.name), None)
+    if match is None:
+        ## The tree this sub-index named is gone — a submodule removed since it was registered.
+        ## Building it whole would quietly turn a sub-index into a second copy of the repository,
+        ## so leave the caller's scope alone and let the build report what it finds.
+        logger.warning(
+            "sub-index %r no longer matches any nested tree under %s — building with the "
+            "caller's scope instead of a derived one",
+            target.name,
+            repo,
+        )
+        return exclude, options
+    if target.name == FIRST_PARTY_INDEX:
+        nested = [str(p.relative_to(repo)) for p in match.excludes]
+        return list(exclude or []) + nested, options
+    root = str(match.roots[0].relative_to(repo))
+    merged = dict(options or {})
+    merged["index_scope"] = {"roots": [root]}
+    return exclude, merged
+
+
 ## @brief Lifecycle state + tier-0 tool implementations for one server.
 ## @version 1
 class DocsDbServer:
@@ -616,13 +693,19 @@ class DocsDbServer:
     ## @return None.
     ## @version 4
     ## @req REQ-DDB-MCP-004
-    async def _auto_refresh(self, target: str | None) -> None:
+    async def _auto_refresh(self, target: str | None, sub_index: str | None = None) -> None:
         """WHY A QUERY BUILDS AT ALL. Reporting staleness and leaving the fix to the caller
         made correctness depend on an agent reading the notice and acting on it, which is not
         what happens — measured in this project's own sessions, a nine-file-stale index was
         queried and its answers taken, `anchor_mismatch` and all. It also made the index feel
         expensive to keep current, which is itself a reason agents stop consulting one. Now
         that a refresh is incremental the cost is small enough to just pay.
+
+        `sub_index` RESOLVES TO THE SAME DATABASE THE QUERY IT PRECEDES WILL READ, because the
+        two have to agree — see `_answering_with_refresh`'s own reasoning. Without it, a stale
+        vendored sub-index queried directly would either go unrefreshed (this check never looked
+        at the right database) or, worse, trigger a refresh of an unrelated sibling that happened
+        to share `target`.
 
         THE RE-CHECK INSIDE THE LOCK IS WHAT MAKES THIS A DEDUPLICATION RATHER THAN A RACE,
         exactly as `_build_or_skip` does it: four sessions querying one stale repository
@@ -635,12 +718,14 @@ class DocsDbServer:
 
         @brief Refresh a stale index before answering.
         @return None.
-        @version 4
+        @version 5
         """
         try:
-            resolved = self.resolve_target(target) if target else self.active
+            resolved = self.resolve_target(target, sub_index) if target else self.active
         except Exception:
-            logger.debug("auto-refresh: %r does not resolve to a target", target)
+            logger.debug(
+                "auto-refresh: %r (sub_index=%r) does not resolve to a target", target, sub_index
+            )
             resolved = None
         if resolved is None or not self._data_stale(resolved):
             return
@@ -732,12 +817,42 @@ class DocsDbServer:
                 logger.debug("staleness could not be measured for %s", self.active.repo_path)
         return found
 
-    ## @brief Resolve a caller-supplied target string to a known repository.
-    ## @param target Repo root path, or a slug from `list_targets`.
-    ## @return The Target it names.
+    ## @brief The Target a bare, sub_index-less call to a repository answers from.
+    ## @param siblings Every registered Target sharing one `repo_path`.
+    ## @return The whole-repo Target if built, else the first-party sub-index if built, else None.
     ## @version 1
     ## @req REQ-DDB-MCP-001
-    def resolve_target(self, target: str) -> Target:
+    def _preferred_default(self, siblings: list[Target]) -> Target | None:
+        """A SPLIT REPOSITORY'S DEFAULT IS ITS FIRST-PARTY SUB-INDEX, never a vendored one and
+        never a silent build of the (usually never-built) whole-repo index. Sub-indexes exist so
+        a caller never pays doxygen's cost for a pinned dependency's millions of lines on every
+        session — a default that fell back to the whole-repo target would erase that saving on
+        the single most common call shape, the one that omits `target`/`sub_index` entirely. A
+        vendored sibling is reached only by FOLLOWING AN EDGE that names it (Phase 2), never by
+        being guessed at as a default — a call that lands there without asking for it by name is
+        exactly the wrong-index failure this module's docstring calls its most expensive.
+
+        WHOLE STILL WINS WHEN BOTH EXIST, because a repository that never split still means
+        exactly what it always meant: the bare root is the whole thing. This only matters once a
+        repo has ACTUALLY split, which is the case a whole-repo record can no longer represent by
+        itself.
+
+        @brief Prefer the whole-repo Target, else the first-party sub-index, else None.
+        @return The default Target for a bare call, or None when neither exists.
+        @version 1
+        """
+        whole = next((c for c in siblings if c.name is None), None)
+        if whole is not None:
+            return whole
+        return next((c for c in siblings if c.name == FIRST_PARTY_INDEX), None)
+
+    ## @brief Resolve a caller-supplied target string to a known repository.
+    ## @param target Repo root path, or a slug from `list_targets`.
+    ## @param sub_index Name of the part to read, or None for the whole repository.
+    ## @return The Target it names.
+    ## @version 5
+    ## @req REQ-DDB-MCP-001
+    def resolve_target(self, target: str, sub_index: str | None = None) -> Target:
         """THREE SPELLINGS OF ONE REPOSITORY, resolved to one record. The registry is
         consulted first by exact repo path and by slug, because both are strings this
         server itself handed the caller — `list_targets` reports the first and `status`
@@ -745,34 +860,84 @@ class DocsDbServer:
         string is treated as a path and normalised the way `target_for` normalises every
         path, which makes `~/proj` and `/home/me/proj` the same target.
 
-        A directory that is not registered still resolves, and that is deliberate: the
-        slug is derived from the path, so an index built by the CLI is found by the same
-        allocation rule that built it. It does not get REGISTERED here — that is a
-        build-time act, and a query has no business writing to the registry.
+        `sub_index` IS ITS OWN PARAMETER, deliberately, not a suffix folded into `target`. A
+        caller composing `f"{target}#{name}"` has to know the separator exists; a caller passed
+        `sub_index` as a named argument has a schema entry that says what it is, and
+        `list_targets` reports the legal values without anyone needing to construct a string.
 
-        A registered target whose directory has since moved keeps resolving, because the
-        registry match is tried first. Its index is still readable and still worth
-        querying.
+        A DIRECTORY THAT IS NOT REGISTERED still resolves when `sub_index` is None, and that is
+        deliberate: the slug is derived from the path, so an index built by the CLI is found by
+        the same allocation rule that built it. It does not get REGISTERED here — that is a
+        build-time act, and a query has no business writing to the registry. A `sub_index` on an
+        unregistered path has nothing to derive against and is refused by name.
 
-        @brief Resolve a target string to its Target record.
+        A REGISTERED TARGET WHOSE DIRECTORY HAS SINCE MOVED keeps resolving, because the registry
+        match is tried first. Its index is still readable and still worth querying.
+
+        @brief Resolve a target string, plus an optional sub-index name, to its Target record.
         @return The resolved Target.
-        @version 1
+        @version 4
         """
         known = self.registry.targets()
+        ## THE SLUG FIRST, because it is unique and it is a string this server handed the
+        ## caller — `list_targets`/`status` report it, and a caller who echoes it back must be
+        ## understood without also stating `sub_index`.
         for candidate in known:
-            if target in (candidate.repo_path, candidate.slug):
+            if target == candidate.slug:
                 return candidate
+        siblings = [c for c in known if c.repo_path == target]
+        if sub_index is not None:
+            for candidate in siblings:
+                if candidate.name == sub_index:
+                    return candidate
+            ## NOT YET REGISTERED UNDER THIS NAME IS NOT THE SAME AS INVALID. The registry only
+            ## knows what has been BUILT before, and the first build of any sub-index — including
+            ## an additional one on a repo that already has others — necessarily has no matching
+            ## record yet. Refusing here would make that first build unreachable. So an unmatched
+            ## name falls through to derivation exactly like a bare unregistered path does; a
+            ## caller who names something ungrounded gets it from `answering()` at query time
+            ## ("no database has been built") or from the build path validating against the real
+            ## split, not from a registry that cannot tell "not yet built" from "will never exist".
+            path = Path(target).expanduser()
+            if path.is_dir():
+                return target_for(path, self.registry.home, sub_index)
+            raise RuntimeError(unknown_target_error(target, known))
+        ## A BARE REPOSITORY PATH MAY NOW MATCH SEVERAL RECORDS, and choosing among them
+        ## arbitrarily is the one failure this module's own docstring calls the most expensive
+        ## defect on record: a reply that read one index and stamped another's identity is
+        ## indistinguishable from a correct answer.
+        ##
+        ## So a bare path with no `sub_index` means the UNNAMED whole-repo index when it exists,
+        ## the FIRST-PARTY sub-index when the repo has genuinely split (owner ruling: a sub-index
+        ## is never the default, and first-party is what "the default" has always meant for a
+        ## split repo — its own source, not a vendored dependency), and a REFUSAL naming every
+        ## available sub-index only when neither exists to prefer, rather than served from
+        ## whichever happened to sort first.
+        preferred = self._preferred_default(siblings)
+        if preferred is not None:
+            return preferred
+        if siblings:
+            names = ", ".join(sorted(c.name for c in siblings if c.name is not None))
+            raise RuntimeError(
+                f"{target} is indexed as {len(siblings)} sub-index(es) and has no whole-repository "
+                f"index, so this call cannot say which one to read. Pass sub_index=<name>: {names}"
+            )
         path = Path(target).expanduser()
         if path.is_dir():
-            return target_for(path, self.registry.home)
+            ## `sub_index` CARRIES THROUGH THE UNREGISTERED-DIRECTORY FALLBACK, which is the
+            ## case that matters most for it: the FIRST build of a sub-index has no registry
+            ## entry to have matched above. Dropping it here would silently derive the
+            ## WHOLE-repo target for a caller that explicitly named a part.
+            return target_for(path, self.registry.home, sub_index)
         raise RuntimeError(unknown_target_error(target, known))
 
     ## @brief Resolve a routed target into the database, tree and staleness to answer with.
     ## @param target Repo root path, or a slug from `list_targets`.
+    ## @param sub_index Name of the part to read, or None for the whole repository.
     ## @return Everything one query needs about that repository.
-    ## @version 2
+    ## @version 3
     ## @req REQ-DDB-MCP-001
-    def answering(self, target: str) -> Answering:
+    def answering(self, target: str, sub_index: str | None = None) -> Answering:
         """The query-side half of resolution, and the reason it is separate from
         `resolve_target`: a query needs a BUILT index and a build does not. Refusing an
         unbuilt target here — by name, with the exact call that fixes it — is what stops
@@ -785,9 +950,9 @@ class DocsDbServer:
 
         @brief Resolve a routed target for querying.
         @return The database, working tree and staleness for it.
-        @version 2
+        @version 3
         """
-        resolved = self.resolve_target(target)
+        resolved = self.resolve_target(target, sub_index)
         db = Path(resolved.db_path)
         if not db.is_file():
             raise RuntimeError(
@@ -845,7 +1010,7 @@ class DocsDbServer:
     ## @param repo_path Repo root to serve.
     ## @param source Which resolution source supplied it (a TARGET_SOURCE_* value).
     ## @return The newly-active Target.
-    ## @version 3
+    ## @version 4
     ## @req REQ-DDB-MCP-001
     def adopt(self, repo_path: str, source: str) -> Target:
         """Make the repo active. Does NOT register it, and does NOT build.
@@ -880,11 +1045,22 @@ class DocsDbServer:
         a query against an unbuilt target has to fail legibly instead of not being
         offered, which `active_db` now does by name.
 
+        THE DEFAULT PREFERS FIRST-PARTY OVER THE WHOLE-REPO TARGET, same preference
+        `resolve_target`'s bare-path case applies (owner ruling: first-party IS the index for a
+        split repository, not one of several coequal sub-indexes — a vendored sibling is reached
+        only by following an edge that names it). This is the path EVERY tool call that omits
+        `target` goes through, so without this a split repo's own served promise — "omit it and
+        the DEFAULT answers" — would resolve to the whole-repo slug a split repo never builds,
+        answering "no database has been built" for a repository whose first-party index is
+        current and one call away.
+
         @brief Adopt a target repo and register the query tools.
         @return The active Target.
-        @version 3
+        @version 4
         """
-        self.active = target_for(repo_path, self.registry.home)
+        derived = target_for(repo_path, self.registry.home)
+        siblings = [c for c in self.registry.targets() if c.repo_path == derived.repo_path]
+        self.active = self._preferred_default(siblings) or derived
         self.target_source = source
         self._sync_tier1()
         status = db_status(self.active)
@@ -1179,9 +1355,10 @@ class DocsDbServer:
     ## @param scope Scope source: `from-guard` (the repo's declared doxygen mandate) or `doxyfile`.
     ## @param exclude Repo-relative paths to leave out of the index; None inherits the recorded ones, [] withdraws them.
     ## @param target Repo root or slug to build; omit for the server's derived target.
+    ## @param sub_index Name of one PART of `target` to build; omit for the whole repository.
     ## @param options Tier-1 build options keyed by declaration-file section name; omit to state nothing.
     ## @return Result dict with build outcome, MEASURED duration, status, registered tool names and the answering target; or a refusal when this process predates its source.
-    ## @version 10
+    ## @version 12
     ## @req REQ-DDB-MCP-002
     ## @req REQ-DDB-MCP-004
     ## @req REQ-DDB-CONFIG-001
@@ -1194,6 +1371,7 @@ class DocsDbServer:
         scope: str = SCOPE_FROM_GUARD,
         exclude: list[str] | None = None,
         target: str | None = None,
+        sub_index: str | None = None,
         options: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Run the pipeline for the named target — or the derived one when the call names
@@ -1264,11 +1442,11 @@ class DocsDbServer:
 
         @brief Build/refresh the target database and activate query tools.
         @return Build result dict, carrying a measured duration.
-        @version 10
+        @version 12
         """
         started = time.perf_counter()
         try:
-            resolved = await self._build_subject(ctx, target)
+            resolved = await self._build_subject(ctx, target, sub_index)
         except RuntimeError as exc:
             return {"ok": False, "error": str(exc)}
         if resolved is None:
@@ -1284,6 +1462,16 @@ class DocsDbServer:
         result["duration_ms"] = int((time.perf_counter() - started) * 1000)
         result["status"] = db_status(resolved)
         result["target"] = resolved.repo_path
+        ## KEYED ON THE CALLER'S OWN ARGUMENT, NOT ON `resolved.name` — deliberately, and this is
+        ## the one place that distinction is load-bearing. A bare `target=` on a split repository
+        ## now resolves to its first-party index by default (owner ruling: first-party is THE
+        ## index, never treated as one of several coequal sub-indexes), so `resolved.name` is
+        ## `"first-party"` even when the caller asked for nothing beyond the repo itself — stamping
+        ## THAT would make the ordinary default case look like a sub-index answered, which is
+        ## exactly what the ruling says not to do. Only an EXPLICITLY named sub_index earns the
+        ## stamp, matching `_answered`'s existing convention on the query side exactly.
+        if sub_index is not None:
+            result["sub_index"] = sub_index
         return result
 
     ## @brief The repository a build call is about.
@@ -1292,18 +1480,38 @@ class DocsDbServer:
     ## @return The Target to build, or None when no source supplied one.
     ## @version 1
     ## @req REQ-DDB-MCP-001
-    async def _build_subject(self, ctx: Context, target: str | None) -> Target | None:
+    async def _build_subject(
+        self, ctx: Context, target: str | None, sub_index: str | None = None
+    ) -> Target | None:
         """A named target is REGISTERED, which allocates its database directory — the
         build has to have somewhere to write. It is not adopted, and the client's roots
         are never consulted for it: the caller already said which repository it means.
 
-        @brief Resolve and register the repository a build is for.
+        `sub_index` REGISTERS THAT PART, NOT THE WHOLE REPOSITORY. This used to discard the
+        distinction entirely — `register(resolve_target(target).repo_path)` re-derived the
+        BARE path and registered the whole-repo target regardless of what was asked for, so
+        `index(action='refresh', target=repo, sub_index='llama-cpp')` would have silently
+        rebuilt the wrong database (or the whole repository, if it existed) while reporting
+        success for the vendored one nobody rebuilt.
+
+        `sub_index` WITH NO `target` IS REFUSED rather than guessed. A sub-index belongs to a
+        repository, and "refresh the vendored part" with no repository named has no derived
+        target to attach it to — `ensure_target` derives the whole-repo one, which is not what
+        was asked.
+
+        @brief Resolve and register the repository (or sub-index) a build is for.
         @return The Target, or None when nothing supplied one.
-        @version 1
+        @version 2
         """
         if target is None:
+            if sub_index is not None:
+                raise RuntimeError(
+                    f"sub_index={sub_index!r} was given without target — a sub-index belongs "
+                    "to a named repository, so target= must be stated too."
+                )
             return await self.ensure_target(ctx)
-        return self.registry.register(self.resolve_target(target).repo_path)
+        repo_path = self.resolve_target(target, sub_index).repo_path
+        return self.registry.register(repo_path, sub_index)
 
     ## @brief Build one target, skipping when its index is already current.
     ## @param target The repository to build.
@@ -1460,6 +1668,7 @@ class DocsDbServer:
     ## @param ctx MCP request context (the only route to the client's roots).
     ## @param action Which lifecycle operation to perform (see INDEX_ACTIONS).
     ## @param target Repo root or slug to act on; omit for the server's derived target.
+    ## @param sub_index Name of one PART of `target` to act on; omit for the whole repository.
     ## @param force Rebuild even when the database is current (action='refresh').
     ## @param doxyfile Explicit Doxyfile path (action='refresh').
     ## @param scope Index scope to derive (action='refresh').
@@ -1468,7 +1677,7 @@ class DocsDbServer:
     ## @param max_age_days Age threshold in days, null to disable the age rule (action='cull').
     ## @param include_stale Also cull version-stale databases (action='cull').
     ## @return The chosen action's result, stamped with the `action` that produced it.
-    ## @version 1
+    ## @version 2
     ## @req REQ-DDB-MCP-002
     ## @req REQ-DDB-MCP-003
     async def index(
@@ -1488,6 +1697,17 @@ class DocsDbServer:
         target: Annotated[
             str | None,
             Field(description="Repo root or slug; omit for the default target."),
+        ] = None,
+        sub_index: Annotated[
+            str | None,
+            Field(
+                description=(
+                    "Name of one PART of `target`, when the repository is split into several "
+                    "indexes — a first-party index plus one per vendored dependency. Omit for "
+                    "the whole repository. `index(action='targets')` reports each repository's "
+                    "sub_index names."
+                )
+            ),
         ] = None,
         force: Annotated[
             bool, Field(description="Rebuild even when the index is already current.")
@@ -1552,7 +1772,7 @@ class DocsDbServer:
 
         @brief Administer the index through one action-dispatched tool.
         @return The action's result, carrying `action`.
-        @version 1
+        @version 2
         """
         if action not in INDEX_ACTIONS:
             raise ValueError(
@@ -1564,6 +1784,7 @@ class DocsDbServer:
             ctx,
             action,
             target,
+            sub_index,
             force,
             doxyfile,
             scope,
@@ -1585,6 +1806,7 @@ class DocsDbServer:
     ## @param ctx MCP request context.
     ## @param action The validated action name.
     ## @param target Repo root or slug, or None for the derived target.
+    ## @param sub_index Name of one PART of `target` to act on, or None for the whole repository.
     ## @param force Rebuild even when current.
     ## @param doxyfile Explicit Doxyfile path.
     ## @param scope Index scope to derive.
@@ -1593,13 +1815,14 @@ class DocsDbServer:
     ## @param max_age_days Cull age threshold.
     ## @param include_stale Cull version-stale databases too.
     ## @return Whatever the underlying method returns.
-    ## @version 2
+    ## @version 4
     ## @dg_internal
     async def _index_action(
         self,
         ctx: Context,
         action: str,
         target: str | None,
+        sub_index: str | None,
         force: bool,
         doxyfile: str | None,
         scope: str,
@@ -1622,10 +1845,10 @@ class DocsDbServer:
 
         @brief Dispatch one validated index action.
         @return The underlying method's result.
-        @version 2
+        @version 4
         """
-        if target is not None and action not in TARGET_ROUTING_ACTIONS:
-            raise ValueError(registry_wide_target_error(action, target))
+        if (target is not None or sub_index is not None) and action not in TARGET_ROUTING_ACTIONS:
+            raise ValueError(registry_wide_target_error(action, target, sub_index))
         if action == "status":
             return await self.status(ctx)
         if action == "refresh":
@@ -1636,13 +1859,14 @@ class DocsDbServer:
                 scope=scope,
                 exclude=exclude,
                 target=target,
+                sub_index=sub_index,
                 options=options,
             )
         if action == "targets":
             return self.list_targets()
         if action == "cull":
             return self.cull(max_age_days=max_age_days, include_stale=include_stale)
-        return self.tools.graph_stats(target)
+        return self.tools.graph_stats(target, sub_index)
 
     ## @brief Propose a starter `.clew.yaml` for the active target.
     ## @param ctx MCP request context (the only route to the client's roots).
@@ -1721,7 +1945,7 @@ class DocsDbServer:
     ## @param exclude Operator-stated exclusions; None inherits the recorded ones, [] withdraws them.
     ## @param options Tier-1 build options keyed by declaration-file section name; None states nothing.
     ## @return Result dict (ok / built / doxyfile / output, plus error and traceback on a failure).
-    ## @version 10
+    ## @version 11
     ## @req REQ-DDB-CONFIG-008
     ## @dg_internal
     def _run_build(
@@ -1767,7 +1991,7 @@ class DocsDbServer:
 
         @brief Execute the build pipeline in-process.
         @return Build result dict.
-        @version 9
+        @version 10
         """
         from ..cli import build_index
 
@@ -1847,14 +2071,21 @@ class DocsDbServer:
                             "output": rendered.getvalue(),
                             "status": db_status(target),
                         }
+                    ## A SUB-INDEX BUILDS ITS OWN PART, and only when the target IS one. A
+                    ## whole-repo target keeps building the whole repo even on a repository that
+                    ## could be split: narrowing it here would silently shrink an index the
+                    ## operator never asked to narrow, which is #511's failure exactly — a
+                    ## smaller index that reports as healthy. Splitting is something a caller
+                    ## opts into by building the named targets.
+                    sub_exclude, sub_options = _sub_index_scope(target, repo, exclude, options)
                     build_index(
                         output=Path(target.db_path),
                         repo_root=repo,
                         doxyfile=doxy_arg,
                         scope=scope,
                         requirements=None,
-                        exclude=exclude,
-                        options=options,
+                        exclude=sub_exclude,
+                        options=sub_options,
                     )
             except (Exception, SystemExit) as exc:
                 return {

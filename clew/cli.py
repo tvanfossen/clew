@@ -2737,6 +2737,67 @@ def staging_path(output: Path) -> Path:
     return output.with_name(f"{output.name}.{os.getpid()}.tmp")
 
 
+## @brief Build every sub-index of a repository that has nested git trees.
+## @param repo_root The repository root.
+## @param home State root to allocate databases under; defaults to the server's state home.
+## @param only Build just this sub-index by name, or None for all of them.
+## @return The Targets built, in derivation order; empty when the repo is not split.
+## @version 1
+## @req REQ-DDB-INDEX-002
+def build_sub_indexes(
+    repo_root: Path | str, home: Path | None = None, only: str | None = None
+) -> list[Any]:
+    """THE POINT IS `only`, NOT THE LOOP. Building N indexes costs about what one big build costs
+    the first time; what the split buys is that a vendored tree is PINNED, so every later refresh
+    names `only=first-party` and never re-reads it. Measured on a target vendoring llama.cpp,
+    that is 13.9 s against 69.0 s — and on one vendoring boost it is the difference between a
+    loop that runs and one that does not.
+
+    FIRST-PARTY USES `exclude`, VENDORED USES `index_scope.roots`, and the asymmetry is
+    deliberate. First-party means "the whole repository except these trees", which is exactly
+    what the operator-exclusion route expresses, and is the command measured by hand before any
+    of this was written. A vendored sub-index means "only this tree", which is a scope
+    DECLARATION. Expressing either through the other's route would mean enumerating every
+    first-party directory — and silently missing new ones — or writing an exclusion list that
+    grows with the repository.
+
+    RETURNS EMPTY WHEN THE REPO HOLDS NO NESTED TREES, so a caller falls back to the ordinary
+    whole-repo build without comparing counts, and a repository with nothing vendored keeps the
+    slug and database it already has.
+
+    @brief Build each of a repository's sub-indexes.
+    @return The Targets built, or [] when the repository is not split.
+    @version 1
+    """
+    from .mcp_server.state import TargetRegistry
+    from .scope import FIRST_PARTY_INDEX, derive_sub_indexes
+
+    root = Path(repo_root).expanduser().resolve()
+    split = derive_sub_indexes(root)
+    if not split:
+        return []
+    registry = TargetRegistry(home) if home is not None else TargetRegistry()
+    built: list[Any] = []
+    for sub in split:
+        if only is not None and sub.name != only:
+            continue
+        target = registry.register(root, sub.name)
+        if sub.name == FIRST_PARTY_INDEX:
+            build_index(
+                output=target.db_path,
+                repo_root=root,
+                exclude=[str(p.relative_to(root)) for p in sub.excludes],
+            )
+        else:
+            build_index(
+                output=target.db_path,
+                repo_root=root,
+                options={"index_scope": {"roots": [str(sub.roots[0].relative_to(root))]}},
+            )
+        built.append(target)
+    return built
+
+
 ## @brief Run one build in-process, without composing a command line.
 ## @param output Database path to build (written atomically).
 ## @param repo_root Repository being indexed, or None to take the Doxyfile's directory.

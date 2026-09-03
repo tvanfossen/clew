@@ -49,7 +49,7 @@ RepoProvider = Callable[[], Path]
 ## It then REFUSES an explicit target instead of ignoring it, because answering from the
 ## bound repository while stamping that repository's name onto the reply is indistinguishable
 ## from a successful routed call.
-Answerer = Callable[[str], Answering]
+Answerer = Callable[[str, str | None], Answering]
 
 ## Supplies the staleness axes in play at reply time, or an empty list when the tool is
 ## current. A CALLABLE for the same reason the db path is one — it must be measured per
@@ -1394,7 +1394,7 @@ class QueryTools:
     ## @return The repository that answers for it.
     ## @version 1
     ## @dg_internal
-    def _route(self, target: str) -> Answering:
+    def _route(self, target: str, sub_index: str | None = None) -> Answering:
         """Refusing beats falling back. A tool set with no answerer is bound to one
         database, and serving that database for a call that named a different one would
         produce a reply whose `target` field names the bound repository — which reads as a
@@ -1402,30 +1402,41 @@ class QueryTools:
 
         @brief Resolve a routed target, or say this tool set cannot route.
         @return The resolved repository.
-        @version 1
+        @version 2
         """
         if self._answerer is None:
             raise RuntimeError(
                 f"These tools cannot route to {target!r}: they are bound to a single "
                 "repository. Call status to see which repository answers here."
             )
-        return self._answerer(target)
+        return self._answerer(target, sub_index)
 
     ## @brief The database path this call reads.
     ## @param target Repository to read, or None for the one the server derived.
+    ## @param sub_index Name of the part to read, or None for the whole repository.
     ## @return Path to the clew.db the tools should read.
-    ## @version 4
+    ## @version 5
     ## @req REQ-DDB-MCP-003
-    def db(self, target: str | None = None) -> Path:
+    def db(self, target: str | None = None, sub_index: str | None = None) -> Path:
         """Resolve the db path for this call: the routed target when one was named, else
         the derived one. Omitting `target` reproduces the previous behaviour exactly.
 
+        `sub_index` NAMES THE PART, not a suffix on `target`. A composite string a caller has to
+        construct (`f"{target}#{name}"`) has no schema of its own for a model to read; a second
+        parameter does — `list_targets` reports the legal names, and the tool's own schema says
+        the parameter exists.
+
         @brief Resolve this call's database path.
         @return clew.db path.
-        @version 3
+        @version 4
         """
         if target is not None:
-            return self._route(target).db
+            return self._route(target, sub_index).db
+        if sub_index is not None:
+            raise RuntimeError(
+                f"sub_index={sub_index!r} was given without target — a sub-index belongs to a "
+                "named repository, so target= must be stated too."
+            )
         ## GUARDED HERE, NOT ONLY ON THE ROUTED PATH. Every tier-1 tool funnels through this
         ## method, so one check covers the whole surface; the routed branch above already refuses
         ## inside `resolve_target`. Without this, a derived target with no database reached
@@ -1437,20 +1448,26 @@ class QueryTools:
 
     ## @brief The working-tree root this call reads source from.
     ## @param target Repository to read, or None for the one the server derived.
+    ## @param sub_index Name of the part to read, or None for the whole repository.
     ## @return Path to the repo the answering database was built from.
-    ## @version 3
+    ## @version 4
     ## @req REQ-DDB-MCP-003
-    def repo(self, target: str | None = None) -> Path:
+    def repo(self, target: str | None = None, sub_index: str | None = None) -> Path:
         """Resolve the working tree the recorded paths are relative to. The model is
         NEVER asked for it as a filesystem path — it names a repository and the server
         resolves it, or it names none and the server's derived target answers.
 
+        A SUB-INDEX SHARES ITS PARENT'S WORKING TREE. Every sub-index of one repository is built
+        with `repo_root` set to the same root (Phase 1), so recorded paths are already relative to
+        it regardless of which sub-index answered — routing to a sub-index changes the DATABASE,
+        never the tree its paths are read against.
+
         @brief Resolve this call's repo root.
         @return Repo root path.
-        @version 3
+        @version 4
         """
         if target is not None:
-            return self._route(target).repo
+            return self._route(target, sub_index).repo
         if self._repo_provider is None:
             raise RuntimeError(
                 "No repo root bound to these tools — the server has no target. It "
@@ -1461,10 +1478,11 @@ class QueryTools:
 
     ## @brief The working tree for this call, or None when there isn't one.
     ## @param target Repository to read, or None for the one the server derived.
+    ## @param sub_index Name of the part to read, or None for the whole repository.
     ## @return Repo root, or None when no working tree is bound or resolvable.
-    ## @version 1
+    ## @version 2
     ## @dg_internal
-    def _repo_or_none(self, target: str | None = None) -> Path | None:
+    def _repo_or_none(self, target: str | None = None, sub_index: str | None = None) -> Path | None:
         """NON-RAISING, unlike `repo()`, and that is the whole reason it exists.
 
         `source` MUST fail loudly without a working tree — its entire answer is bytes off
@@ -1475,19 +1493,26 @@ class QueryTools:
         Turning that into an exception would make the composite payload fail where the
         narrow tool it replaces succeeded.
 
+        `sub_index` HAS TO REACH `repo()` HERE TOO, not only at the `db()` call beside it. A
+        repository with ONLY sub-indexes has no whole-repository record for `resolve_target` to
+        fall back on, so `repo(target, None)` raised "ambiguous bare root" and this method's own
+        non-raising contract turned that into a silent `None` — the database routed correctly
+        while the `body` panel vanished, reading exactly like "this function has no recorded
+        source" instead of the routing gap it actually was.
+
         @brief Resolve this call's working tree, or None.
         @return Repo root or None.
-        @version 1
+        @version 2
         """
         try:
-            return self.repo(target)
+            return self.repo(target, sub_index)
         except (RuntimeError, ValueError, OSError):
             return None
 
     ## @brief The repository this reply answered from, for attribution.
     ## @param answering The routed repository, or None when the derived one answered.
     ## @return Repo root as a string, falling back to the database path.
-    ## @version 2
+    ## @version 3
     ## @dg_internal
     def _target_name(self, answering: Answering | None) -> str:
         """Non-raising by contract, unlike `repo()`. It is called on the way OUT of
@@ -1496,9 +1521,15 @@ class QueryTools:
         provider is a test-only shape; naming the database there is still a truthful
         answer to "what answered this?".
 
+        REPORTS THE REPO ROOT ONLY, deliberately, which is now shared by every sub-index of one
+        repository — a reply from `extern-llama.cpp` names the same root a reply from
+        `first-party` would. `_answered` stamps `sub_index` as its own key for exactly the reason
+        this docstring's sibling warns about: two different databases must not produce
+        indistinguishable `target` fields, or a reply from the wrong sub-index reads as correct.
+
         @brief Name the repository (or database) that answered.
         @return Target name.
-        @version 2
+        @version 3
         """
         if answering is not None:
             return str(answering.repo)
@@ -1544,6 +1575,7 @@ class QueryTools:
         kind: str = "result",
         subject: str | None = None,
         target: str | None = None,
+        sub_index: str | None = None,
     ) -> dict[str, Any]:
         """EVERY REPLY NAMES THE REPOSITORY IT ANSWERED FROM (gh#22). The server no
         longer holds a target it was told to hold — it derives one — so "which
@@ -1580,7 +1612,7 @@ class QueryTools:
         @return The reply as a dict carrying `target`.
         @version 5
         """
-        answering = None if target is None else self._route(target)
+        answering = None if target is None else self._route(target, sub_index)
         out = (
             payload
             if payload is not None
@@ -1605,6 +1637,11 @@ class QueryTools:
         ## `_shrink_to_budget` trims to `RESPONSE_BUDGET_BYTES - _LIMITED_BLOCK_ALLOWANCE`,
         ## and a path plus a key is a rounding error against that 1,800-byte headroom.
         out["target"] = self._target_name(answering)
+        ## PRESENT ONLY WHEN NAMED, the same falsy-drop convention every other stamped field
+        ## in this project uses: an unnamed reply omits the key rather than writing `null`, so
+        ## "no sub-index" and "sub-index of unknown name" stay distinguishable.
+        if answering is not None and sub_index is not None:
+            out["sub_index"] = sub_index
         ## AFTER the target, so the fit is measured against the finished payload rather
         ## than one that is still going to grow.
         staleness = self._staleness(out, answering)
@@ -1650,13 +1687,14 @@ class QueryTools:
     ## @param max_body_lines Cap on each body excerpt.
     ## @param depth Hops to traverse per subject.
     ## @return The batch envelope: one entry per requested name, in request order.
-    ## @version 5
+    ## @version 6
     ## @dg_internal
     def _batched_dossiers(
         self,
         subjects: list[str],
         kind: str | None,
         target: str | None,
+        sub_index: str | None,
         max_body_lines: int,
         depth: int,
     ) -> dict[str, Any]:
@@ -1678,17 +1716,17 @@ class QueryTools:
 
         @brief Batch dossier envelope for several subjects of any kind.
         @return The serialized batch.
-        @version 5
+        @version 6
         """
+        db = self.db(target, sub_index)
         built = q.dossiers(
-            self.db(target),
+            db,
             subjects,
             kind=kind,
-            repo_root=self._repo_or_none(target),
+            repo_root=self._repo_or_none(target, sub_index),
             max_body_lines=max_body_lines,
             depth=depth,
         )
-        db = self.db(target)
         ## PROBED ONLY ON A MISS (gh#6). `unresolved_kinds` is one indexed lookup, and running it
         ## for every hit would charge the hot path for a question only a miss asks.
         entries = [
@@ -1716,7 +1754,7 @@ class QueryTools:
             wire.prune_absent_keys(entry, _DOSSIER_OPTIONAL)
         if limited is not None:
             out["_limited"] = limited
-        return self._answered(out, kind="dossiers", target=target)
+        return self._answered(out, kind="dossiers", target=target, sub_index=sub_index)
 
     ## @brief Full multi-layer dossier for one subject of ANY kind, or for several at once.
     ## @param subject ONE bare name, or a LIST of them for a batched reply.
@@ -1728,7 +1766,7 @@ class QueryTools:
     ## @param target Repo root or slug to answer from; omit for the server's derived target.
     ## @param max_body_lines Cap on the verbatim `body` excerpt; raise it to read past a `truncated` body.
     ## @return The resolved subject's payload, a batch envelope, or a miss envelope when nothing of that name is indexed.
-    ## @version 12
+    ## @version 13
     ## @req REQ-DDB-MCP-003
     ## @req REQ-DDB-QUERY-010
     def dossier(
@@ -1777,6 +1815,17 @@ class QueryTools:
         target: Annotated[
             str | None,
             Field(description="Repo root or slug to query; omit for the default target."),
+        ] = None,
+        sub_index: Annotated[
+            str | None,
+            Field(
+                description=(
+                    "Name of one PART of `target`, when the repository is split into several "
+                    "indexes — a first-party index plus one per vendored dependency. Omit for "
+                    "the whole repository. `index(action='targets')` reports each repository's sub_index "
+                    "names."
+                )
+            ),
         ] = None,
         max_body_lines: Annotated[
             int,
@@ -1863,27 +1912,29 @@ class QueryTools:
 
         @brief Composite dossier for one or several subjects of any kind.
         @return The subject payload, a batch envelope, or a miss envelope.
-        @version 12
+        @version 13
         """
         if not isinstance(subject, str):
             names = _accepted_batch(list(subject), qualified)
-            return self._batched_dossiers(names, kind, target, max_body_lines, depth)
+            return self._batched_dossiers(names, kind, target, sub_index, max_body_lines, depth)
+        db = self.db(target, sub_index)
         built = q.dossier(
-            self.db(target),
+            db,
             subject,
             kind=kind,
             qualified=qualified,
-            repo_root=self._repo_or_none(target),
+            repo_root=self._repo_or_none(target, sub_index),
             max_body_lines=max_body_lines,
             depth=depth,
             direction=direction,
             max_neighbors=max_neighbors,
         )
         return self._answered(
-            _budgeted_dossier(_flatten_subject(built, self.db(target), depth)),
+            _budgeted_dossier(_flatten_subject(built, db, depth)),
             kind="dossier",
             subject=subject,
             target=target,
+            sub_index=sub_index,
         )
 
     ## @brief The whole lock layer: every lock, the mutex count, the origin split, the nestings.
@@ -1892,7 +1943,9 @@ class QueryTools:
     ## @version 6
     ## @req REQ-DDB-MCP-003
     ## @dg_internal
-    def _lock_inventory(self, target: str | None = None) -> dict[str, Any]:
+    def _lock_inventory(
+        self, target: str | None = None, sub_index: str | None = None
+    ) -> dict[str, Any]:
         """Through `wire.one` and NOT `_many`, for the same reason `kconfig` is: the
         answer is a single object carrying every count and the sentence that keeps them
         apart, not a list. Routing it through `_many` would flatten away
@@ -1924,7 +1977,7 @@ class QueryTools:
         @return Serialized LockInventory.
         @version 4
         """
-        out = wire.one(q.lock_roster(self.db(target)))
+        out = wire.one(q.lock_roster(self.db(target, sub_index)))
         if out is not None:
             cut = _shrink_to_budget(out, ("nestings",))
             if cut:
@@ -1936,7 +1989,7 @@ class QueryTools:
                     "pairs were reduced. Ask dossier for a named lock's sections, "
                     "or read the full set from the query library's lock_nestings",
                 )
-        return self._answered(out, target=target)
+        return self._answered(out, target=target, sub_index=sub_index)
 
     ## @brief The repo's Kconfig configuration space: what build variants exist.
     ## @param symbol Restrict the gating-site list to one CONFIG symbol, or None for all.
@@ -1945,7 +1998,12 @@ class QueryTools:
     ## @version 3
     ## @req REQ-DDB-MCP-003
     ## @dg_internal
-    def _config_space(self, symbol: str | None = None, target: str | None = None) -> dict[str, Any]:
+    def _config_space(
+        self,
+        symbol: str | None = None,
+        target: str | None = None,
+        sub_index: str | None = None,
+    ) -> dict[str, Any]:
         """Returned through `wire.one` and NOT through `_many`, deliberately. `_many`
         wraps a list and produces the definitive-sounding "the database records none"
         note on an empty result — which is exactly the wrong answer here, because three
@@ -1958,10 +2016,11 @@ class QueryTools:
         @version 2
         """
         return self._answered(
-            wire.one(q.kconfig_space(self.db(target), symbol)),
+            wire.one(q.kconfig_space(self.db(target, sub_index), symbol)),
             kind="configuration space",
             subject=symbol,
             target=target,
+            sub_index=sub_index,
         )
 
     ## @brief Whole-graph trust aggregate: edge counts, coverage, per-layer state.
@@ -1969,7 +2028,9 @@ class QueryTools:
     ## @return Serialized GraphStats.
     ## @version 2
     ## @req REQ-DDB-MCP-003
-    def graph_stats(self, target: str | None = None) -> dict[str, Any]:
+    def graph_stats(
+        self, target: str | None = None, sub_index: str | None = None
+    ) -> dict[str, Any]:
         """Returned through `wire.one` and NOT through `_many`, for the same reason
         `kconfig` is: this is an ENVELOPE, not a list. Every one of its keys must reach
         the caller even at zero — an aggregate that elided `pairs_without_nonfuzzy: 0`
@@ -1987,7 +2048,10 @@ class QueryTools:
         @version 2
         """
         return self._answered(
-            wire.one(q.graph_stats(self.db(target))), kind="graph statistics", target=target
+            wire.one(q.graph_stats(self.db(target, sub_index))),
+            kind="graph statistics",
+            target=target,
+            sub_index=sub_index,
         )
 
     ## @brief Ranked search across ONE named corpus, or across the searchable text ones.
@@ -2027,6 +2091,17 @@ class QueryTools:
             str | None,
             Field(description="Repo root or slug to query; omit for the default target."),
         ] = None,
+        sub_index: Annotated[
+            str | None,
+            Field(
+                description=(
+                    "Name of one PART of `target`, when the repository is split into several "
+                    "indexes — a first-party index plus one per vendored dependency. Omit for "
+                    "the whole repository. `index(action='targets')` reports each repository's sub_index "
+                    "names."
+                )
+            ),
+        ] = None,
     ) -> dict[str, Any]:
         """ONE FINDER, N CORPORA — `search_prose` WAS NEVER A TOOL, IT WAS AN ARGUMENT.
         The two searches differed in which table they read and in nothing a caller cares
@@ -2061,7 +2136,7 @@ class QueryTools:
                 "`symbols` and `prose` RANK against `text`; `config` FILTERS its symbol "
                 "names by it; `locks` and `threads` list their whole layer and ignore it."
             )
-        return CORPORA[corpus](self, text, limit, target)
+        return CORPORA[corpus](self, text, limit, target, sub_index)
 
     ## @brief The symbol corpus: functions, variables, macros, typedefs, enums, classes, file docs.
     ## @param text Ranked search text.
@@ -2070,14 +2145,16 @@ class QueryTools:
     ## @return `_many` envelope of SymbolHit rows, graded when empty.
     ## @version 1
     ## @dg_internal
-    def _search_symbols(self, text: str, limit: int, target: str | None) -> dict[str, Any]:
+    def _search_symbols(
+        self, text: str, limit: int, target: str | None, sub_index: str | None = None
+    ) -> dict[str, Any]:
         """The pre-gh#372 `search`, verbatim, so the default path is unchanged.
 
         @brief Search the symbol corpus.
         @return Serialized SymbolHit list, best match first.
         @version 1
         """
-        db = self.db(target)
+        db = self.db(target, sub_index)
         return self._answered(
             _many(
                 q.search(db, text, limit=limit),
@@ -2086,6 +2163,7 @@ class QueryTools:
                 diagnose=lambda: search_emptiness(db, text),
             ),
             target=target,
+            sub_index=sub_index,
         )
 
     ## @brief The prose corpus: the repo's markdown, full-text.
@@ -2095,7 +2173,9 @@ class QueryTools:
     ## @return `_many` envelope of ProseHit rows, with `matched` when the query was widened.
     ## @version 3
     ## @dg_internal
-    def _search_prose(self, text: str, limit: int, target: str | None) -> dict[str, Any]:
+    def _search_prose(
+        self, text: str, limit: int, target: str | None, sub_index: str | None = None
+    ) -> dict[str, Any]:
         """The former `search_prose` tool. It now calls the GRADED form so it can say when
         the answer came from a relaxed query.
 
@@ -2111,7 +2191,8 @@ class QueryTools:
         @return Serialized ProseHit list, plus a `matched` note when the AND was relaxed.
         @version 3
         """
-        found = q.search_prose_graded(self.db(target), text, limit=limit)
+        db = self.db(target, sub_index)
+        found = q.search_prose_graded(db, text, limit=limit)
         ## THE DIAGNOSE CALLABLE, WITHOUT WHICH `_many` APPLIES ITS DEFAULT (gh#404). That default
         ## reads "a definitive empty result… Do not retry this query or fall back to guessing" —
         ## correct for a tool whose emptiness can only mean absence, and flatly wrong for a corpus
@@ -2122,7 +2203,7 @@ class QueryTools:
             found.hits,
             kind="prose matches",
             subject=text,
-            diagnose=lambda: prose_emptiness(self.db(target), text),
+            diagnose=lambda: prose_emptiness(db, text),
         )
         if found.widened:
             payload["matched"] = "some terms"
@@ -2132,7 +2213,7 @@ class QueryTools:
                 "matches first. Treat these as leads rather than as exact hits, and "
                 "re-ask with fewer, more distinctive words to tighten them."
             )
-        return self._answered(payload, target=target)
+        return self._answered(payload, target=target, sub_index=sub_index)
 
     ## @brief The thread corpus: every thread, with the origin split beside the count.
     ## @param text Ignored — a roster is enumerated, not ranked.
@@ -2142,7 +2223,9 @@ class QueryTools:
     ## @version 1
     ## @req REQ-DDB-QUERY-011
     ## @dg_internal
-    def _search_threads(self, text: str, limit: int, target: str | None) -> dict[str, Any]:
+    def _search_threads(
+        self, text: str, limit: int, target: str | None, sub_index: str | None = None
+    ) -> dict[str, Any]:
         """Through `wire.one` and NOT `_many`, as the former `thread_roster` tool was: the
         answer is a single object carrying `origin` and the sentence that says whose
         threads the count counts. `_many` would flatten both away, and it would replace a
@@ -2154,7 +2237,11 @@ class QueryTools:
         @return Serialized ThreadInventory.
         @version 1
         """
-        return self._answered(wire.one(q.thread_roster(self.db(target))), target=target)
+        return self._answered(
+            wire.one(q.thread_roster(self.db(target, sub_index))),
+            target=target,
+            sub_index=sub_index,
+        )
 
     ## @brief The file corpus: what is in this repo, by directory or by glob.
     ## @param text A path glob (`tests/*`, `*.c`) listing the matching files; empty rolls up by directory.
@@ -2163,7 +2250,9 @@ class QueryTools:
     ## @return Serialized DirectoryInventory, or the matching FileEntry rows for a glob.
     ## @version 3
     ## @dg_internal
-    def _search_files(self, text: str, limit: int, target: str | None) -> dict[str, Any]:
+    def _search_files(
+        self, text: str, limit: int, target: str | None, sub_index: str | None = None
+    ) -> dict[str, Any]:
         """THE CAPABILITY EXISTED AND NO SURFACE COULD REACH IT. `q.list_files` has always
         inventoried the indexed files with their symbol counts, and the `list_files` TOOL was
         DELETED in the four-tool consolidation — so the library kept the answer and the agent lost
@@ -2181,7 +2270,7 @@ class QueryTools:
         @return Serialized DirectoryInventory or file rows.
         @version 3
         """
-        context = self._files_context(target)
+        context = self._files_context(target, sub_index)
         if not text:
             ## THE ROLLUP IS THE WHOLE REPLY HERE, so `inventory` is dropped rather than merged: it
             ## carries the SAME `directories` and the same ~700-character `rollup_meaning`, and
@@ -2191,28 +2280,30 @@ class QueryTools:
             ## that already had one.
             ##
             ## `doc_scope` still travels, because that genuinely is not in the rollup.
+            db = self.db(target, sub_index)
             return self._answered(
                 {
-                    **(wire.one(q.directory_rollup(self.db(target))) or {}),
+                    **(wire.one(q.directory_rollup(db)) or {}),
                     **{k: v for k, v in context.items() if k != "inventory"},
                 },
                 kind="indexed file inventory",
                 target=target,
+                sub_index=sub_index,
             )
         rows = _many(
-            q.list_files(self.db(target), text),
+            q.list_files(self.db(target, sub_index), text),
             kind="indexed files",
             subject=text,
             diagnose=lambda: (self._files_miss(text), {}),
         )
-        return self._answered({**rows, **context}, target=target)
+        return self._answered({**rows, **context}, target=target, sub_index=sub_index)
 
     ## @brief The context every files reply carries, whatever was asked.
     ## @param target Repo root or slug to answer from.
     ## @return Mapping with the directory inventory and the declared doc scope.
     ## @version 1
     ## @dg_internal
-    def _files_context(self, target: str | None) -> dict[str, Any]:
+    def _files_context(self, target: str | None, sub_index: str | None = None) -> dict[str, Any]:
         """A BIGGER PAYLOAD IS THE CHEAP SIDE OF THIS TRADE. Measured 2026-08-14 on this harness: a
         turn re-reads the whole accumulated context at roughly 55-85k tokens, while these two blocks
         cost a few hundred. A payload may grow TENFOLD and still win if it removes ONE call, which
@@ -2234,7 +2325,8 @@ class QueryTools:
         @return Inventory and declared-scope blocks.
         @version 1
         """
-        rollup = wire.one(q.directory_rollup(self.db(target))) or {}
+        db = self.db(target, sub_index)
+        rollup = wire.one(q.directory_rollup(db)) or {}
         ## The rollup's own `indexed_files` total would collide with a glob reply's count and read
         ## as a contradiction, so only the per-directory rows and the sentence that says what they
         ## count travel — under a name that cannot be mistaken for the glob's own results.
@@ -2244,7 +2336,7 @@ class QueryTools:
                 "rollup_meaning": rollup.get("rollup_meaning", ""),
             }
         }
-        scope = q.doc_scope(self.db(target))
+        scope = q.doc_scope(db)
         if scope:
             context["doc_scope"] = scope
         return context
@@ -2288,7 +2380,9 @@ class QueryTools:
     ## @return Serialized KconfigSpace with the symbol inventory and no per-site rows.
     ## @version 2
     ## @dg_internal
-    def _search_config(self, text: str, limit: int, target: str | None) -> dict[str, Any]:
+    def _search_config(
+        self, text: str, limit: int, target: str | None, sub_index: str | None = None
+    ) -> dict[str, Any]:
         """THE SYMBOLS, NOT THE SITES, and previously it returned neither honestly. This corpus's
         own contract is "the question `dossier` cannot answer: which symbols EXIST" — and it was
         asking for the whole space with no symbol, so the reply carried every gate SITE instead.
@@ -2311,10 +2405,13 @@ class QueryTools:
         @version 2
         """
         return self._answered(
-            wire.one(q.kconfig_space(self.db(target), text or None, include_gates=False)),
+            wire.one(
+                q.kconfig_space(self.db(target, sub_index), text or None, include_gates=False)
+            ),
             kind="configuration space",
             subject=text or None,
             target=target,
+            sub_index=sub_index,
         )
 
 
@@ -2338,11 +2435,13 @@ class QueryTools:
 ##     whether `text` is read.
 ## Flattening the second kind into the first is the exact misreport `LockInventory.
 ## row_meaning` exists to prevent, so they are deliberately NOT normalised to one shape.
-CORPORA: dict[str, Callable[[QueryTools, str, int, str | None], dict[str, Any]]] = {
+CORPORA: dict[str, Callable[[QueryTools, str, int, str | None, str | None], dict[str, Any]]] = {
     "symbols": QueryTools._search_symbols,
     "prose": QueryTools._search_prose,
     "files": QueryTools._search_files,
-    "locks": lambda tools, _text, _limit, target: tools._lock_inventory(target),
+    "locks": lambda tools, _text, _limit, target, sub_index: tools._lock_inventory(
+        target, sub_index
+    ),
     "threads": QueryTools._search_threads,
     "config": QueryTools._search_config,
 }

@@ -593,3 +593,499 @@ async def test_a_stalled_refresh_does_not_hang_a_later_query(
         "the holder finished, so the waiter was never actually made to queue — this test would "
         "be vacuous"
     )
+
+
+## @brief A sub-index is addressed by name, and a bare root prefers the whole-repo index.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_a_sub_index_resolves_by_name(tmp_path: Path) -> None:
+    """TWO SPELLINGS, NOT THREE. `sub_index` is its own parameter rather than a suffix folded
+    into `target` — a composite string a caller has to construct has no schema of its own for a
+    model to read, while a second named parameter does, and `index(action='targets')` reports the
+    legal values without anyone building a string. So a sub-index resolves by (`target`,
+    `sub_index`) together, or by its bare slug alone.
+
+    A BARE ROOT WITH NO `sub_index` MEANS THE WHOLE REPOSITORY when one is indexed — not
+    "whichever sub-index sorted first". That distinction is the point of the next test.
+
+    @brief Sub-indexes resolve by (target, sub_index) and by slug.
+    @version 2
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "split"
+    repo.mkdir()
+
+    whole = reg.register(repo)
+    vendor = reg.register(repo, name="llama-cpp")
+
+    assert state.resolve_target(str(repo.resolve()), "llama-cpp").slug == vendor.slug
+    assert state.resolve_target(vendor.slug).slug == vendor.slug
+    assert state.resolve_target(str(repo.resolve())).slug == whole.slug, (
+        "a bare repository path must resolve to the whole-repository index, not a sub-index"
+    )
+
+
+## @brief With a first-party sub-index present, a bare root defaults to it.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 2
+def test_a_bare_root_with_first_party_defaults_to_it(tmp_path: Path) -> None:
+    """OWNER RULING: first-party IS the index for a split repository, never one of several
+    coequal sub-indexes guessed among. `Answering`'s docstring names the failure this module
+    guards hardest against — "answering from the wrong index is this project's most expensive
+    recorded defect" — and treating a repo's OWN source as just another name to disambiguate
+    among was itself heading toward that shape: every plain call to a split repository would
+    have had to name `sub_index='first-party'` explicitly or be refused, breaking the server's
+    own served promise that omitting `target`/`sub_index` still gets an answer.
+
+    A vendored sibling is reached only by FOLLOWING AN EDGE that names it (Phase 2), never by
+    being offered as a coin-flip default alongside first-party.
+
+    @brief A bare root with a first-party sibling resolves to it, not to a refusal.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "onlysubs"
+    repo.mkdir()
+
+    first_party = reg.register(repo, name="first-party")
+    reg.register(repo, name="llama-cpp")
+
+    resolved = state.resolve_target(str(repo.resolve()))
+    assert resolved.slug == first_party.slug, (
+        "a bare root with a first-party sub-index must default to it, not refuse or guess"
+    )
+
+
+## @brief With only vendored sub-indexes (no first-party, no whole), a bare root is refused.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_a_bare_root_with_only_vendored_siblings_is_refused(tmp_path: Path) -> None:
+    """THE GENUINELY UNGUESSABLE CASE. Once first-party is preferred as the default, this is
+    the only shape left with no principled default: a repo split with no first-party record and
+    no whole-repository record either — an unconventional registry state (e.g. only a vendored
+    tree was ever explicitly built), not the shape `derive_sub_indexes` produces. Refusing and
+    naming the alternatives beats guessing among coequal-looking siblings for the same reason it
+    always has: a caller who cannot act on the error is being told half of one.
+
+    @brief A bare root with only vendored siblings raises and lists them.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "onlyvendored"
+    repo.mkdir()
+
+    reg.register(repo, name="llama-cpp")
+    reg.register(repo, name="opencv")
+
+    with pytest.raises(RuntimeError) as excinfo:
+        state.resolve_target(str(repo.resolve()))
+    message = str(excinfo.value)
+    ## The names are the actionable half; without them the caller knows only that it failed.
+    assert "llama-cpp" in message and "opencv" in message, message
+
+
+## @brief dossier() and search() reach the named sub-index's own database.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_dossier_and_search_route_to_the_named_sub_index(tmp_path: Path) -> None:
+    """END TO END THROUGH THE TOOL METHODS THEMSELVES, not through `resolve_target` alone —
+    `sub_index` was threaded through `db()`, `_route()`, `_answered()` and every `_search_*`
+    handler individually, and a routing-layer test cannot see a spot where one of those forwards
+    stayed `None` on its way to `self.db(...)`. Each sub-index gets its own marker table, so the
+    only way `dossier`/`search` can see the right marker is if `sub_index` reached the file.
+
+    ALSO PINS THE REPLY'S OWN `sub_index` FIELD. `_target_name` reports the shared repo root for
+    every sub-index of one repository, so a reply that omitted `sub_index` would make a
+    first-party answer and a vendored answer read as indistinguishable — the wrong-index failure
+    this module's docstring names as the project's most expensive.
+
+    @brief dossier/search reach the sub-index's own file and label their reply with its name.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "split"
+    repo.mkdir()
+
+    first = reg.register(repo, name="first-party")
+    vendor = reg.register(repo, name="llama-cpp")
+    for target, marker in ((first, "FIRST_PARTY_MARK"), (vendor, "VENDOR_MARK")):
+        Path(target.db_path).parent.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(target.db_path)
+        conn.execute(f"CREATE TABLE {marker} (x INTEGER)")
+        conn.commit()
+        conn.close()
+        write_build_signature(Path(target.db_path))
+
+    def _table_exists(db_path: str, name: str) -> bool:
+        conn = sqlite3.connect(db_path)
+        try:
+            row = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
+            ).fetchone()
+        finally:
+            conn.close()
+        return row is not None
+
+    ## db() is the seam every tool method funnels through; proving it resolves to the right
+    ## FILE is the load-bearing half of this test.
+    db_first = state.tools.db(str(repo.resolve()), "first-party")
+    db_vendor = state.tools.db(str(repo.resolve()), "llama-cpp")
+    assert _table_exists(str(db_first), "FIRST_PARTY_MARK")
+    assert not _table_exists(str(db_first), "VENDOR_MARK")
+    assert _table_exists(str(db_vendor), "VENDOR_MARK")
+    assert not _table_exists(str(db_vendor), "FIRST_PARTY_MARK")
+
+    ## And a reply is labelled with the sub-index that actually answered it, not merely the
+    ## shared repo root both would report identically.
+    reply = state.tools.search(
+        "nonexistent-symbol", target=str(repo.resolve()), sub_index="llama-cpp"
+    )
+    assert reply.get("sub_index") == "llama-cpp", (
+        f"reply did not name which sub-index answered: {reply.get('sub_index')!r}"
+    )
+
+
+## @brief index(action='refresh') with sub_index builds only the named sub-index.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+@pytest.mark.anyio
+async def test_refresh_with_sub_index_builds_only_that_sub_index(tmp_path: Path) -> None:
+    """END TO END THROUGH `build_or_refresh` ITSELF, not through `_build_subject` alone —
+    `sub_index` was threaded through `build_or_refresh`'s own signature, `_index_action` and
+    `index()`, and a test against `_build_subject` directly cannot see a spot where one of
+    those outer forwards silently dropped back to `None` and rebuilt the whole repository.
+
+    The repository has never been registered before this call, which is deliberately the
+    harder case: `resolve_target`'s sibling match cannot help, so this also proves the
+    unregistered-directory fallback carries `sub_index` through rather than deriving the
+    whole-repo target for a caller that named a part.
+
+    @brief A named sub_index reaches `_run_build` and reports itself on the reply.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "fresh_split"
+    repo.mkdir()
+    builds: list[tuple[str, str | None]] = []
+
+    def _fake_build(
+        target, doxyfile, scope="from-guard", exclude=None, options=None, skip_if_fresh=False
+    ):
+        """@brief Stand-in build recording (repo_path, sub-index name) and leaving a current index.
+        @version 1
+        """
+        builds.append((target.repo_path, target.name))
+        Path(target.db_path).parent.mkdir(parents=True, exist_ok=True)
+        sqlite3.connect(target.db_path).close()
+        write_build_signature(Path(target.db_path))
+        return {"ok": True, "built": True, "doxyfile": "(stand-in)", "output": ""}
+
+    state._run_build = _fake_build
+
+    result = await state.build_or_refresh(_FakeCtx(), target=str(repo), sub_index="llama-cpp")
+
+    assert result["ok"] is True, result
+    assert builds == [(str(repo), "llama-cpp")], (
+        f"expected exactly one build of the named sub-index, got {builds}"
+    )
+    assert result["target"] == str(repo)
+    assert result.get("sub_index") == "llama-cpp", (
+        f"reply did not name which sub-index was built: {result.get('sub_index')!r}"
+    )
+
+    ## And the registry now knows about it by name, distinct from the (unbuilt) whole repo.
+    resolved = state.resolve_target(str(repo.resolve()), "llama-cpp")
+    assert resolved.name == "llama-cpp"
+
+
+## @brief Auto-refresh, triggered by a query, refreshes only the named sub-index.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+@pytest.mark.anyio
+async def test_auto_refresh_targets_the_named_sub_index_not_a_sibling(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`_answering_with_refresh` forwards `kwargs.get("sub_index")` to `_auto_refresh`, which
+    resolves with it before deciding whether to build — this proves both forwards land, by
+    building two sibling sub-indexes and confirming ONLY the one whose NAME the query passed
+    gets rebuilt.
+
+    `_data_stale` IS FAKED, DELIBERATELY, keyed off the resolved target's own `.name` rather
+    than reproducing its real data-vs-schema-vs-code axis logic (already covered elsewhere,
+    e.g. `test_a_stalled_refresh_lets_the_waiter_return`'s use of the same seam). What this
+    test exists to catch is a DIFFERENT bug: `sub_index` failing to reach either the
+    resolution call or the build call, so the wrong sibling — or no sibling — gets rebuilt. A
+    version that dropped `sub_index` anywhere on this path would either refresh nothing
+    (falling through to `self.active`, which is None here) or rebuild the wrong sibling —
+    both indistinguishable from success unless the build calls are recorded.
+
+    @brief A query naming a stale sub_index refreshes exactly that sub-index.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "auto_split"
+    repo.mkdir()
+
+    stale = reg.register(repo, name="first-party")
+    current = reg.register(repo, name="llama-cpp")
+    for target in (stale, current):
+        Path(target.db_path).parent.mkdir(parents=True, exist_ok=True)
+        sqlite3.connect(target.db_path).close()
+        write_build_signature(Path(target.db_path))
+
+    monkeypatch.setattr(state, "_data_stale", lambda t: t.name == "first-party")
+
+    builds: list[tuple[str, str | None]] = []
+
+    def _fake_build(
+        target, doxyfile, scope="from-guard", exclude=None, options=None, skip_if_fresh=False
+    ):
+        """@brief Stand-in build recording (repo_path, sub-index name) and leaving a current index.
+        @version 1
+        """
+        builds.append((target.repo_path, target.name))
+        Path(target.db_path).parent.mkdir(parents=True, exist_ok=True)
+        sqlite3.connect(target.db_path).close()
+        write_build_signature(Path(target.db_path))
+        return {"ok": True, "built": True, "doxyfile": "(stand-in)", "output": ""}
+
+    state._run_build = _fake_build
+
+    await state._auto_refresh(str(repo.resolve()), "first-party")
+
+    assert builds == [(str(repo), "first-party")], (
+        f"expected exactly one refresh of the stale, named sub-index, got {builds}"
+    )
+
+    ## And the counter-case in the same call: naming the CURRENT sibling triggers nothing.
+    builds.clear()
+    await state._auto_refresh(str(repo.resolve()), "llama-cpp")
+    assert builds == [], f"a query naming the current sibling must not trigger a build: {builds}"
+
+
+## @brief An unregistered repository still derives the named sub-index, not the whole repo.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_an_unregistered_sub_index_derives_its_own_target(tmp_path: Path) -> None:
+    """THE FIRST BUILD OF A SUB-INDEX HAS NO REGISTRY ENTRY TO MATCH — `siblings` is empty,
+    so `resolve_target(target, sub_index)` falls all the way through to the
+    unregistered-directory fallback. That fallback derives via `target_for`, and `sub_index`
+    has to reach that call: dropping it there silently derives the WHOLE-repo target — same
+    `repo_path`, but a DIFFERENT slug and `db_path` — for a caller that named a part.
+
+    `build_or_refresh` cannot see this mutation (it only reads `.repo_path` off the result),
+    which is why this is a separate test: the QUERY path is what reads `.db_path`/`.slug`.
+
+    @brief Resolving a named sub_index on an unregistered repo derives that sub-index's own Target.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "never_registered"
+    repo.mkdir()
+
+    whole = st.target_for(repo, reg.home)
+    named = state.resolve_target(str(repo.resolve()), "llama-cpp")
+
+    assert named.name == "llama-cpp"
+    assert named.slug != whole.slug, (
+        "a named sub_index on an unregistered repo must not derive the whole-repo target"
+    )
+    assert named.db_path != whole.db_path
+
+
+## @brief The registered `index(action='refresh')` tool forwards sub_index end to end.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+@pytest.mark.anyio
+async def test_index_refresh_tool_forwards_sub_index_through_the_dispatcher(
+    tmp_path: Path,
+) -> None:
+    """ONE LAYER ABOVE `build_or_refresh` ITSELF. `sub_index` was added to `index()`'s own
+    Annotated parameters and to `_index_action`'s dispatch of the `refresh` branch — a test
+    against `build_or_refresh` directly cannot see either forward silently dropping back to
+    `None`, because it never goes through them.
+
+    @brief `index(action='refresh', sub_index=...)` reaches the named sub-index's own build.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "dispatch_split"
+    repo.mkdir()
+    builds: list[tuple[str, str | None]] = []
+
+    def _fake_build(
+        target, doxyfile, scope="from-guard", exclude=None, options=None, skip_if_fresh=False
+    ):
+        """@brief Stand-in build recording (repo_path, sub-index name) and leaving a current index.
+        @version 1
+        """
+        builds.append((target.repo_path, target.name))
+        Path(target.db_path).parent.mkdir(parents=True, exist_ok=True)
+        sqlite3.connect(target.db_path).close()
+        write_build_signature(Path(target.db_path))
+        return {"ok": True, "built": True, "doxyfile": "(stand-in)", "output": ""}
+
+    state._run_build = _fake_build
+
+    result = await state.index(
+        _FakeCtx(), action="refresh", target=str(repo), sub_index="llama-cpp"
+    )
+
+    assert result.get("ok") is True, result
+    assert builds == [(str(repo), "llama-cpp")], (
+        f"index(action='refresh', sub_index=...) must build exactly the named sub-index, "
+        f"got {builds}"
+    )
+    assert result.get("sub_index") == "llama-cpp"
+
+
+## @brief adopt()'s default target prefers first-party over the whole-repo target.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_adopt_defaults_to_first_party_on_a_split_repo(tmp_path: Path) -> None:
+    """THE FULLY-OMITTED-TARGET PATH, distinct from and upstream of `resolve_target`. Every
+    tool call that names no `target` at all goes through `ensure_target` -> `adopt`, which
+    NEVER consulted the registry before this fix — it always derived the unnamed whole-repo
+    Target via `target_for`, bypassing `_preferred_default` entirely. On a genuinely split
+    repository (first-party + vendored registered, no whole-repo record — the shape
+    `derive_sub_indexes` actually produces) every omitted-target call would have resolved to a
+    database that was never built, contradicting the server's own served promise that omitting
+    the argument still gets an answer.
+
+    @brief adopt() on a split repo's root activates the first-party sub-index.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "adopt_split"
+    repo.mkdir()
+
+    first_party = reg.register(repo, name="first-party")
+    reg.register(repo, name="llama-cpp")
+
+    active = state.adopt(str(repo), st.TARGET_SOURCE_FLAG)
+
+    assert active.slug == first_party.slug, (
+        f"adopt() on a split repo must activate first-party, got {active.slug!r}"
+    )
+
+
+## @brief adopt() on an unsplit repo is unaffected — still derives the whole-repo target.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_adopt_still_derives_the_whole_repo_when_unsplit(tmp_path: Path) -> None:
+    """THE COUNTER-CASE, guarding against an over-broad fix. A repository that has never been
+    split — the overwhelming common case, and the shape every pre-existing `adopt` test already
+    covers — must keep resolving to the whole-repo target exactly as before; nothing about
+    preferring first-party should touch a repo with no sub-indexes at all.
+
+    @brief adopt() on an unregistered/unsplit repo still derives the whole-repo Target.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "adopt_whole"
+    repo.mkdir()
+
+    active = state.adopt(str(repo), st.TARGET_SOURCE_FLAG)
+
+    assert active.name is None, f"an unsplit repo must adopt the whole-repo target, got {active}"
+    assert active.repo_path == str(repo.resolve())
+
+
+## @brief The registry-wide refusal now also catches sub_index alone, without target.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+@pytest.mark.anyio
+async def test_index_action_refuses_sub_index_alone_on_registry_wide_actions(
+    tmp_path: Path,
+) -> None:
+    """THE ACCEPTED-BUT-UNREAD KEY, this project's own most repeated defect. `_index_action`'s
+    guard used to check only `target is not None`, so `sub_index='llama-cpp'` with no `target`
+    on `action='status'|'targets'|'cull'` was accepted into the signature and never read —
+    silently ignored rather than refused, on a registry-wide action that has no repository to
+    apply it to.
+
+    @brief sub_index alone on a non-routing action raises, naming sub_index in the message.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+
+    for action in ("status", "targets", "cull"):
+        with pytest.raises(ValueError) as excinfo:
+            await state._index_action(
+                _FakeCtx(),
+                action,
+                None,
+                "llama-cpp",
+                False,
+                None,
+                "from-guard",
+                None,
+                None,
+                30.0,
+                True,
+            )
+        assert "sub_index" in str(excinfo.value), f"action={action!r}: {excinfo.value}"
+
+
+## @brief dossier's body panel survives on a repo with only vendored siblings registered.
+## @param tmp_path Pytest temp dir.
+## @param rich_db Session-scoped synthetic clew.db fixture.
+## @param repo_root The real source tree rich_db's paths point at.
+## @return None.
+## @version 2
+@pytest.mark.anyio
+async def test_dossier_body_survives_on_a_split_repo_with_no_whole_index(
+    tmp_path: Path, rich_db: Path, repo_root: Path
+) -> None:
+    """`_repo_or_none` used to drop `sub_index` entirely, so `repo(target, None)` — inside a
+    non-raising wrapper — hit `resolve_target`'s "ambiguous bare root" refusal for any repo whose
+    registered siblings include neither a whole-repo record nor a first-party one. The exception
+    was swallowed and the panel silently vanished — the database routed correctly the whole time
+    (via the explicit `sub_index` given to `db()`), so this read as "this function has no
+    recorded source" rather than the routing gap it was.
+
+    REGISTERED WITH ONLY VENDORED SIBLINGS, deliberately — not first-party — because
+    `resolve_target`'s bare-path branch now DEFAULTS to a first-party sibling when one exists
+    (a separate, later fix in this same session), and that default would resolve the tree
+    correctly even with `sub_index` dropped, masking exactly the bug this test exists to catch.
+    Only the "no default to fall back on" shape isolates it.
+
+    @brief A dossier naming a real sub_index on a split repo still carries its body panel.
+    @version 2
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    vendor = state.registry.register(str(repo_root), name="llama-cpp")
+    Path(vendor.db_path).write_bytes(rich_db.read_bytes())
+    state.registry.register(str(repo_root), name="opencv")
+
+    reply = state.tools.dossier("sensor_poll", target=str(repo_root), sub_index="llama-cpp")
+
+    assert reply.get("found") is not False, "premise: the index knows the symbol"
+    assert "body" in reply, (
+        "the body panel must be present — the sub_index-less repo() call must not have "
+        "silently swallowed an 'ambiguous bare root' refusal"
+    )
+    assert "sensor_poll" in "\n".join(reply["body"]["lines"])

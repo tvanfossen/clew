@@ -3657,10 +3657,10 @@ async def test_a_query_refreshes_only_when_the_data_axis_is_stale(
 @pytest.mark.anyio
 async def test_invoking_a_registered_tool_runs_the_refresh_hook() -> None:
     """CLOSES A FAIL-OPEN THAT MUTATION FOUND. `server.py`'s
-    `await before(kwargs.get("target"))` is the ONE line that makes a query refresh, and
-    `register_query_tools(..., before=None)` falls back to a plain binding — so an omitted
-    argument silently disables the feature. Deleting that `await`, or passing `before=None` at
-    either production registration, left the entire suite green.
+    `await before(kwargs.get("target"), kwargs.get("sub_index"))` is the ONE line that makes
+    a query refresh, and `register_query_tools(..., before=None)` falls back to a plain
+    binding — so an omitted argument silently disables the feature. Deleting that `await`, or
+    passing `before=None` at either production registration, left the entire suite green.
 
     Neither sibling test can see it. The schema test reads
     `_tool_manager.get_tool(name).parameters`, which comes from `__wrapped__`'s signature and
@@ -3673,17 +3673,22 @@ async def test_invoking_a_registered_tool_runs_the_refresh_hook() -> None:
     BEFORE the query, so an exception from the query cannot mask a hook that never fired, while
     a hook that never fired cannot be hidden by a query that succeeds.
 
-    @brief A registered tool calls the hook with the caller's target.
+    THE HOOK TAKES `sub_index` TOO, now, and a fake with the wrong arity is exactly the trap
+    this test itself was written to catch: `call_tool` is wrapped in `contextlib.suppress`, so
+    a hook whose signature mismatches the wrapper's two-arg call raises INSIDE the suppressed
+    region and `seen` stays empty — reading identically to the hook never running at all.
+
+    @brief A registered tool calls the hook with the caller's target and sub_index.
     @return None.
-    @version 1
+    @version 2
     """
     import contextlib
     import inspect
 
-    seen: list[str | None] = []
+    seen: list[tuple[str | None, str | None]] = []
 
-    async def hook(target: str | None) -> None:
-        seen.append(target)
+    async def hook(target: str | None, sub_index: str | None = None) -> None:
+        seen.append((target, sub_index))
 
     mcp = MCPServer("hook-probe")
     tools = QueryTools(lambda: "/nonexistent.db", lambda: "/tmp", lambda: [], None)
@@ -3704,10 +3709,10 @@ async def test_invoking_a_registered_tool_runs_the_refresh_hook() -> None:
             "search", {"text": "anything", "target": "/some/repo"}, None
         )
 
-    assert seen == ["/some/repo"], (
+    assert seen == [("/some/repo", None)], (
         f"invoking the registered `search` tool did not run the refresh hook with the "
-        f"caller's target (hook calls: {seen}). The wrapper is what makes a stale query "
-        f"refresh, and without this assertion deleting it leaves the suite green"
+        f"caller's target and sub_index (hook calls: {seen}). The wrapper is what makes a "
+        f"stale query refresh, and without this assertion deleting it leaves the suite green"
     )
 
 
