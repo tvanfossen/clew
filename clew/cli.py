@@ -740,7 +740,7 @@ def _fold_scope_into_args(args: argparse.Namespace, scope: DerivedScope) -> None
 ## @brief Apply `--scope from-guard` by folding the resolved roots into the args.
 ## @param args Parsed CLI arguments (mutated in place).
 ## @param repo_root Repo root whose declaration is read.
-## @version 8
+## @version 9
 ## @req REQ-DDB-CLI-001
 def _apply_scope(args: argparse.Namespace, repo_root: Path) -> None:
     """`--scope from-guard` RESOLVES the indexed file set from the target's own
@@ -761,7 +761,7 @@ def _apply_scope(args: argparse.Namespace, repo_root: Path) -> None:
     would only be a way for the two to disagree.
 
     @brief Resolve the build's file scope from the requested source.
-    @version 8
+    @version 9
     """
     args.replace_input = False
     if args.scope != SCOPE_FROM_GUARD:
@@ -812,14 +812,26 @@ def _apply_scope(args: argparse.Namespace, repo_root: Path) -> None:
             rejection,
         )
         sys.exit(1)
-    _fold_scope_into_args(
-        args,
-        derive_scope_logged(
-            repo_root,
-            getattr(args, "guard_config", None),
-            getattr(args, INDEX_SCOPE_SECTION, None),
-        ),
+    derived = derive_scope_logged(
+        repo_root,
+        getattr(args, "guard_config", None),
+        getattr(args, INDEX_SCOPE_SECTION, None),
     )
+    _fold_scope_into_args(args, derived)
+    ## STASHED FOR `_scope_provenance`, WHICH USED TO RE-DERIVE THIS FROM SCRATCH — a second
+    ## full `nested_repo_roots`/`_gitignored_paths` walk of the whole repository, on every
+    ## single build, timed and logged as its own segment precisely because it was known to be
+    ## this expensive (see that function's own docstring). Measured on a real repo with 1.2GB
+    ## of vendored trees under one nested boundary: ~23s of a ~55s incremental refresh, TWICE
+    ## (once here, once there) for a result that cannot have changed between the two calls.
+    ##
+    ## It was also not merely SLOW — it was WRONG for a vendored sub-index build. This
+    ## function receives `stated` (a tier-1 caller's own `index_scope`, e.g. a sub-index's
+    ## `roots` override); `_scope_provenance`'s independent re-derivation never did, so the
+    ## PROVENANCE it recorded could silently describe a DIFFERENT scope than the one that was
+    ## actually built. Reusing this exact object fixes both: one walk, and the reported scope
+    ## is what was applied, not a second guess at it.
+    args.scope_result = derived
 
 
 ## @brief Normalize one stated exclusion to a repo-relative path, or refuse it.
@@ -2436,7 +2448,7 @@ def _doxyfile_scope(root: Path, rel: Any, stated: str | None = None) -> dict[str
 ## @param repo_root Repository root, or None when unknown.
 ## @param args Parsed CLI arguments, which carry the tier the build actually took.
 ## @return {source, reason, roots, excludes, operator_excludes, doxyfile_*} as strings; empty when nothing was resolved.
-## @version 10
+## @version 11
 ## @req REQ-DDB-CONFIG-001
 def _scope_provenance(repo_root: Path | None, args: argparse.Namespace) -> dict[str, str]:
     """A PURE FUNCTION OF THE REPO AGAIN (gh#333). It used to read the tier from
@@ -2470,7 +2482,7 @@ def _scope_provenance(repo_root: Path | None, args: argparse.Namespace) -> dict[
 
     @brief Flatten the resolved scope into build_meta values, repo-relative.
     @return Mapping of provenance keys to strings.
-    @version 8
+    @version 9
     """
     if repo_root is None:
         return {}
@@ -2485,11 +2497,25 @@ def _scope_provenance(repo_root: Path | None, args: argparse.Namespace) -> dict[
             ),
             OPERATOR_EXCLUDES_KEY: SCOPE_LIST_SEPARATOR.join(getattr(args, "exclude", None) or ()),
         }
-    try:
-        derived = derive_scope(root, getattr(args, "guard_config", None))
-    except Exception as exc:
-        logger.warning("scope provenance not recorded (%s)", exc)
-        return {}
+    ## REUSED, NOT RE-DERIVED, WHEN `_apply_scope` ALREADY COMPUTED ONE. `scope_result` is the
+    ## EXACT `DerivedScope` the build actually used — stashed there for this reason — so using
+    ## it here is not an optimisation that happens to agree with the real scope, it is THE real
+    ## scope. Re-deriving independently (the fallback below, for a caller that reaches this
+    ## function without going through `_apply_scope` first) walks the whole repository again,
+    ## AND — for a tier-1 caller-stated scope such as a vendored sub-index's `roots` override —
+    ## never saw `stated` at all, so it could silently report a DIFFERENT boundary than the one
+    ## that was built.
+    cached = getattr(args, "scope_result", None)
+    if cached is not None:
+        derived = cached
+    else:
+        try:
+            derived = derive_scope(
+                root, getattr(args, "guard_config", None), getattr(args, INDEX_SCOPE_SECTION, None)
+            )
+        except Exception as exc:
+            logger.warning("scope provenance not recorded (%s)", exc)
+            return {}
 
     def _rel(path: Path) -> str:
         """@brief Repo-relative spelling, or the bare name when outside the repo."""

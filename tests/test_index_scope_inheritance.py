@@ -25,6 +25,7 @@ import logging
 import textwrap
 from pathlib import Path
 
+import pytest
 from gitfixture import repo_with_submodules
 
 from clew import scope as sc
@@ -392,4 +393,87 @@ def test_the_winning_tier_reaches_the_stamped_provenance(tmp_path: Path) -> None
     assert "inherited" not in _scope_provenance(root, resolved), (
         "nothing is inherited from the gate any more, and a stamped key nothing sets "
         "is a fact a consumer would read as one"
+    )
+
+
+## @brief scope_provenance reuses apply_scope's own derivation instead of re-walking.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_scope_provenance_reuses_apply_scopes_derivation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """FIELD-REPORTED cost, from a real repo with 1.2GB under one nested tree: `derive_scope`
+    ran TWICE per build — once inside `_apply_scope` to fold the boundary into the build
+    args, once again inside `_scope_provenance` to record it — each a full
+    `nested_repo_roots`/`_gitignored_paths` walk of the whole repository. `_scope_provenance`
+    even had its OWN timing segment specifically because this was already known to be
+    expensive; nothing before this fix skipped the second walk.
+
+    Verified by MONKEYPATCHING `derive_scope` (the function `_scope_provenance` falls back
+    to) to raise if called at all — `_apply_scope` calls `derive_scope_logged`, a different
+    name, so this isolates exactly the redundant call without touching the real derivation
+    machinery underneath either of them.
+
+    @brief _apply_scope's own DerivedScope is reused, not re-derived, by _scope_provenance.
+    @version 1
+    """
+    import argparse
+
+    from clew import cli as clew_cli
+    from clew.cli import _apply_scope, _scope_provenance
+
+    root = _repo_with_exempt_fixture(tmp_path / "reused")
+    args = argparse.Namespace(
+        scope=sc.SCOPE_FROM_GUARD,
+        guard_config=None,
+        doxyfile=None,
+        exclude=None,
+        extra_input=None,
+        extra_exclude=None,
+    )
+    _apply_scope(args, root)
+    assert args.scope_result is not None, "premise: _apply_scope must stash what it derived"
+
+    def _boom(*_a: object, **_k: object) -> None:
+        raise AssertionError("derive_scope was called again — the cached scope was not reused")
+
+    monkeypatch.setattr(clew_cli, "derive_scope", _boom)
+    provenance = _scope_provenance(root, args)
+
+    assert provenance["source"] == sc.SOURCE_WHOLE_REPO
+
+
+## @brief scope_provenance's own fallback re-derivation also honours a stated scope.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_scope_provenance_fallback_also_reads_a_stated_scope(tmp_path: Path) -> None:
+    """THE LATENT MISMATCH THIS FIX ALSO CLOSES, found while tracing the redundant walk:
+    `_scope_provenance`'s own re-derivation call never passed `stated` — a tier-1 caller's
+    own `index_scope` (e.g. a vendored sub-index's `roots` override) — so a caller reaching
+    this function WITHOUT going through `_apply_scope` first (this test) could get back
+    provenance describing a DIFFERENT boundary than the one a caller who DID pass `stated`
+    actually built. Exercises the fallback path specifically — no `scope_result` cached.
+
+    @brief The fallback re-derivation path also honours args.index_scope when present.
+    @version 1
+    """
+    import argparse
+
+    from clew.cli import _scope_provenance
+
+    root = _repo_with_exempt_fixture(tmp_path / "stated_fallback")
+    args = argparse.Namespace(
+        scope=sc.SCOPE_FROM_GUARD,
+        guard_config=None,
+        doxyfile=None,
+        exclude=None,
+        index_scope={"roots": ["src"]},
+    )
+
+    provenance = _scope_provenance(root, args)
+
+    assert provenance["source"] == sc.SOURCE_DECLARED, (
+        f"a stated index_scope must be honoured by the fallback path too, got: {provenance}"
     )
