@@ -720,3 +720,205 @@ def test_dossier_and_search_route_to_the_named_sub_index(tmp_path: Path) -> None
     assert reply.get("sub_index") == "llama-cpp", (
         f"reply did not name which sub-index answered: {reply.get('sub_index')!r}"
     )
+
+
+## @brief index(action='refresh') with sub_index builds only the named sub-index.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+@pytest.mark.anyio
+async def test_refresh_with_sub_index_builds_only_that_sub_index(tmp_path: Path) -> None:
+    """END TO END THROUGH `build_or_refresh` ITSELF, not through `_build_subject` alone —
+    `sub_index` was threaded through `build_or_refresh`'s own signature, `_index_action` and
+    `index()`, and a test against `_build_subject` directly cannot see a spot where one of
+    those outer forwards silently dropped back to `None` and rebuilt the whole repository.
+
+    The repository has never been registered before this call, which is deliberately the
+    harder case: `resolve_target`'s sibling match cannot help, so this also proves the
+    unregistered-directory fallback carries `sub_index` through rather than deriving the
+    whole-repo target for a caller that named a part.
+
+    @brief A named sub_index reaches `_run_build` and reports itself on the reply.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "fresh_split"
+    repo.mkdir()
+    builds: list[tuple[str, str | None]] = []
+
+    def _fake_build(
+        target, doxyfile, scope="from-guard", exclude=None, options=None, skip_if_fresh=False
+    ):
+        """@brief Stand-in build recording (repo_path, sub-index name) and leaving a current index.
+        @version 1
+        """
+        builds.append((target.repo_path, target.name))
+        Path(target.db_path).parent.mkdir(parents=True, exist_ok=True)
+        sqlite3.connect(target.db_path).close()
+        write_build_signature(Path(target.db_path))
+        return {"ok": True, "built": True, "doxyfile": "(stand-in)", "output": ""}
+
+    state._run_build = _fake_build
+
+    result = await state.build_or_refresh(_FakeCtx(), target=str(repo), sub_index="llama-cpp")
+
+    assert result["ok"] is True, result
+    assert builds == [(str(repo), "llama-cpp")], (
+        f"expected exactly one build of the named sub-index, got {builds}"
+    )
+    assert result["target"] == str(repo)
+    assert result.get("sub_index") == "llama-cpp", (
+        f"reply did not name which sub-index was built: {result.get('sub_index')!r}"
+    )
+
+    ## And the registry now knows about it by name, distinct from the (unbuilt) whole repo.
+    resolved = state.resolve_target(str(repo.resolve()), "llama-cpp")
+    assert resolved.name == "llama-cpp"
+
+
+## @brief Auto-refresh, triggered by a query, refreshes only the named sub-index.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+@pytest.mark.anyio
+async def test_auto_refresh_targets_the_named_sub_index_not_a_sibling(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`_answering_with_refresh` forwards `kwargs.get("sub_index")` to `_auto_refresh`, which
+    resolves with it before deciding whether to build — this proves both forwards land, by
+    building two sibling sub-indexes and confirming ONLY the one whose NAME the query passed
+    gets rebuilt.
+
+    `_data_stale` IS FAKED, DELIBERATELY, keyed off the resolved target's own `.name` rather
+    than reproducing its real data-vs-schema-vs-code axis logic (already covered elsewhere,
+    e.g. `test_a_stalled_refresh_lets_the_waiter_return`'s use of the same seam). What this
+    test exists to catch is a DIFFERENT bug: `sub_index` failing to reach either the
+    resolution call or the build call, so the wrong sibling — or no sibling — gets rebuilt. A
+    version that dropped `sub_index` anywhere on this path would either refresh nothing
+    (falling through to `self.active`, which is None here) or rebuild the wrong sibling —
+    both indistinguishable from success unless the build calls are recorded.
+
+    @brief A query naming a stale sub_index refreshes exactly that sub-index.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "auto_split"
+    repo.mkdir()
+
+    stale = reg.register(repo, name="first-party")
+    current = reg.register(repo, name="llama-cpp")
+    for target in (stale, current):
+        Path(target.db_path).parent.mkdir(parents=True, exist_ok=True)
+        sqlite3.connect(target.db_path).close()
+        write_build_signature(Path(target.db_path))
+
+    monkeypatch.setattr(state, "_data_stale", lambda t: t.name == "first-party")
+
+    builds: list[tuple[str, str | None]] = []
+
+    def _fake_build(
+        target, doxyfile, scope="from-guard", exclude=None, options=None, skip_if_fresh=False
+    ):
+        """@brief Stand-in build recording (repo_path, sub-index name) and leaving a current index.
+        @version 1
+        """
+        builds.append((target.repo_path, target.name))
+        Path(target.db_path).parent.mkdir(parents=True, exist_ok=True)
+        sqlite3.connect(target.db_path).close()
+        write_build_signature(Path(target.db_path))
+        return {"ok": True, "built": True, "doxyfile": "(stand-in)", "output": ""}
+
+    state._run_build = _fake_build
+
+    await state._auto_refresh(str(repo.resolve()), "first-party")
+
+    assert builds == [(str(repo), "first-party")], (
+        f"expected exactly one refresh of the stale, named sub-index, got {builds}"
+    )
+
+    ## And the counter-case in the same call: naming the CURRENT sibling triggers nothing.
+    builds.clear()
+    await state._auto_refresh(str(repo.resolve()), "llama-cpp")
+    assert builds == [], f"a query naming the current sibling must not trigger a build: {builds}"
+
+
+## @brief An unregistered repository still derives the named sub-index, not the whole repo.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_an_unregistered_sub_index_derives_its_own_target(tmp_path: Path) -> None:
+    """THE FIRST BUILD OF A SUB-INDEX HAS NO REGISTRY ENTRY TO MATCH — `siblings` is empty,
+    so `resolve_target(target, sub_index)` falls all the way through to the
+    unregistered-directory fallback. That fallback derives via `target_for`, and `sub_index`
+    has to reach that call: dropping it there silently derives the WHOLE-repo target — same
+    `repo_path`, but a DIFFERENT slug and `db_path` — for a caller that named a part.
+
+    `build_or_refresh` cannot see this mutation (it only reads `.repo_path` off the result),
+    which is why this is a separate test: the QUERY path is what reads `.db_path`/`.slug`.
+
+    @brief Resolving a named sub_index on an unregistered repo derives that sub-index's own Target.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "never_registered"
+    repo.mkdir()
+
+    whole = st.target_for(repo, reg.home)
+    named = state.resolve_target(str(repo.resolve()), "llama-cpp")
+
+    assert named.name == "llama-cpp"
+    assert named.slug != whole.slug, (
+        "a named sub_index on an unregistered repo must not derive the whole-repo target"
+    )
+    assert named.db_path != whole.db_path
+
+
+## @brief The registered `index(action='refresh')` tool forwards sub_index end to end.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+@pytest.mark.anyio
+async def test_index_refresh_tool_forwards_sub_index_through_the_dispatcher(
+    tmp_path: Path,
+) -> None:
+    """ONE LAYER ABOVE `build_or_refresh` ITSELF. `sub_index` was added to `index()`'s own
+    Annotated parameters and to `_index_action`'s dispatch of the `refresh` branch — a test
+    against `build_or_refresh` directly cannot see either forward silently dropping back to
+    `None`, because it never goes through them.
+
+    @brief `index(action='refresh', sub_index=...)` reaches the named sub-index's own build.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "dispatch_split"
+    repo.mkdir()
+    builds: list[tuple[str, str | None]] = []
+
+    def _fake_build(
+        target, doxyfile, scope="from-guard", exclude=None, options=None, skip_if_fresh=False
+    ):
+        """@brief Stand-in build recording (repo_path, sub-index name) and leaving a current index.
+        @version 1
+        """
+        builds.append((target.repo_path, target.name))
+        Path(target.db_path).parent.mkdir(parents=True, exist_ok=True)
+        sqlite3.connect(target.db_path).close()
+        write_build_signature(Path(target.db_path))
+        return {"ok": True, "built": True, "doxyfile": "(stand-in)", "output": ""}
+
+    state._run_build = _fake_build
+
+    result = await state.index(
+        _FakeCtx(), action="refresh", target=str(repo), sub_index="llama-cpp"
+    )
+
+    assert result.get("ok") is True, result
+    assert builds == [(str(repo), "llama-cpp")], (
+        f"index(action='refresh', sub_index=...) must build exactly the named sub-index, "
+        f"got {builds}"
+    )
+    assert result.get("sub_index") == "llama-cpp"

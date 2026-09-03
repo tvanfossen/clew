@@ -393,7 +393,7 @@ ALWAYS_LOAD_META: dict[str, object] = {"anthropic/alwaysLoad": True}
 ## @param bound The bound QueryTools method to wrap.
 ## @param before Async hook awaited before the query runs.
 ## @return An async callable carrying the wrapped method's original signature.
-## @version 1
+## @version 2
 ## @req REQ-DDB-MCP-004
 def _answering_with_refresh(bound: Any, before: Any) -> Any:
     """Wrap one synchronous query tool so a stale index is refreshed before it answers.
@@ -412,13 +412,20 @@ def _answering_with_refresh(bound: Any, before: Any) -> Any:
 
     @brief Add a pre-answer refresh to a synchronous query tool.
     @return An async callable with the original signature.
-    @version 1
+    @version 2
     @req REQ-DDB-MCP-004
     """
 
     @functools.wraps(bound)
     async def answering(*args: Any, **kwargs: Any) -> Any:
-        await before(kwargs.get("target"))
+        ## BOTH KEYS, NOT ONLY `target`. Every tool call answers from ONE database — the target
+        ## PLUS its sub_index when one was named — and refreshing on `target` alone would either
+        ## rebuild the wrong sibling (a first-party call auto-refreshing a stale vendored index
+        ## nobody asked about) or find nothing stale to fix (a vendored call's own staleness
+        ## invisible to a check that never looked at sub_index). The tool call and the refresh
+        ## must agree on which database answers, for the same reason `answering()` resolves both
+        ## together rather than `target` alone.
+        await before(kwargs.get("target"), kwargs.get("sub_index"))
         return await anyio.to_thread.run_sync(functools.partial(bound, *args, **kwargs))
 
     return answering
@@ -671,13 +678,19 @@ class DocsDbServer:
     ## @return None.
     ## @version 4
     ## @req REQ-DDB-MCP-004
-    async def _auto_refresh(self, target: str | None) -> None:
+    async def _auto_refresh(self, target: str | None, sub_index: str | None = None) -> None:
         """WHY A QUERY BUILDS AT ALL. Reporting staleness and leaving the fix to the caller
         made correctness depend on an agent reading the notice and acting on it, which is not
         what happens — measured in this project's own sessions, a nine-file-stale index was
         queried and its answers taken, `anchor_mismatch` and all. It also made the index feel
         expensive to keep current, which is itself a reason agents stop consulting one. Now
         that a refresh is incremental the cost is small enough to just pay.
+
+        `sub_index` RESOLVES TO THE SAME DATABASE THE QUERY IT PRECEDES WILL READ, because the
+        two have to agree — see `_answering_with_refresh`'s own reasoning. Without it, a stale
+        vendored sub-index queried directly would either go unrefreshed (this check never looked
+        at the right database) or, worse, trigger a refresh of an unrelated sibling that happened
+        to share `target`.
 
         THE RE-CHECK INSIDE THE LOCK IS WHAT MAKES THIS A DEDUPLICATION RATHER THAN A RACE,
         exactly as `_build_or_skip` does it: four sessions querying one stale repository
@@ -690,12 +703,14 @@ class DocsDbServer:
 
         @brief Refresh a stale index before answering.
         @return None.
-        @version 4
+        @version 5
         """
         try:
-            resolved = self.resolve_target(target) if target else self.active
+            resolved = self.resolve_target(target, sub_index) if target else self.active
         except Exception:
-            logger.debug("auto-refresh: %r does not resolve to a target", target)
+            logger.debug(
+                "auto-refresh: %r (sub_index=%r) does not resolve to a target", target, sub_index
+            )
             resolved = None
         if resolved is None or not self._data_stale(resolved):
             return
@@ -791,7 +806,7 @@ class DocsDbServer:
     ## @param target Repo root path, or a slug from `list_targets`.
     ## @param sub_index Name of the part to read, or None for the whole repository.
     ## @return The Target it names.
-    ## @version 3
+    ## @version 4
     ## @req REQ-DDB-MCP-001
     def resolve_target(self, target: str, sub_index: str | None = None) -> Target:
         """THREE SPELLINGS OF ONE REPOSITORY, resolved to one record. The registry is
@@ -817,7 +832,7 @@ class DocsDbServer:
 
         @brief Resolve a target string, plus an optional sub-index name, to its Target record.
         @return The resolved Target.
-        @version 3
+        @version 4
         """
         known = self.registry.targets()
         ## THE SLUG FIRST, because it is unique and it is a string this server handed the
@@ -831,11 +846,18 @@ class DocsDbServer:
             for candidate in siblings:
                 if candidate.name == sub_index:
                     return candidate
-            names = sorted(c.name for c in siblings if c.name is not None)
-            raise RuntimeError(
-                f"{target!r} has no sub_index named {sub_index!r}. "
-                + (f"Available: {', '.join(names)}" if names else "It has no sub-indexes.")
-            )
+            ## NOT YET REGISTERED UNDER THIS NAME IS NOT THE SAME AS INVALID. The registry only
+            ## knows what has been BUILT before, and the first build of any sub-index — including
+            ## an additional one on a repo that already has others — necessarily has no matching
+            ## record yet. Refusing here would make that first build unreachable. So an unmatched
+            ## name falls through to derivation exactly like a bare unregistered path does; a
+            ## caller who names something ungrounded gets it from `answering()` at query time
+            ## ("no database has been built") or from the build path validating against the real
+            ## split, not from a registry that cannot tell "not yet built" from "will never exist".
+            path = Path(target).expanduser()
+            if path.is_dir():
+                return target_for(path, self.registry.home, sub_index)
+            raise RuntimeError(unknown_target_error(target, known))
         ## A BARE REPOSITORY PATH MAY NOW MATCH SEVERAL RECORDS, and choosing among them
         ## arbitrarily is the one failure this module's own docstring calls the most expensive
         ## defect on record: a reply that read one index and stamped another's identity is
@@ -855,7 +877,11 @@ class DocsDbServer:
             )
         path = Path(target).expanduser()
         if path.is_dir():
-            return target_for(path, self.registry.home)
+            ## `sub_index` CARRIES THROUGH THE UNREGISTERED-DIRECTORY FALLBACK, which is the
+            ## case that matters most for it: the FIRST build of a sub-index has no registry
+            ## entry to have matched above. Dropping it here would silently derive the
+            ## WHOLE-repo target for a caller that explicitly named a part.
+            return target_for(path, self.registry.home, sub_index)
         raise RuntimeError(unknown_target_error(target, known))
 
     ## @brief Resolve a routed target into the database, tree and staleness to answer with.
@@ -1271,9 +1297,10 @@ class DocsDbServer:
     ## @param scope Scope source: `from-guard` (the repo's declared doxygen mandate) or `doxyfile`.
     ## @param exclude Repo-relative paths to leave out of the index; None inherits the recorded ones, [] withdraws them.
     ## @param target Repo root or slug to build; omit for the server's derived target.
+    ## @param sub_index Name of one PART of `target` to build; omit for the whole repository.
     ## @param options Tier-1 build options keyed by declaration-file section name; omit to state nothing.
     ## @return Result dict with build outcome, MEASURED duration, status, registered tool names and the answering target; or a refusal when this process predates its source.
-    ## @version 10
+    ## @version 11
     ## @req REQ-DDB-MCP-002
     ## @req REQ-DDB-MCP-004
     ## @req REQ-DDB-CONFIG-001
@@ -1286,6 +1313,7 @@ class DocsDbServer:
         scope: str = SCOPE_FROM_GUARD,
         exclude: list[str] | None = None,
         target: str | None = None,
+        sub_index: str | None = None,
         options: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Run the pipeline for the named target — or the derived one when the call names
@@ -1356,11 +1384,11 @@ class DocsDbServer:
 
         @brief Build/refresh the target database and activate query tools.
         @return Build result dict, carrying a measured duration.
-        @version 10
+        @version 11
         """
         started = time.perf_counter()
         try:
-            resolved = await self._build_subject(ctx, target)
+            resolved = await self._build_subject(ctx, target, sub_index)
         except RuntimeError as exc:
             return {"ok": False, "error": str(exc)}
         if resolved is None:
@@ -1376,6 +1404,12 @@ class DocsDbServer:
         result["duration_ms"] = int((time.perf_counter() - started) * 1000)
         result["status"] = db_status(resolved)
         result["target"] = resolved.repo_path
+        ## `resolved.repo_path` IS IDENTICAL FOR EVERY SUB-INDEX OF ONE REPOSITORY, so a
+        ## reply naming only `target` is indistinguishable between siblings — the same
+        ## ambiguity `_answered` already guards on the query side. Stamp `sub_index` only
+        ## when the built target actually named one (falsy-drop, matching that convention).
+        if resolved.name is not None:
+            result["sub_index"] = resolved.name
         return result
 
     ## @brief The repository a build call is about.
@@ -1384,18 +1418,38 @@ class DocsDbServer:
     ## @return The Target to build, or None when no source supplied one.
     ## @version 1
     ## @req REQ-DDB-MCP-001
-    async def _build_subject(self, ctx: Context, target: str | None) -> Target | None:
+    async def _build_subject(
+        self, ctx: Context, target: str | None, sub_index: str | None = None
+    ) -> Target | None:
         """A named target is REGISTERED, which allocates its database directory — the
         build has to have somewhere to write. It is not adopted, and the client's roots
         are never consulted for it: the caller already said which repository it means.
 
-        @brief Resolve and register the repository a build is for.
+        `sub_index` REGISTERS THAT PART, NOT THE WHOLE REPOSITORY. This used to discard the
+        distinction entirely — `register(resolve_target(target).repo_path)` re-derived the
+        BARE path and registered the whole-repo target regardless of what was asked for, so
+        `index(action='refresh', target=repo, sub_index='llama-cpp')` would have silently
+        rebuilt the wrong database (or the whole repository, if it existed) while reporting
+        success for the vendored one nobody rebuilt.
+
+        `sub_index` WITH NO `target` IS REFUSED rather than guessed. A sub-index belongs to a
+        repository, and "refresh the vendored part" with no repository named has no derived
+        target to attach it to — `ensure_target` derives the whole-repo one, which is not what
+        was asked.
+
+        @brief Resolve and register the repository (or sub-index) a build is for.
         @return The Target, or None when nothing supplied one.
-        @version 1
+        @version 2
         """
         if target is None:
+            if sub_index is not None:
+                raise RuntimeError(
+                    f"sub_index={sub_index!r} was given without target — a sub-index belongs "
+                    "to a named repository, so target= must be stated too."
+                )
             return await self.ensure_target(ctx)
-        return self.registry.register(self.resolve_target(target).repo_path)
+        repo_path = self.resolve_target(target, sub_index).repo_path
+        return self.registry.register(repo_path, sub_index)
 
     ## @brief Build one target, skipping when its index is already current.
     ## @param target The repository to build.
@@ -1552,6 +1606,7 @@ class DocsDbServer:
     ## @param ctx MCP request context (the only route to the client's roots).
     ## @param action Which lifecycle operation to perform (see INDEX_ACTIONS).
     ## @param target Repo root or slug to act on; omit for the server's derived target.
+    ## @param sub_index Name of one PART of `target` to act on; omit for the whole repository.
     ## @param force Rebuild even when the database is current (action='refresh').
     ## @param doxyfile Explicit Doxyfile path (action='refresh').
     ## @param scope Index scope to derive (action='refresh').
@@ -1560,7 +1615,7 @@ class DocsDbServer:
     ## @param max_age_days Age threshold in days, null to disable the age rule (action='cull').
     ## @param include_stale Also cull version-stale databases (action='cull').
     ## @return The chosen action's result, stamped with the `action` that produced it.
-    ## @version 1
+    ## @version 2
     ## @req REQ-DDB-MCP-002
     ## @req REQ-DDB-MCP-003
     async def index(
@@ -1580,6 +1635,17 @@ class DocsDbServer:
         target: Annotated[
             str | None,
             Field(description="Repo root or slug; omit for the default target."),
+        ] = None,
+        sub_index: Annotated[
+            str | None,
+            Field(
+                description=(
+                    "Name of one PART of `target`, when the repository is split into several "
+                    "indexes — a first-party index plus one per vendored dependency. Omit for "
+                    "the whole repository. `index(action='targets')` reports each repository's "
+                    "sub_index names."
+                )
+            ),
         ] = None,
         force: Annotated[
             bool, Field(description="Rebuild even when the index is already current.")
@@ -1644,7 +1710,7 @@ class DocsDbServer:
 
         @brief Administer the index through one action-dispatched tool.
         @return The action's result, carrying `action`.
-        @version 1
+        @version 2
         """
         if action not in INDEX_ACTIONS:
             raise ValueError(
@@ -1656,6 +1722,7 @@ class DocsDbServer:
             ctx,
             action,
             target,
+            sub_index,
             force,
             doxyfile,
             scope,
@@ -1677,6 +1744,7 @@ class DocsDbServer:
     ## @param ctx MCP request context.
     ## @param action The validated action name.
     ## @param target Repo root or slug, or None for the derived target.
+    ## @param sub_index Name of one PART of `target` to act on, or None for the whole repository.
     ## @param force Rebuild even when current.
     ## @param doxyfile Explicit Doxyfile path.
     ## @param scope Index scope to derive.
@@ -1685,13 +1753,14 @@ class DocsDbServer:
     ## @param max_age_days Cull age threshold.
     ## @param include_stale Cull version-stale databases too.
     ## @return Whatever the underlying method returns.
-    ## @version 2
+    ## @version 3
     ## @dg_internal
     async def _index_action(
         self,
         ctx: Context,
         action: str,
         target: str | None,
+        sub_index: str | None,
         force: bool,
         doxyfile: str | None,
         scope: str,
@@ -1714,7 +1783,7 @@ class DocsDbServer:
 
         @brief Dispatch one validated index action.
         @return The underlying method's result.
-        @version 2
+        @version 3
         """
         if target is not None and action not in TARGET_ROUTING_ACTIONS:
             raise ValueError(registry_wide_target_error(action, target))
@@ -1728,13 +1797,14 @@ class DocsDbServer:
                 scope=scope,
                 exclude=exclude,
                 target=target,
+                sub_index=sub_index,
                 options=options,
             )
         if action == "targets":
             return self.list_targets()
         if action == "cull":
             return self.cull(max_age_days=max_age_days, include_stale=include_stale)
-        return self.tools.graph_stats(target)
+        return self.tools.graph_stats(target, sub_index)
 
     ## @brief Propose a starter `.clew.yaml` for the active target.
     ## @param ctx MCP request context (the only route to the client's roots).
