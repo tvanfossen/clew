@@ -1089,3 +1089,70 @@ async def test_dossier_body_survives_on_a_split_repo_with_no_whole_index(
         "silently swallowed an 'ambiguous bare root' refusal"
     )
     assert "sensor_poll" in "\n".join(reply["body"]["lines"])
+
+
+## @brief A session's own stale cached default is invalidated by its own build.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+@pytest.mark.anyio
+async def test_a_sessions_own_build_invalidates_its_stale_active_default(
+    tmp_path: Path,
+) -> None:
+    """FIELD-REPORTED, from a real B12_single_rgb session on 1.0.25: `adopt()` was fixed
+    to prefer a first-party sub-index when one is registered — but a session's OWN
+    `self.active` is resolved once and cached (`ensure_target` short-circuits on it), so a
+    session that connected BEFORE its first split build has no way to see one that happens
+    later through an explicit `index(action='refresh', sub_index='first-party')` call.
+    Reported symptom: every bare `dossier`/`search` call answered "no database has been
+    built" against the never-built whole-repo target, forever, until reconnect — even
+    though `index(action='targets')` correctly listed the built first-party sub-index.
+
+    So this reproduces the exact sequence: adopt() BEFORE the split exists (caching the
+    whole-repo target), THEN build first-party through `build_or_refresh` — exactly the
+    call a caller makes — THEN a bare call. Not through `resolve_target`/`adopt()` in
+    isolation, which the split-preference tests already cover and which cannot see a
+    STALE cache populated before either existed.
+
+    @brief A bare call after a session's own first-party build reaches the new sub-index.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "b12_repro"
+    repo.mkdir()
+
+    ## Simulate a session connecting before any split exists — caches the whole-repo target.
+    pre = state.adopt(str(repo), st.TARGET_SOURCE_FLAG)
+    assert pre.name is None, "premise: nothing built yet, so the whole-repo target is cached"
+
+    def _fake_build(
+        target, doxyfile, scope="from-guard", exclude=None, options=None, skip_if_fresh=False
+    ):
+        """@brief Stand-in build leaving a current index for the named target.
+        @version 1
+        """
+        Path(target.db_path).parent.mkdir(parents=True, exist_ok=True)
+        sqlite3.connect(target.db_path).close()
+        write_build_signature(Path(target.db_path))
+        return {"ok": True, "built": True, "doxyfile": "(stand-in)", "output": ""}
+
+    state._run_build = _fake_build
+
+    result = await state.build_or_refresh(
+        _FakeCtx(), target=str(repo), sub_index="first-party", force=True
+    )
+    assert result.get("ok") is True, result
+
+    ## RE-ADOPTED, not merely cleared — tier-1 query tools read `self.active_db`/
+    ## `self.active_repo` directly with no lazy re-derivation of their own, so `None` here
+    ## would only trade the stale-index bug for a no-default bug on the very next bare call.
+    assert state.active is not None and state.active.name == "first-party", (
+        f"a session's own build of its active repository must re-adopt the now-preferred "
+        f"target inline, got {state.active}"
+    )
+
+    ## And the bare call that follows must reach the newly-built sub-index rather than
+    ## raising "no database has been built" against the stale default.
+    reply = state.tools.search("nonexistent-symbol")
+    assert reply.get("target") == str(repo), reply

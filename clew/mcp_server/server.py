@@ -127,7 +127,7 @@ from ..buildlock import build_lock
 from ..scope import FIRST_PARTY_INDEX, SCOPE_FROM_GUARD
 from ._sdk import Context, MCPServer, lowlevel
 from .descriptions import load_descriptions
-from .freshness import code_identity, notices, stale_code_refusal
+from .freshness import code_identity, notices, refused, stale_code_refusal
 from .state import (
     PROJECT_DIR_ENV,
     ROOTS_DEPRECATED_IN,
@@ -211,6 +211,7 @@ NO_TARGET_ERROR = (
 ## defect class that voided a 36-cell benchmark grid, where every validity term checked that
 ## the agent called database tools and none checked WHICH database answered.
 TARGET_ROUTING_ACTIONS: frozenset[str] = frozenset({"refresh", "stats"})
+
 
 ## Why each registry-wide action cannot honour a target, and what to do instead. "Unsupported"
 ## and "meaningless here" are different facts and lead a caller somewhere different: 'refresh'
@@ -408,7 +409,7 @@ ALWAYS_LOAD_META: dict[str, object] = {"anthropic/alwaysLoad": True}
 ## @param bound The bound QueryTools method to wrap.
 ## @param before Async hook awaited before the query runs.
 ## @return An async callable carrying the wrapped method's original signature.
-## @version 2
+## @version 3
 ## @req REQ-DDB-MCP-004
 def _answering_with_refresh(bound: Any, before: Any) -> Any:
     """Wrap one synchronous query tool so a stale index is refreshed before it answers.
@@ -427,7 +428,7 @@ def _answering_with_refresh(bound: Any, before: Any) -> Any:
 
     @brief Add a pre-answer refresh to a synchronous query tool.
     @return An async callable with the original signature.
-    @version 2
+    @version 3
     @req REQ-DDB-MCP-004
     """
 
@@ -441,7 +442,13 @@ def _answering_with_refresh(bound: Any, before: Any) -> Any:
         ## must agree on which database answers, for the same reason `answering()` resolves both
         ## together rather than `target` alone.
         await before(kwargs.get("target"), kwargs.get("sub_index"))
-        return await anyio.to_thread.run_sync(functools.partial(bound, *args, **kwargs))
+        try:
+            return await anyio.to_thread.run_sync(functools.partial(bound, *args, **kwargs))
+        except (RuntimeError, ValueError) as exc:
+            ## SAME TAG AS `index()`'s DISPATCH, so a client that shows only a tool's name
+            ## and the first characters after it still sees the distinction between a
+            ## deliberate refusal and a crash on the query surface too, not only tier-0.
+            raise type(exc)(refused(exc)) from exc
 
     return answering
 
@@ -548,7 +555,7 @@ _LOCK_WAIT_SECONDS = 120
 ## @param exclude The caller's exclusions, forwarded unchanged for a whole-repo target.
 ## @param options The caller's tier-1 options, forwarded unchanged for a whole-repo target.
 ## @return (exclude, options) to pass to `build_index`.
-## @version 2
+## @version 4
 ## @dg_internal
 def _sub_index_scope(
     target: Target,
@@ -569,7 +576,7 @@ def _sub_index_scope(
 
     @brief Resolve build scope for a sub-index target.
     @return The exclude list and options to build with.
-    @version 2
+    @version 4
     """
     if target.name is None:
         return exclude, options
@@ -587,12 +594,37 @@ def _sub_index_scope(
             repo,
         )
         return exclude, options
+    nested = [str(p.relative_to(repo)) for p in match.excludes]
     if target.name == FIRST_PARTY_INDEX:
-        nested = [str(p.relative_to(repo)) for p in match.excludes]
         return list(exclude or []) + nested, options
+    ## A VENDORED SUB-INDEX EXCLUDES ITS OWN CHILDREN TOO, now that `derive_sub_indexes`
+    ## recurses: `roots=[tree]` bounds INPUT to everything under `tree`, and a nested tree
+    ## one level further down is still inside that boundary — `match.excludes` names exactly
+    ## those children, the same relationship first-party already has to depth 1. Dropping
+    ## this (as this branch did before recursion existed, when a vendored SubIndex's
+    ## `excludes` was always empty) is exactly the swallowing Finding B reported: a nested
+    ## tree's OWN nested trees indexed as part of it instead of getting their own identity.
+    ##
+    ## ROUTED THROUGH `index_scope.excludes`, NOT FOLDED INTO THE RETURNED `exclude` — and
+    ## that distinction is load-bearing, not stylistic. Folding it in (as the first-party
+    ## branch above still does) would COLLAPSE a caller's `exclude=None` into a concrete
+    ## list on every call, which silently defeats `_operator_excludes`' own replay: `None`
+    ## means "read back whatever an earlier call for THIS sub-index recorded", and
+    ## `output=target.db_path` already makes that replay per-sub-index, not per-repo — the
+    ## whole shape an operator wanting to name EXTRA excludes for one vendored sub-index
+    ## needs (settable on its first build, replayed on every later refresh with no argument
+    ## restated). `index_scope.excludes` is a SEPARATE channel `_apply_scope` always folds
+    ## in unconditionally, so it cannot suppress that replay — leaving `exclude` untouched
+    ## here is what keeps both working at once.
     root = str(match.roots[0].relative_to(repo))
     merged = dict(options or {})
-    merged["index_scope"] = {"roots": [root]}
+    ## FALSY-DROP, matching this project's own convention elsewhere: a tree with no children
+    ## of its own (the common case — most vendored sub-indexes nest nothing further) states
+    ## `index_scope` exactly as it always did, rather than growing an `excludes: []` key that
+    ## changes nothing `_declared_index_scope` reads (`section.get("excludes") or []` treats
+    ## absent and empty identically) but would still be a payload shape every existing reader
+    ## and test has to account for.
+    merged["index_scope"] = {"roots": [root], **({"excludes": nested} if nested else {})}
     return exclude, merged
 
 
@@ -1358,7 +1390,7 @@ class DocsDbServer:
     ## @param sub_index Name of one PART of `target` to build; omit for the whole repository.
     ## @param options Tier-1 build options keyed by declaration-file section name; omit to state nothing.
     ## @return Result dict with build outcome, MEASURED duration, status, registered tool names and the answering target; or a refusal when this process predates its source.
-    ## @version 12
+    ## @version 13
     ## @req REQ-DDB-MCP-002
     ## @req REQ-DDB-MCP-004
     ## @req REQ-DDB-CONFIG-001
@@ -1442,7 +1474,7 @@ class DocsDbServer:
 
         @brief Build/refresh the target database and activate query tools.
         @return Build result dict, carrying a measured duration.
-        @version 12
+        @version 13
         """
         started = time.perf_counter()
         try:
@@ -1457,6 +1489,36 @@ class DocsDbServer:
             return {"ok": False, "error": refusal, "code": identity}
         async with self._build_lock(resolved.repo_path):
             result = await self._build_once(resolved, force, doxyfile, scope, exclude, options)
+        ## `self.active` IS A CACHE, AND THIS BUILD CAN MAKE IT WRONG. `ensure_target` resolves
+        ## it once and short-circuits on every later call — deliberately, so a session's default
+        ## does not re-derive on every request. But `_preferred_default` means WHICH target is
+        ## preferred can change the moment a first-party sub-index is registered, and a session
+        ## that connected (and so cached `self.active`) BEFORE that build has no way to see it:
+        ## nothing invalidates the cache on a build event, only on a roots-list-changed
+        ## notification or a cull. Measured live: a session's own first-party-only refresh left
+        ## its OWN later bare `dossier()`/`search()` calls answering "no database has been built"
+        ## against the never-built whole-repo target, forever, until reconnect.
+        ##
+        ## RE-ADOPTED, NOT MERELY CLEARED. Tier-1 query tools read `self.active_db`/
+        ## `self.active_repo` DIRECTLY — bound once at construction, with no lazy
+        ## re-derivation path the way `ensure_target` gives tier-0 — so clearing to `None`
+        ## would only trade one wrong answer (the stale target) for another (no default at
+        ## all) on the very next bare `dossier`/`search` call. Re-adopting fixes it inline,
+        ## synchronously, before either kind of caller can observe the gap.
+        ##
+        ## SCOPED TO THIS SESSION'S OWN BUILD OF ITS OWN ACTIVE REPOSITORY, not a broader
+        ## invalidation — a build by ANY caller silently retargeting every OTHER session's
+        ## default is exactly the coupling `_build_subject`'s docstring says registration must
+        ## not cause. `self.target_source` is preserved, not replaced, so a flag-pinned or
+        ## roots-derived session stays pinned to the same repository, only re-resolving WHICH
+        ## of its now-current sub-indexes answers for it.
+        if (
+            result.get("ok")
+            and self.active is not None
+            and self.target_source is not None
+            and self.active.repo_path == resolved.repo_path
+        ):
+            self.adopt(resolved.repo_path, self.target_source)
         if result.get("ok"):
             result["tools"] = await self._activate_tier1(ctx)
         result["duration_ms"] = int((time.perf_counter() - started) * 1000)
@@ -1677,7 +1739,7 @@ class DocsDbServer:
     ## @param max_age_days Age threshold in days, null to disable the age rule (action='cull').
     ## @param include_stale Also cull version-stale databases (action='cull').
     ## @return The chosen action's result, stamped with the `action` that produced it.
-    ## @version 2
+    ## @version 3
     ## @req REQ-DDB-MCP-002
     ## @req REQ-DDB-MCP-003
     async def index(
@@ -1772,27 +1834,30 @@ class DocsDbServer:
 
         @brief Administer the index through one action-dispatched tool.
         @return The action's result, carrying `action`.
-        @version 2
+        @version 3
         """
-        if action not in INDEX_ACTIONS:
-            raise ValueError(
-                f"Unknown index action {action!r}. Known actions: "
-                f"{', '.join(INDEX_ACTIONS)}. This tool administers the INDEX; for a "
-                "question about the code call dossier or search."
+        try:
+            if action not in INDEX_ACTIONS:
+                raise ValueError(
+                    f"Unknown index action {action!r}. Known actions: "
+                    f"{', '.join(INDEX_ACTIONS)}. This tool administers the INDEX; for a "
+                    "question about the code call dossier or search."
+                )
+            result = await self._index_action(
+                ctx,
+                action,
+                target,
+                sub_index,
+                force,
+                doxyfile,
+                scope,
+                exclude,
+                options,
+                max_age_days,
+                include_stale,
             )
-        result = await self._index_action(
-            ctx,
-            action,
-            target,
-            sub_index,
-            force,
-            doxyfile,
-            scope,
-            exclude,
-            options,
-            max_age_days,
-            include_stale,
-        )
+        except (RuntimeError, ValueError) as exc:
+            raise type(exc)(refused(exc)) from exc
         return (
             {**result, "action": action}
             if isinstance(result, dict)

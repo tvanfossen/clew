@@ -45,6 +45,8 @@ pytest.importorskip(
 
 from clew.mcp_server import freshness as fr
 from clew.mcp_server import server as server_module
+from mcp.server.mcpserver.exceptions import ToolError
+
 from clew.mcp_server import state as st
 from clew.mcp_server.server import (
     NO_TARGET_ERROR,
@@ -3856,3 +3858,51 @@ def test_schema_staleness_still_withdraws_with_the_missing_layer_wording() -> No
     assert "NOT DEFINITIVE" in payload["note"]
     assert "older pipeline" in payload["note"]
     assert "missing rather than empty" in payload["note"]
+
+
+## @brief A deliberate refusal is tagged so a truncating client can still tell it apart.
+## @return None.
+## @version 1
+@pytest.mark.anyio
+async def test_a_deliberate_refusal_is_tagged_refused(tmp_path: Path) -> None:
+    """FIELD-REPORTED: a B12_single_rgb session's client showed only "Error executing tool
+    index" for BOTH a by-design refusal (index(action='status', target=...), which doesn't
+    route) and — separately — a real crash, with no way to tell which had happened without
+    re-deriving it from source. clew's own message text was never empty (traced through
+    ToolError twice this session), but nothing marked which KIND of text it was.
+
+    Drives the REGISTERED tool through the tool manager, the same path a real client takes
+    (not the bare function), because that is what a truncating client actually receives.
+
+    @brief index(action='status', target=...) raises with a "REFUSED:"-tagged message.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    mcp, _state = build_server(reg)
+
+    with pytest.raises(ToolError) as excinfo:
+        await mcp._tool_manager.call_tool(
+            "index", {"action": "status", "target": "/some/repo"}, None
+        )
+    assert "REFUSED:" in str(excinfo.value), str(excinfo.value)
+
+
+## @brief A tier-1 query tool's refusal is tagged too, not only tier-0's index().
+## @return None.
+## @version 1
+@pytest.mark.anyio
+async def test_a_query_tool_refusal_is_tagged_refused_too() -> None:
+    """THE SAME TAG, A DIFFERENT WRAPPER. `index()`'s dispatch and
+    `_answering_with_refresh` (which wraps dossier/search) are two separate code paths that
+    both had to gain the same try/except — a fix to only one would leave half the surface
+    silently untagged. No database bound at all is the plainest RuntimeError this path
+    raises.
+
+    @brief A bare dossier call with nothing built raises with a "REFUSED:"-tagged message.
+    @version 1
+    """
+    mcp, _state = build_server(st.TargetRegistry(Path("/tmp/nonexistent-refused-test-home")))
+
+    with pytest.raises(ToolError) as excinfo:
+        await mcp._tool_manager.call_tool("dossier", {"subject": "main"}, None)
+    assert "REFUSED:" in str(excinfo.value), str(excinfo.value)
