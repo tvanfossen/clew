@@ -277,3 +277,87 @@ def test_mcp_refresh_of_a_vendored_sub_index_excludes_its_own_children(tmp_path:
     assert functions == {"vendor_fn"}, (
         f"the MCP refresh path must also exclude a vendored sub-index's own children: {functions}"
     )
+
+
+## @brief A caller-stated extra exclude for a vendored sub-index replays on later refresh.
+## @version 1
+def test_a_vendored_sub_indexs_own_stated_exclude_replays(tmp_path: Path) -> None:
+    """MECHANISM (a), owner-requested: a caller names an EXTRA exclude for one vendored
+    sub-index — something recursion cannot discover on its own, like a plain (non-git)
+    generated-output directory sitting inside a vendored tree — on that sub-index's first
+    build, and it must still apply on a LATER refresh that passes no `exclude` argument at
+    all. `_operator_excludes` already replays per-TARGET (`output=target.db_path` is
+    specific to this sub-index), so this only works if `_sub_index_scope` leaves the
+    caller's own `exclude` argument alone rather than folding its own auto-derived
+    children-exclude into it — which would collapse an omitted argument into a concrete
+    list and silently defeat the replay on every single call.
+
+    @brief An extra exclude stated once for a vendored sub-index survives an unstated refresh.
+    @version 1
+    """
+    import sys
+
+    import anyio
+
+    from clew.mcp_server.server import build_server
+    from clew.mcp_server.state import TargetRegistry
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from test_mcp_server import _FakeCtx  # noqa: PLC0415 -- reused test helper, deliberately
+
+    repo = tmp_path / "repo"
+    (repo / "app").mkdir(parents=True)
+    (repo / "app" / "main.c").write_text("int app_entry(void) { return 0; }\n", encoding="utf-8")
+    vendor = repo / "extern" / "dep"
+    vendor.mkdir(parents=True)
+    (vendor / "dep.c").write_text("int dep_helper(void) { return 1; }\n", encoding="utf-8")
+    (vendor / ".git").write_text("gitdir: ../../.git/modules/dep\n", encoding="utf-8")
+    ## A plain, non-git generated-output directory recursion cannot see -- exactly Finding
+    ## C's shape (deps/libBissellIoT/build/), the case this mechanism exists for.
+    generated = vendor / "build"
+    generated.mkdir()
+    (generated / "gen.c").write_text("int generated_fn(void) { return 9; }\n", encoding="utf-8")
+    (repo / "Doxyfile").write_text("PROJECT_NAME = replay\nINPUT = .\n", encoding="utf-8")
+
+    reg = TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+
+    def _functions(db_path: str) -> set[str]:
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        try:
+            return {r[0] for r in conn.execute("SELECT name FROM memberdef WHERE kind='function'")}
+        finally:
+            conn.close()
+
+    async def _run() -> tuple[set[str], set[str]]:
+        with captured_output():
+            first = await state.build_or_refresh(
+                _FakeCtx(),
+                target=str(repo),
+                sub_index="extern-dep",
+                exclude=["extern/dep/build"],
+                force=True,
+            )
+        assert first.get("ok") is True, first
+        target = state.registry.register(repo, "extern-dep")
+        after_first = _functions(target.db_path)
+
+        ## THE REPLAY: no `exclude` argument at all on this call.
+        with captured_output():
+            second = await state.build_or_refresh(
+                _FakeCtx(), target=str(repo), sub_index="extern-dep", force=True
+            )
+        assert second.get("ok") is True, second
+        after_second = _functions(target.db_path)
+        return after_first, after_second
+
+    after_first, after_second = anyio.run(_run)
+
+    assert after_first == {"dep_helper"}, (
+        f"the stated exclude must apply on its own (first) build: {after_first}"
+    )
+    assert after_second == {"dep_helper"}, (
+        f"the stated exclude must REPLAY on a refresh that names no exclude at all — a "
+        f"generated_fn reappearing here means the omitted argument silently discarded a "
+        f"previously-stated operator decision: {after_second}"
+    )

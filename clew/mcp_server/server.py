@@ -555,7 +555,7 @@ _LOCK_WAIT_SECONDS = 120
 ## @param exclude The caller's exclusions, forwarded unchanged for a whole-repo target.
 ## @param options The caller's tier-1 options, forwarded unchanged for a whole-repo target.
 ## @return (exclude, options) to pass to `build_index`.
-## @version 3
+## @version 4
 ## @dg_internal
 def _sub_index_scope(
     target: Target,
@@ -576,7 +576,7 @@ def _sub_index_scope(
 
     @brief Resolve build scope for a sub-index target.
     @return The exclude list and options to build with.
-    @version 3
+    @version 4
     """
     if target.name is None:
         return exclude, options
@@ -604,10 +604,28 @@ def _sub_index_scope(
     ## this (as this branch did before recursion existed, when a vendored SubIndex's
     ## `excludes` was always empty) is exactly the swallowing Finding B reported: a nested
     ## tree's OWN nested trees indexed as part of it instead of getting their own identity.
+    ##
+    ## ROUTED THROUGH `index_scope.excludes`, NOT FOLDED INTO THE RETURNED `exclude` — and
+    ## that distinction is load-bearing, not stylistic. Folding it in (as the first-party
+    ## branch above still does) would COLLAPSE a caller's `exclude=None` into a concrete
+    ## list on every call, which silently defeats `_operator_excludes`' own replay: `None`
+    ## means "read back whatever an earlier call for THIS sub-index recorded", and
+    ## `output=target.db_path` already makes that replay per-sub-index, not per-repo — the
+    ## whole shape an operator wanting to name EXTRA excludes for one vendored sub-index
+    ## needs (settable on its first build, replayed on every later refresh with no argument
+    ## restated). `index_scope.excludes` is a SEPARATE channel `_apply_scope` always folds
+    ## in unconditionally, so it cannot suppress that replay — leaving `exclude` untouched
+    ## here is what keeps both working at once.
     root = str(match.roots[0].relative_to(repo))
     merged = dict(options or {})
-    merged["index_scope"] = {"roots": [root]}
-    return list(exclude or []) + nested, merged
+    ## FALSY-DROP, matching this project's own convention elsewhere: a tree with no children
+    ## of its own (the common case — most vendored sub-indexes nest nothing further) states
+    ## `index_scope` exactly as it always did, rather than growing an `excludes: []` key that
+    ## changes nothing `_declared_index_scope` reads (`section.get("excludes") or []` treats
+    ## absent and empty identically) but would still be a payload shape every existing reader
+    ## and test has to account for.
+    merged["index_scope"] = {"roots": [root], **({"excludes": nested} if nested else {})}
+    return exclude, merged
 
 
 ## @brief Lifecycle state + tier-0 tool implementations for one server.

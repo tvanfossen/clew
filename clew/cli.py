@@ -2791,7 +2791,7 @@ def staging_path(output: Path) -> Path:
 ## @param home State root to allocate databases under; defaults to the server's state home.
 ## @param only Build just this sub-index by name, or None for all of them.
 ## @return The Targets built, in derivation order; empty when the repo is not split.
-## @version 2
+## @version 3
 ## @req REQ-DDB-INDEX-002
 def build_sub_indexes(
     repo_root: Path | str, home: Path | None = None, only: str | None = None
@@ -2839,11 +2839,25 @@ def build_sub_indexes(
         if sub.name == FIRST_PARTY_INDEX:
             build_index(output=target.db_path, repo_root=root, exclude=own_children)
         else:
+            ## `own_children` RIDES IN `index_scope.excludes`, NOT THE `exclude=` PARAMETER,
+            ## for the same reason `_sub_index_scope` (server.py) routes it there: folding it
+            ## into `exclude` would collapse an omitted argument into a concrete list on
+            ## every call, which would defeat `_operator_excludes`' own per-target replay —
+            ## `output=target.db_path` already makes that replay per-sub-index, so a future
+            ## caller stating its own extra excludes for one vendored sub-index needs `exclude`
+            ## left alone here to keep meaning "nothing new, read back what was recorded".
             build_index(
                 output=target.db_path,
                 repo_root=root,
-                exclude=own_children,
-                options={"index_scope": {"roots": [str(sub.roots[0].relative_to(root))]}},
+                options={
+                    "index_scope": {
+                        "roots": [str(sub.roots[0].relative_to(root))],
+                        ## FALSY-DROP: a tree with no children of its own states `index_scope`
+                        ## exactly as it always did rather than growing an `excludes: []` key
+                        ## that changes nothing a reader resolves differently.
+                        **({"excludes": own_children} if own_children else {}),
+                    }
+                },
             )
         built.append(target)
     return built
