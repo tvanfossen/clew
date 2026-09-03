@@ -627,21 +627,23 @@ def test_a_sub_index_resolves_by_name(tmp_path: Path) -> None:
     )
 
 
-## @brief With only sub-indexes, a bare root is refused rather than guessed.
+## @brief With a first-party sub-index present, a bare root defaults to it.
 ## @param tmp_path Pytest temp dir.
 ## @return None.
-## @version 1
-def test_an_ambiguous_bare_root_is_refused(tmp_path: Path) -> None:
-    """THE GUARD AGAINST THIS MODULE'S OWN WORST-NAMED DEFECT. `Answering`'s docstring states it:
-    "a reply that read one repository's database and stamped another's path would be
-    indistinguishable from a correct answer, and answering from the wrong index is this project's
-    most expensive recorded defect."
+## @version 2
+def test_a_bare_root_with_first_party_defaults_to_it(tmp_path: Path) -> None:
+    """OWNER RULING: first-party IS the index for a split repository, never one of several
+    coequal sub-indexes guessed among. `Answering`'s docstring names the failure this module
+    guards hardest against — "answering from the wrong index is this project's most expensive
+    recorded defect" — and treating a repo's OWN source as just another name to disambiguate
+    among was itself heading toward that shape: every plain call to a split repository would
+    have had to name `sub_index='first-party'` explicitly or be refused, breaking the server's
+    own served promise that omitting `target`/`sub_index` still gets an answer.
 
-    Once a root can hold several indexes, matching a bare path against the first record that
-    happens to sort first is exactly that. So it REFUSES, and the refusal names every sub-index —
-    a caller who cannot act on the error is being told half of one.
+    A vendored sibling is reached only by FOLLOWING AN EDGE that names it (Phase 2), never by
+    being offered as a coin-flip default alongside first-party.
 
-    @brief An ambiguous bare root raises and lists the alternatives.
+    @brief A bare root with a first-party sibling resolves to it, not to a refusal.
     @version 1
     """
     reg = st.TargetRegistry(tmp_path / "state")
@@ -649,14 +651,43 @@ def test_an_ambiguous_bare_root_is_refused(tmp_path: Path) -> None:
     repo = tmp_path / "onlysubs"
     repo.mkdir()
 
-    reg.register(repo, name="first-party")
+    first_party = reg.register(repo, name="first-party")
     reg.register(repo, name="llama-cpp")
+
+    resolved = state.resolve_target(str(repo.resolve()))
+    assert resolved.slug == first_party.slug, (
+        "a bare root with a first-party sub-index must default to it, not refuse or guess"
+    )
+
+
+## @brief With only vendored sub-indexes (no first-party, no whole), a bare root is refused.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_a_bare_root_with_only_vendored_siblings_is_refused(tmp_path: Path) -> None:
+    """THE GENUINELY UNGUESSABLE CASE. Once first-party is preferred as the default, this is
+    the only shape left with no principled default: a repo split with no first-party record and
+    no whole-repository record either — an unconventional registry state (e.g. only a vendored
+    tree was ever explicitly built), not the shape `derive_sub_indexes` produces. Refusing and
+    naming the alternatives beats guessing among coequal-looking siblings for the same reason it
+    always has: a caller who cannot act on the error is being told half of one.
+
+    @brief A bare root with only vendored siblings raises and lists them.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "onlyvendored"
+    repo.mkdir()
+
+    reg.register(repo, name="llama-cpp")
+    reg.register(repo, name="opencv")
 
     with pytest.raises(RuntimeError) as excinfo:
         state.resolve_target(str(repo.resolve()))
     message = str(excinfo.value)
     ## The names are the actionable half; without them the caller knows only that it failed.
-    assert "first-party" in message and "llama-cpp" in message, message
+    assert "llama-cpp" in message and "opencv" in message, message
 
 
 ## @brief dossier() and search() reach the named sub-index's own database.
@@ -922,3 +953,139 @@ async def test_index_refresh_tool_forwards_sub_index_through_the_dispatcher(
         f"got {builds}"
     )
     assert result.get("sub_index") == "llama-cpp"
+
+
+## @brief adopt()'s default target prefers first-party over the whole-repo target.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_adopt_defaults_to_first_party_on_a_split_repo(tmp_path: Path) -> None:
+    """THE FULLY-OMITTED-TARGET PATH, distinct from and upstream of `resolve_target`. Every
+    tool call that names no `target` at all goes through `ensure_target` -> `adopt`, which
+    NEVER consulted the registry before this fix — it always derived the unnamed whole-repo
+    Target via `target_for`, bypassing `_preferred_default` entirely. On a genuinely split
+    repository (first-party + vendored registered, no whole-repo record — the shape
+    `derive_sub_indexes` actually produces) every omitted-target call would have resolved to a
+    database that was never built, contradicting the server's own served promise that omitting
+    the argument still gets an answer.
+
+    @brief adopt() on a split repo's root activates the first-party sub-index.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "adopt_split"
+    repo.mkdir()
+
+    first_party = reg.register(repo, name="first-party")
+    reg.register(repo, name="llama-cpp")
+
+    active = state.adopt(str(repo), st.TARGET_SOURCE_FLAG)
+
+    assert active.slug == first_party.slug, (
+        f"adopt() on a split repo must activate first-party, got {active.slug!r}"
+    )
+
+
+## @brief adopt() on an unsplit repo is unaffected — still derives the whole-repo target.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_adopt_still_derives_the_whole_repo_when_unsplit(tmp_path: Path) -> None:
+    """THE COUNTER-CASE, guarding against an over-broad fix. A repository that has never been
+    split — the overwhelming common case, and the shape every pre-existing `adopt` test already
+    covers — must keep resolving to the whole-repo target exactly as before; nothing about
+    preferring first-party should touch a repo with no sub-indexes at all.
+
+    @brief adopt() on an unregistered/unsplit repo still derives the whole-repo Target.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "adopt_whole"
+    repo.mkdir()
+
+    active = state.adopt(str(repo), st.TARGET_SOURCE_FLAG)
+
+    assert active.name is None, f"an unsplit repo must adopt the whole-repo target, got {active}"
+    assert active.repo_path == str(repo.resolve())
+
+
+## @brief The registry-wide refusal now also catches sub_index alone, without target.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+@pytest.mark.anyio
+async def test_index_action_refuses_sub_index_alone_on_registry_wide_actions(
+    tmp_path: Path,
+) -> None:
+    """THE ACCEPTED-BUT-UNREAD KEY, this project's own most repeated defect. `_index_action`'s
+    guard used to check only `target is not None`, so `sub_index='llama-cpp'` with no `target`
+    on `action='status'|'targets'|'cull'` was accepted into the signature and never read —
+    silently ignored rather than refused, on a registry-wide action that has no repository to
+    apply it to.
+
+    @brief sub_index alone on a non-routing action raises, naming sub_index in the message.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+
+    for action in ("status", "targets", "cull"):
+        with pytest.raises(ValueError) as excinfo:
+            await state._index_action(
+                _FakeCtx(),
+                action,
+                None,
+                "llama-cpp",
+                False,
+                None,
+                "from-guard",
+                None,
+                None,
+                30.0,
+                True,
+            )
+        assert "sub_index" in str(excinfo.value), f"action={action!r}: {excinfo.value}"
+
+
+## @brief dossier's body panel survives on a repo with only vendored siblings registered.
+## @param tmp_path Pytest temp dir.
+## @param rich_db Session-scoped synthetic clew.db fixture.
+## @param repo_root The real source tree rich_db's paths point at.
+## @return None.
+## @version 2
+@pytest.mark.anyio
+async def test_dossier_body_survives_on_a_split_repo_with_no_whole_index(
+    tmp_path: Path, rich_db: Path, repo_root: Path
+) -> None:
+    """`_repo_or_none` used to drop `sub_index` entirely, so `repo(target, None)` — inside a
+    non-raising wrapper — hit `resolve_target`'s "ambiguous bare root" refusal for any repo whose
+    registered siblings include neither a whole-repo record nor a first-party one. The exception
+    was swallowed and the panel silently vanished — the database routed correctly the whole time
+    (via the explicit `sub_index` given to `db()`), so this read as "this function has no
+    recorded source" rather than the routing gap it was.
+
+    REGISTERED WITH ONLY VENDORED SIBLINGS, deliberately — not first-party — because
+    `resolve_target`'s bare-path branch now DEFAULTS to a first-party sibling when one exists
+    (a separate, later fix in this same session), and that default would resolve the tree
+    correctly even with `sub_index` dropped, masking exactly the bug this test exists to catch.
+    Only the "no default to fall back on" shape isolates it.
+
+    @brief A dossier naming a real sub_index on a split repo still carries its body panel.
+    @version 2
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    vendor = state.registry.register(str(repo_root), name="llama-cpp")
+    Path(vendor.db_path).write_bytes(rich_db.read_bytes())
+    state.registry.register(str(repo_root), name="opencv")
+
+    reply = state.tools.dossier("sensor_poll", target=str(repo_root), sub_index="llama-cpp")
+
+    assert reply.get("found") is not False, "premise: the index knows the symbol"
+    assert "body" in reply, (
+        "the body panel must be present — the sub_index-less repo() call must not have "
+        "silently swallowed an 'ambiguous bare root' refusal"
+    )
+    assert "sensor_poll" in "\n".join(reply["body"]["lines"])

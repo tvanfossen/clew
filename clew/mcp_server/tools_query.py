@@ -1478,10 +1478,11 @@ class QueryTools:
 
     ## @brief The working tree for this call, or None when there isn't one.
     ## @param target Repository to read, or None for the one the server derived.
+    ## @param sub_index Name of the part to read, or None for the whole repository.
     ## @return Repo root, or None when no working tree is bound or resolvable.
-    ## @version 1
+    ## @version 2
     ## @dg_internal
-    def _repo_or_none(self, target: str | None = None) -> Path | None:
+    def _repo_or_none(self, target: str | None = None, sub_index: str | None = None) -> Path | None:
         """NON-RAISING, unlike `repo()`, and that is the whole reason it exists.
 
         `source` MUST fail loudly without a working tree — its entire answer is bytes off
@@ -1492,12 +1493,19 @@ class QueryTools:
         Turning that into an exception would make the composite payload fail where the
         narrow tool it replaces succeeded.
 
+        `sub_index` HAS TO REACH `repo()` HERE TOO, not only at the `db()` call beside it. A
+        repository with ONLY sub-indexes has no whole-repository record for `resolve_target` to
+        fall back on, so `repo(target, None)` raised "ambiguous bare root" and this method's own
+        non-raising contract turned that into a silent `None` — the database routed correctly
+        while the `body` panel vanished, reading exactly like "this function has no recorded
+        source" instead of the routing gap it actually was.
+
         @brief Resolve this call's working tree, or None.
         @return Repo root or None.
-        @version 1
+        @version 2
         """
         try:
-            return self.repo(target)
+            return self.repo(target, sub_index)
         except (RuntimeError, ValueError, OSError):
             return None
 
@@ -1679,7 +1687,7 @@ class QueryTools:
     ## @param max_body_lines Cap on each body excerpt.
     ## @param depth Hops to traverse per subject.
     ## @return The batch envelope: one entry per requested name, in request order.
-    ## @version 5
+    ## @version 6
     ## @dg_internal
     def _batched_dossiers(
         self,
@@ -1708,14 +1716,14 @@ class QueryTools:
 
         @brief Batch dossier envelope for several subjects of any kind.
         @return The serialized batch.
-        @version 5
+        @version 6
         """
         db = self.db(target, sub_index)
         built = q.dossiers(
             db,
             subjects,
             kind=kind,
-            repo_root=self._repo_or_none(target),
+            repo_root=self._repo_or_none(target, sub_index),
             max_body_lines=max_body_lines,
             depth=depth,
         )
@@ -1758,7 +1766,7 @@ class QueryTools:
     ## @param target Repo root or slug to answer from; omit for the server's derived target.
     ## @param max_body_lines Cap on the verbatim `body` excerpt; raise it to read past a `truncated` body.
     ## @return The resolved subject's payload, a batch envelope, or a miss envelope when nothing of that name is indexed.
-    ## @version 12
+    ## @version 13
     ## @req REQ-DDB-MCP-003
     ## @req REQ-DDB-QUERY-010
     def dossier(
@@ -1904,7 +1912,7 @@ class QueryTools:
 
         @brief Composite dossier for one or several subjects of any kind.
         @return The subject payload, a batch envelope, or a miss envelope.
-        @version 12
+        @version 13
         """
         if not isinstance(subject, str):
             names = _accepted_batch(list(subject), qualified)
@@ -1915,7 +1923,7 @@ class QueryTools:
             subject,
             kind=kind,
             qualified=qualified,
-            repo_root=self._repo_or_none(target),
+            repo_root=self._repo_or_none(target, sub_index),
             max_body_lines=max_body_lines,
             depth=depth,
             direction=direction,
