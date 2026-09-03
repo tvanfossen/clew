@@ -431,6 +431,37 @@ def _code_notice(code: Mapping[str, object]) -> dict[str, str] | None:
     }
 
 
+## @brief Tag a deliberate refusal so a truncating client still shows the distinction.
+## @param exc The exception a tool method raised on purpose.
+## @return The exception's message, prefixed once with "REFUSED:".
+## @version 1
+## @req REQ-DDB-MCP-004
+def refused(exc: Exception) -> str:
+    """FIELD-REPORTED: a caller's client showed only the tool name for both an EXPECTED
+    refusal (a mistyped action, an ambiguous target) and an actual crash, because both
+    arrive shaped identically — some text after a colon. clew's own message text was never
+    empty; the distinction a reader needs was just not marked, so a client that renders or
+    truncates aggressively loses it. `stale_code_refusal` below already spoke this way for
+    one case; this generalises the marker to every deliberate refusal this server raises,
+    and lives beside it for the same reason: one module owns the REFUSED wording.
+
+    SCOPED TO `RuntimeError`/`ValueError`, which is what every deliberate refusal on the
+    MCP surface already raises — not a bespoke exception hierarchy, which would mean
+    touching every one of its ~30 call sites and risking a missed one. The trade a
+    type-based tag accepts: a stdlib call that happened to raise one of those two for a
+    genuine bug would be mislabelled REFUSED. None currently does, on those call sites.
+
+    IDEMPOTENT, because a refusal built from another refusal's text (a caught-and-rewrapped
+    RuntimeError) must not read "REFUSED: REFUSED: ...".
+
+    @brief Prefix a deliberate refusal's message with "REFUSED:", once.
+    @return The tagged message text.
+    @version 1
+    """
+    text = str(exc)
+    return text if text.startswith("REFUSED:") else f"REFUSED: {text}"
+
+
 ## @brief The refusal a write path owes its caller when this process predates its source.
 ## @param code A `code_identity` payload; measured when omitted.
 ## @return The refusal message, or None when a write is safe.

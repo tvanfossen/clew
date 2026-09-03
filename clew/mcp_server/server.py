@@ -127,7 +127,7 @@ from ..buildlock import build_lock
 from ..scope import FIRST_PARTY_INDEX, SCOPE_FROM_GUARD
 from ._sdk import Context, MCPServer, lowlevel
 from .descriptions import load_descriptions
-from .freshness import code_identity, notices, stale_code_refusal
+from .freshness import code_identity, notices, refused, stale_code_refusal
 from .state import (
     PROJECT_DIR_ENV,
     ROOTS_DEPRECATED_IN,
@@ -211,6 +211,7 @@ NO_TARGET_ERROR = (
 ## defect class that voided a 36-cell benchmark grid, where every validity term checked that
 ## the agent called database tools and none checked WHICH database answered.
 TARGET_ROUTING_ACTIONS: frozenset[str] = frozenset({"refresh", "stats"})
+
 
 ## Why each registry-wide action cannot honour a target, and what to do instead. "Unsupported"
 ## and "meaningless here" are different facts and lead a caller somewhere different: 'refresh'
@@ -408,7 +409,7 @@ ALWAYS_LOAD_META: dict[str, object] = {"anthropic/alwaysLoad": True}
 ## @param bound The bound QueryTools method to wrap.
 ## @param before Async hook awaited before the query runs.
 ## @return An async callable carrying the wrapped method's original signature.
-## @version 2
+## @version 3
 ## @req REQ-DDB-MCP-004
 def _answering_with_refresh(bound: Any, before: Any) -> Any:
     """Wrap one synchronous query tool so a stale index is refreshed before it answers.
@@ -427,7 +428,7 @@ def _answering_with_refresh(bound: Any, before: Any) -> Any:
 
     @brief Add a pre-answer refresh to a synchronous query tool.
     @return An async callable with the original signature.
-    @version 2
+    @version 3
     @req REQ-DDB-MCP-004
     """
 
@@ -441,7 +442,13 @@ def _answering_with_refresh(bound: Any, before: Any) -> Any:
         ## must agree on which database answers, for the same reason `answering()` resolves both
         ## together rather than `target` alone.
         await before(kwargs.get("target"), kwargs.get("sub_index"))
-        return await anyio.to_thread.run_sync(functools.partial(bound, *args, **kwargs))
+        try:
+            return await anyio.to_thread.run_sync(functools.partial(bound, *args, **kwargs))
+        except (RuntimeError, ValueError) as exc:
+            ## SAME TAG AS `index()`'s DISPATCH, so a client that shows only a tool's name
+            ## and the first characters after it still sees the distinction between a
+            ## deliberate refusal and a crash on the query surface too, not only tier-0.
+            raise type(exc)(refused(exc)) from exc
 
     return answering
 
@@ -1707,7 +1714,7 @@ class DocsDbServer:
     ## @param max_age_days Age threshold in days, null to disable the age rule (action='cull').
     ## @param include_stale Also cull version-stale databases (action='cull').
     ## @return The chosen action's result, stamped with the `action` that produced it.
-    ## @version 2
+    ## @version 3
     ## @req REQ-DDB-MCP-002
     ## @req REQ-DDB-MCP-003
     async def index(
@@ -1802,27 +1809,30 @@ class DocsDbServer:
 
         @brief Administer the index through one action-dispatched tool.
         @return The action's result, carrying `action`.
-        @version 2
+        @version 3
         """
-        if action not in INDEX_ACTIONS:
-            raise ValueError(
-                f"Unknown index action {action!r}. Known actions: "
-                f"{', '.join(INDEX_ACTIONS)}. This tool administers the INDEX; for a "
-                "question about the code call dossier or search."
+        try:
+            if action not in INDEX_ACTIONS:
+                raise ValueError(
+                    f"Unknown index action {action!r}. Known actions: "
+                    f"{', '.join(INDEX_ACTIONS)}. This tool administers the INDEX; for a "
+                    "question about the code call dossier or search."
+                )
+            result = await self._index_action(
+                ctx,
+                action,
+                target,
+                sub_index,
+                force,
+                doxyfile,
+                scope,
+                exclude,
+                options,
+                max_age_days,
+                include_stale,
             )
-        result = await self._index_action(
-            ctx,
-            action,
-            target,
-            sub_index,
-            force,
-            doxyfile,
-            scope,
-            exclude,
-            options,
-            max_age_days,
-            include_stale,
-        )
+        except (RuntimeError, ValueError) as exc:
+            raise type(exc)(refused(exc)) from exc
         return (
             {**result, "action": action}
             if isinstance(result, dict)
