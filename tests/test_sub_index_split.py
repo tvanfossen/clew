@@ -126,3 +126,49 @@ def test_names_are_unique_stable_and_path_safe(tmp_path: Path) -> None:
     assert names == [s.name for s in derive_sub_indexes(repo)], "derivation is not stable"
     for name in names:
         assert "/" not in name and not name.startswith("."), f"unsafe name: {name!r}"
+
+
+## @brief Nested trees the repository ignores are not split out.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_ignored_nested_trees_are_not_sub_indexes(tmp_path: Path) -> None:
+    """FOUND BY DRIVING THE PRODUCT, NOT BY A FIXTURE. Every test above passed while the
+    derivation happily split out CMake FetchContent output — `build/_deps/catch2-src`,
+    `build/_deps/httplib-src` and six more — because each is a real git clone and
+    `nested_repo_roots` walks the whole tree. A real build spent twenty minutes indexing
+    throwaway artefacts before it was stopped.
+
+    THE RULE MUST BE THE BUILD'S OWN RULE. `whole_repo_scope` already excludes what git ignores,
+    so a tree the build would never index must not become an index of its own — otherwise the
+    split and the build disagree about what the repository contains, and the split is the one
+    nobody checked. Reused rather than re-derived for exactly that reason.
+
+    This fixture needs a real git repository, because the rule is git's: a `.gitignore` means
+    nothing without one, and a test that skipped `git init` would assert against an empty ignore
+    list and pass no matter what the code did.
+
+    @brief A nested tree under an ignored path is left out of the split.
+    @version 1
+    """
+    import subprocess
+
+    repo = tmp_path / "withbuild"
+    (repo / "app").mkdir(parents=True)
+    (repo / "app" / "main.c").write_text("int main(void){return 0;}\n", encoding="utf-8")
+    (repo / ".gitignore").write_text("build/\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "add", "-A"], cwd=repo, check=True)
+
+    ## A genuinely vendored dependency: tracked, and worth its own index.
+    vendored = _nested(repo / "extern" / "dep", as_pointer=True)
+    ## Build output that merely happens to be a clone: ignored, and worth nothing.
+    _nested(repo / "build" / "_deps" / "catch2-src", as_pointer=False)
+
+    names = {s.name for s in derive_sub_indexes(repo)}
+    assert "extern-dep" in names, "the real vendored dependency was dropped from the split"
+    assert not any("catch2" in n or n.startswith("build") for n in names), (
+        f"an ignored build artefact became a sub-index: {sorted(names)} — the split must use the "
+        "same rule the build uses, or it indexes trees the build would never touch"
+    )
+    assert vendored.exists()

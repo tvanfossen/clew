@@ -128,10 +128,28 @@ def _sub_index_name(nested: Path, repo_root: Path) -> str:
     return "-".join(part for part in relative.split("/") if part)
 
 
+## @brief Whether a path is one of, or inside, any of the given roots.
+## @param path The path to test, already resolved.
+## @param roots Resolved paths to test against.
+## @return True when `path` is a root or lies under one.
+## @version 1
+## @dg_internal
+def _under_any(path: Path, roots: set[Path]) -> bool:
+    """EQUALITY AS WELL AS CONTAINMENT. An exclusion names the directory itself, so testing only
+    `parents` would keep a nested tree that IS the excluded path — and `build/_deps/catch2-src`
+    excluded exactly is the shape that occurs.
+
+    @brief Test containment against a set of roots.
+    @return Whether the path falls under any root.
+    @version 1
+    """
+    return path in roots or any(parent in roots for parent in path.parents)
+
+
 ## @brief Split a repository into first-party and per-nested-tree indexes.
 ## @param repo_root The repository root.
 ## @return The sub-indexes, or an empty list when the repo holds no nested trees.
-## @version 1
+## @version 2
 ## @req REQ-DDB-INDEX-002
 def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
     """EMPTY MEANS "DO NOT SPLIT", and that is the compatibility contract. A repository with
@@ -147,10 +165,25 @@ def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
 
     @brief Derive the sub-index split from nested git trees.
     @return The split, or [] to build the repository whole.
-    @version 1
+    @version 2
     """
     root = Path(repo_root).expanduser().resolve()
-    nested = sorted({p.resolve() for p in nested_repo_roots(root)})
+    ## THE SPLIT USES THE BUILD'S OWN RULE, and skipping this cost a real target twenty minutes.
+    ## `nested_repo_roots` walks the WHOLE tree, so it finds every git clone on disk — including
+    ## CMake FetchContent output under `build/`, which is a genuine clone and pure throwaway.
+    ## Driving a real repository produced sub-indexes named `build-coverage-_deps-catch2-src`,
+    ## `build-dev-_deps-httplib-src` and six more, each being indexed in turn, while every
+    ## fixture test passed.
+    ##
+    ## `whole_repo_scope` already computes what the build excludes — git-ignored paths, plus each
+    ## nested tree's own ignores, which `git ls-files` cannot see through. Reusing it is what
+    ## keeps the split and the build agreeing about what the repository contains; deriving a
+    ## second rule here would leave the split free to index trees the build would never touch,
+    ## and the split is the one nobody looks at.
+    ignored = {p.resolve() for p in whole_repo_scope(root).excludes}
+    nested = sorted(
+        p for p in {q.resolve() for q in nested_repo_roots(root)} if not _under_any(p, ignored)
+    )
     if not nested:
         return []
     first = SubIndex(name=FIRST_PARTY_INDEX, roots=(root,), excludes=tuple(nested))

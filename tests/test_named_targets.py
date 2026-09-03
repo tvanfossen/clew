@@ -196,3 +196,106 @@ def test_a_legacy_record_without_repo_path_still_reloads(tmp_path: Path) -> None
     assert len(got) == 1
     assert got[0].repo_path == "/some/repo", "a legacy record lost its repo path"
     assert got[0].name is None, "a legacy record must read as the whole repository"
+
+
+## @brief A whole-repo target's build scope is left exactly as the caller stated it.
+## @version 1
+def test_a_whole_repo_target_keeps_the_callers_scope(tmp_path: Path) -> None:
+    """THE #511 GUARD. A repository that COULD be split must keep building whole until someone
+    builds its named targets. Narrowing it here would shrink an index nobody asked to shrink and
+    report success — a smaller index that reads as healthy, which is the silent-narrowing failure
+    that task records.
+
+    `exclude=None` must survive as None, not become []: None means "inherit what an earlier
+    session stated", and flattening it would silently withdraw the operator's own decision.
+
+    @brief An unnamed target's scope passes through untouched.
+    @version 1
+    """
+    from clew.mcp_server.server import _sub_index_scope
+    from clew.mcp_server.state import target_for
+
+    repo = tmp_path / "vendored"
+    (repo / "app").mkdir(parents=True)
+    nested = repo / "extern" / "dep"
+    nested.mkdir(parents=True)
+    (nested / ".git").write_text("gitdir: ../../.git/modules/dep\n", encoding="utf-8")
+
+    whole = target_for(repo, tmp_path / "state")
+    assert _sub_index_scope(whole, repo.resolve(), None, None) == (None, None)
+    assert _sub_index_scope(whole, repo.resolve(), ["build"], {"kconfig": {}}) == (
+        ["build"],
+        {"kconfig": {}},
+    )
+
+
+## @brief A first-party target adds the nested trees to the caller's exclusions.
+## @version 1
+def test_a_first_party_target_adds_nested_excludes(tmp_path: Path) -> None:
+    """ADDS, never replaces. The operator's own exclusions and the derived ones answer different
+    questions — "what I do not want indexed" and "what belongs to another index" — and dropping
+    either produces a build that is quietly wrong in a different direction.
+
+    @brief First-party excludes the nested trees on top of the caller's list.
+    @version 1
+    """
+    from clew.mcp_server.server import _sub_index_scope
+    from clew.mcp_server.state import target_for
+    from clew.scope import FIRST_PARTY_INDEX
+
+    repo = tmp_path / "vendored"
+    (repo / "app").mkdir(parents=True)
+    nested = repo / "extern" / "dep"
+    nested.mkdir(parents=True)
+    (nested / ".git").write_text("gitdir: ../../.git/modules/dep\n", encoding="utf-8")
+
+    first = target_for(repo, tmp_path / "state", name=FIRST_PARTY_INDEX)
+    got_exclude, got_options = _sub_index_scope(first, repo.resolve(), ["build"], None)
+    assert "build" in got_exclude, "the operator's own exclusion was dropped"
+    assert "extern/dep" in got_exclude, "the nested tree was not excluded from first-party"
+    assert got_options is None
+
+
+## @brief A vendored target is scoped to its own tree.
+## @version 1
+def test_a_vendored_target_is_scoped_to_its_tree(tmp_path: Path) -> None:
+    """@brief A named vendored sub-index declares roots covering only itself.
+    @version 1
+    """
+    from clew.mcp_server.server import _sub_index_scope
+    from clew.mcp_server.state import target_for
+
+    repo = tmp_path / "vendored"
+    (repo / "app").mkdir(parents=True)
+    nested = repo / "extern" / "dep"
+    nested.mkdir(parents=True)
+    (nested / ".git").write_text("gitdir: ../../.git/modules/dep\n", encoding="utf-8")
+
+    vendored = target_for(repo, tmp_path / "state", name="extern-dep")
+    _got_exclude, got_options = _sub_index_scope(vendored, repo.resolve(), None, None)
+    assert got_options["index_scope"] == {"roots": ["extern/dep"]}
+
+
+## @brief The server class still owns every method the server calls on it.
+## @version 1
+def test_the_server_class_keeps_its_methods() -> None:
+    """A STRUCTURAL GUARD AGAINST A MISTAKE ALREADY MADE HERE. Inserting a module-level function
+    into the middle of a class body TERMINATES the class: every method after the insertion point
+    silently becomes a module-level function. The module still imports, every symbol still
+    exists, and `from clew.mcp_server.server import ...` still works — so a smoke test sees
+    nothing wrong while `self._run_propose(...)` has become an AttributeError waiting for a
+    caller.
+
+    Asserted over the class body rather than by calling anything, because the failure is
+    structural and a behavioural test would only catch whichever method it happened to exercise.
+
+    @brief Methods the server dispatches to are attributes of the class.
+    @version 1
+    """
+    from clew.mcp_server.server import DocsDbServer
+
+    for method in ("_run_build", "_run_propose", "resolve_target", "answering"):
+        assert callable(getattr(DocsDbServer, method, None)), (
+            f"DocsDbServer.{method} is missing — a module-level definition inserted into the "
+            "class body silently detaches every method below it"
+        )

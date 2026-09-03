@@ -520,6 +520,60 @@ def _failure_result(exc: BaseException, rendered: str) -> dict[str, Any]:
 _LOCK_WAIT_SECONDS = 120
 
 
+## @brief The scope arguments a build of one sub-index needs, or the caller's unchanged.
+## @param target The target being built; `name` says which sub-index, or None for the whole repo.
+## @param repo The repository root.
+## @param exclude The caller's exclusions, forwarded unchanged for a whole-repo target.
+## @param options The caller's tier-1 options, forwarded unchanged for a whole-repo target.
+## @return (exclude, options) to pass to `build_index`.
+## @version 1
+## @dg_internal
+def _sub_index_scope(
+    target: Target,
+    repo: Path,
+    exclude: list[str] | None,
+    options: dict[str, Any] | None,
+) -> tuple[list[str] | None, dict[str, Any] | None]:
+    """RETURNS THE CALLER'S ARGUMENTS UNTOUCHED FOR A WHOLE-REPO TARGET, which is most of the
+    point. A repository that COULD be split must keep building whole until someone builds its
+    named targets — narrowing it here would shrink an index nobody asked to shrink and report
+    success, which is the silent-narrowing failure recorded as #511.
+
+    THE CALLER'S EXCLUSIONS ARE PRESERVED AND ADDED TO, never replaced. `exclude=None` means
+    "inherit what an earlier session stated", and that distinction is the reason `_run_build`
+    forwards None rather than defaulting to []. A first-party sub-index needs the nested trees
+    excluded ON TOP of whatever the operator already decided, so None stays None-shaped only
+    when there is nothing to add.
+
+    @brief Resolve build scope for a sub-index target.
+    @return The exclude list and options to build with.
+    @version 1
+    """
+    if target.name is None:
+        return exclude, options
+    from ..scope import FIRST_PARTY_INDEX, derive_sub_indexes
+
+    match = next((s for s in derive_sub_indexes(repo) if s.name == target.name), None)
+    if match is None:
+        ## The tree this sub-index named is gone — a submodule removed since it was registered.
+        ## Building it whole would quietly turn a sub-index into a second copy of the repository,
+        ## so leave the caller's scope alone and let the build report what it finds.
+        logger.warning(
+            "sub-index %r no longer matches any nested tree under %s — building with the "
+            "caller's scope instead of a derived one",
+            target.name,
+            repo,
+        )
+        return exclude, options
+    if target.name == FIRST_PARTY_INDEX:
+        nested = [str(p.relative_to(repo)) for p in match.excludes]
+        return list(exclude or []) + nested, options
+    root = str(match.roots[0].relative_to(repo))
+    merged = dict(options or {})
+    merged["index_scope"] = {"roots": [root]}
+    return exclude, merged
+
+
 ## @brief Lifecycle state + tier-0 tool implementations for one server.
 ## @version 1
 class DocsDbServer:
@@ -1742,7 +1796,7 @@ class DocsDbServer:
     ## @param exclude Operator-stated exclusions; None inherits the recorded ones, [] withdraws them.
     ## @param options Tier-1 build options keyed by declaration-file section name; None states nothing.
     ## @return Result dict (ok / built / doxyfile / output, plus error and traceback on a failure).
-    ## @version 10
+    ## @version 11
     ## @req REQ-DDB-CONFIG-008
     ## @dg_internal
     def _run_build(
@@ -1788,7 +1842,7 @@ class DocsDbServer:
 
         @brief Execute the build pipeline in-process.
         @return Build result dict.
-        @version 9
+        @version 10
         """
         from ..cli import build_index
 
@@ -1868,14 +1922,21 @@ class DocsDbServer:
                             "output": rendered.getvalue(),
                             "status": db_status(target),
                         }
+                    ## A SUB-INDEX BUILDS ITS OWN PART, and only when the target IS one. A
+                    ## whole-repo target keeps building the whole repo even on a repository that
+                    ## could be split: narrowing it here would silently shrink an index the
+                    ## operator never asked to narrow, which is #511's failure exactly — a
+                    ## smaller index that reports as healthy. Splitting is something a caller
+                    ## opts into by building the named targets.
+                    sub_exclude, sub_options = _sub_index_scope(target, repo, exclude, options)
                     build_index(
                         output=Path(target.db_path),
                         repo_root=repo,
                         doxyfile=doxy_arg,
                         scope=scope,
                         requirements=None,
-                        exclude=exclude,
-                        options=options,
+                        exclude=sub_exclude,
+                        options=sub_options,
                     )
             except (Exception, SystemExit) as exc:
                 return {
