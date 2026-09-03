@@ -593,3 +593,65 @@ async def test_a_stalled_refresh_does_not_hang_a_later_query(
         "the holder finished, so the waiter was never actually made to queue — this test would "
         "be vacuous"
     )
+
+
+## @brief A sub-index is addressed by name, and a bare root prefers the whole-repo index.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_a_sub_index_resolves_by_name(tmp_path: Path) -> None:
+    """Both spellings this server hands a caller must come back: the composite `<repo>#<name>`
+    and the slug reported by `status`. A caller who echoes either one must be understood, which
+    is the rule `resolve_target` already followed for whole-repo targets.
+
+    A BARE ROOT MEANS THE WHOLE REPOSITORY when one is indexed — not "whichever sub-index sorted
+    first". That distinction is the point of the next test.
+
+    @brief Sub-indexes resolve by composite key and by slug.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "split"
+    repo.mkdir()
+
+    whole = reg.register(repo)
+    vendor = reg.register(repo, name="llama-cpp")
+
+    assert state.resolve_target(f"{repo.resolve()}#llama-cpp").slug == vendor.slug
+    assert state.resolve_target(vendor.slug).slug == vendor.slug
+    assert state.resolve_target(str(repo.resolve())).slug == whole.slug, (
+        "a bare repository path must resolve to the whole-repository index, not a sub-index"
+    )
+
+
+## @brief With only sub-indexes, a bare root is refused rather than guessed.
+## @param tmp_path Pytest temp dir.
+## @return None.
+## @version 1
+def test_an_ambiguous_bare_root_is_refused(tmp_path: Path) -> None:
+    """THE GUARD AGAINST THIS MODULE'S OWN WORST-NAMED DEFECT. `Answering`'s docstring states it:
+    "a reply that read one repository's database and stamped another's path would be
+    indistinguishable from a correct answer, and answering from the wrong index is this project's
+    most expensive recorded defect."
+
+    Once a root can hold several indexes, matching a bare path against the first record that
+    happens to sort first is exactly that. So it REFUSES, and the refusal names every sub-index —
+    a caller who cannot act on the error is being told half of one.
+
+    @brief An ambiguous bare root raises and lists the alternatives.
+    @version 1
+    """
+    reg = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(reg)
+    repo = tmp_path / "onlysubs"
+    repo.mkdir()
+
+    reg.register(repo, name="first-party")
+    reg.register(repo, name="llama-cpp")
+
+    with pytest.raises(RuntimeError) as excinfo:
+        state.resolve_target(str(repo.resolve()))
+    message = str(excinfo.value)
+    ## The names are the actionable half; without them the caller knows only that it failed.
+    assert "first-party" in message and "llama-cpp" in message, message

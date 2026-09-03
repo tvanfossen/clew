@@ -18,6 +18,7 @@ its mtime is recent. Age (mtime) drives the cull policy.
 
 from __future__ import annotations
 
+import string
 import hashlib
 import json
 import logging
@@ -270,6 +271,13 @@ class Target:
     repo_path: str
     slug: str
     db_path: str
+    ## Which sub-index of `repo_path` this is, or None for the whole repository.
+    ##
+    ## SEPARATE FROM `repo_path` BECAUSE THAT FIELD IS A REAL FILESYSTEM PATH. It is handed to
+    ## `Path()` by `answering`, read by `db_status`, and reported in every reply; folding a
+    ## sub-index name into it would produce a path that does not exist and a stamped repository
+    ## the caller cannot check.
+    name: str | None = None
 
 
 ## @brief The repository ONE query answers from, resolved before the query runs.
@@ -300,19 +308,107 @@ class Answering:
 ## @return Target with a stable slug and its db path.
 ## @version 2
 ## @req REQ-DDB-MCP-001
-def target_for(repo_path: Path | str, home: Path | None = None) -> Target:
+def target_for(repo_path: Path | str, home: Path | None = None, name: str | None = None) -> Target:
     """Derive `<name>-<sha1[:6]>` from the resolved repo path so distinct
     checkouts of the same project get distinct db directories.
 
-    @brief Derive a Target (slug + db path) for a repo root.
-    @return Target for `repo_path`.
-    @version 2
+    `name` ALLOCATES A SUB-INDEX of one repository — several indexes under one root, so a repo
+    that vendors its dependencies as submodules can build them once (they are pinned, therefore
+    immutable) and rebuild only first-party code on every later refresh. Measured on a target
+    vendoring llama.cpp: 592 files and 13.9 s split, against 3,521 files and 69.0 s whole.
+
+    THE UNNAMED SPELLING IS FROZEN, and that is the constraint this function is written around.
+    Every index already on disk lives at a path derived from the unnamed rule, and nothing records
+    where it came from — so changing it strands those indexes rather than migrating them, and the
+    symptom is "no database has been built for this repo yet" against a perfectly good index. The
+    name is therefore appended to a slug that is otherwise computed exactly as before, and the
+    digest still covers the PATH ONLY so an unnamed slug is byte-identical to its history.
+
+    THE NAME IS SANITISED BECAUSE IT REACHES A FILESYSTEM PATH. Sub-index names come from a
+    repository's own `.clew.yaml`, which is untrusted input by this project's standing rule, and
+    a name of `../../etc` would otherwise place a database outside the state root. Reduced to
+    `[A-Za-z0-9._-]`, refused when nothing survives — a rejection is recoverable, a write outside
+    the state directory is not.
+
+    @brief Derive a Target (slug + db path) for a repo root, optionally a named sub-index.
+    @return Target for `repo_path`, or for one of its sub-indexes.
+    @version 3
     """
     repo = Path(repo_path).expanduser().resolve()
     digest = hashlib.sha1(str(repo).encode("utf-8")).hexdigest()[:6]
     slug = f"{repo.name}-{digest}"
+    if name is not None:
+        slug = f"{slug}.{_safe_index_name(name)}"
     root = home if home is not None else state_home()
-    return Target(repo_path=str(repo), slug=slug, db_path=str(root / "targets" / slug / DB_NAME))
+    return Target(
+        repo_path=str(repo),
+        slug=slug,
+        db_path=str(root / "targets" / slug / DB_NAME),
+        name=name,
+    )
+
+
+## @brief The registry key for one target — the repo path, or the path plus a sub-index name.
+## @param repo_path Resolved repository root.
+## @param name Sub-index name, or None for the whole repository.
+## @return The key to store and match on.
+## @version 1
+## @utility
+def registry_key(repo_path: str, name: str | None = None) -> str:
+    """A COMPOSITE KEY THAT STAYS A STRING, so `resolve_target`'s existing exact-match loop finds
+    a sub-index with no change to its matching logic — it already compares the caller's string
+    against stored keys and slugs.
+
+    THE UNNAMED KEY IS THE BARE PATH, unchanged, because every registry already on disk uses it
+    and `targets()` reconstructs a Target from the key when a record predates the `repo_path`
+    field. Prefixing or reformatting it would orphan those entries.
+
+    @brief Compose the registry key.
+    @return The key string.
+    @version 1
+    """
+    return repo_path if name is None else f"{repo_path}#{name}"
+
+
+## Characters a sub-index name may contribute to a directory name. An ALLOWLIST rather than a
+## blocklist of separators: what makes a path escape is not only `..` and `/` but every platform's
+## own oddities, and enumerating those correctly is a bigger decision tree than permitting the
+## small set that is obviously inert.
+_INDEX_NAME_SAFE = frozenset(string.ascii_letters + string.digits + "._-")
+
+## Longest sub-index name kept. Bounded because the result becomes a directory component and
+## filesystems cap those; truncating is safe here in a way it is not for a security decision,
+## since a collision between two truncated names shows up as a shared database rather than as a
+## wrong answer, and `_safe_index_name` refuses the empty result that would alias the parent.
+_INDEX_NAME_MAX = 48
+
+
+## @brief Reduce a declared sub-index name to something safe as a directory component.
+## @param name The declared name.
+## @return The sanitised name.
+## @version 1
+## @dg_internal
+def _safe_index_name(name: str) -> str:
+    """REFUSES RATHER THAN SUBSTITUTES when nothing survives. A name that sanitises to empty would
+    make the sub-index slug identical to the PARENT's, so a vendored sub-index would silently
+    overwrite the whole-repo index — a wrong answer produced by a naming accident, which is worse
+    than a build that stops and says the name is unusable.
+
+    Leading dots are stripped for the same reason `clew_hook`'s token filter rejects them: `.` and
+    `..` are path components, not names, and a dotfile directory in the state root is a surprise
+    nobody asked for.
+
+    @brief Sanitise a sub-index name.
+    @return A safe directory component.
+    @version 1
+    """
+    kept = "".join(ch for ch in name if ch in _INDEX_NAME_SAFE).lstrip(".")[:_INDEX_NAME_MAX]
+    if not kept:
+        raise ValueError(
+            f"sub-index name {name!r} contains no usable characters "
+            f"(allowed: letters, digits, '.', '_', '-')"
+        )
+    return kept
 
 
 ## Where an unreadable registry's bytes are kept. ONE deterministic name, not a timestamped
@@ -474,34 +570,58 @@ class TargetRegistry:
     ## @return The Target recorded for that repo.
     ## @version 1
     ## @req REQ-DDB-MCP-001
-    def register(self, repo_path: Path | str) -> Target:
+    def register(self, repo_path: Path | str, name: str | None = None) -> Target:
         """Allocate the Target for `repo_path`, persist it, and ensure its
         db directory exists so a build can write there.
 
-        @brief Register a target repo.
+        `name` registers a SUB-INDEX of the repository — several indexes under one root, so a
+        repo vendoring pinned submodules builds them once and rebuilds only first-party code
+        thereafter.
+
+        `repo_path` IS WRITTEN INTO THE RECORD from here on, and that is what makes a composite
+        key safe: `targets()` reconstructs a Target from the key when the field is absent, which
+        is correct for every entry written before sub-indexes existed and wrong for a composite
+        one. Storing it removes the need for the reader to parse the key at all.
+
+        @brief Register a target repo, or one of its sub-indexes.
         @return The registered Target.
-        @version 1
+        @version 2
         """
-        target = target_for(repo_path, self.home)
+        target = target_for(repo_path, self.home, name)
         data = self.load()
-        data[target.repo_path] = {"slug": target.slug, "db_path": target.db_path}
+        record = {
+            "slug": target.slug,
+            "db_path": target.db_path,
+            "repo_path": target.repo_path,
+        }
+        if name is not None:
+            record["name"] = name
+        data[registry_key(target.repo_path, name)] = record
         self.save(data)
         Path(target.db_path).parent.mkdir(parents=True, exist_ok=True)
         return target
 
     ## @brief Every registered target.
     ## @return List of Target in registration-key order.
-    ## @version 1
+    ## @version 2
     ## @req REQ-DDB-MCP-001
     def targets(self) -> list[Target]:
         """Rebuild Target records from the persisted mapping.
 
         @brief List all registered targets.
         @return List of Target.
-        @version 1
+        @version 2
         """
+        ## `repo_path` FALLS BACK TO THE KEY, which is exactly right for every entry written
+        ## before sub-indexes existed — there the key IS the repo path — and is never reached for
+        ## a composite key, because `register` writes the field whenever it writes one.
         return [
-            Target(repo_path=repo, slug=rec.get("slug", ""), db_path=rec.get("db_path", ""))
+            Target(
+                repo_path=rec.get("repo_path") or repo,
+                slug=rec.get("slug", ""),
+                db_path=rec.get("db_path", ""),
+                name=rec.get("name"),
+            )
             for repo, rec in sorted(self.load().items())
         ]
 

@@ -144,6 +144,7 @@ from .state import (
     root_uri_to_path,
     roots_request_supported,
     startup_target,
+    registry_key,
     target_for,
 )
 from .tools_query import TIER1_TOOLS, QueryTools
@@ -735,7 +736,7 @@ class DocsDbServer:
     ## @brief Resolve a caller-supplied target string to a known repository.
     ## @param target Repo root path, or a slug from `list_targets`.
     ## @return The Target it names.
-    ## @version 1
+    ## @version 2
     ## @req REQ-DDB-MCP-001
     def resolve_target(self, target: str) -> Target:
         """THREE SPELLINGS OF ONE REPOSITORY, resolved to one record. The registry is
@@ -756,12 +757,32 @@ class DocsDbServer:
 
         @brief Resolve a target string to its Target record.
         @return The resolved Target.
-        @version 1
+        @version 2
         """
         known = self.registry.targets()
+        ## SLUG AND COMPOSITE KEY FIRST, because both are unique and both are strings this server
+        ## handed the caller. A sub-index is addressed as `<repo>#<name>` or by its slug.
         for candidate in known:
-            if target in (candidate.repo_path, candidate.slug):
+            if target in (candidate.slug, registry_key(candidate.repo_path, candidate.name)):
                 return candidate
+        ## A BARE REPOSITORY PATH MAY NOW MATCH SEVERAL RECORDS, and choosing among them
+        ## arbitrarily is the one failure this module's own docstring calls the most expensive
+        ## defect on record: a reply that read one index and stamped another's identity is
+        ## indistinguishable from a correct answer.
+        ##
+        ## So a bare path means the UNNAMED index — the whole repository — and nothing else. When
+        ## a root has only sub-indexes, the call is REFUSED with their names rather than served
+        ## from whichever happened to sort first.
+        siblings = [c for c in known if c.repo_path == target]
+        whole = [c for c in siblings if c.name is None]
+        if whole:
+            return whole[0]
+        if siblings:
+            names = ", ".join(sorted(f"{target}#{c.name}" for c in siblings))
+            raise RuntimeError(
+                f"{target} is indexed as {len(siblings)} sub-index(es) and has no whole-repository "
+                f"index, so this call cannot say which one to read. Name one: {names}"
+            )
         path = Path(target).expanduser()
         if path.is_dir():
             return target_for(path, self.registry.home)
