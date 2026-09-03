@@ -1358,7 +1358,7 @@ class DocsDbServer:
     ## @param sub_index Name of one PART of `target` to build; omit for the whole repository.
     ## @param options Tier-1 build options keyed by declaration-file section name; omit to state nothing.
     ## @return Result dict with build outcome, MEASURED duration, status, registered tool names and the answering target; or a refusal when this process predates its source.
-    ## @version 12
+    ## @version 13
     ## @req REQ-DDB-MCP-002
     ## @req REQ-DDB-MCP-004
     ## @req REQ-DDB-CONFIG-001
@@ -1442,7 +1442,7 @@ class DocsDbServer:
 
         @brief Build/refresh the target database and activate query tools.
         @return Build result dict, carrying a measured duration.
-        @version 12
+        @version 13
         """
         started = time.perf_counter()
         try:
@@ -1457,6 +1457,36 @@ class DocsDbServer:
             return {"ok": False, "error": refusal, "code": identity}
         async with self._build_lock(resolved.repo_path):
             result = await self._build_once(resolved, force, doxyfile, scope, exclude, options)
+        ## `self.active` IS A CACHE, AND THIS BUILD CAN MAKE IT WRONG. `ensure_target` resolves
+        ## it once and short-circuits on every later call — deliberately, so a session's default
+        ## does not re-derive on every request. But `_preferred_default` means WHICH target is
+        ## preferred can change the moment a first-party sub-index is registered, and a session
+        ## that connected (and so cached `self.active`) BEFORE that build has no way to see it:
+        ## nothing invalidates the cache on a build event, only on a roots-list-changed
+        ## notification or a cull. Measured live: a session's own first-party-only refresh left
+        ## its OWN later bare `dossier()`/`search()` calls answering "no database has been built"
+        ## against the never-built whole-repo target, forever, until reconnect.
+        ##
+        ## RE-ADOPTED, NOT MERELY CLEARED. Tier-1 query tools read `self.active_db`/
+        ## `self.active_repo` DIRECTLY — bound once at construction, with no lazy
+        ## re-derivation path the way `ensure_target` gives tier-0 — so clearing to `None`
+        ## would only trade one wrong answer (the stale target) for another (no default at
+        ## all) on the very next bare `dossier`/`search` call. Re-adopting fixes it inline,
+        ## synchronously, before either kind of caller can observe the gap.
+        ##
+        ## SCOPED TO THIS SESSION'S OWN BUILD OF ITS OWN ACTIVE REPOSITORY, not a broader
+        ## invalidation — a build by ANY caller silently retargeting every OTHER session's
+        ## default is exactly the coupling `_build_subject`'s docstring says registration must
+        ## not cause. `self.target_source` is preserved, not replaced, so a flag-pinned or
+        ## roots-derived session stays pinned to the same repository, only re-resolving WHICH
+        ## of its now-current sub-indexes answers for it.
+        if (
+            result.get("ok")
+            and self.active is not None
+            and self.target_source is not None
+            and self.active.repo_path == resolved.repo_path
+        ):
+            self.adopt(resolved.repo_path, self.target_source)
         if result.get("ok"):
             result["tools"] = await self._activate_tier1(ctx)
         result["duration_ms"] = int((time.perf_counter() - started) * 1000)
