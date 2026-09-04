@@ -35,7 +35,7 @@ imported directly at their use sites. Routing them through here would imply a va
 that no longer exists at all.
 
 @brief Import of the MCP server class and request context, and the module name the doctor probes.
-@version 2
+@version 3
 """
 
 from __future__ import annotations
@@ -57,6 +57,16 @@ from mcp.server import MCPServer
 ## that produced the bug, and a future reader comparing the two modules will find both
 ## plausible.
 from mcp.server.mcpserver.context import Context
+
+## THE ONE CLASS WHOSE MESSAGE THE SDK ACTUALLY PRESERVES, since 2.1 (field-verified: CI
+## resolved mcp==2.1.1 against this project's own `mcp>=2,<3` bound while a developer venv
+## sat on 2.0.0, and only the newer version behaves this way). `Tool.run()` treats anything
+## that is not its OWN `ToolError`/`ResourceError`/`MCPError` as an unexpected CRASH and
+## deliberately discards the crashing exception's text before it reaches a client — "Error
+## executing tool X" and nothing else, by design, so an internal stack trace never leaks. A
+## `RuntimeError`/`ValueError` clew raises on purpose is, from the SDK's perspective,
+## indistinguishable from a genuine bug unless it is raised as THIS class instead.
+from mcp.server.mcpserver.exceptions import ToolError
 
 ## The module whose absence means this interpreter cannot start the server, DERIVED from
 ## the import above rather than written as a literal. `mcp.server` exists in both
@@ -102,4 +112,4 @@ def lowlevel(server: Any) -> Any:
         ) from exc
 
 
-__all__ = ["LOWLEVEL_ATTR", "MCP_SERVER_MODULE", "Context", "MCPServer", "lowlevel"]
+__all__ = ["LOWLEVEL_ATTR", "MCP_SERVER_MODULE", "Context", "MCPServer", "ToolError", "lowlevel"]

@@ -434,16 +434,24 @@ def _code_notice(code: Mapping[str, object]) -> dict[str, str] | None:
 ## @brief Tag a deliberate refusal so a truncating client still shows the distinction.
 ## @param exc The exception a tool method raised on purpose.
 ## @return The exception's message, prefixed once with "REFUSED:".
-## @version 1
+## @version 2
 ## @req REQ-DDB-MCP-004
 def refused(exc: Exception) -> str:
     """FIELD-REPORTED: a caller's client showed only the tool name for both an EXPECTED
-    refusal (a mistyped action, an ambiguous target) and an actual crash, because both
-    arrive shaped identically — some text after a colon. clew's own message text was never
-    empty; the distinction a reader needs was just not marked, so a client that renders or
-    truncates aggressively loses it. `stale_code_refusal` below already spoke this way for
-    one case; this generalises the marker to every deliberate refusal this server raises,
-    and lives beside it for the same reason: one module owns the REFUSED wording.
+    refusal (a mistyped action, an ambiguous target) and an actual crash. THE FIRST
+    HYPOTHESIS — a client rendering or truncating aggressively — was wrong, and only a
+    real second environment proved it: CI (mcp==2.1.1) reproduced the bare "Error
+    executing tool X" this function exists to prevent, on the very tests written to
+    guard it, while a developer venv (mcp==2.0.0) had the fix working the whole time.
+    `Tool.run()`, since 2.1, preserves an exception's text ONLY when it is already the
+    SDK's own `ToolError`/`ResourceError`/`MCPError` — anything else is an unexpected
+    CRASH by definition, and its text is discarded before a client ever sees it. So the
+    caller has to raise the RESULT of this function as `_sdk.ToolError`, not as
+    `type(exc)`; tagging a `RuntimeError`'s message and re-raising the same type was a
+    fix that only worked on the OLDER SDK behaviour. `stale_code_refusal` below already
+    spoke the REFUSED: convention for one case; this generalises the marker for every
+    deliberate refusal this server raises, and lives beside it for that reason — one
+    module owns the wording, even though a different module now owns getting it there.
 
     SCOPED TO `RuntimeError`/`ValueError`, which is what every deliberate refusal on the
     MCP surface already raises — not a bespoke exception hierarchy, which would mean
@@ -456,7 +464,7 @@ def refused(exc: Exception) -> str:
 
     @brief Prefix a deliberate refusal's message with "REFUSED:", once.
     @return The tagged message text.
-    @version 1
+    @version 2
     """
     text = str(exc)
     return text if text.startswith("REFUSED:") else f"REFUSED: {text}"

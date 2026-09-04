@@ -125,7 +125,7 @@ import anyio
 from .._common import captured_output, logger
 from ..buildlock import build_lock
 from ..scope import FIRST_PARTY_INDEX, SCOPE_FROM_GUARD
-from ._sdk import Context, MCPServer, lowlevel
+from ._sdk import Context, MCPServer, ToolError, lowlevel
 from .descriptions import load_descriptions
 from .freshness import code_identity, notices, refused, stale_code_refusal
 from .state import (
@@ -409,7 +409,7 @@ ALWAYS_LOAD_META: dict[str, object] = {"anthropic/alwaysLoad": True}
 ## @param bound The bound QueryTools method to wrap.
 ## @param before Async hook awaited before the query runs.
 ## @return An async callable carrying the wrapped method's original signature.
-## @version 3
+## @version 4
 ## @req REQ-DDB-MCP-004
 def _answering_with_refresh(bound: Any, before: Any) -> Any:
     """Wrap one synchronous query tool so a stale index is refreshed before it answers.
@@ -428,7 +428,7 @@ def _answering_with_refresh(bound: Any, before: Any) -> Any:
 
     @brief Add a pre-answer refresh to a synchronous query tool.
     @return An async callable with the original signature.
-    @version 3
+    @version 4
     @req REQ-DDB-MCP-004
     """
 
@@ -445,12 +445,54 @@ def _answering_with_refresh(bound: Any, before: Any) -> Any:
         try:
             return await anyio.to_thread.run_sync(functools.partial(bound, *args, **kwargs))
         except (RuntimeError, ValueError) as exc:
-            ## SAME TAG AS `index()`'s DISPATCH, so a client that shows only a tool's name
-            ## and the first characters after it still sees the distinction between a
-            ## deliberate refusal and a crash on the query surface too, not only tier-0.
-            raise type(exc)(refused(exc)) from exc
+            ## RAISED AS THE SDK'S OWN `ToolError`, NOT `type(exc)` — field-verified this is
+            ## load-bearing, not stylistic. Since mcp 2.1, `Tool.run()` preserves an
+            ## exception's message ONLY when it is already `ToolError`/`ResourceError`/
+            ## `MCPError`; anything else is treated as an unexpected CRASH and its text is
+            ## discarded before reaching a client, by design ("nothing from an unexpected
+            ## exception reaches the client"). A `RuntimeError` — even one tagged
+            ## `REFUSED:` — got exactly that treatment: CI (mcp==2.1.1) showed the bare
+            ## "Error executing tool X" this fix exists to prevent, while a developer venv
+            ## pinned at mcp==2.0.0 (the OLDER, message-preserving behaviour) showed the
+            ## fix working — the same class of drift this project's own pre-commit pin
+            ## discipline already exists to catch, just in a runtime dependency instead of
+            ## a hook. `_refusal_as_tool_error` below is the SAME wrap for tier-0, so both
+            ## halves of the MCP surface get it.
+            raise ToolError(refused(exc)) from exc
 
     return answering
+
+
+## @brief Wrap a tier-0 tool method so a deliberate refusal reaches the SDK as ToolError.
+## @param bound The bound tier-0 method to wrap (e.g. `state.index`).
+## @return An async callable with the original signature.
+## @version 1
+## @req REQ-DDB-MCP-004
+def _refusal_as_tool_error(bound: Any) -> Any:
+    """A REGISTRATION-TIME WRAPPER, deliberately not a change to `bound` itself. Tier-0
+    methods (`index`, `propose_declaration`) are registered by passing the BOUND METHOD
+    straight to `mcp.add_tool`, unlike tier-1's own methods which are wrapped through
+    `_answering_with_refresh` before registration — so putting this conversion INSIDE
+    `index()`'s own body once meant every DIRECT Python caller (a test calling
+    `state.index(...)` itself, or any future internal caller) saw `ToolError` instead of
+    the natural `RuntimeError`/`ValueError` it always raised, breaking three pre-existing
+    tests that assert exactly that type. Wrapping here instead means the SDK-registered
+    callable converts and a direct call to `bound` does not — the same separation
+    `_answering_with_refresh` already keeps for tier-1's own QueryTools methods.
+
+    @brief Convert a deliberate refusal to ToolError only for the SDK-registered callable.
+    @return An async callable with the original signature.
+    @version 1
+    """
+
+    @functools.wraps(bound)
+    async def wrapped(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return await bound(*args, **kwargs)
+        except (RuntimeError, ValueError) as exc:
+            raise ToolError(refused(exc)) from exc
+
+    return wrapped
 
 
 ## @brief Add the tier-1 query tools to an MCP server instance.
@@ -1739,7 +1781,7 @@ class DocsDbServer:
     ## @param max_age_days Age threshold in days, null to disable the age rule (action='cull').
     ## @param include_stale Also cull version-stale databases (action='cull').
     ## @return The chosen action's result, stamped with the `action` that produced it.
-    ## @version 3
+    ## @version 5
     ## @req REQ-DDB-MCP-002
     ## @req REQ-DDB-MCP-003
     async def index(
@@ -1834,30 +1876,27 @@ class DocsDbServer:
 
         @brief Administer the index through one action-dispatched tool.
         @return The action's result, carrying `action`.
-        @version 3
+        @version 5
         """
-        try:
-            if action not in INDEX_ACTIONS:
-                raise ValueError(
-                    f"Unknown index action {action!r}. Known actions: "
-                    f"{', '.join(INDEX_ACTIONS)}. This tool administers the INDEX; for a "
-                    "question about the code call dossier or search."
-                )
-            result = await self._index_action(
-                ctx,
-                action,
-                target,
-                sub_index,
-                force,
-                doxyfile,
-                scope,
-                exclude,
-                options,
-                max_age_days,
-                include_stale,
+        if action not in INDEX_ACTIONS:
+            raise ValueError(
+                f"Unknown index action {action!r}. Known actions: "
+                f"{', '.join(INDEX_ACTIONS)}. This tool administers the INDEX; for a "
+                "question about the code call dossier or search."
             )
-        except (RuntimeError, ValueError) as exc:
-            raise type(exc)(refused(exc)) from exc
+        result = await self._index_action(
+            ctx,
+            action,
+            target,
+            sub_index,
+            force,
+            doxyfile,
+            scope,
+            exclude,
+            options,
+            max_age_days,
+            include_stale,
+        )
         return (
             {**result, "action": action}
             if isinstance(result, dict)
@@ -2223,7 +2262,7 @@ class DocsDbServer:
 ## @brief Construct the MCP server with tier-0 tools registered.
 ## @param registry Target registry to use (defaults to the per-user one).
 ## @return Tuple of the MCP server instance and its DocsDbServer state object.
-## @version 15
+## @version 16
 ## @req REQ-DDB-MCP-001
 def build_server(registry: TargetRegistry | None = None) -> tuple[MCPServer, DocsDbServer]:
     """Create the MCP server instance, register the tier-0 lifecycle tools, and bring
@@ -2269,7 +2308,12 @@ def build_server(registry: TargetRegistry | None = None) -> tuple[MCPServer, Doc
         ## SAME EXEMPTION FOR TIER 0 (gh#7). `index` is what a first-time user must call before
         ## anything else works, so leaving it deferred puts the two-call penalty on the very first
         ## interaction — the one where a reader is deciding whether the tool is worth the trouble.
-        mcp.add_tool(method, name=tool, description=TIER0_TOOLS[tool], meta=ALWAYS_LOAD_META)
+        mcp.add_tool(
+            _refusal_as_tool_error(method),
+            name=tool,
+            description=TIER0_TOOLS[tool],
+            meta=ALWAYS_LOAD_META,
+        )
     state._sync_tier1()
     return mcp, state
 
