@@ -1190,7 +1190,8 @@ def _class_db(tmp_path: Path) -> Path:
         );
         CREATE TABLE memberdef (
             rowid INTEGER PRIMARY KEY, name TEXT, kind TEXT, type TEXT,
-            argsstring TEXT, line INTEGER, file_id INTEGER, briefdescription TEXT
+            argsstring TEXT, line INTEGER, file_id INTEGER, briefdescription TEXT,
+            detaileddescription TEXT
         );
         CREATE TABLE member (scope_rowid INTEGER, memberdef_rowid INTEGER);
         CREATE TABLE compoundref (base_rowid INTEGER, derived_rowid INTEGER);
@@ -1204,10 +1205,11 @@ def _class_db(tmp_path: Path) -> Path:
             (12, 'demo::shape::IShapeWidget', 'class', 2, 12, 'base interface'),
             (13, 'demo::shape::RoundedPolygonWidget', 'class', 2, 90, 'a longer namesake');
         INSERT INTO memberdef (rowid, name, kind, type, argsstring, line, file_id,
-                               briefdescription) VALUES
+                               briefdescription, detaileddescription) VALUES
             (20, 'redraw', 'function', 'void', '() noexcept', 46, 2,
-             '<para>Redraws the widget outline.</para>'),
-            (21, 'canvas_', 'variable', 'render::Canvas &', '', 94, 2, '');
+             '<para>Redraws the widget outline.</para>',
+             '<para>Recomputation is deferred until the next paint.</para>'),
+            (21, 'canvas_', 'variable', 'render::Canvas &', '', 94, 2, '', '');
         INSERT INTO member (scope_rowid, memberdef_rowid) VALUES (11, 20), (11, 21);
         INSERT INTO compoundref (base_rowid, derived_rowid) VALUES (12, 11), (11, 13);
         """,
@@ -1244,6 +1246,77 @@ def test_lookup_class_members_and_hierarchy(tmp_path: Path) -> None:
     assert members["canvas_"].signature == "render::Canvas & canvas_"
     assert entry.bases == ["demo::shape::IShapeWidget"]
     assert entry.derived == ["demo::shape::RoundedPolygonWidget"]
+
+
+def test_lookup_class_members_carry_their_documentation(tmp_path: Path) -> None:
+    """gh#16. `_members` selected name/kind/type/argsstring/line and NOTHING ELSE, so a
+    struct's members came back as an index of field names with their documentation
+    dropped — and the `///<` comments on a C or C++ config header are the whole reason
+    that struct is being read. The class view was the only subject kind that discarded
+    documentation: the FUNCTION view has always returned brief, detail and body.
+
+    Sharper than an omission: `search` RANKS members on `briefdescription`
+    (`member_doc_rows`, same table, same column), so a field was findable by a comment
+    `dossier` would then refuse to show. Reported by a documentation-review agent that
+    read the member index, found no documentation to assess, and emitted a false
+    positive saying the symbol was not in the index.
+
+    BOTH columns, not just the brief. doxygen splits a multi-line `///` block at the
+    first sentence — brief takes the sentence, detail takes the remainder — and in the
+    reported case the STALE half of the comment was in the remainder. A brief-only fix
+    would not have caught the defect the issue was filed over."""
+    entry = q.lookup_class(_class_db(tmp_path), "demo::shape::PolygonWidget")
+    assert entry is not None
+    members = {m.name: m for m in entry.members}
+    assert members["redraw"].brief == "Redraws the widget outline."
+    assert members["redraw"].detail == "Recomputation is deferred until the next paint."
+    # An undocumented member reports empty strings, not None: the field is always
+    # present so a consumer can tell "no comment" from "this index cannot say".
+    assert members["canvas_"].brief == ""
+    assert members["canvas_"].detail == ""
+
+
+def test_lookup_class_members_degrade_when_the_description_columns_are_absent(
+    tmp_path: Path,
+) -> None:
+    """The graceful-degradation contract `_members` already honours for a missing
+    `member` table has to extend to the new columns. This repo's own minimal test
+    indexes omit the description columns — they are part of doxygen's schema, not of
+    every database — so selecting them unguarded would turn a thin index from
+    answering thinly into raising OperationalError.
+
+    A thin index still returns its members; their documentation is empty."""
+    db = tmp_path / "thin.db"
+    conn = sqlite3.connect(str(db))
+    conn.executescript(
+        """
+        CREATE TABLE path (rowid INTEGER PRIMARY KEY, type INTEGER, name TEXT);
+        CREATE TABLE compounddef (
+            rowid INTEGER PRIMARY KEY, name TEXT, kind TEXT, file_id INTEGER,
+            line INTEGER, briefdescription TEXT, detaileddescription TEXT
+        );
+        CREATE TABLE memberdef (
+            rowid INTEGER PRIMARY KEY, name TEXT, kind TEXT, type TEXT,
+            argsstring TEXT, line INTEGER
+        );
+        CREATE TABLE member (scope_rowid INTEGER, memberdef_rowid INTEGER);
+        INSERT INTO path (rowid, type, name) VALUES (2, 1, 'src/demo/shape/Thin.hpp');
+        INSERT INTO compounddef (rowid, name, kind, file_id, line, briefdescription)
+            VALUES (11, 'demo::shape::ThinWidget', 'struct', 2, 4, 'no doc columns here');
+        INSERT INTO memberdef (rowid, name, kind, type, argsstring, line) VALUES
+            (20, 'extent', 'variable', 'int', '', 6);
+        INSERT INTO member (scope_rowid, memberdef_rowid) VALUES (11, 20);
+        """,
+    )
+    conn.commit()
+    conn.close()
+
+    entry = q.lookup_class(db, "ThinWidget")
+    assert entry is not None
+    assert [m.name for m in entry.members] == ["extent"]
+    assert entry.members[0].signature == "int extent"
+    assert entry.members[0].brief == ""
+    assert entry.members[0].detail == ""
 
 
 def test_lookup_class_std_is_still_reachable(tmp_path: Path) -> None:

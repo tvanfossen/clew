@@ -662,21 +662,46 @@ def _class_rank(row: tuple, wanted: str) -> tuple:
     return (bool(SYNTHETIC_PATH.match(file)), tier, len(name), name)
 
 
-## @brief Members of one compound, ordered by declaration line.
+## @brief Members of one compound, ordered by declaration line, with their documentation.
 ## @param conn Open connection.
 ## @param rowid compounddef rowid.
 ## @return List of ClassMember; empty when the `member` relation is absent.
-## @version 1
+## @version 2
 ## @dg_internal
 def _members(conn: sqlite3.Connection, rowid: int) -> list[ClassMember]:
-    """@brief Build the ClassMember rows for one compound.
+    """SELECTS THE DESCRIPTION COLUMNS (gh#16). It did not, and the class view was
+    therefore the one subject kind that returned a symbol's members with their
+    documentation dropped — an index of field names, on exactly the header shape
+    (`///<` on every field) where the comments ARE the payload a reader came for.
+
+    The inconsistency was sharper than the omission: `member_doc_rows` in this same
+    module already ranks `search` on `memberdef.briefdescription`, so a field was
+    findable BY a comment that `dossier` would then decline to show.
+
+    GUARDED PER COLUMN, matching the `table_exists` guard one line up rather than
+    assuming doxygen's full schema. The description columns are doxygen's, not every
+    database's — this repo's own minimal fixtures omit them — and `has_columns` is the
+    contract that keeps a thin index answering thinly instead of raising.
+
+    Size is left to the caller's budget rather than trimmed here: `members` is already
+    one of `_DOSSIER_LISTS`, so a compound large enough to matter is reduced by the
+    same machinery as every other panel, with the same `_limited` disclosure.
+
+    @brief Build the ClassMember rows for one compound.
     @return List of ClassMember.
-    @version 1
+    @version 2
     """
     if not table_exists(conn, "member"):
         return []
+    ## `NULL` rather than the column name when it is absent, so one query shape serves
+    ## both schemas and the row tuple keeps a fixed width.
+    doc_columns = ", ".join(
+        f"COALESCE(m.{c},'')" if has_columns(conn, "memberdef", c) else "NULL"
+        for c in ("briefdescription", "detaileddescription")
+    )
     rows = conn.execute(
-        "SELECT m.name, m.kind, COALESCE(m.type,''), COALESCE(m.argsstring,''), m.line "
+        f"SELECT m.name, m.kind, COALESCE(m.type,''), COALESCE(m.argsstring,''), m.line, "  # noqa: S608
+        f"{doc_columns} "
         "FROM member mm JOIN memberdef m ON m.rowid = mm.memberdef_rowid "
         "WHERE mm.scope_rowid=? ORDER BY m.line, m.name",
         (rowid,),
@@ -687,8 +712,10 @@ def _members(conn: sqlite3.Connection, rowid: int) -> list[ClassMember]:
             kind=kind,
             signature=f"{mtype} {name}{args}".strip(),
             line=line,
+            brief=strip_xml(brief),
+            detail=strip_xml(detail),
         )
-        for name, kind, mtype, args, line in rows
+        for name, kind, mtype, args, line, brief, detail in rows
     ]
 
 
