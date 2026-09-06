@@ -46,7 +46,10 @@ def test_the_module_form_actually_runs_the_server_entry_point() -> None:
     """
     proc = subprocess.run(
         [sys.executable, "-m", "clew.mcp_server.server", "--help"],
-        cwd=REPO, capture_output=True, text=True, timeout=60,
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        timeout=60,
     )
     assert proc.returncode == 0, f"stderr: {proc.stderr}"
     assert "clew-mcp" in proc.stdout, (
@@ -66,7 +69,10 @@ def test_the_package_form_runs_the_same_entry_point() -> None:
     different ways and neither pointed at the console script."""
     proc = subprocess.run(
         [sys.executable, "-m", "clew.mcp_server", "--help"],
-        cwd=REPO, capture_output=True, text=True, timeout=60,
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        timeout=60,
     )
     assert proc.returncode == 0, f"stderr: {proc.stderr}"
     assert "clew-mcp" in proc.stdout
