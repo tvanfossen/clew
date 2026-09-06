@@ -2382,3 +2382,22 @@ def main() -> None:
     mcp, state = build_server()
     state.resolve_startup_target(args.repo)
     anyio.run(run_stdio, mcp)
+
+
+## RUNNABLE AS A MODULE, NOT ONLY AS A CONSOLE SCRIPT (gh#14). Without this block
+## `python -m clew.mcp_server.server` ran the file top to bottom — defining every tool,
+## calling nothing — and exited 0. A client that connected to it saw a server offering
+## ZERO tools, which reads as "clew has no tools" rather than "that is the wrong
+## invocation", and nothing on either side said otherwise.
+##
+## `clew/mcp_server/__main__.py` already covered `python -m clew.mcp_server`; this covers
+## the longer spelling, which is the one people type because it is the one that names the
+## file they found.
+##
+## The `RuntimeWarning` runpy prints here is real and harmless: `__init__.py` imports
+## `.server`, so this file is executed a second time under the name `__main__`. It is
+## harmless because `build_server()` constructs and registers at CALL time rather than at
+## import, so the server this `main()` builds is fully populated — measured with
+## `scripts/mcp_tools_probe.py`, which serves the same four tools from all three spellings.
+if __name__ == "__main__":  # pragma: no cover - exercised by subprocess tests
+    main()
