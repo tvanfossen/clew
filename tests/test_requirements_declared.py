@@ -331,6 +331,76 @@ def test_extract_req_tags_id_terminated_by_markup_not_just_whitespace() -> None:
     )
 
 
+def test_extract_req_tags_survives_doxygens_own_sentence_period() -> None:
+    """gh#20. A `@req` that follows `@brief` with no blank line continues the brief
+    paragraph, and doxygen APPENDS ITS OWN PERIOD when it closes that paragraph. The author
+    wrote a clean tag; the punctuation is doxygen's:
+
+        /** @brief Does the thing.
+         *  @req REQ-PROBE-001            ->  '<para>Does the thing. @req REQ-PROBE-001. </para>'
+         */                                                                        ^ added
+
+    The id terminator was whitespace / `<` / end-of-text, so the token was
+    `REQ-PROBE-001.` and the full match failed. Total, silent drop — no edge, no warning —
+    and `dossier("REQ-PROBE-001")` then answers with the definitive-negative wording.
+
+    This repository does not hit it because its own convention puts `@req` in a `##` block
+    after `@version`, which is a separate paragraph. That is exactly why it survived.
+    """
+    pattern = resolve_req_id_pattern(None)
+    punctuated = "<para>Does the thing. @req REQ-PROBE-001. </para>\n"
+    assert _extract_req_tags(punctuated, pattern) == ["REQ-PROBE-001"], (
+        "doxygen's own sentence period must not cost the author their traceability edge"
+    )
+    for trailing in (",", ";", ":"):
+        assert _extract_req_tags(f"@req REQ-PROBE-001{trailing} ", pattern) == ["REQ-PROBE-001"]
+
+
+def test_a_declared_pattern_that_ends_in_punctuation_is_matched_before_stripping() -> None:
+    """THE LINE THE RETRY MUST NOT CROSS. Stripping punctuation unconditionally would
+    corrupt an id for a repo whose DECLARED pattern legitimately contains dots — the
+    permissive default has none, but a declared one is the target's to choose, and this
+    extractor's one hard guarantee is that every id matching today still matches.
+
+    So the greedy token is tried FIRST and only a failure retries with one trailing
+    character removed: a dotted id matches on the first attempt and is never touched.
+    """
+    import re
+
+    dotted = re.compile(r"^REQ-[0-9]+(?:\.[0-9]+)*$")
+    assert _extract_req_tags("@req REQ-1.2.3 ", dotted) == ["REQ-1.2.3"], (
+        "a dotted id matches greedily and must survive untouched"
+    )
+    # And the same id still recovers when doxygen punctuates it.
+    assert _extract_req_tags("@req REQ-1.2.3. ", dotted) == ["REQ-1.2.3"]
+
+
+def test_the_xrefitem_form_stores_the_TRIMMED_id_not_the_raw_token() -> None:
+    """The alias path (a repo that declares `ALIASES += req=...`) renders the tag into an
+    `<xrefdescription>`, and it ends a sentence just as often as the literal form. It gets the
+    same tolerance — but it must store the MATCHED id, not the token that was tested.
+
+    Appending the raw token would write `REQ-DDB-PIPE-004.` into `req_edges.req_id`, which
+    joins to nothing in the catalog: the edge exists, the requirement resolves to no title or
+    status, and the traceability looks present while being broken. Worse than the drop it
+    replaced, which is why this is pinned separately from the literal form.
+    """
+    pattern = resolve_req_id_pattern(None)
+    punctuated = "<xrefdescription><para>REQ-DDB-PIPE-004.</para></xrefdescription>"
+    assert _extract_req_tags(punctuated, pattern) == ["REQ-DDB-PIPE-004"], (
+        "the stored id must be the trimmed one, or it joins to no catalog row"
+    )
+
+
+def test_only_ONE_trailing_character_is_retried() -> None:
+    """A retry is a concession to punctuation, not a licence to keep chewing. `REQ-X...`
+    is not a tag with three periods to peel — it is text this extractor should decline, and
+    peeling until something matches is how a scanner starts inventing ids out of prose."""
+    pattern = resolve_req_id_pattern(None)
+    assert _extract_req_tags("@req REQ-PROBE-001... ", pattern) == []
+    assert _extract_req_tags("@req REQ-PROBE-001.. ", pattern) == []
+
+
 def test_extract_req_tags_keeps_inferred_when_marker_abuts_markup() -> None:
     pattern = resolve_req_id_pattern(None)
     # The terminator lookahead was satisfied by the space BEFORE `[inferred]`, so

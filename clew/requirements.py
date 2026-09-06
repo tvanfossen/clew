@@ -414,11 +414,52 @@ def ingest_requirements_yaml(
     )
 
 
+## The punctuation doxygen appends when a tag ends a sentence or a list item. NOT a general
+## strip set: exactly the characters a prose sentence terminates with, tried ONE at a time.
+_SENTENCE_TAIL = ".,;:"
+
+
+## @brief The req id a captured token denotes, allowing for doxygen's own trailing punctuation.
+## @param token The id token as captured, e.g. 'REQ-PROBE-001.'.
+## @param req_id_pattern The declared or permissive pattern the id must fully match.
+## @return The matching id, or '' when the token denotes none.
+## @version 1
+## @req REQ-DDB-SCHEMA-006
+## @dg_internal
+def _matched_req_id(token: str, req_id_pattern: re.Pattern[str]) -> str:
+    """GREEDY FIRST, AND THAT ORDER IS THE WHOLE SAFETY ARGUMENT (gh#20). A `@req` that
+    follows `@brief` with no blank line continues the brief paragraph, and doxygen appends
+    its own period when it closes that paragraph — so the captured token is
+    `REQ-PROBE-001.` for a tag the author wrote cleanly, the full match fails, and the edge
+    is dropped with no warning anywhere.
+
+    Stripping punctuation unconditionally would be the wrong fix: a target's DECLARED
+    pattern may legitimately contain dots (`REQ-1.2.3`), and this extractor's one hard
+    guarantee is that every id matching today still matches. Trying the token as captured
+    first means a dotted id matches on the first attempt and is never touched.
+
+    ONE CHARACTER, ONCE. `REQ-X...` is prose this should decline, not a tag with three
+    periods to peel — peeling until something matches is how a scanner starts inventing
+    ids out of surrounding text.
+
+    @brief Match a captured id token, tolerating one trailing sentence character.
+    @return The id, or ''.
+    @version 1
+    """
+    if req_id_pattern.match(token):
+        return token
+    if token[-1:] in _SENTENCE_TAIL:
+        trimmed = token[:-1]
+        if trimmed and req_id_pattern.match(trimmed):
+            return trimmed
+    return ""
+
+
 ## @brief Classify each `@req` tag occurrence into (req_id, confidence).
 ## @param text Doxygen description text to scan.
 ## @param req_id_pattern Compiled pattern the captured id token must match.
 ## @return list of (req_id, confidence) tuples whose id matched the pattern.
-## @version 6
+## @version 7
 ## @req REQ-DDB-SCHEMA-006
 def _extract_req_tags(
     text: str | None,
@@ -435,14 +476,14 @@ def _extract_req_tags(
     failures the `<` terminator fixes.
 
     @brief Extract declared-pattern @req tags (literal + xrefitem-alias forms).
-    @version 6
+    @version 7
     """
     if not text:
         return []
     found: list[str] = []
     for match in _REQ_TAG_TOKEN_RE.finditer(text):
-        req_id = match.group(1)
-        if req_id_pattern.match(req_id):
+        req_id = _matched_req_id(match.group(1), req_id_pattern)
+        if req_id:
             found.append(req_id)
     found.extend(_extract_xref_req_tags(text, req_id_pattern))
     return found
@@ -452,7 +493,7 @@ def _extract_req_tags(
 ## @param text Doxygen description text (may contain xrefsect markup).
 ## @param req_id_pattern Compiled pattern the candidate token must match.
 ## @return list of (req_id, confidence) tuples for xref-embedded ids.
-## @version 3
+## @version 4
 ## @req REQ-DDB-SCHEMA-006
 def _extract_xref_req_tags(
     text: str,
@@ -466,13 +507,18 @@ def _extract_xref_req_tags(
     to confidence 'inferred', else 'stated'.
 
     @brief Extract @req ids from doxygen xrefdescription blocks.
-    @version 3
+    @version 4
     """
     found: list[str] = []
     for block in _XREF_DESC_RE.findall(text):
         for token in _ID_TOKEN_RE.findall(block):
-            if req_id_pattern.match(token):
-                found.append(token)
+            ## Same tolerance as the literal form: an aliased tag rendered into an
+            ## xrefdescription ends a sentence just as often as an unaliased one. The
+            ## MATCHED id is appended, not the raw token — appending the token would store
+            ## `REQ-X.` as the id and break the join to the catalog.
+            req_id = _matched_req_id(token, req_id_pattern)
+            if req_id:
+                found.append(req_id)
     return found
 
 
@@ -714,16 +760,26 @@ def declared_catalog_path(guard_cfg: dict | None, repo_root: Path) -> Path | Non
     return path
 
 
-## The catalog filename a repo carries by convention when it declares nothing. The ONE
-## conventional path in this pipeline, and it is a fallback rather than a rule.
-_CONVENTIONAL_CATALOG = "requirements.yaml"
+## The catalog locations a repo carries by convention when it declares nothing. A fallback
+## rather than a rule, and ORDERED: the root comes first because every repo that resolves a
+## catalog today resolves it there, and re-pointing those at a `docs/` copy would silently
+## change which file an existing index was built from.
+##
+## `docs/` was added for gh#13. It is not a guess — it is where this pipeline ALREADY looks for
+## a Doxyfile, so a repo that keeps its documentation inputs together was the reported case.
+## Nothing further is added on speculation: a repo with any other layout has the DECLARATION,
+## which outranks this tier and is the supported way to say where the catalog lives.
+_CONVENTIONAL_CATALOGS = (
+    "requirements.yaml",
+    "docs/requirements.yaml",
+)
 
 
 ## @brief The catalog path to ingest: declared first, then the conventional filename.
 ## @param guard_cfg Parsed .doxygen-guard.yaml dict, or None.
 ## @param repo_root Repo root both candidates are relative to.
-## @return Resolved catalog path, or None when neither exists.
-## @version 1
+## @return Resolved catalog path, or None when none exists.
+## @version 2
 ## @req REQ-DDB-SCHEMA-006
 def resolve_catalog_path(guard_cfg: dict | None, repo_root: Path) -> Path | None:
     """ONE RESOLVER, BECAUSE THERE WERE TWO AND THEY DISAGREED. `cli` resolved
@@ -748,16 +804,29 @@ def resolve_catalog_path(guard_cfg: dict | None, repo_root: Path) -> Path | None
 
     @brief Resolve the catalog path by declaration, then by convention.
     @return Catalog path, or None.
-    @version 1
+    @version 2
     """
     declared = declared_catalog_path(guard_cfg, repo_root)
     if declared is not None:
         return declared
-    conventional = repo_root / _CONVENTIONAL_CATALOG
-    if conventional.is_file():
-        logger.info("requirements: using CONVENTIONAL catalog %s", _CONVENTIONAL_CATALOG)
-        return conventional
-    return None
+    found = [rel for rel in _CONVENTIONAL_CATALOGS if (repo_root / rel).is_file()]
+    if not found:
+        return None
+    ## NAMES THE LOSERS WHEN THERE ARE ANY. A silent pick is only safe when the caller can tell
+    ## a pick was made, which is the rule `lookup_class` follows for compounds and `dossier` for
+    ## overloads. Two conventional catalogs is a repository saying two different things, and the
+    ## remedy — declare `impact.requirements.file` — is the one that makes the answer stable.
+    if len(found) > 1:
+        logger.warning(
+            "requirements: %d conventional catalogs exist (%s) — using %s. Declare "
+            "impact.requirements.file to choose deliberately.",
+            len(found),
+            ", ".join(found),
+            found[0],
+        )
+    else:
+        logger.info("requirements: using CONVENTIONAL catalog %s", found[0])
+    return repo_root / found[0]
 
 
 ## @brief The raw `impact.requirements.file` value a config declares, if any.
