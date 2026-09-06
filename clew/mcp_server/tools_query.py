@@ -521,7 +521,7 @@ _NO_SEED_NOTE = (
 ## @param payload The flat subject payload, already built.
 ## @param also The other kinds this same name resolves to.
 ## @return A note string, or "" when the empty list can be trusted.
-## @version 1
+## @version 2
 ## @dg_internal
 def _empty_callers_note(payload: dict[str, Any], also: tuple[str, ...]) -> str:
     """gh#4, AND IT CHANGED A REAL DECISION. A reporter asked `dossier("ProgressBar")`, got the
@@ -543,20 +543,76 @@ def _empty_callers_note(payload: dict[str, Any], also: tuple[str, ...]) -> str:
     annotating that would train a reader to ignore the annotation. The reporter's own words: option
     (3) alone would have prevented the error.
 
+    gh#15 MADE THE SIGNAL A MEASUREMENT. `also` says what KIND of symbol this is; the build now
+    records what it actually REFUSED, per symbol, so the strong case no longer has to be inferred
+    from a category. The measured branch therefore wins where both apply — it is a fact about
+    this symbol, where `also` is a fact about its name — and a measured ZERO says nothing at all,
+    which is what lets an ordinary empty list keep its full confidence.
+
     @brief Say that an empty caller list may be a missing construction edge.
+    @return The note, or "".
+    @version 2
+    """
+    if payload.get("subject_kind") != "function" or payload.get("callers"):
+        return ""
+    return _refusal_note(payload.get("callers_unresolved")) or _constructor_note(also)
+
+
+## @brief Note for an empty caller list the build recorded refusals against.
+## @param sites The recorded unresolved inbound site count, or None when unmeasured.
+## @return The note, or "" when there is nothing measured to report.
+## @version 1
+## @dg_internal
+def _refusal_note(sites: Any) -> str:
+    """None IS NOT ZERO. An index built before the measurement existed reports None, and reading
+    that as "nothing was refused" would assert a clean bill of health from a detector that could
+    not look — so None returns "" and leaves the older `also` rule to answer, exactly as it did
+    before this existed.
+
+    @brief Qualify an empty caller list against the recorded refusal count.
     @return The note, or "".
     @version 1
     """
-    if payload.get("subject_kind") != "function" or "class" not in also:
+    if not isinstance(sites, int) or isinstance(sites, bool) or sites <= 0:
         return ""
-    if payload.get("callers"):
+    return (
+        f"`callers` is EMPTY but this is NOT a measured negative: {sites} call site(s) in this "
+        f"index named a function this one could be and did not resolve to a specific one, so "
+        f"callers may exist that no edge records. A member call reached through a pointer or "
+        f"reference receiver resolves only when the receiver's declared type pins the class. "
+        f"Read the body at the reported line range, or `search` the name, before concluding "
+        f"nothing calls this."
+    )
+
+
+## @brief Note for an empty caller list on a name that is also a class.
+## @param also The other kinds this same name resolves to.
+## @return The note, or "" when this is not the constructor case.
+## @version 1
+## @dg_internal
+def _constructor_note(also: tuple[str, ...]) -> str:
+    """gh#4's rule, kept because it answers on an index that carries no measurement — and
+    because it names a DIFFERENT missing thing: not a call whose receiver went unresolved, but a
+    construction the grammar records no call for at all.
+
+    NARROWED BY gh#15. `std::make_unique<T>` and `make_shared<T>` now DO resolve to the
+    constructor, and a direct `T(...)` always did, so the blanket "construction is not modelled"
+    is no longer true and would send a reader looking for a gap that has been closed. What
+    remains unmodelled is brace initialisation, which is what gh#4 was reported against.
+
+    @brief Say that an empty caller list may be a missing brace-initialised construction.
+    @return The note, or "".
+    @version 1
+    """
+    if "class" not in also:
         return ""
     return (
         "`callers` is EMPTY and this name also resolves to a class, so this is very likely a "
-        "constructor. Construction sites are NOT modelled as call edges — brace-initialised "
-        "locals in particular produce none — so an empty list here does NOT mean nothing "
-        "constructs this type. Ask `dossier` for the CLASS (kind='class') and read `candidates`, "
-        "or `search` the type name, before concluding it has no users."
+        "constructor. Brace-initialised construction (`T x{...}`) is NOT modelled as a call "
+        "edge, so an empty list here does NOT mean nothing constructs this type — though "
+        "`T(...)` and `std::make_unique<T>` / `make_shared<T>` do resolve. Ask `dossier` for the "
+        "CLASS (kind='class') and read `candidates`, or `search` the type name, before "
+        "concluding it has no users."
     )
 
 
