@@ -432,6 +432,80 @@ def test_resolve_qualified_entry_rejects_param_type_collision() -> None:
     conn.close()
 
 
+def test_a_module_level_python_entry_resolves_through_its_scope() -> None:
+    """A MODULE-LEVEL PYTHON FUNCTION HAS NO MODULE IN ITS `definition`, and that broke this
+    resolver for every one of them. doxygen writes the qualifier into `definition` for a
+    CLASS method and omits it for a module-level function, recording it in `scope` instead:
+
+        pysample.spawner.Poller._run    definition ' None pysample.spawner.Poller._run'
+        clew.doxygen._write_doxyfile_stdin
+                                        definition ' None _write_doxyfile_stdin'
+                                        scope      'clew.doxygen'
+
+    So `threading.Thread(target=clew.doxygen._write_doxyfile_stdin)` matched no definition and
+    the thread's entry stayed NULL — which drops the entry AND its whole membership closure,
+    while the index plainly holds the function. Caught by this repo's own self-index test,
+    which asserts the falsifiable invariant that an entry is NULL only when its tail name is
+    genuinely absent.
+
+    The scope pass is a FALLBACK, not a widening: `definition` is still tried first, so every
+    boundary and collision guard above still decides the C++ cases. `scope || sep || name` is
+    an exact equality rather than a LIKE, so it cannot collide the way the prefilter can — and
+    it is unique across this repository's own index.
+    """
+    from clew.threads import _resolve_qualified_entry
+
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(
+        "CREATE TABLE memberdef (rowid INTEGER PRIMARY KEY, kind TEXT, name TEXT, "
+        "definition TEXT, scope TEXT, file_id INTEGER, bodyfile_id INTEGER);"
+    )
+    conn.executemany(
+        "INSERT INTO memberdef VALUES (?, 'function', ?, ?, ?, 1, 1)",
+        [
+            # The real target: doxygen left the module out of `definition`.
+            (1, "_write_doxyfile_stdin", " None _write_doxyfile_stdin", "clew.doxygen"),
+            # A same-named function in ANOTHER module must not be borrowed.
+            (2, "_write_doxyfile_stdin", " None _write_doxyfile_stdin", "other.module"),
+        ],
+    )
+    conn.commit()
+
+    assert _resolve_qualified_entry(conn, "clew.doxygen._write_doxyfile_stdin", ".") == 1
+    assert _resolve_qualified_entry(conn, "other.module._write_doxyfile_stdin", ".") == 2
+    # An unindexed module stays NULL rather than borrowing either row — fail closed, exactly
+    # as the definition-based path does for a suffix collision.
+    assert _resolve_qualified_entry(conn, "third.module._write_doxyfile_stdin", ".") is None
+    conn.close()
+
+
+def test_the_scope_fallback_does_not_disturb_the_definition_match() -> None:
+    """THE CONTROL. The fallback must run only when `definition` yielded nothing, or it could
+    overturn a decision the boundary guards already made correctly. Here `definition` names
+    `ns::Owner::run` and a DIFFERENT row carries a scope that would also match — the
+    definition answer has to win."""
+    from clew.threads import _resolve_qualified_entry
+
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(
+        "CREATE TABLE memberdef (rowid INTEGER PRIMARY KEY, kind TEXT, name TEXT, "
+        "definition TEXT, scope TEXT, file_id INTEGER, bodyfile_id INTEGER);"
+    )
+    conn.executemany(
+        "INSERT INTO memberdef VALUES (?, 'function', ?, ?, ?, 1, 1)",
+        [
+            (1, "run", "void ns::Owner::run", ""),
+            (2, "run", " None run", "Owner"),
+        ],
+    )
+    conn.commit()
+    assert _resolve_qualified_entry(conn, "Owner::run") == 1, (
+        "the definition match is decided by the boundary guards and the fallback must not "
+        "overturn it"
+    )
+    conn.close()
+
+
 def test_extract_threads_always_creates_empty_tables(tmp_path: Path) -> None:
     """No spawn sites → threads/thread_membership still exist (empty)."""
     src = tmp_path / "src"

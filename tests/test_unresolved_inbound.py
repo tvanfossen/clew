@@ -54,7 +54,12 @@ def test_a_refused_member_call_records_the_set_it_refused_between() -> None:
     fuzzy: list[tuple[int, int, str]] = []
     unresolved: list[list[int]] = []
     _ast_record_call_edge(
-        1, "store", {"store": [30, 31, 32]}, resolved, fuzzy, SOURCE_AST_MEMBER,
+        1,
+        "store",
+        {"store": [30, 31, 32]},
+        resolved,
+        fuzzy,
+        SOURCE_AST_MEMBER,
         unresolved=unresolved,
     )
     assert resolved == [] and fuzzy == [], "premise: this call refuses"
