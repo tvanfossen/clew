@@ -49,6 +49,7 @@ from .symbols import (
     overridden_by,
     overrides_of,
     threads_for_rowids,
+    unresolved_inbound_for_rowids,
 )
 from .traversal import termini_for
 
@@ -438,7 +439,7 @@ def function_dossier(
 ## @param repo_root Working tree, or None to skip the body and external-callee panels.
 ## @param max_body_lines Cap on the body excerpt.
 ## @return The populated Dossier, or None when `fn` resolves to nothing.
-## @version 5
+## @version 6
 ## @req REQ-DDB-QUERY-004
 ## @dg_internal
 def _dossier_conn(
@@ -576,6 +577,11 @@ def _dossier_conn(
         # does not change.
         gated_by=list(gates),
         gates_unplaceable=unknown,
+        # gh#15. The other direction of the same argument `gates_unplaceable` makes: an empty
+        # `callers` is a measured negative only when nothing was refused, and the build now
+        # records what it refused. Summed over the identity's decl/def pair, because a refusal
+        # landing on the sibling row is a refusal against this function.
+        callers_unresolved=unresolved_inbound_for_rowids(conn, ids),
     )
 
 

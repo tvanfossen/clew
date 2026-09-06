@@ -50,6 +50,7 @@ from __future__ import annotations
 
 import bisect
 import sqlite3
+from collections import Counter
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -462,6 +463,7 @@ def _ast_record_call_edge(
     scope_of: dict[int, str] | None = None,
     argc_of: dict[int, int] | None = None,
     construction: bool = False,
+    unresolved: list[list[int]] | None = None,
 ) -> None:
     """A UNIQUE NAME IS NOT EVIDENCE ABOUT A RECEIVER, and conflating the two made this
     layer assert fabrications as certainties.
@@ -584,6 +586,21 @@ def _ast_record_call_edge(
     ## `edges_fuzzy` stays in the signature deliberately: the insert path reports its length, so
     ## the build log now states a measured ZERO rather than falling silent about a layer that
     ## used to dominate the table.
+    ##
+    ## BUT THE REFUSAL IS RECORDED (gh#15). Emitting no row is right; leaving no TRACE was not.
+    ## A consumer reading `callers: []` could not tell a symbol nothing calls from a symbol
+    ## whose callers all failed to resolve, and gh#15's reporter acted on the first reading of
+    ## the second and shipped a wrong conclusion. Every candidate this site could have meant
+    ## takes one unresolved inbound site, so an empty `callers` can be graded at query time
+    ## against a MEASUREMENT rather than hedged with a sentence — which `emptiness.py` records
+    ## as the rule ("fix the corpus, not the sentence about the corpus") and gh#393 as the
+    ## precedent for what a blanket hedge costs.
+    ##
+    ## THE NAME IS NOT STORED, so this does not reintroduce name-as-signal in a column: what is
+    ## counted is a set of ROWIDS that were already resolved candidates, and the count says how
+    ## often resolution was attempted against them and failed.
+    if unresolved is not None and candidates:
+        unresolved.append(list(candidates))
     return
 
 
@@ -1346,6 +1363,7 @@ def _fold_call_payload(
     receiver_types: dict[str, set[str]] | None = None,
     scope_of: dict[int, str] | None = None,
     argc_of: dict[int, int] | None = None,
+    unresolved: list[list[int]] | None = None,
 ) -> None:
     """Map each harvested call line back to its enclosing function's rowid and
     the callee name to candidate rowids — the rowid-dependent half of Layer 3,
@@ -1386,7 +1404,98 @@ def _fold_call_payload(
             scope_of=scope_of,
             argc_of=argc_of,
             construction=construction,
+            unresolved=unresolved,
         )
+
+
+## @brief The one function a refused call site is evidence about, if there is one.
+## @param candidates The candidate rowids the site refused between.
+## @param identity_of rowid → (name, definition, argsstring).
+## @return The rowid to credit, or None when the site names several functions.
+## @version 1
+## @dg_internal
+def _attributable(
+    candidates: list[int], identity_of: dict[int, tuple[str, str, str]]
+) -> int | None:
+    """ONE IDENTITY OR NOTHING. `_collapse_duplicate_targets` uses the same test to decide when
+    several rows are one function; here it decides when a refusal is evidence about a symbol
+    rather than about a name. An unknown identity disqualifies the whole set rather than being
+    skipped, because a set that is only PARTLY known cannot be shown to name one function.
+
+    @brief The rowid a refused site is attributable to.
+    @return The rowid, or None.
+    @version 1
+    """
+    if not candidates or any(rowid not in identity_of for rowid in candidates):
+        return None
+    if len({identity_of[rowid] for rowid in candidates}) != 1:
+        return None
+    return min(candidates)
+
+
+## @brief Record, per callee, how many call sites named it and did not resolve.
+## @param conn Open connection to the database being built.
+## @param unresolved Candidate rowids, one entry per (site, candidate) pair.
+## @return How many distinct callees carry a nonzero count.
+## @version 1
+## @dg_internal
+def _insert_unresolved_inbound(
+    conn: sqlite3.Connection,
+    unresolved: list[list[int]],
+    identity_of: dict[int, tuple[str, str, str]] | None = None,
+) -> int:
+    """REBUILT, NOT APPENDED. `import_ast_call_edges` folds the WHOLE cached payload set on
+    every build rather than only the changed files, so the measurement is recomputed in full
+    each time; appending would let a symbol's count grow with the number of refreshes, which is
+    a number about this repository's build history wearing the costume of a number about the
+    code.
+
+    ATTRIBUTION IS EARNED, NOT ASSUMED, AND A MEASUREMENT FORCED THIS. The first version credited
+    every candidate of every refused site. On entropic that recorded 1,716,524 site-candidate
+    pairs and would have qualified 2,290 of the 2,620 functions with no inbound edge — 87%, a
+    permanent banner. That is precisely the blanket hedge `mcp_server/emptiness.py` records
+    gh#393 withdrawing: an annotation on almost every reply trains a reader to ignore it, which
+    is worse than no annotation, and it would have hedged the honest negatives to excuse the
+    dishonest ones.
+
+    It was also wrong on its own terms. A site whose callee name matches 200 rows is a site this
+    layer genuinely cannot attribute, and crediting each of the 200 is the name-as-evidence
+    fallacy `_ast_record_call_edge` refuses one function up — a NAME is not evidence of linkage,
+    so it cannot be evidence of a MISSING linkage either.
+
+    So a refusal counts only where the candidate set names ONE function: every candidate is a
+    row of the same identity, which is doxygen's declaration/definition pair. There the refusal
+    really is about that function — the call site named it and resolution declined for want of a
+    verified receiver, which is exactly gh#15's reported case — and nothing about the name is
+    being taken for evidence.
+
+    CREDITED TO ONE ROWID of the identity, because the query layer sums over the identity's
+    whole decl/def pair; crediting both would double every count.
+
+    @brief Rebuild the unresolved-inbound counts from attributable refusals only.
+    @return Number of distinct callees recorded.
+    @version 2
+    """
+    conn.execute("DROP TABLE IF EXISTS unresolved_inbound")
+    ## NO IDENTITIES, NO TABLE, AND THAT IS THE POINT. Without `memberdef.definition` /
+    ## `argsstring` nothing can be shown to name one function, so every symbol would record a
+    ## zero — and a zero here MEANS "measured, nothing was refused", which would be a clean bill
+    ## of health issued by a detector that could not look. Leaving the table absent makes the
+    ## query layer answer None: "this index cannot say", which is the truth.
+    if not identity_of:
+        return 0
+    conn.execute(
+        "CREATE TABLE unresolved_inbound ("
+        "  callee_rowid INTEGER PRIMARY KEY,"
+        "  sites        INTEGER NOT NULL)"
+    )
+    attributable = (_attributable(c, identity_of or {}) for c in unresolved)
+    counts = Counter(rowid for rowid in attributable if rowid is not None)
+    conn.executemany(
+        "INSERT INTO unresolved_inbound (callee_rowid, sites) VALUES (?, ?)",
+        sorted(counts.items()),
+    )
+    return len(counts)
 
 
 ## @brief Insert harvested AST edges, carrying each edge's own provenance.
@@ -1428,7 +1537,7 @@ def _ast_insert_edges(
 ## @param db_path Path to the clew.db being built.
 ## @param repo_root Repository root (for resolving indexed relative paths).
 ## @param cache Optional incremental index cache; None disables caching.
-## @version 9
+## @version 10
 ## @req REQ-DDB-PIPE-003
 def import_ast_call_edges(
     db_path: Path,
@@ -1450,7 +1559,7 @@ def import_ast_call_edges(
     guarantees structurally instead of by remembering to check.
 
     @brief Populate call_edges from tree-sitter AST walk, then guard self-edges.
-    @version 9
+    @version 10
     """
     ts_classes = try_import_tree_sitter()
     if ts_classes is None:
@@ -1473,8 +1582,12 @@ def import_ast_call_edges(
     ## carrying its own guard.
     scope_of: dict[int, str] = {}
     argc_of: dict[int, int] = {}
-    identity_of: dict[int, tuple[str, str, str]] = {}
-    defined: set[int] = set()
+    ## NOT GATED ON `receiver_types`, unlike the two maps below. Those only matter when a
+    ## receiver can be resolved at all; this one decides whether a REFUSAL is attributable, and
+    ## an index with no member variables still refuses calls. Left empty here, nothing would be
+    ## attributable, every symbol would record a zero, and a zero is read as a measured negative
+    ## — so the degrade would manufacture confidence rather than withhold it.
+    identity_of, defined = _function_identities(conn)
     if receiver_types:
         scope_of = {
             int(r): str(sc or "")
@@ -1487,11 +1600,12 @@ def import_ast_call_edges(
                     "SELECT memberdef_id, COUNT(*) FROM memberdef_param GROUP BY memberdef_id"
                 )
             }
-        identity_of, defined = _function_identities(conn)
+
     harvested = run_harvest(conn, repo_root, call_site_harvester(), ts_classes, cache)
 
     edges_resolved: list[tuple[int, int, str]] = []
     edges_fuzzy: list[tuple[int, int, str]] = []
+    unresolved: list[list[int]] = []
     definition_of = _definition_index(conn)
     for path_rowid, payload in harvested:
         funcs_in_file = file_funcs.get(path_rowid, [])
@@ -1506,6 +1620,7 @@ def import_ast_call_edges(
                 receiver_types=receiver_types,
                 scope_of=scope_of,
                 argc_of=argc_of,
+                unresolved=unresolved,
             )
 
     ## gh#15. The receiver narrowing is the ONLY writer of `edges_fuzzy`, so every row here is
@@ -1515,12 +1630,22 @@ def import_ast_call_edges(
     ## build's fuzzy set rather than one call site's view of it.
     collapsed, edges_fuzzy = _collapse_duplicate_targets(edges_fuzzy, identity_of, defined)
     edges_resolved.extend(collapsed)
+    ## gh#15. Recorded whether or not anything refused: a measured ZERO is the whole point of
+    ## the table — it is what lets `callers: []` keep its full confidence — so the rows are
+    ## written even on a build where every call resolved.
+    understated = _insert_unresolved_inbound(conn, unresolved, identity_of)
     inserted_resolved, inserted_fuzzy = _ast_insert_edges(
         conn,
         edges_resolved,
         edges_fuzzy,
     )
     prune_fabricated_self_edges(conn, repo_root, ts_classes, file_funcs)
+    logger.info(
+        "call_edges: %d call site(s) named a function and did not resolve, understating the "
+        "callers of %d symbol(s) — recorded, so an empty `callers` can be graded",
+        len(unresolved),
+        understated,
+    )
     conn.commit()
     conn.close()
     logger.info(

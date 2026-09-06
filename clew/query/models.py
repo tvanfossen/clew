@@ -1048,6 +1048,25 @@ class Dossier:
     ## MCP layer elides it there, so the common payload does not grow a key.
     macro_collision: str = ""
 
+    ## HOW MANY CALL SITES NAMED A FUNCTION THIS ONE COULD BE AND DID NOT RESOLVE (gh#15).
+    ## The same argument as `gates_unplaceable` one field up, for the other direction: an empty
+    ## `callers` means "nothing calls this" ONLY when nothing was refused, and the two readings
+    ## are far apart. A reporter took the strong one, followed the single test helper the reply
+    ## offered, and shipped a design document recommending a configuration call that does not do
+    ## what they needed — with the real answer one hop up, through the edge that had not
+    ## resolved.
+    ##
+    ## A MEASUREMENT, NOT A HEDGE, and the distinction is this project's own standing rule:
+    ## `mcp_server/emptiness.py` records that a wording change compensating for missing data
+    ## hedges every honest answer to excuse one dishonest one, and gh#393 is the precedent for
+    ## withdrawing exactly such a note. So a ZERO here is load-bearing — it is what lets
+    ## `callers: []` keep its full confidence — and the field is never elided.
+    ##
+    ## None means the index CANNOT SAY: built before this was recorded, so the absence of a
+    ## count is not evidence that nothing was refused. Reported as such rather than as 0, which
+    ## would be the substitution the field exists to prevent.
+    callers_unresolved: int | None = None
+
 
 ## @brief A verbatim, line-capped source body for one function.
 ## @version 3
