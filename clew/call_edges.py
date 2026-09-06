@@ -683,7 +683,7 @@ def _receiver_types(conn: sqlite3.Connection) -> dict[str, set[str]]:
 ## @return (survivors, verified) — `verified` is True only when the receiver's class
 ##         actually matched at least one candidate, so a caller can tell a real narrowing
 ##         from 'the receiver told us nothing'.
-## @version 1
+## @version 2
 ## @dg_internal
 def _narrow_by_receiver(
     receiver: str,
@@ -712,7 +712,7 @@ def _narrow_by_receiver(
 
     @brief Narrow candidates by the receiver's declared class and the call's arity.
     @return Surviving candidates.
-    @version 1
+    @version 2
     """
     classes = receiver_types.get(receiver or "", set())
     if not classes or not candidates:
@@ -745,10 +745,20 @@ def _narrow_by_receiver(
         for rowid in candidates
         if any(_scope_is(scope_of.get(rowid, ""), klass) for klass in classes)
     }
-    if len(matched) != 1:
+    ## ONE CLASS, NOT ONE STRING (gh#15). `len(matched) != 1` was the test, and it reproduced
+    ## the spelling defect above one level down: doxygen emits a method twice, a header
+    ## declaration and a definition, and writes the two rows' `scope` differently —
+    ## `entropic::ServerManager` on one and `ServerManager` on the other. Both denote the one
+    ## class the receiver is declared to be, `_scope_is` matches both, and counting the strings
+    ## saw two owners and refused. Measured on entropic that silently dropped every call made
+    ## through a pointer member: `init_builtins` and `load_plugins` each have exactly one
+    ## production caller and reported none.
+    if not _one_class(matched):
         return candidates, False
-    scope_only = next(iter(matched))
-    scoped = [rowid for rowid in candidates if scope_of.get(rowid, "") == scope_only]
+    ## EVERY SPELLING OF THE PINNED CLASS, not one picked arbitrarily. Selecting a single scope
+    ## string would keep whichever row doxygen happened to write that way and drop the other,
+    ## which is a coin flip between a declaration and a definition.
+    scoped = [rowid for rowid in candidates if scope_of.get(rowid, "") in matched]
     ## NO MATCH IS NOT A NARROWING, and conflating the two nearly reshipped the exact fan-out
     ## gh#347 removed. Returning the untouched candidate list with `verified=False` is what
     ## stops the caller emitting one row per same-named function in the repo: measured, that
@@ -760,6 +770,152 @@ def _narrow_by_receiver(
         if by_arity:
             return by_arity, True
     return scoped, True
+
+
+## @brief Every indexed function's (name, definition, argsstring) identity, and which rows have bodies.
+## @param conn Open connection to the database being built.
+## @return (rowid → identity triple, set of rowids doxygen gave a body).
+## @version 1
+## @dg_internal
+def _function_identities(
+    conn: sqlite3.Connection,
+) -> tuple[dict[int, tuple[str, str, str]], set[int]]:
+    """DEGRADES TO EMPTY rather than raising, on the same terms as `_receiver_types` one
+    function up: `definition` and `argsstring` are doxygen's columns, not every database's, and
+    a minimal fixture without them simply cannot say whether two rows are one function. An empty
+    map makes the collapse inert — every group stays fuzzy, which is the behaviour before it
+    existed — instead of failing a build.
+
+    @brief Index function rowids to their identity, and note which carry a body.
+    @return (identity map, defined rowids); both empty when the columns are absent.
+    @version 1
+    """
+    columns = {str(row[1]) for row in conn.execute("PRAGMA table_info(memberdef)")}
+    if not {"name", "definition", "argsstring", "bodystart"} <= columns:
+        return {}, set()
+    identity_of: dict[int, tuple[str, str, str]] = {}
+    defined: set[int] = set()
+    for rowid, name, definition, args, bodystart in conn.execute(
+        "SELECT rowid, name, COALESCE(definition,''), COALESCE(argsstring,''), "
+        "COALESCE(bodystart,0) FROM memberdef WHERE kind = 'function'"
+    ):
+        identity_of[int(rowid)] = (str(name), str(definition), str(args))
+        if int(bodystart) > 0:
+            defined.add(int(rowid))
+    return identity_of, defined
+
+
+## @brief Promote a receiver-verified fuzzy group to one resolved edge when it names one function.
+## @param edges_fuzzy (caller, callee, source) triples the receiver narrowing left unresolved.
+## @param identity_of rowid → (name, definition, argsstring).
+## @param defined The rowids doxygen gave a body, so a definition outranks its declaration.
+## @return (promoted_to_resolved, still_fuzzy).
+## @version 1
+## @dg_internal
+def _collapse_duplicate_targets(
+    edges_fuzzy: list[tuple[int, int, str]],
+    identity_of: dict[int, tuple[str, str, str]],
+    defined: set[int],
+) -> tuple[list[tuple[int, int, str]], list[tuple[int, int, str]]]:
+    """A DECLARATION AND ITS DEFINITION ARE ONE TARGET, NOT AN AMBIGUITY (gh#15). Once the
+    receiver has pinned the class, the surviving candidates for a C++ method are usually the two
+    memberdef rows doxygen writes for it — the header declaration and the definition — and
+    grading that pair `fuzzy` calls a fully determined call unresolved. The cost is not
+    cosmetic: `fuzzy` is skipped by `mark_reachability` and by the thread BFS, so the chain the
+    caller was trying to walk still does not connect.
+
+    Measured on entropic once the scope collapse landed: 756 fuzzy rows over 373 logical calls,
+    and 354 of those calls (95%) were one function written twice.
+
+    IDENTITY INCLUDES THE PARAMETER LIST, and that is the whole safety argument. Two genuine
+    overloads share a `definition` — both `run_turn`s are `entropic::AgentEngine::run_turn` —
+    and differ only in `argsstring`, so an identity keyed on the definition alone would merge
+    the overloads this layer is required to leave unresolved, asserting one of them at random.
+
+    GROUPED BY (caller, source, callee NAME), which reconstructs the candidate set one narrowing
+    produced, because every row in it came from `name_to_rowids[callee_name]`. Grouping by
+    identity instead would split a genuinely ambiguous call into one group per overload and
+    promote every one of them, which is the fabrication this guards against inverted.
+
+    FAIL CLOSED ON A MISSING IDENTITY. A rowid absent from `identity_of` — a thin index, a
+    `memberdef` without the columns — yields no key, and an absent key must never read as equal
+    to another absent key. Those rows stay fuzzy.
+
+    @brief Collapse decl/def duplicates in a fuzzy group into one resolved edge.
+    @return (promoted, remaining) edge triples.
+    @version 1
+    """
+    groups: dict[tuple[int, str, str], list[tuple[int, int, str]]] = {}
+    ungrouped: list[tuple[int, int, str]] = []
+    for edge in edges_fuzzy:
+        known = identity_of.get(edge[1])
+        if known is None:
+            ungrouped.append(edge)
+            continue
+        groups.setdefault((edge[0], edge[2], known[0]), []).append(edge)
+    promoted: list[tuple[int, int, str]] = []
+    remaining: list[tuple[int, int, str]] = list(ungrouped)
+    for edges in groups.values():
+        winner = _one_target(edges, identity_of, defined)
+        if winner is None:
+            remaining.extend(edges)
+        else:
+            promoted.append(winner)
+    return promoted, remaining
+
+
+## @brief The single edge a fuzzy group collapses to, or None when it names several functions.
+## @param edges One group's (caller, callee, source) triples.
+## @param identity_of rowid → (name, definition, argsstring).
+## @param defined The rowids doxygen gave a body.
+## @return The winning triple, or None when the group is genuinely ambiguous.
+## @version 1
+## @dg_internal
+def _one_target(
+    edges: list[tuple[int, int, str]],
+    identity_of: dict[int, tuple[str, str, str]],
+    defined: set[int],
+) -> tuple[int, int, str] | None:
+    """THE DEFINITION WINS, because it is the row carrying a body and therefore the one a
+    consumer following the edge wants to read; among rows that are all declarations or all
+    definitions the lowest rowid wins, so a build is deterministic rather than dict-ordered.
+
+    @brief Pick the one edge a collapsible group resolves to.
+    @return The winning triple, or None when several functions remain.
+    @version 1
+    """
+    if len({identity_of[edge[1]] for edge in edges}) != 1:
+        return None
+    return min(edges, key=lambda edge: (edge[1] not in defined, edge[1]))
+
+
+## @brief Whether a set of memberdef scopes all denote one class.
+## @param scopes The distinct `memberdef.scope` values that matched the receiver's type.
+## @return True when they are spellings of a single class.
+## @version 1
+## @dg_internal
+def _one_class(scopes: set[str]) -> bool:
+    """PAIRWISE, not transitively, and that is the conservative half. `_scope_is` is a
+    `::`-boundary match in both directions, so `entropic::ServerManager` and `ServerManager`
+    collapse — but `a::Session` and `b::Session` do NOT, because neither is a boundary suffix
+    of the other. Requiring EVERY pair to match means a set like
+    {`a::X`, `X`, `b::X`} refuses rather than chaining two real matches into a false one: a
+    bare `X` sitting between two namespaces is exactly the ambiguity this must not resolve.
+
+    An empty set is not one class — nothing matched, which is the caller's refusal path.
+
+    @brief Whether every scope in the set names the same class.
+    @return True for one class written one or more ways.
+    @version 1
+    """
+    if not scopes:
+        return False
+    ordered = sorted(scopes)
+    return all(
+        _scope_is(ordered[i], ordered[j])
+        for i in range(len(ordered))
+        for j in range(i + 1, len(ordered))
+    )
 
 
 ## @brief Whether a memberdef scope denotes the given class.
@@ -1178,7 +1334,7 @@ def _ast_insert_edges(
 ## @param db_path Path to the clew.db being built.
 ## @param repo_root Repository root (for resolving indexed relative paths).
 ## @param cache Optional incremental index cache; None disables caching.
-## @version 8
+## @version 9
 ## @req REQ-DDB-PIPE-003
 def import_ast_call_edges(
     db_path: Path,
@@ -1200,7 +1356,7 @@ def import_ast_call_edges(
     guarantees structurally instead of by remembering to check.
 
     @brief Populate call_edges from tree-sitter AST walk, then guard self-edges.
-    @version 8
+    @version 9
     """
     ts_classes = try_import_tree_sitter()
     if ts_classes is None:
@@ -1223,6 +1379,8 @@ def import_ast_call_edges(
     ## carrying its own guard.
     scope_of: dict[int, str] = {}
     argc_of: dict[int, int] = {}
+    identity_of: dict[int, tuple[str, str, str]] = {}
+    defined: set[int] = set()
     if receiver_types:
         scope_of = {
             int(r): str(sc or "")
@@ -1235,6 +1393,7 @@ def import_ast_call_edges(
                     "SELECT memberdef_id, COUNT(*) FROM memberdef_param GROUP BY memberdef_id"
                 )
             }
+        identity_of, defined = _function_identities(conn)
     harvested = run_harvest(conn, repo_root, call_site_harvester(), ts_classes, cache)
 
     edges_resolved: list[tuple[int, int, str]] = []
@@ -1255,6 +1414,13 @@ def import_ast_call_edges(
                 argc_of=argc_of,
             )
 
+    ## gh#15. The receiver narrowing is the ONLY writer of `edges_fuzzy`, so every row here is
+    ## already pinned to one class — which is what makes it safe to ask whether the group names
+    ## one function or several. Run as a post-pass rather than inside the narrowing so it needs
+    ## no further argument threaded through `_fold_call_payload`, and so its input is the whole
+    ## build's fuzzy set rather than one call site's view of it.
+    collapsed, edges_fuzzy = _collapse_duplicate_targets(edges_fuzzy, identity_of, defined)
+    edges_resolved.extend(collapsed)
     inserted_resolved, inserted_fuzzy = _ast_insert_edges(
         conn,
         edges_resolved,
