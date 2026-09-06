@@ -77,7 +77,26 @@ from .tiers import OPTIONS_META_PREFIX
 ##   The AST harvest's own `stage_version` moved 5 to 6 in the same release, which makes the
 ##   CACHED PAYLOADS cold. That is a different mechanism from this integer and does not replace
 ##   it: the sidecar bump re-parses files, this one tells an existing DATABASE it is stale.
-CLEW_BUILD_VERSION = 3
+##
+## 4 (clew 1.0.28) — `requirements` and `req_edges` hold DIFFERENT ROWS for identical source,
+##   on two independent paths that compound (gh#13, gh#20):
+##
+##     * a catalog at `docs/requirements.yaml` was never looked for, so a repo that keeps it
+##       there and declares nothing ingested no catalog at all;
+##     * a `@req` following `@brief` with no blank line lands at the end of the brief
+##       paragraph, where doxygen appends its own period — the id token became
+##       `REQ-X.`, failed the pattern, and the edge was dropped.
+##
+##   NARROWER THAN 2 AND 3, and bumped anyway. Most repositories are unaffected: a catalog at
+##   the root, or a tag in its own paragraph, produced identical rows before and after. The
+##   bump is for the ones that were not, because the failure is invisible from inside a built
+##   index — a 1.0.27 database simply holds no requirement rows, `dossier("REQ-...")` answers
+##   with the definitive-negative wording, and NOTHING about the source changes to trigger the
+##   query-time auto-refresh. Without this, an affected repo stays silently empty until it
+##   happens to edit a file. That is the same "answer a new question with silence" case the
+##   version-2 entry gives as the reason a degrading reader makes a bump necessary rather than
+##   optional.
+CLEW_BUILD_VERSION = 4
 
 
 ## @brief Stamp the build version, scope, coverage and preprocessor config into build_meta.
