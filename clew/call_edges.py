@@ -461,6 +461,7 @@ def _ast_record_call_edge(
     receiver_types: dict[str, set[str]] | None = None,
     scope_of: dict[int, str] | None = None,
     argc_of: dict[int, int] | None = None,
+    construction: bool = False,
 ) -> None:
     """A UNIQUE NAME IS NOT EVIDENCE ABOUT A RECEIVER, and conflating the two made this
     layer assert fabrications as certainties.
@@ -486,7 +487,7 @@ def _ast_record_call_edge(
 
     @brief Record one AST call edge, grading confidence by what was actually verified.
     @return None.
-    @version 5
+    @version 6
     """
     candidates = name_to_rowids.get(callee_name, [])
     if qualified and candidates:
@@ -504,6 +505,20 @@ def _ast_record_call_edge(
             ## indexed function bears it. This is the only path on which an `ast_member`
             ## edge earns `resolved` — a unique NAME never did (see below).
             edges_resolved.append((caller_rowid, candidates[0], source))
+            return
+        ## CONSTRUCTION IS THE ONE CASE WHERE SEVERAL SURVIVORS ARE NOT A NAME GUESS (gh#15).
+        ## A qualified call narrowing to several records NOTHING, deliberately and under a
+        ## pinned test: one true observation must not become N assertions. But
+        ## `make_unique<T>` NAMED T, so every survivor is a constructor of the class the call
+        ## site wrote, and the set is bounded by that class rather than by a shared name.
+        ## Refusing here would reproduce gh#15's silence for every class whose constructor is
+        ## declared and defined separately, which is most of them.
+        ##
+        ## Fuzzy, not resolved: `_collapse_duplicate_targets` promotes the decl/def pair to one
+        ## resolved edge and leaves genuine constructor overloads fuzzy, which is what they are.
+        if construction and len(candidates) > 1:
+            for rowid in candidates:
+                edges_fuzzy.append((caller_rowid, rowid, source))
             return
     ## THE RECEIVER'S DECLARED TYPE IS EVIDENCE, and reading it is what makes a member call
     ## verifiable rather than merely reportable. `handle->engine->run_turn(input)` looked
@@ -1039,7 +1054,7 @@ def _sole_child(node: Any) -> Any:
 
 ## @brief Harvest one file's rowid-free (callee_name, call_line, source) call sites.
 ## @return List of [callee_name, call_line, source] triples in walk order.
-## @version 8
+## @version 9
 ## @dg_internal
 def _ast_harvest_calls(tree: Any, src_bytes: bytes) -> list[list[Any]]:
     """Walk the parse tree iteratively, recording every direct call's callee
@@ -1102,17 +1117,88 @@ def _ast_harvest_calls(tree: Any, src_bytes: bytes) -> list[list[Any]]:
         ## variable of type `std::unique_ptr< entropic::AgentEngine >` — so scoping the callee
         ## to that class eliminates same-named functions in unrelated files outright. Arity
         ## then separates surviving overloads.
+        qualifier = _qualifier_text(raw_callee, src_bytes)
+        receiver = _receiver_tail(raw_callee, src_bytes)
+        ## gh#15. `std::make_unique<T>(...)` unwraps to `make_unique`, a name no repository
+        ## index holds, so the construction emitted nothing — and on entropic that hid the SOLE
+        ## production construction of every MCP server, leaving `dossier` to offer a test helper
+        ## as the only caller. The constructed class is written outright in the template
+        ## argument, so this reads a stated fact rather than inferring a type.
+        constructed = _construction_type(callee_name, raw_callee, src_bytes)
+        if constructed:
+            callee_name, qualifier, receiver = _class_tail(constructed), constructed, ""
         sites.append(
             [
                 callee_name,
                 node.start_point[0] + 1,
                 source,
-                _qualifier_text(raw_callee, src_bytes),
-                _receiver_tail(raw_callee, src_bytes),
+                qualifier,
+                receiver,
                 _call_argc(node),
+                bool(constructed),
             ]
         )
     return sites
+
+
+## The standard-library factories that construct a T named in their template argument. Kept
+## to the two that name the class OUTRIGHT: `std::make_unique<T>` and `std::make_shared<T>`.
+## `std::make_pair` and friends are deliberately absent — they deduce from the arguments, so the
+## call site does not state a class and there is nothing here to read.
+_CONSTRUCTING_TEMPLATES = ("make_unique", "make_shared")
+
+
+## @brief The class a factory-template call constructs, as the call site wrote it.
+## @param callee_name The unwrapped callee tail, e.g. 'make_unique'.
+## @param raw_callee The call_expression's `function` child.
+## @param src_bytes The file's bytes, for slicing.
+## @return e.g. 'entropic::BashServer', or '' when this is not a construction.
+## @version 1
+## @dg_internal
+def _construction_type(callee_name: str, raw_callee: Any, src_bytes: bytes) -> str:
+    """READS THE TEMPLATE ARGUMENT, WHICH IS NOT AN INFERENCE. `std::make_unique<T>` states T
+    at the call site as plainly as `T(...)` does, so recovering the edge needs no type analysis
+    — only the argument the source already carries. That is why this is cheap where general
+    receiver resolution is not.
+
+    `std::make_unique` parses as a `qualified_identifier` whose `name` is the
+    `template_function`, so the scope is peeled first; a bare `make_unique<T>` is the
+    `template_function` outright. Anything else returns '' and the call is harvested unchanged.
+
+    @brief The constructed class's text, or '' when the call constructs nothing.
+    @return The first template argument as written.
+    @version 1
+    """
+    if callee_name not in _CONSTRUCTING_TEMPLATES or raw_callee is None:
+        return ""
+    node = raw_callee
+    if node.type == "qualified_identifier":
+        node = node.child_by_field_name("name")
+    if node is None or node.type != "template_function":
+        return ""
+    args = node.child_by_field_name("arguments")
+    if args is None or not args.named_children:
+        return ""
+    first = args.named_children[0]
+    return src_bytes[first.start_byte : first.end_byte].decode("utf-8", errors="replace")
+
+
+## @brief The unqualified class name inside a written type, which is what `memberdef.name` holds.
+## @param text A type as the call site wrote it, e.g. 'std::vector<int>'.
+## @return The bare class name, e.g. 'vector'.
+## @version 1
+## @dg_internal
+def _class_tail(text: str) -> str:
+    """TEMPLATE ARGUMENTS ARE CUT BEFORE THE NAMESPACE TAIL IS TAKEN, and the order matters:
+    `std::vector<int>` split on `::` last would yield `vector<int>`, and split on `<` last would
+    reach into the argument and yield `int`. Cutting at the first `<` leaves `std::vector`, whose
+    tail is the class.
+
+    @brief Reduce a written type to its bare class name.
+    @return The class name, possibly ''.
+    @version 1
+    """
+    return text.split("<", 1)[0].strip().rsplit("::", 1)[-1].strip()
 
 
 ## @brief The trailing member name of a member call's receiver.
@@ -1216,7 +1302,12 @@ class _CallSiteHarvester(Harvester):
     #    argument count, which is what lets a member call resolve to ONE method instead
     #    of none. A payload cached at 4 lacks both and would silently keep the old
     #    behaviour, so the bump is what makes the fix take effect on an existing index.
-    stage_version = 5
+    # 6: gh#15 — a `std::make_unique<T>` / `make_shared<T>` site is harvested as a call to
+    #    T's CONSTRUCTOR rather than to the factory template, and carries a seventh element
+    #    saying so. A payload cached at 5 still names `make_unique`, which resolves to
+    #    nothing, so without the bump the construction edges never appear on an existing
+    #    index.
+    stage_version = 6
     label = "tree-sitter"
 
     ## @brief Harvest one file's call sites.
@@ -1243,7 +1334,7 @@ def call_site_harvester() -> Harvester:
 
 
 ## @brief Resolve one file's harvested call sites into call_edges rows.
-## @version 3
+## @version 4
 ## @dg_internal
 def _fold_call_payload(
     payload: list[list[Any]],
@@ -1265,7 +1356,7 @@ def _fold_call_payload(
     of raising. The stage_version bump makes that path cold in practice.
 
     @brief Fold a cached call-site payload into call edges.
-    @version 3
+    @version 4
     """
     for site in payload:
         callee_name, call_line = site[0], site[1]
@@ -1275,6 +1366,8 @@ def _fold_call_payload(
         ## Fifth and sixth added for #482; absent in a payload cached before stage_version 5.
         receiver = site[4] if len(site) > 4 else ""
         argc = site[5] if len(site) > 5 else -1
+        ## Seventh added for gh#15; absent in a payload cached before stage_version 6.
+        construction = bool(site[6]) if len(site) > 6 else False
         caller_rowid = _ast_caller_at_line(funcs_in_file, call_line)
         if caller_rowid is None:
             continue
@@ -1292,6 +1385,7 @@ def _fold_call_payload(
             receiver_types=receiver_types,
             scope_of=scope_of,
             argc_of=argc_of,
+            construction=construction,
         )
 
 
