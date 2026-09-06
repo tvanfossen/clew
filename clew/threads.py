@@ -1165,8 +1165,8 @@ def _qualified_at_boundary(definition: str, qualified: str) -> bool:
 ## @param conn Open connection.
 ## @param qualified The `Class::method` (or deeper) entry text.
 ## @param separator The scope separator that must be present to attempt this.
-## @return The definition-preferring memberdef rowid whose `definition` contains the qualified entry at a token boundary, or None when none does.
-## @version 6
+## @return The definition-preferring memberdef rowid whose `definition` contains the qualified entry at a token boundary — or, failing that, whose `scope` plus name IS it; None when neither matches.
+## @version 7
 ## @dg_internal
 def _resolve_qualified_entry(
     conn: sqlite3.Connection, qualified: str, separator: str = SCOPE_SEP_CPP
@@ -1187,7 +1187,7 @@ def _resolve_qualified_entry(
     count as token delimiters.
 
     @brief Resolve a scope-qualified entry to a definition rowid.
-    @version 4
+    @version 5
     """
     # `definition` is always present in a doxygen-built DB but absent from
     # minimal/partial DBs — degrade to the name-index fallback there.
@@ -1200,10 +1200,63 @@ def _resolve_qualified_entry(
         "ORDER BY (file_id = bodyfile_id) DESC, rowid",
         (f"%{qualified}", f"%{qualified}(%"),
     ).fetchall()
-    return next(
+    hit = next(
         (rid for rid, defn in rows if _qualified_at_boundary(defn or "", qualified)),
         None,
     )
+    return hit if hit is not None else _scope_qualified_entry(conn, qualified, separator, cols)
+
+
+## @brief Resolve a qualified entry through `scope`, for a qualifier `definition` omits.
+## @param conn Open connection.
+## @param qualified The dotted entry text.
+## @param separator The scope separator the call site supplied.
+## @param cols The memberdef columns present in this database.
+## @return The definition-preferring rowid whose scope+name is exactly `qualified`, or None.
+## @version 1
+## @dg_internal
+def _scope_qualified_entry(
+    conn: sqlite3.Connection,
+    qualified: str,
+    separator: str,
+    cols: set[str],
+) -> int | None:
+    """A MODULE-LEVEL PYTHON FUNCTION HAS NO MODULE IN ITS `definition`. doxygen writes the
+    qualifier into `definition` for a CLASS method and omits it for a module-level function,
+    recording it in `scope` instead:
+
+        pysample.spawner.Poller._run     definition ' None pysample.spawner.Poller._run'
+        clew.doxygen._write_doxyfile_stdin
+                                         definition ' None _write_doxyfile_stdin'
+                                         scope      'clew.doxygen'
+
+    So `threading.Thread(target=clew.doxygen._write_doxyfile_stdin)` matched no definition and
+    the thread's entry stayed NULL — dropping the entry AND its whole membership closure while
+    the index plainly held the function. Caught by this repo's own self-index test, which
+    asserts the falsifiable invariant that an entry is NULL only when its tail name is
+    genuinely absent.
+
+    A FALLBACK, NOT A WIDENING. It runs only where the `definition` pass found nothing, so
+    every boundary and collision guard there still decides the cases it can decide — a scope
+    row must never overturn a definition match the guards already made.
+
+    AN EQUALITY, NOT A LIKE, which is what makes it safe without a boundary check of its own:
+    `scope || separator || name` either IS the entry text or it is not, so a same-named
+    function in another module cannot be borrowed and an unindexed module resolves to nothing.
+
+    @brief Resolve an entry whose qualifier lives in `scope` rather than `definition`.
+    @return The matching rowid, or None.
+    @version 1
+    """
+    if "scope" not in cols:
+        return None
+    row = conn.execute(
+        "SELECT rowid FROM memberdef WHERE kind='function' "
+        "AND scope IS NOT NULL AND scope != '' AND scope || ? || name = ? "
+        "ORDER BY (file_id = bodyfile_id) DESC, rowid",
+        (separator, qualified),
+    ).fetchone()
+    return int(row[0]) if row else None
 
 
 ## @brief Insert harvested spawn sites as threads rows, each with its spawn site.

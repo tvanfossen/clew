@@ -50,6 +50,7 @@ from __future__ import annotations
 
 import bisect
 import sqlite3
+from collections import Counter
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -461,6 +462,8 @@ def _ast_record_call_edge(
     receiver_types: dict[str, set[str]] | None = None,
     scope_of: dict[int, str] | None = None,
     argc_of: dict[int, int] | None = None,
+    construction: bool = False,
+    unresolved: list[list[int]] | None = None,
 ) -> None:
     """A UNIQUE NAME IS NOT EVIDENCE ABOUT A RECEIVER, and conflating the two made this
     layer assert fabrications as certainties.
@@ -486,7 +489,7 @@ def _ast_record_call_edge(
 
     @brief Record one AST call edge, grading confidence by what was actually verified.
     @return None.
-    @version 5
+    @version 6
     """
     candidates = name_to_rowids.get(callee_name, [])
     if qualified and candidates:
@@ -504,6 +507,20 @@ def _ast_record_call_edge(
             ## indexed function bears it. This is the only path on which an `ast_member`
             ## edge earns `resolved` — a unique NAME never did (see below).
             edges_resolved.append((caller_rowid, candidates[0], source))
+            return
+        ## CONSTRUCTION IS THE ONE CASE WHERE SEVERAL SURVIVORS ARE NOT A NAME GUESS (gh#15).
+        ## A qualified call narrowing to several records NOTHING, deliberately and under a
+        ## pinned test: one true observation must not become N assertions. But
+        ## `make_unique<T>` NAMED T, so every survivor is a constructor of the class the call
+        ## site wrote, and the set is bounded by that class rather than by a shared name.
+        ## Refusing here would reproduce gh#15's silence for every class whose constructor is
+        ## declared and defined separately, which is most of them.
+        ##
+        ## Fuzzy, not resolved: `_collapse_duplicate_targets` promotes the decl/def pair to one
+        ## resolved edge and leaves genuine constructor overloads fuzzy, which is what they are.
+        if construction and len(candidates) > 1:
+            for rowid in candidates:
+                edges_fuzzy.append((caller_rowid, rowid, source))
             return
     ## THE RECEIVER'S DECLARED TYPE IS EVIDENCE, and reading it is what makes a member call
     ## verifiable rather than merely reportable. `handle->engine->run_turn(input)` looked
@@ -569,6 +586,21 @@ def _ast_record_call_edge(
     ## `edges_fuzzy` stays in the signature deliberately: the insert path reports its length, so
     ## the build log now states a measured ZERO rather than falling silent about a layer that
     ## used to dominate the table.
+    ##
+    ## BUT THE REFUSAL IS RECORDED (gh#15). Emitting no row is right; leaving no TRACE was not.
+    ## A consumer reading `callers: []` could not tell a symbol nothing calls from a symbol
+    ## whose callers all failed to resolve, and gh#15's reporter acted on the first reading of
+    ## the second and shipped a wrong conclusion. Every candidate this site could have meant
+    ## takes one unresolved inbound site, so an empty `callers` can be graded at query time
+    ## against a MEASUREMENT rather than hedged with a sentence — which `emptiness.py` records
+    ## as the rule ("fix the corpus, not the sentence about the corpus") and gh#393 as the
+    ## precedent for what a blanket hedge costs.
+    ##
+    ## THE NAME IS NOT STORED, so this does not reintroduce name-as-signal in a column: what is
+    ## counted is a set of ROWIDS that were already resolved candidates, and the count says how
+    ## often resolution was attempted against them and failed.
+    if unresolved is not None and candidates:
+        unresolved.append(list(candidates))
     return
 
 
@@ -683,7 +715,7 @@ def _receiver_types(conn: sqlite3.Connection) -> dict[str, set[str]]:
 ## @return (survivors, verified) — `verified` is True only when the receiver's class
 ##         actually matched at least one candidate, so a caller can tell a real narrowing
 ##         from 'the receiver told us nothing'.
-## @version 1
+## @version 2
 ## @dg_internal
 def _narrow_by_receiver(
     receiver: str,
@@ -712,7 +744,7 @@ def _narrow_by_receiver(
 
     @brief Narrow candidates by the receiver's declared class and the call's arity.
     @return Surviving candidates.
-    @version 1
+    @version 2
     """
     classes = receiver_types.get(receiver or "", set())
     if not classes or not candidates:
@@ -745,10 +777,20 @@ def _narrow_by_receiver(
         for rowid in candidates
         if any(_scope_is(scope_of.get(rowid, ""), klass) for klass in classes)
     }
-    if len(matched) != 1:
+    ## ONE CLASS, NOT ONE STRING (gh#15). `len(matched) != 1` was the test, and it reproduced
+    ## the spelling defect above one level down: doxygen emits a method twice, a header
+    ## declaration and a definition, and writes the two rows' `scope` differently —
+    ## `entropic::ServerManager` on one and `ServerManager` on the other. Both denote the one
+    ## class the receiver is declared to be, `_scope_is` matches both, and counting the strings
+    ## saw two owners and refused. Measured on entropic that silently dropped every call made
+    ## through a pointer member: `init_builtins` and `load_plugins` each have exactly one
+    ## production caller and reported none.
+    if not _one_class(matched):
         return candidates, False
-    scope_only = next(iter(matched))
-    scoped = [rowid for rowid in candidates if scope_of.get(rowid, "") == scope_only]
+    ## EVERY SPELLING OF THE PINNED CLASS, not one picked arbitrarily. Selecting a single scope
+    ## string would keep whichever row doxygen happened to write that way and drop the other,
+    ## which is a coin flip between a declaration and a definition.
+    scoped = [rowid for rowid in candidates if scope_of.get(rowid, "") in matched]
     ## NO MATCH IS NOT A NARROWING, and conflating the two nearly reshipped the exact fan-out
     ## gh#347 removed. Returning the untouched candidate list with `verified=False` is what
     ## stops the caller emitting one row per same-named function in the repo: measured, that
@@ -760,6 +802,152 @@ def _narrow_by_receiver(
         if by_arity:
             return by_arity, True
     return scoped, True
+
+
+## @brief Every indexed function's (name, definition, argsstring) identity, and which rows have bodies.
+## @param conn Open connection to the database being built.
+## @return (rowid → identity triple, set of rowids doxygen gave a body).
+## @version 1
+## @dg_internal
+def _function_identities(
+    conn: sqlite3.Connection,
+) -> tuple[dict[int, tuple[str, str, str]], set[int]]:
+    """DEGRADES TO EMPTY rather than raising, on the same terms as `_receiver_types` one
+    function up: `definition` and `argsstring` are doxygen's columns, not every database's, and
+    a minimal fixture without them simply cannot say whether two rows are one function. An empty
+    map makes the collapse inert — every group stays fuzzy, which is the behaviour before it
+    existed — instead of failing a build.
+
+    @brief Index function rowids to their identity, and note which carry a body.
+    @return (identity map, defined rowids); both empty when the columns are absent.
+    @version 1
+    """
+    columns = {str(row[1]) for row in conn.execute("PRAGMA table_info(memberdef)")}
+    if not {"name", "definition", "argsstring", "bodystart"} <= columns:
+        return {}, set()
+    identity_of: dict[int, tuple[str, str, str]] = {}
+    defined: set[int] = set()
+    for rowid, name, definition, args, bodystart in conn.execute(
+        "SELECT rowid, name, COALESCE(definition,''), COALESCE(argsstring,''), "
+        "COALESCE(bodystart,0) FROM memberdef WHERE kind = 'function'"
+    ):
+        identity_of[int(rowid)] = (str(name), str(definition), str(args))
+        if int(bodystart) > 0:
+            defined.add(int(rowid))
+    return identity_of, defined
+
+
+## @brief Promote a receiver-verified fuzzy group to one resolved edge when it names one function.
+## @param edges_fuzzy (caller, callee, source) triples the receiver narrowing left unresolved.
+## @param identity_of rowid → (name, definition, argsstring).
+## @param defined The rowids doxygen gave a body, so a definition outranks its declaration.
+## @return (promoted_to_resolved, still_fuzzy).
+## @version 1
+## @dg_internal
+def _collapse_duplicate_targets(
+    edges_fuzzy: list[tuple[int, int, str]],
+    identity_of: dict[int, tuple[str, str, str]],
+    defined: set[int],
+) -> tuple[list[tuple[int, int, str]], list[tuple[int, int, str]]]:
+    """A DECLARATION AND ITS DEFINITION ARE ONE TARGET, NOT AN AMBIGUITY (gh#15). Once the
+    receiver has pinned the class, the surviving candidates for a C++ method are usually the two
+    memberdef rows doxygen writes for it — the header declaration and the definition — and
+    grading that pair `fuzzy` calls a fully determined call unresolved. The cost is not
+    cosmetic: `fuzzy` is skipped by `mark_reachability` and by the thread BFS, so the chain the
+    caller was trying to walk still does not connect.
+
+    Measured on entropic once the scope collapse landed: 756 fuzzy rows over 373 logical calls,
+    and 354 of those calls (95%) were one function written twice.
+
+    IDENTITY INCLUDES THE PARAMETER LIST, and that is the whole safety argument. Two genuine
+    overloads share a `definition` — both `run_turn`s are `entropic::AgentEngine::run_turn` —
+    and differ only in `argsstring`, so an identity keyed on the definition alone would merge
+    the overloads this layer is required to leave unresolved, asserting one of them at random.
+
+    GROUPED BY (caller, source, callee NAME), which reconstructs the candidate set one narrowing
+    produced, because every row in it came from `name_to_rowids[callee_name]`. Grouping by
+    identity instead would split a genuinely ambiguous call into one group per overload and
+    promote every one of them, which is the fabrication this guards against inverted.
+
+    FAIL CLOSED ON A MISSING IDENTITY. A rowid absent from `identity_of` — a thin index, a
+    `memberdef` without the columns — yields no key, and an absent key must never read as equal
+    to another absent key. Those rows stay fuzzy.
+
+    @brief Collapse decl/def duplicates in a fuzzy group into one resolved edge.
+    @return (promoted, remaining) edge triples.
+    @version 1
+    """
+    groups: dict[tuple[int, str, str], list[tuple[int, int, str]]] = {}
+    ungrouped: list[tuple[int, int, str]] = []
+    for edge in edges_fuzzy:
+        known = identity_of.get(edge[1])
+        if known is None:
+            ungrouped.append(edge)
+            continue
+        groups.setdefault((edge[0], edge[2], known[0]), []).append(edge)
+    promoted: list[tuple[int, int, str]] = []
+    remaining: list[tuple[int, int, str]] = list(ungrouped)
+    for edges in groups.values():
+        winner = _one_target(edges, identity_of, defined)
+        if winner is None:
+            remaining.extend(edges)
+        else:
+            promoted.append(winner)
+    return promoted, remaining
+
+
+## @brief The single edge a fuzzy group collapses to, or None when it names several functions.
+## @param edges One group's (caller, callee, source) triples.
+## @param identity_of rowid → (name, definition, argsstring).
+## @param defined The rowids doxygen gave a body.
+## @return The winning triple, or None when the group is genuinely ambiguous.
+## @version 1
+## @dg_internal
+def _one_target(
+    edges: list[tuple[int, int, str]],
+    identity_of: dict[int, tuple[str, str, str]],
+    defined: set[int],
+) -> tuple[int, int, str] | None:
+    """THE DEFINITION WINS, because it is the row carrying a body and therefore the one a
+    consumer following the edge wants to read; among rows that are all declarations or all
+    definitions the lowest rowid wins, so a build is deterministic rather than dict-ordered.
+
+    @brief Pick the one edge a collapsible group resolves to.
+    @return The winning triple, or None when several functions remain.
+    @version 1
+    """
+    if len({identity_of[edge[1]] for edge in edges}) != 1:
+        return None
+    return min(edges, key=lambda edge: (edge[1] not in defined, edge[1]))
+
+
+## @brief Whether a set of memberdef scopes all denote one class.
+## @param scopes The distinct `memberdef.scope` values that matched the receiver's type.
+## @return True when they are spellings of a single class.
+## @version 1
+## @dg_internal
+def _one_class(scopes: set[str]) -> bool:
+    """PAIRWISE, not transitively, and that is the conservative half. `_scope_is` is a
+    `::`-boundary match in both directions, so `entropic::ServerManager` and `ServerManager`
+    collapse — but `a::Session` and `b::Session` do NOT, because neither is a boundary suffix
+    of the other. Requiring EVERY pair to match means a set like
+    {`a::X`, `X`, `b::X`} refuses rather than chaining two real matches into a false one: a
+    bare `X` sitting between two namespaces is exactly the ambiguity this must not resolve.
+
+    An empty set is not one class — nothing matched, which is the caller's refusal path.
+
+    @brief Whether every scope in the set names the same class.
+    @return True for one class written one or more ways.
+    @version 1
+    """
+    if not scopes:
+        return False
+    ordered = sorted(scopes)
+    return all(
+        _scope_is(ordered[i], ordered[j])
+        for i in range(len(ordered))
+        for j in range(i + 1, len(ordered))
+    )
 
 
 ## @brief Whether a memberdef scope denotes the given class.
@@ -883,7 +1071,7 @@ def _sole_child(node: Any) -> Any:
 
 ## @brief Harvest one file's rowid-free (callee_name, call_line, source) call sites.
 ## @return List of [callee_name, call_line, source] triples in walk order.
-## @version 8
+## @version 9
 ## @dg_internal
 def _ast_harvest_calls(tree: Any, src_bytes: bytes) -> list[list[Any]]:
     """Walk the parse tree iteratively, recording every direct call's callee
@@ -946,17 +1134,88 @@ def _ast_harvest_calls(tree: Any, src_bytes: bytes) -> list[list[Any]]:
         ## variable of type `std::unique_ptr< entropic::AgentEngine >` — so scoping the callee
         ## to that class eliminates same-named functions in unrelated files outright. Arity
         ## then separates surviving overloads.
+        qualifier = _qualifier_text(raw_callee, src_bytes)
+        receiver = _receiver_tail(raw_callee, src_bytes)
+        ## gh#15. `std::make_unique<T>(...)` unwraps to `make_unique`, a name no repository
+        ## index holds, so the construction emitted nothing — and on entropic that hid the SOLE
+        ## production construction of every MCP server, leaving `dossier` to offer a test helper
+        ## as the only caller. The constructed class is written outright in the template
+        ## argument, so this reads a stated fact rather than inferring a type.
+        constructed = _construction_type(callee_name, raw_callee, src_bytes)
+        if constructed:
+            callee_name, qualifier, receiver = _class_tail(constructed), constructed, ""
         sites.append(
             [
                 callee_name,
                 node.start_point[0] + 1,
                 source,
-                _qualifier_text(raw_callee, src_bytes),
-                _receiver_tail(raw_callee, src_bytes),
+                qualifier,
+                receiver,
                 _call_argc(node),
+                bool(constructed),
             ]
         )
     return sites
+
+
+## The standard-library factories that construct a T named in their template argument. Kept
+## to the two that name the class OUTRIGHT: `std::make_unique<T>` and `std::make_shared<T>`.
+## `std::make_pair` and friends are deliberately absent — they deduce from the arguments, so the
+## call site does not state a class and there is nothing here to read.
+_CONSTRUCTING_TEMPLATES = ("make_unique", "make_shared")
+
+
+## @brief The class a factory-template call constructs, as the call site wrote it.
+## @param callee_name The unwrapped callee tail, e.g. 'make_unique'.
+## @param raw_callee The call_expression's `function` child.
+## @param src_bytes The file's bytes, for slicing.
+## @return e.g. 'entropic::BashServer', or '' when this is not a construction.
+## @version 1
+## @dg_internal
+def _construction_type(callee_name: str, raw_callee: Any, src_bytes: bytes) -> str:
+    """READS THE TEMPLATE ARGUMENT, WHICH IS NOT AN INFERENCE. `std::make_unique<T>` states T
+    at the call site as plainly as `T(...)` does, so recovering the edge needs no type analysis
+    — only the argument the source already carries. That is why this is cheap where general
+    receiver resolution is not.
+
+    `std::make_unique` parses as a `qualified_identifier` whose `name` is the
+    `template_function`, so the scope is peeled first; a bare `make_unique<T>` is the
+    `template_function` outright. Anything else returns '' and the call is harvested unchanged.
+
+    @brief The constructed class's text, or '' when the call constructs nothing.
+    @return The first template argument as written.
+    @version 1
+    """
+    if callee_name not in _CONSTRUCTING_TEMPLATES or raw_callee is None:
+        return ""
+    node = raw_callee
+    if node.type == "qualified_identifier":
+        node = node.child_by_field_name("name")
+    if node is None or node.type != "template_function":
+        return ""
+    args = node.child_by_field_name("arguments")
+    if args is None or not args.named_children:
+        return ""
+    first = args.named_children[0]
+    return src_bytes[first.start_byte : first.end_byte].decode("utf-8", errors="replace")
+
+
+## @brief The unqualified class name inside a written type, which is what `memberdef.name` holds.
+## @param text A type as the call site wrote it, e.g. 'std::vector<int>'.
+## @return The bare class name, e.g. 'vector'.
+## @version 1
+## @dg_internal
+def _class_tail(text: str) -> str:
+    """TEMPLATE ARGUMENTS ARE CUT BEFORE THE NAMESPACE TAIL IS TAKEN, and the order matters:
+    `std::vector<int>` split on `::` last would yield `vector<int>`, and split on `<` last would
+    reach into the argument and yield `int`. Cutting at the first `<` leaves `std::vector`, whose
+    tail is the class.
+
+    @brief Reduce a written type to its bare class name.
+    @return The class name, possibly ''.
+    @version 1
+    """
+    return text.split("<", 1)[0].strip().rsplit("::", 1)[-1].strip()
 
 
 ## @brief The trailing member name of a member call's receiver.
@@ -1060,7 +1319,12 @@ class _CallSiteHarvester(Harvester):
     #    argument count, which is what lets a member call resolve to ONE method instead
     #    of none. A payload cached at 4 lacks both and would silently keep the old
     #    behaviour, so the bump is what makes the fix take effect on an existing index.
-    stage_version = 5
+    # 6: gh#15 — a `std::make_unique<T>` / `make_shared<T>` site is harvested as a call to
+    #    T's CONSTRUCTOR rather than to the factory template, and carries a seventh element
+    #    saying so. A payload cached at 5 still names `make_unique`, which resolves to
+    #    nothing, so without the bump the construction edges never appear on an existing
+    #    index.
+    stage_version = 6
     label = "tree-sitter"
 
     ## @brief Harvest one file's call sites.
@@ -1087,7 +1351,7 @@ def call_site_harvester() -> Harvester:
 
 
 ## @brief Resolve one file's harvested call sites into call_edges rows.
-## @version 3
+## @version 4
 ## @dg_internal
 def _fold_call_payload(
     payload: list[list[Any]],
@@ -1099,6 +1363,7 @@ def _fold_call_payload(
     receiver_types: dict[str, set[str]] | None = None,
     scope_of: dict[int, str] | None = None,
     argc_of: dict[int, int] | None = None,
+    unresolved: list[list[int]] | None = None,
 ) -> None:
     """Map each harvested call line back to its enclosing function's rowid and
     the callee name to candidate rowids — the rowid-dependent half of Layer 3,
@@ -1109,7 +1374,7 @@ def _fold_call_payload(
     of raising. The stage_version bump makes that path cold in practice.
 
     @brief Fold a cached call-site payload into call edges.
-    @version 3
+    @version 4
     """
     for site in payload:
         callee_name, call_line = site[0], site[1]
@@ -1119,6 +1384,8 @@ def _fold_call_payload(
         ## Fifth and sixth added for #482; absent in a payload cached before stage_version 5.
         receiver = site[4] if len(site) > 4 else ""
         argc = site[5] if len(site) > 5 else -1
+        ## Seventh added for gh#15; absent in a payload cached before stage_version 6.
+        construction = bool(site[6]) if len(site) > 6 else False
         caller_rowid = _ast_caller_at_line(funcs_in_file, call_line)
         if caller_rowid is None:
             continue
@@ -1136,7 +1403,99 @@ def _fold_call_payload(
             receiver_types=receiver_types,
             scope_of=scope_of,
             argc_of=argc_of,
+            construction=construction,
+            unresolved=unresolved,
         )
+
+
+## @brief The one function a refused call site is evidence about, if there is one.
+## @param candidates The candidate rowids the site refused between.
+## @param identity_of rowid → (name, definition, argsstring).
+## @return The rowid to credit, or None when the site names several functions.
+## @version 1
+## @dg_internal
+def _attributable(
+    candidates: list[int], identity_of: dict[int, tuple[str, str, str]]
+) -> int | None:
+    """ONE IDENTITY OR NOTHING. `_collapse_duplicate_targets` uses the same test to decide when
+    several rows are one function; here it decides when a refusal is evidence about a symbol
+    rather than about a name. An unknown identity disqualifies the whole set rather than being
+    skipped, because a set that is only PARTLY known cannot be shown to name one function.
+
+    @brief The rowid a refused site is attributable to.
+    @return The rowid, or None.
+    @version 1
+    """
+    if not candidates or any(rowid not in identity_of for rowid in candidates):
+        return None
+    if len({identity_of[rowid] for rowid in candidates}) != 1:
+        return None
+    return min(candidates)
+
+
+## @brief Record, per callee, how many call sites named it and did not resolve.
+## @param conn Open connection to the database being built.
+## @param unresolved Candidate rowids, one entry per (site, candidate) pair.
+## @return How many distinct callees carry a nonzero count.
+## @version 1
+## @dg_internal
+def _insert_unresolved_inbound(
+    conn: sqlite3.Connection,
+    unresolved: list[list[int]],
+    identity_of: dict[int, tuple[str, str, str]] | None = None,
+) -> int:
+    """REBUILT, NOT APPENDED. `import_ast_call_edges` folds the WHOLE cached payload set on
+    every build rather than only the changed files, so the measurement is recomputed in full
+    each time; appending would let a symbol's count grow with the number of refreshes, which is
+    a number about this repository's build history wearing the costume of a number about the
+    code.
+
+    ATTRIBUTION IS EARNED, NOT ASSUMED, AND A MEASUREMENT FORCED THIS. The first version credited
+    every candidate of every refused site. On entropic that recorded 1,716,524 site-candidate
+    pairs and would have qualified 2,290 of the 2,620 functions with no inbound edge — 87%, a
+    permanent banner. That is precisely the blanket hedge `mcp_server/emptiness.py` records
+    gh#393 withdrawing: an annotation on almost every reply trains a reader to ignore it, which
+    is worse than no annotation, and it would have hedged the honest negatives to excuse the
+    dishonest ones.
+
+    It was also wrong on its own terms. A site whose callee name matches 200 rows is a site this
+    layer genuinely cannot attribute, and crediting each of the 200 is the name-as-evidence
+    fallacy `_ast_record_call_edge` refuses one function up — a NAME is not evidence of linkage,
+    so it cannot be evidence of a MISSING linkage either.
+
+    So a refusal counts only where the candidate set names ONE function: every candidate is a
+    row of the same identity, which is doxygen's declaration/definition pair. There the refusal
+    really is about that function — the call site named it and resolution declined for want of a
+    verified receiver, which is exactly gh#15's reported case — and nothing about the name is
+    being taken for evidence.
+
+    CREDITED TO ONE ROWID of the identity, because the query layer sums over the identity's
+    whole decl/def pair; crediting both would double every count.
+
+    @brief Rebuild the unresolved-inbound counts from attributable refusals only.
+    @return Number of distinct callees recorded.
+    @version 2
+    """
+    conn.execute("DROP TABLE IF EXISTS unresolved_inbound")
+    ## NO IDENTITIES, NO TABLE, AND THAT IS THE POINT. Without `memberdef.definition` /
+    ## `argsstring` nothing can be shown to name one function, so every symbol would record a
+    ## zero — and a zero here MEANS "measured, nothing was refused", which would be a clean bill
+    ## of health issued by a detector that could not look. Leaving the table absent makes the
+    ## query layer answer None: "this index cannot say", which is the truth.
+    if not identity_of:
+        return 0
+    conn.execute(
+        "CREATE TABLE unresolved_inbound ("
+        "  callee_rowid INTEGER PRIMARY KEY,"
+        "  sites        INTEGER NOT NULL)"
+    )
+    attributable = (_attributable(c, identity_of or {}) for c in unresolved)
+    counts = Counter(rowid for rowid in attributable if rowid is not None)
+    conn.executemany(
+        "INSERT INTO unresolved_inbound (callee_rowid, sites) VALUES (?, ?)",
+        sorted(counts.items()),
+    )
+    return len(counts)
 
 
 ## @brief Insert harvested AST edges, carrying each edge's own provenance.
@@ -1178,7 +1537,7 @@ def _ast_insert_edges(
 ## @param db_path Path to the clew.db being built.
 ## @param repo_root Repository root (for resolving indexed relative paths).
 ## @param cache Optional incremental index cache; None disables caching.
-## @version 8
+## @version 10
 ## @req REQ-DDB-PIPE-003
 def import_ast_call_edges(
     db_path: Path,
@@ -1200,7 +1559,7 @@ def import_ast_call_edges(
     guarantees structurally instead of by remembering to check.
 
     @brief Populate call_edges from tree-sitter AST walk, then guard self-edges.
-    @version 8
+    @version 10
     """
     ts_classes = try_import_tree_sitter()
     if ts_classes is None:
@@ -1223,6 +1582,12 @@ def import_ast_call_edges(
     ## carrying its own guard.
     scope_of: dict[int, str] = {}
     argc_of: dict[int, int] = {}
+    ## NOT GATED ON `receiver_types`, unlike the two maps below. Those only matter when a
+    ## receiver can be resolved at all; this one decides whether a REFUSAL is attributable, and
+    ## an index with no member variables still refuses calls. Left empty here, nothing would be
+    ## attributable, every symbol would record a zero, and a zero is read as a measured negative
+    ## — so the degrade would manufacture confidence rather than withhold it.
+    identity_of, defined = _function_identities(conn)
     if receiver_types:
         scope_of = {
             int(r): str(sc or "")
@@ -1235,10 +1600,12 @@ def import_ast_call_edges(
                     "SELECT memberdef_id, COUNT(*) FROM memberdef_param GROUP BY memberdef_id"
                 )
             }
+
     harvested = run_harvest(conn, repo_root, call_site_harvester(), ts_classes, cache)
 
     edges_resolved: list[tuple[int, int, str]] = []
     edges_fuzzy: list[tuple[int, int, str]] = []
+    unresolved: list[list[int]] = []
     definition_of = _definition_index(conn)
     for path_rowid, payload in harvested:
         funcs_in_file = file_funcs.get(path_rowid, [])
@@ -1253,14 +1620,32 @@ def import_ast_call_edges(
                 receiver_types=receiver_types,
                 scope_of=scope_of,
                 argc_of=argc_of,
+                unresolved=unresolved,
             )
 
+    ## gh#15. The receiver narrowing is the ONLY writer of `edges_fuzzy`, so every row here is
+    ## already pinned to one class — which is what makes it safe to ask whether the group names
+    ## one function or several. Run as a post-pass rather than inside the narrowing so it needs
+    ## no further argument threaded through `_fold_call_payload`, and so its input is the whole
+    ## build's fuzzy set rather than one call site's view of it.
+    collapsed, edges_fuzzy = _collapse_duplicate_targets(edges_fuzzy, identity_of, defined)
+    edges_resolved.extend(collapsed)
+    ## gh#15. Recorded whether or not anything refused: a measured ZERO is the whole point of
+    ## the table — it is what lets `callers: []` keep its full confidence — so the rows are
+    ## written even on a build where every call resolved.
+    understated = _insert_unresolved_inbound(conn, unresolved, identity_of)
     inserted_resolved, inserted_fuzzy = _ast_insert_edges(
         conn,
         edges_resolved,
         edges_fuzzy,
     )
     prune_fabricated_self_edges(conn, repo_root, ts_classes, file_funcs)
+    logger.info(
+        "call_edges: %d call site(s) named a function and did not resolve, understating the "
+        "callers of %d symbol(s) — recorded, so an empty `callers` can be graded",
+        len(unresolved),
+        understated,
+    )
     conn.commit()
     conn.close()
     logger.info(

@@ -30,7 +30,11 @@ declare the method, count DISTINCT SCOPES, and require exactly one.
 
 from __future__ import annotations
 
-from clew.call_edges import _narrow_by_receiver, _receiver_class
+from clew.call_edges import (
+    _collapse_duplicate_targets,
+    _narrow_by_receiver,
+    _receiver_class,
+)
 
 ## One method name, four definitions — the real shape on entropic.
 ENGINE_A = 176  # entropic::AgentEngine::run_turn(const std::string&)
@@ -116,6 +120,77 @@ def test_two_spellings_of_one_class_are_one_owner() -> None:
 
 
 ##
+# @brief A method's own decl/def scope spellings are one owner, not two.
+# @return None.
+# @version 1
+def test_two_spellings_of_one_SCOPE_are_one_owner() -> None:
+    """gh#15. RULE 3'S MIRROR, and the reason rule 3 was only half fixed. The spelling duality
+    was moved off the receiver's TYPE and onto the candidate's SCOPE, where it is just as real:
+    doxygen emits a method twice — a header declaration and a definition — and writes the two
+    rows' `scope` column differently. Measured on entropic, `ServerManager::init_builtins`:
+
+        rowid 4651  scope 'entropic::ServerManager'   (declaration)
+        rowid 4720  scope 'ServerManager'             (definition)
+
+    `_scope_is` matches BOTH against the receiver's one declared class, so the pair is one
+    owner. Counting the scope STRINGS saw two and refused — the identical mistake rule 3
+    records, one level down.
+
+    The cost was a silent false negative on a real chain: `init_builtins` and `load_plugins`
+    each have exactly one production caller, through `h->server_manager->`, and both reported
+    `callers: []`.
+
+    THE SET IS NOT COLLAPSED TO ONE SPELLING ARBITRARILY. Every row whose scope denotes the
+    pinned class survives, because which of the two rows a consumer wants — the declaration or
+    the definition — is not this layer's call to make.
+
+    @brief A declaration/definition scope pair does not make the owner ambiguous.
+    @return None.
+    @version 1
+    """
+    decl, defn = 4651, 4720
+    scope_of = {decl: "entropic::ServerManager", defn: "ServerManager"}
+    classes = {"server_manager": {"entropic::ServerManager"}}
+    survivors, verified = _narrow_by_receiver(
+        "server_manager", 3, [decl, defn], classes, scope_of, {decl: 3, defn: 3}
+    )
+    assert verified, (
+        "one class written two ways is one owner; counting scope strings refused a call whose "
+        "receiver type the index holds unambiguously"
+    )
+    assert set(survivors) == {decl, defn}, (
+        f"both rows are the same method on the pinned class and must survive: {survivors}"
+    )
+
+
+##
+# @brief Two genuinely different namespaces are still two owners.
+# @return None.
+# @version 1
+def test_the_same_bare_name_in_two_namespaces_still_refuses() -> None:
+    """THE CONTROL for the test above, and the line the collapse must not cross. Widening
+    "one class, two spellings" into "any two scopes sharing a tail" would re-admit exactly the
+    fan-out rule 1 removed: `a::Session` and `b::Session` are DIFFERENT classes that happen to
+    end in the same word, and nothing here can say which one a bare receiver denotes.
+
+    `_scope_is` already refuses that pair in both directions — neither is a `::`-boundary
+    suffix of the other — so the collapse is transitive only through spellings that genuinely
+    match, and this stays refused.
+
+    @brief A shared tail across namespaces is not one owner.
+    @return None.
+    @version 1
+    """
+    scope_of = {1: "a::Session", 2: "b::Session"}
+    classes = {"session": {"a::Session", "b::Session"}}
+    survivors, verified = _narrow_by_receiver("session", 0, [1, 2], classes, scope_of, {})
+    assert not verified, (
+        "two namespaces owning the same bare class name is a genuine ambiguity, not a spelling"
+    )
+    assert survivors == [1, 2], "an unverified narrowing must leave the candidates untouched"
+
+
+##
 # @brief A receiver whose classes all own the method must refuse.
 # @return None.
 # @version 1
@@ -179,3 +254,116 @@ def test_arity_separates_overloads_when_it_can() -> None:
     assert verified and survivors == [ENGINE_B], (
         f"a call passing two arguments must select the two-parameter overload: {survivors}"
     )
+
+
+##
+# @brief One function doxygen emitted twice is resolved, not ambiguous.
+# @return None.
+# @version 1
+def test_a_declaration_and_its_definition_collapse_to_one_resolved_edge() -> None:
+    """gh#15, the second half. Once the receiver pins the class, the surviving candidates for a
+    C++ method are almost always TWO rows describing ONE function — doxygen emits a memberdef
+    for the header declaration and another for the definition. Emitting both as `fuzzy` grades
+    a fully-determined call as an unresolved one, and `fuzzy` is excluded from
+    `mark_reachability` and the thread BFS, so the chain the caller wanted to walk still does
+    not connect.
+
+    MEASURED on entropic after the scope fix: 756 fuzzy rows over 373 logical calls, of which
+    354 (95%) were one function written twice. Those are not ambiguity.
+
+    IDENTITY IS (name, definition, argsstring), and the argsstring is what makes it safe: two
+    genuine overloads share a `definition` (`entropic::AgentEngine::run_turn`) and differ only
+    in their parameter list, so keying on the definition alone would merge the overloads this
+    layer is required to leave unresolved.
+
+    The DEFINITION row wins the collapse — it is the one carrying a body, and therefore the one
+    a consumer following the edge wants to read.
+    """
+    decl, defn = 4651, 4720
+    identity = {
+        decl: ("init_builtins", "void entropic::ServerManager::init_builtins", "(const C &, int)"),
+        defn: ("init_builtins", "void entropic::ServerManager::init_builtins", "(const C &, int)"),
+    }
+    promoted, remaining = _collapse_duplicate_targets(
+        [(1697, decl, "ast_member"), (1697, defn, "ast_member")],
+        identity,
+        defined={defn},
+    )
+    assert promoted == [(1697, defn, "ast_member")], (
+        f"one function written twice is one target, and the row with the body is the one to "
+        f"point at: {promoted}"
+    )
+    assert remaining == [], "nothing ambiguous was left to keep as fuzzy"
+
+
+##
+# @brief Genuine overloads are left fuzzy, not collapsed.
+# @return None.
+# @version 1
+def test_two_real_overloads_are_not_collapsed() -> None:
+    """THE CONTROL, and the line the collapse must not cross. `AgentEngine::run_turn` has two
+    one-argument overloads; arity cannot split them and neither can this. They share a
+    `definition` and differ in `argsstring`, so an identity that ignored the parameter list
+    would silently assert one of them — a fabrication dressed as a resolution, which is the
+    exact failure `_ast_record_call_edge` grades everything against.
+    """
+    a, b = 176, 180
+    identity = {
+        a: ("run_turn", "entropic::AgentEngine::run_turn", "(const std::string &)"),
+        b: ("run_turn", "entropic::AgentEngine::run_turn", "(std::vector< Message >)"),
+    }
+    edges = [(9, a, "ast_member"), (9, b, "ast_member")]
+    promoted, remaining = _collapse_duplicate_targets(edges, identity, defined={a, b})
+    assert promoted == [], "two distinct signatures are two functions and stay unresolved"
+    assert sorted(remaining) == sorted(edges), "the fuzzy pair must survive untouched"
+
+
+##
+# @brief A collapse is per (caller, callee name), not across unrelated calls.
+# @return None.
+# @version 1
+def test_the_collapse_is_scoped_to_one_call_group() -> None:
+    """Two callers each making their own duplicated call must each collapse on their own. A
+    global grouping would let one caller's ambiguity suppress another caller's resolution, and
+    a per-identity grouping would do the reverse — split ONE ambiguous call into two groups and
+    promote both, asserting two targets where the layer could not pick even one.
+    """
+    decl, defn = 4651, 4720
+    over_a, over_b = 176, 180
+    identity = {
+        decl: ("init_builtins", "void C::init_builtins", "(int)"),
+        defn: ("init_builtins", "void C::init_builtins", "(int)"),
+        over_a: ("run_turn", "C::run_turn", "(const std::string &)"),
+        over_b: ("run_turn", "C::run_turn", "(std::vector< M >)"),
+    }
+    promoted, remaining = _collapse_duplicate_targets(
+        [
+            (1, decl, "ast_member"),
+            (1, defn, "ast_member"),
+            (1, over_a, "ast_member"),
+            (1, over_b, "ast_member"),
+        ],
+        identity,
+        defined={defn, over_a, over_b},
+    )
+    assert promoted == [(1, defn, "ast_member")], f"only the duplicated pair collapses: {promoted}"
+    assert sorted(remaining) == [(1, over_a, "ast_member"), (1, over_b, "ast_member")], (
+        f"the real overloads in the SAME caller must stay fuzzy: {remaining}"
+    )
+
+
+##
+# @brief A callee with no identity row is left alone rather than merged.
+# @return None.
+# @version 1
+def test_an_unknown_identity_is_never_collapsed() -> None:
+    """FAIL CLOSED on a missing row. A minimal index, or a `memberdef` without the
+    `definition`/`argsstring` columns, yields no identity — and an absent identity must not
+    read as "the same as every other absent identity", which would merge unrelated targets into
+    one confident edge. Unknown identities stay fuzzy.
+    """
+    promoted, remaining = _collapse_duplicate_targets(
+        [(1, 500, "ast_member"), (1, 501, "ast_member")], {}, defined=set()
+    )
+    assert promoted == []
+    assert sorted(remaining) == [(1, 500, "ast_member"), (1, 501, "ast_member")]

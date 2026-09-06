@@ -1048,6 +1048,25 @@ class Dossier:
     ## MCP layer elides it there, so the common payload does not grow a key.
     macro_collision: str = ""
 
+    ## HOW MANY CALL SITES NAMED A FUNCTION THIS ONE COULD BE AND DID NOT RESOLVE (gh#15).
+    ## The same argument as `gates_unplaceable` one field up, for the other direction: an empty
+    ## `callers` means "nothing calls this" ONLY when nothing was refused, and the two readings
+    ## are far apart. A reporter took the strong one, followed the single test helper the reply
+    ## offered, and shipped a design document recommending a configuration call that does not do
+    ## what they needed — with the real answer one hop up, through the edge that had not
+    ## resolved.
+    ##
+    ## A MEASUREMENT, NOT A HEDGE, and the distinction is this project's own standing rule:
+    ## `mcp_server/emptiness.py` records that a wording change compensating for missing data
+    ## hedges every honest answer to excuse one dishonest one, and gh#393 is the precedent for
+    ## withdrawing exactly such a note. So a ZERO here is load-bearing — it is what lets
+    ## `callers: []` keep its full confidence — and the field is never elided.
+    ##
+    ## None means the index CANNOT SAY: built before this was recorded, so the absence of a
+    ## count is not evidence that nothing was refused. Reported as such rather than as 0, which
+    ## would be the substitution the field exists to prevent.
+    callers_unresolved: int | None = None
+
 
 ## @brief A verbatim, line-capped source body for one function.
 ## @version 3
@@ -1172,20 +1191,42 @@ class ProseSearch:
 
 
 ## @brief One member of a class/struct.
-## @version 1
+## @version 2
 @dataclass(frozen=True)
 class ClassMember:
     """A member of a compound: its name, kind (function/variable/...), the
-    reassembled signature, and the line it is declared on.
+    reassembled signature, the line it is declared on, and ITS OWN DOCUMENTATION.
 
-    @brief Class member (name + kind + signature + line).
-    @version 1
+    THE DOCUMENTATION IS THE POINT OF READING A STRUCT (gh#16). A C or C++ config
+    header keeps most of its prose on the fields, as `///<` trailing comments, and
+    without them this list is an index of names — enough to know a field exists,
+    never enough to judge whether what it says about itself is still true. That is
+    the question a documentation pass asks, and the class view was the only subject
+    kind that could not answer it: the function view has always carried brief,
+    detail and body.
+
+    BOTH HALVES, because doxygen splits a multi-line `///` block at the first
+    sentence and the half that goes stale is usually the remainder — the caveat, the
+    version note, the "set this when" clause. A brief alone reproduces the omission
+    at smaller scale.
+
+    Both default to `""`, so a member from an index whose `memberdef` predates the
+    description columns is still returned with an empty documentation rather than
+    withheld.
+
+    @brief Class member (name + kind + signature + line + documentation).
+    @version 2
     """
 
     name: str
     kind: str
     signature: str
     line: int | None
+    ## Empty string, never None: a consumer must be able to read the field
+    ## unconditionally, and "no comment" and "this index cannot say" are both
+    ## rendered the same way here because at this layer they are the same fact.
+    brief: str = ""
+    detail: str = ""
 
 
 ## @brief One same-named compound a class lookup could have returned instead.

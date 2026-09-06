@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import re
 import sqlite3
+from collections.abc import Iterable
 
 from ..vocabulary import (
     CALL_MATCH,
@@ -336,6 +337,45 @@ def _endpoint_identities(
             ranked[key] = rank
         variants.setdefault(key, []).append((source, conf))
     return {key: (ranked[key][1], variants[key]) for key in variants}
+
+
+## @brief How many call sites named a function this identity could be and did not resolve.
+## @param conn Open connection to a built index.
+## @param ids The identity's memberdef rowids (its decl/def pair).
+## @return The site count, or None when this index carries no such measurement.
+## @version 1
+## @req REQ-DDB-QUERY-002
+def unresolved_inbound_for_rowids(conn: sqlite3.Connection, ids: Iterable[int]) -> int | None:
+    """WHAT MAKES AN EMPTY `callers` READABLE (gh#15). Without it the list means either
+    "nothing calls this" or "callers exist and none survived resolution", and those are far
+    apart: a reporter took the first reading of the second case, followed the only caller
+    offered — a test helper — and shipped a wrong conclusion with the real answer one
+    unresolved hop away.
+
+    SUMMED OVER THE IDENTITY, not the chosen rowid, for the same reason thread membership is:
+    doxygen splits one function across a declaration row and a definition row, and a refusal
+    recorded against the sibling is a refusal against this function.
+
+    RETURNS None, NEVER 0, WHEN THE TABLE IS ABSENT. An index built before this was recorded
+    has no measurement, and reporting that as zero would assert a clean bill of health from a
+    detector that could not look — this repository's standing failure mode, and the one
+    `gates_unplaceable` documents on the other direction.
+
+    @return Site count, or None when unmeasured.
+    @version 1
+    """
+    if not table_exists(conn, "unresolved_inbound"):
+        return None
+    rowids = list(ids)
+    if not rowids:
+        return 0
+    placeholders = ",".join("?" * len(rowids))
+    row = conn.execute(
+        f"SELECT COALESCE(SUM(sites), 0) FROM unresolved_inbound "  # noqa: S608
+        f"WHERE callee_rowid IN ({placeholders})",
+        rowids,
+    ).fetchone()
+    return int(row[0]) if row else 0
 
 
 ## @brief Collapse call rows into one call-class CallEdge per endpoint IDENTITY.

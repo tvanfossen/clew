@@ -18,6 +18,7 @@ from clew.call_edges import (
     SOURCE_AST,
     SOURCE_AST_MEMBER,
     _ast_harvest_calls,
+    _ast_record_call_edge,
 )
 from clew.harvest import _ast_parse_one_file, try_import_tree_sitter
 
@@ -306,3 +307,125 @@ def test_a_relative_qualifier_does_not_match_a_LONGER_identifier() -> None:
         definition_of={50: "void net::CoOwner::run()"},
     )
     assert resolved == [] and fuzzy == [], "CoOwner::run must NOT satisfy Owner::run"
+
+
+_CONSTRUCTION = """\
+#include <memory>
+namespace entropic {
+void ServerManager::init_builtins(const MCPConfig& c) {
+    register_server(std::make_unique<FilesystemServer>(project_dir_, c));
+    auto b = std::make_shared<entropic::BashServer>(c);
+    auto v = std::make_unique<std::vector<int>>();
+}
+}
+"""
+
+
+def test_a_make_unique_site_names_the_constructed_class(tmp_path) -> None:
+    """gh#15. `std::make_unique<FilesystemServer>(...)` unwrapped to `make_unique`, which no
+    index holds, so the sole PRODUCTION construction of a server emitted no edge and
+    `dossier("FilesystemServer")` listed only a test helper that calls the constructor
+    directly. The reporter followed that helper, hit a dead end, and shipped a design document
+    recommending the wrong configuration.
+
+    The class is written OUTRIGHT in the template argument, so this needs no type inference —
+    only reading the argument the call site already states. The site is rewritten to name the
+    constructed class, and the full template text rides along as the qualifier so an unrelated
+    same-named class in another namespace cannot claim it.
+    """
+    parsed = _parse(tmp_path, "w.cpp", _CONSTRUCTION)
+    assert parsed is not None
+    tree, src = parsed
+    by_name = {site[0]: site for site in _ast_harvest_calls(tree, src)}
+
+    assert "make_unique" not in by_name, "the factory template is not the callee — the class is"
+    assert "make_shared" not in by_name
+    assert "FilesystemServer" in by_name, f"got {sorted(by_name)}"
+    assert "BashServer" in by_name, f"got {sorted(by_name)}"
+    # The qualifier keeps the namespace the call site wrote, so `entropic::BashServer` cannot
+    # resolve to some other `BashServer`.
+    assert by_name["BashServer"][3] == "entropic::BashServer"
+    assert by_name["FilesystemServer"][3] == "FilesystemServer"
+
+
+def test_constructing_an_unindexed_template_still_resolves_to_nothing(tmp_path) -> None:
+    """THE NEGATIVE CONTROL. `std::make_unique<std::vector<int>>()` names a class too, and it
+    is one no repository index holds. Naming it is correct — inventing an edge for it is not —
+    and the existing miss path already handles that: a callee name with no candidate row emits
+    nothing, exactly as an unknown free function does.
+
+    Asserted at the HARVEST, because that is where the nested `<>` could go wrong: the tail
+    must be `vector`, never `int` and never the whole `std::vector<int>` text.
+    """
+    parsed = _parse(tmp_path, "w.cpp", _CONSTRUCTION)
+    assert parsed is not None
+    tree, src = parsed
+    by_name = {site[0]: site for site in _ast_harvest_calls(tree, src)}
+    assert "vector" in by_name, f"the tail of a nested template argument: {sorted(by_name)}"
+    assert by_name["vector"][3] == "std::vector<int>"
+
+    resolved: list[tuple[int, int, str]] = []
+    fuzzy: list[tuple[int, int, str]] = []
+    _ast_record_call_edge(
+        1,
+        "vector",
+        {},
+        resolved,
+        fuzzy,
+        SOURCE_AST_MEMBER,
+        qualified="std::vector<int>",
+        construction=True,
+    )
+    assert resolved == [] and fuzzy == [], "a class the index does not hold earns no edge"
+
+
+def test_a_construction_matching_several_rows_is_fuzzy_not_silence() -> None:
+    """A constructor has the same decl/def duality as any other method, so the qualifier
+    narrows to TWO rows and the general qualified path — which refuses on more than one, by
+    design and by a pinned test — would emit nothing and reproduce gh#15's silence for every
+    class whose constructor is declared and defined separately.
+
+    Construction is the one case where several survivors are not a name guess: the call site
+    NAMED the class, so every survivor is a constructor of that class. Emitting them as fuzzy
+    hands them to `_collapse_duplicate_targets`, which resolves a decl/def pair to one edge and
+    leaves genuine constructor overloads fuzzy — which is what they are.
+    """
+    resolved: list[tuple[int, int, str]] = []
+    fuzzy: list[tuple[int, int, str]] = []
+    _ast_record_call_edge(
+        1,
+        "ServerManager",
+        {"ServerManager": [4647, 4717]},
+        resolved,
+        fuzzy,
+        SOURCE_AST_MEMBER,
+        qualified="ServerManager",
+        definition_of={
+            4647: "entropic::ServerManager::ServerManager",
+            4717: "entropic::ServerManager::ServerManager",
+        },
+        construction=True,
+    )
+    assert resolved == [], "two rows is not a pick"
+    assert sorted(fuzzy) == [(1, 4647, SOURCE_AST_MEMBER), (1, 4717, SOURCE_AST_MEMBER)]
+
+
+def test_a_NON_construction_qualifier_matching_several_still_records_nothing() -> None:
+    """THE CONTROL that keeps `test_a_qualifier_matching_several_records_NOTHING` true. The
+    fuzzy emission above is unlocked ONLY by the construction flag. An ordinary qualified call
+    that narrows to several is unchanged — still silence, still gh#347's rule that one true
+    observation must not become N assertions.
+    """
+    resolved: list[tuple[int, int, str]] = []
+    fuzzy: list[tuple[int, int, str]] = []
+    _ast_record_call_edge(
+        1,
+        "send",
+        {"send": [30, 31]},
+        resolved,
+        fuzzy,
+        SOURCE_AST_MEMBER,
+        qualified="Net::send",
+        definition_of={30: "void Net::send", 31: "void Net::send"},
+    )
+    assert resolved == [] and fuzzy == [], "only construction unlocks the fuzzy emission"
