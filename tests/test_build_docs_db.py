@@ -2161,6 +2161,73 @@ def test_the_catalog_precedence_is_declaration_then_convention(tmp_path: Path) -
     assert resolve_catalog_path({}, tmp_path) is None
 
 
+def test_the_conventional_catalog_is_also_looked_for_under_docs(tmp_path: Path) -> None:
+    """gh#13. The convention tier looked in exactly ONE place — `<root>/requirements.yaml` —
+    so a repo that keeps its catalog at `docs/requirements.yaml` and declares nothing got no
+    catalog at all. That is not a niche layout: `docs/` is where this pipeline already looks
+    for a Doxyfile, and where the reporter's repo kept it.
+
+    THE FAILURE WAS SILENT AND THEN CONFIDENT. Nothing errors, because a catalog is optional
+    metadata; the build logs "no requirements.yaml found — table empty" and moves on. The
+    reader then asks `dossier("REQ-...")` and is told "This is a definitive negative from the
+    database, NOT an error" about a requirement their repository plainly declares — the
+    strongest possible wording on the weakest possible evidence.
+
+    @brief A catalog under docs/ resolves when nothing is declared.
+    @version 1
+    """
+    from clew.requirements import resolve_catalog_path
+
+    docs_catalog = tmp_path / "docs" / "requirements.yaml"
+    docs_catalog.parent.mkdir()
+    docs_catalog.write_text("requirements: {}\n", encoding="utf-8")
+
+    assert resolve_catalog_path({}, tmp_path) == docs_catalog.resolve()
+    assert resolve_catalog_path(None, tmp_path) == docs_catalog.resolve()
+
+
+def test_the_root_catalog_still_outranks_the_docs_one(tmp_path: Path) -> None:
+    """WIDENING A SEARCH MUST NOT MOVE AN EXISTING ANSWER. Every repo that resolves a catalog
+    today does so from the root, and this repository is one of them — so the root keeps the
+    first position within the convention tier and a `docs/` copy cannot displace it. Ordering
+    the new location first would silently re-point existing indexes at a different file, which
+    is the class of change this resolver was written to end.
+
+    @brief Root beats docs/ within the convention tier.
+    @version 1
+    """
+    from clew.requirements import resolve_catalog_path
+
+    root_catalog = tmp_path / "requirements.yaml"
+    root_catalog.write_text("requirements: {}\n", encoding="utf-8")
+    docs_catalog = tmp_path / "docs" / "requirements.yaml"
+    docs_catalog.parent.mkdir()
+    docs_catalog.write_text("requirements: {}\n", encoding="utf-8")
+
+    assert resolve_catalog_path({}, tmp_path) == root_catalog.resolve()
+
+
+def test_a_declaration_still_beats_every_conventional_location(tmp_path: Path) -> None:
+    """THE CONTROL on the precedence rule the resolver exists to hold: flag > declaration >
+    convention > nothing. Adding a location extends the LAST tier only, so a declared catalog
+    must still win even when a file sits at a conventional path — including the new one.
+
+    @brief Declaration outranks the widened convention tier.
+    @version 1
+    """
+    from clew.requirements import resolve_catalog_path
+
+    declared = tmp_path / "spec" / "reqs.yaml"
+    declared.parent.mkdir()
+    declared.write_text("requirements: {}\n", encoding="utf-8")
+    for conventional in (tmp_path / "requirements.yaml", tmp_path / "docs" / "requirements.yaml"):
+        conventional.parent.mkdir(exist_ok=True)
+        conventional.write_text("requirements: {}\n", encoding="utf-8")
+
+    cfg = {"impact": {"requirements": {"file": "spec/reqs.yaml"}}}
+    assert resolve_catalog_path(cfg, tmp_path) == declared.resolve()
+
+
 def test_a_declared_catalog_that_does_not_exist_degrades_rather_than_raising(
     tmp_path: Path,
 ) -> None:
