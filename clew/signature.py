@@ -58,7 +58,26 @@ from .tiers import OPTIONS_META_PREFIX
 ##   NOT a reason, recorded so the next reader does not think it was: `source_fingerprint`
 ##   changed from hashing mtime to hashing content in the same release. That moves the CODE
 ##   staleness axis of a running server process and leaves build output untouched.
-CLEW_BUILD_VERSION = 2
+##
+## 3 (clew 1.0.27) — the SAME TWO shapes as 2, which is why this bump was not optional:
+##
+##     * `unresolved_inbound` is a NEW TABLE (gh#15). It records, per callee, how many call
+##       sites named it and did not resolve, and it is what lets `callers: []` say whether
+##       resolution was ever attempted. Its reader degrades when the table is absent — by
+##       design, answering None for "this index cannot say" — but a 1.0.26 index would then
+##       report that on EVERY symbol, so without the bump nothing would prompt the rebuild
+##       that makes the layer exist.
+##     * `call_edges` holds DIFFERENT ROWS for identical source, for three independent
+##       reasons: a receiver-narrowed call no longer refuses when doxygen spelled the
+##       declaration's and definition's `scope` differently, a decl/def pair collapses to one
+##       resolved edge rather than two fuzzy ones, and `std::make_unique<T>` / `make_shared<T>`
+##       now reach T's constructor. Measured on the pinned entropic target: 4428 resolved rows
+##       became 4873, and fuzzy went 24 to 64.
+##
+##   The AST harvest's own `stage_version` moved 5 to 6 in the same release, which makes the
+##   CACHED PAYLOADS cold. That is a different mechanism from this integer and does not replace
+##   it: the sidecar bump re-parses files, this one tells an existing DATABASE it is stale.
+CLEW_BUILD_VERSION = 3
 
 
 ## @brief Stamp the build version, scope, coverage and preprocessor config into build_meta.
