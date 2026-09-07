@@ -1010,6 +1010,9 @@ _PAYLOAD_TYPEDEFS = "typedefs"
 ## `ParsedVariable` row, so one loop reading both lists would index past the end of one.
 _PAYLOAD_MACROS = "macros"
 
+## gh#17. Python only: the annotated class attributes doxygen drops.
+_PAYLOAD_CLASS_FIELDS = "class_fields"
+
 
 ## @brief Per-file harvester for C/C++ function definitions and file-scope variables.
 ## @version 2
@@ -1038,14 +1041,17 @@ class _FunctionDefinitionHarvester(Harvester):
     ## the omission would be quieter here: a version-5 payload yields no macro rows at all,
     ## so the second branch of a two-branch `#define` would stay missing on every target
     ## already built — which is the exact defect this change fixes, served from cache.
-    stage_version = 6
+    ## 6 -> 7: Python files now carry a `class_fields` key (gh#17). A version-6 payload has
+    ## none, so every already-built Python target would keep reporting the half-empty member
+    ## lists this change exists to fill.
+    stage_version = 7
     label = "ast symbols"
 
     ## @brief Harvest one file's function definitions, file-scope variables, typedefs and macros.
     ## @param tree The parsed tree.
     ## @param src_bytes The file's raw bytes.
-    ## @return Mapping of JSON-serializable records by kind; Python yields functions only.
-    ## @version 5
+    ## @return Mapping of JSON-serializable records by kind; Python also yields class fields.
+    ## @version 6
     ## @req REQ-DDB-INDEX-004
     def harvest(self, tree: Any, src_bytes: bytes) -> Any:
         """Returns plain lists rather than dataclass instances because the payload is
@@ -1062,8 +1068,8 @@ class _FunctionDefinitionHarvester(Harvester):
         returned an empty list, but paying for a whole traversal to learn that on every
         Python file in every repository is a cost with no answer at the end of it.
 
-        @brief Per-file function-definition, variable, typedef and macro extraction.
-        @version 4
+        @brief Per-file function-definition, variable, typedef, macro and class-field extraction.
+        @version 5
         """
         if is_python_tree(tree):
             return {
@@ -1072,6 +1078,12 @@ class _FunctionDefinitionHarvester(Harvester):
                     for f in harvest_python_definitions(tree, src_bytes)
                 ],
                 _PAYLOAD_VARIABLES: [],
+                ## gh#17. Python ONLY: a C struct field is already emitted by doxygen, so
+                ## this walk would cost a traversal per file to learn nothing.
+                _PAYLOAD_CLASS_FIELDS: [
+                    [f.name, f.class_name, f.type_text, f.line]
+                    for f in harvest_python_class_fields(tree, src_bytes)
+                ],
             }
         return {
             _PAYLOAD_FUNCTIONS: [
@@ -1091,6 +1103,141 @@ class _FunctionDefinitionHarvester(Harvester):
                 for m in harvest_macro_definitions(tree, src_bytes)
             ],
         }
+
+
+## tree-sitter-python's shape for an annotated class attribute: an `expression_statement`
+## wrapping an `assignment` that carries a `type` field. `x: str` has left+type, `x: str = ""`
+## has left+type+right, and `CONST = 3` has left+right and NO type — which is how an annotated
+## field is told from a plain assignment doxygen already emits.
+_PY_ASSIGNMENT = "assignment"
+_PY_EXPRESSION_STATEMENT = "expression_statement"
+_PY_CLASS_DEFINITION = "class_definition"
+
+
+## @brief One annotated class attribute tree-sitter found in a Python class body.
+## @version 1
+@dataclass(frozen=True)
+class ParsedClassField:
+    """A Python class attribute as the parser sees it: its name, its declaring class,
+    the annotation text, and the line it is declared on.
+
+    EXISTS BECAUSE DOXYGEN DROPS HALF OF THEM (gh#17). A bare annotation whose type is a
+    simple identifier — `name: str` — is not emitted at all, while `line: int | None` and
+    `brief: str = ""` are. Measured on this repository's own `clew/query/models.py`: 164
+    of 357 fields reached the index, every one of 49 dataclasses was short, and
+    `LockNestingPair` reported an empty member list for a class declaring ten fields.
+
+    Rowid-free by construction like its siblings, because the payload is JSON
+    round-tripped through the harvest cache.
+
+    @brief One parser-visible Python class attribute.
+    @version 1
+    """
+
+    name: str
+    class_name: str
+    type_text: str
+    line: int
+
+
+## @brief Every annotated attribute declared directly in a Python class body.
+## @param tree The parsed Python tree.
+## @param src_bytes The file's raw bytes.
+## @return ParsedClassField records, in source order.
+## @version 1
+## @req REQ-DDB-INDEX-004
+def harvest_python_class_fields(tree: Any, src_bytes: bytes) -> list[ParsedClassField]:
+    """DIRECT CHILDREN OF THE CLASS BODY ONLY, which is what keeps a method's locals out.
+    An annotated local inside a method is indented under the class and looks identical to a
+    field one level deeper; a recursive walk collects it and files it under the class as a
+    member that does not exist. Reading only the body block's own statements makes that
+    structural rather than a filter someone can forget.
+
+    ANNOTATED ONLY. `CONST = 3` is a real class attribute and doxygen already emits it — a
+    value assignment always saves a row — so recovering it would duplicate what the index
+    holds. The `type` field is present exactly when an annotation was written, so it is both
+    the thing that identifies a field and the thing that identifies doxygen's blind spot.
+
+    Harvests ALL annotated fields, including the ones doxygen DID emit. Which rows are
+    already present is a question about the database, and answering it here would put the
+    dedup rule in the parser where it cannot see the index — the same split
+    `harvest_variable_declarations` keeps from `_recoverable_variables`.
+
+    @brief Collect a Python file's annotated class attributes.
+    @return ParsedClassField records.
+    @version 1
+    """
+    found: list[ParsedClassField] = []
+    stack = [tree.root_node]
+    while stack:
+        node = stack.pop()
+        stack.extend(node.children)
+        if node.type != _PY_CLASS_DEFINITION:
+            continue
+        name_node = node.child_by_field_name("name")
+        body = node.child_by_field_name("body")
+        if name_node is None or body is None:
+            continue
+        class_name = src_bytes[name_node.start_byte : name_node.end_byte].decode(
+            "utf-8", errors="replace"
+        )
+        found.extend(_class_body_fields(body, class_name, src_bytes))
+    return found
+
+
+## @brief The annotated attributes a class body declares at its own level.
+## @param body The class_definition's `body` block.
+## @param class_name The declaring class's name.
+## @param src_bytes The file's raw bytes.
+## @return ParsedClassField records for this body.
+## @version 1
+## @dg_internal
+def _class_body_fields(body: Any, class_name: str, src_bytes: bytes) -> list[ParsedClassField]:
+    """Split out so `harvest_python_class_fields` stays a walk and this stays a shape
+    test — and so the "direct children only" rule is expressed as iterating ONE node's
+    children rather than as a depth check somewhere in a traversal.
+
+    @brief Read one class body's annotated attributes.
+    @return ParsedClassField records.
+    @version 1
+    """
+    fields: list[ParsedClassField] = []
+    for statement in body.children:
+        if statement.type != _PY_EXPRESSION_STATEMENT:
+            continue
+        for child in statement.children:
+            field = _annotated_field(child, class_name, src_bytes)
+            if field is not None:
+                fields.append(field)
+    return fields
+
+
+## @brief One assignment node read as an annotated class attribute, if it is one.
+## @param node A child of an expression_statement.
+## @param class_name The declaring class's name.
+## @param src_bytes The file's raw bytes.
+## @return The field, or None when this is not an annotated attribute.
+## @version 1
+## @dg_internal
+def _annotated_field(node: Any, class_name: str, src_bytes: bytes) -> ParsedClassField | None:
+    """@brief Read an annotated assignment as a class field.
+    @return The field, or None.
+    @version 1
+    """
+    if node.type != _PY_ASSIGNMENT:
+        return None
+    left = node.child_by_field_name("left")
+    annotation = node.child_by_field_name("type")
+    if annotation is None or left is None or left.type != "identifier":
+        return None
+    return ParsedClassField(
+        name=src_bytes[left.start_byte : left.end_byte].decode("utf-8", errors="replace"),
+        class_name=class_name,
+        type_text=src_bytes[annotation.start_byte : annotation.end_byte].decode(
+            "utf-8", errors="replace"
+        ),
+        line=left.start_point[0] + 1,
+    )
 
 
 ## tree-sitter-python's node for `def`, and the body field every real definition has.
@@ -1717,13 +1864,154 @@ def recover_ast_symbols(
     return inserted
 
 
+## @brief Insert the Python class attributes doxygen dropped, linked to their compound.
+## @param conn Open connection to the database being built.
+## @param harvested The shared per-file harvest result.
+## @return Number of memberdef rows inserted.
+## @version 1
+## @req REQ-DDB-INDEX-004
+## @dg_internal
+def _recover_class_fields_into(conn: sqlite3.Connection, harvested: Any) -> int:
+    """gh#17. doxygen's Python parser drops a class attribute written as a bare annotation
+    with a simple-identifier type — `name: str` — while keeping `line: int | None` and
+    `brief: str = ""`. Measured on this repository: 164 of 357 fields in
+    `clew/query/models.py` reached the index, all 49 dataclasses were short, and
+    `LockNestingPair` reported an EMPTY member list for a class declaring ten fields.
+
+    WRITES THE `member` LINK TOO, which is what makes this different from every other
+    recovery here. The existing kinds are file-scope, so a `memberdef` row is the whole
+    answer; a class attribute is only reachable through `member(scope_rowid,
+    memberdef_rowid)`, and a row without that link is present in the table and absent from
+    every class view — the defect in a subtler form.
+
+    THE COMPOUND IS MATCHED BY (file, name tail), not by name alone. doxygen names a Python
+    class `module::ClassName`, and two modules may each declare a `Config`; the file the
+    attribute was parsed from settles it, and a single file cannot declare one class name
+    twice.
+
+    DEDUPED AGAINST THE EXISTING LINKS, so the fields doxygen DID emit are left alone
+    rather than duplicated under a second row. The harvest deliberately collects all of
+    them — which are already present is a fact about the database, not about the source.
+
+    @brief Insert recovered Python class attributes and link them to their class.
+    @return Rows inserted.
+    @version 1
+    """
+    if not all(_table_exists(conn, t) for t in ("compounddef", "member")):
+        return 0
+    compounds = _compounds_by_file_and_tail(conn)
+    linked = {
+        (int(scope), str(name))
+        for scope, name in conn.execute(
+            "SELECT mm.scope_rowid, m.name FROM member mm "
+            "JOIN memberdef m ON m.rowid = mm.memberdef_rowid"
+        )
+    }
+    inserted = 0
+    for file_rowid, payload in harvested:
+        for name, class_name, type_text, line in payload.get(_PAYLOAD_CLASS_FIELDS, []):
+            scope_rowid = compounds.get((file_rowid, class_name))
+            if scope_rowid is None or (scope_rowid, name) in linked:
+                continue
+            _insert_recovered_class_field(
+                conn, file_rowid, scope_rowid, name, class_name, type_text, line
+            )
+            linked.add((scope_rowid, name))
+            inserted += 1
+    return inserted
+
+
+## @brief Map (file rowid, bare class name) to the compound rowid declaring it.
+## @param conn Open connection to the database being built.
+## @return Mapping used to attach a recovered attribute to its class.
+## @version 1
+## @dg_internal
+def _compounds_by_file_and_tail(conn: sqlite3.Connection) -> dict[tuple[int, str], int]:
+    """Keyed by FILE as well as name because a bare class name is not unique across a
+    repository and a wrong link would file an attribute under someone else's class — the
+    same borrowed-rowid failure `_resolve_qualified_entry` fails closed against.
+
+    @brief Index class compounds by their file and bare name.
+    @return (file_rowid, tail) to compound rowid.
+    @version 1
+    """
+    found: dict[tuple[int, str], int] = {}
+    for rowid, name, file_id in conn.execute(
+        "SELECT rowid, name, file_id FROM compounddef WHERE kind IN ('class', 'struct')"
+    ):
+        if file_id is None:
+            continue
+        found[(int(file_id), str(name).rsplit("::", 1)[-1])] = int(rowid)
+    return found
+
+
+## @brief Insert one recovered class attribute and link it to its compound.
+## @param conn Open connection to the database being built.
+## @param file_rowid The declaring file's `path` rowid.
+## @param scope_rowid The declaring compound's rowid.
+## @param name The attribute name.
+## @param class_name The declaring class's bare name.
+## @param type_text The annotation as written.
+## @param line The declaration line.
+## @version 1
+## @dg_internal
+def _insert_recovered_class_field(
+    conn: sqlite3.Connection,
+    file_rowid: int,
+    scope_rowid: int,
+    name: str,
+    class_name: str,
+    type_text: str,
+    line: int,
+) -> None:
+    """Mirrors the shape doxygen writes for the fields it DOES emit — `str Mirror::brief`
+    in `definition`, the bare annotation in `type`, `kind='variable'` — so a consumer
+    cannot tell a recovered field from an emitted one by its shape, only by
+    `provenance`, which is exactly the distinction that column exists to carry.
+
+    No body span and no `bodyfile_id`, for the reason `_insert_recovered_variable`
+    records: an attribute is not executable.
+
+    @brief Insert one recovered class attribute.
+    @version 1
+    """
+    cursor = conn.execute(
+        "INSERT INTO refid (refid) VALUES (?)",
+        (f"dgfield_{scope_rowid}_{line}_{name}",),
+    )
+    memberdef_rowid = cursor.lastrowid
+    conn.execute(
+        "INSERT INTO memberdef (rowid, name, definition, type, scope, kind, static, "
+        f'file_id, line, "column", {SYMBOL_SOURCE_COLUMN}) '
+        "VALUES (?, ?, ?, ?, ?, 'variable', 0, ?, ?, 1, ?)",
+        (
+            memberdef_rowid,
+            name,
+            f"{type_text} {class_name}::{name}".strip(),
+            type_text,
+            class_name,
+            file_rowid,
+            line,
+            SYMBOL_SOURCE_AST,
+        ),
+    )
+    ## `prot`/`virt` are NOT NULL in doxygen's own schema and it writes 0/0 for an ordinary
+    ## public non-virtual member, which is what every attribute recovered here is. Supplied
+    ## explicitly rather than defaulted, because the schema has no default and an omitted
+    ## column fails the insert — caught by the first run against a real fixture.
+    conn.execute(
+        "INSERT INTO member (scope_rowid, memberdef_rowid, prot, virt) VALUES (?, ?, 0, 0)",
+        (scope_rowid, memberdef_rowid),
+    )
+
+
 ## @brief Run the harvest and insert every recoverable definition.
 ## @param conn Open connection to the database being built.
 ## @param repo_root Repository root the indexed paths are relative to.
 ## @param ts_classes (Language, Parser) from tree_sitter.
 ## @param cache Optional incremental index cache.
 ## @return Number of memberdef rows inserted.
-## @version 4
+## @version 5
 ## @dg_internal
 def _recover_into(
     conn: sqlite3.Connection,
@@ -1745,7 +2033,7 @@ def _recover_into(
 
     @brief Harvest, dedup and insert every recovered kind, reporting the row count.
     @return Rows inserted.
-    @version 4
+    @version 5
     """
     if not all(_table_exists(conn, t) for t in ("memberdef", "refid", "path")):
         return 0
@@ -1759,6 +2047,10 @@ def _recover_into(
             functions += 1
     variables = _recover_variables_into(conn, harvested)
     macros = _recover_macros_into(conn, harvested)
+    ## AFTER the others: the dedup reads existing `member` links, and the earlier kinds are
+    ## file-scope so they write none — but a later kind that did would have to be ordered
+    ## against this one, and stating the dependency now is cheaper than discovering it.
+    fields = _recover_class_fields_into(conn, harvested)
     if functions:
         logger.info(
             "ast symbols: recovered %d function definition(s) doxygen did not emit "
@@ -1778,7 +2070,13 @@ def _recover_into(
             "the case doxygen's preprocessor cannot reach)",
             macros,
         )
-    return functions + variables + macros
+    if fields:
+        logger.info(
+            "ast symbols: recovered %d Python class attribute(s) doxygen did not emit "
+            "(a bare annotation with a simple type is dropped by its parser — kind='variable')",
+            fields,
+        )
+    return functions + variables + macros + fields
 
 
 ## @brief Insert every recoverable file-scope variable and typedef from an already-run harvest.
