@@ -1790,6 +1790,21 @@ class VariableSubject:
     sites: tuple[VariableSite, ...] = ()
 
 
+## @brief One value of an enum, as the index holds it.
+## @version 1
+@dataclass(frozen=True)
+class Enumerator:
+    """An enum value: its name, the initialiser text when one is written, and its line.
+
+    @brief One enum value.
+    @version 1
+    """
+
+    name: str
+    value: str
+    line: int | None
+
+
 ## @brief An enum type: its identity, documentation and verbatim declaration.
 ## @version 1
 @dataclass(frozen=True)
@@ -1820,6 +1835,16 @@ class EnumSubject:
     version: str = ""
     provenance: str | None = None
     body: BodyExcerpt | None = None
+    ## The values this enum declares, from the recovered `enumvalue` rows. Empty on an index
+    ## built before they were recovered — the body still shows them, which is why that
+    ## degrade is thin rather than blank.
+    enumerators: tuple[Enumerator, ...] = ()
+    ## WHICH VALUE THE CALLER ASKED FOR, when they named an enumerator rather than the enum.
+    ## The subject's `name` stays the ENUM's, because that is what this record describes;
+    ## substituting the queried string there would report a symbol under a name it does not
+    ## have, which is the `macro_collision` failure one subject over. This field is how the
+    ## reply says "you asked for a value, and here is the enum that declares it".
+    matched_enumerator: str = ""
 
 
 ## @brief A lock subject: its roster row plus every critical section it guards.

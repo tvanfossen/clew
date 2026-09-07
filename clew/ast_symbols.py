@@ -1013,6 +1013,9 @@ _PAYLOAD_MACROS = "macros"
 ## gh#17. Python only: the annotated class attributes doxygen drops.
 _PAYLOAD_CLASS_FIELDS = "class_fields"
 
+## gh#6. C/C++ only: the enum values doxygen emits no rows for.
+_PAYLOAD_ENUMERATORS = "enumerators"
+
 
 ## @brief Per-file harvester for C/C++ function definitions and file-scope variables.
 ## @version 2
@@ -1044,14 +1047,17 @@ class _FunctionDefinitionHarvester(Harvester):
     ## 6 -> 7: Python files now carry a `class_fields` key (gh#17). A version-6 payload has
     ## none, so every already-built Python target would keep reporting the half-empty member
     ## lists this change exists to fill.
-    stage_version = 7
+    ## 7 -> 8: C/C++ files now carry an `enumerators` key (gh#6). Same reasoning: doxygen
+    ## emits no `enumvalue` rows at all, so a version-7 payload leaves every enum value
+    ## unaddressable on targets already built.
+    stage_version = 8
     label = "ast symbols"
 
     ## @brief Harvest one file's function definitions, file-scope variables, typedefs and macros.
     ## @param tree The parsed tree.
     ## @param src_bytes The file's raw bytes.
     ## @return Mapping of JSON-serializable records by kind; Python also yields class fields.
-    ## @version 6
+    ## @version 7
     ## @req REQ-DDB-INDEX-004
     def harvest(self, tree: Any, src_bytes: bytes) -> Any:
         """Returns plain lists rather than dataclass instances because the payload is
@@ -1068,8 +1074,8 @@ class _FunctionDefinitionHarvester(Harvester):
         returned an empty list, but paying for a whole traversal to learn that on every
         Python file in every repository is a cost with no answer at the end of it.
 
-        @brief Per-file function-definition, variable, typedef, macro and class-field extraction.
-        @version 5
+        @brief Per-file definition, variable, typedef, macro, class-field and enumerator extraction.
+        @version 6
         """
         if is_python_tree(tree):
             return {
@@ -1102,7 +1108,148 @@ class _FunctionDefinitionHarvester(Harvester):
                 [m.name, list(m.params), m.expansion, m.line]
                 for m in harvest_macro_definitions(tree, src_bytes)
             ],
+            ## gh#6. C/C++ ONLY: a Python enum is a class whose members doxygen already
+            ## emits, so the walk would cost a traversal per file to learn nothing.
+            _PAYLOAD_ENUMERATORS: [
+                [e.name, e.enum_name, e.value, e.line] for e in harvest_enumerators(tree, src_bytes)
+            ],
         }
+
+
+## tree-sitter's C/C++ enum shape. An `enum_specifier` carries an `enumerator_list` body whose
+## named children are `enumerator` nodes, each with a `name` and an optional `value`.
+_ENUM_SPECIFIER = "enum_specifier"
+_ENUMERATOR = "enumerator"
+_TYPE_DEFINITION = "type_definition"
+
+
+## @brief One enumerator tree-sitter found inside an enum body.
+## @version 1
+@dataclass(frozen=True)
+class ParsedEnumerator:
+    """A single enum value: its own name, the enum that declares it, the initialiser text
+    when one is written, and the line.
+
+    EXISTS BECAUSE DOXYGEN EMITS NO `enumvalue` ROWS AT ALL (gh#6) — measured, zero on
+    entropic against 35 `enumeration` rows. So `dossier("ENT_DECISION_ACCEPT")` missed a
+    name the repository declares, and `search` could not find it either. The enum TYPE's
+    body span shows the values to a human reading the reply; these rows are what make an
+    individual value addressable.
+
+    Rowid-free by construction like its siblings, because the payload is JSON round-tripped
+    through the harvest cache.
+
+    @brief One parser-visible enumerator.
+    @version 1
+    """
+
+    name: str
+    enum_name: str
+    value: str
+    line: int
+
+
+## @brief Every enumerator declared in one parsed C/C++ tree.
+## @param tree The parsed tree.
+## @param src_bytes The file's raw bytes.
+## @return ParsedEnumerator records, in source order.
+## @version 1
+## @req REQ-DDB-INDEX-004
+def harvest_enumerators(tree: Any, src_bytes: bytes) -> list[ParsedEnumerator]:
+    """THE ANONYMOUS TYPEDEF IS THE COMMON CASE, NOT THE EDGE CASE. `typedef enum { ... }
+    ent_decision_t;` gives an `enum_specifier` with NO name — the name is on the enclosing
+    `type_definition` — and that is the shape entropic's own enums use. Reading only the
+    specifier's `name` field would harvest the values of every C enum under an empty string
+    and file them all together.
+
+    An enum with neither a name nor a typedef is skipped rather than given a placeholder:
+    its values are real, but nothing here can say what declares them, and an invented
+    scope is worse than a missing row.
+
+    FAILS CLOSED ON `enum class` UNDER THE C GRAMMAR, which parses it as an enum named
+    `class` with no body — so the values are simply not found. A miss, not a fabrication;
+    the C++ grammar reads it correctly, and `.h` reparsing (gh#50) is what routes a C++
+    header to it.
+
+    @brief Collect a file's enumerators with the enum that declares them.
+    @return ParsedEnumerator records.
+    @version 1
+    """
+    found: list[ParsedEnumerator] = []
+    stack = [tree.root_node]
+    while stack:
+        node = stack.pop()
+        stack.extend(node.children)
+        if node.type != _ENUM_SPECIFIER:
+            continue
+        enum_name = _enum_name(node, src_bytes)
+        body = node.child_by_field_name("body")
+        if not enum_name or body is None:
+            continue
+        found.extend(_enumerators_of(body, enum_name, src_bytes))
+    return found
+
+
+## @brief The name an enum is known by: its own, else the typedef that wraps it.
+## @param node The enum_specifier node.
+## @param src_bytes The file's raw bytes.
+## @return The name, or '' when the enum is anonymous and untypedef'd.
+## @version 1
+## @dg_internal
+def _enum_name(node: Any, src_bytes: bytes) -> str:
+    """@brief Name an enum_specifier, following an enclosing typedef.
+    @return The name, or ''.
+    @version 1
+    """
+    named = node.child_by_field_name("name")
+    if named is not None:
+        return src_bytes[named.start_byte : named.end_byte].decode("utf-8", errors="replace")
+    parent = node.parent
+    if parent is None or parent.type != _TYPE_DEFINITION:
+        return ""
+    declarator = parent.child_by_field_name("declarator")
+    if declarator is None:
+        return ""
+    return src_bytes[declarator.start_byte : declarator.end_byte].decode("utf-8", errors="replace")
+
+
+## @brief The enumerators one enum body declares.
+## @param body The enumerator_list node.
+## @param enum_name The declaring enum's name.
+## @param src_bytes The file's raw bytes.
+## @return ParsedEnumerator records for this body.
+## @version 1
+## @dg_internal
+def _enumerators_of(body: Any, enum_name: str, src_bytes: bytes) -> list[ParsedEnumerator]:
+    """@brief Read one enum body's values.
+    @return ParsedEnumerator records.
+    @version 1
+    """
+    values: list[ParsedEnumerator] = []
+    for child in body.named_children:
+        if child.type != _ENUMERATOR:
+            continue
+        name_node = child.child_by_field_name("name")
+        if name_node is None:
+            continue
+        value_node = child.child_by_field_name("value")
+        values.append(
+            ParsedEnumerator(
+                name=src_bytes[name_node.start_byte : name_node.end_byte].decode(
+                    "utf-8", errors="replace"
+                ),
+                enum_name=enum_name,
+                value=(
+                    ""
+                    if value_node is None
+                    else src_bytes[value_node.start_byte : value_node.end_byte].decode(
+                        "utf-8", errors="replace"
+                    )
+                ),
+                line=name_node.start_point[0] + 1,
+            )
+        )
+    return values
 
 
 ## tree-sitter-python's shape for an annotated class attribute: an `expression_statement`
@@ -1864,6 +2011,92 @@ def recover_ast_symbols(
     return inserted
 
 
+## @brief Insert the enum values doxygen emits no rows for.
+## @param conn Open connection to the database being built.
+## @param harvested The shared per-file harvest result.
+## @return Number of memberdef rows inserted.
+## @version 1
+## @req REQ-DDB-INDEX-004
+## @dg_internal
+def _recover_enumerators_into(conn: sqlite3.Connection, harvested: Any) -> int:
+    """gh#6. doxygen emits NO `enumvalue` rows — zero on entropic against 35 `enumeration`
+    rows — so an enum value was addressable by nothing: `dossier` missed it and `search`
+    could not find it, on a codebase whose authoritative definitions are C enums.
+
+    `kind='enumvalue'` is doxygen's OWN vocabulary value for this, listed in its schema
+    beside the kinds it does write, so this adds no column, no table and no CHECK value.
+    The declaring enum goes in `scope` — the same column doxygen uses to say which class a
+    member belongs to — and the initialiser, when one is written, in `initializer`.
+
+    NO `member` LINK, unlike the class attributes beside it, and the difference is real
+    rather than an omission: a C enum is a `memberdef` and not a `compounddef`, so there is
+    no compound to link to. The relation is carried by `scope`, which is what the query
+    layer reads back.
+
+    Deduped by (file, name) through `_covered_names`, the same rule the variable recovery
+    uses, so a value doxygen somehow did emit is left alone rather than doubled.
+
+    @brief Insert recovered enum values, scoped to their enum.
+    @return Rows inserted.
+    @version 1
+    """
+    covered = _covered_names(conn)
+    inserted = 0
+    for file_rowid, payload in harvested:
+        for name, enum_name, value, line in payload.get(_PAYLOAD_ENUMERATORS, []):
+            if (file_rowid, name) in covered:
+                continue
+            _insert_recovered_enumerator(conn, file_rowid, name, enum_name, value, line)
+            covered.add((file_rowid, name))
+            inserted += 1
+    return inserted
+
+
+## @brief Insert one recovered enum value.
+## @param conn Open connection to the database being built.
+## @param file_rowid The declaring file's `path` rowid.
+## @param name The enumerator's name.
+## @param enum_name The declaring enum's name.
+## @param value The initialiser text, or '' when none is written.
+## @param line The declaration line.
+## @version 1
+## @dg_internal
+def _insert_recovered_enumerator(
+    conn: sqlite3.Connection,
+    file_rowid: int,
+    name: str,
+    enum_name: str,
+    value: str,
+    line: int,
+) -> None:
+    """No body span and no `bodyfile_id`, for the reason `_insert_recovered_variable`
+    records: an enum value is not executable. The synthetic refid is namespaced `dgenum_`
+    so it cannot collide with the other recovery kinds on a file and line.
+
+    @brief Insert one recovered enumerator row.
+    @version 1
+    """
+    cursor = conn.execute(
+        "INSERT INTO refid (refid) VALUES (?)",
+        (f"dgenum_{file_rowid}_{line}_{name}",),
+    )
+    conn.execute(
+        "INSERT INTO memberdef (rowid, name, definition, scope, initializer, kind, static, "
+        f'file_id, line, "column", {SYMBOL_SOURCE_COLUMN}) '
+        "VALUES (?, ?, ?, ?, ?, 'enumvalue', 0, ?, ?, 1, ?)",
+        (
+            cursor.lastrowid,
+            name,
+            f"{enum_name}::{name}" if enum_name else name,
+            enum_name,
+            value,
+            file_rowid,
+            line,
+            SYMBOL_SOURCE_AST,
+        ),
+    )
+
+
 ## @brief Insert the Python class attributes doxygen dropped, linked to their compound.
 ## @param conn Open connection to the database being built.
 ## @param harvested The shared per-file harvest result.
@@ -2011,7 +2244,7 @@ def _insert_recovered_class_field(
 ## @param ts_classes (Language, Parser) from tree_sitter.
 ## @param cache Optional incremental index cache.
 ## @return Number of memberdef rows inserted.
-## @version 5
+## @version 6
 ## @dg_internal
 def _recover_into(
     conn: sqlite3.Connection,
@@ -2033,7 +2266,7 @@ def _recover_into(
 
     @brief Harvest, dedup and insert every recovered kind, reporting the row count.
     @return Rows inserted.
-    @version 5
+    @version 6
     """
     if not all(_table_exists(conn, t) for t in ("memberdef", "refid", "path")):
         return 0
@@ -2051,6 +2284,7 @@ def _recover_into(
     ## file-scope so they write none — but a later kind that did would have to be ordered
     ## against this one, and stating the dependency now is cheaper than discovering it.
     fields = _recover_class_fields_into(conn, harvested)
+    enumerators = _recover_enumerators_into(conn, harvested)
     if functions:
         logger.info(
             "ast symbols: recovered %d function definition(s) doxygen did not emit "
@@ -2076,7 +2310,13 @@ def _recover_into(
             "(a bare annotation with a simple type is dropped by its parser — kind='variable')",
             fields,
         )
-    return functions + variables + macros + fields
+    if enumerators:
+        logger.info(
+            "ast symbols: recovered %d enum value(s) doxygen did not emit "
+            "(kind='enumvalue' — doxygen writes the enum TYPE and none of its values)",
+            enumerators,
+        )
+    return functions + variables + macros + fields + enumerators
 
 
 ## @brief Insert every recoverable file-scope variable and typedef from an already-run harvest.

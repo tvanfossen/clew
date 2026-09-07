@@ -104,11 +104,16 @@ from .. import wire
 ## was never read at all — which is the precise distinction the whole module exists to
 ## draw. Building the sentence from `q.SEARCHED_MEMBERDEF_KINDS` means the next corpus
 ## appears in the wording the moment it appears in the search, with no edit here.
+##
+## WHICH IS WHY THE STATIC HALF IS TERSE. `enumvalue` (gh#6) pushed the empty reply from 890
+## to 902 bytes against a 900-byte budget that exists because a client truncates a served
+## string in silence. The room was bought back by compressing prose rather than by raising
+## the cap: a new corpus is load-bearing content and the adjectives around it were not.
 _SEARCHED = (
     "Searched: names + @brief of "
     + ", ".join(kind for kind, _tier in q.SEARCHED_MEMBERDEF_KINDS)
-    + "; macro expansions; class/struct/union; the configuration symbols this repo gates "
-    "code on; file docs. NOT searched: markdown or Kconfig prose — that is "
+    + "; macro expansions; class/struct/union; the config symbols this repo gates on; "
+    "file docs. NOT searched: markdown or Kconfig prose — that is "
     "search(corpus='prose'), where a conceptual phrase often lands."
 )
 

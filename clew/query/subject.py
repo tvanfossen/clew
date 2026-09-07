@@ -49,6 +49,7 @@ from .models import (
     Chain,
     Dossier,
     EnumSubject,
+    Enumerator,
     KconfigSpace,
     LockSubject,
     SUBJECT_KINDS,
@@ -313,7 +314,9 @@ def _is_config(conn: sqlite3.Connection, name: str) -> bool:
 ## nothing can resolve.
 _PROBES = {
     "function": _is_function,
-    "enumeration": lambda conn, name: bool(_enum_row(conn, name)),
+    "enumeration": lambda conn, name: (
+        bool(_enum_row(conn, name)) or bool(_declaring_enum(conn, name))
+    ),
     "macro": _is_macro,
     "variable": lambda conn, name: bool(_variable_rows(conn, name)),
     "class": _is_compound,
@@ -397,6 +400,57 @@ def unresolved_kinds(db: DbSource, name: str) -> tuple[str, ...]:
     return tuple(sorted({str(k) for (k,) in rows if str(k) not in supported}))
 
 
+## @brief The enum that declares an enumerator of this name, if any.
+## @param conn Open connection.
+## @param name A candidate enumerator name.
+## @return The declaring enum's name, or None.
+## @version 1
+## @dg_internal
+def _declaring_enum(conn: sqlite3.Connection, name: str) -> str | None:
+    """`scope` carries the relation, because a C enum is a `memberdef` and not a
+    `compounddef` — there is no compound for a `member` link to point at, so the recovery
+    writes the declaring enum's name here and this reads it back.
+
+    @brief The enum an enumerator belongs to.
+    @return The enum's name, or None.
+    @version 1
+    """
+    if not has_columns(conn, "memberdef", "kind", "scope"):
+        return None
+    row = conn.execute(
+        "SELECT scope FROM memberdef WHERE name=? AND kind='enumvalue' AND scope != '' LIMIT 1",
+        (name,),
+    ).fetchone()
+    return str(row[0]) if row and row[0] else None
+
+
+## @brief Every value one enum declares, in declaration order.
+## @param conn Open connection.
+## @param enum_name The enum's name.
+## @return Enumerator records; empty on an index built before they were recovered.
+## @version 1
+## @dg_internal
+def _enumerators_of_enum(conn: sqlite3.Connection, enum_name: str) -> tuple[Enumerator, ...]:
+    """EMPTY IS A THIN ANSWER HERE, NOT A WRONG ONE, and that is unusually true for this
+    surface: the enum's BODY still lists every value verbatim, so an index predating the
+    recovery degrades to "read the body" rather than to "this enum has no values".
+
+    @brief The enum's values.
+    @return Enumerator records.
+    @version 1
+    """
+    if not has_columns(conn, "memberdef", "kind", "scope", "initializer", "line"):
+        return ()
+    return tuple(
+        Enumerator(name=str(r[0]), value=str(r[1] or ""), line=int(r[2]) if r[2] else None)
+        for r in conn.execute(
+            "SELECT name, initializer, line FROM memberdef "
+            "WHERE kind='enumvalue' AND scope=? ORDER BY line, name",
+            (enum_name,),
+        )
+    )
+
+
 ## @brief The memberdef row for an enum TYPE of this name, if the index holds one.
 ## @param conn Open connection.
 ## @param name The bare enum name.
@@ -438,7 +492,7 @@ def _enum_row(conn: sqlite3.Connection, name: str) -> tuple | None:
 ## @param repo_root Working tree, or None to skip the body.
 ## @param max_body_lines Cap on the declaration excerpt.
 ## @return EnumSubject or None.
-## @version 1
+## @version 2
 ## @req REQ-DDB-QUERY-001
 def _enum_subject(
     conn: sqlite3.Connection,
@@ -455,16 +509,30 @@ def _enum_subject(
     source span the enum's own row carries, and returning it answers the question verbatim
     rather than through a layer that would then have to be kept true.
 
-    @brief Assemble an enum subject from its type row and declaration.
+    @brief Assemble an enum subject from its type row, values and declaration.
     @return EnumSubject or None.
-    @version 1
+    @version 2
     """
+    ## A NAME MAY BE THE ENUM OR ONE OF ITS VALUES. `dossier("ENT_DECISION_ACCEPT")` was the
+    ## reporter's actual call, and answering it means finding the enum that declares it —
+    ## `matched_enumerator` is how the reply says the query named a value, without renaming
+    ## the record to a string it does not describe.
+    matched = ""
+    enum_name = name
     row = _enum_row(conn, name)
     if row is None:
-        return None
+        declaring = _declaring_enum(conn, name)
+        if declaring is None:
+            return None
+        matched, enum_name = name, declaring
+        row = _enum_row(conn, declaring)
+        if row is None:
+            return None
     body = None if repo_root is None else body_excerpt(conn, int(row[0]), repo_root, max_body_lines)
     return EnumSubject(
-        name=name,
+        name=enum_name,
+        matched_enumerator=matched,
+        enumerators=_enumerators_of_enum(conn, enum_name),
         rowid=int(row[0]),
         file=row[1],
         line=int(row[2]) if row[2] else None,
@@ -582,6 +650,11 @@ _KIND_ALIASES: dict[str, str] = {
     # `impl EnumName { ... }`, a C++ scoped `enum class`), not `memberdef`'s
     # `'enumeration'`, which is now its own subject (gh#6) rather than a refusal.
     "enum": "class",
+    # A `memberdef` row with `kind='enumvalue'` — one VALUE of an enum. Its subject is the
+    # enum that declares it, which `_enum_subject` resolves and reports through
+    # `matched_enumerator`; the alias is what makes a `search` row's kind round-trip, which
+    # is the promise `search`'s own description makes about that column.
+    "enumvalue": "enumeration",
     CONFIG_SYMBOL_KIND: "config",
 }
 

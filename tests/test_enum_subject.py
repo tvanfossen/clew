@@ -59,8 +59,8 @@ def _index(tmp_path: Path) -> tuple[Path, Path]:
         CREATE TABLE path (rowid INTEGER PRIMARY KEY, name TEXT);
         CREATE TABLE memberdef (
             rowid INTEGER PRIMARY KEY, name TEXT, kind TEXT, type TEXT, argsstring TEXT,
-            definition TEXT, scope TEXT, file_id INTEGER, bodyfile_id INTEGER,
-            bodystart INTEGER, bodyend INTEGER, line INTEGER,
+            definition TEXT, scope TEXT, initializer TEXT, file_id INTEGER,
+            bodyfile_id INTEGER, bodystart INTEGER, bodyend INTEGER, line INTEGER,
             briefdescription TEXT, detaileddescription TEXT, static INTEGER
         );
         INSERT INTO path (rowid, name) VALUES (1, 'include/api.h');
@@ -69,6 +69,9 @@ def _index(tmp_path: Path) -> tuple[Path, Path]:
         VALUES (5, 'ent_decision_t', 'enumeration', 1, 1, 1, 4, 1,
                 '<para>Consumer decision returned from delegation callbacks.</para>',
                 '<para>Used by both callbacks.</para>', 0);
+        INSERT INTO memberdef (rowid, name, kind, scope, initializer, file_id, line, static)
+        VALUES (6, 'ENT_DECISION_ACCEPT', 'enumvalue', 'ent_decision_t', '0', 1, 2, 0),
+               (7, 'ENT_DECISION_REJECT', 'enumvalue', 'ent_decision_t', '1', 1, 3, 0);
         """,
     )
     conn.commit()
@@ -127,3 +130,46 @@ def test_asking_for_the_enumeration_kind_filters_rather_than_relabels(tmp_path: 
     db, repo = _index(tmp_path)
     assert q.dossier(db, "ent_decision_t", kind="enumeration", repo_root=repo) is not None
     assert q.dossier(db, "no_such_name", kind="enumeration", repo_root=repo) is None
+
+
+def test_the_enum_lists_the_values_the_index_holds(tmp_path: Path) -> None:
+    """The recovered `enumvalue` rows, read back through `scope`. A C enum is a `memberdef`
+    and not a `compounddef`, so there is no compound for a `member` link to point at and the
+    relation is carried by `scope` — which is why this reads that column rather than the
+    member table the class view uses."""
+    db, repo = _index(tmp_path)
+    doss = q.dossier(db, "ent_decision_t", repo_root=repo)
+    assert doss is not None and doss.enumeration is not None
+    got = [(e.name, e.value) for e in doss.enumeration.enumerators]
+    assert got == [("ENT_DECISION_ACCEPT", "0"), ("ENT_DECISION_REJECT", "1")]
+
+
+def test_asking_for_a_VALUE_answers_with_the_enum_that_declares_it(tmp_path: Path) -> None:
+    """THE REPORTER'S ACTUAL CALL. They asked about four enum symbols they knew existed and
+    got a definitive negative on all four; the symbols were VALUES, not types.
+
+    The record's `name` stays the ENUM's, because that is what this record describes —
+    renaming it to the queried string would report a symbol under a name it does not have,
+    which is the `macro_collision` failure one subject over. `matched_enumerator` is how the
+    reply says the query named a value and this is what declares it.
+    """
+    db, repo = _index(tmp_path)
+    doss = q.dossier(db, "ENT_DECISION_ACCEPT", repo_root=repo)
+    assert doss is not None and doss.enumeration is not None
+    assert doss.enumeration.name == "ent_decision_t", "the record describes the enum"
+    assert doss.enumeration.matched_enumerator == "ENT_DECISION_ACCEPT", (
+        "the reply must say which value the caller actually asked for"
+    )
+    assert [e.name for e in doss.enumeration.enumerators] == [
+        "ENT_DECISION_ACCEPT",
+        "ENT_DECISION_REJECT",
+    ]
+
+
+def test_asking_for_the_enum_itself_reports_no_matched_value(tmp_path: Path) -> None:
+    """THE CONTROL. `matched_enumerator` fires only when the query named a value, so a
+    consumer can tell the two calls apart — a field populated on every reply says nothing."""
+    db, repo = _index(tmp_path)
+    doss = q.dossier(db, "ent_decision_t", repo_root=repo)
+    assert doss is not None and doss.enumeration is not None
+    assert doss.enumeration.matched_enumerator == ""

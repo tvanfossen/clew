@@ -1273,6 +1273,12 @@ SEARCHED_MEMBERDEF_KINDS: tuple[tuple[str, int], ...] = (
     (MACRO_KIND, _TIER_MACRO),
     ("typedef", _TIER_TYPE),
     ("enumeration", _TIER_TYPE),
+    ## gh#6, and the FIFTH instance of the same defect the block above enumerates — with a
+    ## twist: `enumvalue` rows did not merely go unsearched, doxygen emitted NONE of them
+    ## (zero on entropic against 35 `enumeration` rows), so the names did not exist to
+    ## outrank. They are recovered now, and a corpus added to the index and left out of this
+    ## table would reproduce the defect exactly.
+    ("enumvalue", _TIER_TYPE),
 )
 
 ## Ranked candidate: (negated score, tier, name, hit).
