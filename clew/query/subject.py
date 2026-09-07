@@ -46,17 +46,18 @@ from .kconfig import kconfig_space
 from .locks import lock_roster, runs_under_lock
 from .macros import MACRO_KIND, macro_definitions_conn
 from .models import (
-    SUBJECT_KINDS,
     Chain,
     Dossier,
+    EnumSubject,
     KconfigSpace,
     LockSubject,
+    SUBJECT_KINDS,
     SubjectDossier,
     Thread,
     VariableSite,
     VariableSubject,
 )
-from .source import DEFAULT_BODY_LINES, declaration_excerpt
+from .source import DEFAULT_BODY_LINES, body_excerpt, declaration_excerpt
 from .symbols import CONFIG_SYMBOL_KIND, req_trace, thread_roster
 from .traversal import chain_trace
 
@@ -312,6 +313,7 @@ def _is_config(conn: sqlite3.Connection, name: str) -> bool:
 ## nothing can resolve.
 _PROBES = {
     "function": _is_function,
+    "enumeration": lambda conn, name: bool(_enum_row(conn, name)),
     "macro": _is_macro,
     "variable": lambda conn, name: bool(_variable_rows(conn, name)),
     "class": _is_compound,
@@ -351,14 +353,19 @@ def resolve_subject(db: DbSource, name: str) -> tuple[str, ...]:
 ## @param db Path, str or open connection to a built index.
 ## @param name The bare name that failed to resolve as a subject.
 ## @return The unsupported `memberdef` kinds present for it, sorted; empty when there are none.
-## @version 1
+## @version 2
 ## @req REQ-DDB-QUERY-004
 def unresolved_kinds(db: DbSource, name: str) -> tuple[str, ...]:
-    """WHY A MISS IS NOT ALWAYS AN ABSENCE (gh#6). `SUBJECT_KINDS` does not include
-    `enumeration`, so a C enum type, its enumerators and a C++ `enum class` all resolve to
-    NOTHING through `dossier` — while `SEARCHED_MEMBERDEF_KINDS` does include it, so `search`
-    finds the very same names. A reporter asked for four enum symbols they knew existed and got
+    """WHY A MISS IS NOT ALWAYS AN ABSENCE (gh#6). `SUBJECT_KINDS` did not include
+    `enumeration`, so a C enum type, its enumerators and a C++ `enum class` all resolved to
+    NOTHING through `dossier` — while `SEARCHED_MEMBERDEF_KINDS` did include it, so `search`
+    found the very same names. A reporter asked for four enum symbols they knew existed and got
     "Not indexed in this repository. A definitive negative from the database" on all four.
+
+    THE ENUM CASE IS FIXED AND THIS FUNCTION IS NOT OBSOLETE. `enumeration` is a subject kind
+    now, so it no longer reaches here — but `typedef` and `file` still do, and the reason this
+    exists is the SHAPE rather than the one kind that motivated it. A surface that describes
+    some memberdef kinds and not others will always have a gap, and the gap must read as a gap.
 
     THE DAMAGE IS THE CONFIDENCE, NOT THE GAP. A missing row worded as a limitation costs a
     follow-up call; a missing row worded as a definitive negative reads as "this tool is wrong
@@ -375,7 +382,7 @@ def unresolved_kinds(db: DbSource, name: str) -> tuple[str, ...]:
 
     @brief The unsupported kinds an unresolvable name is nevertheless indexed under.
     @return Sorted kinds, or () when the name is genuinely not in the index.
-    @version 1
+    @version 2
     """
     with connect(db) as conn:
         if not table_exists(conn, "memberdef"):
@@ -388,6 +395,85 @@ def unresolved_kinds(db: DbSource, name: str) -> tuple[str, ...]:
     ## be reported as unsupported — it resolves fine and would send a reader chasing a phantom.
     supported = set(SUBJECT_KINDS) | {"macro definition"}
     return tuple(sorted({str(k) for (k,) in rows if str(k) not in supported}))
+
+
+## @brief The memberdef row for an enum TYPE of this name, if the index holds one.
+## @param conn Open connection.
+## @param name The bare enum name.
+## @return The row, or None.
+## @version 1
+## @dg_internal
+def _enum_row(conn: sqlite3.Connection, name: str) -> tuple | None:
+    """`kind='enumeration'` is doxygen's OWN vocabulary value for an enum type, so this
+    adds no column and no table. DEFINITION-PREFERRING like every other resolution here:
+    a row carrying a body outranks one that does not, because the body is this subject's
+    whole payload.
+
+    @brief Read the enum type's row.
+    @return The row, or None.
+    @version 1
+    """
+    ## GUARDED ON COLUMNS, NOT ONLY THE TABLE, and this probe runs on EVERY dossier call —
+    ## so an unguarded select does not merely miss an enum, it raises on any thin index and
+    ## takes down subjects that were answerable. `has_columns` is the contract the rest of
+    ## the query layer already keeps; caught by a minimal fixture whose `memberdef` has no
+    ## `line`. A thin index genuinely cannot describe an enum, so None is the honest answer.
+    if not has_columns(
+        conn, "memberdef", "kind", "line", "briefdescription", "detaileddescription", "bodystart"
+    ):
+        return None
+    return conn.execute(
+        "SELECT m.rowid, COALESCE(p.name,''), m.line, COALESCE(m.briefdescription,''), "
+        "COALESCE(m.detaileddescription,'') FROM memberdef m "
+        "LEFT JOIN path p ON p.rowid = m.file_id "
+        "WHERE m.name=? AND m.kind='enumeration' "
+        "ORDER BY (COALESCE(m.bodystart,0) > 0) DESC, m.rowid LIMIT 1",
+        (name,),
+    ).fetchone()
+
+
+## @brief An enum subject: identity, documentation and the declaration listing its values.
+## @param conn Open connection.
+## @param name The bare enum name.
+## @param repo_root Working tree, or None to skip the body.
+## @param max_body_lines Cap on the declaration excerpt.
+## @return EnumSubject or None.
+## @version 1
+## @req REQ-DDB-QUERY-001
+def _enum_subject(
+    conn: sqlite3.Connection,
+    name: str,
+    repo_root: Path | str | None,
+    max_body_lines: int,
+) -> EnumSubject | None:
+    """gh#6. `dossier` answered `found: false` for a name the index holds as `enumeration` — the
+    reply said so honestly and routed to `search`, so the confident-false half was already
+    gone, but a whole kind of symbol had no subject.
+
+    THE BODY IS THE ANSWER. doxygen emits no `enumvalue` rows — zero on entropic against 35
+    enum types — so the enumerators cannot be listed from the database. They are in the
+    source span the enum's own row carries, and returning it answers the question verbatim
+    rather than through a layer that would then have to be kept true.
+
+    @brief Assemble an enum subject from its type row and declaration.
+    @return EnumSubject or None.
+    @version 1
+    """
+    row = _enum_row(conn, name)
+    if row is None:
+        return None
+    body = None if repo_root is None else body_excerpt(conn, int(row[0]), repo_root, max_body_lines)
+    return EnumSubject(
+        name=name,
+        rowid=int(row[0]),
+        file=row[1],
+        line=int(row[2]) if row[2] else None,
+        brief=strip_xml(row[3]),
+        detail=strip_xml(row[4]),
+        version=extract_version(row[4]),
+        provenance=symbol_provenance(conn, int(row[0])),
+        body=body,
+    )
 
 
 ## @brief Build the variable section for a name.
@@ -494,23 +580,24 @@ _KIND_ALIASES: dict[str, str] = {
     "interface": "class",
     # A `compounddef` row with `kind='enum'` — an enum that owns members (Rust's
     # `impl EnumName { ... }`, a C++ scoped `enum class`), not `memberdef`'s
-    # `'enumeration'` (a bare value list, refused via `_KIND_NO_SUBJECT` below).
+    # `'enumeration'`, which is now its own subject (gh#6) rather than a refusal.
     "enum": "class",
     CONFIG_SYMBOL_KIND: "config",
 }
 
 ## Search kinds that name no subject at all, with what to do instead. These are NOT aliasable —
-## there is no typedef subject, no enumeration subject and no file subject to build — so the
-## honest fix is a refusal that names the route rather than a mapping that pretends.
+## there is no typedef subject and no file subject to build — so the honest fix is a refusal
+## that names the route rather than a mapping that pretends.
+##
+## `enumeration` WAS HERE AND IS NOT ANY MORE (gh#6). The refusal was accurate when written and
+## became false when the subject was built; a vocabulary that says a kind is unbuildable, kept
+## beside a builder for it, refuses the thing it can now answer.
 ##
 ## SAYING "unknown kind" AND STOPPING IS WHAT COST THE ROUND TRIP. A refusal that names the
 ## alternative costs the same message and ends the search.
 _KIND_NO_SUBJECT: dict[str, str] = {
     "file": "a file has no dossier — its documentation is `search(corpus='prose')`",
     "typedef": "a typedef has no dossier — the `search` row already carries all the index holds",
-    "enumeration": (
-        "an enumeration has no dossier — the `search` row already carries all the index holds"
-    ),
 }
 
 
@@ -806,6 +893,9 @@ _BUILDERS = {
     "lock": lambda ctx: {"lock": _lock_subject(ctx.db, ctx.subject)},
     "thread": lambda ctx: {"thread": _thread_subject(ctx.conn, ctx.subject)},
     "config": lambda ctx: {"config": _config_subject(ctx.conn, ctx.subject)},
+    "enumeration": lambda ctx: {
+        "enumeration": _enum_subject(ctx.conn, ctx.subject, ctx.repo_root, ctx.max_body_lines)
+    },
 }
 
 

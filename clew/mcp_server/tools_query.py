@@ -1832,7 +1832,7 @@ class QueryTools:
             Field(
                 description=(
                     "One symbol name, or a list of up to 8 for one reply. A function, variable, "
-                    "macro, class, lock, thread, requirement id or config symbol."
+                    "macro, class, enumeration, lock, thread, requirement id or config symbol."
                 )
             ),
         ],

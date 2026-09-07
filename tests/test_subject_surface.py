@@ -625,10 +625,10 @@ def test_the_exported_dossier_answers_about_a_non_function_subject(rich_db: Path
 ## @brief A name indexed under an unsupported kind must not be called a definitive negative.
 ## @param tmp_path Pytest temp dir.
 ## @return None.
-## @version 1
-def test_a_miss_on_an_indexed_enum_says_it_is_a_kind_gap_not_an_absence(tmp_path: Path) -> None:
-    """gh#6. `SUBJECT_KINDS` has no `enumeration` while `SEARCHED_MEMBERDEF_KINDS` does, so
-    `search` finds a C enum and `dossier` answered "Not indexed in this repository. A definitive
+## @version 2
+def test_a_miss_on_an_indexed_kind_says_it_is_a_kind_gap_not_an_absence(tmp_path: Path) -> None:
+    """gh#6. `SUBJECT_KINDS` had no `enumeration` while `SEARCHED_MEMBERDEF_KINDS` did, so
+    `search` found a C enum and `dossier` answered "Not indexed in this repository. A definitive
     negative from the database" for the same name. A reporter asked about four enum symbols they
     knew existed and got that on all four; on a codebase whose architecture rule is "pure C at all
     `.so` boundaries", the authoritative definitions were invisible while the generated Python
@@ -637,22 +637,32 @@ def test_a_miss_on_an_indexed_enum_says_it_is_a_kind_gap_not_an_absence(tmp_path
     THE CONFIDENCE WAS THE DAMAGE. Their words: it "reads as 'this tool is wrong about my repo'
     rather than 'this kind isn't indexed yet'".
 
+    NOW ASSERTED ON `typedef`, BECAUSE THE ENUM CASE IS FIXED. `enumeration` became a subject
+    kind, so it correctly stops being reported as a gap — and this test would have passed
+    unchanged only by pinning the defect. What it exists to guard is the SHAPE, not the one kind
+    that motivated it: a surface describing some memberdef kinds and not others always has a
+    gap, and the gap must read as a gap rather than as an absence. `typedef` is that gap today.
+
     @brief An unresolvable-but-indexed kind is reported as a coverage limitation.
     @return None.
-    @version 1
+    @version 2
     """
     db = tmp_path / "e.db"
     conn = sqlite3.connect(str(db))
     conn.execute("CREATE TABLE memberdef (rowid_ INTEGER, name TEXT, kind TEXT)")
     conn.executemany(
         "INSERT INTO memberdef(name, kind) VALUES(?, ?)",
-        [("MY_ENUM", "enumeration"), ("a_fn", "function")],
+        [("MY_ALIAS", "typedef"), ("MY_ENUM", "enumeration"), ("a_fn", "function")],
     )
     conn.commit()
     conn.close()
 
-    assert q.unresolved_kinds(db, "MY_ENUM") == ("enumeration",), (
-        "an enumeration the index holds must be reported as an unsupported KIND"
+    assert q.unresolved_kinds(db, "MY_ALIAS") == ("typedef",), (
+        "a typedef the index holds must be reported as an unsupported KIND"
+    )
+    assert q.unresolved_kinds(db, "MY_ENUM") == (), (
+        "an enumeration is a SUPPORTED kind since gh#6's subject landed, so reporting it as a "
+        "gap would send a reader looking for a limitation that has been closed"
     )
     assert q.unresolved_kinds(db, "a_fn") == (), (
         "a function is a supported kind and must not be reported as unresolvable"

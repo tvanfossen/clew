@@ -55,6 +55,7 @@ def _parse(tmp_path):
     assert parsed is not None
     return parsed
 
+
 _SOURCE = '''\
 """Module."""
 
@@ -231,7 +232,9 @@ def test_a_field_doxygen_already_emitted_is_not_duplicated() -> None:
     )
     conn.execute("INSERT INTO member (scope_rowid, memberdef_rowid, prot, virt) VALUES (10,99,0,0)")
 
-    harvested = [(1, {"class_fields": [["brief", "Config", "str", 9], ["name", "Config", "str", 7]]})]
+    harvested = [
+        (1, {"class_fields": [["brief", "Config", "str", 9], ["name", "Config", "str", 7]]})
+    ]
     assert _recover_class_fields_into(conn, harvested) == 1, "only the missing one is inserted"
     assert _members(conn, "a::Config") == [("brief", "str", "doxygen"), ("name", "str", "ast")]
 
