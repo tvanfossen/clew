@@ -281,10 +281,16 @@ def _humanise_ms(raw: str) -> str:
     return f"{minutes} min {rest} s"
 
 
+## The share one stage must reach before the clause names it. A third, because below that
+## the cost is genuinely spread and naming the largest of several similar stages would point
+## a reader at something whose removal would not help.
+_DOMINANT_SHARE = 33
+
+
 ## @brief Human phrasing for what a refresh of this target last cost.
 ## @param refresh The persisted `refresh.*` section, or None.
 ## @return A clause naming the measured cost, or one saying it has not been measured.
-## @version 3
+## @version 4
 ## @dg_internal
 def _cost_clause(refresh: Mapping[str, str] | None) -> str:
     """GROUNDED IN THIS TARGET'S OWN HISTORY, not a constant (gh#9). An agent that
@@ -302,7 +308,7 @@ def _cost_clause(refresh: Mapping[str, str] | None) -> str:
 
     @brief Phrase the measured cost-to-refresh.
     @return Cost clause.
-    @version 3
+    @version 4
     """
     duration = (refresh or {}).get("duration_ms")
     if not duration:
@@ -316,8 +322,55 @@ def _cost_clause(refresh: Mapping[str, str] | None) -> str:
     payloads = (refresh or {}).get("payloads_recomputed") or (refresh or {}).get(
         "files_reprocessed"
     )
-    work = f" recomputing {payloads} cached stage payload(s)" if payloads else ""
-    return f"the last refresh of this target measured {spelled}{work}"
+    ## SEPARATE CLAUSES, NOT ONE CAUSAL ONE (gh#10). This read "measured 38 s recomputing 18
+    ## cached stage payload(s)", which says the 38 seconds went on the 18 payloads. On the
+    ## target it was measured from, 13,509 payloads were cache HITS, 18 were recomputed, and
+    ## 66% of the time was doxygen — which the payload cache does not cover at all. Both
+    ## numbers were right; the sentence joining them was the defect.
+    hits = (refresh or {}).get("cache_hits")
+    served = f" and {hits} served from cache" if hits else ""
+    work = f"; {payloads} cached stage payload(s) recomputed{served}" if payloads else ""
+    return f"the last refresh of this target measured {spelled}{_dominant_clause(refresh)}{work}"
+
+
+## @brief Name the stage that dominated a refresh, from that refresh's own timings.
+## @param refresh The persisted `refresh.*` section, or None.
+## @return e.g. ', 66% of it doxygen', or '' when the timings cannot say.
+## @version 1
+## @dg_internal
+def _dominant_clause(refresh: Mapping[str, str] | None) -> str:
+    """WHAT A READER NEEDS IN ORDER TO ACT. The duration says whether to run a refresh; the
+    dominant stage says what would change it — and that trimming the changed-file set will
+    not, because doxygen's xref pass is global. The README's whole argument for making refresh
+    cost legible is that an agent which believes correction is expensive stops correcting and
+    then reasons from a stale index; a cost attributed to the wrong cause serves that badly.
+
+    READ FROM THIS TARGET'S OWN STAGE TIMINGS, never a constant. An index built before the
+    timings were recorded returns '' — naming a typical stage would be the fabricated
+    measurement this module's sibling calls the repo's most-recorded failure.
+
+    REPORTED ONLY WHEN ONE STAGE ACTUALLY DOMINATES. Below a third of the total no single
+    stage explains the cost, and pointing at the largest of many similar ones would invite a
+    reader to optimise something that is not the problem.
+
+    @brief The dominant-stage clause for a measured refresh.
+    @return The clause, or ''.
+    @version 1
+    """
+    raw = (refresh or {}).get("stages")
+    if not raw:
+        return ""
+    timings: dict[str, int] = {}
+    for pair in str(raw).split():
+        stage, _, value = pair.partition("=")
+        if value.isdigit():
+            timings[stage] = int(value)
+    total = sum(timings.values())
+    if not total:
+        return ""
+    stage, spent = max(timings.items(), key=lambda kv: kv[1])
+    share = round(100 * spent / total)
+    return f", {share}% of it {stage}" if share >= _DOMINANT_SHARE else ""
 
 
 ## @brief The data-axis notice, when the sources have drifted.

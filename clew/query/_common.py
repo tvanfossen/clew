@@ -329,12 +329,55 @@ def matching_identity(
     return [c for c in cands if qualified_name_of(name, c[1]) == qualified]
 
 
+## @brief Collapse rows that describe ONE physical declaration into one.
+## @param cands Raw rows from `function_candidates`.
+## @return The same rows, minus exact positional duplicates, order preserved.
+## @version 1
+## @req REQ-DDB-QUERY-010
+## @dg_internal
+def _one_row_per_declaration(cands: list[tuple]) -> list[tuple]:
+    """gh#19. doxygen emits the same member under more than one scope spelling, so
+    `memberdef` holds two rowids for one physical declaration and `candidates` listed it
+    twice — byte-identical in signature, file, line and has_body. On the one field whose
+    entire job is to MEASURE ambiguity, that reports an identity that does not exist, and a
+    consumer cannot tell it from a genuine overload.
+
+    KEYED ON (signature, file, line), NOT on the signature. `signature` here is doxygen's
+    `definition`, which two genuine overloads SHARE — `void C::f` for both `f(int)` and
+    `f(char)`, because the parameter list lives in `argsstring` and this tuple does not carry
+    it. Deduping on it would collapse the very rows this list exists to keep apart, and tell a
+    caller a name is unambiguous while it picks one of two functions for them. They differ in
+    LINE, and one declaration cannot be at two lines.
+
+    FAILS OPEN ON A ROW WITH NO LINE. Without a position two rows cannot be SHOWN to be one
+    declaration, only to be indistinguishable in this tuple, so they are both kept — the
+    behaviour before this existed.
+
+    BEFORE THE CAP, deliberately: deduping after `MAX_CANDIDATES` would spend cap slots on
+    duplicates and drop real identities off the end, which is the silent truncation
+    `_candidates_capped` was written to disclose.
+
+    @brief Drop exact positional duplicates from the candidate rows.
+    @return Deduped rows in their original order.
+    @version 1
+    """
+    seen: set[tuple] = set()
+    kept: list[tuple] = []
+    for row in cands:
+        key = (row[1], row[2], row[3])
+        if row[3] is not None and key in seen:
+            continue
+        seen.add(key)
+        kept.append(row)
+    return kept
+
+
 ## @brief The capped, provenance-carrying Candidate list for one ambiguous name.
 ## @param conn Open connection.
 ## @param name Bare function name the rows were fetched by, needed to derive each row's identity.
 ## @param cands Raw rows from `function_candidates`.
 ## @return Up to MAX_CANDIDATES Candidate rows, each carrying its provenance and its qualified identity.
-## @version 3
+## @version 4
 ## @req REQ-DDB-QUERY-003
 ## @req REQ-DDB-QUERY-010
 def candidate_rows(conn: sqlite3.Connection, name: str, cands: list[tuple]) -> list[Candidate]:
@@ -356,7 +399,7 @@ def candidate_rows(conn: sqlite3.Connection, name: str, cands: list[tuple]) -> l
 
     @brief Build the capped overload-candidate list.
     @return Candidate rows with provenance and identity.
-    @version 3
+    @version 4
     """
     from .models import (
         Candidate,
@@ -372,7 +415,7 @@ def candidate_rows(conn: sqlite3.Connection, name: str, cands: list[tuple]) -> l
             provenance=symbol_provenance(conn, c[0]),
             qualified=qualified_name_of(name, c[1]),
         )
-        for c in cands[:MAX_CANDIDATES]
+        for c in _one_row_per_declaration(cands)[:MAX_CANDIDATES]
     ]
 
 
