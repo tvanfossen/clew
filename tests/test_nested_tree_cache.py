@@ -85,8 +85,7 @@ def test_the_cache_sees_a_tree_added_between_builds(tmp_path: Path) -> None:
 
     assert {p.name for p in before} == {"dep"}
     assert {p.name for p in after} == {"dep", "extra"}, (
-        "the second build did not see a tree added after the first — the cache outlived "
-        "its build"
+        "the second build did not see a tree added after the first — the cache outlived its build"
     )
 
 

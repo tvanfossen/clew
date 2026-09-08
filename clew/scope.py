@@ -216,7 +216,7 @@ def _direct_parent(tree: Path, root: Path, all_nested: list[Path]) -> Path:
 ## @brief Split a repository into first-party and per-nested-tree indexes, at any depth.
 ## @param repo_root The repository root.
 ## @return The sub-indexes, or an empty list when the repo holds no nested trees.
-## @version 3
+## @version 4
 ## @req REQ-DDB-INDEX-002
 def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
     """EMPTY MEANS "DO NOT SPLIT", and that is the compatibility contract. A repository with
@@ -240,7 +240,7 @@ def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
 
     @brief Derive the sub-index split from nested git trees, at any depth.
     @return The split, or [] to build the repository whole.
-    @version 3
+    @version 4
     """
     root = Path(repo_root).expanduser().resolve()
     ## THE SPLIT USES THE BUILD'S OWN RULE, and skipping this cost a real target twenty minutes.
@@ -266,17 +266,51 @@ def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
     for tree in nested:
         parent = _direct_parent(tree, root, nested)
         children_of.setdefault(parent, []).append(tree)
-    first = SubIndex(
-        name=FIRST_PARTY_INDEX, roots=(root,), excludes=tuple(children_of.get(root, []))
-    )
-    others = [
-        SubIndex(
-            name=_sub_index_name(tree, root),
-            roots=(tree,),
-            excludes=tuple(children_of.get(tree, [])),
+
+    ## gh#23. A DERIVED SCOPE IS NOT A CURATED ONE, and that is why it must carry the ignores.
+    ## A sub-index builds through a DECLARED `index_scope`, which the resolver takes at its word
+    ## and never walks — correct for a human-written `.clew.yaml`, where walking would overrule
+    ## the author. But THIS declaration is machine-derived, so nobody ever told it to skip the
+    ## vendored tree's own `build/`, and a vendored dependency shipping generated headers there
+    ## had `search` resolving symbols into throwaway output.
+    ##
+    ## ASKS GIT, NOT THE MERGED EXCLUDE SET. `ignored` above is gitignored paths PLUS the dot
+    ## and cache directories `_pruned_dirs` adds, and folding those in would put `.git` into
+    ## every sub-index's excludes — harmless but untrue to what this is for, and it broke the
+    ## split test's own statement that a tree with no ignores of its own excludes nothing.
+    ## What belongs here is exactly what the tree's own git says to ignore.
+    ##
+    ## Per tree rather than per repository, so this stays proportional to the number of
+    ## vendored trees rather than repeating the whole-tree walk gh#24 just removed.
+    git_ignored = {p.resolve() for p in _gitignored_paths(root)}
+    for tree in nested:
+        git_ignored |= {p.resolve() for p in _gitignored_paths(tree)}
+
+    def _own_ignores(tree: Path, children: list[Path]) -> list[Path]:
+        """This tree's own gitignored paths, minus anything a child already excludes."""
+        kids = set(children)
+        return sorted(
+            p
+            for p in git_ignored
+            if p != tree and _under_any(p, {tree}) and not _under_any(p, kids)
         )
-        for tree in nested
-    ]
+
+    first_children = children_of.get(root, [])
+    first = SubIndex(
+        name=FIRST_PARTY_INDEX,
+        roots=(root,),
+        excludes=tuple(first_children + _own_ignores(root, first_children)),
+    )
+    others = []
+    for tree in nested:
+        kids = children_of.get(tree, [])
+        others.append(
+            SubIndex(
+                name=_sub_index_name(tree, root),
+                roots=(tree,),
+                excludes=tuple(kids + _own_ignores(tree, kids)),
+            )
+        )
     return [first] + others
 
 
