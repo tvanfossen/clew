@@ -96,7 +96,30 @@ from .tiers import OPTIONS_META_PREFIX
 ##   happens to edit a file. That is the same "answer a new question with silence" case the
 ##   version-2 entry gives as the reason a degrading reader makes a bump necessary rather than
 ##   optional.
-CLEW_BUILD_VERSION = 4
+## 5 (clew 1.0.29) — FOUR independent changes to build output, across BOTH language families,
+##   which is what makes this the widest bump so far:
+##
+##     * `memberdef` and `member` gain rows for Python class attributes doxygen never emitted
+##       (gh#17). A bare annotation with a simple-identifier type — `name: str` — was dropped
+##       by its parser; measured on this repository, 164 of 357 fields in
+##       `clew/query/models.py` reached the index and now 359 do, with `LockNestingPair`
+##       going from an EMPTY member list to its ten fields.
+##     * `memberdef` gains `kind='enumvalue'` rows (gh#6). doxygen emits none at all — zero on
+##       entropic against 35 enum types — so an enum VALUE was addressable by nothing. 197
+##       recovered on entropic.
+##     * `call_edges` holds different rows for identical PYTHON source (gh#21). Python call
+##       sites carried no receiver and no qualifier, so `_narrow_by_receiver` had never fired
+##       on a Python repository; `self.method()` now resolves through its enclosing class.
+##       3634 -> 3738 resolved on this repository, no fuzzy rows.
+##     * `unresolved_inbound` holds different counts (gh#18), because a refusal the receiver
+##       CONTRADICTS is no longer credited. `IndexCache.close` went 403 -> 42.
+##
+##   The four compound rather than merely coinciding: gh#18's fix exposed that `_scope_is`
+##   read `::` only, so gh#21's receiver half had been inert since it landed. An index built
+##   by 1.0.28 therefore holds neither the recovered rows nor the corrected edges, and nothing
+##   about its SOURCE changes to trigger the query-time auto-refresh — the same
+##   answer-a-new-question-with-silence case versions 2 and 4 both record.
+CLEW_BUILD_VERSION = 5
 
 
 ## @brief Stamp the build version, scope, coverage and preprocessor config into build_meta.
