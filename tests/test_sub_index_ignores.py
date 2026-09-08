@@ -114,3 +114,50 @@ def test_a_child_trees_ignores_are_not_repeated_on_the_parent(tmp_path: Path) ->
     assert dep in first.excludes, "the parent must still exclude the vendored tree whole"
     inside = [p for p in first.excludes if p != dep and dep in p.parents]
     assert inside == [], f"first-party repeats paths inside an already-excluded tree: {inside}"
+
+
+@pytest.mark.skipif(
+    subprocess.run(["git", "--version"], capture_output=True).returncode != 0,
+    reason="needs git",
+)
+def test_every_derived_sub_index_name_is_discoverable(tmp_path: Path) -> None:
+    """gh#25. The split already goes N levels deep, so a vendored dependency's own vendored
+    dependency HAS a name — but registering happened inside the build loop, behind the `only`
+    filter, so a caller who built one sub-index never learned the others existed.
+    `index(action='targets')` showed first-party and the tree they had built, and nothing on
+    the tool surface separated "this nested tree is not built yet" from "this nested tree was
+    never given an identity at all".
+
+    REGISTERING IS NOT BUILDING, and that distinction is what makes this the right surface
+    rather than a new tool: each of these rows reports `exists: false` until someone builds it,
+    which `targets` already draws for every other unbuilt target.
+    """
+    from clew.cli import build_sub_indexes
+    from clew.mcp_server.state import TargetRegistry
+    from clew.scope import derive_sub_indexes
+
+    root = _repo(tmp_path)
+    inner = root / "deps" / "vendored" / "deps" / "inner"
+    (inner / "src").mkdir(parents=True)
+    (inner / "src" / "c.c").write_text("void c(void) {}\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q", "."], cwd=inner, check=True)
+    subprocess.run(["git", "add", "-A"], cwd=inner, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@e", "-c", "user.name=t", "commit", "-qm", "init"],
+        cwd=inner,
+        check=True,
+    )
+
+    derived = {s.name for s in derive_sub_indexes(root)}
+    assert len(derived) == 3, f"expected first-party plus two nested trees: {sorted(derived)}"
+
+    home = tmp_path / "state"
+    ## Build ONLY first-party — the case the reporter hit. Every OTHER derived name must still
+    ## become discoverable, or the recursive split looks like it silently stops one level deep.
+    build_sub_indexes(root, home=home, only=FIRST_PARTY_INDEX)
+
+    registered = {t.name for t in TargetRegistry(home).targets() if Path(t.repo_path) == root}
+    assert registered == derived, (
+        f"derived {sorted(derived)} but only {sorted(registered)} are addressable — a caller "
+        f"cannot pass a name the tool surface never showed them"
+    )
