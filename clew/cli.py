@@ -162,14 +162,15 @@ from .requirements import (
 )
 from .rustdoc import run_rustdoc, uses_rustdoc
 from .scope import (
+    DerivedScope,
     INDEX_SCOPE_SECTION,
     SCOPE_FROM_GUARD,
     SOURCE_DOXYFILE,
-    DerivedScope,
     declared_scope_rejection,
     depth_limited_paths,
     derive_scope,
     derive_scope_logged,
+    nested_tree_cache,
 )
 from .shared_key_edges import (
     import_mqtt_dispatch_edges,
@@ -2871,7 +2872,7 @@ def build_sub_indexes(
 ## @param requirements Requirements catalog to ingest, or None to discover one.
 ## @param exclude Repo-relative paths to leave out; None inherits the recorded ones, [] withdraws them.
 ## @param options Tier-1 build options keyed by declaration-file section name; None or {} states nothing.
-## @version 3
+## @version 4
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-CLI-001
 ## @req REQ-DDB-CONFIG-001
@@ -2938,7 +2939,16 @@ def build_index(
     applied = apply_options(args, options, Path(repo_root) if repo_root is not None else None)
     if applied:
         logger.info("build options: stated by the caller (tier 1) — %s", ", ".join(applied))
-    _run_pipeline(args)
+    ## gh#24. ONE NESTED-TREE WALK PER BUILD. Three callers ask which trees under this root
+    ## are separate git repositories, and none was given another's answer — a single build
+    ## walked the same tree four times, and on a repo with vendored submodules that resolve
+    ## stage cost ~24s against a few hundred ms for everything else.
+    ##
+    ## Opened HERE because this is the entry both the CLI and the MCP server run a build
+    ## through, so one placement covers both; and it closes with the build, so the answer
+    ## cannot outlive the filesystem state it describes.
+    with nested_tree_cache():
+        _run_pipeline(args)
 
 
 ## @brief Resolve which Doxyfile to build with, and the repo root it belongs to.

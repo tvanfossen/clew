@@ -41,8 +41,10 @@ Nothing here is repo-specific. Every tier reads a declaration or the tree itself
 
 from __future__ import annotations
 
+import contextlib
 import os
 import subprocess
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -545,10 +547,49 @@ def whole_repo_scope(
     )
 
 
+## The per-build answer to "which trees under this root are separate git repositories",
+## or None when no build is in flight. gh#24: three callers need this — descent exclusion,
+## dependency ownership and the sub-index split — and none was given another's answer, so a
+## single build walked the same tree FOUR times. Measured on a real repo with vendored
+## submodules the resolve stage cost ~24s while every other stage totalled a few hundred ms.
+##
+## SCOPED TO A BUILD, NEVER TO THE PROCESS, and the distinction is a correctness one rather
+## than tidiness. This is filesystem state: a submodule added or removed while a long-lived
+## MCP server runs would make a process-lifetime cache serve a stale SCOPE, and scope decides
+## what is indexed at all — so being wrong costs a wrong index, not a slow one. Outside a
+## build the cache is None and every call walks, exactly as before it existed.
+_NESTED_CACHE: dict[Path, list[Path]] | None = None
+
+
+## @brief Share one nested-tree walk across everything a single build asks.
+## @return Context manager; the OUTERMOST activation owns the cache's lifetime.
+## @version 1
+## @req REQ-DDB-CONFIG-001
+@contextlib.contextmanager
+def nested_tree_cache() -> Iterator[None]:
+    """REENTRANT, AND THE OUTERMOST WINS. `build_index` opens one; a caller that has already
+    opened its own must not have the inner exit clear the cache out from under the rest of
+    the build, so an inner activation is inert rather than a second scope.
+
+    @brief Cache nested-tree walks for the duration of one build.
+    @return Generator yielding once.
+    @version 1
+    """
+    global _NESTED_CACHE
+    if _NESTED_CACHE is not None:
+        yield
+        return
+    _NESTED_CACHE = {}
+    try:
+        yield
+    finally:
+        _NESTED_CACHE = None
+
+
 ## @brief Directories holding their own git tree anywhere under a repo root.
 ## @param repo_root Repo root to walk.
 ## @return Absolute paths of nested repository directories, outermost first.
-## @version 1
+## @version 2
 ## @req REQ-DDB-CONFIG-001
 def nested_repo_roots(repo_root: Path) -> list[Path]:
     """THE SAME WALK THAT USED TO EXCLUDE THESE TREES, made public so gh#335 can tag
@@ -565,11 +606,21 @@ def nested_repo_roots(repo_root: Path) -> list[Path]:
     The root ITSELF is never nested, so a root that IS a repository does not report
     itself.
 
+    SHARED ACROSS ONE BUILD (gh#24) when `nested_tree_cache` is active, because three
+    callers ask this same question about the same root and a walk of a large tree is the
+    dominant cost of an otherwise-incremental refresh. Keyed on the RESOLVED root so two
+    callers spelling the same tree differently still share the answer.
+
     @brief Find the nested git trees under a repo root.
     @return Absolute paths of nested repository directories.
-    @version 1
+    @version 2
     """
-    return _nested_repos_under(Path(repo_root).expanduser().resolve())
+    root = Path(repo_root).expanduser().resolve()
+    if _NESTED_CACHE is None:
+        return _nested_repos_under(root)
+    if root not in _NESTED_CACHE:
+        _NESTED_CACHE[root] = _nested_repos_under(root)
+    return _NESTED_CACHE[root]
 
 
 ## @brief Nested trees the repo itself DECLARES as dependencies (submodule gitlinks).

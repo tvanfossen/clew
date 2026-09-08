@@ -35,7 +35,6 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-import pytest
 
 from clew.doxygen_splice import SpliceReport, _insert_params
 
@@ -57,7 +56,7 @@ def _db(brief: str, refid: str = "fn_1") -> sqlite3.Connection:
     )
     conn.execute("INSERT INTO refid (rowid, refid) VALUES (1, ?)", (refid,))
     conn.execute(
-        "INSERT INTO memberdef (rowid, name, kind, file_id, line, \"column\") "
+        'INSERT INTO memberdef (rowid, name, kind, file_id, line, "column") '
         "VALUES (1, 'fn', 'function', 1, 10, 1)"
     )
     conn.execute(
