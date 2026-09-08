@@ -591,7 +591,7 @@ def _keyword_bindings(call_node: Any, src_bytes: bytes, source_binding: str) -> 
 ## @param source_member Provenance tag for an attribute-qualified callee.
 ## @param source_binding Provenance tag for a keyword-argument function binding (gh#1).
 ## @return Rowid-free call sites in walk order.
-## @version 3
+## @version 4
 ## @req REQ-DDB-PIPE-003
 def harvest_calls(
     tree: Any,
@@ -619,11 +619,23 @@ def harvest_calls(
     BEFORE the callee is resolved — a call whose own callee is unreadable can still
     carry a perfectly readable binding, and the original `continue` skipped both.
 
+    gh#21 ADDED THE QUALIFIER AND RECEIVER, in the C path's element order so
+    `_fold_call_payload` reads them by the same indices. Without them every Python member call
+    reached the refusal path with nothing known about it — measured, 3,367 blind refusals on
+    this repository's own index, 100% of them.
+
+    NO ARITY, unlike the C path. `argc` exists to separate overloads and Python has none, so
+    emitting it would cost a count per call site to break no tie.
+
     @brief Harvest Python call sites with call/member/binding provenance.
-    @return List of [callee_name, line, source].
-    @version 3
+    @return List of [callee_name, line, source, qualifier, receiver].
+    @version 4
     """
     sites: list[list[Any]] = []
+    ## Computed once per file rather than per call site: `enclosing_class` is a containing-span
+    ## lookup, and rebuilding the range list inside the walk would make it quadratic on a module
+    ## of many classes.
+    ranges = class_ranges(tree, src_bytes)
     stack = [tree.root_node]
     while stack:
         node = stack.pop()
@@ -631,12 +643,73 @@ def harvest_calls(
         if node.type != "call":
             continue
         sites.extend(_keyword_bindings(node, src_bytes, source_binding))
-        tail = callee_tail(node.child_by_field_name("function"), src_bytes)
+        callee = node.child_by_field_name("function")
+        tail = callee_tail(callee, src_bytes)
         if tail is None:
             continue
         name, qualified = tail
-        sites.append([name, node.start_point[0] + 1, source_member if qualified else source_plain])
+        qualifier, receiver = _call_scope(callee, name, ranges, node.start_byte, src_bytes)
+        sites.append(
+            [
+                name,
+                node.start_point[0] + 1,
+                source_member if qualified else source_plain,
+                qualifier,
+                receiver,
+            ]
+        )
     return sites
+
+
+## @brief What a Python call site says about the class it targets: a qualifier, or a receiver.
+## @param callee The call's `function` child.
+## @param name The callee's tail name.
+## @param ranges Class body ranges from `class_ranges`.
+## @param offset The call's start byte, for the enclosing-class lookup.
+## @param src_bytes The file's raw bytes.
+## @return (qualifier, receiver); at most one is non-empty.
+## @version 1
+## @req REQ-DDB-PIPE-003
+def _call_scope(
+    callee: Any,
+    name: str,
+    ranges: list[tuple[int, int, str]],
+    offset: int,
+    src_bytes: bytes,
+) -> tuple[str, str]:
+    """TWO DIFFERENT STRENGTHS OF EVIDENCE, and conflating them would waste the stronger one.
+
+    `self.foo()` names its class EXACTLY — it is the enclosing one — so it is emitted as a
+    QUALIFIER. `_narrow_by_qualifier` then RESOLVES it, the same path a C++ `Ns::Class::method()`
+    takes. Emitting `self` as a receiver instead would send it to `_narrow_by_receiver`, which
+    would look `self` up in the member-variable type map, find nothing, and refuse — which is
+    precisely what happened to every Python member call before this existed.
+
+    `self.cache.clear()` is the receiver case: the target class is whatever `cache` was declared
+    as, which the index may or may not hold. The TAIL is what carries a declared type, exactly as
+    `_receiver_tail` records for `handle->engine->run_turn()` — taking the whole text or the root
+    (`self`) resolves to the wrong thing in both languages.
+
+    A bare `identifier` callee is a free function and gets neither: marking one would send it
+    down the member path where a unique name is NOT evidence.
+
+    @brief Classify a Python call site as class-qualified or receiver-borne.
+    @return (qualifier, receiver).
+    @version 1
+    """
+    if callee is None or callee.type != "attribute":
+        return "", ""
+    obj = callee.child_by_field_name("object")
+    if obj is None:
+        return "", ""
+    if obj.type == "identifier" and node_text(obj, src_bytes) in SELF_NAMES:
+        owner = enclosing_class(ranges, offset)
+        return (f"{owner}.{name}" if owner else ""), ""
+    ## The tail of the receiver chain, matching the C rule one grammar over.
+    inner = obj.child_by_field_name("attribute") if obj.type == "attribute" else obj
+    if inner is None or inner.type != "identifier":
+        return "", ""
+    return "", node_text(inner, src_bytes)
 
 
 # ── thread spawn sites ──────────────────────────────────────────────────────

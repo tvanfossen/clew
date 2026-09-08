@@ -1324,7 +1324,11 @@ class _CallSiteHarvester(Harvester):
     #    saying so. A payload cached at 5 still names `make_unique`, which resolves to
     #    nothing, so without the bump the construction edges never appear on an existing
     #    index.
-    stage_version = 6
+    # 7: gh#21 — a PYTHON site now carries a qualifier and a receiver, which it never did.
+    #    A payload cached at 6 has three elements, so `_fold_call_payload` reads empty
+    #    strings for both and every Python member call keeps refusing exactly as before —
+    #    the bump is what makes the fix take effect on an existing index.
+    stage_version = 7
     label = "tree-sitter"
 
     ## @brief Harvest one file's call sites.

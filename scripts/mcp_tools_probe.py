@@ -20,17 +20,21 @@ can fail the way a user fails.
 from __future__ import annotations
 
 import json
+import queue
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 
-## Long enough for an interpreter start plus the pipeline imports the server does at
-## startup, short enough that a hung server fails the suite rather than holding it.
-_SETTLE_SECONDS = 2.5
-_STEP_SECONDS = 0.4
+## A DEADLINE, NOT A SLEEP. The first version slept a fixed 2.5 s and then read whatever had
+## arrived, which passed alone and FLAKED inside the full gate: three servers start under a
+## machine already running the suite, and a fixed wait is a bet on how loaded the box is. It
+## now reads until the reply arrives or this deadline passes, so a fast machine is fast and a
+## slow one is still correct.
+_DEADLINE_SECONDS = 30.0
 
 
 ## @brief Ask one server command for its tool list over stdio.
@@ -70,29 +74,48 @@ def served_tools(cmd: list[str], cwd: Path | str | None = None) -> list[str]:
         {"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}},
         {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
     ]
+    ## Read on a thread, because `readline` on a pipe blocks and a server that never answers
+    ## — gh#14's exact shape — would otherwise hang the caller instead of reporting nothing.
+    replies: queue.Queue = queue.Queue()
+
+    def _drain() -> None:
+        for line in proc.stdout:
+            replies.put(line)
+
+    reader = threading.Thread(target=_drain, daemon=True)
+    reader.start()
     try:
         for message in handshake:
             proc.stdin.write(json.dumps(message) + "\n")
             proc.stdin.flush()
-            time.sleep(_STEP_SECONDS)
-        time.sleep(_SETTLE_SECONDS)
     except (BrokenPipeError, OSError):
         ## The server exited before the handshake finished — gh#14's shape exactly.
         pass
-    proc.terminate()
-    try:
-        out, _err = proc.communicate(timeout=15)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        out, _err = proc.communicate()
-    for line in out.splitlines():
+
+    tools: list[str] = []
+    deadline = time.monotonic() + _DEADLINE_SECONDS
+    while time.monotonic() < deadline:
+        try:
+            line = replies.get(timeout=0.2)
+        except queue.Empty:
+            if proc.poll() is not None and replies.empty():
+                break
+            continue
         try:
             payload = json.loads(line)
         except (ValueError, TypeError):
             continue
         if payload.get("id") == 2 and "result" in payload:
-            return sorted(t["name"] for t in payload["result"].get("tools", []))
-    return []
+            tools = sorted(t["name"] for t in payload["result"].get("tools", []))
+            break
+
+    proc.terminate()
+    try:
+        proc.communicate(timeout=15)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.communicate()
+    return tools
 
 
 ## @brief Report the tool list for every way this package can be started.

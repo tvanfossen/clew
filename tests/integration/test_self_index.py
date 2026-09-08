@@ -15,8 +15,9 @@ functions / 2024 ast / 1139 ast_member / 839 doxygen_sqlite /
 102 files / 7 threads), so shrinking the project by half is allowed and
 silencing a layer is not. Re-measured 2026-08-11 for gh#362: 3997 memberdef /
 2416 functions / 2620 ast / **0 ast_member** / 1623 doxygen_sqlite / 246 files /
-8 threads — every floor still cleared except `ast_member`, whose zero is
-DELIBERATE and is explained at `AST_MEMBER_IS_STRUCTURALLY_ZERO_ON_PYTHON`.
+8 threads — every floor still cleared except `ast_member`, whose zero was
+DELIBERATE at the time and is no longer zero: see `MIN_AST_MEMBER` for what gh#21
+changed and what it deliberately did not.
 
 @brief Real-pipeline self-index counts and layer-liveness floors.
 @version 4
@@ -40,7 +41,7 @@ pytestmark = pytest.mark.integration
 ## the failure this file exists to catch.
 ##
 ## `ast_member` WAS A KEY HERE AT A FLOOR OF 400 AND IS DELIBERATELY GONE — see
-## `AST_MEMBER_IS_STRUCTURALLY_ZERO_ON_PYTHON`. `binding` (23) and `fnptr` (2) are
+## `MIN_AST_MEMBER`. `binding` (23) and `fnptr` (2) are
 ## measured but NOT floored: both come from a handful of fixture files, so a floor
 ## over them would report a fixture edit as an extractor failure.
 CALL_EDGE_FLOORS = {
@@ -48,30 +49,30 @@ CALL_EDGE_FLOORS = {
     "doxygen_sqlite": 400,
 }
 
-## WHY `ast_member` IS ZERO ON THIS INDEX, and why that is not a silent layer.
+## WHY `ast_member` IS NO LONGER ZERO ON THIS INDEX, and why the RULE is unchanged.
 ##
 ## gh#347 made an unresolved call produce NO ROW, and gh#26's demotion before it made
-## a unique NAME insufficient evidence for a member call. An `ast_member` edge can now
-## earn a row on exactly ONE path: the call site WROTE a qualifier
-## (`Ns::Class::method()`), and narrowing the same-named candidates by it leaves
-## exactly one. Python has no such syntax — `obj.method()` names a RECEIVER, not a
-## type — so `pyast.harvest_calls` emits three-element sites with no qualifier field
-## at all, `_ast_record_call_edge` sees `qualified=''`, and `unverified_receiver` is
-## true for every one of them. Zero is the only possible count on a Python-only index.
+## a unique NAME insufficient evidence for a member call. An `ast_member` edge earns a
+## row on exactly ONE path: the call site WROTE a qualifier, and narrowing the
+## same-named candidates by it leaves exactly one. THAT RULE IS UNTOUCHED.
 ##
-## PROVEN RATHER THAN ASSUMED (gh#362), because zero is also what a broken harvest
-## looks like and gh#358 had just rewritten how harvesting is driven. Three checks:
-## the non-member `ast` layer is unaffected (2620 rows, floor 1000); the walker still
-## FINDS 2521 `ast_member` call sites in `clew/` alone, so nothing stopped
-## harvesting; and the sites it finds are `append`, `reset` — `list.append` is a
-## stdlib method, and a name-keyed edge from it to some indexed `append` is precisely
-## the fabrication gh#347 removed.
+## What changed is the premise this constant used to rest on — "Python has no such
+## syntax". `obj.method()` indeed names a RECEIVER rather than a type, and it still
+## earns nothing. But `self.method()` names a type EXACTLY: the enclosing class. gh#21
+## emits that as a qualifier, so it takes the same path a C++ `Ns::Class::method()`
+## takes, and the count went 0 -> 86 on this repository with ZERO fuzzy rows.
 ##
-## The floor is NOT re-derived to 0, because a floor of zero asserts nothing. It is
-## replaced by `test_ast_member_is_zero_by_rule_not_by_a_broken_harvest`, which pins
-## the rule in BOTH directions: no rows AND a live harvest. A Python target losing
-## `ast_member` rows is correct; losing `ast_member` SITES is a regression.
-AST_MEMBER_IS_STRUCTURALLY_ZERO_ON_PYTHON = 0
+## THE ANTI-FABRICATION CHECK MOVED RATHER THAN RELAXED. Measured on the rows this
+## produced: 8 of them have a callee name borne by MORE THAN ONE indexed function
+## (`_prepare` by 2, `_raw` by 3, `cull` by 2), and each resolved to the one in the
+## caller's own class. A name-keyed rule could not have produced those — it would have
+## seen several candidates and refused. That is the falsifiable form of "the qualifier
+## did the work", and `test_ast_member_rows_are_qualifier_verified_not_name_keyed`
+## asserts it directly rather than inferring it from a zero.
+##
+## A floor, not a pin, at roughly a quarter of the 86 measured — the failure to catch
+## is the layer going silent again, not a drift of ten.
+MIN_AST_MEMBER = 20
 
 ## Floor for indexed function rows.
 MIN_FUNCTIONS = 800
@@ -154,36 +155,69 @@ def test_self_index_produces_a_non_trivial_graph(self_index_db: Path) -> None:
     assert _count(self_index_db, "SELECT COUNT(*) FROM symbol_liveness") == functions
 
 
-## @brief `ast_member` is empty by the resolution rule, not by a dead harvest.
+## @brief `ast_member` rows are qualifier-verified, never keyed on a bare name.
 ## @param self_index_db A real, cold index of this repository.
 ## @return None.
-## @version 1
-def test_ast_member_is_zero_by_rule_not_by_a_broken_harvest(self_index_db: Path) -> None:
-    """THE REPLACEMENT FOR A FLOOR OF 400 (gh#362), and the whole reason it is not a
-    floor of 0: an empty layer has two indistinguishable causes, and only one of them
-    is correct. This asserts BOTH halves of the correct one.
+## @version 2
+def test_ast_member_rows_are_qualifier_verified_not_name_keyed(self_index_db: Path) -> None:
+    """THE SUCCESSOR TO "MUST BE ZERO" (gh#362 -> gh#21), and the reason the assertion had
+    to change SHAPE rather than get a new number.
 
-    * NO ROWS — because gh#347 refuses to key an edge on a name. A row appearing here
-      on a Python target means an unqualified member call started being resolved
-      again, which is the fabrication that measured 2.9% precision on a public C++
-      target while reporting `confidence='resolved'`.
-    * A LIVE HARVEST — because the walker must still be FINDING those call sites. If
-      this half ever fails while the first half passes, the layer is empty for the
-      wrong reason and every count on a C++ target is understated too.
+    Zero was correct while Python wrote no call-site qualifier. `self.method()` names its
+    class exactly — the enclosing one — so gh#21 emits it as a qualifier and it now takes
+    the same path a C++ `Ns::Class::method()` takes. The RULE is untouched: an unqualified
+    `obj.method()` still earns nothing, and a unique bare NAME still is not evidence.
 
-    The second half re-parses this repo's own package rather than reading the
-    database, deliberately: the sites are dropped at resolution, so nothing about them
-    survives into a table, and a database-side proxy for "the harvest works" does not
-    exist.
+    So this pins what actually matters, in three parts:
 
-    @brief No `ast_member` rows, and a harvest that still finds `ast_member` sites.
-    @version 1
+    * ROWS EXIST — a floor, because the layer going silent again is the regression that
+      matters, and this half used to be unassertable.
+    * EVERY ROW IS `resolved` — a fuzzy row here would mean the qualifier narrowed to
+      several and something emitted them anyway.
+    * THE QUALIFIER, NOT THE NAME, DID THE WORK — asserted by finding rows whose callee
+      name is borne by MORE THAN ONE indexed function. A name-keyed rule sees several
+      candidates and refuses, so it could not have produced them; measured, 8 such rows
+      (`_prepare` by 2, `_raw` by 3, `cull` by 2), each landing in the caller's own class.
+      This is the falsifiable form of the claim the old zero made by implication, and it
+      is what would catch gh#347's fabrication coming back.
+    * A LIVE HARVEST — kept from the original, because the walker must still be FINDING
+      the sites it declines to resolve.
+
+    @brief Rows exist, all resolved, and the ambiguous ones prove the qualifier works.
+    @version 2
     """
     observed = _edges_by_source(self_index_db)
-    assert observed.get(SOURCE_AST_MEMBER, 0) == AST_MEMBER_IS_STRUCTURALLY_ZERO_ON_PYTHON, (
-        f"{observed.get(SOURCE_AST_MEMBER)} ast_member row(s) on a Python-only index. "
-        "Python writes no call-site qualifier, so no member call can be verified — an "
-        "edge here is keyed on a bare name, which gh#347 removed as fabrication."
+    assert observed.get(SOURCE_AST_MEMBER, 0) >= MIN_AST_MEMBER, (
+        f"{observed.get(SOURCE_AST_MEMBER, 0)} ast_member row(s) on this index, floor "
+        f"{MIN_AST_MEMBER}. `self.method()` carries its enclosing class as a qualifier "
+        "(gh#21), so a collapse to zero means that stopped being emitted."
+    )
+
+    conn = sqlite3.connect(str(self_index_db))
+    try:
+        confidences = dict(
+            conn.execute(
+                "SELECT confidence, COUNT(*) FROM call_edges WHERE source=? GROUP BY confidence",
+                (SOURCE_AST_MEMBER,),
+            )
+        )
+        ambiguous_names = conn.execute(
+            "SELECT COUNT(*) FROM call_edges ce JOIN memberdef m ON m.rowid = ce.callee_rowid "
+            "WHERE ce.source = ? AND (SELECT COUNT(*) FROM memberdef m2 "
+            "WHERE m2.name = m.name AND m2.kind = 'function') > 1",
+            (SOURCE_AST_MEMBER,),
+        ).fetchone()[0]
+    finally:
+        conn.close()
+
+    assert set(confidences) <= {"resolved"}, (
+        f"ast_member rows are not all resolved: {confidences}. A fuzzy row here means the "
+        "qualifier left several candidates and something emitted them regardless."
+    )
+    assert ambiguous_names > 0, (
+        "every ast_member edge has a callee whose name is unique in the index, so a "
+        "name-keyed rule could have produced all of them and this test proves nothing. "
+        "The qualifier's whole value is picking among SAME-NAMED candidates."
     )
 
     parser = Parser(Language(py_language()))
@@ -195,9 +229,9 @@ def test_ast_member_is_zero_by_rule_not_by_a_broken_harvest(self_index_db: Path)
             sites += int(len(site) > 2 and site[2] == SOURCE_AST_MEMBER)
     assert sites > 100, (
         f"only {sites} ast_member call site(s) harvested from {package.name}/ — the "
-        "walker has stopped recognising member calls, so the empty ast_member layer is "
-        "a BROKEN HARVEST rather than gh#347's resolution rule. Measured 2521 sites at "
-        "the time this was written; the threshold is deliberately far below that, "
+        "walker has stopped recognising member calls, so a thin ast_member layer would be "
+        "a BROKEN HARVEST rather than the resolution rule. Measured 2521 sites at the time "
+        "this was written; the threshold is deliberately far below that, "
         "because the claim is 'the harvest is alive', not a count."
     )
 
