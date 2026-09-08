@@ -173,3 +173,50 @@ def test_asking_for_the_enum_itself_reports_no_matched_value(tmp_path: Path) -> 
     doss = q.dossier(db, "ent_decision_t", repo_root=repo)
     assert doss is not None and doss.enumeration is not None
     assert doss.enumeration.matched_enumerator == ""
+
+
+def test_the_natural_word_enum_reaches_a_C_enum(tmp_path: Path) -> None:
+    """gh#27, a regression gh#6's own fix introduced. `_KIND_ALIASES` mapped `enum -> class`,
+    correct when the only enum-ish thing with a subject was a `compounddef` row (a C++ scoped
+    `enum class`, Rust's `impl EnumName`). A C enum is a `memberdef` with kind
+    `'enumeration'`, not a compound, so the alias sent the caller to a subject the name cannot
+    resolve as and `_chosen_kind` correctly returned None:
+
+        dossier("ent_decision_t", kind="enum")  ->  None
+
+    `enum` is the word a human types; `enumeration` is doxygen's spelling, learned only by
+    reading a `search` row. The natural guess failing SILENTLY is the shape gh#6 was filed
+    over in the first place.
+
+    THE ALIAS IS NOW CONDITIONAL ON WHAT THE NAME IS. It offers `class` first — the compound
+    reading, which is what the alias was written for and must keep working — and falls to
+    `enumeration` when the name is not a compound.
+    """
+    db, repo = _index(tmp_path)
+    doss = q.dossier(db, "ent_decision_t", kind="enum", repo_root=repo)
+    assert doss is not None, "the natural word must reach the enum it names"
+    assert doss.kind == "enumeration"
+    assert doss.enumeration is not None and doss.enumeration.name == "ent_decision_t"
+
+
+def test_enum_still_prefers_the_compound_when_the_name_is_one(tmp_path: Path) -> None:
+    """THE CONTROL THE ALIAS EXISTS FOR. `enum` was mapped to `class` because a `compounddef`
+    row with kind='enum' — an enum that owns members — IS a compound. A name that is one must
+    still resolve that way, so the alias offers `class` first and only falls through.
+    """
+    from clew.query.subject import _chosen_kind
+
+    assert _chosen_kind(("class", "enumeration"), "enum") == "class"
+    assert _chosen_kind(("enumeration",), "enum") == "enumeration"
+    assert _chosen_kind(("class",), "enum") == "class"
+
+
+def test_enum_on_a_name_that_is_neither_still_refuses(tmp_path: Path) -> None:
+    """A KIND IS A FILTER, NOT AN OVERRIDE — the rule `_chosen_kind` records and its tests
+    pin. A conditional alias must not become a way to smuggle in a kind the name does not
+    resolve to: `enum` on a plain function is still None, not the function relabelled.
+    """
+    from clew.query.subject import _chosen_kind
+
+    assert _chosen_kind(("function",), "enum") is None
+    assert _chosen_kind((), "enum") is None

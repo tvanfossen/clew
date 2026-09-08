@@ -641,21 +641,32 @@ def _lock_subject(db: DbSource, name: str) -> LockSubject | None:
 ## `config symbol` -> `config` is the one pair the code already knew about: `CONFIG_SYMBOL_KIND`'s
 ## own comment says "NOT 'config', which is `resolve_subject`'s kind for the same thing". That
 ## deliberate split is preserved on the wire and reconciled only here, at the boundary.
-_KIND_ALIASES: dict[str, str] = {
-    MACRO_KIND: "macro",
-    "struct": "class",
-    "union": "class",
-    "interface": "class",
-    # A `compounddef` row with `kind='enum'` — an enum that owns members (Rust's
-    # `impl EnumName { ... }`, a C++ scoped `enum class`), not `memberdef`'s
-    # `'enumeration'`, which is now its own subject (gh#6) rather than a refusal.
-    "enum": "class",
+## ORDERED CANDIDATES, NOT ONE TARGET (gh#27). `enum` mapped to `class` alone, which was right
+## while the only enum-ish thing with a subject was a `compounddef` row — an enum that owns
+## members (Rust's `impl EnumName { ... }`, a C++ scoped `enum class`). gh#6 gave `memberdef`'s
+## `'enumeration'` its own subject, and a C enum is one of those and NOT a compound, so
+## `kind='enum'` on a C enum resolved to a subject the name cannot be and returned a bare None
+## for a symbol the index answers about under a slightly different string.
+##
+## `enum` is the word a human types; `enumeration` is doxygen's spelling, learned only by
+## reading a `search` row's kind. The natural guess failing SILENTLY is the shape gh#6 was
+## filed over.
+##
+## The first candidate the name ACTUALLY resolves to wins, so the compound reading still leads
+## and the alias cannot smuggle in a kind the name is not — `_chosen_kind` falls back to the
+## first candidate, which then fails its own membership test and returns None.
+_KIND_ALIASES: dict[str, tuple[str, ...]] = {
+    MACRO_KIND: ("macro",),
+    "struct": ("class",),
+    "union": ("class",),
+    "interface": ("class",),
+    "enum": ("class", "enumeration"),
     # A `memberdef` row with `kind='enumvalue'` — one VALUE of an enum. Its subject is the
     # enum that declares it, which `_enum_subject` resolves and reports through
     # `matched_enumerator`; the alias is what makes a `search` row's kind round-trip, which
     # is the promise `search`'s own description makes about that column.
-    "enumvalue": "enumeration",
-    CONFIG_SYMBOL_KIND: "config",
+    "enumvalue": ("enumeration",),
+    CONFIG_SYMBOL_KIND: ("config",),
 }
 
 ## Search kinds that name no subject at all, with what to do instead. These are NOT aliasable —
@@ -678,7 +689,7 @@ _KIND_NO_SUBJECT: dict[str, str] = {
 ## @param kinds Every kind the name resolves to.
 ## @param wanted The caller's explicit kind, or None to take the best-first pick.
 ## @return The kind to build, or None when the name resolves to nothing usable.
-## @version 2
+## @version 3
 ## @dg_internal
 def _chosen_kind(kinds: tuple[str, ...], wanted: str | None) -> str | None:
     """AN EXPLICIT KIND IS A FILTER, NOT AN OVERRIDE. Asking for `kind='variable'` on a
@@ -693,11 +704,14 @@ def _chosen_kind(kinds: tuple[str, ...], wanted: str | None) -> str | None:
 
     @brief Select which resolved kind to build.
     @return The kind, or None.
-    @version 2
+    @version 3
     """
     if wanted is None:
         return kinds[0] if kinds else None
-    wanted = _KIND_ALIASES.get(wanted, wanted)
+    ## THE FIRST CANDIDATE THE NAME IS, else the first candidate — which then fails the
+    ## membership test below and returns None, preserving "a kind is a filter, not an override".
+    candidates = _KIND_ALIASES.get(wanted, (wanted,))
+    wanted = next((c for c in candidates if c in kinds), candidates[0])
     if wanted in _KIND_NO_SUBJECT:
         raise ValueError(
             f"Subject kind {wanted!r} names no dossier subject: {_KIND_NO_SUBJECT[wanted]}."

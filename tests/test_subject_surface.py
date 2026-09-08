@@ -298,9 +298,14 @@ def test_every_kind_search_emits_is_followable_or_names_its_route() -> None:
         f"that is the round trip gh#404 measured, waiting to happen again"
     )
     ## And an alias must land on a REAL subject kind, or it converts a clear refusal into a
-    ## confusing one.
-    for alias, target in _KIND_ALIASES.items():
-        assert target in SUBJECT_KINDS, f"alias {alias!r} -> {target!r} is not a subject kind"
+    ## confusing one. EVERY candidate is checked, not just the first: since gh#27 an alias
+    ## carries an ordered tuple — `enum` offers `class` then `enumeration` — and a fallback
+    ## naming no subject would misfire only for the names that reach it, which is the hardest
+    ## kind of wrong to notice.
+    for alias, targets in _KIND_ALIASES.items():
+        assert targets, f"alias {alias!r} offers no candidates"
+        for target in targets:
+            assert target in SUBJECT_KINDS, f"alias {alias!r} -> {target!r} is not a subject kind"
 
 
 def test_a_kind_with_no_subject_refuses_by_naming_the_route(tools: QueryTools) -> None:
