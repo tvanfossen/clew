@@ -1084,6 +1084,148 @@ def test_bash_speaks_only_for_inspection_commands() -> None:
 
 
 ##
+# @brief A shell command that inspects nothing is not counted as a file inspection.
+# @return None.
+# @version 1
+def test_a_non_inspecting_shell_command_is_not_pressure() -> None:
+    """gh#11. The hook fired on EVERY Bash call, and the note's own text says "N
+    file-inspection calls, no index call" — so `git push`, `sleep 25` and `rm -rf` were being
+    counted and reported as file inspections. The number was not merely noisy, it was FALSE,
+    which is the failure this component's own reasoning says discredits everything else it
+    says.
+
+    Sampled from one real session, all six of these fired the note:
+
+        git push origin main        sleep 20
+        git status --short          gh run watch 34045484280
+        rm -rf .claude/tmp/probe13  .venv/bin/pre-commit run --all-files
+
+    None is a question any index could answer, and the remedy the note names — call
+    `dossier` — applies to none of them.
+
+    THE FILTER IS THE VERB, not a shell grammar. `_INSPECT_VERBS` already exists for naming
+    the file; this reuses it one level up to decide whether the call was an inspection at
+    all. An unrecognised verb is not an inspection, which is the same bias toward silence
+    `_bash_target` takes.
+
+    @brief Non-inspecting shell commands neither count nor speak.
+    @return None.
+    @version 1
+    """
+    not_inspections = (
+        "git push origin main",
+        "git status --short",
+        "gh run watch 34045484280",
+        "sleep 20",
+        "rm -rf .claude/tmp/probe13",
+        ".venv/bin/pre-commit run --all-files",
+        "mkdir -p build",
+        "npm install",
+        ".venv/bin/python -m pytest tests/ -q",
+        "echo hi",
+    )
+    for command in not_inspections:
+        assert not hook._is_inspection(command), (
+            f"{command!r} is not a file inspection and must not be counted as one"
+        )
+
+
+##
+# @brief A shell command that does inspect a file still counts.
+# @return None.
+# @version 1
+def test_an_inspecting_shell_command_is_still_pressure() -> None:
+    """THE HALF THAT MUST NOT BE LOST. The hook is useful precisely on a run of `sed`/`grep`
+    reads that `dossier` would have answered in one call — silencing those would remove the
+    signal rather than the noise.
+
+    A LATER SEGMENT COUNTS, unlike `_bash_target`'s first-segment rule: `cd x && grep ...` is
+    a real inspection, and the two functions answer different questions. `_bash_target` asks
+    "which file, unambiguously"; this asks "was anything inspected at all", and the second
+    can afford to look further because being wrong costs a note rather than a wrong filename.
+
+    @brief Real inspections still register.
+    @return None.
+    @version 1
+    """
+    inspections = (
+        "cat clew/testscope.py",
+        "head -20 a/b/c.py",
+        "sed -n '1,5p' x.py",
+        "grep -n pattern clew/cli.py",
+        "LC_ALL=C grep pattern file.py",
+        "cd clew && grep -rn thing .",
+        "rg --files-with-matches thing",
+        "/usr/bin/cat a.py",
+    )
+    for command in inspections:
+        assert hook._is_inspection(command), f"{command!r} is a file inspection"
+
+
+##
+# @brief Writing a file with a redirect or heredoc is not inspecting it.
+# @return None.
+# @version 1
+def test_writing_through_an_inspect_verb_is_not_an_inspection() -> None:
+    """`cat > file <<'EOF'` uses an inspect VERB to WRITE, and this whole session wrote its
+    probe scripts that way. Counting those as reads would put the noise straight back, and
+    the note would then be advising `dossier` for a file that did not exist a moment ago.
+
+    @brief A redirect or heredoc makes it a write, whatever the verb.
+    @return None.
+    @version 1
+    """
+    for command in ("cat > out.py <<'EOF'", "cat a.py > b.py", "grep x a.py > hits.txt"):
+        assert not hook._is_inspection(command), f"{command!r} writes rather than inspects"
+
+
+##
+# @brief A non-inspecting Bash call does not consume a pressure slot, end to end.
+# @param tmp_path Pytest temp dir.
+# @return None.
+# @version 1
+def test_a_non_inspecting_call_does_not_consume_a_pressure_slot(tmp_path: Path) -> None:
+    """THE BEHAVIOURAL FORM of gh#11, which the predicate tests cannot show. `_is_inspection`
+    being right is necessary and not sufficient: the gate has to run BEFORE `_record`, or a
+    `git push` still increments the tally and merely declines to speak about it — and the
+    tally is what the note reports as "N file-inspection calls".
+
+    The arithmetic is what proves it. `_is_due` fires at multiples of `_INTERVAL`, so four
+    inspections are silent, and if the interleaved `git push` were counted it would BE the
+    fifth and would speak. Instead the next real inspection is the fifth and speaks, which is
+    only possible if the push touched nothing.
+
+    @brief An interleaved process command shifts nothing.
+    @return None.
+    @version 1
+    """
+    env = {"CLAUDE_CODE_SESSION_ID": "gh11-pressure"}
+
+    def call(command: str) -> bool:
+        ## THE MODALITY FLAG IS THE POINT and must be passed explicitly: `_run` sends no argv,
+        ## so the hook would fall back to the READ wording and never reach the Bash gate at
+        ## all. Caught by this test failing on the `git push` line the first time.
+        event = json.dumps({"tool_input": {"command": command}})
+        out = subprocess.run(
+            [sys.executable, "-m", "clew_hook", hook.SHELL_FLAG],
+            input=event,
+            capture_output=True,
+            text=True,
+            env={**os.environ, "TMPDIR": str(tmp_path), **env},
+        )
+        return bool(out.stdout.strip())
+
+    inspect = "grep -n thing clew/cli.py"
+    assert [call(inspect) for _ in range(hook._INTERVAL - 1)] == [False] * (hook._INTERVAL - 1)
+    assert not call("git push origin main"), "a push must not speak"
+    assert call(inspect), (
+        "the next real inspection should have been the one that speaks; it did not, so the "
+        "interleaved `git push` consumed a pressure slot and the reported count is still a "
+        "count of Bash calls rather than of file inspections"
+    )
+
+
+##
 # @brief Each modality renders its own note, and an unknown one still renders something valid.
 # @return None.
 # @version 1

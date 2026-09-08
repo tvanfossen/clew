@@ -403,6 +403,68 @@ def _safe_token(token: object) -> str | None:
     return tail
 
 
+## Redirects and heredocs mean the command WRITES, whatever verb it starts with. `cat > f <<EOF`
+## is the shape this file's own probe scripts are written with, and counting those as reads would
+## advise `dossier` for a file that did not exist a moment earlier.
+_WRITE_MARKERS = (">", "<<")
+
+
+##
+# @brief Whether a shell command inspected a file at all — the question `_bash_target` does not ask.
+# @param command The raw `tool_input.command` string.
+# @return True when some segment runs a reading verb.
+# @version 1
+# @dg_internal
+def _is_inspection(command: object) -> bool:
+    """gh#11. This hook fired on EVERY Bash call, so `git push`, `sleep 25` and `rm -rf` were
+    counted and then REPORTED as file inspections — the note's own text says "N file-inspection
+    calls, no index call". The count was not merely noisy, it was false, and a payload that
+    misdescribes itself teaches a reader to discount everything else it says, which is the
+    argument this file makes about itself everywhere else.
+
+    Sampled from one real session, all six of these fired it: `git push origin main`,
+    `git status --short`, `gh run watch`, `sleep 20`, `rm -rf`, `pre-commit run --all-files`.
+    Not one is a question any index could answer, so the remedy the note names applies to none
+    of them.
+
+    ASKS A DIFFERENT QUESTION FROM `_bash_target`, WHICH IS WHY IT READS FURTHER. That function
+    asks "which file, unambiguously", and being wrong there costs a wrong filename — so it takes
+    the first segment only and refuses on any doubt. This asks "was anything inspected at all",
+    where being wrong costs one note, so it looks at EVERY segment: `cd x && grep ...` is a real
+    inspection that a first-segment rule would miss.
+
+    The verb is basenamed, so `/usr/bin/cat` counts. An unrecognised verb is not an inspection —
+    the same bias toward silence, pointed the other way.
+
+    @brief Whether the command reads a file.
+    @return True for an inspection.
+    @version 1
+    """
+    if not isinstance(command, str) or any(bad in command for bad in _WRITE_MARKERS):
+        return False
+    segments = [command]
+    for sep in _SEGMENT_SPLIT:
+        segments = [part for whole in segments for part in whole.split(sep)]
+    return any(_segment_verb(segment) in _INSPECT_VERBS for segment in segments)
+
+
+##
+# @brief The command word a shell segment runs, with env assignments skipped and the path stripped.
+# @param segment One pipeline/list segment of a command.
+# @return The bare verb, or '' when the segment names none.
+# @version 1
+# @dg_internal
+def _segment_verb(segment: str) -> str:
+    """@brief Read a segment's command word.
+    @return The basenamed verb, or ''.
+    @version 1
+    """
+    words = segment.split()
+    while words and "=" in words[0] and not words[0].startswith("-"):
+        words = words[1:]
+    return words[0].rsplit("/", 1)[-1] if words else ""
+
+
 ##
 # @brief The one file token a shell command inspected, when that is unambiguous.
 # @param command The raw `tool_input.command` string.
@@ -439,6 +501,41 @@ def _bash_target(command: object) -> str | None:
     ## "just read", and `grep -r pat src/` names a directory rather than a file.
     found = [w for w in words[1:] if not w.startswith("-") and "." in w]
     return found[0] if len(found) == 1 else None
+
+
+##
+# @brief The raw command a Bash event carries, without trusting anything else in it.
+# @param raw The undecoded stdin bytes.
+# @return The command string, or '' when the event does not carry one.
+# @version 1
+# @dg_internal
+def _event_command(raw: bytes) -> str:
+    """SAME RUNGS AS `_target_name`, and every one of them falls to `''`. This runs on the hot
+    path — before the note is due — so it must be as unable to raise as that function is: a
+    traceback here reaches the model through stderr, which is the channel this file exists to
+    keep shut.
+
+    `''` IS NOT AN INSPECTION, so an unreadable event goes quiet. That is the right default for
+    the one modality this gates: a Bash call whose command cannot be read is not evidence that a
+    file was inspected.
+
+    @brief Read the Bash command out of the event.
+    @return The command, or ''.
+    @version 1
+    """
+    if len(raw) > _MAX_EVENT:
+        return ""
+    try:
+        event = json.loads(raw)
+    except Exception:
+        return ""
+    if not isinstance(event, dict):
+        return ""
+    tool_input = event.get("tool_input")
+    if not isinstance(tool_input, dict):
+        return ""
+    command = tool_input.get("command")
+    return command if isinstance(command, str) else ""
 
 
 ##
@@ -704,16 +801,27 @@ def main() -> int:
         _clear(_MISS_SUFFIX)
         return 0
 
+    ## THE MODALITY COMES FROM ARGV — our own manifest's flag, never `tool_name`. An unflagged or
+    ## unknown invocation falls back to the read wording, which is the safe generic.
+    ##
+    ## READ BEFORE `_record` NOW, because gh#11's fix is about what gets COUNTED and not only
+    ## about what gets said. A Bash call that inspects nothing is not a file-inspection call, and
+    ## the note's own text claims to count those — so recording it made the number false.
+    modality = next((flag for flag in MODALITY_FLAGS if flag in sys.argv[1:]), READ_FLAG)
+    if modality == SHELL_FLAG and not _is_inspection(_event_command(raw)):
+        ## THE ONE PLACE THE PARSER MOVED ONTO THE HOT PATH, and it buys back more than it costs:
+        ## a session's Bash calls are mostly git, tests and process management, so most of them
+        ## now return here without touching the tally at all — cheaper than the note they used to
+        ## trigger, and the pressure that survives means what it says.
+        return 0
+
     _record(_MISS_SUFFIX)
     pressure = _tally(_MISS_SUFFIX)
     if not _is_due(pressure):
-        ## PARSED ONLY WHEN A NOTE IS ACTUALLY DUE. Most invocations are silent, and this keeps the
-        ## parser off the hot path entirely for them.
+        ## Most invocations are silent, and for every modality but Bash this still keeps the
+        ## parser off the hot path entirely.
         return 0
 
-    ## THE MODALITY COMES FROM ARGV — our own manifest's flag, never `tool_name`. An unflagged or
-    ## unknown invocation falls back to the read wording, which is the safe generic.
-    modality = next((flag for flag in MODALITY_FLAGS if flag in sys.argv[1:]), READ_FLAG)
     try:
         name = _target_name(raw, modality)
         payload = _payload_for(pressure, modality, name)
