@@ -318,3 +318,119 @@ def test_the_measured_note_wins_over_the_constructor_heuristic() -> None:
         {"subject_kind": "function", "callers": [], "callers_unresolved": 2}, ("class",)
     )
     assert "2" in note and "constructor" not in note, f"got {note!r}"
+
+
+def test_a_refusal_the_receiver_CONTRADICTS_is_not_credited() -> None:
+    """gh#18, unblocked by gh#21. `IndexCache.close` reported 403 unresolved inbound sites
+    because it is the only indexed `close` in a Python repository, so every `conn.close()`,
+    `f.close()` and `proc.close()` in the tree credited it — a number about how often a bare
+    name appears in member-call position, which is the name-as-evidence fallacy the
+    attribution rule was written to avoid. I checked the callee side and never checked
+    whether the site said anything about the receiver.
+
+    IT COULD NOT BE FIXED HERE UNTIL gh#21. Python carried no receiver at all, so every
+    refusal was blind and three candidate rules were measured and rejected: requiring
+    receiver evidence made 84% of entropic report "cannot say", and a same-file rule made
+    82% fire with a maximum of 815. Both traded one over-claim for a larger under-claim.
+
+    NOW THERE IS POSITIVE CONTRARY EVIDENCE. `_receiver_types['conn']` is `{'sqlite3'}` and
+    `IndexCache.close`'s scope is `clew.indexcache.IndexCache`, so the receiver does not
+    merely fail to confirm the call — it RULES IT OUT. That is different in kind from an
+    unknown receiver, and only this case is dropped.
+    """
+    unresolved: list[list[int]] = []
+    _ast_record_call_edge(
+        1,
+        "close",
+        {"close": [620]},
+        [],
+        [],
+        SOURCE_AST_MEMBER,
+        receiver="conn",
+        receiver_types={"conn": {"sqlite3"}},
+        scope_of={620: "clew.indexcache.IndexCache"},
+        unresolved=unresolved,
+    )
+    assert unresolved == [], (
+        "the receiver is declared sqlite3 and the only candidate is an IndexCache method, "
+        "so this call site is evidence AGAINST that callee, not for it"
+    )
+
+
+def test_an_UNKNOWN_receiver_is_still_credited() -> None:
+    """THE LINE THIS MUST NOT CROSS, and the reason the rule is 'contradicts' rather than
+    'does not confirm'. A receiver the index holds no type for says NOTHING — it neither
+    confirms nor rules out — and dropping those was measured to make 84% of entropic report
+    "cannot say", withdrawing confidence from thousands of correct measured negatives.
+
+    Silence is not contrary evidence.
+    """
+    unresolved: list[list[int]] = []
+    _ast_record_call_edge(
+        1,
+        "close",
+        {"close": [620]},
+        [],
+        [],
+        SOURCE_AST_MEMBER,
+        receiver="mystery",
+        receiver_types={"conn": {"sqlite3"}},
+        scope_of={620: "clew.indexcache.IndexCache"},
+        unresolved=unresolved,
+    )
+    assert unresolved == [[620]], "an unknown receiver is not evidence against the callee"
+
+
+def test_a_receiver_with_SEVERAL_owning_classes_is_still_credited() -> None:
+    """The other control, and the shape of it is worth stating because writing it revealed a
+    bug. A receiver whose class MATCHES a single candidate does not refuse at all — it
+    RESOLVES, so there is no refusal to credit and no assertion to make. The only way a
+    credited refusal can have a matching receiver is when the receiver denotes SEVERAL
+    classes that each own the name, which `_one_class` refuses to pin.
+
+    There the call really might have been to any of them: the receiver confirms nothing and
+    contradicts nothing, so it is credited — which is exactly the case the count exists for.
+    """
+    unresolved: list[list[int]] = []
+    _ast_record_call_edge(
+        1,
+        "close",
+        {"close": [620, 700]},
+        [],
+        [],
+        SOURCE_AST_MEMBER,
+        receiver="handle",
+        receiver_types={"handle": {"a.Cache", "b.Store"}},
+        scope_of={620: "a.Cache", 700: "b.Store"},
+        unresolved=unresolved,
+    )
+    assert unresolved == [[620, 700]], (
+        "two owning classes is a genuine ambiguity, not contrary evidence"
+    )
+
+
+def test_a_matching_receiver_resolves_rather_than_refusing() -> None:
+    """WHY THE CONTROL ABOVE HAD TO CHANGE SHAPE, pinned so the reasoning is not lost. This
+    also caught a real defect: `_scope_is` understood `::` only, so a Python scope
+    (`clew.indexcache.IndexCache`) matched nothing and every Python receiver read as a
+    CONTRADICTION. gh#21's receiver half was inert for the same reason — its measured gain
+    came entirely from the `self.` qualifier path.
+    """
+    resolved: list[tuple[int, int, str]] = []
+    unresolved: list[list[int]] = []
+    _ast_record_call_edge(
+        1,
+        "close",
+        {"close": [620]},
+        resolved,
+        [],
+        SOURCE_AST_MEMBER,
+        receiver="cache",
+        receiver_types={"cache": {"IndexCache"}},
+        scope_of={620: "clew.indexcache.IndexCache"},
+        unresolved=unresolved,
+    )
+    assert resolved == [(1, 620, SOURCE_AST_MEMBER)], (
+        "a dot-separated Python scope must match its bare class name"
+    )
+    assert unresolved == [], "a resolved call is not a refusal"

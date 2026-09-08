@@ -445,7 +445,7 @@ def _ast_caller_at_line(
 ## @param source Provenance to stamp: 'ast' (bare identifier) or 'ast_member'.
 ## @param qualified The qualified callee text the call site wrote, or '' (#75).
 ## @param definition_of rowid → doxygen `definition` signature, for qualifier narrowing.
-## @version 5
+## @version 6
 ## @dg_internal
 def _ast_record_call_edge(
     caller_rowid: int,
@@ -489,7 +489,7 @@ def _ast_record_call_edge(
 
     @brief Record one AST call edge, grading confidence by what was actually verified.
     @return None.
-    @version 6
+    @version 7
     """
     candidates = name_to_rowids.get(callee_name, [])
     if qualified and candidates:
@@ -599,7 +599,11 @@ def _ast_record_call_edge(
     ## THE NAME IS NOT STORED, so this does not reintroduce name-as-signal in a column: what is
     ## counted is a set of ROWIDS that were already resolved candidates, and the count says how
     ## often resolution was attempted against them and failed.
-    if unresolved is not None and candidates:
+    if (
+        unresolved is not None
+        and candidates
+        and not _receiver_contradicts(receiver, candidates, receiver_types, scope_of)
+    ):
         unresolved.append(list(candidates))
     return
 
@@ -921,6 +925,51 @@ def _one_target(
     return min(edges, key=lambda edge: (edge[1] not in defined, edge[1]))
 
 
+## @brief Whether the receiver's declared class RULES OUT every candidate.
+## @param receiver The receiver's trailing member name, or ''.
+## @param candidates The candidate rowids the site refused between.
+## @param receiver_types Name-to-classes mapping from `_receiver_types`.
+## @param scope_of Rowid to owning scope.
+## @return True only when the receiver is known AND matches no candidate.
+## @version 1
+## @dg_internal
+def _receiver_contradicts(
+    receiver: str,
+    candidates: list[int],
+    receiver_types: dict[str, set[str]] | None,
+    scope_of: dict[int, str] | None,
+) -> bool:
+    """CONTRARY EVIDENCE, NOT ABSENT EVIDENCE, and the distinction is the whole fix (gh#18).
+
+    `IndexCache.close` reported 403 unresolved inbound sites because it is the only indexed
+    `close` in a Python repository, so every `conn.close()` in the tree credited it — a
+    number about how often a bare name appears in member-call position rather than about
+    that symbol. `_receiver_types['conn']` is `{'sqlite3'}` and the candidate's scope is
+    `clew.indexcache.IndexCache`, so the site does not merely fail to CONFIRM the call: it
+    rules it out.
+
+    THE RULE IS "CONTRADICTS", NOT "DOES NOT CONFIRM", and that was settled by measurement
+    rather than taste. Dropping refusals whose receiver merely went unresolved made 84% of
+    entropic's empty-caller symbols report "cannot say", withdrawing confidence from
+    thousands of correct measured negatives — the blanket hedge `emptiness.py` records
+    gh#393 withdrawing. Silence is not evidence.
+
+    UNAVAILABLE BEFORE gh#21, which is why gh#18 sat open: Python emitted no receiver at
+    all, so every refusal was blind and there was nothing here to read.
+
+    @brief Whether the receiver's class excludes every candidate.
+    @return True when the receiver is known and matches nothing.
+    @version 1
+    """
+    classes = (receiver_types or {}).get(receiver or "", set())
+    if not classes or not candidates:
+        return False
+    scopes = scope_of or {}
+    return not any(
+        _scope_is(scopes.get(rowid, ""), klass) for rowid in candidates for klass in classes
+    )
+
+
 ## @brief Whether a set of memberdef scopes all denote one class.
 ## @param scopes The distinct `memberdef.scope` values that matched the receiver's type.
 ## @return True when they are spellings of a single class.
@@ -954,7 +1003,7 @@ def _one_class(scopes: set[str]) -> bool:
 ## @param scope The `memberdef.scope` value.
 ## @param klass A class name, possibly unqualified.
 ## @return True when they name the same class.
-## @version 1
+## @version 2
 ## @dg_internal
 def _scope_is(scope: str, klass: str) -> bool:
     """Matched at a `::` boundary in BOTH directions, because either side may be the qualified
@@ -965,11 +1014,25 @@ def _scope_is(scope: str, klass: str) -> bool:
 
     @brief Compare a scope against a class name.
     @return True on a boundary-respecting match.
-    @version 1
+    @version 2
     """
     if not scope or not klass:
         return False
-    return scope == klass or scope.endswith("::" + klass) or klass.endswith("::" + scope)
+    if scope == klass:
+        return True
+    ## BOTH SEPARATORS (gh#18). This understood `::` only, and Python's scopes are
+    ## DOT-separated — `clew.indexcache.IndexCache` — so it returned False for every Python
+    ## receiver and `_narrow_by_receiver` could never match one. gh#21 gave Python a receiver
+    ## and its whole receiver half was still inert; the +90 edges it measured all came from
+    ## the `self.` qualifier path instead. Caught by a gh#18 control asserting that a MATCHING
+    ## receiver is not treated as a contradiction.
+    ##
+    ## Widening is safe for C++ rather than merely convenient: a C++ scope is `::`-separated,
+    ## so no `.` boundary exists in one for this to match at. The negative cases hold in both
+    ## dialects — `other.IndexCacheHelper` does not match `IndexCache`, and `a.Session` does
+    ## not match `b.Session`, because a boundary character is still required on the joining
+    ## side.
+    return any(scope.endswith(sep + klass) or klass.endswith(sep + scope) for sep in ("::", "."))
 
 
 ## @brief Candidates whose signature actually bears the qualified name written at the call site.
@@ -1324,7 +1387,11 @@ class _CallSiteHarvester(Harvester):
     #    saying so. A payload cached at 5 still names `make_unique`, which resolves to
     #    nothing, so without the bump the construction edges never appear on an existing
     #    index.
-    stage_version = 6
+    # 7: gh#21 — a PYTHON site now carries a qualifier and a receiver, which it never did.
+    #    A payload cached at 6 has three elements, so `_fold_call_payload` reads empty
+    #    strings for both and every Python member call keeps refusing exactly as before —
+    #    the bump is what makes the fix take effect on an existing index.
+    stage_version = 7
     label = "tree-sitter"
 
     ## @brief Harvest one file's call sites.

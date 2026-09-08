@@ -1790,6 +1790,63 @@ class VariableSubject:
     sites: tuple[VariableSite, ...] = ()
 
 
+## @brief One value of an enum, as the index holds it.
+## @version 1
+@dataclass(frozen=True)
+class Enumerator:
+    """An enum value: its name, the initialiser text when one is written, and its line.
+
+    @brief One enum value.
+    @version 1
+    """
+
+    name: str
+    value: str
+    line: int | None
+
+
+## @brief An enum type: its identity, documentation and verbatim declaration.
+## @version 1
+@dataclass(frozen=True)
+class EnumSubject:
+    """WHAT AN ENUM HAS, AND WHAT IT DOES NOT (gh#6). It has a name, a file and line,
+    documentation, and a BODY — and the body is the point, because an enum's body is its
+    enumerator list. It has NO callers and NO callees, and this type says so BY ABSENCE
+    rather than by empty fields, on exactly the rule `VariableSubject` states one type up:
+    an empty `callers` on something that can never have one is a measurement of something
+    that was never measurable.
+
+    THE BODY IS NOT A CONVENIENCE, IT IS THE ANSWER. doxygen emits no `enumvalue` rows at
+    all — measured, zero on entropic against 35 `enumeration` rows — so the individual
+    enumerators are not in the database and cannot be listed from it. They are in the
+    source span the enumeration row already carries, so returning it answers "what are the
+    values" verbatim instead of inventing a layer that would have to be kept true.
+
+    @brief An enum type's identity, documentation and declaration body.
+    @version 1
+    """
+
+    name: str
+    rowid: int
+    file: str
+    line: int | None
+    brief: str
+    detail: str
+    version: str = ""
+    provenance: str | None = None
+    body: BodyExcerpt | None = None
+    ## The values this enum declares, from the recovered `enumvalue` rows. Empty on an index
+    ## built before they were recovered — the body still shows them, which is why that
+    ## degrade is thin rather than blank.
+    enumerators: tuple[Enumerator, ...] = ()
+    ## WHICH VALUE THE CALLER ASKED FOR, when they named an enumerator rather than the enum.
+    ## The subject's `name` stays the ENUM's, because that is what this record describes;
+    ## substituting the queried string there would report a symbol under a name it does not
+    ## have, which is the `macro_collision` failure one subject over. This field is how the
+    ## reply says "you asked for a value, and here is the enum that declares it".
+    matched_enumerator: str = ""
+
+
 ## @brief A lock subject: its roster row plus every critical section it guards.
 ## @version 1
 @dataclass(frozen=True)
@@ -1844,6 +1901,10 @@ SUBJECT_KINDS: tuple[str, ...] = (
     "thread",
     "class",
     "variable",
+    ## gh#6. AFTER `variable`, because doxygen files an enum's TYPE as `enumeration` and
+    ## nothing else claims that kind — so the order only matters for a name that is both,
+    ## and a variable is the commoner reading of a bare name.
+    "enumeration",
     "requirement",
     "config",
 )
@@ -1884,6 +1945,7 @@ class SubjectDossier:
     lock: LockSubject | None = None
     thread: Thread | None = None
     config: KconfigSpace | None = None
+    enumeration: EnumSubject | None = None
     chain: Chain | None = None
 
     ## @brief The one populated section, whatever kind it is.

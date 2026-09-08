@@ -32,6 +32,7 @@ import pytest
 
 from clew import query as q
 from clew.mcp_server.tools_query import QueryTools
+from clew.query._common import candidate_rows
 
 ## The fixture's three same-named identities. `harvest` is the real shape from this repo's own
 ## self-index — one base plus ten overrides, eleven memberdef rows all named `harvest` — reduced
@@ -376,6 +377,101 @@ def test_chain_trace_does_not_accept_the_selector() -> None:
         "chain_trace must not accept `qualified` until its traversal resolves hops by "
         "identity rather than by bare name -- see its docstring"
     )
+
+
+## @brief One physical declaration must appear once in `candidates`.
+## @return None.
+## @version 1
+def test_candidates_does_not_list_one_declaration_twice() -> None:
+    """gh#19. `dossier("register_server")` on entropic returned three candidates, two of them
+    identical in signature, file, line AND has_body:
+
+        ' int register_server'                           python/src/entropic/mcp.py:53
+        'void entropic::ServerManager::register_server'  include/.../server_manager.h:142
+        'void entropic::ServerManager::register_server'  include/.../server_manager.h:142
+
+    doxygen emits the same member under two scope spellings, so `memberdef` holds two rowids
+    for one physical declaration. Nothing here deduped them.
+
+    IT MAKES AN AMBIGUITY LOOK WORSE THAN IT IS, on the one field whose entire job is to
+    measure ambiguity. Both duplicates round-trip through `qualified` to the same function, so
+    a consumer counting identities counts one that does not exist, and cannot tell the
+    duplicate from a genuine overload — which is the distinction the panel exists to draw.
+
+    THE KEY IS (signature, file, line), NOT the signature alone. `signature` here is doxygen's
+    `definition`, which two genuine overloads SHARE — `void C::f` for both `f(int)` and
+    `f(char)` — so deduping on it would merge the very rows this list must keep apart. They
+    differ in `line`, and one physical declaration cannot be at two lines.
+
+    @brief Two rows for one declaration collapse; two overloads do not.
+    @return None.
+    @version 1
+    """
+    conn = sqlite3.connect(":memory:")
+    conn.executescript("CREATE TABLE memberdef (rowid INTEGER PRIMARY KEY, name TEXT, kind TEXT);")
+
+    duplicated = [
+        (4647, "void C::register_server", "include/c.h", 142, True),
+        (4717, "void C::register_server", "include/c.h", 142, True),
+    ]
+    rows = candidate_rows(conn, "register_server", duplicated)
+    assert len(rows) == 1, f"one declaration, one candidate: {[r.signature for r in rows]}"
+    assert rows[0].rowid == 4647, "the first row wins, preserving the definition-preferring order"
+
+
+## @brief Genuine overloads must survive the dedupe.
+## @return None.
+## @version 1
+def test_candidates_keeps_two_real_overloads_apart() -> None:
+    """THE CONTROL, and the reason the key includes `line`. Two overloads of one class share a
+    doxygen `definition` string exactly — the parameter list lives in `argsstring`, which this
+    tuple does not carry — so a signature-keyed dedupe would silently collapse them and report
+    one identity where the caller genuinely has to choose between two.
+
+    That would be worse than the duplication it fixes: a consumer would be told the name is
+    unambiguous and pick the wrong function with no signal at all.
+
+    @brief Same signature, different lines, two candidates.
+    @return None.
+    @version 1
+    """
+    conn = sqlite3.connect(":memory:")
+    conn.executescript("CREATE TABLE memberdef (rowid INTEGER PRIMARY KEY, name TEXT, kind TEXT);")
+
+    overloads = [
+        (10, "void C::f", "include/c.h", 10, True),
+        (11, "void C::f", "include/c.h", 11, True),
+    ]
+    assert len(candidate_rows(conn, "f", overloads)) == 2, "two overloads are two identities"
+
+    ## Same line, DIFFERENT file — a header and its inline twin, or two unrelated statics.
+    across_files = [
+        (10, "void C::f", "a/c.h", 10, True),
+        (11, "void C::f", "b/c.h", 10, True),
+    ]
+    assert len(candidate_rows(conn, "f", across_files)) == 2
+
+
+## @brief A row with no line is never merged, because nothing distinguishes it.
+## @return None.
+## @version 1
+def test_a_candidate_without_a_line_is_left_alone() -> None:
+    """FAILS OPEN. A row whose `line` is NULL carries no position, so two such rows cannot be
+    SHOWN to be the same declaration — only to be indistinguishable in this tuple. Merging them
+    would be a guess in the direction that loses information, and the pre-gh#19 behaviour
+    (report both) is the safe one.
+
+    @brief Null-line rows are reported separately.
+    @return None.
+    @version 1
+    """
+    conn = sqlite3.connect(":memory:")
+    conn.executescript("CREATE TABLE memberdef (rowid INTEGER PRIMARY KEY, name TEXT, kind TEXT);")
+    unpositioned = [
+        (10, "void C::f", "include/c.h", None, False),
+        (11, "void C::f", "include/c.h", None, False),
+    ]
+    assert len(candidate_rows(conn, "f", unpositioned)) == 2
 
 
 ## @brief A capped candidate list must disclose how many identities really exist.
