@@ -162,14 +162,15 @@ from .requirements import (
 )
 from .rustdoc import run_rustdoc, uses_rustdoc
 from .scope import (
+    DerivedScope,
     INDEX_SCOPE_SECTION,
     SCOPE_FROM_GUARD,
     SOURCE_DOXYFILE,
-    DerivedScope,
     declared_scope_rejection,
     depth_limited_paths,
     derive_scope,
     derive_scope_logged,
+    nested_tree_cache,
 )
 from .shared_key_edges import (
     import_mqtt_dispatch_edges,
@@ -2791,7 +2792,7 @@ def staging_path(output: Path) -> Path:
 ## @param home State root to allocate databases under; defaults to the server's state home.
 ## @param only Build just this sub-index by name, or None for all of them.
 ## @return The Targets built, in derivation order; empty when the repo is not split.
-## @version 3
+## @version 4
 ## @req REQ-DDB-INDEX-002
 def build_sub_indexes(
     repo_root: Path | str, home: Path | None = None, only: str | None = None
@@ -2820,7 +2821,7 @@ def build_sub_indexes(
 
     @brief Build each of a repository's sub-indexes.
     @return The Targets built, or [] when the repository is not split.
-    @version 2
+    @version 3
     """
     from .mcp_server.state import TargetRegistry
     from .scope import FIRST_PARTY_INDEX, derive_sub_indexes
@@ -2830,6 +2831,21 @@ def build_sub_indexes(
     if not split:
         return []
     registry = TargetRegistry(home) if home is not None else TargetRegistry()
+    ## gh#25. EVERY DERIVED NAME IS REGISTERED, not only the ones this call builds. The split
+    ## already goes N levels deep, so a vendored dependency's own vendored dependency HAS a
+    ## name — but registering happened inside the build loop, behind the `only` filter, so a
+    ## caller who built one sub-index never learned the others existed. `index(action='targets')`
+    ## listed first-party and the tree they had built, and nothing on the tool surface
+    ## distinguished "this nested tree is not built yet" from "this nested tree was never given
+    ## an identity at all".
+    ##
+    ## Registering is not building: each of these rows reports `exists: false` until someone
+    ## builds it, which is the distinction the caller was missing and one `targets` already
+    ## draws for every other unbuilt target.
+    ##
+    ## Costs no walk — `split` is in hand, and gh#24 made sure it was computed once.
+    for sub in split:
+        registry.register(root, sub.name)
     built: list[Any] = []
     for sub in split:
         if only is not None and sub.name != only:
@@ -2871,7 +2887,7 @@ def build_sub_indexes(
 ## @param requirements Requirements catalog to ingest, or None to discover one.
 ## @param exclude Repo-relative paths to leave out; None inherits the recorded ones, [] withdraws them.
 ## @param options Tier-1 build options keyed by declaration-file section name; None or {} states nothing.
-## @version 3
+## @version 4
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-CLI-001
 ## @req REQ-DDB-CONFIG-001
@@ -2938,7 +2954,16 @@ def build_index(
     applied = apply_options(args, options, Path(repo_root) if repo_root is not None else None)
     if applied:
         logger.info("build options: stated by the caller (tier 1) — %s", ", ".join(applied))
-    _run_pipeline(args)
+    ## gh#24. ONE NESTED-TREE WALK PER BUILD. Three callers ask which trees under this root
+    ## are separate git repositories, and none was given another's answer — a single build
+    ## walked the same tree four times, and on a repo with vendored submodules that resolve
+    ## stage cost ~24s against a few hundred ms for everything else.
+    ##
+    ## Opened HERE because this is the entry both the CLI and the MCP server run a build
+    ## through, so one placement covers both; and it closes with the build, so the answer
+    ## cannot outlive the filesystem state it describes.
+    with nested_tree_cache():
+        _run_pipeline(args)
 
 
 ## @brief Resolve which Doxyfile to build with, and the repo root it belongs to.

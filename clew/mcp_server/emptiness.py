@@ -97,6 +97,20 @@ from .. import wire
 ## reply that has already returned nothing. The parenthetical examples ("module docstrings
 ## and @file comments", "READMEs, design docs") name no corpus a caller can address; the
 ## load-bearing clauses are WHICH corpora were read and WHERE the unread one lives.
+## THE CAP A SERVED STRING ACTUALLY HAS. `server.py` records the measurement: a client cuts
+## each served string at 2,048 characters and discards the rest IN SILENCE. That is the real
+## ceiling on a note, and it is per STRING — not on the reply's Python repr, which also carries
+## `target`, a path whose length is a property of somebody's checkout.
+##
+## THE NOTE IS BUDGETED AT WELL UNDER IT (gh#30), because a note that merely fits is a note one
+## corpus away from not fitting, and the failure is silent truncation rather than an error. The
+## headroom is what lets `SEARCHED_MEMBERDEF_KINDS` keep growing — which the derivation below
+## exists to allow — without the next person to add a corpus meeting a byte budget they had no
+## reason to expect.
+_SERVED_STRING_CAP = 2048
+NOTE_BUDGET = 1200
+
+
 ## THE CORPUS LIST IS DERIVED, NOT TYPED. It was typed, and it was WRONG: it named
 ## "function names, @brief text, file-level docs" for months after classes (gh#315),
 ## variables (gh#372) and macros (gh#373) had been added to the searcher, so a caller

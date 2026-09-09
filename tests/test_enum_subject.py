@@ -173,3 +173,82 @@ def test_asking_for_the_enum_itself_reports_no_matched_value(tmp_path: Path) -> 
     doss = q.dossier(db, "ent_decision_t", repo_root=repo)
     assert doss is not None and doss.enumeration is not None
     assert doss.enumeration.matched_enumerator == ""
+
+
+def test_the_natural_word_enum_reaches_a_C_enum(tmp_path: Path) -> None:
+    """gh#27, a regression gh#6's own fix introduced. `_KIND_ALIASES` mapped `enum -> class`,
+    correct when the only enum-ish thing with a subject was a `compounddef` row (a C++ scoped
+    `enum class`, Rust's `impl EnumName`). A C enum is a `memberdef` with kind
+    `'enumeration'`, not a compound, so the alias sent the caller to a subject the name cannot
+    resolve as and `_chosen_kind` correctly returned None:
+
+        dossier("ent_decision_t", kind="enum")  ->  None
+
+    `enum` is the word a human types; `enumeration` is doxygen's spelling, learned only by
+    reading a `search` row. The natural guess failing SILENTLY is the shape gh#6 was filed
+    over in the first place.
+
+    THE ALIAS IS NOW CONDITIONAL ON WHAT THE NAME IS. It offers `class` first — the compound
+    reading, which is what the alias was written for and must keep working — and falls to
+    `enumeration` when the name is not a compound.
+    """
+    db, repo = _index(tmp_path)
+    doss = q.dossier(db, "ent_decision_t", kind="enum", repo_root=repo)
+    assert doss is not None, "the natural word must reach the enum it names"
+    assert doss.kind == "enumeration"
+    assert doss.enumeration is not None and doss.enumeration.name == "ent_decision_t"
+
+
+def test_enum_still_prefers_the_compound_when_the_name_is_one(tmp_path: Path) -> None:
+    """THE CONTROL THE ALIAS EXISTS FOR. `enum` was mapped to `class` because a `compounddef`
+    row with kind='enum' — an enum that owns members — IS a compound. A name that is one must
+    still resolve that way, so the alias offers `class` first and only falls through.
+    """
+    from clew.query.subject import _chosen_kind
+
+    assert _chosen_kind(("class", "enumeration"), "enum") == "class"
+    assert _chosen_kind(("enumeration",), "enum") == "enumeration"
+    assert _chosen_kind(("class",), "enum") == "class"
+
+
+def test_enum_on_a_name_that_is_neither_still_refuses(tmp_path: Path) -> None:
+    """A KIND IS A FILTER, NOT AN OVERRIDE — the rule `_chosen_kind` records and its tests
+    pin. A conditional alias must not become a way to smuggle in a kind the name does not
+    resolve to: `enum` on a plain function is still None, not the function relabelled.
+    """
+    from clew.query.subject import _chosen_kind
+
+    assert _chosen_kind(("function",), "enum") is None
+    assert _chosen_kind((), "enum") is None
+
+
+def test_the_enum_subject_survives_the_mcp_flatten(tmp_path: Path) -> None:
+    """THE HALF OF gh#6 THAT WAS NEVER WIRED. Every other test here calls the query API,
+    which built the enumeration subject correctly from the day it landed. `_flatten_subject`
+    reads `SubjectDossier.section` to make the MCP payload, and that property carried a
+    hand-written tuple of seven sections which `enumeration` was left out of — so the tool a
+    model actually calls answered `found: false` for every enum in every index, while
+    `search` listed the same names and `resolve_subject` reported the kind.
+
+    IT IS THE CONFIDENT NEGATIVE, not merely a gap. `unresolved_kinds` deliberately stopped
+    naming `enumeration` when it became a subject kind, so the reply no longer carried the
+    coverage-limitation clause that made the ORIGINAL gh#6 report survivable — it became a
+    bare "definitive negative from the database" for a symbol the index holds with a brief,
+    a body span and its enumerators.
+
+    Measured live on the released server before the fix:
+
+        dossier("ent_decision_t") -> found: false, "a kind `dossier` does not describe yet"
+
+    @brief The MCP payload for an enumeration subject is populated, not a miss.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server.tools_query import QueryTools
+
+    db, repo = _index(tmp_path)
+    tools = QueryTools(lambda: db, lambda: repo)
+    reply = tools.dossier("ent_decision_t")
+    assert reply.get("found") is not False, "an indexed enum must not read as a negative"
+    assert reply["subject_kind"] == "enumeration"
+    assert reply["name"] == "ent_decision_t"

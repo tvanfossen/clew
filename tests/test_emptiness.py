@@ -32,6 +32,7 @@ from pathlib import Path
 
 import pytest
 
+from clew.mcp_server.emptiness import NOTE_BUDGET, _SERVED_STRING_CAP
 from clew.mcp_server.tools_query import QueryTools
 from clew.query import index_scope, indexed_extensions, token_hit_counts
 
@@ -324,7 +325,26 @@ def test_an_empty_reply_does_not_repeat_the_scope_DERIVATION(wide_db: Path) -> N
     assert "reason" not in out["scope"], "the derivation belongs to status, not to a query"
     assert "index_scope:" not in body, "declaration advice is operator guidance, not an answer"
     assert "no doxygen-guard config was found" not in body
-    assert len(body) < 900, f"an empty search reply grew back to {len(body)} bytes"
+
+    ## MEASURED ON THE NOTE, NOT ON THE REPLY'S REPR (gh#30). This asserted
+    ## `len(str(out)) < 900`, and two things were wrong with that. The repr carries `target`,
+    ## whose length is a property of somebody's checkout path — so the threshold moved with the
+    ## machine, and a real index already produced 927 bytes while this fixture's tmp_path kept
+    ## it under. And 900 was a round number rather than a constraint: the actual ceiling is the
+    ## 2,048-character per-STRING cap `server.py` measured, which cuts a served string in
+    ## silence.
+    ##
+    ## So the budget is now the note — the string that is actually capped — against a number
+    ## with real headroom. `_SEARCHED` is DERIVED from `SEARCHED_MEMBERDEF_KINDS` on purpose, so
+    ## the reply grows every time a corpus is added; adding `enumvalue` for gh#6 tripped the old
+    ## threshold and was paid for by compressing prose, which does not scale. The headroom is
+    ## what lets the derivation keep its promise.
+    note = out["note"]
+    assert len(note) < NOTE_BUDGET, (
+        f"the empty-search note is {len(note)} chars against a {NOTE_BUDGET} budget, and the "
+        f"client cuts a served string at {_SERVED_STRING_CAP} in silence. Shorten it rather "
+        f"than raising this: the derived corpus list is load-bearing, the prose around it is not."
+    )
 
 
 ## @brief The other list-returning tools keep the strong note unchanged.

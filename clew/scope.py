@@ -41,8 +41,10 @@ Nothing here is repo-specific. Every tier reads a declaration or the tree itself
 
 from __future__ import annotations
 
+import contextlib
 import os
 import subprocess
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -214,7 +216,7 @@ def _direct_parent(tree: Path, root: Path, all_nested: list[Path]) -> Path:
 ## @brief Split a repository into first-party and per-nested-tree indexes, at any depth.
 ## @param repo_root The repository root.
 ## @return The sub-indexes, or an empty list when the repo holds no nested trees.
-## @version 3
+## @version 4
 ## @req REQ-DDB-INDEX-002
 def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
     """EMPTY MEANS "DO NOT SPLIT", and that is the compatibility contract. A repository with
@@ -238,7 +240,7 @@ def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
 
     @brief Derive the sub-index split from nested git trees, at any depth.
     @return The split, or [] to build the repository whole.
-    @version 3
+    @version 4
     """
     root = Path(repo_root).expanduser().resolve()
     ## THE SPLIT USES THE BUILD'S OWN RULE, and skipping this cost a real target twenty minutes.
@@ -264,17 +266,51 @@ def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
     for tree in nested:
         parent = _direct_parent(tree, root, nested)
         children_of.setdefault(parent, []).append(tree)
-    first = SubIndex(
-        name=FIRST_PARTY_INDEX, roots=(root,), excludes=tuple(children_of.get(root, []))
-    )
-    others = [
-        SubIndex(
-            name=_sub_index_name(tree, root),
-            roots=(tree,),
-            excludes=tuple(children_of.get(tree, [])),
+
+    ## gh#23. A DERIVED SCOPE IS NOT A CURATED ONE, and that is why it must carry the ignores.
+    ## A sub-index builds through a DECLARED `index_scope`, which the resolver takes at its word
+    ## and never walks — correct for a human-written `.clew.yaml`, where walking would overrule
+    ## the author. But THIS declaration is machine-derived, so nobody ever told it to skip the
+    ## vendored tree's own `build/`, and a vendored dependency shipping generated headers there
+    ## had `search` resolving symbols into throwaway output.
+    ##
+    ## ASKS GIT, NOT THE MERGED EXCLUDE SET. `ignored` above is gitignored paths PLUS the dot
+    ## and cache directories `_pruned_dirs` adds, and folding those in would put `.git` into
+    ## every sub-index's excludes — harmless but untrue to what this is for, and it broke the
+    ## split test's own statement that a tree with no ignores of its own excludes nothing.
+    ## What belongs here is exactly what the tree's own git says to ignore.
+    ##
+    ## Per tree rather than per repository, so this stays proportional to the number of
+    ## vendored trees rather than repeating the whole-tree walk gh#24 just removed.
+    git_ignored = {p.resolve() for p in _gitignored_paths(root)}
+    for tree in nested:
+        git_ignored |= {p.resolve() for p in _gitignored_paths(tree)}
+
+    def _own_ignores(tree: Path, children: list[Path]) -> list[Path]:
+        """This tree's own gitignored paths, minus anything a child already excludes."""
+        kids = set(children)
+        return sorted(
+            p
+            for p in git_ignored
+            if p != tree and _under_any(p, {tree}) and not _under_any(p, kids)
         )
-        for tree in nested
-    ]
+
+    first_children = children_of.get(root, [])
+    first = SubIndex(
+        name=FIRST_PARTY_INDEX,
+        roots=(root,),
+        excludes=tuple(first_children + _own_ignores(root, first_children)),
+    )
+    others = []
+    for tree in nested:
+        kids = children_of.get(tree, [])
+        others.append(
+            SubIndex(
+                name=_sub_index_name(tree, root),
+                roots=(tree,),
+                excludes=tuple(kids + _own_ignores(tree, kids)),
+            )
+        )
     return [first] + others
 
 
@@ -545,10 +581,49 @@ def whole_repo_scope(
     )
 
 
+## The per-build answer to "which trees under this root are separate git repositories",
+## or None when no build is in flight. gh#24: three callers need this — descent exclusion,
+## dependency ownership and the sub-index split — and none was given another's answer, so a
+## single build walked the same tree FOUR times. Measured on a real repo with vendored
+## submodules the resolve stage cost ~24s while every other stage totalled a few hundred ms.
+##
+## SCOPED TO A BUILD, NEVER TO THE PROCESS, and the distinction is a correctness one rather
+## than tidiness. This is filesystem state: a submodule added or removed while a long-lived
+## MCP server runs would make a process-lifetime cache serve a stale SCOPE, and scope decides
+## what is indexed at all — so being wrong costs a wrong index, not a slow one. Outside a
+## build the cache is None and every call walks, exactly as before it existed.
+_NESTED_CACHE: dict[Path, list[Path]] | None = None
+
+
+## @brief Share one nested-tree walk across everything a single build asks.
+## @return Context manager; the OUTERMOST activation owns the cache's lifetime.
+## @version 1
+## @req REQ-DDB-CONFIG-001
+@contextlib.contextmanager
+def nested_tree_cache() -> Iterator[None]:
+    """REENTRANT, AND THE OUTERMOST WINS. `build_index` opens one; a caller that has already
+    opened its own must not have the inner exit clear the cache out from under the rest of
+    the build, so an inner activation is inert rather than a second scope.
+
+    @brief Cache nested-tree walks for the duration of one build.
+    @return Generator yielding once.
+    @version 1
+    """
+    global _NESTED_CACHE
+    if _NESTED_CACHE is not None:
+        yield
+        return
+    _NESTED_CACHE = {}
+    try:
+        yield
+    finally:
+        _NESTED_CACHE = None
+
+
 ## @brief Directories holding their own git tree anywhere under a repo root.
 ## @param repo_root Repo root to walk.
 ## @return Absolute paths of nested repository directories, outermost first.
-## @version 1
+## @version 2
 ## @req REQ-DDB-CONFIG-001
 def nested_repo_roots(repo_root: Path) -> list[Path]:
     """THE SAME WALK THAT USED TO EXCLUDE THESE TREES, made public so gh#335 can tag
@@ -565,11 +640,21 @@ def nested_repo_roots(repo_root: Path) -> list[Path]:
     The root ITSELF is never nested, so a root that IS a repository does not report
     itself.
 
+    SHARED ACROSS ONE BUILD (gh#24) when `nested_tree_cache` is active, because three
+    callers ask this same question about the same root and a walk of a large tree is the
+    dominant cost of an otherwise-incremental refresh. Keyed on the RESOLVED root so two
+    callers spelling the same tree differently still share the answer.
+
     @brief Find the nested git trees under a repo root.
     @return Absolute paths of nested repository directories.
-    @version 1
+    @version 2
     """
-    return _nested_repos_under(Path(repo_root).expanduser().resolve())
+    root = Path(repo_root).expanduser().resolve()
+    if _NESTED_CACHE is None:
+        return _nested_repos_under(root)
+    if root not in _NESTED_CACHE:
+        _NESTED_CACHE[root] = _nested_repos_under(root)
+    return _NESTED_CACHE[root]
 
 
 ## @brief Nested trees the repo itself DECLARES as dependencies (submodule gitlinks).

@@ -782,7 +782,7 @@ def _insert_xrefs(
 # @param ctx Path caches for both databases plus the repo root.
 # @param report Accumulating counts.
 # @return None.
-# @version 1
+# @version 2
 # @dg_internal
 def _insert_params(
     work: sqlite3.Connection,
@@ -792,9 +792,9 @@ def _insert_params(
     report: SpliceReport,
 ) -> None:
     """`param` CARRIES NO REFID, which is why this cannot ride on `_insert_relations`. Rows are
-    matched on their full value tuple and inserted only when absent, because doxygen already
-    shares one `param` row across many memberdefs (1072 param rows against 4239 links on this
-    repo) and copying blindly would grow the table on every splice.
+    matched on the schema's own uniqueness key and inserted only when absent, because doxygen
+    already shares one `param` row across many memberdefs (1072 param rows against 4239 links on
+    this repo) and copying blindly would grow the table on every splice.
 
     Delete-only until an adversarial review measured it: memberdef_param 4322 -> 4162 on the
     docs-db self-index with master as its own subset. The visible consequence is in
@@ -803,12 +803,39 @@ def _insert_params(
 
     @brief Re-link a changed file's parameters.
     @return None.
-    @version 1
+    @version 2
     """
     columns = [c for c in _columns(sub, "param") if c != "rowid"]
     joined = ", ".join(columns)
     marks = ", ".join("?" * len(columns))
     where = " AND ".join(f"COALESCE({c},'') = COALESCE(?,'')" for c in columns)
+    ## A SECOND LOOKUP ON THE SCHEMA'S OWN KEY (gh#22). doxygen declares
+    ## `CREATE UNIQUE INDEX idx_param ON param (type, defname)`, and this matched all seven
+    ## columns instead. A parameter documented on a header DECLARATION and not repeated on the
+    ## out-of-line DEFINITION differs only in `briefdescription`, so the full-tuple lookup
+    ## called the pair absent, inserted, and hit the unique index.
+    ##
+    ## The IntegrityError is caught upstream and the whole refresh degrades to a full doxygen
+    ## run at WARNING with `ok: true`, so the only symptom is an unexplained cost spike on
+    ## every refresh of a repo that documents its parameters — measured by the reporter as
+    ## 1s, 2s, then 23s in one call where ~8s was normal.
+    ##
+    ## TRIED SECOND, NOT INSTEAD, AND THAT ORDER IS THE WHOLE CORRECTNESS ARGUMENT. Matching on
+    ## the key ALONE also changes rows that never collided — it links a memberdef to whichever
+    ## row happens to share the key rather than to the one carrying its values — and
+    ## `test_incremental_splice_matches_a_full_rebuild` caught exactly that, disagreeing on
+    ## three `void` parameters. So the full-tuple lookup still decides every case it used to,
+    ## and the key lookup runs only when that found nothing, which is precisely the case that
+    ## previously reached INSERT and raised.
+    ##
+    ## Behaviour therefore changes ONLY where an insert would have violated the index.
+    ##
+    ## Absent key columns fall back to no second lookup at all, which is the pre-gh#22
+    ## behaviour and the same graceful degradation the rest of this module gives a database
+    ## that predates a column.
+    key = [c for c in ("type", "defname") if c in columns]
+    key_where = " AND ".join(f"COALESCE({c},'') = COALESCE(?,'')" for c in key)
+    key_index = [columns.index(c) for c in key]
     for rel in sorted(changed):
         sub_file = ctx["sub_paths"].get(rel)
         if sub_file is None:
@@ -836,6 +863,14 @@ def _insert_params(
                 f"SELECT rowid FROM param WHERE {where} LIMIT 1",
                 values,  # noqa: S608
             ).fetchone()
+            if existing is None and key:
+                ## The row doxygen's unique index says this one IS, differing only in a column
+                ## the index does not key on — a parameter documented on the declaration and
+                ## not on the definition being the case that reaches here.
+                existing = work.execute(
+                    f"SELECT rowid FROM param WHERE {key_where} LIMIT 1",  # noqa: S608
+                    [values[i] for i in key_index],
+                ).fetchone()
             if existing is None:
                 cur = work.execute(
                     f"INSERT INTO param({joined}) VALUES ({marks})",

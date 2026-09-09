@@ -2049,7 +2049,7 @@ class DocsDbServer:
     ## @param exclude Operator-stated exclusions; None inherits the recorded ones, [] withdraws them.
     ## @param options Tier-1 build options keyed by declaration-file section name; None states nothing.
     ## @return Result dict (ok / built / doxyfile / output, plus error and traceback on a failure).
-    ## @version 11
+    ## @version 12
     ## @req REQ-DDB-CONFIG-008
     ## @dg_internal
     def _run_build(
@@ -2181,6 +2181,27 @@ class DocsDbServer:
                     ## operator never asked to narrow, which is #511's failure exactly — a
                     ## smaller index that reports as healthy. Splitting is something a caller
                     ## opts into by building the named targets.
+                    ## gh#26. THE SHAPE CHECK COMES FIRST, because it is a shape check. Whether
+                    ## a stated `index_scope` is usable is knowable from the mapping alone —
+                    ## `roots:` is required, `excludes:` alone does nothing — and it needs no
+                    ## filesystem at all. It used to run inside `build_index`, AFTER
+                    ## `_sub_index_scope` had already walked the tree for nested repositories to
+                    ## compute a scope this build was never going to use: a caller who mistyped
+                    ## `index_scope` paid ~29s to be told the call was invalid.
+                    ##
+                    ## `build_index` still runs its own check, and must: this one guards the
+                    ## MCP path's extra pre-build work, it does not replace the build's refusal.
+                    from ..scope import INDEX_SCOPE_SECTION, declared_scope_rejection
+
+                    stated_scope = (options or {}).get(INDEX_SCOPE_SECTION)
+                    rejection = declared_scope_rejection(repo, None, stated_scope)
+                    if rejection is not None:
+                        raise ValueError(
+                            f"{rejection} — refusing rather than silently falling back to the "
+                            f"whole repository, which is exactly the scope this declaration was "
+                            f"narrowing away from. Fix the declaration (`roots:` is required; "
+                            f"`excludes:` alone does nothing) or drop it."
+                        )
                     sub_exclude, sub_options = _sub_index_scope(target, repo, exclude, options)
                     build_index(
                         output=Path(target.db_path),

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import pytest
 
+from clew.ast_symbols import harvest_enumerators
 from clew.call_edges import (
     SOURCE_AST,
     SOURCE_AST_MEMBER,
@@ -429,3 +430,37 @@ def test_a_NON_construction_qualifier_matching_several_still_records_nothing() -
         definition_of={30: "void Net::send", 31: "void Net::send"},
     )
     assert resolved == [] and fuzzy == [], "only construction unlocks the fuzzy emission"
+
+
+_ENUM_CLASS_HEADER = """\
+enum class Scoped : int { X = 1, Y };
+"""
+
+
+def test_an_enum_class_in_a_dot_h_still_yields_its_values(tmp_path) -> None:
+    """gh#28, CLOSED AS UNREACHABLE — and pinned here because what makes it unreachable is a
+    heuristic that could change.
+
+    Called DIRECTLY, the C grammar reads `enum class Scoped : int { ... }` as an enum named
+    `class` with no body, so `harvest_enumerators` finds nothing. That is what the issue was
+    filed on, and the probe behind it bypassed the pipeline.
+
+    Through the real parse path it cannot happen: gh#50 retries a `.h` as C++ when the C parse
+    has errors, and `enum class` ALWAYS errors under C — measured on three shapes, with and
+    without a base type, alone and beside ordinary C. So the C++ grammar reads it and the values
+    arrive.
+
+    The property this pins is the CONJUNCTION: if gh#50's retry ever became conditional on
+    something other than a parse error, or if a future C grammar accepted `enum class` without
+    erroring, the enumerators would silently vanish for every scoped enum in a header. Neither
+    half is visible from the other's tests.
+    """
+    parsed = _parse(tmp_path, "scoped.h", _ENUM_CLASS_HEADER)
+    assert parsed is not None
+    tree, src = parsed
+
+    assert _errors(tree.root_node) == 0, (
+        "the .h was not retried as C++ — gh#50's reparse is what keeps gh#28 unreachable"
+    )
+    got = {(e.enum_name, e.name) for e in harvest_enumerators(tree, src)}
+    assert got == {("Scoped", "X"), ("Scoped", "Y")}, got
