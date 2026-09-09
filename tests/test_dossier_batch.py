@@ -26,6 +26,7 @@ import pytest
 from clew import query as q
 from clew.mcp_server.tools_query import (
     RESPONSE_BUDGET_BYTES,
+    _DOSSIER_LISTS,
     QueryTools,
     _budget_batch,
     _fair_shares,
@@ -350,3 +351,69 @@ def test_a_depth_one_chain_is_never_stripped_to_nothing() -> None:
     assert payload["chain"]["nodes"], "the last ring must not be stripped"
     assert "chain_depth" not in cut, "nothing was stepped, so nothing may be claimed"
     assert cut.get("callers"), "with no depth to give, row trimming is what pays"
+
+
+## Section list keys that a budget must NOT trim, each with the reason trimming it would be
+## wrong rather than merely lossy. Deliberately tiny: this set is what the parity test below
+## can be defeated by, so every entry has to earn its place in the comment beside it.
+_UNTRIMMABLE = {
+    ## A hierarchy is not a list of independent rows. Half a base list describes a DIFFERENT
+    ## class, and a consumer cannot tell a trimmed one from a shallow one — `_DOSSIER_LISTS`'
+    ## own comment already names these two as the case against deriving the tuple outright.
+    "bases",
+    "derived",
+}
+
+
+def test_every_top_level_dossier_list_is_budgeted_or_named_untrimmable() -> None:
+    """THE TABLE PARITY `_DOSSIER_LISTS` ASKS FOR IN ITS OWN COMMENT and nothing performed:
+
+        "A key that is not in this tuple is a list nothing can trim, so a subject kind added
+         without its lists reintroduces the unbounded payload one kind at a time."
+
+    `_flatten_subject` spreads a section's fields as TOP-LEVEL keys, so every list-typed field
+    of every section type becomes a budgetable key — and six were outside the tuple when this
+    was written: `termini`, `requirements`, `overrides`, `overridden_by` on the FUNCTION
+    dossier, `enumerators` on the enum subject, `gate_symbol_names` on the config subject.
+
+    THE SECTION TYPES ARE DERIVED, not listed, from `SubjectDossier`'s own non-envelope field
+    annotations — the same source `SubjectDossier.section` now reads. A section added to that
+    dataclass therefore arrives here with its lists, which is the property gh#31 lacked: there,
+    a hand-written list of seven sections silently omitted the eighth and a whole subject kind
+    became unreachable over MCP.
+
+    IT DOES NOT DERIVE `_DOSSIER_LISTS` ITSELF, because that tuple is also an ORDER — biggest
+    contributor trimmed first — and because trimming a class hierarchy is wrong rather than
+    lossy. `_UNTRIMMABLE` carries the exceptions by name, so an omission is a decision someone
+    wrote down instead of a gap.
+
+    @brief Every list a dossier payload can carry is trimmable or named untrimmable.
+    @return None.
+    @version 1
+    """
+    import typing
+    from dataclasses import fields, is_dataclass
+
+    from clew.query.models import SubjectDossier
+
+    envelope = {"subject", "kind", "also", "chain"}
+    hints = typing.get_type_hints(SubjectDossier)
+    section_types = [
+        arg
+        for f in fields(SubjectDossier)
+        if f.name not in envelope
+        for arg in typing.get_args(hints[f.name])
+        if is_dataclass(arg)
+    ]
+    assert len(section_types) == len([f for f in fields(SubjectDossier) if f.name not in envelope])
+
+    for section in section_types:
+        section_hints = typing.get_type_hints(section)
+        for name, annotation in section_hints.items():
+            if typing.get_origin(annotation) not in (list, tuple):
+                continue
+            assert name in _DOSSIER_LISTS or name in _UNTRIMMABLE, (
+                f"{section.__name__}.{name} is a top-level list on a dossier payload that "
+                f"no budget can trim; add it to _DOSSIER_LISTS or to _UNTRIMMABLE with the "
+                f"reason trimming it would be wrong"
+            )
