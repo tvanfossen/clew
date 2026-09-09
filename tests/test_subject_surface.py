@@ -71,6 +71,40 @@ def test_every_declared_subject_kind_has_a_probe_and_a_builder() -> None:
     assert set(q.SUBJECT_KINDS) == set(_PROBES) == set(_BUILDERS)
 
 
+def test_every_builders_section_is_reachable_through_the_envelope() -> None:
+    """THE THIRD PARITY, and its absence was a SHIPPED defect. `SubjectDossier.section` is
+    what `_flatten_subject` reads to build the MCP payload, and it returned None for the
+    whole `enumeration` kind — so `dossier("ent_decision_t")` over MCP answered
+    `found: false` on a symbol carrying a brief, a body span and its enumerators, which is
+    gh#6's fix being inert on the very surface gh#6 was filed against. Worse than the
+    original: `unresolved_kinds` no longer names `enumeration` (it IS a subject kind now),
+    so the reply lost its coverage-limitation clause and became a BARE definitive negative.
+
+    `section`'s own docstring already promised this could not happen — "a section added to
+    this dataclass is found without a second edit somewhere else" — while the code it
+    documented was a hand-written tuple that the eighth section was simply left out of. A
+    claim in a docstring is not a mechanism.
+
+    IT ASSERTS THE KEY, NOT THE COUNT. A count passes the day someone adds a section and
+    removes another, and this is exactly the edit that gets forgotten.
+
+    @brief Every `_BUILDERS` section key round-trips through `SubjectDossier.section`.
+    @return None.
+    @version 1
+    """
+    from dataclasses import fields
+
+    from clew.query.models import SubjectDossier
+
+    envelope = {"subject", "kind", "also", "chain"}
+    sections = [f.name for f in fields(SubjectDossier) if f.name not in envelope]
+    assert "enumeration" in sections, "the section this test was written for"
+    for name in sections:
+        sentinel = object()
+        built = SubjectDossier(subject="x", kind="x", **{name: sentinel})
+        assert built.section is sentinel, f"section {name!r} is populated but unreachable"
+
+
 def test_a_name_that_is_two_subjects_reports_both(rich_db: Path) -> None:
     """AN ARBITRARY PICK REPORTED AS THE ANSWER is this repo's own recorded failure, one
     level up: three unrelated `_classify` functions collapsed into one node and the

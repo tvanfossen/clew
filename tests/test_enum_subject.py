@@ -220,3 +220,35 @@ def test_enum_on_a_name_that_is_neither_still_refuses(tmp_path: Path) -> None:
 
     assert _chosen_kind(("function",), "enum") is None
     assert _chosen_kind((), "enum") is None
+
+
+def test_the_enum_subject_survives_the_mcp_flatten(tmp_path: Path) -> None:
+    """THE HALF OF gh#6 THAT WAS NEVER WIRED. Every other test here calls the query API,
+    which built the enumeration subject correctly from the day it landed. `_flatten_subject`
+    reads `SubjectDossier.section` to make the MCP payload, and that property carried a
+    hand-written tuple of seven sections which `enumeration` was left out of — so the tool a
+    model actually calls answered `found: false` for every enum in every index, while
+    `search` listed the same names and `resolve_subject` reported the kind.
+
+    IT IS THE CONFIDENT NEGATIVE, not merely a gap. `unresolved_kinds` deliberately stopped
+    naming `enumeration` when it became a subject kind, so the reply no longer carried the
+    coverage-limitation clause that made the ORIGINAL gh#6 report survivable — it became a
+    bare "definitive negative from the database" for a symbol the index holds with a brief,
+    a body span and its enumerators.
+
+    Measured live on the released server before the fix:
+
+        dossier("ent_decision_t") -> found: false, "a kind `dossier` does not describe yet"
+
+    @brief The MCP payload for an enumeration subject is populated, not a miss.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server.tools_query import QueryTools
+
+    db, repo = _index(tmp_path)
+    tools = QueryTools(lambda: db, lambda: repo)
+    reply = tools.dossier("ent_decision_t")
+    assert reply.get("found") is not False, "an indexed enum must not read as a negative"
+    assert reply["subject_kind"] == "enumeration"
+    assert reply["name"] == "ent_decision_t"

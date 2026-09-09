@@ -16,7 +16,7 @@ a fabricated `file:2244` citation in a graded answer.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 
 from ..vocabulary import (
     GATE_ORIGIN_UNDECLARED,
@@ -1910,6 +1910,13 @@ SUBJECT_KINDS: tuple[str, ...] = (
 )
 
 
+## The `SubjectDossier` fields that are NOT a section: the two a consumer always branches
+## on, the disclosure of what else the name resolved to, and the traversal a depth>1 request
+## adds. Everything else on the dataclass is a section, which is what lets `section` find one
+## it was never told about.
+_ENVELOPE_FIELDS = frozenset({"subject", "kind", "also", "chain"})
+
+
 ## @brief Whatever the index knows about ONE named subject, whatever kind it is.
 ## @version 1
 @dataclass(frozen=True)
@@ -1950,31 +1957,33 @@ class SubjectDossier:
 
     ## @brief The one populated section, whatever kind it is.
     ## @return The section dataclass, or None when nothing resolved.
-    ## @version 1
+    ## @version 2
     ## @req REQ-DDB-QUERY-001
     @property
     def section(self) -> object | None:
-        """A CONSUMER SHOULD NOT HAVE TO MAP KIND TO FIELD NAME, because two of the eight
+        """A CONSUMER SHOULD NOT HAVE TO MAP KIND TO FIELD NAME, because two of the nine
         do not match (`class` -> `compound`, `macro` -> `function`) and a consumer that
         guessed would read `None` off a populated dossier. The mapping lives here, once,
         beside the fields it maps.
 
-        Reads the fields rather than a lookup table keyed on `kind`, so a section added
-        to this dataclass is found without a second edit somewhere else.
+        THE HAND-WRITTEN TUPLE THAT USED TO BE HERE SHIPPED A DEFECT (gh#29's neighbour).
+        This docstring already claimed "a section added to this dataclass is found without a
+        second edit somewhere else" while listing seven sections by hand, and `enumeration`
+        — the eighth, added by gh#6 — was left out. `_flatten_subject` reads this property to
+        build the MCP payload, so `dossier` answered `found: false` for EVERY enum in every
+        index: a bare definitive negative on symbols carrying a brief, a body span and their
+        enumerators, on the one surface gh#6 was filed against.
+
+        So it now reads the dataclass's own fields, minus the envelope keys. A claim about a
+        mechanism is not the mechanism, and the fix is the smaller of the two: the promise was
+        already the right promise.
 
         @brief Return whichever section this dossier populated.
         @return The populated section, or None.
-        @version 1
+        @version 2
         """
-        for value in (
-            self.function,
-            self.variable,
-            self.compound,
-            self.requirement,
-            self.lock,
-            self.thread,
-            self.config,
-        ):
+        for name in (f.name for f in fields(self) if f.name not in _ENVELOPE_FIELDS):
+            value = getattr(self, name)
             if value is not None:
                 return value
         return None
