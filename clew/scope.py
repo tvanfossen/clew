@@ -526,7 +526,7 @@ def derive_scope(
 ## @param repo_root Repo root to index in full.
 ## @param guard_config Explicit guard-config path overriding discovery, or None.
 ## @return A DerivedScope rooted at the repo, nested git trees INCLUDED.
-## @version 2
+## @version 3
 ## @req REQ-DDB-CONFIG-001
 def whole_repo_scope(
     repo_root: Path, guard_config: Path | str | None = None, rejected: str = ""
@@ -549,7 +549,7 @@ def whole_repo_scope(
 
     @brief Build the whole-repo index scope.
     @return The whole-repo scope.
-    @version 2
+    @version 3
     """
     root = Path(repo_root).expanduser().resolve()
     ignored = _gitignored_paths(root)
@@ -557,9 +557,16 @@ def whole_repo_scope(
     ## at a submodule boundary, so the sweep above reports nothing inside a nested
     ## tree — and a nested tree is now INDEXED rather than excluded, which is exactly
     ## when its build output starts to matter. Asked per nested repo instead.
-    for nested in nested_repo_roots(root):
+    ##
+    ## gh#36. THE SAME LIST BOUNDS THE PRUNE WALK BELOW, which is what makes stopping at a
+    ## nested tree free. `nested_repo_roots` is the walk gh#24 cached per build and this call
+    ## site already paid for it; probing each directory for a `.git` instead cost two stats per
+    ## directory everywhere — measured +68 ms on 6,000 first-party directories in a repository
+    ## that vendors nothing, which is most of them.
+    nested_trees = nested_repo_roots(root)
+    for nested in nested_trees:
         ignored.extend(_gitignored_paths(nested))
-    excludes = [*ignored, *_pruned_dirs(root, set(ignored))]
+    excludes = [*ignored, *_pruned_dirs(root, set(ignored), {p.resolve() for p in nested_trees})]
     return DerivedScope(
         source=SOURCE_WHOLE_REPO,
         ## PRESENT-BUT-UNUSABLE IS NOT ABSENT (gh#5). A declaration carrying an `index_scope:`
@@ -734,10 +741,11 @@ def _gitignored_paths(root: Path) -> list[Path]:
 ## @brief Dot and cache directories anywhere under a whole-repo root.
 ## @param root Resolved repo root.
 ## @param already Paths already excluded, which are neither re-reported nor walked.
+## @param nested Nested git trees the walk stops at, from the caller's own cached walk.
 ## @return Absolute paths of directories the index should never be handed.
-## @version 2
+## @version 3
 ## @dg_internal
-def _pruned_dirs(root: Path, already: set[Path]) -> list[Path]:
+def _pruned_dirs(root: Path, already: set[Path], nested: set[Path]) -> list[Path]:
     """`_skip_dir` is this module's rule for a directory no repo declares and none
     wants indexed. Under a declared root it is applied by pruning the walk that
     builds the roots; the whole-repo root is never walked for its files, so the same
@@ -745,11 +753,32 @@ def _pruned_dirs(root: Path, already: set[Path]) -> list[Path]:
 
     @brief Collect the dot/cache directories a whole-repo scope must exclude.
     @return Absolute directory paths.
-    @version 1
+    @version 2
     """
     found: list[Path] = []
     for dirpath, dirnames, _ in os.walk(root, onerror=_warn_unwalkable):
         here = Path(dirpath)
+        ## gh#36. STOP AT A NESTED GIT TREE, taking its own top-level dot directories with us.
+        ## Descending them cost ~24.6 s of every build on a repository vendoring boost, opencv
+        ## and pcl — the whole 641 MB of boost read to collect `libs/*/.github` entries doxygen
+        ## would skip by file pattern anyway, which were also 390-odd of the exclude entries
+        ## that overflowed a client's reply limit (gh#37).
+        ##
+        ## gh#333's REASON IS KEPT, NOT DISCARDED. That change made this walk enter nested trees
+        ## deliberately, because the whole-repo tier INDEXES them and their `.git` object store
+        ## was the one part of the tree nothing pruned. So the tree's own top level is still
+        ## collected — a nested CLONE's `.git` is a directory and is exactly that case — and
+        ## only the descent below it stops. What is lost is a dot-directory eleven levels inside
+        ## a vendored library, which is the thing that was never worth 641 MB to find.
+        ##
+        ## MEMBERSHIP, NOT A FILESYSTEM PROBE. The first version of this called `_holds_git_tree`
+        ## per directory and cost two stats each — measured +68 ms on 6,000 first-party
+        ## directories in a repository with nothing vendored, so the fix charged every repository
+        ## for a boundary few have. The caller already holds the answer from gh#24's cached walk.
+        if here in nested:
+            found.extend(here / name for name in dirnames if _skip_dir(name))
+            dirnames[:] = []
+            continue
         if len(here.relative_to(root).parts) >= _MAX_DEPTH:
             logger.warning(
                 "index_scope: depth limit reached under %s — not pruning below %s", root, here
