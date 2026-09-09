@@ -699,6 +699,49 @@ def test_a_small_reply_keeps_the_full_staleness_prose(rich_db: Path) -> None:
     assert fitted == full
 
 
+## @brief Read PEP 610 `direct_url.json` text for the editable flag.
+## @param raw The file's contents, or None when the file is absent.
+## @return True only when `dir_info.editable` is truthy.
+## @version 1
+def _editable_from(raw: str | None) -> bool:
+    """SEPARATE FROM THE LOOKUP so the three install shapes can be asserted without an
+    installed package to stand in for each: absent file (a wheel from PyPI), present without
+    the flag (a local `pip install .`), present with it (`pip install -e .`).
+
+    @brief Parse the editable flag out of PEP 610 provenance.
+    @return True when explicitly editable.
+    @version 1
+    """
+    import json
+
+    try:
+        return bool(json.loads(raw or "{}").get("dir_info", {}).get("editable"))
+    except json.JSONDecodeError:
+        return False
+
+
+## @brief True when clew is installed into this environment as an editable checkout.
+## @return True only on positive PEP 610 evidence; False when absent or unreadable.
+## @version 1
+def _installed_editable() -> bool:
+    """POSITIVE EVIDENCE ONLY. A missing `direct_url.json` is what a wheel from PyPI looks
+    like, and a local non-editable `pip install .` writes one WITHOUT the editable flag — so
+    everything that is not explicitly marked editable is treated as a normal install, and the
+    caller's strict assertion stands. Guessing the other way would let an unrecognised install
+    shape silently opt out of the check it most needs.
+
+    @brief Read PEP 610 install provenance.
+    @return True when `dir_info.editable` is set.
+    @version 1
+    """
+    import importlib.metadata as md
+
+    try:
+        return _editable_from(md.distribution("clew-trace").read_text("direct_url.json"))
+    except md.PackageNotFoundError:
+        return False
+
+
 ## @brief The version `status` reports must be the version the package actually declares.
 ## @return None.
 ## @version 1
@@ -719,9 +762,27 @@ def test_status_reports_the_real_package_version_not_the_unknown_fallback() -> N
     ASSERTED AGAINST `pyproject.toml`, NEVER A LITERAL. A hardcoded "1.0.0" here would be a
     third place to forget on the next release, which is the shape of the defect above.
 
-    @brief `package_version()` agrees with pyproject, and is not the fallback.
+    TWO ASSERTIONS, AND THEY ARE NOT THE SAME KIND OF THING. `!= "unknown"` is a property of
+    the PRODUCT: a wheel's metadata and its pyproject are built from one source, so a real
+    install can only disagree by looking up the wrong distribution name, which is the defect
+    above. Equality with the working tree's pyproject is a property of the ENVIRONMENT, and
+    what it means depends on how the package was installed:
+
+      * NON-EDITABLE — the code under test is the installed copy, so a version behind the
+        working tree means the whole suite is exercising stale code. A hard failure, and the
+        most useful thing this test does for anyone running it that way.
+      * EDITABLE — the code under test IS the working tree and only the `.dist-info` is
+        behind. Nothing about the run is stale; the version bump simply has not been
+        reinstalled. Failing here says "reinstall" while reporting it as a version defect,
+        and it turned a routine release bump into a red suite.
+
+    So the mode is MEASURED rather than assumed, from PEP 610's `direct_url.json`. Absent or
+    unreadable means NOT editable, which keeps the strict assertion as the default: an
+    install shape this cannot recognise fails loudly instead of quietly loosening.
+
+    @brief `package_version()` is never the fallback, and matches pyproject unless editable.
     @return None.
-    @version 1
+    @version 2
     """
     from clew.mcp_server.freshness import code_identity, package_version
     from clew.tomlcompat import require_toml_module
@@ -736,15 +797,47 @@ def test_status_reports_the_real_package_version_not_the_unknown_fallback() -> N
         f"this environment, or {pyproject.name} renamed the distribution and "
         "freshness._DISTRIBUTION was not updated with it — the exact defect that shipped."
     )
-    assert reported == want, (
-        f"status would report package_version={reported!r} while pyproject declares {want!r}"
-    )
-
     ## THROUGH `code_identity` TOO, because that is the payload `status` actually serves.
     ## Asserting only on the helper would leave a wrapper free to drop or rename the field.
-    assert code_identity().get("package_version") == want, (
+    assert code_identity().get("package_version") == reported, (
         "code_identity() is what reaches a status reply; it must carry the same version"
     )
+    if _installed_editable():
+        return
+    assert reported == want, (
+        f"status would report package_version={reported!r} while pyproject declares {want!r}. "
+        "This is a NON-EDITABLE install, so the code under test is the installed copy too — "
+        "the whole run is exercising a version behind this working tree."
+    )
+
+
+##
+# @brief The editable probe must not answer True for a normal install.
+# @return None.
+# @version 1
+def test_the_editable_probe_defaults_to_strict() -> None:
+    """WHAT THIS PROTECTS is the assertion above, not any product behaviour. A probe that
+    drifted to True everywhere would disable the stale-installed-code check silently and
+    leave the test passing — the same shape as the "unknown" fallback it sits beside: a
+    weakened check that still renders as a pass.
+
+    The three shapes are exactly what pip writes. Only the third is editable, and the two
+    that are not must both come back strict.
+
+    @brief Absent and unflagged provenance both read as non-editable.
+    @return None.
+    @version 1
+    """
+    assert _editable_from(None) is False, "a PyPI wheel writes no direct_url.json at all"
+    assert _editable_from('{"url": "file:///src", "dir_info": {}}') is False, (
+        "a local non-editable install writes the file without the flag"
+    )
+    assert _editable_from("not json at all") is False, "unparseable provenance is not proof"
+    assert _editable_from('{"dir_info": {"editable": true}}') is True
+
+    ## AND IT IS TRUE HERE, which is what makes the assertion above meaningful rather than
+    ## vacuous: this checkout IS editable, so the relaxed branch is the one being exercised.
+    assert _installed_editable() is True, "this repository is installed with `pip install -e`"
 
 
 ##
