@@ -723,6 +723,112 @@ def _chosen_kind(kinds: tuple[str, ...], wanted: str | None) -> str | None:
     return wanted if wanted in kinds else None
 
 
+## Python's enum bases, as doxygen spells the base compound of a class that subclasses one.
+## A generated ctypes mirror derives from `enum::IntEnum`; so does a hand-written enum. That
+## is deliberate — the rule below is about what the SYMBOL is, not where it came from.
+_PY_ENUM_BASES = frozenset({"Enum", "IntEnum", "StrEnum", "IntFlag", "Flag", "ReprEnum"})
+
+
+## @brief True when a compound's immediate bases are all Python enum bases.
+## @param conn Open connection.
+## @param rowid A `compounddef` rowid.
+## @return True when the compound has at least one base and every one is an enum base.
+## @version 1
+## @dg_internal
+def _derives_from_py_enum(conn: sqlite3.Connection, rowid: int) -> bool:
+    """@brief Read one compound's bases and test them against `_PY_ENUM_BASES`.
+    @return True when it subclasses a Python enum.
+    @version 1
+    """
+    rows = conn.execute(
+        "SELECT b.name FROM compoundref r JOIN compounddef b ON b.rowid = r.base_rowid "
+        "WHERE r.derived_rowid = ?",
+        (rowid,),
+    ).fetchall()
+    bases = [str(name).split("::")[-1].split(".")[-1] for (name,) in rows if name]
+    return bool(bases) and all(base in _PY_ENUM_BASES for base in bases)
+
+
+## @brief True when every class-side match for a name is a Python enum subclass.
+## @param conn Open connection.
+## @param name The bare name being resolved.
+## @return True when there is at least one class-kind match and all of them subclass an enum.
+## @version 1
+## @dg_internal
+def _class_side_is_only_enum_mirrors(conn: sqlite3.Connection, name: str) -> bool:
+    """MATCHES WHAT `_is_compound` MATCHED, exact-or-qualified-tail, so the set tested here
+    is the set that made `class` resolve in the first place. A different match rule would
+    let the tie-break fire on compounds the classifier never saw.
+
+    EVERY match, not any: one hand-written class sharing the name is enough to keep the
+    class reading, because then the name really does denote a class somebody wrote.
+
+    @brief Test the whole class-side candidate set.
+    @return True when the class reading is nothing but enum mirrors.
+    @version 1
+    """
+    if not (table_exists(conn, "compounddef") and table_exists(conn, "compoundref")):
+        return False
+    placeholders = ",".join("?" * len(CLASS_KINDS))
+    rows = conn.execute(
+        f"SELECT rowid FROM compounddef WHERE kind IN ({placeholders}) "  # noqa: S608
+        "AND (name = ? OR name LIKE '%::' || ?)",
+        (*CLASS_KINDS, name, name),
+    ).fetchall()
+    return bool(rows) and all(_derives_from_py_enum(conn, rowid) for (rowid,) in rows)
+
+
+## @brief Resolution order with a Python enum mirror ranked below the enum it mirrors.
+## @param db Path, str or open connection to a built index.
+## @param name The name being resolved.
+## @param kinds The kinds the name resolves to, in `SUBJECT_KINDS` order.
+## @return The same kinds, with `enumeration` moved directly above `class` when it applies.
+## @version 1
+## @dg_internal
+def _rank_enum_over_mirror(db: DbSource, name: str, kinds: tuple[str, ...]) -> tuple[str, ...]:
+    """gh#29. `dossier("AgentState")` returned the generated ctypes `IntEnum` in
+    `python/src/entropic/_bindings.py` and not the C++ `enum class` in
+    `include/entropic/core/engine_types.h` — the derivative of the two, on a codebase whose
+    architecture rule makes the C one authoritative.
+
+    NOT THE RULE THAT WAS ASKED FOR, and the measurement is why. The request was to
+    deprioritise the generated FILE, the way `SYNTHETIC_PATH` deprioritises `std::`
+    compounds. Over the three indexed targets — 2,174 class-kind compounds, 308 enum names —
+    the collision occurs TWICE and only one is a mirror; `_bindings.py` holds 15 compounds,
+    so ranking by that file would re-rank 15 resolutions to correct 1, and the marker that
+    identifies it also matches a hand-written `__init__.py` in the same package. That is the
+    `macro_collision` objection exactly: the available structural rule fires on legitimate
+    cases too.
+
+    SO THE TRIGGER IS INHERITANCE, WHICH THE INDEX ALREADY HOLDS. `compoundref` says the
+    mirror subclasses `enum::IntEnum`; all 8 of entropic's mirrors do and nothing else in any
+    of the three indexes subclasses an enum base. It is a statement about the symbol, not a
+    guess about its file, and it fires on exactly the one name measured.
+
+    IT MUST STAY CONDITIONAL ON THE COLLISION. A plain `class Color(Enum)` produces no
+    `memberdef kind='enumeration'` row, so the enumeration probe never fires for it — and
+    declining its class reading outright would resolve `dossier("Color")` to NOTHING on
+    every Python-only repository. A name only loses the class reading when a real enumeration
+    reading is there to take it.
+
+    ONLY `class` IS OUTRANKED. `enumeration` moves directly above it rather than to the
+    front, so a name that is also a function or a lock keeps that reading first — this
+    settles one ambiguity and must not silently settle the others.
+
+    @brief Rank a real enumeration above a Python class that merely mirrors one.
+    @return The reordered kinds.
+    @version 1
+    """
+    if not ("class" in kinds and "enumeration" in kinds):
+        return kinds
+    with connect(db) as conn:
+        if not _class_side_is_only_enum_mirrors(conn, name):
+            return kinds
+    order = [k for k in kinds if k != "enumeration"]
+    at = order.index("class")
+    return tuple(order[:at] + ["enumeration"] + order[at:])
+
+
 ## @brief The bounded traversal a depth>1 request asks for, when the subject has a seed.
 ## @param db Path, str or open connection to a built index.
 ## @param kind The resolved subject kind.
@@ -767,7 +873,7 @@ def _chain_for(
 ## @param direction Traversal direction when depth > 1.
 ## @param max_neighbors Fan-out cap for the traversal.
 ## @return The SubjectDossier, or None when the index holds no subject of that name.
-## @version 1
+## @version 2
 ## @req REQ-DDB-QUERY-004
 ## @req REQ-DDB-QUERY-009
 ## @req REQ-DDB-QUERY-010
@@ -797,7 +903,7 @@ def dossier(
 
     @brief Describe one subject of any kind, with its adjacency.
     @return SubjectDossier or None.
-    @version 1
+    @version 2
     """
     if depth < 1 or depth > MAX_SUBJECT_DEPTH:
         raise ValueError(
@@ -806,7 +912,7 @@ def dossier(
             "bounded because an unbounded one on a hub symbol returns its whole "
             "component."
         )
-    kinds = resolve_subject(db, subject)
+    kinds = _rank_enum_over_mirror(db, subject, resolve_subject(db, subject))
     chosen = _chosen_kind(kinds, kind)
     if chosen is None:
         return None
