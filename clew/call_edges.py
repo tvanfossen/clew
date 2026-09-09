@@ -49,6 +49,7 @@ skip without aborting.
 from __future__ import annotations
 
 import bisect
+import hashlib
 import sqlite3
 from collections import Counter
 from collections.abc import Iterable
@@ -1600,11 +1601,221 @@ def _ast_insert_edges(
     return inserted_resolved, inserted_fuzzy
 
 
+## The cache tag under which one file's RESOLVED EDGES are stored, and the version of the
+## resolution logic that produced them. Bump the version whenever `_fold_call_payload` or
+## anything it reads changes shape, exactly as a harvest `stage_version` is bumped: a cached
+## fold from older logic is not merely stale, it is a different answer wearing this key.
+_FOLD_STAGE = "ast_fold"
+_FOLD_STAGE_VERSION = 1
+
+
+## @brief Digest of every INDEX-WIDE input the fold reads, so a change to any invalidates all.
+## @param name_to_rowids Name to candidate rowids.
+## @param definition_of Rowid to its definition rowid.
+## @param receiver_types Receiver variable types by scope.
+## @param scope_of Rowid to declaring scope.
+## @param argc_of Rowid to parameter count.
+## @return Hex digest over all of them.
+## @version 1
+## @dg_internal
+def _resolution_digest(
+    name_to_rowids: dict,
+    definition_of: dict,
+    receiver_types: dict,
+    scope_of: dict,
+    argc_of: dict,
+) -> str:
+    """THE PAYLOAD SHA IS NOT ENOUGH, and this digest is the whole reason caching a fold is
+    safe. Resolution reads the WHOLE index: one edited file can add an overload to a candidate
+    set, move a definition, or change a receiver's declared type — and thereby change how an
+    UNCHANGED file's call sites resolve. Keying on the file alone would serve last build's
+    answer for this build's index, which is a stale edge presented as a measurement.
+
+    ALL-OR-NOTHING ON PURPOSE. A change to any of these invalidates every file's cached fold
+    rather than some computed subset, because "which files could this have affected" is exactly
+    the reasoning that gets a cache wrong: a name-to-rowid map is global, and a caller in a file
+    nobody touched is one of the things it decides.
+
+    LINE-INDEPENDENT BY CONSTRUCTION, which is what makes the common edit cheap. Every map here
+    is keyed by rowid or by name, never by line, so editing a function BODY — the ordinary
+    incremental edit — leaves this digest unchanged and every other file's fold valid. A signature
+    change, a new function or a moved definition all move it, and then nothing is served.
+
+    @brief Hash the index-wide resolution inputs.
+    @return Hex digest.
+    @version 1
+    """
+    hasher = hashlib.sha256()
+    for label, mapping in (
+        ("names", name_to_rowids),
+        ("definitions", definition_of),
+        ("receivers", receiver_types),
+        ("scopes", scope_of),
+        ("argc", argc_of),
+    ):
+        hasher.update(label.encode("utf-8"))
+        for key in sorted(mapping, key=repr):
+            hasher.update(repr(key).encode("utf-8"))
+            value = mapping[key]
+            rendered = sorted(value, key=repr) if isinstance(value, (set, frozenset)) else value
+            hasher.update(repr(rendered).encode("utf-8"))
+    return hasher.hexdigest()
+
+
+## @brief Every indexed file's repo-relative path, by `path` rowid.
+## @param conn Open connection to the index.
+## @return Mapping of path rowid to its recorded name.
+## @version 1
+## @dg_internal
+def _rel_paths(conn: sqlite3.Connection) -> dict[int, str]:
+    """@brief Read the path table.
+    @return rowid -> relative path.
+    @version 1
+    """
+    return {int(r): str(n) for r, n in conn.execute("SELECT rowid, name FROM path") if n}
+
+
+## @brief Restore a cached fold's rows, which JSON round-tripped to lists.
+## @param cached The three stored slices.
+## @param edges_resolved Accumulator for resolved edges.
+## @param edges_fuzzy Accumulator for fuzzy edges.
+## @param unresolved Accumulator for unresolved inbound rows.
+## @return None.
+## @version 1
+## @dg_internal
+def _extend_from_cache(
+    cached: list,
+    edges_resolved: list,
+    edges_fuzzy: list,
+    unresolved: list,
+) -> None:
+    """TUPLES, NOT THE LISTS JSON HANDS BACK. `_collapse_duplicate_targets` groups fuzzy edges
+    by identity and `_ast_insert_edges` feeds them to `executemany`; a list where every other
+    row is a tuple is the kind of difference that shows up as an unhashable-type crash on one
+    code path and silently different grouping on another.
+
+    @brief Append a cached fold's rows in their original shapes.
+    @return None.
+    @version 1
+    """
+    stored_resolved, stored_fuzzy, stored_unresolved = cached
+    edges_resolved.extend(tuple(edge) for edge in stored_resolved)
+    edges_fuzzy.extend(tuple(edge) for edge in stored_fuzzy)
+    unresolved.extend(list(row) for row in stored_unresolved)
+
+
+## @brief Fold every harvested file into call edges, serving unchanged files from the cache.
+## @param harvested The per-file call payloads, as `run_harvest` yielded them.
+## @param maps The index-wide resolution inputs the fold reads.
+## @param context (conn, repo_root, cache) — where the paths and the cache come from.
+## @return (resolved edges, fuzzy edges, unresolved inbound rows).
+## @version 1
+## @dg_internal
+def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, list, list]:
+    """gh#34. THE 59%. Measured on a 6.8 GB repository refreshing after one touched file: the
+    whole refresh cost 8.6 s with ZERO payloads recomputed, of which this stage was 3,255 ms
+    and this loop 2,699 ms — 67,677 call sites re-resolved, 790,306 `_scope_is` calls, to
+    produce the rows the previous build had already produced. `import_ast_call_edges`' docstring
+    stated it as a design choice: the parse is cached, "the line->rowid and name->rowid
+    resolution always reruns". That was a fair trade while the parse dominated.
+
+    THE ROWS CANNOT SIMPLY BE KEPT, which is why this caches rather than skips. The build
+    writes into a fresh staging database and `_ast_insert_edges` only ever INSERTs, so
+    `call_edges` starts EMPTY on every build; a file that is not folded contributes nothing
+    unless its edges are served from somewhere. So the cache stores what the fold appended.
+
+    PARITY IS STRUCTURAL. Every post-pass — `_collapse_duplicate_targets`,
+    `_insert_unresolved_inbound`, `_ast_insert_edges`, `prune_fabricated_self_edges` — runs
+    over the FULL lists after this returns, so a cached slice that equals what folding would
+    have appended yields identical final rows by construction rather than by argument.
+
+    THE KEY IS THE FILE PLUS THE WHOLE INDEX. `_resolution_digest` covers every index-wide
+    input; this adds the file's own function list, which is per-file and line-dependent, so a
+    file whose functions moved is re-folded while its neighbours are not.
+
+    @brief Fold or serve each file's call edges.
+    @return The three accumulators.
+    @version 1
+    """
+    conn, repo_root, cache = context
+    edges_resolved: list = []
+    edges_fuzzy: list = []
+    unresolved: list = []
+    digest = _resolution_digest(
+        maps["name_to_rowids"],
+        maps["definition_of"],
+        maps["receiver_types"],
+        maps["scope_of"],
+        maps["argc_of"],
+    )
+    rel_of = _rel_paths(conn)
+    served = 0
+    folded = 0
+    for path_rowid, payload in harvested:
+        funcs_in_file = maps["file_funcs"].get(path_rowid, [])
+        if not funcs_in_file:
+            continue
+        rel = rel_of.get(path_rowid, "")
+        sha = cache.sha_for(rel, repo_root / rel) if (cache is not None and rel) else None
+        key = f"{digest}:{hashlib.sha256(repr(funcs_in_file).encode('utf-8')).hexdigest()}"
+        cached = (
+            cache.extract_get(sha, _FOLD_STAGE, _FOLD_STAGE_VERSION, key)
+            if (cache is not None and sha)
+            else None
+        )
+        if cached is not None:
+            _extend_from_cache(cached, edges_resolved, edges_fuzzy, unresolved)
+            cache.record_pair(sha, _FOLD_STAGE, _FOLD_STAGE_VERSION, key, True)
+            served += 1
+            continue
+        marks = (len(edges_resolved), len(edges_fuzzy), len(unresolved))
+        folded += 1
+        _fold_call_payload(
+            payload,
+            funcs_in_file,
+            maps["name_to_rowids"],
+            edges_resolved,
+            edges_fuzzy,
+            maps["definition_of"],
+            receiver_types=maps["receiver_types"],
+            scope_of=maps["scope_of"],
+            argc_of=maps["argc_of"],
+            unresolved=unresolved,
+        )
+        if cache is not None and sha:
+            cache.extract_put(
+                sha,
+                _FOLD_STAGE,
+                _FOLD_STAGE_VERSION,
+                key,
+                [
+                    edges_resolved[marks[0] :],
+                    edges_fuzzy[marks[1] :],
+                    unresolved[marks[2] :],
+                ],
+            )
+            cache.record_pair(sha, _FOLD_STAGE, _FOLD_STAGE_VERSION, key, False)
+    ## COUNTED, NEVER DERIVED FROM THE TOTAL. The first version of this line said
+    ## `len(harvested) - served`, which counts the files carrying no functions at all — they
+    ## are skipped, not folded — and reported 253 folds on a build that folded nothing. It read
+    ## as a cache serving 72% of files when it was serving all of them, which is the shape this
+    ## repository treats as worse than no measurement: a number that means something other than
+    ## what it says.
+    logger.info(
+        "call_edges: folded %d file(s), served %d from the resolved-edge cache, "
+        "%d file(s) carried no functions to fold",
+        folded,
+        served,
+        len(harvested) - folded - served,
+    )
+    return edges_resolved, edges_fuzzy, unresolved
+
+
 ## @brief Layer 3: parse C/C++ source with tree-sitter to capture call edges.
 ## @param db_path Path to the clew.db being built.
 ## @param repo_root Repository root (for resolving indexed relative paths).
 ## @param cache Optional incremental index cache; None disables caching.
-## @version 10
+## @version 11
 ## @req REQ-DDB-PIPE-003
 def import_ast_call_edges(
     db_path: Path,
@@ -1626,7 +1837,7 @@ def import_ast_call_edges(
     guarantees structurally instead of by remembering to check.
 
     @brief Populate call_edges from tree-sitter AST walk, then guard self-edges.
-    @version 10
+    @version 11
     """
     ts_classes = try_import_tree_sitter()
     if ts_classes is None:
@@ -1670,25 +1881,19 @@ def import_ast_call_edges(
 
     harvested = run_harvest(conn, repo_root, call_site_harvester(), ts_classes, cache)
 
-    edges_resolved: list[tuple[int, int, str]] = []
-    edges_fuzzy: list[tuple[int, int, str]] = []
-    unresolved: list[list[int]] = []
     definition_of = _definition_index(conn)
-    for path_rowid, payload in harvested:
-        funcs_in_file = file_funcs.get(path_rowid, [])
-        if funcs_in_file:
-            _fold_call_payload(
-                payload,
-                funcs_in_file,
-                name_to_rowids,
-                edges_resolved,
-                edges_fuzzy,
-                definition_of,
-                receiver_types=receiver_types,
-                scope_of=scope_of,
-                argc_of=argc_of,
-                unresolved=unresolved,
-            )
+    edges_resolved, edges_fuzzy, unresolved = _fold_all_files(
+        list(harvested),
+        {
+            "name_to_rowids": name_to_rowids,
+            "file_funcs": file_funcs,
+            "definition_of": definition_of,
+            "receiver_types": receiver_types,
+            "scope_of": scope_of,
+            "argc_of": argc_of,
+        },
+        (conn, repo_root, cache),
+    )
 
     ## gh#15. The receiver narrowing is the ONLY writer of `edges_fuzzy`, so every row here is
     ## already pinned to one class — which is what makes it safe to ask whether the group names
