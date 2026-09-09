@@ -938,6 +938,11 @@ _DOSSIER_LISTS = (
     "callees",
     "writes",
     "reads",
+    ## gh#32. The virtual fan-out, both directions, and the largest of the four function lists
+    ## that had no trimmer: 46 rows on entropic's widest interface and 39 on sassafras-class,
+    ## set by the codebase rather than by anything this repository controls.
+    "overridden_by",
+    "overrides",
     "covering_tests",
     "candidates",
     ## The one-shot panels are budgeted like every other list. `locks_held` is the one
@@ -959,14 +964,27 @@ _DOSSIER_LISTS = (
     "siblings",
     "implementers",
     "tests",
+    ## gh#32. An enum's values, which doxygen emits none of — so this list is entirely
+    ## recovered rows, and its length is the enum's length: 75 in entropic's widest, 640
+    ## measured at 46,647 bytes against a 65,536-byte cap. Bounded by the source, not by clew.
+    "enumerators",
     "members",
     "symbols",
     "gates",
+    ## gh#32. Capped at 400 names by `_gate_symbol_names`, which bounds it but does not make it
+    ## small: 400 config symbols is a sizeable share of the whole budget, and `gates` beside it
+    ## is already trimmed. A bounded list still has to yield when the payload as a whole does.
+    "gate_symbol_names",
     ## The FUNCTION subject's preconditions, which is the other direction from the config
     ## subject's `gates` above and therefore a separate key. Budgeted because a function inside
     ## deeply nested conditionals can be covered by several, and mbedtls nests them freely.
     "gated_by",
     "threads",
+    ## gh#32. Small on every target measured — 6 requirement edges on the widest symbol in
+    ## entropic — and listed anyway: the reason a list is in this tuple is that it CAN grow,
+    ## and a repository that tags every function is the one where these two do.
+    "requirements",
+    "termini",
     "nodes",
     "hops",
 )
