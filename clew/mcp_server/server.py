@@ -115,6 +115,7 @@ import functools
 import time
 import traceback
 import warnings
+from collections import Counter
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -338,6 +339,92 @@ _LISTING_FIELDS = (
     "age_days",
     "staleness",
 )
+
+
+## Characters of a line that decide whether two lines are the SAME SHAPE. The captured stream is
+## formatted `"%(levelname)s %(message)s"` with no timestamp, so a prefix is the message's own
+## opening rather than a clock — `WARNING file_docs: coul` groups every unresolved-header line and
+## still separates `WARNING index_scope:` and `WARNING file_docs: skip` from it. Widening this
+## merges less and narrowing it merges more, and merging two DIFFERENT diagnostics is the one
+## failure this rule can produce, so it errs toward keeping lines apart.
+_OUTPUT_SHAPE_KEY = 24
+
+## The whole `output` field's ceiling. A backstop, deliberately independent of the collapsing
+## above: 253,867 characters reached a client that discards past its limit in SILENCE, and a
+## bound that only holds for the shapes seen so far is not a bound.
+##
+## MEASURED AGAINST A REAL BUILD RATHER THAN CHOSEN. A one-file repository — the smallest build
+## that exists — emits 4,131 characters of stage lines and scope explanation, so the first
+## value tried here (4,000) fired on EVERY build and cut the summary table off the end. This is
+## four times that, which leaves an ordinary build untouched and still bounds the outlier two
+## orders of magnitude below it.
+_OUTPUT_CAP = 16_000
+
+
+## @brief Bound a build's captured output without dropping what a reader acts on.
+## @param text The captured stream, exactly as the pipeline emitted it.
+## @return The same text, or a collapsed and capped rendering that says what it dropped.
+## @version 1
+## @dg_internal
+def _bounded_output(text: str) -> str:
+    """gh#37. TWO REFRESH REPLIES OVERFLOWED THE CLIENT'S RESULT LIMIT — 253,867 and 100,199
+    characters — and were written to disk instead of returned. An incremental refresh reply for
+    a build that changed nine files was ~100 KB. The dominant content was ~95 lines of
+    `WARNING file_docs: could not read <header>, skipping`, one per unresolved system include:
+    ninety-five lines spent on one fact, in place of the stage costs and the coverage block a
+    reader opened the reply for.
+
+    COLLAPSED, NOT CUT. Trimming the middle of the stream would risk dropping the one warning
+    that names a real defect in the declaration or the scope — which is the only content here
+    anyone acts on. Grouping by shape keeps every DISTINCT line and spends one line plus a count
+    on each repeat, so the reply gets shorter without getting less informative.
+
+    A GROUP OF ONE IS LEFT ALONE, because replacing a specific actionable line with a count of
+    one is strictly worse, and a lone unreadable header is exactly when the name matters.
+
+    THE CAP IS A SEPARATE, CONTENT-BLIND BACKSTOP. Collapsing depends on what the build emitted;
+    the overflow must not. Both disclose, and both name the buildlog — which holds every line,
+    is flushed per record, and is already named in the reply.
+
+    @brief Collapse repeated lines and cap the total, disclosing both.
+    @return Bounded output text.
+    @version 1
+    """
+    lines = text.splitlines()
+    counts = Counter(line[:_OUTPUT_SHAPE_KEY] for line in lines)
+    if len(text) <= _OUTPUT_CAP and all(n < 2 for n in counts.values()):
+        return text
+    kept: list[str] = []
+    collapsed: set[str] = set()
+    for line in lines:
+        key = line[:_OUTPUT_SHAPE_KEY]
+        if counts[key] < 2:
+            kept.append(line)
+            continue
+        if key in collapsed:
+            continue
+        collapsed.add(key)
+        kept.append(line)
+        kept.append(
+            f"    ... and {counts[key] - 1} more line(s) of the same shape as the one above; "
+            f"every one of them is in the buildlog beside the index"
+        )
+    out = "\n".join(kept)
+    if len(out) <= _OUTPUT_CAP:
+        return out
+    ## HEAD AND TAIL, NEVER HEAD ALONE, and a test already said so before this was written:
+    ## "Capturing must not mean discarding: the summary is what a caller reads back from the
+    ## tool, and the log is where the pipeline explains which scope tier it fell back to and
+    ## why." Those two live at OPPOSITE ENDS — the scope explanation is emitted first and the
+    ## row-count summary last — so a head-only cap drops precisely the half a caller reads. The
+    ## middle is stage progress, which the buildlog holds and nobody reads twice.
+    half = _OUTPUT_CAP // 2
+    return (
+        out[:half]
+        + f"\n... {len(out) - _OUTPUT_CAP} characters omitted from the middle to stay inside "
+        f"the client's result limit; the complete stream is in the buildlog beside the index\n"
+        + out[-half:]
+    )
 
 
 ## @brief Reduce a full status dict to the listing row `targets` promises.
@@ -591,13 +678,92 @@ def _failure_result(exc: BaseException, rendered: str) -> dict[str, Any]:
 _LOCK_WAIT_SECONDS = 120
 
 
+## @brief Every sub-index name this repository can be asked to build.
+## @param repo Resolved repository root.
+## @return The derived names, first-party first; empty when the repository is not split.
+## @version 1
+## @dg_internal
+def _buildable_sub_indexes(repo: Path) -> tuple[str, ...]:
+    """ONE SOURCE FOR THE REFUSAL AND THE LISTING. gh#35 needs it to say what a mistyped name
+    should have been and gh#38 needs it to list what is buildable but unbuilt; deriving the set
+    twice would let the two disagree, and the disagreement a caller would see is "refused a name
+    that `targets` just offered me".
+
+    @brief The derived split's names.
+    @return Names in derivation order.
+    @version 1
+    """
+    from ..scope import derive_sub_indexes
+
+    return tuple(s.name for s in derive_sub_indexes(repo))
+
+
+## @brief Why this sub-index cannot be built, or None when it can.
+## @param target The target being built, named or unnamed.
+## @param repo Resolved repository root.
+## @return A refusal naming the alternatives, or None to proceed.
+## @version 1
+## @dg_internal
+def _sub_index_rejection(target: Target, repo: Path) -> str | None:
+    """gh#35. `refresh(sub_index='no-such-tree')` DID NOT REFUSE. It registered a slug, took the
+    repository's build lock, and built the WHOLE repository into it — boost, opencv and pcl
+    included — until doxygen hit clew's 900 s cap. A legitimate `refresh(sub_index=...)` issued
+    in parallel waited the full fifteen minutes for a build that took 3.5 s once the lock freed,
+    and so did every other session's auto-refresh on that repository.
+
+    THE COST IS THE LOCK, NOT THE WASTED WORK, which is why this is a separate check ahead of
+    the build rather than a stricter `_sub_index_scope`. Wasted work costs one caller; a held
+    lock on a shared repository costs all of them, and no client-side cancellation stops the
+    doxygen already running.
+
+    IT NAMES THE ALTERNATIVES. A caller who mistyped a vendored name has nowhere else to learn
+    the right spelling — that gap is gh#38 seen from `targets` — so a bare "unknown sub_index"
+    would cost the round trip that the fifteen-minute build just cost.
+
+    A VANISHED TREE IS REFUSED TOO, and it is the case the widening branch was written for: a
+    submodule removed since its sub-index was built. Building it whole makes the sub-index a
+    second copy of the repository and building it narrow is impossible, so the honest answer is
+    a refusal that names the route which clears the leftover.
+
+    @brief Refuse a sub_index that names no buildable tree.
+    @return The refusal message, or None.
+    @version 1
+    """
+    if target.name is None:
+        return None
+    buildable = _buildable_sub_indexes(repo)
+    if target.name in buildable:
+        return None
+    if not buildable:
+        return (
+            f"{repo} is not split into sub-indexes — it vendors no nested git tree, so there is "
+            f"no part named {target.name!r} to build. Refresh it without `sub_index` to build "
+            f"the whole repository, which for this repository is the only index there is."
+        )
+    listed = ", ".join(repr(name) for name in buildable)
+    if Path(target.db_path).exists():
+        return (
+            f"Sub-index {target.name!r} of {repo} was built once but its tree is gone — a "
+            f"submodule removed since. Its database describes code no longer in this "
+            f"repository, and building it now would index the WHOLE repository under that "
+            f"name rather than the part it was made for. Buildable now: {listed}. Use "
+            f"index(action='cull') to drop the leftover."
+        )
+    return (
+        f"Sub-index {target.name!r} names no nested git tree under {repo}, so there is nothing "
+        f"to build under that name. Refusing rather than building the whole repository into it, "
+        f"which is what this used to do — a 900 s build holding the repository's build lock. "
+        f"Buildable: {listed}."
+    )
+
+
 ## @brief The scope arguments a build of one sub-index needs, or the caller's unchanged.
 ## @param target The target being built; `name` says which sub-index, or None for the whole repo.
 ## @param repo The repository root.
 ## @param exclude The caller's exclusions, forwarded unchanged for a whole-repo target.
 ## @param options The caller's tier-1 options, forwarded unchanged for a whole-repo target.
 ## @return (exclude, options) to pass to `build_index`.
-## @version 4
+## @version 5
 ## @dg_internal
 def _sub_index_scope(
     target: Target,
@@ -618,7 +784,7 @@ def _sub_index_scope(
 
     @brief Resolve build scope for a sub-index target.
     @return The exclude list and options to build with.
-    @version 4
+    @version 5
     """
     if target.name is None:
         return exclude, options
@@ -626,16 +792,21 @@ def _sub_index_scope(
 
     match = next((s for s in derive_sub_indexes(repo) if s.name == target.name), None)
     if match is None:
-        ## The tree this sub-index named is gone — a submodule removed since it was registered.
-        ## Building it whole would quietly turn a sub-index into a second copy of the repository,
-        ## so leave the caller's scope alone and let the build report what it finds.
-        logger.warning(
-            "sub-index %r no longer matches any nested tree under %s — building with the "
-            "caller's scope instead of a derived one",
-            target.name,
-            repo,
+        ## gh#35. THIS BRANCH USED TO RETURN THE CALLER'S SCOPE, and for a sub-index build the
+        ## caller's scope is the WHOLE REPOSITORY — so a name matching nothing widened instead
+        ## of narrowing, took the build lock and ran to the 900 s doxygen cap. `#511`'s silent
+        ## narrowing in reverse, and more expensive: a small index reports healthy to one
+        ## caller, while a held lock blocks every session sharing the repository.
+        ##
+        ## RAISES EVEN THOUGH `_sub_index_rejection` ALREADY REFUSED EARLIER, for the reason
+        ## gh#26 kept the pipeline's own scope check beside the MCP one: the early refusal is
+        ## where a caller gets a useful message, and this is where the wrong build becomes
+        ## impossible. A helper asked "what is the scope of this part" must never answer
+        ## "everything".
+        raise ValueError(
+            f"sub-index {target.name!r} matches no nested tree under {repo}, so it has no "
+            f"scope of its own — refusing rather than widening to the whole repository."
         )
-        return exclude, options
     nested = [str(p.relative_to(repo)) for p in match.excludes]
     if target.name == FIRST_PARTY_INDEX:
         return list(exclude or []) + nested, options
@@ -1713,7 +1884,7 @@ class DocsDbServer:
 
     ## @brief Every known target with its database age and staleness.
     ## @return List of listing rows, one per registered target.
-    ## @version 3
+    ## @version 4
     ## @req REQ-DDB-MCP-002
     def list_targets(self) -> list[dict[str, Any]]:
         """A LISTING, WHICH IS WHAT THE TOOL DESCRIPTION ALREADY PROMISED — "every indexed
@@ -1736,11 +1907,31 @@ class DocsDbServer:
         for any named one. `code` identity is dropped from the ROW because it is a fact about
         this SERVER PROCESS, identical in every row, and already reported by `status`.
 
-        @brief List registered targets, compactly.
+        THE DERIVED-BUT-UNBUILT NAMES ARE LISTED TOO (gh#38). A split repository's other
+        sub-indexes were visible nowhere, so the on-demand build model — "build a vendored
+        sub-index only when a query needs it" — had no name to build, and a guessed name was
+        not refused: it built the whole repository into a new slug and held the build lock to
+        the 900 s doxygen kill. Those rows carry `exists: false`, which is what they are.
+
+        READ FROM THE RECORDED SPLIT, NEVER DERIVED HERE. `derive_sub_indexes` walks the whole
+        tree — 24.6 s on the reporting repository — and this is the orientation call. A build
+        already paid that walk and recorded it; a listing that walked again would put a
+        per-repository tree scan in front of the cheapest call in the surface.
+
+        @brief List registered targets and the sub-indexes they could still build.
         @return List of listing rows.
-        @version 3
+        @version 4
         """
-        return [_listing_row(db_status(t)) for t in self.registry.targets()]
+        registered = self.registry.targets()
+        rows = [_listing_row(db_status(t)) for t in registered]
+        built = {(t.repo_path, t.name) for t in registered}
+        for repo_path in dict.fromkeys(t.repo_path for t in registered):
+            for name in self.registry.derived_names(repo_path):
+                if (repo_path, name) in built:
+                    continue
+                unbuilt = target_for(repo_path, self.registry.home, name=name)
+                rows.append(_listing_row(db_status(unbuilt)))
+        return rows
 
     ## @brief Remove aged-out or version-stale databases.
     ## @param max_age_days Age threshold in days (null disables the age rule).
@@ -2049,7 +2240,7 @@ class DocsDbServer:
     ## @param exclude Operator-stated exclusions; None inherits the recorded ones, [] withdraws them.
     ## @param options Tier-1 build options keyed by declaration-file section name; None states nothing.
     ## @return Result dict (ok / built / doxyfile / output, plus error and traceback on a failure).
-    ## @version 12
+    ## @version 13
     ## @req REQ-DDB-CONFIG-008
     ## @dg_internal
     def _run_build(
@@ -2095,11 +2286,26 @@ class DocsDbServer:
 
         @brief Execute the build pipeline in-process.
         @return Build result dict.
-        @version 10
+        @version 11
         """
         from ..cli import build_index
 
         repo = Path(target.repo_path)
+        ## gh#35. BEFORE THE BUILD LOCK, WHICH IS THE WHOLE POINT. A `sub_index` naming no
+        ## nested tree used to reach `_sub_index_scope`, widen to the whole repository and hold
+        ## this repository's lock until doxygen was killed at 900 s — with a legitimate
+        ## sub-index refresh and every other session's auto-refresh queued behind it. Refusing
+        ## after the lock would fix the wasted build and leave the contention untouched.
+        rejection = _sub_index_rejection(target, repo)
+        if rejection is not None:
+            return {"ok": False, "built": False, "error": rejection}
+        ## gh#38. RECORDED HERE BECAUSE THE WALK IS ALREADY PAID. The refusal above derived the
+        ## split to know whether this name is buildable, so noting it costs a registry write and
+        ## saves `targets` a whole-tree walk per repository. Only for a sub-index build: an
+        ## unnamed target never derives the split, and paying a walk to record one would add
+        ## cost to the whole-repo path that gains nothing from it.
+        if target.name is not None:
+            self.registry.note_derived(target.repo_path, _buildable_sub_indexes(repo))
         doxy = Path(doxyfile).expanduser().resolve() if doxyfile else discover_doxyfile(repo)
         # A missing Doxyfile is never fatal here: under `from-guard` the pipeline
         # synthesizes one from a declared `index_scope:`, and a repo that declares
@@ -2172,7 +2378,7 @@ class DocsDbServer:
                             "ok": True,
                             "built": False,
                             "doxyfile": described,
-                            "output": rendered.getvalue(),
+                            "output": _bounded_output(rendered.getvalue()),
                             "status": db_status(target),
                         }
                     ## A SUB-INDEX BUILDS ITS OWN PART, and only when the target IS one. A
@@ -2214,7 +2420,7 @@ class DocsDbServer:
                     )
             except (Exception, SystemExit) as exc:
                 return {
-                    **_failure_result(exc, rendered.getvalue()),
+                    **_failure_result(exc, _bounded_output(rendered.getvalue())),
                     "built": False,
                     "doxyfile": described,
                 }
@@ -2222,14 +2428,14 @@ class DocsDbServer:
                 "ok": True,
                 "built": True,
                 "doxyfile": described,
-                "output": rendered.getvalue(),
+                "output": _bounded_output(rendered.getvalue()),
             }
 
     ## @brief Run the declaration proposer in this process for one target.
     ## @param target Target whose repo is analysed.
     ## @param ignore_declaration Detect as if the repo declared nothing.
     ## @return Result dict (ok / draft / statement / measured_against, plus error and traceback on a failure).
-    ## @version 4
+    ## @version 5
     ## @dg_internal
     def _run_propose(self, target: Target, ignore_declaration: bool) -> dict[str, Any]:
         """Every dry run re-runs a pipeline importer, and those render a rich progress
@@ -2247,7 +2453,7 @@ class DocsDbServer:
 
         @brief Execute the proposer in-process.
         @return Proposal result dict.
-        @version 4
+        @version 5
         """
         from ..propose.registry import propose
         from ..propose.render import statement_from_draft
@@ -2263,7 +2469,7 @@ class DocsDbServer:
                 )
                 statement = statement_from_draft(proposal.yaml_text)
             except (Exception, SystemExit) as exc:
-                return _failure_result(exc, rendered.getvalue())
+                return _failure_result(exc, _bounded_output(rendered.getvalue()))
             return {
                 "ok": True,
                 "repo_path": target.repo_path,
