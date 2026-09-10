@@ -1546,7 +1546,7 @@ def _replay_manifest_statements(args: argparse.Namespace, output: Path) -> list[
 ## @param args Parsed CLI arguments, carrying any stated or replayed manifest.
 ## @param decl The repo's parsed `.clew.yaml`.
 ## @return Option name to its DocumentResolution, for `options_meta`.
-## @version 1
+## @version 2
 ## @req REQ-DDB-CONFIG-006
 def _manifest_option_tiers(args: argparse.Namespace, decl: dict) -> dict[str, DocumentResolution]:
     """READS THE SAME TWO INPUTS `_declared_or_flag` DOES, in the same order, so the
@@ -1564,15 +1564,29 @@ def _manifest_option_tiers(args: argparse.Namespace, decl: dict) -> dict[str, Do
 
     @brief Resolve the recorded tier for every manifest option.
     @return The per-option resolutions.
-    @version 1
+    @version 2
     """
-    return {
+    stamped = {
         option: resolve_document(
             explicit=getattr(args, option, None),
             declared=section(decl, option),
         )
         for option in MANIFEST_OPTIONS
     }
+    ## gh#42. `data_model` IS STAMPED TOO, and it was missed for where it sits in the option
+    ## taxonomy rather than by any argument that it should not be. It is the one manifest that
+    ## is not YAML — an ingot/UDM TOML document NAMED by path rather than inlined — so it is a
+    ## PATH option, and this loop read `MANIFEST_OPTIONS` alone. A consumer reading an
+    ## unexpected data-model catalog could not tell an operator's statement from the
+    ## repository's own declaration from nobody having said anything.
+    ##
+    ## ITS DECLARATION IS A BARE STRING, not a section mapping, so it is read directly rather
+    ## than through `section` — which looks for a mapping and would find none.
+    stamped[SECTION_DATA_MODEL] = resolve_document(
+        explicit=getattr(args, SECTION_DATA_MODEL, None),
+        declared=decl.get(SECTION_DATA_MODEL),
+    )
+    return stamped
 
 
 ## @brief Resolve one manifest input: explicit statement, else the declaration.

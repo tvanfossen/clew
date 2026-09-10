@@ -313,7 +313,7 @@ class ManifestSet:
 ## @param class_name The class the key sits in.
 ## @param key_id The key as the manifest writes it.
 ## @return The uppercase `NS_CLASS_KEY` token the generator emits.
-## @version 1
+## @version 2
 ## @req REQ-DDB-SCHEMA-013
 def define_name(namespace: str, class_name: str, key_id: str) -> str:
     """THE ONE PLACE the composition rule is spelled, and the rule is measured. See the
@@ -321,12 +321,58 @@ def define_name(namespace: str, class_name: str, key_id: str) -> str:
     identifier cannot carry are dropped, which is the difference between 104 and 135 of 135
     against a real target's own key list.
 
+    THE SPACE RULE IS PER-DIALECT AND LIVES AT THE CALL SITE (gh#42). Ingot converts a space to
+    an underscore and UDM's measured behaviour drops it; applying ingot's rule here broke three
+    UDM tests pinning the 135-of-135 result above, which is exactly the measurement this
+    docstring cites. A composer shared by two dialects must not carry one dialect's rule.
+
     @brief Compose a define name from a manifest triple.
     @return The composed key spelling.
-    @version 1
+    @version 3
     """
     parts = (namespace, class_name, key_id)
     return "_".join(_DROPPED_FROM_SEGMENT.sub("", str(part)).upper() for part in parts)
+
+
+## Ingot's own prefix for a generated key macro, from its `key_definitions.h` emitter and
+## confirmed against its shipped `examples/generated/full/`
+## (`DM_KEY_APPLIANCE_IDENTITY_PRODUCT_NAME`). `filter.rs` matches a bare name against this
+## form explicitly, so a codebase calling the generated macro and one calling the accessor
+## spelling name the same key two ways.
+_INGOT_KEY_PREFIX = "DM_KEY_"
+
+
+## @brief Whether a declared key is present in the observed vocabulary, by any of ingot's spellings.
+## @param declared The composed define name.
+## @param observed Every key name the shared-key layer saw.
+## @return True when the key was observed under any spelling ingot treats as the same key.
+## @version 1
+## @req REQ-DDB-SCHEMA-013
+def observed_match(declared: str, observed: frozenset[str]) -> bool:
+    """MATCHES THE WAY INGOT MATCHES, and the third spelling exists for a reason its own source
+    states: `filter.rs::normalize` strips underscores "so that TOML snake_case IDs (e.g.
+    STATE_OF_CHARGE) match YAML-era names (STATEOFCHARGE)". A repository that migrated dialects
+    carries both, and an exact-string join reports the declared key as unobserved while the
+    identical key sits in the vocabulary beside it.
+
+    WHICH SPELLING A CODEBASE USES IS NOT KNOWABLE FROM THE MANIFEST. `key_definitions.h` emits
+    the `DM_KEY_` form while the accessor spelling carries no prefix, so the observed vocabulary
+    depends on which generated artifact the code calls — and both are correct. Accepting all
+    three is what makes `observed` a fact about the code rather than about the generator's
+    output selection.
+
+    NOT A FUZZY MATCH. Each alternative is a spelling ingot itself treats as the same key;
+    nothing here matches on a prefix, a substring or an edit distance, so two different keys
+    cannot collide.
+
+    @brief Test a declared key against the observed vocabulary.
+    @return True when observed under any accepted spelling.
+    @version 1
+    """
+    if declared in observed or f"{_INGOT_KEY_PREFIX}{declared}" in observed:
+        return True
+    normalized = declared.replace("_", "")
+    return any(name.replace("_", "") == normalized for name in observed)
 
 
 ## @brief Read a candidate document's text, or refuse it for being too large.
@@ -453,7 +499,7 @@ def _is_ingot_class_list(classes: list) -> bool:
 ## @param namespace The manifest's namespace.
 ## @param manifest Repo-relative manifest path.
 ## @return One DeclaredKey per `[[classes.keys]]` table carrying an id.
-## @version 1
+## @version 2
 ## @dg_internal
 def _ingot_keys(classes: list, namespace: str, manifest: str) -> Iterable[DeclaredKey]:
     """A key with no `id` is SKIPPED rather than stored under an empty name: its define name
@@ -461,7 +507,7 @@ def _ingot_keys(classes: list, namespace: str, manifest: str) -> Iterable[Declar
     one row that looks like a real one.
 
     @brief Yield the keys an ingot class list declares.
-    @version 1
+    @version 2
     """
     for entry in classes:
         if not isinstance(entry, dict):
@@ -471,8 +517,17 @@ def _ingot_keys(classes: list, namespace: str, manifest: str) -> Iterable[Declar
             key_id = str(key.get("id", "")) if isinstance(key, dict) else ""
             if not key_id:
                 continue
+            ## gh#42. INGOT CONVERTS A SPACE TO AN UNDERSCORE, read from its source rather
+            ## than inferred: `src/model/filter.rs` composes the bare define name as
+            ## `class.to_uppercase().replace(' ', "_")` and the same for the key, while leaving
+            ## the namespace alone. Dropping the space instead composed `WHEELLINEARVEL` where
+            ## the generator emits `WHEEL_LINEAR_VEL`, so the catalog named a macro appearing
+            ## nowhere in the source. Applied HERE and not in `define_name`, because the UDM
+            ## dialect's measured rule drops the space and the composer serves both.
             yield DeclaredKey(
-                define_name=define_name(namespace, class_name, key_id),
+                define_name=define_name(
+                    namespace, class_name.replace(" ", "_"), key_id.replace(" ", "_")
+                ),
                 namespace=namespace,
                 class_name=class_name,
                 key_id=key_id,
@@ -1194,7 +1249,7 @@ def _observed_keys(conn: sqlite3.Connection) -> frozenset[str]:
 ## @param cache Live index cache, or None to re-read every candidate document.
 ## @param declared The manifest path the operator stated, or None.
 ## @return The manifest set that was discovered, for stamping.
-## @version 4
+## @version 5
 ## @req REQ-DDB-SCHEMA-013
 def import_data_model_keys(
     db_path: Path,
@@ -1215,7 +1270,7 @@ def import_data_model_keys(
 
     @brief Import the declared data-model key catalog.
     @return The discovered manifest set.
-    @version 2
+    @version 3
     """
     found = discover(repo_root, excludes, cache, declared)
     conn = sqlite3.connect(str(db_path))
@@ -1243,7 +1298,7 @@ def import_data_model_keys(
                     key.manifest,
                     ",".join(key.unresolved_fields) or None,
                     int(key.define_name in found.listed),
-                    int(key.define_name in observed),
+                    int(observed_match(key.define_name, observed)),
                 )
                 for key in found.keys
             ],

@@ -1152,3 +1152,71 @@ def test_a_declared_path_that_is_absent_is_refused(tmp_path: Path) -> None:
 
     with pytest.raises(DeclaredModelError, match="missing.toml"):
         discover(repo, (), declared=repo / "missing.toml")
+
+
+def test_a_space_in_a_key_id_becomes_an_underscore(tmp_path: Path) -> None:
+    """gh#42. INGOT'S OWN RULE, read from its source rather than inferred from an example.
+    `src/model/filter.rs` composes the bare define name as::
+
+        format!("{}_{}_{}", ns.to_uppercase(),
+                class.to_uppercase().replace(' ', "_"),
+                key.to_uppercase().replace(' ', "_"))
+
+    A space becomes an underscore. `_DROPPED_FROM_SEGMENT` dropped it instead, so a key id
+    written with spaces composed `WHEELLINEARVEL` where the generator emits
+    `WHEEL_LINEAR_VEL` — and the declared catalog then named a macro that appears nowhere in
+    the source.
+
+    UNDERSCORES ALREADY INSIDE A SEGMENT ARE STILL PRESERVED, which the module docstring
+    records as the difference between 104 and 135 of 135 against a real target's key list. This
+    adds the space rule; it does not revisit that one.
+
+    @brief A space composes as an underscore, like ingot's generator.
+    @version 1
+    """
+    from clew.datamodel import _ingot_keys
+
+    manifest = [{"id": "Drive", "keys": [{"id": "wheel linear vel"}, {"id": "wheel_linear_vel"}]}]
+    names = [key.define_name for key in _ingot_keys(manifest, "B12", "m.toml")]
+    assert names == ["B12_DRIVE_WHEEL_LINEAR_VEL", "B12_DRIVE_WHEEL_LINEAR_VEL"], names
+
+    ## AND THE UDM DIALECT IS UNTOUCHED. Its rule drops the space, measured at 135 of 135
+    ## against a real target's own key list, so ingot's rule lives at ingot's call site rather
+    ## than in the composer both dialects share.
+    from clew.datamodel import define_name
+
+    assert define_name("B12", "Drive", "wheel linear vel") == "B12_DRIVE_WHEELLINEARVEL"
+
+
+def test_a_declared_key_is_observed_under_ingots_own_spellings(tmp_path: Path) -> None:
+    """gh#42. THE JOIN MUST MATCH THE WAY INGOT MATCHES, or a declared key sits beside the
+    identical observed key reading `observed = 0`. `filter.rs` accepts three spellings of one
+    key, and its own comment says why the third exists::
+
+        list.names.contains(name)
+        || list.names.contains(&format!("DM_KEY_{name}"))
+        || normalized (uppercase, underscores STRIPPED) — "so that TOML snake_case IDs
+           (e.g. STATE_OF_CHARGE) match YAML-era names (STATEOFCHARGE)"
+
+    Ingot's generated `key_definitions.h` emits the `DM_KEY_` form
+    (`DM_KEY_APPLIANCE_IDENTITY_PRODUCT_NAME`, checked against its shipped
+    `examples/generated/full/`), while the accessor spelling a codebase actually calls carries
+    no prefix — so which spelling the shared-key layer observes depends on which artifact the
+    code uses, and an exact-string join is wrong for at least one of them.
+
+    @brief The observed join accepts the prefixed and normalized spellings.
+    @version 1
+    """
+    from clew.datamodel import observed_match
+
+    declared = "B12_BATTERY_STATE_OF_CHARGE"
+    assert observed_match(declared, frozenset({declared})), "the bare spelling must match"
+    assert observed_match(declared, frozenset({f"DM_KEY_{declared}"})), (
+        "ingot's generated key_definitions.h emits the DM_KEY_ form"
+    )
+    assert observed_match(declared, frozenset({"B12BATTERYSTATEOFCHARGE"})), (
+        "ingot normalizes by stripping underscores, so a YAML-era name still matches"
+    )
+    assert not observed_match(declared, frozenset({"B12_BATTERY_VOLTAGE"})), (
+        "a different key must not match, or every declared key would read as observed"
+    )
