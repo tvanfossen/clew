@@ -540,3 +540,65 @@ def test_the_spawn_diagnostic_ignores_non_callable_symbols() -> None:
         f"typedef or enumeration that merely NAMES threading is a constant, not a primitive an "
         f"operator can declare"
     )
+
+
+## The reported shape, reduced to the pair that isolates it: one bare entry argument and the
+## same identifier behind a cast. rtabmap's five `UThreadC::Create` overloads all use the cast
+## form, so its ENTIRE threading model was invisible while one Android logging thread resolved.
+_BARE_AND_WRAPPED = b"""\
+typedef void *(*pthread_fn)(void *);
+
+void *ThreadMainHandler(void *arg) { return 0; }
+
+void spawn_bare(void) {
+    pthread_t t;
+    pthread_create(&t, 0, ThreadMainHandler, 0);
+}
+
+void spawn_cast(void) {
+    pthread_t h;
+    pthread_create((pthread_t *)&h, 0, (pthread_fn)ThreadMainHandler, 0);
+}
+
+void spawn_parenthesized(void) {
+    pthread_t p;
+    pthread_create(&p, 0, (ThreadMainHandler), 0);
+}
+"""
+
+
+##
+# @brief A cast or parenthesised entry argument still names its function.
+# @return None.
+# @version 1
+def test_a_wrapped_entry_argument_still_resolves() -> None:
+    """gh#45. `_named_entry` unwrapped exactly one node type — `pointer_expression` — so
+    `(pthread_fn)ThreadMainHandler` reached `_tail_identifier` as a `cast_expression`, whose
+    handler table has no entry for it, and the site was dropped fail-closed. The primitive was
+    recognised the whole time; only the argument parse failed, so no `thread_patterns`
+    declaration could recover it.
+
+    MEASURED ON A REAL TREE: rtabmap indexed 1,439 files and 13,061 live symbols and yielded ONE
+    thread — an Android JNI logger whose entry argument happens to be bare. Its five real spawn
+    sites all sit in `UThreadC::Create` behind `(pthread_fn)`.
+
+    THE SET WAS ALREADY WRITTEN, one module over: `propose/astdefs.py` unwraps
+    `pointer_expression`, `parenthesized_expression` and `cast_expression` when asking the same
+    question — "is this argument a bare name?" — so the propose path understood casts while the
+    harvest path did not. Two answers to one question is the defect; sharing the constant is the
+    fix.
+
+    A LOOP RATHER THAN ONE UNWRAP, because the wrappers nest: `(pthread_fn)&Class::method` is a
+    cast over a pointer expression, and unwrapping once leaves the other in place.
+
+    @brief All three argument shapes name the same entry.
+    @version 1
+    """
+    patterns = {p.name: p for p in load_thread_patterns(None)}
+    tree, src = _parse_c(_BARE_AND_WRAPPED)
+    sites = _walk_spawn_sites(tree, src, patterns)
+
+    entries = sorted(site[1] for site in sites)
+    assert entries == ["ThreadMainHandler"] * 3, (
+        f"a cast or parenthesised entry argument must resolve like a bare one, got {entries}"
+    )

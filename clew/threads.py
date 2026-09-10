@@ -46,7 +46,13 @@ from typing import Any
 
 from ._common import logger
 from .declaration import SECTION_THREADS
-from .harvest import Harvester, enclosing, run_harvest, try_import_tree_sitter
+from .harvest import (
+    ENTRY_UNWRAP_TYPES,
+    Harvester,
+    enclosing,
+    run_harvest,
+    try_import_tree_sitter,
+)
 from .indexcache import IndexCache
 from .pyast import (
     PyBindings,
@@ -654,7 +660,7 @@ def _entry_names(call_node: Any, index: int, src_bytes: bytes) -> tuple[str, str
 ## @param arg The spawn call's entry argument, or None.
 ## @param src_bytes The file's raw source bytes.
 ## @return (qualified text, bare tail), or None when the arg names no function.
-## @version 1
+## @version 2
 ## @dg_internal
 def _named_entry(arg: Any, src_bytes: bytes) -> tuple[str, str] | None:
     """Unwraps `&Class::method` to the inner name before reading it, so the
@@ -662,16 +668,28 @@ def _named_entry(arg: Any, src_bytes: bytes) -> tuple[str, str] | None:
 
     @brief Read a named entry argument's qualified + tail names.
     @return (qualified, tail) or None.
-    @version 1
+    @version 2
     """
     if arg is None:
         return None
-    if arg.type == "pointer_expression":
+    ## gh#45. A LOOP OVER EVERY WRAPPER, not one unwrap of one type. `(pthread_fn)Handler`
+    ## reached `_tail_identifier` as a `cast_expression`, whose handler table has no entry for
+    ## it, so the site was dropped fail-closed — the primitive was recognised the whole time and
+    ## only the argument parse failed, which is why no `thread_patterns` declaration could
+    ## recover it. The wrappers also NEST: `(pthread_fn)&Class::method` is a cast over a pointer
+    ## expression, and unwrapping once leaves the other in place.
+    while arg is not None and arg.type in ENTRY_UNWRAP_TYPES:
         inner = next(
-            (c for c in arg.named_children if c.type in ("identifier", "qualified_identifier")),
+            (
+                c
+                for c in arg.named_children
+                if c.type in ("identifier", "qualified_identifier", *ENTRY_UNWRAP_TYPES)
+            ),
             None,
         )
-        arg = inner if inner is not None else arg
+        if inner is None:
+            break
+        arg = inner
     tail = _tail_identifier(arg, src_bytes)
     qualified = src_bytes[arg.start_byte : arg.end_byte].decode("utf-8", errors="replace")
     return (qualified, tail) if tail is not None else None

@@ -24,6 +24,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from ..harvest import ENTRY_UNWRAP_TYPES
+
 ## Definition node types. The macro arm is not an edge case — see the docstring.
 DEF_TYPES = frozenset({"function_definition", "preproc_function_def"})
 
@@ -36,7 +38,12 @@ _PARAM_TYPES = frozenset({"parameter_declaration", "optional_parameter_declarati
 
 ## Expression wrappers unwrapped when asking "is this argument a bare name?".
 ## `&fn`, `(fn)` and `(entry_t)fn` all name a function as plainly as `fn` does.
-_UNWRAP_TYPES = frozenset({"pointer_expression", "parenthesized_expression", "cast_expression"})
+##
+## IMPORTED RATHER THAN RESTATED (gh#45). This module and `threads._named_entry` ask the same
+## question of the same argument, and while each carried its own answer the two disagreed: a
+## cast entry argument was a bare name here and was not there, so `propose` recommended thread
+## patterns for spawns the harvest then dropped.
+_UNWRAP_TYPES = ENTRY_UNWRAP_TYPES
 
 
 ## @brief One call that passes an enclosing definition's parameter through.
