@@ -1038,3 +1038,117 @@ def test_an_edited_yaml_document_is_parsed_again(tmp_path: Path, monkeypatch) ->
     discover(repo, (), cache=cache)
 
     assert loads["n"] > 0, "an edited document must be read again, not served from the cache"
+
+
+##
+# @brief An ingot-shaped manifest with no key list beside it.
+# @param root Directory to build the repository in.
+# @return The manifest path.
+# @version 1
+def _ingot_manifest(root: Path) -> Path:
+    """THE REPORTED SHAPE: a repository whose data model is declared in TOML alone, with no
+    separate key-list YAML anywhere — which is what makes discovery decline it.
+
+    @brief Write an ingot manifest and nothing else.
+    @return The manifest path.
+    @version 1
+    """
+    path = root / "app" / "data" / "shim_datamodel.toml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        '[meta]\nid = "B12"\n\n'
+        '[[classes]]\nid = "Drive"\n\n'
+        '[[classes.keys]]\nid = "WheelLinearVel"\ntype = "float"\n',
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_discovery_still_declines_a_manifest_no_key_list_names(tmp_path: Path) -> None:
+    """THE RULE THAT MUST NOT MOVE. A generator ships example manifests that parse identically
+    to a real one, so during DISCOVERY a shape match is not evidence — the repository's own key
+    list is. `manifests_unlisted` counts what that rule declined, and this pins it.
+
+    @brief An undeclared, unlisted manifest contributes nothing.
+    @return None.
+    @version 1
+    """
+    from clew.datamodel import discover
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _ingot_manifest(repo)
+
+    found = discover(repo, ())
+    assert found.keys == (), "discovery must not admit a manifest no key list names"
+    assert found.manifests_unlisted == 1, "and must say so by count"
+
+
+def test_a_declared_manifest_is_admitted_without_a_key_list(tmp_path: Path) -> None:
+    """gh#42. THE OPERATOR NAMING THE PATH IS THE EVIDENCE. The key-list gate exists because a
+    vendored generator's `examples/` parse identically to a real manifest during a WALK — a
+    concern that does not survive somebody stating the path. On the reporting repository the
+    model is declared in TOML alone, so every one of its 14 shape-matching documents was
+    declined and `dossier` on a real key answered a definitive negative.
+
+    THE DECLARED MANIFEST IS ADMITTED, NOT THE REST. The other documents the walk found stay
+    subject to the key-list rule, so declaring one path does not open the repository to a
+    vendored generator's examples.
+
+    @brief A declared manifest contributes its keys with no key list present.
+    @return None.
+    @version 1
+    """
+    from clew.datamodel import discover
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    manifest = _ingot_manifest(repo)
+
+    found = discover(repo, (), declared=manifest)
+    assert [k.define_name for k in found.keys], "the declared manifest's keys must be admitted"
+    assert any("shim_datamodel.toml" in m for m in found.manifests), found.manifests
+
+
+def test_a_declared_manifest_that_cannot_be_read_is_refused(tmp_path: Path) -> None:
+    """NEVER SILENTLY SKIPPED, which is what this issue is really about. The reporter stated
+    `data_model` through `options`, watched the build log it as tier 1, and then watched the
+    stage report `0 key(s) ... from 0 manifest(s) in dialect(s) none` with no line saying the
+    declared path had been opened, parsed or rejected. A statement that is accepted and has no
+    effect is worse than one that is refused: it reads as agreement.
+
+    @brief A declared path that is not a manifest is refused by name.
+    @return None.
+    @version 1
+    """
+    import pytest
+
+    from clew.datamodel import DeclaredModelError, discover
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    plain = repo / "pyproject.toml"
+    plain.write_text("[tool.black]\nline-length = 100\n", encoding="utf-8")
+
+    with pytest.raises(DeclaredModelError, match="pyproject.toml"):
+        discover(repo, (), declared=plain)
+
+
+def test_a_declared_path_that_is_absent_is_refused(tmp_path: Path) -> None:
+    """THE OTHER WAY A STATEMENT GOES WRONG, and the one a typo produces. Refused with the
+    path named, rather than degrading to the discovery answer that would have been given
+    anyway — which is precisely the outcome that reads as agreement.
+
+    @brief A declared path that does not exist is refused.
+    @return None.
+    @version 1
+    """
+    import pytest
+
+    from clew.datamodel import DeclaredModelError, discover
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    with pytest.raises(DeclaredModelError, match="missing.toml"):
+        discover(repo, (), declared=repo / "missing.toml")

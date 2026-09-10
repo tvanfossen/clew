@@ -1755,7 +1755,7 @@ def _doxygen_stage(
 
 ## @brief Run every build stage against one (temp) output DB path.
 ## @param timer Stage timer; one `mark` closes each stage below. A fresh one when omitted.
-## @version 53
+## @version 54
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -1785,7 +1785,7 @@ def _build_stages(
     per file. It changes no stage's position and emits nothing — see harvest.py.
 
     @brief Execute every augmentation stage against one output database.
-    @version 47
+    @version 48
     """
     timer = timer or StageTimer()
     repo_root = Path(args.repo_root).resolve() if args.repo_root else doxyfile.parent
@@ -2045,8 +2045,16 @@ def _build_stages(
     ## MEASURED COST OF NOT BOUNDING THIS WALK: one control target vendors a YAML parser's
     ## benchmark corpus under `build/`, including a 10.7 MB pathological document, and the first
     ## version of this stage did not finish in twenty-five minutes at full CPU.
+    ## gh#42. THE DECLARED PATH REACHES THE CATALOG STAGE, not only the declared shared-key
+    ## pass above. It used to reach only that pass, so an operator who stated `data_model` got a
+    ## build that logged the statement as tier 1 and then reported an empty catalog — the same
+    ## answer a repository with no data model gets.
     data_model_set = import_data_model_keys(
-        output, repo_root, tuple(Path(p) for p in (args.extra_exclude or [])), cache
+        output,
+        repo_root,
+        tuple(Path(p) for p in (args.extra_exclude or [])),
+        cache,
+        data_model,
     )
     timer.mark("data_model_keys")
 

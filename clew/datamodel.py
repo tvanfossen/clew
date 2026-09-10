@@ -716,16 +716,68 @@ def _candidates(repo_root: Path, excludes: tuple[Path, ...] = ()) -> tuple[list[
     return toml_paths, yaml_paths
 
 
+## @brief A stated `data_model` that cannot be honoured, raised rather than ignored.
+## @version 1
+class DeclaredModelError(RuntimeError):
+    """gh#42. A STATEMENT THAT IS ACCEPTED AND HAS NO EFFECT READS AS AGREEMENT. The reporter
+    stated `data_model` through `options`, watched the build log it as tier 1, and watched the
+    stage then report `0 key(s) over 0 class(es) from 0 manifest(s) in dialect(s) none` with no
+    line saying the declared path had been opened, parsed or rejected. Nothing was wrong with
+    the file; nothing had looked at it.
+
+    @brief Refusal for a declared data model that cannot be used.
+    @version 1
+    """
+
+
+## @brief Parse a manifest the operator NAMED, by dialect, refusing rather than declining.
+## @param declared The stated manifest path.
+## @param repo_root Root the stored manifest path is relative to.
+## @return (manifest key, declared keys).
+## @version 1
+## @dg_internal
+def _declared_manifest(declared: Path, repo_root: Path) -> tuple[str, tuple[DeclaredKey, ...]]:
+    """DECLINING IS RIGHT FOR A WALK AND WRONG FOR A STATEMENT. Both parsers return None for
+    "not this kind of document", which is what lets discovery pass over a lint config without
+    comment. Here the document was NAMED, so None is not a shrug — it is the answer to a
+    question the operator asked, and it is reported as one.
+
+    @brief Parse a declared manifest or refuse with the reason.
+    @return The manifest key and its keys.
+    @version 1
+    """
+    path = Path(declared).expanduser()
+    if not path.is_absolute():
+        path = (Path(repo_root) / path).resolve()
+    if not path.is_file():
+        raise DeclaredModelError(
+            f"data_model names {path}, which is not a file. A declared data model is refused "
+            f"rather than skipped: skipping it would report the same empty catalog a repository "
+            f"with no data model reports, which is agreement rather than an answer."
+        )
+    for parse in (parse_ingot_manifest, parse_udm_manifest):
+        keys = parse(path, repo_root)
+        if keys is not None:
+            return rel_key(path, repo_root), keys
+    raise DeclaredModelError(
+        f"data_model names {path}, which neither dialect recognises. The ingot dialect expects "
+        f"a `classes` list whose entries carry an `id` and a `keys` list; the UDM dialect "
+        f"expects a `keys` list. Refused rather than skipped, so a mis-stated path cannot read "
+        f"as a repository that declares nothing."
+    )
+
+
 ## @brief Discover a repository's declared data-model manifest set.
 ## @param repo_root The repository root, or None when the build has none.
 ## @param excludes Subtrees the BUILD excluded, so this layer looks where the index looks.
 ## @return The manifest set, empty when the repository declares no data model.
-## @version 2
+## @version 3
 ## @req REQ-DDB-SCHEMA-013
 def discover(
     repo_root: Path | None,
     excludes: tuple[Path, ...] = (),
     cache: Any = None,
+    declared: Path | None = None,
 ) -> ManifestSet:
     """TWO PASSES, and the ORDER is the fail-closed rule: every key list is collected first,
     and only then is a manifest admitted — on the evidence that the repository's own list
@@ -746,7 +798,7 @@ def discover(
 
     @brief Discover and select a repository's data-model manifest set.
     @return The discovered manifest set.
-    @version 3
+    @version 4
     """
     if repo_root is None:
         return ManifestSet()
@@ -760,6 +812,22 @@ def discover(
     toml_paths, yaml_paths = _candidates(repo_root, excludes)
     listed, list_count, udm_paths = _classify_yaml(yaml_paths, repo_root, cache)
     found = _select(toml_paths, udm_paths, repo_root, listed, list_count, cache)
+    ## gh#42. A DECLARED MANIFEST IS ADMITTED WITHOUT A KEY LIST, and the fail-closed rule above
+    ## is untouched for everything else. That rule exists because a vendored generator ships
+    ## example manifests which parse identically to a real one — a hazard of WALKING, and one
+    ## nobody stating a path is exposed to. On the reporting repository the model is declared in
+    ## TOML alone, so all 14 shape-matching documents were declined and every key in the
+    ## repository's own data model was missing from the index.
+    if declared is not None:
+        manifest, keys = _declared_manifest(declared, repo_root)
+        if manifest not in found.manifests:
+            found = replace(
+                found,
+                keys=(*found.keys, *keys),
+                manifests=(*found.manifests, manifest),
+                ## It was counted as declined by the walk that has just been overruled.
+                manifests_unlisted=max(0, found.manifests_unlisted - 1),
+            )
     return replace(
         found,
         oversized=_oversized_count([*toml_paths, *yaml_paths]),
@@ -1124,14 +1192,16 @@ def _observed_keys(conn: sqlite3.Connection) -> frozenset[str]:
 ## @param repo_root The repository root, or None.
 ## @param excludes Subtrees the BUILD excluded, so this layer looks where the index looks.
 ## @param cache Live index cache, or None to re-read every candidate document.
+## @param declared The manifest path the operator stated, or None.
 ## @return The manifest set that was discovered, for stamping.
-## @version 3
+## @version 4
 ## @req REQ-DDB-SCHEMA-013
 def import_data_model_keys(
     db_path: Path,
     repo_root: Path | None,
     excludes: tuple[Path, ...] = (),
     cache: Any = None,
+    declared: Path | None = None,
 ) -> ManifestSet:
     """RUNS AFTER the shared-key stages, because `observed` is a join against the vocabulary
     they wrote. That ordering is load-bearing and not incidental: run above them and every
@@ -1147,7 +1217,7 @@ def import_data_model_keys(
     @return The discovered manifest set.
     @version 2
     """
-    found = discover(repo_root, excludes, cache)
+    found = discover(repo_root, excludes, cache, declared)
     conn = sqlite3.connect(str(db_path))
     try:
         _ensure_table(conn)
