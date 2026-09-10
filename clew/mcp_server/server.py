@@ -887,6 +887,107 @@ def _sub_index_scope(
     return exclude, merged
 
 
+## How many listing rows one reply may carry. `list_targets` trimmed its per-target PAYLOAD
+## when it was measured at tens of kilobytes, and left the ROW COUNT unbounded — its own
+## docstring names the multiplication ("an unbounded per-target payload by an unbounded target
+## count") and fixed only one factor. gh#38's derived rows then walked through the gap: 338 rows
+## and 127,867 characters on one repository, past the client's result cap, so the orientation
+## call returned nothing usable.
+TARGETS_CAP = 60
+
+
+## @brief The derived names that are not nested inside another derived name.
+## @param names Every recorded derived name for one repository.
+## @return The top-level names, in the recorded order.
+## @version 1
+## @dg_internal
+def _top_level_names(names: tuple[str, ...]) -> list[str]:
+    """DERIVED FROM THE NAMES THEMSELVES, because that is all the registry recorded and it is
+    enough: `_sub_index_name` builds a name from the tree's repo-relative path, so a nested
+    tree's name is its parent's name plus a separator plus the rest. No walk, which is the
+    property gh#38 chose this storage for.
+
+    @brief Split recorded names into top-level ones.
+    @return Top-level names.
+    @version 1
+    """
+    return [
+        name
+        for name in names
+        if name == FIRST_PARTY_INDEX
+        or not any(other != name and name.startswith(f"{other}-") for other in names)
+    ]
+
+
+## @brief How many recorded names sit under one top-level name.
+## @param parent The top-level name.
+## @param names Every recorded derived name for the repository.
+## @return The count of names nested under it.
+## @version 1
+## @dg_internal
+def _nested_under(parent: str, names: tuple[str, ...]) -> int:
+    """@brief Count one name's descendants.
+    @return The count.
+    @version 1
+    """
+    return sum(1 for name in names if name != parent and name.startswith(f"{parent}-"))
+
+
+## @brief A row for a sub-index that could be built but has not been.
+## @param repo_path The repository it belongs to.
+## @param name The derived sub-index name.
+## @param nested How many further names sit under it.
+## @return The listing row.
+## @version 1
+## @dg_internal
+def _buildable_row(repo_path: str, name: str, nested: int) -> dict[str, Any]:
+    """TWO FACTS AND NO MEASUREMENT. An unbuilt sub-index has a name and the fact that it is not
+    built; the full `db_status` projection additionally carried a staleness block explaining
+    that a database which was never built is not current, and three hundred of those paragraphs
+    is what took the reply past the client's cap. Reporting staleness for a database that does
+    not exist also measures something never measurable, which is the shape this repository
+    removes wherever it finds it.
+
+    @brief Render a buildable-but-unbuilt sub-index row.
+    @return The row.
+    @version 1
+    """
+    row: dict[str, Any] = {"repo_path": repo_path, "sub_index": name, "exists": False}
+    if nested:
+        row["nested_sub_indexes"] = nested
+        row["nested_spelling"] = f"{name}-<path under it>"
+    return row
+
+
+## @brief Trim a listing to the cap, disclosing what was dropped.
+## @param rows Every row the listing would carry.
+## @return The rows, with a final note when any were dropped.
+## @version 1
+## @dg_internal
+def _capped_listing(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """BUILT TARGETS FIRST, because they are the ones a caller can query right now — a cap that
+    dropped a built index to make room for a buildable one would be the wrong way round.
+
+    @brief Bound the listing.
+    @return The capped rows.
+    @version 1
+    """
+    if len(rows) <= TARGETS_CAP:
+        return rows
+    ordered = [r for r in rows if r.get("exists")] + [r for r in rows if not r.get("exists")]
+    kept = ordered[:TARGETS_CAP]
+    kept.append(
+        {
+            "note": (
+                f"{len(rows) - TARGETS_CAP} more target(s) not listed, to stay inside the "
+                f"client's result limit. Built indexes are listed first; name a repository with "
+                f"`target=` to see its own status."
+            )
+        }
+    )
+    return kept
+
+
 ## @brief Lifecycle state + tier-0 tool implementations for one server.
 ## @version 1
 class DocsDbServer:
@@ -1943,7 +2044,7 @@ class DocsDbServer:
 
     ## @brief Every known target with its database age and staleness.
     ## @return List of listing rows, one per registered target.
-    ## @version 4
+    ## @version 5
     ## @req REQ-DDB-MCP-002
     def list_targets(self) -> list[dict[str, Any]]:
         """A LISTING, WHICH IS WHAT THE TOOL DESCRIPTION ALREADY PROMISED — "every indexed
@@ -1979,18 +2080,18 @@ class DocsDbServer:
 
         @brief List registered targets and the sub-indexes they could still build.
         @return List of listing rows.
-        @version 4
+        @version 5
         """
         registered = self.registry.targets()
         rows = [_listing_row(db_status(t)) for t in registered]
         built = {(t.repo_path, t.name) for t in registered}
         for repo_path in dict.fromkeys(t.repo_path for t in registered):
-            for name in self.registry.derived_names(repo_path):
+            names = self.registry.derived_names(repo_path)
+            for name in _top_level_names(names):
                 if (repo_path, name) in built:
                     continue
-                unbuilt = target_for(repo_path, self.registry.home, name=name)
-                rows.append(_listing_row(db_status(unbuilt)))
-        return rows
+                rows.append(_buildable_row(repo_path, name, _nested_under(name, names)))
+        return _capped_listing(rows)
 
     ## @brief Remove aged-out or version-stale databases.
     ## @param max_age_days Age threshold in days (null disables the age rule).
