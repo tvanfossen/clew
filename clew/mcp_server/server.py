@@ -125,7 +125,7 @@ import anyio
 
 from .._common import captured_output, logger
 from ..buildlock import build_lock
-from ..scope import FIRST_PARTY_INDEX, SCOPE_FROM_GUARD
+from ..scope import FIRST_PARTY_INDEX, SCOPE_FROM_GUARD, declared_sub_index_excludes
 from ._sdk import Context, MCPServer, ToolError, lowlevel
 from .descriptions import load_descriptions
 from .freshness import code_identity, notices, refused, stale_code_refusal
@@ -809,7 +809,7 @@ def _sub_index_rejection(target: Target, repo: Path) -> str | None:
 ## @param exclude The caller's exclusions, forwarded unchanged for a whole-repo target.
 ## @param options The caller's tier-1 options, forwarded unchanged for a whole-repo target.
 ## @return (exclude, options) to pass to `build_index`.
-## @version 5
+## @version 6
 ## @dg_internal
 def _sub_index_scope(
     target: Target,
@@ -830,7 +830,7 @@ def _sub_index_scope(
 
     @brief Resolve build scope for a sub-index target.
     @return The exclude list and options to build with.
-    @version 5
+    @version 6
     """
     if target.name is None:
         return exclude, options
@@ -854,8 +854,13 @@ def _sub_index_scope(
             f"scope of its own — refusing rather than widening to the whole repository."
         )
     nested = [str(p.relative_to(repo)) for p in match.excludes]
+    ## gh#39 route 2b. WHAT THE PARENT SAYS ABOUT THIS SUB-INDEX, validated against the derived
+    ## names so a block naming a tree the repository does not vendor is refused rather than left
+    ## sitting in the file doing nothing. Read for EVERY sub-index build, including first-party,
+    ## because a block keyed by name means the same thing whichever name it keys.
+    declared = declared_sub_index_excludes(repo, target.name, _buildable_sub_indexes(repo))
     if target.name == FIRST_PARTY_INDEX:
-        return list(exclude or []) + nested, options
+        return list(exclude or []) + nested + list(declared), options
     ## A VENDORED SUB-INDEX EXCLUDES ITS OWN CHILDREN TOO, now that `derive_sub_indexes`
     ## recurses: `roots=[tree]` bounds INPUT to everything under `tree`, and a nested tree
     ## one level further down is still inside that boundary — `match.excludes` names exactly
@@ -883,7 +888,10 @@ def _sub_index_scope(
     ## changes nothing `_declared_index_scope` reads (`section.get("excludes") or []` treats
     ## absent and empty identically) but would still be a payload shape every existing reader
     ## and test has to account for.
-    merged["index_scope"] = {"roots": [root], **({"excludes": nested} if nested else {})}
+    ## The declared excludes join the derived child-tree ones rather than replacing them: a
+    ## parent trimming a vendored tree is not also saying its children belong to it.
+    scoped = nested + list(declared)
+    merged["index_scope"] = {"roots": [root], **({"excludes": scoped} if scoped else {})}
     return exclude, merged
 
 

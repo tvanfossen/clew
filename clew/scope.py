@@ -444,6 +444,75 @@ def _declaration_advice() -> str:
     )
 
 
+## The keys a `sub_indexes:` entry may carry. `roots` is DELIBERATELY ABSENT: a sub-index's
+## roots are its tree, derived by `derive_sub_indexes`, and accepting a key this then ignored
+## would be the accepted-but-unread defect `_INDEX_SCOPE_KEYS` closes one level down.
+_SUB_INDEX_KEYS = frozenset({"excludes"})
+
+
+## @brief Excludes the parent repository declares for one of its named sub-indexes.
+## @param repo_root Resolved repository root.
+## @param name The sub-index being built.
+## @param buildable Every derived sub-index name, for validating what the declaration claims.
+## @return The declared repo-relative excludes for this sub-index; empty when none apply.
+## @version 1
+## @req REQ-DDB-CONFIG-001
+def declared_sub_index_excludes(
+    repo_root: Path, name: str, buildable: tuple[str, ...]
+) -> tuple[str, ...]:
+    """gh#39. A REPOSITORY VENDORING A TREE THAT VENDORS NINE MORE could say nothing about it.
+    `_sub_index_scope` builds a vendored sub-index from its `roots` alone; a `.clew.yaml` inside
+    the nested tree is never read, because discovery is rooted at the parent and the tree is
+    upstream's anyway. So a 641 MB boost, a 217 MB opencv and a 142 MB pcl were indexed as part
+    of their parent and the build could not finish inside the 900 s doxygen cap.
+
+    THE PARENT'S DECLARATION RATHER THAN CALL METADATA, which was the alternative: excludes
+    stashed in the sub-index's own database on its first build and replayed afterwards. That
+    puts the value somewhere only the operator who made the call can see, so two operators of
+    one commit hold different indexes — the shape gh#352 rejected, and the reason the
+    `options.*` tier rows exist at all. A declaration is durable, reviewable in the same diff as
+    the code, and readable by everyone who clones the repository.
+
+    EVERY DECLARED NAME IS VALIDATED, not just the one being built. A block naming a tree this
+    repository does not vendor would otherwise sit in the file doing nothing while its author
+    believed it was trimming a build — this project's most repeated defect, and the reason the
+    keys inside an `index_scope` are checked as well as the section itself.
+
+    @brief Read the declared excludes for one sub-index, refusing what cannot apply.
+    @return The declared excludes, or ().
+    @version 1
+    """
+    from .declaration import SECTION_SUB_INDEXES, load_declaration
+
+    declared = load_declaration(repo_root).get(SECTION_SUB_INDEXES)
+    if not declared:
+        return ()
+    if not isinstance(declared, dict):
+        raise ValueError(
+            f"{SECTION_SUB_INDEXES} is {type(declared).__name__}, not a mapping of sub-index "
+            f"name to its scope."
+        )
+    unknown = sorted(str(k) for k in declared if str(k) not in buildable)
+    if unknown:
+        raise ValueError(
+            f"{SECTION_SUB_INDEXES} names {', '.join(repr(u) for u in unknown)}, which this "
+            f"repository does not derive. Buildable: {', '.join(repr(b) for b in buildable)}. "
+            f"Refusing rather than ignoring it, so a block that trims nothing cannot read as "
+            f"one that does."
+        )
+    entry = declared.get(name) or {}
+    if not isinstance(entry, dict):
+        raise ValueError(f"{SECTION_SUB_INDEXES}.{name} is {type(entry).__name__}, not a mapping.")
+    bad_keys = sorted(str(k) for k in entry if str(k) not in _SUB_INDEX_KEYS)
+    if bad_keys:
+        raise ValueError(
+            f"{SECTION_SUB_INDEXES}.{name} carries {', '.join(repr(k) for k in bad_keys)}; only "
+            f"{', '.join(sorted(_SUB_INDEX_KEYS))} is accepted. A sub-index's roots are its "
+            f"tree, derived from the repository, and are not restatable here."
+        )
+    return tuple(str(p) for p in (entry.get("excludes") or []))
+
+
 ## @brief Whether the repo's own index_scope would be REJECTED, without the fallback.
 ## @param repo_root Repo root to check.
 ## @param guard_config Explicit guard-config path overriding discovery, or None.
