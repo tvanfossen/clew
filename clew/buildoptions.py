@@ -210,7 +210,21 @@ MANIFEST_OPTIONS: tuple[str, ...] = (
 ## acceptance harness and every existing caller name it, and because a bare macro list is the
 ## common case. It is the one option whose name is not a section, and it is documented as such
 ## rather than quietly tolerated.
-SECTION_DOCUMENT_OPTIONS: tuple[str, ...] = ("preprocessor", "kconfig", "index_scope")
+## `sub_indexes` IS ONE OF THESE AND NOT AN INLINE MAPPING (gh#39). `_checked_mapping` is the
+## `event_tags` validator — it requires every value to be an event ROLE — and a sub-index block's
+## values are themselves mappings, so borrowing it would refuse a valid document for the reason
+## `_checked_section_document` was written down: a validator used for a shape it was never
+## written for. Its own reader (`scope.declared_sub_index_excludes`) polices the names and keys,
+## refusing a name the repository does not derive and a key that is not `excludes`.
+##
+## Statable at all because every declaration section must be reachable from the MCP surface: a
+## tier-2-only section cannot be stated by an operator who does not own the target's tree.
+SECTION_DOCUMENT_OPTIONS: tuple[str, ...] = (
+    "preprocessor",
+    "kconfig",
+    "index_scope",
+    "sub_indexes",
+)
 
 
 ## @brief One list-of-entries key inside a manifest, and the keys its entries may carry.

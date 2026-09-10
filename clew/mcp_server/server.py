@@ -125,7 +125,12 @@ import anyio
 
 from .._common import captured_output, logger
 from ..buildlock import build_lock
-from ..scope import FIRST_PARTY_INDEX, SCOPE_FROM_GUARD, declared_sub_index_excludes
+from ..declaration import SECTION_SUB_INDEXES
+from ..scope import (
+    FIRST_PARTY_INDEX,
+    SCOPE_FROM_GUARD,
+    declared_sub_index_excludes,
+)
 from ._sdk import Context, MCPServer, ToolError, lowlevel
 from .descriptions import load_descriptions
 from .freshness import code_identity, notices, refused, stale_code_refusal
@@ -809,7 +814,7 @@ def _sub_index_rejection(target: Target, repo: Path) -> str | None:
 ## @param exclude The caller's exclusions, forwarded unchanged for a whole-repo target.
 ## @param options The caller's tier-1 options, forwarded unchanged for a whole-repo target.
 ## @return (exclude, options) to pass to `build_index`.
-## @version 6
+## @version 7
 ## @dg_internal
 def _sub_index_scope(
     target: Target,
@@ -830,7 +835,7 @@ def _sub_index_scope(
 
     @brief Resolve build scope for a sub-index target.
     @return The exclude list and options to build with.
-    @version 6
+    @version 7
     """
     if target.name is None:
         return exclude, options
@@ -858,7 +863,12 @@ def _sub_index_scope(
     ## names so a block naming a tree the repository does not vendor is refused rather than left
     ## sitting in the file doing nothing. Read for EVERY sub-index build, including first-party,
     ## because a block keyed by name means the same thing whichever name it keys.
-    declared = declared_sub_index_excludes(repo, target.name, _buildable_sub_indexes(repo))
+    declared = declared_sub_index_excludes(
+        repo,
+        target.name,
+        _buildable_sub_indexes(repo),
+        stated=(options or {}).get(SECTION_SUB_INDEXES),
+    )
     if target.name == FIRST_PARTY_INDEX:
         return list(exclude or []) + nested + list(declared), options
     ## A VENDORED SUB-INDEX EXCLUDES ITS OWN CHILDREN TOO, now that `derive_sub_indexes`

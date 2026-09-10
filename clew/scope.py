@@ -454,11 +454,12 @@ _SUB_INDEX_KEYS = frozenset({"excludes"})
 ## @param repo_root Resolved repository root.
 ## @param name The sub-index being built.
 ## @param buildable Every derived sub-index name, for validating what the declaration claims.
-## @return The declared repo-relative excludes for this sub-index; empty when none apply.
-## @version 1
+## @param stated The tier-1 block from the caller's options, or None to read the declaration.
+## @return The repo-relative excludes for this sub-index; empty when none apply.
+## @version 2
 ## @req REQ-DDB-CONFIG-001
 def declared_sub_index_excludes(
-    repo_root: Path, name: str, buildable: tuple[str, ...]
+    repo_root: Path, name: str, buildable: tuple[str, ...], stated: dict | None = None
 ) -> tuple[str, ...]:
     """gh#39. A REPOSITORY VENDORING A TREE THAT VENDORS NINE MORE could say nothing about it.
     `_sub_index_scope` builds a vendored sub-index from its `roots` alone; a `.clew.yaml` inside
@@ -478,13 +479,21 @@ def declared_sub_index_excludes(
     believed it was trimming a build — this project's most repeated defect, and the reason the
     keys inside an `index_scope` are checked as well as the section itself.
 
-    @brief Read the declared excludes for one sub-index, refusing what cannot apply.
-    @return The declared excludes, or ().
-    @version 1
+    A STATED BLOCK REPLACES THE DECLARED ONE, tier 1 over tier 2, exactly as every other option
+    resolves — and replacing rather than adding is what lets an operator WITHDRAW a declared
+    exclude they disagree with. `declared_scope_rejection` takes `stated` for the same reason
+    one section over: a declaration section that could only be written into the target's tree is
+    unreachable for an operator who does not own it.
+
+    @brief Read the declared or stated excludes for one sub-index, refusing what cannot apply.
+    @return The excludes, or ().
+    @version 2
     """
     from .declaration import SECTION_SUB_INDEXES, load_declaration
 
-    declared = load_declaration(repo_root).get(SECTION_SUB_INDEXES)
+    declared = (
+        stated if stated is not None else load_declaration(repo_root).get(SECTION_SUB_INDEXES)
+    )
     if not declared:
         return ()
     if not isinstance(declared, dict):

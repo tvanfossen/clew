@@ -170,3 +170,49 @@ def test_an_unknown_key_inside_a_block_is_refused_by_name(tmp_path: Path) -> Non
 
     with pytest.raises(ValueError, match="exclude"):
         _sub_index_scope(target, repo, None, None)
+
+
+def test_a_stated_sub_index_scope_reaches_the_build(tmp_path: Path) -> None:
+    """REGISTERED IS NOT THE SAME AS READ. `sub_indexes` is an accepted build option because
+    every declaration section must be reachable from the MCP surface — a tier-2-only section is
+    unreachable for an operator who cannot edit the target's tree. An option that is accepted
+    and then ignored is this project's most repeated defect, so the acceptance is pinned to the
+    effect rather than to the registration.
+
+    @brief A tier-1 stated block trims the sub-index it names.
+    @version 1
+    """
+    from clew.mcp_server.server import _sub_index_scope
+    from clew.mcp_server.state import target_for
+
+    repo = _repo(tmp_path / "repo")
+    target = target_for(repo, tmp_path / "state", name="deps-slam")
+    options = {"sub_indexes": {"deps-slam": {"excludes": ["deps/slam/vendor"]}}}
+
+    _exclude, merged = _sub_index_scope(target, repo, None, options)
+    assert "deps/slam/vendor" in merged["index_scope"]["excludes"], merged
+
+
+def test_a_stated_block_wins_over_the_declared_one(tmp_path: Path) -> None:
+    """TIER 1 OVER TIER 2, which is what every other option does — and stating it has to mean
+    REPLACING rather than adding, or an operator could never withdraw a declared exclude they
+    disagree with.
+
+    @brief The stated block replaces the file's for that sub-index.
+    @version 1
+    """
+    from clew.mcp_server.server import _sub_index_scope
+    from clew.mcp_server.state import target_for
+
+    repo = _repo(tmp_path / "repo")
+    _declare(repo, "  deps-slam:\n    excludes: [deps/slam/from_file]\n")
+    target = target_for(repo, tmp_path / "state", name="deps-slam")
+    options = {"sub_indexes": {"deps-slam": {"excludes": ["deps/slam/from_call"]}}}
+
+    _exclude, merged = _sub_index_scope(target, repo, None, options)
+    excludes = merged["index_scope"]["excludes"]
+    assert "deps/slam/from_call" in excludes, excludes
+    assert "deps/slam/from_file" not in excludes, (
+        "a stated block must replace the declared one, or a declared exclude could never be "
+        "withdrawn from the call"
+    )

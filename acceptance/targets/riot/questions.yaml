@@ -141,18 +141,29 @@ questions:
     marks:
       - text: >-
           states that irq_disable returns the previous interrupt state and irq_restore takes
-          that value back, so sections nest without a counter
-        type: conclusion
+          that value back
+        type: retrieval
         weight: 3
         evidence: |
           core/lib/include/irq.h:46 `MAYBE_INLINE unsigned irq_disable(void);` and :72
-          `MAYBE_INLINE void irq_restore(unsigned state);`. The saved value is carried in a local, e.g.
-          core/mutex.c:101 `unsigned irq_state = irq_disable();`.
+          `MAYBE_INLINE void irq_restore(unsigned state);`. The saved value is carried in a
+          local, e.g. core/mutex.c:101 `unsigned irq_state = irq_disable();`.
         refs: [["core/lib/include/irq.h", 46], ["core/lib/include/irq.h", 72], ["core/mutex.c", 101]]
+
+      - text: >-
+          concludes that because the previous state is returned and restored, sections nest
+          without a depth counter
+        type: conclusion
+        weight: 2
+        evidence: |
+          A restore writes back what was saved rather than unconditionally enabling, so an inner
+          section entered while interrupts were already disabled leaves them disabled on exit.
+          Verified from the signatures at core/lib/include/irq.h:46 and :72.
+        refs: [["core/lib/include/irq.h", 46], ["core/lib/include/irq.h", 72]]
 
       - text: every file under core/ that opens an interrupt-disabled critical section
         type: set
-        weight: 3
+        weight: 1
         extract: |
           List every file path the answer names as containing a site where interrupts are
           disabled to open a critical section. Paths only, one per line, exactly as the answer
@@ -177,3 +188,25 @@ questions:
           core/mutex.c:184 `void mutex_unlock(mutex_t *mutex)` opens at :186 and restores at
           :193 and :200.
         refs: [["core/mutex.c", 184], ["core/mutex.c", 186], ["core/mutex.c", 193, 200]]
+
+      - text: >-
+          observes that not every site binds the saved state — some pass it straight on and
+          some discard it — so the idiom is not always a visible acquire/release pair
+        type: conclusion
+        weight: 3
+        evidence: |
+          core/msg.c:71 passes `irq_disable()` directly into `_msg_send`; core/thread.c:72 calls
+          it for effect and drops the result; core/sched.c:315 casts it to void. All three
+          disable interrupts and none binds a state variable.
+        refs: [["core/msg.c", 71], ["core/thread.c", 72], ["core/sched.c", 315]]
+
+      - text: >-
+          notes that the primitives are MAYBE_INLINE, so on a port defining IRQ_API_INLINED
+          they are always-inline statics rather than linked calls
+        type: conclusion
+        weight: 2
+        evidence: |
+          core/lib/include/irq.h:30-34 defines MAYBE_INLINE as
+          `static inline __attribute__((always_inline))` under IRQ_API_INLINED and as nothing
+          otherwise, so whether a call site is a call at all is a per-port property.
+        refs: [["core/lib/include/irq.h", 30, 34]]
