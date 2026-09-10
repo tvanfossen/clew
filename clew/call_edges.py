@@ -1480,7 +1480,7 @@ def _fold_call_payload(
 ## @param candidates The candidate rowids the site refused between.
 ## @param identity_of rowid → (name, definition, argsstring).
 ## @return The rowid to credit, or None when the site names several functions.
-## @version 1
+## @version 2
 ## @dg_internal
 def _attributable(
     candidates: list[int], identity_of: dict[int, tuple[str, str, str]]
@@ -1490,14 +1490,27 @@ def _attributable(
     rather than about a name. An unknown identity disqualifies the whole set rather than being
     skipped, because a set that is only PARTLY known cannot be shown to name one function.
 
+    SHORT-CIRCUITS RATHER THAN BUILDING THE SET (gh#34), which is the same answer reached
+    sooner: "every identity is equal" and "the set of identities has one member" agree exactly
+    once every candidate is known, and the loop below establishes both in one pass. The set
+    version walked every candidate twice — once for membership, once to hash a 3-string tuple
+    into a set — and a call site whose name matches 200 rows paid all 400 to learn what the
+    second candidate already settled. Measured at 87 microseconds per refused site across 6,019
+    of them, 526 ms of a 2,968 ms stage.
+
     @brief The rowid a refused site is attributable to.
     @return The rowid, or None.
-    @version 1
+    @version 2
     """
-    if not candidates or any(rowid not in identity_of for rowid in candidates):
+    if not candidates:
         return None
-    if len({identity_of[rowid] for rowid in candidates}) != 1:
-        return None
+    first = identity_of.get(candidates[0])
+    for rowid in candidates:
+        ## `first is None` is caught here on the opening iteration, so an unknown identity
+        ## disqualifies the set exactly as it did before — the whole set, not just that row.
+        identity = identity_of.get(rowid)
+        if identity is None or identity != first:
+            return None
     return min(candidates)
 
 
@@ -1815,7 +1828,7 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
 ## @param db_path Path to the clew.db being built.
 ## @param repo_root Repository root (for resolving indexed relative paths).
 ## @param cache Optional incremental index cache; None disables caching.
-## @version 11
+## @version 12
 ## @req REQ-DDB-PIPE-003
 def import_ast_call_edges(
     db_path: Path,
@@ -1837,7 +1850,7 @@ def import_ast_call_edges(
     guarantees structurally instead of by remembering to check.
 
     @brief Populate call_edges from tree-sitter AST walk, then guard self-edges.
-    @version 11
+    @version 12
     """
     ts_classes = try_import_tree_sitter()
     if ts_classes is None:
@@ -1911,7 +1924,7 @@ def import_ast_call_edges(
         edges_resolved,
         edges_fuzzy,
     )
-    prune_fabricated_self_edges(conn, repo_root, ts_classes, file_funcs)
+    prune_fabricated_self_edges(conn, repo_root, ts_classes, file_funcs, cache=cache)
     logger.info(
         "call_edges: %d call site(s) named a function and did not resolve, understating the "
         "callers of %d symbol(s) — recorded, so an empty `callers` can be graded",
@@ -2160,15 +2173,70 @@ def _self_edge_callers(conn: sqlite3.Connection) -> list[tuple[int, str, int]]:
     ).fetchall()
 
 
+## The cache tag for one file's SELF-ROOTED call sites, and the version of the detector that
+## found them. Its OWN tag on purpose (gh#34): widening the shared `ast_calls` payload would
+## invalidate every file's cached extraction on every repository for a question that concerns
+## under 1% of call sites — the objection `_gather_self_call_evidence` already recorded — while a
+## separate tag leaves that key untouched and still spares an unchanged file the parse.
+_SELF_SITES_STAGE = "self_sites"
+_SELF_SITES_STAGE_VERSION = 1
+
+
+## @brief One file's self-rooted call sites, cached by content so an unchanged file is read once.
+## @param rel_path The file's repo-relative path, as the index records it.
+## @param abs_path Where to read it from.
+## @param ts_classes (Language, Parser) from tree_sitter.
+## @param parser_cache Per-run parser reuse, as `_ast_parse_one_file` expects.
+## @param cache Live index cache, or None to always parse.
+## @return The (name, line) sites, or None when the file could not be parsed at all.
+## @version 1
+## @dg_internal
+def _self_sites_for(
+    rel_path: str,
+    abs_path: Path,
+    ts_classes: tuple[Any, Any],
+    parser_cache: dict,
+    cache: IndexCache | None,
+) -> list[tuple[str, int]] | None:
+    """NONE MEANS UNPARSEABLE AND AN EMPTY LIST MEANS NO SELF-ROOTED CALLS, and conflating them
+    would break the guard's fail-closed contract: a file that could not be read leaves its
+    callers UNVERIFIABLE, while a file that genuinely contains no self-rooted call proves its
+    self-edges fabricated. An empty list is a measurement, so it is cached like any other.
+
+    TUPLES ON THE WAY BACK, because JSON returns the pairs as lists and
+    `_file_self_edge_verdicts` unpacks them — a list of two works there today, and relying on
+    that is how a cached path starts behaving differently from a fresh one.
+
+    @brief Serve or compute one file's self-rooted call sites.
+    @return The sites, or None when the file did not parse.
+    @version 1
+    """
+    language_cls, parser_cls = ts_classes
+    sha = cache.sha_for(rel_path, abs_path) if cache is not None else None
+    if cache is not None and sha:
+        stored = cache.extract_get(sha, _SELF_SITES_STAGE, _SELF_SITES_STAGE_VERSION, "")
+        if stored is not None:
+            cache.record_pair(sha, _SELF_SITES_STAGE, _SELF_SITES_STAGE_VERSION, "", True)
+            return [(str(name), int(line)) for name, line in stored]
+    parsed = _ast_parse_one_file(rel_path, abs_path, parser_cache, parser_cls, language_cls)
+    if parsed is None:
+        return None
+    sites = list(_self_directed_sites(parsed[0], parsed[1]))
+    if cache is not None and sha:
+        cache.extract_put(sha, _SELF_SITES_STAGE, _SELF_SITES_STAGE_VERSION, "", sites)
+        cache.record_pair(sha, _SELF_SITES_STAGE, _SELF_SITES_STAGE_VERSION, "", False)
+    return sites
+
+
 ## @brief Split one file's self-edge callers into proved-recursive and unverifiable.
-## @param parsed (tree, src_bytes) for the file.
+## @param sites The file's self-rooted call sites as (name, line).
 ## @param funcs_in_file The file's (rowid, name, bodystart, bodyend) ranges.
 ## @param members This file's self-edge callers as (rowid, name).
 ## @return (rowids proved recursive, rowids with no usable body range).
-## @version 1
+## @version 2
 ## @dg_internal
 def _file_self_edge_verdicts(
-    parsed: tuple[Any, bytes],
+    sites: list[tuple[str, int]],
     funcs_in_file: list[tuple[int, str, int, int]],
     members: list[tuple[int, str]],
 ) -> tuple[set[int], set[int]]:
@@ -2182,15 +2250,19 @@ def _file_self_edge_verdicts(
     uses to build its edges, so the evidence is consistent with the edges it
     judges rather than being a second, differently-wrong opinion.
 
+    TAKES THE SITE LIST RATHER THAN THE PARSE TREE (gh#34), which is all it ever read from it —
+    `_self_directed_sites` was the only use — and is what lets the sites be cached and the parse
+    skipped for a file nothing changed.
+
     @brief Judge one file's self-edge callers against its call shapes.
     @return (proved, unverifiable).
-    @version 1
+    @version 2
     """
     with_ranges = {rowid for rowid, _n, _bs, _be in funcs_in_file}
     unverifiable = {rowid for rowid, _name in members if rowid not in with_ranges}
     names = dict(members)
     proved: set[int] = set()
-    for name, line in _self_directed_sites(parsed[0], parsed[1]):
+    for name, line in sites:
         rowid = _ast_caller_at_line(funcs_in_file, line)
         if rowid is not None and names.get(rowid) == name:
             proved.add(rowid)
@@ -2203,8 +2275,9 @@ def _file_self_edge_verdicts(
 ## @param ts_classes (Language, Parser) from tree_sitter.
 ## @param file_funcs bodyfile_id -> function ranges, from _build_function_indexes.
 ## @param by_file file rowid -> that file's self-edge callers.
+## @param cache Live index cache, or None to parse every file.
 ## @return (rowids proved recursive, rowids that could not be checked).
-## @version 3
+## @version 4
 ## @dg_internal
 def _gather_self_call_evidence(
     conn: sqlite3.Connection,
@@ -2212,36 +2285,41 @@ def _gather_self_call_evidence(
     ts_classes: tuple[Any, Any],
     file_funcs: dict[int, list[tuple[int, str, int, int]]],
     by_file: dict[int, list[tuple[int, str]]],
+    cache: IndexCache | None = None,
 ) -> tuple[set[int], set[int]]:
-    """Re-parses ONLY the files that own a self-edge (37 of clew's 81, 106 of
-    a large one's) rather than widening the cached `ast_calls` payload with a per-site
-    flag. Two reasons: the payload is shared by a stage whose cache key is a
-    content sha, so growing it would invalidate every file's cached extraction
-    on every repo for a question that concerns well under 1% of call sites; and
-    a receiver is needed here that no other consumer of that payload wants.
+    """Looks at ONLY the files that own a self-edge (37 of clew's 81, 106 of a large one's)
+    rather than widening the cached `ast_calls` payload with a per-site flag. Two reasons, both
+    still true: the payload is shared by a stage whose cache key is a content sha, so growing it
+    would invalidate every file's cached extraction on every repo for a question that concerns
+    well under 1% of call sites; and a receiver is needed here that no other consumer of that
+    payload wants.
 
-    @brief Parse the self-edge files and collect recursion evidence.
+    IT NO LONGER RE-PARSES THEM (gh#34). Those two objections rule out widening the SHARED
+    payload; they say nothing against this pass having its OWN. Measured on a 6.8 GB repository
+    with every call payload served from cache, this was 1,225 ms of a 2,968 ms stage — the last
+    parser running in a refresh that parses nothing else — re-reading 138 unchanged files to
+    re-derive a `(name, line)` list it had already derived. `_self_sites_for` caches that list
+    under its own tag, so the shared key stays untouched and an unchanged file is read once ever.
+
+    @brief Collect recursion evidence for the self-edge files.
     @return (proved, unverifiable).
-    @version 3
+    @version 4
     """
-    language_cls, parser_cls = ts_classes
     parser_cache: dict = {}
     paths = dict(conn.execute("SELECT rowid, name FROM path").fetchall())
     proved: set[int] = set()
     unverifiable: set[int] = set()
     for file_id, members in by_file.items():
         rel_path = paths.get(file_id)
-        parsed = (
-            _ast_parse_one_file(
-                rel_path, repo_root / rel_path, parser_cache, parser_cls, language_cls
-            )
+        sites = (
+            _self_sites_for(rel_path, repo_root / rel_path, ts_classes, parser_cache, cache)
             if rel_path
             else None
         )
-        if parsed is None:
+        if sites is None:
             unverifiable.update(rowid for rowid, _name in members)
             continue
-        hit, missing = _file_self_edge_verdicts(parsed, file_funcs.get(file_id, []), members)
+        hit, missing = _file_self_edge_verdicts(sites, file_funcs.get(file_id, []), members)
         proved.update(hit)
         unverifiable.update(missing)
     return proved, unverifiable
@@ -2357,6 +2435,7 @@ def prune_fabricated_self_edges(
     repo_root: Path,
     ts_classes: tuple[Any, Any],
     file_funcs: dict[int, list[tuple[int, str, int, int]]],
+    cache: IndexCache | None = None,
 ) -> None:
     """The self-edge guard. A `caller_rowid == callee_rowid` row survives only
     when the caller's own body contains a BARE or SELF-ROOTED call naming it;
@@ -2387,7 +2466,7 @@ def prune_fabricated_self_edges(
     for rowid, name, file_id in callers:
         by_file.setdefault(file_id, []).append((rowid, name))
     proved, unverifiable = _gather_self_call_evidence(
-        conn, repo_root, ts_classes, file_funcs, by_file
+        conn, repo_root, ts_classes, file_funcs, by_file, cache=cache
     )
     doomed = [r for r, _n, _f in callers if r not in proved and r not in unverifiable]
     deleted = _delete_self_edges(conn, doomed)
