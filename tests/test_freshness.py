@@ -891,3 +891,41 @@ def test_the_source_fingerprint_ignores_mtime_and_tracks_content(tmp_path: Path)
         "a real content edit did NOT move the fingerprint — the axis can no longer detect "
         "the stale process it exists to catch, which is worse than firing too often"
     )
+
+
+##
+# @brief Every test starts with the running tree matching the process fingerprint.
+# @return None.
+# @version 1
+def test_a_test_run_never_inherits_a_moved_source_fingerprint() -> None:
+    """WHAT THIS PROTECTS is the rest of the suite, not `code_identity` itself.
+
+    `PROCESS_SOURCE_FINGERPRINT` is captured once at import, and `build_or_refresh` REFUSES
+    when the tree no longer matches it — right for a long-lived MCP server, where code that
+    moved under a running process means the pipeline and the answers disagree. A pytest run is
+    not that process: it lasts minutes, and the tree moving during it means somebody saved a
+    file. Every build-shaped test in the run then fails on a guard about the editor:
+
+        REFUSED: this server process loaded clew 1.0.31 at launch and the package source has
+        changed since ... 'matches_source': False
+
+    MEASURED, with the `_pin_source_fingerprint` fixture removed and the fingerprint moved the
+    way a save moves it: 10 of these tests failed, the same ones that failed three times in one
+    session and passed on every re-run. That is the shape which teaches a reader to wave
+    failures through as flakes — and they were not flakes.
+
+    ASSERTS THE PROPERTY, NOT THE FIXTURE, so it holds however the pinning is done — and fails
+    the moment a run inherits a moved fingerprint again.
+
+    @brief The code axis reads clean inside a test.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server.freshness import code_identity
+
+    identity = code_identity()
+    assert identity["matches_source"] is True, (
+        "this test run began with the source tree already disagreeing with the process "
+        "fingerprint, so every build-shaped test in it will refuse — see "
+        "`_pin_source_fingerprint` in conftest"
+    )

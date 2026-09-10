@@ -189,6 +189,49 @@ def _isolate_git_environment() -> Iterator[None]:
     os.environ.update(removed)
 
 
+## @brief Re-pin the process's source fingerprint before every test.
+## @return Generator yielding once, with the launch-time fingerprint restored after.
+## @version 1
+@pytest.fixture(autouse=True)
+def _pin_source_fingerprint() -> Iterator[None]:
+    """A DEVELOPER EDITING SOURCE WHILE THE SUITE RUNS FAILED TWELVE UNRELATED TESTS, and the
+    message named none of them:
+
+        REFUSED: this server process loaded clew 1.0.31 at launch and the package source has
+        changed since ... 'matches_source': False
+
+    `PROCESS_SOURCE_FINGERPRINT` is captured once at import. `build_or_refresh` refuses when
+    the tree no longer matches it, which is exactly right for a long-lived MCP server: code
+    that moved under a running process means the answers and the pipeline disagree. A pytest
+    run is not that process. It is a few minutes long, and the tree moving during it means
+    somebody saved a file — so every build-shaped test in the run began failing on a guard
+    about the editor rather than about anything it asserts.
+
+    OBSERVED THREE TIMES in one session, always the same twelve tests, always green on a
+    re-run, which is exactly the shape that teaches a reader to dismiss failures as flakes.
+    They were not flakes and they were not load: `git stash` during a benchmark and ordinary
+    edits between gate runs both move the tree.
+
+    RE-PINNED PER TEST, not once per session, because the edit usually lands between two tests
+    rather than inside one. A session-scoped pin would still fail everything after the save.
+
+    IT DOES NOT WEAKEN THE GUARD'S OWN TESTS. They monkeypatch `PROCESS_SOURCE_FINGERPRINT`
+    inside the test body, which runs after this fixture and therefore wins — `test_status_...
+    _reports_the_code_axis` forces a mismatch and still sees one.
+
+    @brief Make the running tree agree with the process fingerprint for each test.
+    @version 1
+    """
+    from clew.mcp_server import freshness
+
+    previous = freshness.PROCESS_SOURCE_FINGERPRINT
+    freshness.PROCESS_SOURCE_FINGERPRINT = freshness.source_fingerprint()
+    try:
+        yield
+    finally:
+        freshness.PROCESS_SOURCE_FINGERPRINT = previous
+
+
 ## @brief Point `CLAUDE_CONFIG_DIR` at a throwaway directory for every test.
 ## @param tmp_path_factory Session-scoped temporary-directory factory.
 ## @return Generator yielding once, with the real config directory restored after.

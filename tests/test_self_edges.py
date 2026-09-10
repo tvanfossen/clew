@@ -560,3 +560,76 @@ def test_end_to_end_layer3_prunes_what_it_and_doxygen_wrote(tmp_path) -> None:
     conn.close()
     assert survivors == {rowids["descend"], rowids["walk"], rowids["prune"]}
     assert rowids["cull"] not in survivors, "a bare call in a Python method is not recursion"
+
+
+def test_the_guard_does_not_reparse_a_file_whose_sites_are_cached(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """gh#34. THE GUARD WAS THE LAST PARSER IN A REFRESH THAT PARSES NOTHING ELSE. Measured on
+    a 6.8 GB repository with every call payload served from cache, `prune_fabricated_self_edges`
+    cost 1,225 ms of a 2,968 ms stage, re-parsing 138 files to ask which of their calls are
+    self-rooted.
+
+    THE DOCSTRING WEIGHED TWO OPTIONS AND BOTH WERE WORSE. Widening the shared `ast_calls`
+    payload would invalidate every file's cached extraction on every repository for a question
+    that concerns under 1% of call sites; parsing here keeps that payload untouched. What it did
+    not consider is a payload of this pass's OWN — its own stage tag, its own version — which
+    keeps the shared key untouched AND stops re-reading a file nothing changed. The site list is
+    `(name, line)` pairs, which is all `_file_self_edge_verdicts` ever took from the tree.
+
+    ASSERTED ON PARSER INVOCATIONS, not on time: a timing assertion in a unit test measures the
+    machine, while a parse that did not happen is the mechanism itself.
+
+    @brief A second guarded run with a warm cache parses nothing.
+    @version 1
+    """
+    from clew import call_edges as ce
+    from clew.indexcache import IndexCache
+
+    db, rowids = _make_db(tmp_path, "fixture.py", _PY_FIXTURE)
+    _seed_self_edges(db, rowids, ["descend", "walk", "cull", "prune"])
+    cache_path = tmp_path / "clew.db.idxcache"
+
+    parsed = {"n": 0}
+    original = ce._ast_parse_one_file
+
+    def counting(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
+        parsed["n"] += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(ce, "_ast_parse_one_file", counting)
+
+    def guarded(run: int) -> set[int]:
+        """COPIES THE SEEDED DATABASE so both runs start from identical rows and share only the
+        cache — re-seeding in place would re-insert the self-edges the first run deleted."""
+        import shutil
+
+        working = tmp_path / f"guarded-{run}.db"
+        shutil.copy(db, working)
+        conn = sqlite3.connect(str(working))
+        _names, file_funcs = _build_function_indexes(conn)
+        cache = IndexCache(cache_path, tmp_path)
+        prune_fabricated_self_edges(
+            conn, tmp_path, try_import_tree_sitter(), file_funcs, cache=cache
+        )
+        conn.commit()
+        cache.commit()
+        survivors = {
+            r[0]
+            for r in conn.execute(
+                "SELECT DISTINCT caller_rowid FROM call_edges WHERE caller_rowid = callee_rowid"
+            ).fetchall()
+        }
+        conn.close()
+        return survivors
+
+    first_survivors = guarded(1)
+    after_cold = parsed["n"]
+    second_survivors = guarded(2)
+
+    assert after_cold > 0, "the cold run must actually parse, or this asserts nothing"
+    assert parsed["n"] == after_cold, (
+        f"a warm run must parse nothing; it parsed {parsed['n'] - after_cold} more file(s)"
+    )
+    assert second_survivors == first_survivors, "the cached verdict must match the parsed one"
+    assert rowids["cull"] not in second_survivors, "the guard must still delete a bare call"

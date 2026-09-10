@@ -596,6 +596,56 @@ class TargetRegistry:
         Path(target.db_path).parent.mkdir(parents=True, exist_ok=True)
         return target
 
+    ## @brief Record the sub-index split derived for a repository.
+    ## @param repo_path Resolved repository root the split belongs to.
+    ## @param names Every derived sub-index name, in derivation order.
+    ## @return None.
+    ## @version 1
+    ## @req REQ-DDB-MCP-001
+    def note_derived(self, repo_path: str, names: tuple[str, ...]) -> None:
+        """gh#38. WRITTEN AT BUILD TIME BECAUSE A LISTING MUST NOT WALK. `derive_sub_indexes`
+        walks the whole tree — 24.6 s on the reporting repository — and `targets` is the
+        orientation call, often a session's first. A build of any sub-index has already paid
+        that walk, so it records what it found and the listing reads it back for nothing.
+
+        ON EVERY RECORD OF THE REPOSITORY, not one. The registry is keyed by slug, so a split
+        repository owns several entries and any of them may be the one a reader reaches first;
+        writing the note once would make the answer depend on which sub-index happened to be
+        registered earliest.
+
+        @brief Persist the derived split for later listing.
+        @return None.
+        @version 1
+        """
+        data = self.load()
+        listed = list(names)
+        touched = False
+        for rec in data.values():
+            if rec.get("repo_path") == repo_path:
+                rec["derived"] = listed
+                touched = True
+        if touched:
+            self.save(data)
+
+    ## @brief The sub-index names last derived for a repository.
+    ## @param repo_path Resolved repository root.
+    ## @return The recorded names, or empty when no build has derived them yet.
+    ## @version 1
+    ## @req REQ-DDB-MCP-001
+    def derived_names(self, repo_path: str) -> tuple[str, ...]:
+        """EMPTY IS A GAP, NOT A DENIAL. A repository no sub-index has ever been built for has
+        nothing recorded, and the caller must not read that as "this repository does not
+        split" — the honest reading is "nobody has derived it here yet", which one build fixes.
+
+        @brief Read back the recorded split.
+        @return The names, or ().
+        @version 1
+        """
+        for rec in self.load().values():
+            if rec.get("repo_path") == repo_path and rec.get("derived"):
+                return tuple(str(n) for n in rec["derived"])
+        return ()
+
     ## @brief Every registered target.
     ## @return List of Target in registration-key order.
     ## @version 2
@@ -623,7 +673,7 @@ class TargetRegistry:
     ## @brief Forget a target and delete its built database directory.
     ## @param repo_path Repo root to drop every sub-index of, or an exact slug.
     ## @return True when at least one entry was registered (and has now been removed).
-    ## @version 2
+    ## @version 3
     ## @req REQ-DDB-MCP-001
     def drop(self, repo_path: str) -> bool:
         """DROPS EVERY SUB-INDEX OF A REPOSITORY, not just the one keyed under the bare path.
@@ -634,7 +684,7 @@ class TargetRegistry:
 
         @brief Drop a target and its database — every sub-index if a repo root was given.
         @return Whether anything was removed.
-        @version 2
+        @version 3
         """
         data = self.load()
         matches = [
@@ -645,10 +695,59 @@ class TargetRegistry:
         if not matches:
             return False
         for key in matches:
-            record = data.pop(key)
-            db_dir = Path(record.get("db_path", "")).parent
-            if db_dir.is_dir() and db_dir.is_relative_to(self.home):
-                shutil.rmtree(db_dir, ignore_errors=True)
+            self._discard(data, key)
+        self.save(data)
+        return True
+
+    ## @brief Pop one registry entry and delete the database directory it names.
+    ## @param data The loaded registry mapping, mutated in place.
+    ## @param key The entry to remove.
+    ## @return None.
+    ## @version 1
+    ## @dg_internal
+    def _discard(self, data: dict[str, dict[str, str]], key: str) -> None:
+        """SHARED BY BOTH REMOVERS so a directory-deleting rule lives once. The containment
+        check is the load-bearing half: `db_path` comes off disk and a record naming a path
+        outside the state root must never be followed into an `rmtree`.
+
+        @brief Remove one entry and its database directory.
+        @return None.
+        @version 1
+        """
+        record = data.pop(key)
+        db_dir = Path(record.get("db_path", "")).parent
+        if db_dir.is_dir() and db_dir.is_relative_to(self.home):
+            shutil.rmtree(db_dir, ignore_errors=True)
+
+    ## @brief Forget EXACTLY one target, leaving every sibling sub-index registered.
+    ## @param target The target to remove, as `targets()` returned it.
+    ## @return True when an entry was found and removed.
+    ## @version 1
+    ## @req REQ-DDB-MCP-001
+    def drop_one(self, target: Target) -> bool:
+        """gh#35. `cull` JUDGED EACH TARGET AND THEN DROPPED THE WHOLE REPOSITORY. It called
+        `drop(target.repo_path)`, whose breadth is correct for `drop` — a caller naming a repo
+        root means "forget this repo" — and wrong as the implementation of a per-target
+        decision. One abandoned sub-index slug therefore took the repository's first-party
+        index and every vendored sub-index with it, databases deleted from disk, on a sweep
+        called to reclaim a directory that held no database at all.
+
+        IDENTIFIED BY `db_path`, which is unique per (repository, sub-index) and is the field
+        `db_status` just judged. The slug would work equally for anything written since
+        sub-indexes existed; `db_path` also covers a legacy entry keyed by repo path, where the
+        slug may be absent from the record entirely.
+
+        @brief Drop one target and its database directory.
+        @return Whether an entry was removed.
+        @version 1
+        """
+        if not target.db_path:
+            return self.drop(target.repo_path)
+        data = self.load()
+        key = next((k for k, rec in data.items() if rec.get("db_path") == target.db_path), None)
+        if key is None:
+            return False
+        self._discard(data, key)
         self.save(data)
         return True
 
@@ -745,6 +844,56 @@ def _scope_meta(db: Path) -> dict[str, str]:
     @version 2
     """
     return _meta_section(db, "scope")
+
+
+## Longest a single stored scope string may be in a reply. The exclude list measured ~390
+## entries on the reporting repository — a single string in the thousands of characters, carried
+## TWICE, on the two calls an operator makes most. Generous enough that a normal repository's
+## list arrives whole and an operator's own stated exclusions always do.
+_SCOPE_STRING_CAP = 400
+
+
+## @brief Bound the stored scope strings a status reply carries.
+## @param meta The scope section exactly as the build recorded it.
+## @return The same mapping with any oversized string trimmed and counted.
+## @version 1
+## @dg_internal
+def _bounded_scope_meta(meta: dict[str, str]) -> dict[str, str]:
+    """gh#37. `status.scope.excludes` CARRIED THE WHOLE RESOLVED EXCLUDE LIST — ~390 entries,
+    dominated by `.github` and `.drone` paths inside a vendored boost — and the same list
+    appeared again under `operator_excludes`. Two refresh replies in one session exceeded the
+    client's result limit and were written to disk instead of returned.
+
+    THE COUNT IS THE ACTIONABLE FACT. "390 paths were excluded" is something an operator reads
+    and reacts to; the 390 paths themselves are what the buildlog is for, and it already has
+    them. So an oversized value keeps its opening — enough to recognise WHAT is being excluded —
+    and gains a sibling `<key>_count`.
+
+    NOTHING SHORT IS TOUCHED, which is what keeps `operator_excludes` useful: it is the
+    operator's OWN statement, normally a word or two, and it is the field that tells them their
+    decision was recorded and replayed. A count beside a two-word value would be noise.
+
+    gh#36 removed most of what made this list long in the first place, by no longer descending
+    vendored trees to collect their deep dot-directories. This is the bound that holds whatever
+    a repository's shape turns out to be — the same reason `_bounded_output` caps as well as
+    collapses.
+
+    @brief Trim oversized scope strings, disclosing the count.
+    @return Bounded scope mapping.
+    @version 1
+    """
+    bounded: dict[str, str] = {}
+    for key, value in meta.items():
+        text = str(value)
+        if len(text) <= _SCOPE_STRING_CAP:
+            bounded[key] = value
+            continue
+        bounded[key] = (
+            f"{text[:_SCOPE_STRING_CAP]} ... trimmed to stay inside the client's result limit; "
+            f"the complete list is in the buildlog beside the index"
+        )
+        bounded[f"{key}_count"] = str(text.count(",") + 1)
+    return bounded
 
 
 ## @brief The index-coverage measurement recorded at build time, if any.
@@ -893,7 +1042,7 @@ def _data_model_meta(db: Path) -> dict[str, str]:
 ## @brief Freshness/identity report for one target's database.
 ## @param target Target to inspect.
 ## @return Dict with existence, stamped/expected build version, source drift, staleness, age, scope, coverage, refresh cost, layered-option tiers, the options an operator stated, build diagnostics, the declared data model, code identity and interpreted notices.
-## @version 11
+## @version 12
 ## @req REQ-DDB-MCP-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-006
@@ -931,7 +1080,7 @@ def db_status(target: Target) -> dict[str, object]:
 
     @brief Report a target database's freshness, coverage, refresh cost, option tiers, stated options, build diagnostics, declared data model and code identity.
     @return Status dict (exists / build_version / drift / stale / age_days / coverage / refresh / options / stated_options / diagnostics / data_model / code / staleness).
-    @version 10
+    @version 11
     """
     db = Path(target.db_path)
     exists = db.is_file()
@@ -959,7 +1108,7 @@ def db_status(target: Target) -> dict[str, object]:
         "age_days": age_days,
         ## WHY this file set, not just what. Absent on an index built before build 16, which
         ## is the honest signal — "not recorded" rather than a fabricated default.
-        **({"scope": _scope_meta(db)} if exists else {}),
+        **({"scope": _bounded_scope_meta(_scope_meta(db))} if exists else {}),
         ## HOW MUCH of that file set yielded anything. Absent before build 18, same signal.
         **({"coverage": _coverage_meta(db)} if exists else {}),
         ## WHAT CORRECTING IT COSTS, measured on this target rather than estimated. Read
@@ -999,7 +1148,7 @@ def db_status(target: Target) -> dict[str, object]:
 ## @param max_age_days Age threshold in days; None culls only version-stale dbs.
 ## @param include_stale Also cull dbs whose stamped build version is not current.
 ## @return List of status dicts for the targets that were culled.
-## @version 2
+## @version 3
 ## @req REQ-DDB-MCP-001
 def cull(
     registry: TargetRegistry,
@@ -1009,11 +1158,18 @@ def cull(
     """Sweep the registry, dropping each target whose db is older than
     `max_age_days` or (when `include_stale`) carries a non-current build
     signature. Targets with no db on disk are dropped too — the registry
-    entry is dead weight.
+    entry is dead weight, and a killed sub-index build leaves exactly that:
+    a slug holding a buildlock, a buildlog and an idxcache with no database.
+
+    ONE TARGET AT A TIME (gh#35). This used to call `drop(target.repo_path)`,
+    which removes every entry sharing that repo path — so culling one dead
+    sub-index deleted the repository's healthy first-party index and every
+    vendored sub-index beside it, off disk. The loop judges targets
+    individually and the removal must be individual too.
 
     @brief Cull aged/stale target databases.
     @return Status dicts of the culled targets.
-    @version 2
+    @version 3
     """
     culled: list[dict[str, object]] = []
     for target in registry.targets():
@@ -1022,7 +1178,7 @@ def cull(
         aged_out = max_age_days is not None and isinstance(age, float) and age > max_age_days
         version_stale = include_stale and status["build_version"] != CLEW_BUILD_VERSION
         if not status["exists"] or aged_out or version_stale:
-            registry.drop(target.repo_path)
+            registry.drop_one(target)
             culled.append(status)
     return culled
 
