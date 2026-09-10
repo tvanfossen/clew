@@ -80,7 +80,8 @@ import os
 import re
 import sqlite3
 from collections.abc import Iterable
-from dataclasses import dataclass, replace
+from typing import Any
+from dataclasses import dataclass, fields, replace
 from pathlib import Path
 
 from ._common import logger
@@ -721,7 +722,11 @@ def _candidates(repo_root: Path, excludes: tuple[Path, ...] = ()) -> tuple[list[
 ## @return The manifest set, empty when the repository declares no data model.
 ## @version 2
 ## @req REQ-DDB-SCHEMA-013
-def discover(repo_root: Path | None, excludes: tuple[Path, ...] = ()) -> ManifestSet:
+def discover(
+    repo_root: Path | None,
+    excludes: tuple[Path, ...] = (),
+    cache: Any = None,
+) -> ManifestSet:
     """TWO PASSES, and the ORDER is the fail-closed rule: every key list is collected first,
     and only then is a manifest admitted — on the evidence that the repository's own list
     names at least one of its keys. A one-pass version that took every shape-matching
@@ -753,12 +758,164 @@ def discover(repo_root: Path | None, excludes: tuple[Path, ...] = ()) -> Manifes
             "UDM dialect is YAML and was still read. Install the tomli backport to read both.",
         )
     toml_paths, yaml_paths = _candidates(repo_root, excludes)
-    listed, list_count, udm_paths = _classify_yaml(yaml_paths)
-    found = _select(toml_paths, udm_paths, repo_root, listed, list_count)
+    listed, list_count, udm_paths = _classify_yaml(yaml_paths, repo_root, cache)
+    found = _select(toml_paths, udm_paths, repo_root, listed, list_count, cache)
     return replace(
         found,
         oversized=_oversized_count([*toml_paths, *yaml_paths]),
         toml_unavailable=no_toml,
+    )
+
+
+## The cache tags for one candidate document's two derivations, and the shape of a
+## `DeclaredKey` row as stored. THE SHAPE IS THE KEY, not a hand-bumped version: adding a field
+## to `DeclaredKey` changes this string and invalidates every stored manifest by construction,
+## where a version constant would rely on somebody remembering. gh#34.
+_KEYLIST_STAGE = "dm_keylist"
+_MANIFEST_STAGE = "dm_manifest"
+_UDM_GATE_STAGE = "dm_udm_gate"
+_DM_STAGE_VERSION = 1
+
+
+## @brief The `DeclaredKey` field order, used as the manifest cache's shape key.
+## @return Comma-joined field names.
+## @version 1
+## @dg_internal
+def _declared_key_shape() -> str:
+    """@brief Render the dataclass's field order.
+    @return The shape key.
+    @version 1
+    """
+    return ",".join(f.name for f in fields(DeclaredKey))
+
+
+## @brief Serve one candidate document's derivation from the cache, or compute and store it.
+## @param cache Live index cache, or None to always compute.
+## @param repo_root Root the cache keys paths against.
+## @param path The candidate document.
+## @param stage Which derivation this is.
+## @param compute Callable producing the value when the cache cannot serve it.
+## @return The derivation, cached or fresh.
+## @version 1
+## @dg_internal
+def _cached_document(
+    cache: Any,
+    repo_root: Path,
+    path: Path,
+    stage: str,
+    compute: Any,
+) -> Any:
+    """gh#34. `data_model_keys` WAS THE LARGEST STAGE OF A REFRESH — 1,304 ms of 6,634 ms — on
+    a repository declaring no data model at all. The walk was not the cost and the resemblance
+    to gh#36 was misleading: `_candidates` measured 237 ms, while `yaml.safe_load` measured
+    2,688 ms across 90 documents. Forty-five files, each read twice — once by the shape gate,
+    once by the selection pass — none of it depending on anything but the file's bytes.
+
+    KEYED ON CONTENT, so an edited manifest is re-read and the catalog can never carry a key
+    the repository has stopped declaring. That direction matters more than the saving: a stale
+    key list feeds the declared-vs-observed diagnostic, which reads as a fact about the code.
+
+    A `None` RESULT IS CACHED LIKE ANY OTHER. "This document is not a key list" is a
+    measurement the shape gate made, and re-deriving it every build is precisely the cost being
+    removed — most candidates in a real repository are not manifests at all.
+
+    @brief Cache one document's derivation under its content sha.
+    @return The derivation.
+    @version 1
+    """
+    sha = None
+    if cache is not None:
+        try:
+            rel = str(path.relative_to(repo_root))
+        except ValueError:
+            rel = ""
+        sha = cache.sha_for(rel, path) if rel else None
+    key = _declared_key_shape()
+    if cache is not None and sha:
+        stored = cache.extract_get(sha, stage, _DM_STAGE_VERSION, key)
+        if stored is not None:
+            cache.record_pair(sha, stage, _DM_STAGE_VERSION, key, True)
+            return stored.get("value")
+    value = compute()
+    if cache is not None and sha:
+        cache.extract_put(sha, stage, _DM_STAGE_VERSION, key, {"value": value})
+        cache.record_pair(sha, stage, _DM_STAGE_VERSION, key, False)
+    return value
+
+
+## @brief Render parsed keys as JSON-safe rows, or None when the document declared none.
+## @param keys The parsed keys, or None when the parser declined the document.
+## @return A list of field lists, or None.
+## @version 1
+## @dg_internal
+def _keys_as_rows(keys: tuple[DeclaredKey, ...] | None) -> list[list[Any]] | None:
+    """NONE AND [] STAY DIFFERENT ANSWERS, exactly as they do in the self-edge guard: None is
+    "this parser declined the document" and an empty tuple is "a manifest that declares nothing".
+    Collapsing them would let a declined document be cached as an empty manifest and counted.
+
+    @brief Serialize parsed keys for the cache.
+    @return Row lists, or None.
+    @version 1
+    """
+    if keys is None:
+        return None
+    return [[getattr(key, f.name) for f in fields(DeclaredKey)] for key in keys]
+
+
+## @brief Rebuild parsed keys from cached rows.
+## @param rows The stored rows, or None.
+## @return The keys, or None when the document was declined.
+## @version 1
+## @dg_internal
+def _keys_from_rows(rows: list[list[Any]] | None) -> tuple[DeclaredKey, ...] | None:
+    """`unresolved_fields` IS A TUPLE and JSON returns a list, so it is restored by name rather
+    than by position — the dataclass is frozen and compared by value, and a list where a tuple
+    belongs makes a cached manifest unequal to a freshly parsed one for no reason a reader
+    could see.
+
+    @brief Reconstruct keys from cached rows.
+    @return The keys, or None.
+    @version 1
+    """
+    if rows is None:
+        return None
+    names = [f.name for f in fields(DeclaredKey)]
+    restored = []
+    for row in rows:
+        values = dict(zip(names, row))
+        values["unresolved_fields"] = tuple(values.get("unresolved_fields") or ())
+        restored.append(DeclaredKey(**values))
+    return tuple(restored)
+
+
+## @brief Whether a YAML document passes the UDM shape gate, cached by content.
+## @param path The candidate document.
+## @param repo_root Root the cache keys paths against, or None to skip the cache.
+## @param cache Live index cache, or None.
+## @return True when the document is a UDM manifest candidate.
+## @version 1
+## @dg_internal
+def _is_udm_candidate(path: Path, repo_root: Path | None, cache: Any) -> bool:
+    """THE SHAPE GATE IS A SECOND FULL PARSE of every document the key-list gate declined, and
+    on a real repository that is most of them — 45 YAML files produced 90 `safe_load` calls.
+    Only the VERDICT is cached, not the document: the answer is one boolean and the parsed tree
+    can be tens of megabytes (a control target vendors a 10.7 MB pathological document, which
+    is why the walk above is bounded at all).
+
+    @brief Cache the UDM shape verdict for one document.
+    @return True when it is a candidate.
+    @version 1
+    """
+    if repo_root is None:
+        return _udm_document(path) is not None
+    return bool(
+        _cached_document(
+            cache,
+            repo_root,
+            path,
+            _UDM_GATE_STAGE,
+            lambda p=path: _udm_document(p) is not None,
+        )
     )
 
 
@@ -767,7 +924,11 @@ def discover(repo_root: Path | None, excludes: tuple[Path, ...] = ()) -> Manifes
 ## @return (every listed define name, how many lists, the UDM manifest paths).
 ## @version 1
 ## @dg_internal
-def _classify_yaml(yaml_paths: list[Path]) -> tuple[frozenset[str], int, list[Path]]:
+def _classify_yaml(
+    yaml_paths: list[Path],
+    repo_root: Path | None = None,
+    cache: Any = None,
+) -> tuple[frozenset[str], int, list[Path]]:
     """KEY LIST FIRST, because the two shapes are disjoint at the top level — a flat sequence
     is never a mapping — so the order costs nothing and the cheaper test runs first.
 
@@ -784,11 +945,22 @@ def _classify_yaml(yaml_paths: list[Path]) -> tuple[frozenset[str], int, list[Pa
     list_count = 0
     udm_paths: list[Path] = []
     for path in yaml_paths:
-        names = read_key_list(path)
+        listed_names = (
+            read_key_list(path)
+            if repo_root is None
+            else _cached_document(
+                cache,
+                repo_root,
+                path,
+                _KEYLIST_STAGE,
+                lambda p=path: (lambda r: None if r is None else sorted(r))(read_key_list(p)),
+            )
+        )
+        names = None if listed_names is None else frozenset(listed_names)
         if names is not None:
             listed |= names
             list_count += 1
-        elif _udm_document(path) is not None:
+        elif _is_udm_candidate(path, repo_root, cache):
             udm_paths.append(path)
     return frozenset(listed), list_count, udm_paths
 
@@ -804,6 +976,7 @@ def _parsed_manifests(
     toml_paths: list[Path],
     udm_paths: list[Path],
     repo_root: Path,
+    cache: Any = None,
 ) -> Iterable[tuple[str, tuple[DeclaredKey, ...]]]:
     """EACH DIALECT THROUGH ITS OWN PARSER, and the dispatch is the shape gate that already
     ran — a TOML candidate goes to the ingot parser and a document that passed the UDM shape
@@ -814,14 +987,20 @@ def _parsed_manifests(
     @return Manifest path and keys per parsed document.
     @version 1
     """
-    for path in toml_paths:
-        ingot = parse_ingot_manifest(path, repo_root)
-        if ingot is not None:
-            yield rel_key(path, repo_root), ingot
-    for path in udm_paths:
-        udm = parse_udm_manifest(path, repo_root)
-        if udm is not None:
-            yield rel_key(path, repo_root), udm
+    for path, parse in (
+        *((p, parse_ingot_manifest) for p in toml_paths),
+        *((p, parse_udm_manifest) for p in udm_paths),
+    ):
+        parsed = _cached_document(
+            cache,
+            repo_root,
+            path,
+            _MANIFEST_STAGE,
+            lambda p=path, fn=parse: _keys_as_rows(fn(p, repo_root)),
+        )
+        keys = _keys_from_rows(parsed)
+        if keys is not None:
+            yield rel_key(path, repo_root), keys
 
 
 ## @brief Admit each parsed manifest whose keys the repository's own lists name.
@@ -839,6 +1018,7 @@ def _select(
     repo_root: Path,
     listed: frozenset[str],
     list_count: int,
+    cache: Any = None,
 ) -> ManifestSet:
     """The refusals are COUNTED, because the two ways this returns nothing mean opposite
     things. `manifests_unlisted > 0` with `keys == 0` says the repository HAS manifests and
@@ -857,7 +1037,7 @@ def _select(
     keys: list[DeclaredKey] = []
     manifests: list[str] = []
     unlisted = 0
-    for manifest, parsed in _parsed_manifests(toml_paths, udm_paths, repo_root):
+    for manifest, parsed in _parsed_manifests(toml_paths, udm_paths, repo_root, cache):
         if not any(key.define_name in listed for key in parsed):
             unlisted += 1
             continue
@@ -943,11 +1123,15 @@ def _observed_keys(conn: sqlite3.Connection) -> frozenset[str]:
 ## @param db_path Path to the clew.db being built.
 ## @param repo_root The repository root, or None.
 ## @param excludes Subtrees the BUILD excluded, so this layer looks where the index looks.
+## @param cache Live index cache, or None to re-read every candidate document.
 ## @return The manifest set that was discovered, for stamping.
-## @version 2
+## @version 3
 ## @req REQ-DDB-SCHEMA-013
 def import_data_model_keys(
-    db_path: Path, repo_root: Path | None, excludes: tuple[Path, ...] = ()
+    db_path: Path,
+    repo_root: Path | None,
+    excludes: tuple[Path, ...] = (),
+    cache: Any = None,
 ) -> ManifestSet:
     """RUNS AFTER the shared-key stages, because `observed` is a join against the vocabulary
     they wrote. That ordering is load-bearing and not incidental: run above them and every
@@ -963,7 +1147,7 @@ def import_data_model_keys(
     @return The discovered manifest set.
     @version 2
     """
-    found = discover(repo_root, excludes)
+    found = discover(repo_root, excludes, cache)
     conn = sqlite3.connect(str(db_path))
     try:
         _ensure_table(conn)

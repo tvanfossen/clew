@@ -937,3 +937,104 @@ def test_table_is_created_with_no_rows(tmp_path: Path) -> None:
         assert conn.execute("SELECT COUNT(*) FROM data_model_keys").fetchone()[0] == 0
     finally:
         conn.close()
+
+
+def test_an_unchanged_yaml_document_is_parsed_once_across_builds(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """gh#34. `data_model_keys` WAS 1,304 ms OF A 6,634 ms REFRESH — 20%, the largest single
+    stage — on a repository that declares NO data model at all. I assumed the whole-tree walk,
+    the way gh#36's walk had been the cost. Profiling said otherwise:
+
+        _candidates (the walk)      237 ms   3 toml, 45 yaml
+        yaml.safe_load            2,688 ms   90 documents
+
+    Ninety loads for forty-five files, because the shape gate reads each document and the
+    selection pass reads the survivors again. Neither depends on anything but the file's
+    bytes, so on a refresh where nothing changed, all of it is re-derivation — and the answer
+    is the same "no data model" it was last build.
+
+    THE WALK IS STILL NOT THE COST, which is worth recording because the previous fix in this
+    area was a walk and the resemblance is misleading. `_candidates` already prunes during
+    descent and honours the build's excludes; a comment above it records a control target
+    where an unbounded version did not finish in twenty-five minutes.
+
+    ASSERTED ON PARSE COUNT rather than time, for the same reason as the self-edge guard's
+    test: a document that was not parsed is the mechanism, while a stopwatch measures the
+    machine.
+
+    @brief A YAML candidate is parsed once, then served from the cache.
+    @version 1
+    """
+    import yaml
+
+    from clew.datamodel import discover
+    from clew.indexcache import IndexCache
+
+    repo = tmp_path / "repo"
+    (repo / "conf").mkdir(parents=True)
+    (repo / "conf" / "keys.yaml").write_text("- ALPHA_KEY\n- BETA_KEY\n", encoding="utf-8")
+    (repo / "conf" / "notes.yaml").write_text("title: not a key list\n", encoding="utf-8")
+
+    loads = {"n": 0}
+    original = yaml.safe_load
+
+    def counting(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
+        loads["n"] += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(yaml, "safe_load", counting)
+
+    cache_path = tmp_path / "clew.db.idxcache"
+    cache = IndexCache(cache_path, repo)
+    first = discover(repo, (), cache=cache)
+    cache.commit()
+    after_cold = loads["n"]
+
+    cache = IndexCache(cache_path, repo)
+    second = discover(repo, (), cache=cache)
+    cache.commit()
+
+    assert after_cold > 0, "the cold pass must actually parse, or this asserts nothing"
+    assert loads["n"] == after_cold, (
+        f"an unchanged document must not be re-parsed; {loads['n'] - after_cold} extra load(s)"
+    )
+    assert second == first, "the cached discovery must equal the parsed one"
+
+
+def test_an_edited_yaml_document_is_parsed_again(tmp_path: Path, monkeypatch) -> None:
+    """THE CONTROL. Content is the key, so an edit must re-derive — a cache that served a
+    stale key list would put keys in the catalog that the repository no longer declares, and
+    the declared-vs-observed diagnostic reads that as a fact about the code.
+
+    @brief Editing a candidate re-parses it.
+    @version 1
+    """
+    import yaml
+
+    from clew.datamodel import discover
+    from clew.indexcache import IndexCache
+
+    repo = tmp_path / "repo"
+    (repo / "conf").mkdir(parents=True)
+    listed = repo / "conf" / "keys.yaml"
+    listed.write_text("- ALPHA_KEY\n", encoding="utf-8")
+
+    cache_path = tmp_path / "clew.db.idxcache"
+    cache = IndexCache(cache_path, repo)
+    discover(repo, (), cache=cache)
+    cache.commit()
+
+    loads = {"n": 0}
+    original = yaml.safe_load
+
+    def counting(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
+        loads["n"] += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(yaml, "safe_load", counting)
+    listed.write_text("- ALPHA_KEY\n- GAMMA_KEY\n", encoding="utf-8")
+    cache = IndexCache(cache_path, repo)
+    discover(repo, (), cache=cache)
+
+    assert loads["n"] > 0, "an edited document must be read again, not served from the cache"
