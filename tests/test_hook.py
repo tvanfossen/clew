@@ -908,6 +908,13 @@ def test_a_filename_cannot_escape_the_payload(tmp_path: Path) -> None:
                 sandbox,
                 {
                     "CLAUDE_CODE_SESSION_ID": f"esc{attacks.index(attack)}",
+                    ## gh#44 added a containment check, and these attack paths are absolute and
+                    ## incidentally outside any repository — so without a root that contains them
+                    ## the hook now declines to count them and the probe never reaches a speaking
+                    ## tier. This test is about whether a FILENAME can escape the payload, not
+                    ## about where the file lives, so the root is widened rather than the attack
+                    ## strings rewritten: changing them would weaken the thing being probed.
+                    "CLAUDE_PROJECT_DIR": "/",
                 },
             )
             assert result.returncode == 0, f"exit {result.returncode} on {attack!r}"
@@ -1322,3 +1329,80 @@ def test_an_undeliverable_payload_is_dropped_silently(tmp_path: Path) -> None:
         f"'Exception ignored in:' and contains no 'Traceback', which is why the existing scans "
         f"missed it. Got: {result.stderr[:300]}"
     )
+
+
+##
+# @brief Inspections outside the repository must not drive the tally.
+# @param tmp_path Pytest temp dir.
+# @return None.
+# @version 1
+def test_reads_outside_the_repository_are_not_counted(tmp_path: Path) -> None:
+    """gh#44. THE NOTE COUNTED INSPECTIONS ANYWHERE ON DISK AND CALLED THEM "in this repository".
+    A session auditing markdown under `~/.claude/projects/<id>/memory/` — outside the tree
+    entirely — accumulated pressure from those reads and was told that 45 file-inspection calls
+    in this repository had gone without an index call. Every one of the calls that incremented
+    that counter was outside it, and none had a definition or callers to find.
+
+    This is gh#11's lesson one level out. That fix was about what gets COUNTED versus what gets
+    SAID for call SHAPE; this is the same split for call LOCATION, and the cost is the same: the
+    note is loudest exactly where it is least applicable, which is how a well-calibrated nudge
+    teaches a reader to discount it.
+
+    SKIP WHEN PROVABLY OUTSIDE, never require-inside. An unparseable or relative path still
+    counts, so a parser gap degrades to the previous behaviour rather than silencing the hook —
+    the same direction `_is_inspection` fails in.
+
+    @brief An out-of-tree read never reaches the tally.
+    @return None.
+    @version 1
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    state = tmp_path / "state"
+    state.mkdir()
+    outside = json.dumps(
+        {
+            "hook_event_name": "PostToolUse",
+            "tool_name": "Read",
+            "tool_input": {"file_path": "/etc/hosts"},
+            "tool_response": "127.0.0.1 localhost",
+        }
+    )
+    env = {"CLAUDE_CODE_SESSION_ID": "outside-session", "CLAUDE_PROJECT_DIR": str(repo)}
+    spoke = [bool(_run(outside, state, env).stdout.strip()) for _ in range(hook._LOUD_AT + 4)]
+    assert not any(spoke), (
+        f"reads outside the repository must never drive the note; it spoke {sum(spoke)} time(s)"
+    )
+
+
+##
+# @brief A read inside the repository still counts.
+# @param tmp_path Pytest temp dir.
+# @return None.
+# @version 1
+def test_reads_inside_the_repository_still_count(tmp_path: Path) -> None:
+    """THE CONTROL, and the half a location filter gets wrong. Suppressing too much would make
+    the hook silent for the sessions it exists for, which is worse than the false location it
+    replaced — a nudge nobody hears is indistinguishable from one nobody needs.
+
+    @brief An in-tree read still reaches the tally and the note.
+    @return None.
+    @version 1
+    """
+    repo = tmp_path / "repo"
+    state = tmp_path / "state"
+    state.mkdir()
+    (repo / "src").mkdir(parents=True)
+    source = repo / "src" / "app.c"
+    source.write_text("int add(int a, int b){return a+b;}\n", encoding="utf-8")
+    inside = json.dumps(
+        {
+            "hook_event_name": "PostToolUse",
+            "tool_name": "Read",
+            "tool_input": {"file_path": str(source)},
+            "tool_response": "int add(int a, int b){return a+b;}",
+        }
+    )
+    env = {"CLAUDE_CODE_SESSION_ID": "inside-session", "CLAUDE_PROJECT_DIR": str(repo)}
+    spoke = [bool(_run(inside, state, env).stdout.strip()) for _ in range(hook._QUIET_BELOW)]
+    assert any(spoke), "an in-tree read must still drive the note"
