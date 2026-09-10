@@ -776,6 +776,14 @@ async def test_refresh_with_sub_index_builds_only_that_sub_index(tmp_path: Path)
     _mcp, state = build_server(reg)
     repo = tmp_path / "fresh_split"
     repo.mkdir()
+    ## gh#40. THE SUB-INDEX NAME MUST BE ONE THE REPOSITORY ACTUALLY DERIVES. These tests are
+    ## about ROUTING, and their fixture named a sub-index of a repository that vendors nothing —
+    ## viable only while nothing validated the name. `_build_subject` now refuses a name no
+    ## nested tree produces, so the fixture states the tree that produces it.
+    (repo / "llama-cpp").mkdir()
+    (repo / "llama-cpp" / ".git").write_text(
+        "gitdir: ../.git/modules/llama-cpp\n", encoding="utf-8"
+    )
     builds: list[tuple[str, str | None]] = []
 
     def _fake_build(
@@ -927,6 +935,14 @@ async def test_index_refresh_tool_forwards_sub_index_through_the_dispatcher(
     _mcp, state = build_server(reg)
     repo = tmp_path / "dispatch_split"
     repo.mkdir()
+    ## gh#40. THE SUB-INDEX NAME MUST BE ONE THE REPOSITORY ACTUALLY DERIVES. These tests are
+    ## about ROUTING, and their fixture named a sub-index of a repository that vendors nothing —
+    ## viable only while nothing validated the name. `_build_subject` now refuses a name no
+    ## nested tree produces, so the fixture states the tree that produces it.
+    (repo / "llama-cpp").mkdir()
+    (repo / "llama-cpp" / ".git").write_text(
+        "gitdir: ../.git/modules/llama-cpp\n", encoding="utf-8"
+    )
     builds: list[tuple[str, str | None]] = []
 
     def _fake_build(
@@ -1121,6 +1137,14 @@ async def test_a_sessions_own_build_invalidates_its_stale_active_default(
     _mcp, state = build_server(reg)
     repo = tmp_path / "b12_repro"
     repo.mkdir()
+    ## gh#40. THE SUB-INDEX NAME MUST BE ONE THE REPOSITORY ACTUALLY DERIVES. These tests are
+    ## about ROUTING, and their fixture named a sub-index of a repository that vendors nothing —
+    ## viable only while nothing validated the name. `_build_subject` now refuses a name no
+    ## nested tree produces, so the fixture states the tree that produces it.
+    (repo / "llama-cpp").mkdir()
+    (repo / "llama-cpp" / ".git").write_text(
+        "gitdir: ../.git/modules/llama-cpp\n", encoding="utf-8"
+    )
 
     ## Simulate a session connecting before any split exists — caches the whole-repo target.
     pre = state.adopt(str(repo), st.TARGET_SOURCE_FLAG)

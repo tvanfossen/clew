@@ -32,6 +32,7 @@ where the shape check moved earlier and the pipeline kept its own.
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 import pytest
@@ -261,3 +262,111 @@ def test_culling_one_dead_sub_index_leaves_its_healthy_siblings_alone(
     assert "deps-abandoned" not in names, "the dead sub-index is still registered"
     assert Path(healthy.db_path).exists(), "the healthy database was deleted from disk"
     assert not leftovers.exists(), "the killed build's leftover directory was not reclaimed"
+
+
+##
+# @brief A repository whose vendored tree vendors more of its own.
+# @param root Directory to build the repository in.
+# @return The resolved repository root.
+# @version 1
+def _nested_split_repo(root: Path) -> Path:
+    """DEPTH MATTERS HERE, unlike `_split_repo`. gh#41 is about a refusal that listed every
+    name the recursive split reaches — ~300 on the reporting repository, including every boost
+    sub-library — so the fixture needs names at two levels to tell top-level from deep.
+
+    @brief Two top-level trees, one of which holds three of its own.
+    @return The repo root, resolved.
+    @version 1
+    """
+    (root / "app").mkdir(parents=True)
+    for name in ("tinyfsm", "vendor"):
+        nested = root / "deps" / name
+        nested.mkdir(parents=True)
+        (nested / ".git").write_text(f"gitdir: ../../.git/modules/{name}\n", encoding="utf-8")
+    for child in ("alpha", "beta", "gamma"):
+        deep = root / "deps" / "vendor" / "sub" / child
+        deep.mkdir(parents=True)
+        (deep / ".git").write_text(f"gitdir: x/{child}\n", encoding="utf-8")
+    return root.resolve()
+
+
+def test_a_refused_sub_index_registers_nothing(tmp_path: Path) -> None:
+    """gh#40. THE REFUSAL LANDED AFTER REGISTRATION, so a mistyped name still created
+    `~/.local/state/clew/targets/<repo>.<bogus>/` and a four-line `targets.json` entry — and
+    `index(action='targets')` then listed a slug that had never been built and never would be.
+    A refusal that leaves a trace is a refusal the operator has to clean up by hand, which is
+    what the reporter did.
+
+    `_build_subject` registers because a build needs somewhere to write. Nothing needs
+    somewhere to write when there is nothing to build, so the name is checked first.
+
+    @brief A refused name allocates no slug, no directory, no registry entry.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server import server as srv
+    from clew.mcp_server import state as st
+
+    repo = _split_repo(tmp_path / "repo")
+    state = tmp_path / "state"
+    registry = st.TargetRegistry(state)
+    instance = srv.DocsDbServer.__new__(srv.DocsDbServer)
+    instance.registry = registry
+
+    with pytest.raises(RuntimeError, match="no-such-tree"):
+        asyncio.run(instance._build_subject(None, str(repo), "no-such-tree"))
+
+    assert registry.targets() == [], "a refused sub_index must leave the registry untouched"
+    stray = [p.name for p in state.glob("targets/*") if "no-such-tree" in p.name]
+    assert stray == [], f"a refused sub_index must allocate no directory, found {stray}"
+
+
+def test_a_legitimate_sub_index_still_registers(tmp_path: Path) -> None:
+    """THE CONTROL. The check runs before registration, so getting it wrong would make every
+    sub-index unbuildable rather than merely leaving litter behind.
+
+    @brief A derived name registers and allocates as before.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server import server as srv
+    from clew.mcp_server import state as st
+
+    repo = _split_repo(tmp_path / "repo")
+    registry = st.TargetRegistry(tmp_path / "state")
+    instance = srv.DocsDbServer.__new__(srv.DocsDbServer)
+    instance.registry = registry
+
+    resolved = asyncio.run(instance._build_subject(None, str(repo), "deps-tinyfsm"))
+    assert resolved is not None and resolved.name == "deps-tinyfsm"
+    assert [t.name for t in registry.targets()] == ["deps-tinyfsm"]
+    assert Path(resolved.db_path).parent.is_dir(), "the build still needs somewhere to write"
+
+
+def test_the_refusal_names_top_level_trees_and_counts_the_rest(tmp_path: Path) -> None:
+    """gh#41. THE LIST WAS CORRECT AND UNREADABLE: ~300 names in one error string on the
+    reporting repository, including every boost sub-library from `-accumulators` to `-yap` and
+    a libBissellIoT transitive dependency 96 characters long. A caller who mistyped
+    `deps-tinyfsm` cannot find it in that.
+
+    THE DEEP NAMES ARE STILL REACHABLE, and the message says how they are spelled rather than
+    enumerating them — the same choice `_bounded_output` makes about repeated warning lines:
+    one example plus a count beats the full set.
+
+    @brief The refusal lists top-level names and counts what is under them.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server.server import _sub_index_rejection
+    from clew.mcp_server.state import target_for
+
+    repo = _nested_split_repo(tmp_path / "repo")
+    bogus = target_for(repo, tmp_path / "state", name="typo")
+
+    rejection = _sub_index_rejection(bogus, repo)
+    assert rejection is not None
+    for top in (FIRST_PARTY_INDEX, "deps-tinyfsm", "deps-vendor"):
+        assert top in rejection, f"the top-level name {top!r} must be offered"
+    for deep in ("deps-vendor-sub-alpha", "deps-vendor-sub-beta", "deps-vendor-sub-gamma"):
+        assert deep not in rejection, f"{deep!r} is a nested name and must not be enumerated"
+    assert "3" in rejection, "the count of nested names under deps-vendor must be reported"

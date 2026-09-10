@@ -698,11 +698,57 @@ def _buildable_sub_indexes(repo: Path) -> tuple[str, ...]:
     return tuple(s.name for s in derive_sub_indexes(repo))
 
 
+## @brief The buildable names a refusal should OFFER, rendered for a reader.
+## @param repo Resolved repository root.
+## @return One line naming the top-level sub-indexes, with nested counts.
+## @version 1
+## @dg_internal
+def _offered_sub_indexes(repo: Path) -> str:
+    """gh#41. THE FULL LIST IS CORRECT AND UNREADABLE. On a repository vendoring boost, opencv
+    and pcl the recursive split reaches ~300 names — every boost sub-library from
+    `-accumulators` to `-yap`, and a transitive dependency spelled
+    `deps-libBissellIoT-subm-d_lib_udm_communication-deps-d_lib_mqtt_serial_lite-Test-...`.
+    A caller who mistyped `deps-tinyfsm` cannot find it in that, so the refusal that was meant
+    to save them a round trip costs one instead.
+
+    TOP LEVEL ONLY, WITH THE REST COUNTED, and the spelling rule stated so a nested name is
+    derivable rather than enumerated. This is the same choice `_bounded_output` makes about
+    repeated warning lines: one example plus a count beats the full set. Every name remains
+    ACCEPTED — this narrows what is displayed, never what is buildable.
+
+    @brief Render the offered sub-index names.
+    @return The offered-names clause.
+    @version 1
+    """
+    from ..scope import derive_sub_indexes
+
+    split = list(derive_sub_indexes(repo))
+    vendored = [s for s in split if s.name != FIRST_PARTY_INDEX]
+    tops = [
+        s
+        for s in vendored
+        if not any(o is not s and s.roots[0].is_relative_to(o.roots[0]) for o in vendored)
+    ]
+    rendered = [repr(FIRST_PARTY_INDEX)] if any(s.name == FIRST_PARTY_INDEX for s in split) else []
+    for top in tops:
+        nested = sum(
+            1 for s in vendored if s is not top and s.roots[0].is_relative_to(top.roots[0])
+        )
+        rendered.append(f"{top.name!r}" + (f" (+{nested} nested)" if nested else ""))
+    clause = ", ".join(rendered)
+    if any(s is not t for t in tops for s in vendored if s.roots[0] != t.roots[0]):
+        clause += (
+            ". A nested tree's own sub-index is spelled '<parent>-<path under it>' and is "
+            "buildable by that name even though it is not listed here"
+        )
+    return clause
+
+
 ## @brief Why this sub-index cannot be built, or None when it can.
 ## @param target The target being built, named or unnamed.
 ## @param repo Resolved repository root.
 ## @return A refusal naming the alternatives, or None to proceed.
-## @version 1
+## @version 2
 ## @dg_internal
 def _sub_index_rejection(target: Target, repo: Path) -> str | None:
     """gh#35. `refresh(sub_index='no-such-tree')` DID NOT REFUSE. It registered a slug, took the
@@ -727,7 +773,7 @@ def _sub_index_rejection(target: Target, repo: Path) -> str | None:
 
     @brief Refuse a sub_index that names no buildable tree.
     @return The refusal message, or None.
-    @version 1
+    @version 2
     """
     if target.name is None:
         return None
@@ -740,7 +786,7 @@ def _sub_index_rejection(target: Target, repo: Path) -> str | None:
             f"no part named {target.name!r} to build. Refresh it without `sub_index` to build "
             f"the whole repository, which for this repository is the only index there is."
         )
-    listed = ", ".join(repr(name) for name in buildable)
+    listed = _offered_sub_indexes(repo)
     if Path(target.db_path).exists():
         return (
             f"Sub-index {target.name!r} of {repo} was built once but its tree is gone — a "
@@ -1753,7 +1799,7 @@ class DocsDbServer:
     ## @param ctx MCP request context (the only route to the client's roots).
     ## @param target Repo root or slug the call named, or None for the derived target.
     ## @return The Target to build, or None when no source supplied one.
-    ## @version 1
+    ## @version 2
     ## @req REQ-DDB-MCP-001
     async def _build_subject(
         self, ctx: Context, target: str | None, sub_index: str | None = None
@@ -1776,7 +1822,7 @@ class DocsDbServer:
 
         @brief Resolve and register the repository (or sub-index) a build is for.
         @return The Target, or None when nothing supplied one.
-        @version 2
+        @version 3
         """
         if target is None:
             if sub_index is not None:
@@ -1786,6 +1832,19 @@ class DocsDbServer:
                 )
             return await self.ensure_target(ctx)
         repo_path = self.resolve_target(target, sub_index).repo_path
+        ## gh#40. CHECKED BEFORE REGISTERING, because registering is what allocates the slug
+        ## directory and writes the `targets.json` entry. The gh#35 refusal landed after both,
+        ## so a mistyped name still left `<repo>.<bogus>/` on disk and a four-line registry
+        ## entry that `index(action='targets')` then listed as an unbuilt target forever. A
+        ## build needs somewhere to write; nothing needs somewhere to write when there is
+        ## nothing to build.
+        ##
+        ## `target_for` IS PURE — it allocates no directory and writes no registry — so the
+        ## candidate can be judged before anything about it reaches the filesystem.
+        candidate = target_for(repo_path, self.registry.home, sub_index)
+        rejection = _sub_index_rejection(candidate, Path(repo_path))
+        if rejection is not None:
+            raise RuntimeError(rejection)
         return self.registry.register(repo_path, sub_index)
 
     ## @brief Build one target, skipping when its index is already current.
