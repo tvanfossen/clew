@@ -569,7 +569,7 @@ def _section_for(
 ## @param sites Accumulator.
 ## @param primitives Lock primitive names L2 must not record as members.
 ## @return None.
-## @version 2
+## @version 3
 ## @dg_internal
 def _append_site(
     node: Any,
@@ -579,20 +579,21 @@ def _append_site(
     role: str,
     sites: list,
     primitives: frozenset[str],
+    scope: str | None = None,
 ) -> None:
     """Shared by both idioms so the record SHAPE is written once: the RAII and
     call visitors previously built the same nine-field list twice, which is
     exactly how a tenth field gets added to one of them only.
 
     @brief Build one rowid-free acquisition record.
-    @version 2
+    @version 3
     """
     section = _section_for(node, src, pattern, operand, primitives)
     sites.append(
         [
             pattern.name,
             operand,
-            _class_scope(node, src),
+            scope if scope is not None else _class_scope(node, src),
             node.start_point[0] + 1,
             section.end_line,
             pattern.form,
@@ -780,7 +781,7 @@ def _visit_rust_let_binding(node: Any, src: bytes, patterns: dict, sites: list) 
 ## @param patterns Pattern lookup by name.
 ## @param sites Accumulator.
 ## @return None.
-## @version 2
+## @version 3
 ## @dg_internal
 def _visit_call(node: Any, src: bytes, patterns: dict, sites: list) -> None:
     """@brief Append a site for `pthread_mutex_lock(&m)` and kin."""
@@ -788,9 +789,44 @@ def _visit_call(node: Any, src: bytes, patterns: dict, sites: list) -> None:
     pattern = patterns.get(callee)
     if pattern is None or pattern.form != "call":
         return
-    operands = _operand_names(node.child_by_field_name("arguments"), src)
+    arguments = node.child_by_field_name("arguments")
+    operands = _operand_names(arguments, src)
     operand = operands[pattern.operand_index] if len(operands) > pattern.operand_index else ""
-    _append_site(node, src, pattern, operand, pattern.role, sites, _primitive_names(patterns))
+    ## gh#47. AN OPERAND-LESS PRIMITIVE IS GLOBAL, NOT UNKNOWN. `_class_scope` reports an
+    ## unresolved owner as `unknown` "rather than silently collapsing into a global", which is
+    ## right when the identity EXISTS and resolution failed. A call taking no argument at all is
+    ## the other case: RIOT's `irq_disable()` holds the interrupt state, which has no owner to
+    ## resolve and none was missed. Reporting it as unknown conflates "could not tell" with
+    ## "nothing to tell" — and it is not hypothetical: declaring `irq_disable` as a call-form
+    ## lock finds 21 sites across four RIOT `core/` files, every one of them previously reading
+    ## `scope: unknown, confidence: low` for a primitive the layer can describe exactly.
+    ##
+    ## KEYED ON THE ARGUMENT LIST, NOT ON THE PATTERN, so a call whose operand merely failed to
+    ## parse still reports `unknown` and the existing distinction survives intact.
+    scope = "global" if _takes_no_operand(arguments) else None
+    _append_site(
+        node, src, pattern, operand, pattern.role, sites, _primitive_names(patterns), scope
+    )
+
+
+## @brief Whether a call site passes no argument at all.
+## @param arguments The `arguments` field of a call node, or None.
+## @return True when the call has an empty argument list.
+## @version 2
+## @dg_internal
+def _takes_no_operand(arguments: Any) -> bool:
+    """DISTINGUISHES `f()` FROM `f(x)` WHOSE `x` DID NOT RESOLVE, which is the whole point: the
+    first has no owner to find and the second has one this layer failed to name. Reading the
+    node rather than the extracted operand list is what keeps those apart — an empty list is
+    produced by both.
+
+    @brief Test for an empty argument list.
+    @return True when the call takes nothing.
+    @version 1
+    """
+    return arguments is None or not any(
+        child.is_named for child in getattr(arguments, "children", [])
+    )
 
 
 ## @brief Harvest every lock declaration/acquisition site in one file.

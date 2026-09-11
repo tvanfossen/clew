@@ -726,3 +726,79 @@ def test_enclosing_walks_parents_so_a_block_is_not_its_own_ancestor() -> None:
     inner = enclosing(calls[0], ("compound_statement",))
     outer = enclosing(inner, ("compound_statement",))
     assert outer is not None and outer.id != inner.id
+
+
+## The RIOT idiom, reduced. `irq_disable()` takes NO argument and returns the previous interrupt
+## state; `irq_restore(state)` takes that state back, not a lock. Verified against RIOT 2026.07:
+## `core/lib/include/irq.h:46` and `:72`.
+_OPERANDLESS = b"""\
+unsigned irq_disable(void);
+void irq_restore(unsigned state);
+void touch(void);
+
+void guarded(void)
+{
+    unsigned irqstate = irq_disable();
+    touch();
+    irq_restore(irqstate);
+}
+
+void discards_the_state(void)
+{
+    irq_disable();
+    touch();
+}
+"""
+
+
+##
+# @brief An operand-less primitive is a GLOBAL identity, not an unknown one.
+# @return None.
+# @version 1
+def test_an_operandless_primitive_is_scoped_global_not_unknown() -> None:
+    """gh#47 part 3. `_class_scope` reports an unresolved scope as `unknown` "rather than
+    silently collapsing into a global", which is right for a mutex whose OWNER could not be
+    found — the identity exists and we failed to resolve it.
+
+    AN OPERAND-LESS PRIMITIVE IS THE OTHER CASE ENTIRELY. `irq_disable()` takes no argument, so
+    there is no owner to resolve and nothing was missed: the thing being held is the interrupt
+    state, which is global by construction. Reporting that as `unknown` conflates "we could not
+    tell" with "there is nothing to tell", which is the absence-versus-measured-negative
+    distinction this project removes wherever it finds it.
+
+    MEASURED ON RIOT BEFORE THE CHANGE: declaring `irq_disable` as a call-form lock already
+    produced 21 sites across four `core/` files — the harvest was never the problem — and every
+    one of them read `operand: '', scope: 'unknown', confidence: 'low'`. Twenty-one sites of a
+    primitive the layer could describe exactly, reported as an unidentifiable hold.
+
+    THE RULE IS THE ARGUMENT LIST, NOT THE PATTERN. A call with no arguments at all has no
+    operand to name; a call whose operand merely failed to parse still reports `unknown`, which
+    keeps the existing distinction intact.
+
+    @brief A zero-argument acquisition is global with a real identity.
+    @version 1
+    """
+    from clew.locks import LockPattern, _walk_lock_sites
+
+    import tree_sitter_c
+    from tree_sitter import Language, Parser
+
+    parser = Parser(Language(tree_sitter_c.language()))
+    patterns = {
+        "irq_disable": LockPattern(
+            "irq_disable", form="call", kind="mutex", role="acquire", releases="irq_restore"
+        )
+    }
+    sites = _walk_lock_sites(parser.parse(_OPERANDLESS), _OPERANDLESS, patterns)
+
+    assert len(sites) == 2, f"both acquisitions must be found, got {len(sites)}"
+    for site in sites:
+        assert site[2] == "global", (
+            f"an operand-less primitive has no owner to fail to resolve; scope was {site[2]!r}"
+        )
+    ## The site that DISCARDS the returned state is found like the other — RIOT writes it that
+    ## way in core/thread.c:72 and core/sched.c:315, so a rule keyed on binding the result
+    ## would miss real critical sections.
+    assert sorted(site[3] for site in sites) == [7, 14], (
+        "the acquisition that drops the returned state must be recorded too"
+    )
