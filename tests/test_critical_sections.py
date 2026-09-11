@@ -802,3 +802,111 @@ def test_an_operandless_primitive_is_scoped_global_not_unknown() -> None:
     assert sorted(site[3] for site in sites) == [7, 14], (
         "the acquisition that drops the returned state must be recorded too"
     )
+
+
+## The same idiom with its release present, and one without. RIOT writes both: `core/mutex.c`
+## pairs `irq_disable()` at :101 with `irq_restore` at :122 and :126, while `core/thread.c:72`
+## disables and never restores because the thread is about to be destroyed.
+_OPERANDLESS_PAIRED = b"""\
+unsigned irq_disable(void);
+void irq_restore(unsigned state);
+void touch(void);
+void other_release(unsigned state);
+
+void paired(void)
+{
+    unsigned irqstate = irq_disable();
+    touch();
+    irq_restore(irqstate);
+}
+
+void never_restored(void)
+{
+    irq_disable();
+    touch();
+}
+"""
+
+
+##
+# @brief An operand-less hold ends at its release, matched by name.
+# @return None.
+# @version 1
+def test_an_operandless_hold_is_paired_by_name_not_by_operand() -> None:
+    """gh#47 part 3, the extent half. `_releases` matches a release BY OPERAND, deliberately —
+    "releasing a DIFFERENT mutex inside this section is not the end of this hold, and treating
+    it as one would truncate the section at an unrelated statement". That rule is right for
+    `pthread_mutex_unlock(&m)` and cannot work here: `irq_restore(irqstate)` names the SAVED
+    STATE, not the lock, and that variable differs at every site.
+
+    So an operand-less hold pairs by NAME within the enclosing function, which is sound for
+    exactly the reason the operand rule exists elsewhere — there is only one interrupt state, so
+    a release of "a different one" is not a thing that can happen.
+
+    MEASURED BEFORE: all 21 `irq_disable` sites across four RIOT `core/` files reported
+    `end_line: None, confidence: low`, because `resolve_section` refuses outright when the
+    operand is empty.
+
+    @brief A named release closes an operand-less section.
+    @version 1
+    """
+    from clew.locks import LockPattern, _walk_lock_sites
+
+    import tree_sitter_c
+    from tree_sitter import Language, Parser
+
+    parser = Parser(Language(tree_sitter_c.language()))
+    patterns = {
+        "irq_disable": LockPattern(
+            "irq_disable", form="call", kind="mutex", role="acquire", releases="irq_restore"
+        )
+    }
+    sites = _walk_lock_sites(parser.parse(_OPERANDLESS_PAIRED), _OPERANDLESS_PAIRED, patterns)
+    by_line = {site[3]: site for site in sites}
+
+    paired = by_line[8]
+    assert paired[END_LINE] == 10, f"the hold ends at its irq_restore, got {paired[END_LINE]}"
+    assert paired[CONFIDENCE] == EXTENT_EXACT, (
+        f"one balanced pair needs no inference; got {paired[CONFIDENCE]}"
+    )
+    assert "touch" in [call[0] for call in paired[CALLS]], (
+        f"the call under the hold must be recorded, got {paired[CALLS]}"
+    )
+
+    ## THE FAIL-CLOSED HALF. An acquisition with no release still reports no extent — pairing by
+    ## name must not become "the rest of the function" on no evidence, which is the fail-open
+    ## `_section_for` refuses for call-form patterns generally.
+    unreleased = by_line[15]
+    assert unreleased[END_LINE] is None, "an unreleased hold has no measured extent"
+    assert unreleased[CONFIDENCE] == EXTENT_UNRESOLVED
+
+
+##
+# @brief Operand-based pairing is unchanged by the by-name rule.
+# @return None.
+# @version 1
+def test_an_operand_hold_still_ignores_another_mutexs_release() -> None:
+    """THE CONTROL THAT MATTERS. The by-name rule applies ONLY where there is no operand; a
+    normal mutex must still ignore a release naming a different one, or every section in every
+    C codebase would truncate at the first unrelated unlock.
+
+    @brief A different mutex's unlock does not end this hold.
+    @version 1
+    """
+    src = b"""\
+#include <pthread.h>
+void touch(void);
+
+void f(pthread_mutex_t *a, pthread_mutex_t *b)
+{
+    pthread_mutex_lock(a);
+    pthread_mutex_unlock(b);
+    touch();
+    pthread_mutex_unlock(a);
+}
+"""
+    sites = _sites(src, cpp=False)
+    held = next(site for site in sites if site[OPERAND] == "a")
+    assert held[END_LINE] == 9, (
+        f"the hold on `a` ends at ITS unlock, not at `b`'s; got {held[END_LINE]}"
+    )

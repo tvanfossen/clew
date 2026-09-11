@@ -231,9 +231,16 @@ def _nodes_of_type(root: Any, wanted: str, floor: int) -> list[Any]:
 ## @param operand Mutex operand name the release must name.
 ## @param floor Minimum start byte (the acquisition's end).
 ## @return Release call nodes in source order; empty for an RAII hold.
-## @version 1
+## @version 2
 ## @dg_internal
-def _releases(root: Any, src: bytes, releaser: str | None, operand: str, floor: int) -> list[Any]:
+def _releases(
+    root: Any,
+    src: bytes,
+    releaser: str | None,
+    operand: str,
+    floor: int,
+    global_identity: bool = False,
+) -> list[Any]:
     """An RAII guard has NO release token — its hold ends with the block, by
     language rule — so `releaser=None` yields an empty list and every shadowing
     test below trivially passes. That is what makes one walk serve both idioms
@@ -243,14 +250,24 @@ def _releases(root: Any, src: bytes, releaser: str | None, operand: str, floor: 
     not the end of this hold, and treating it as one would truncate the section
     at an unrelated statement.
 
-    @brief Find an operand's release sites after the acquisition.
-    @version 1
+    UNLESS THERE IS NO OPERAND (gh#47). RIOT's `irq_restore(irqstate)` names the SAVED INTERRUPT
+    STATE, not the lock, and that variable differs at every site — so the operand rule cannot
+    pair it and would refuse every hold. Matching by NAME is sound for exactly the reason the
+    operand rule exists elsewhere: an operand-less primitive holds one global thing, so "a
+    release of a different one" is not a thing that can happen. The caller decides which rule
+    applies, from whether the acquisition took an argument at all.
+
+    @brief Find a hold's release sites after the acquisition.
+    @version 3
     """
     if releaser is None:
         return []
     out = []
     for node in _nodes_of_type(root, "call_expression", floor):
         if node_text(node.child_by_field_name("function"), src) != releaser:
+            continue
+        if global_identity:
+            out.append(node)
             continue
         args = node.child_by_field_name("arguments")
         if args is not None and operand in _operand_texts(args, src):
@@ -408,7 +425,7 @@ def _closing_release(
 ## @param operand Mutex operand name.
 ## @param primitives Lock primitive names to exclude from membership.
 ## @return The resolved Section; empty and unresolved when it fails closed.
-## @version 2
+## @version 3
 ## @req REQ-DDB-SCHEMA-011
 def resolve_section(
     acquire: Any,
@@ -416,6 +433,7 @@ def resolve_section(
     releaser: str | None,
     operand: str,
     primitives: frozenset[str] = frozenset(),
+    global_identity: bool = False,
 ) -> Section:
     """The single entry point L1 calls, so extent and membership are two outputs
     of ONE analysis and cannot drift apart.
@@ -427,13 +445,18 @@ def resolve_section(
     see it. No fall-through release means 'low', a NULL extent and no rows.
 
     @brief Resolve extent + membership for one acquisition.
-    @version 1
+    @version 2
     """
     block = enclosing(acquire, BLOCK_TYPES)
-    if block is None or not operand:
+    ## gh#47. AN EMPTY OPERAND IS NOT ALWAYS A FAILURE TO RESOLVE ONE. An operand-less primitive
+    ## has no operand to find, so refusing here reported every `irq_disable()` hold as
+    ## extentless — measured at 21 of 21 across four RIOT `core/` files. The fail-closed rule
+    ## below is untouched: no fall-through release still means no extent, so pairing by name
+    ## cannot become "the rest of the function" on no evidence.
+    if block is None or (not operand and not global_identity):
         return Section(None, [], EXTENT_UNRESOLVED)
     floor = acquire.end_byte
-    releases = _releases(block, src, releaser, operand, floor)
+    releases = _releases(block, src, releaser, operand, floor, global_identity)
     by_block = _by_block(releases)
     closing = _closing_release(releases, acquire_block=block, by_block=by_block)
     if releaser is not None and closing is None:

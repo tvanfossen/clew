@@ -520,7 +520,7 @@ def _primitive_names(patterns: dict) -> frozenset[str]:
 ## @param operand Mutex operand name.
 ## @param primitives Lock primitive names L2 must not record as members.
 ## @return The resolved Section.
-## @version 4
+## @version 5
 ## @dg_internal
 def _section_for(
     node: Any,
@@ -528,6 +528,7 @@ def _section_for(
     pattern: LockPattern,
     operand: str,
     primitives: frozenset[str] = frozenset(),
+    global_identity: bool = False,
 ) -> Section:
     """An RAII guard needs no release token — its hold ends with the enclosing
     block by language rule — so `None` is passed and L2 reads the block extent.
@@ -550,14 +551,14 @@ def _section_for(
     a primitive whose pairing it uses differently.
 
     @brief Choose the release convention for one acquisition, or refuse.
-    @version 3
+    @version 4
     """
     if pattern.form == "raii":
         return resolve_section(node, src, None, operand, primitives)
     releaser = pattern.releases or _RELEASERS.get(pattern.name)
     if not releaser:
         return Section(None, [], EXTENT_UNRESOLVED)
-    return resolve_section(node, src, releaser, operand, primitives)
+    return resolve_section(node, src, releaser, operand, primitives, global_identity)
 
 
 ## @brief Append one acquisition site record, extent and membership included.
@@ -569,7 +570,7 @@ def _section_for(
 ## @param sites Accumulator.
 ## @param primitives Lock primitive names L2 must not record as members.
 ## @return None.
-## @version 3
+## @version 4
 ## @dg_internal
 def _append_site(
     node: Any,
@@ -586,9 +587,9 @@ def _append_site(
     exactly how a tenth field gets added to one of them only.
 
     @brief Build one rowid-free acquisition record.
-    @version 3
+    @version 4
     """
-    section = _section_for(node, src, pattern, operand, primitives)
+    section = _section_for(node, src, pattern, operand, primitives, scope == "global")
     sites.append(
         [
             pattern.name,
