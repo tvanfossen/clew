@@ -882,6 +882,148 @@ def test_an_operandless_hold_is_paired_by_name_not_by_operand() -> None:
 
 
 ##
+# @brief An operand-less hold reaches the database with a global identity.
+# @return None.
+# @version 1
+def test_an_operandless_hold_gets_a_persisted_global_identity() -> None:
+    """gh#47 part 3, the half that never reached the DB. f037905 scopes an operand-less
+    acquisition `global` IN THE HARVEST PAYLOAD, and `_lock_id` then drops it: it returns None
+    whenever the operand is empty, so `irq_disable()` gets `lock_id NULL`, no `locks` row, and
+    neither its kind nor its global scope is persisted at all.
+
+    WHAT THAT COSTS, all of it downstream of one NULL: the hold is absent from
+    `search(corpus='locks')` (the roster reads FROM locks), it can never appear in a nesting
+    (the nesting SQL inner-joins `locks` twice), `dossier(kind='lock')` cannot name it, and the
+    `sections` panel shows a hold with an empty lock, empty scope and empty kind — which the
+    wire then prunes, leaving a row that says something was held and cannot say what.
+
+    THE RULE STAYS THE ONE f037905 SET. An empty operand with scope `unknown` is still dropped:
+    that is a lock whose identity exists and was not resolved, and merging those would invent
+    shared synchronization. An empty operand with scope `global` is the other case — there is
+    nothing to resolve — so it is named for the primitive that takes it.
+
+    @brief An operand-less acquisition is persisted as a named global lock.
+    @version 1
+    """
+    from clew.locks import _ensure_lock_tables, _insert_sites
+
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(
+        """
+        CREATE TABLE path (name TEXT);
+        CREATE TABLE memberdef (name TEXT, kind TEXT);
+        INSERT INTO path (name) VALUES ('src/irq.c');
+        INSERT INTO memberdef (name, kind) VALUES ('paired', 'function');
+        """
+    )
+    _ensure_lock_tables(conn)
+    record = [
+        "irq_disable",
+        "",
+        "global",
+        8,
+        10,
+        "call",
+        "mutex",
+        "exclusive",
+        "acquire",
+        "high",
+        [],
+    ]
+    unresolved = [
+        "m_lock",
+        "",
+        "unknown",
+        20,
+        None,
+        "call",
+        "mutex",
+        "exclusive",
+        "acquire",
+        "low",
+        [],
+    ]
+
+    _insert_sites(conn, 1, [record, unresolved], [(1, "paired", 1, 40)], {})
+
+    rows = conn.execute("SELECT name, scope, kind, identity_confidence FROM locks").fetchall()
+    assert rows == [("irq_disable", "global", "mutex", "high")], (
+        f"the operand-less hold must be persisted under the primitive's name, got {rows}"
+    )
+    held = conn.execute(
+        "SELECT pattern_name, lock_id IS NOT NULL FROM lock_acquisitions ORDER BY start_line"
+    ).fetchall()
+    assert held == [("irq_disable", 1), ("m_lock", 0)], (
+        f"only the global hold gets an identity; an unresolved operand keeps none, got {held}"
+    )
+
+
+##
+# @brief A payload cached before the operand-less extent landed is not served.
+# @return None.
+# @version 1
+def test_a_lock_payload_cached_before_the_operandless_extent_is_not_served(tmp_path) -> None:
+    """THE LOCKSTEP THE PART-3 COMMITS OWED. `_walk_lock_sites` changed twice in gh#47 part 3 —
+    f037905 gave an operand-less acquisition the scope `global`, b11ffab gave it a measured
+    extent and its section calls — and neither bumped `_LockHarvester.stage_version`.
+
+    The cache key is `(content_sha, stage, stage_version, extra_key)` and `extra_key` hashes the
+    DECLARED document only, so a repository that declared `irq_disable` and built before those
+    commits keys its payloads identically afterwards. Same file, same declaration, same version:
+    a hit. What it is served is the payload the old extraction produced — `scope: unknown`,
+    `end_line: None`, no section calls — which is exactly the report both commits exist to
+    replace, restored silently and with a cache-hit line saying the build was cheap.
+
+    @brief A stale-version lock payload must not be reused.
+    @version 1
+    """
+    from clew.harvest import run_harvest
+    from clew.indexcache import IndexCache
+    from clew.locks import lock_harvester
+
+    root = tmp_path / "repo"
+    (root / "src").mkdir(parents=True)
+    rel = "src/irq.c"
+    (root / rel).write_bytes(_OPERANDLESS_PAIRED)
+
+    declared = {
+        "locks": [
+            {
+                "name": "irq_disable",
+                "form": "call",
+                "kind": "mutex",
+                "role": "acquire",
+                "releases": "irq_restore",
+            }
+        ]
+    }
+    harvester = lock_harvester(declared)
+    cache = IndexCache(tmp_path / "index.idxcache", root)
+    sha = cache.sha_for(rel, root / rel)
+    assert sha is not None
+    ## The shape the OLD extraction produced for the paired site at line 8.
+    stale = [
+        ["irq_disable", "", "unknown", 8, None, "call", "mutex", "exclusive", "acquire", "low", []]
+    ]
+    cache.extract_put(sha, harvester.stage, 3, harvester.extra_key, stale)
+
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE path (name TEXT)")
+    conn.execute("INSERT INTO path (name) VALUES (?)", (rel,))
+
+    harvested = run_harvest(conn, root, harvester, try_import_tree_sitter(), cache)
+    payload = harvested[0][1]
+    paired = next(site for site in payload if site[3] == 8)
+
+    assert paired[2] == "global", (
+        f"a payload cached under the pre-f037905 version was served; scope was {paired[2]!r}"
+    )
+    assert paired[END_LINE] == 10, (
+        f"a payload cached under the pre-b11ffab version was served; end was {paired[END_LINE]!r}"
+    )
+
+
+##
 # @brief Operand-based pairing is unchanged by the by-name rule.
 # @return None.
 # @version 1

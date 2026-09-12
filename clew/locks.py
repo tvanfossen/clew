@@ -87,6 +87,11 @@ from .vocabulary import (
 ## not know what this is" — the fail-closed half of scope-qualified identity.
 SCOPE_UNKNOWN = "unknown"
 
+## Scope for a primitive that takes no operand at all (`irq_disable()`,
+## `taskENTER_CRITICAL()`): the thing held is global by construction, so there is
+## no owner to resolve and nothing was missed. gh#47 part 3.
+SCOPE_GLOBAL = "global"
+
 
 ## @brief One lock primitive convention: how it is written and what it means.
 ## @version 1
@@ -570,7 +575,7 @@ def _section_for(
 ## @param sites Accumulator.
 ## @param primitives Lock primitive names L2 must not record as members.
 ## @return None.
-## @version 4
+## @version 5
 ## @dg_internal
 def _append_site(
     node: Any,
@@ -589,7 +594,7 @@ def _append_site(
     @brief Build one rowid-free acquisition record.
     @version 4
     """
-    section = _section_for(node, src, pattern, operand, primitives, scope == "global")
+    section = _section_for(node, src, pattern, operand, primitives, scope == SCOPE_GLOBAL)
     sites.append(
         [
             pattern.name,
@@ -782,7 +787,7 @@ def _visit_rust_let_binding(node: Any, src: bytes, patterns: dict, sites: list) 
 ## @param patterns Pattern lookup by name.
 ## @param sites Accumulator.
 ## @return None.
-## @version 3
+## @version 4
 ## @dg_internal
 def _visit_call(node: Any, src: bytes, patterns: dict, sites: list) -> None:
     """@brief Append a site for `pthread_mutex_lock(&m)` and kin."""
@@ -804,7 +809,7 @@ def _visit_call(node: Any, src: bytes, patterns: dict, sites: list) -> None:
     ##
     ## KEYED ON THE ARGUMENT LIST, NOT ON THE PATTERN, so a call whose operand merely failed to
     ## parse still reports `unknown` and the existing distinction survives intact.
-    scope = "global" if _takes_no_operand(arguments) else None
+    scope = SCOPE_GLOBAL if _takes_no_operand(arguments) else None
     _append_site(
         node, src, pattern, operand, pattern.role, sites, _primitive_names(patterns), scope
     )
@@ -887,7 +892,14 @@ class _LockHarvester(Harvester):
     #    of a substring of the whole type text, so a payload cached by version 2
     #    may contain fabricated sites (`std::vector<unique_lock_stats>` recorded
     #    as an acquisition) that this version would never produce.
-    stage_version = 3
+    # 4: gh#47 part 3 changed what an OPERAND-LESS acquisition emits, twice, and
+    #    neither commit bumped this. f037905 scopes it `global` instead of
+    #    `unknown`; b11ffab gives it an extent and its section calls by pairing
+    #    the release by NAME. `extra_key` hashes the declared document only, so a
+    #    repository that declared `irq_disable` before those commits keys the same
+    #    payload afterwards and is served `scope: unknown, end_line: None` — the
+    #    exact report both commits replace, restored under a cache-hit line.
+    stage_version = 4
     label = "lock sites"
 
     ## @brief Store the pattern map plus the manifest-derived cache key.
@@ -1014,7 +1026,7 @@ def _insert_sites(
 ## @param record One harvested site record.
 ## @param holder Enclosing function's memberdef rowid.
 ## @return (rows inserted, the acquisition's id or None).
-## @version 1
+## @version 2
 ## @dg_internal
 def _insert_one_site(
     conn: sqlite3.Connection, path_rowid: int, record: list[Any], holder: int
@@ -1029,7 +1041,14 @@ def _insert_one_site(
     @version 1
     """
     pattern_name, operand, scope, start, end, form, kind, mode, role, confidence = record[:10]
-    lock_id = _lock_id(conn, operand, scope, kind, path_rowid)
+    ## AN OPERAND-LESS HOLD IS NAMED FOR ITS PRIMITIVE (gh#47 part 3). `_lock_id` drops a site
+    ## with no operand, which is right for one whose operand failed to parse — that lock's
+    ## identity exists and merging unnamed ones would invent shared synchronization. A call that
+    ## takes NO argument is the other case: `scope` is already `global`, the thing held is the
+    ## interrupt state or the scheduler, and `irq_disable` names it exactly. Without this the
+    ## kind and the global scope reach no table at all.
+    identity = operand or (pattern_name if scope == SCOPE_GLOBAL else "")
+    lock_id = _lock_id(conn, identity, scope, kind, path_rowid)
     added = conn.execute(
         "INSERT OR IGNORE INTO lock_acquisitions "
         "(lock_id, holder_rowid, path_rowid, form, role, mode, start_line, end_line, "

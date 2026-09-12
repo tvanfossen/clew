@@ -119,7 +119,20 @@ from .tiers import OPTIONS_META_PREFIX
 ##   by 1.0.28 therefore holds neither the recovered rows nor the corrected edges, and nothing
 ##   about its SOURCE changes to trigger the query-time auto-refresh — the same
 ##   answer-a-new-question-with-silence case versions 2 and 4 both record.
-CLEW_BUILD_VERSION = 5
+## 6 (clew 1.0.34) — gh#47's lock and interrupt-context work changes rows for identical source:
+##
+##     * `lock_acquisitions` holds a measured `end_line` and `confidence` for an OPERAND-LESS
+##       hold, and `critical_section_calls` holds its members (gh#47 part 3, b11ffab). Measured
+##       on RIOT at its pin: 23 of 37 `irq_disable` holds across `core/*.c` gained an extent,
+##       against 0 of 37 before.
+##
+##   The stage cache is a separate mechanism and was bumped with it (`_LockHarvester`
+##   stage_version 3 -> 4): that makes one stage's payloads cold, while this makes an already
+##   BUILT index report itself stale. Both were owed by f037905/b11ffab and neither was paid,
+##   so an index built by 1.0.33 holds the pre-change rows and nothing about its source changes
+##   to trigger the query-time auto-refresh — the same answer-a-new-question-with-silence case
+##   versions 2, 4 and 5 each record.
+CLEW_BUILD_VERSION = 6
 
 
 ## @brief Stamp the build version, scope, coverage and preprocessor config into build_meta.
