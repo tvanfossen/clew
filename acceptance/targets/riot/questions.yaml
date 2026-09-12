@@ -13,7 +13,7 @@ schema: 1
 target: RIOT-OS/RIOT
 commit: 50ae2eba8fe3c533539e68f1a64fd34d66c8d14b
 ref: "2026.07"
-version: 1.0.0
+version: 1.1.0
 
 ground_truth: |
   RIOT source at the commit above, read directly from a shallow checkout at that sha. Every line
@@ -22,13 +22,30 @@ ground_truth: |
   WHY THIS TARGET. It is the only tree in the matrix with a second execution context. The
   question a firmware engineer asks first — "can this run in interrupt context, and does anything
   it calls block?" — has a complete answer spread across four files here, which is the
-  multi-file shape DESIGN.md predicts should discriminate. It also carries all four ISR
-  registration idioms in one repository (AVR `ISR(...)`, Cortex-M `*_IRQHandler` weak overrides,
-  `__attribute__((interrupt))`, and the portable `irq_disable`/`irq_restore` pair), so a pattern
-  set derived here is derived against the matrix rather than fitted to one vendor.
+  multi-file shape DESIGN.md predicts should discriminate. It also carries four different ISR
+  definition idioms in one repository, so a pattern set derived here is derived against the
+  matrix rather than fitted to one vendor:
 
-  COUNTS AT THE PIN, for scale rather than as marks: irq_disable appears in 196 files,
-  irq_restore in 180, irq_is_in in 42, mutex_lock in 239, mutex_unlock in 250.
+    * Cortex-M: a strong `void isr_<periph>(void)` overriding a `WEAK_DEFAULT` alias, named by a
+      vector table — `cpu/nrf52/vectors/vectors_nrf52832xxaa.c:72`, declarations at :30.
+    * AVR: `AVR8_ISR(VECTOR, handler, ...)` at file scope, e.g.
+      `cpu/atmega_common/periph/uart.c:226`, expanding to avr-libc's `ISR(...)`
+      (`cpu/avr8_common/include/irq_arch.h:144`).
+    * MSP430: `ISR(VECTOR, name) { ... }` — `cpu/msp430/periph/timer.c:262`, the macro at
+      `cpu/msp430/include/cpu.h:42` expanding to `__attribute__((naked, interrupt(a)))`.
+    * ARM7: `__attribute__((interrupt("IRQ")))`, the tree's only `*_IRQHandler` spellings —
+      `cpu/lpc23xx/periph/gpio.c:288`, registered through `install_irq`
+      (`cpu/lpc23xx/cpu.c:71`).
+
+  CORRECTED IN 1.1.0: an earlier version of this paragraph said Cortex-M uses "`*_IRQHandler`
+  weak overrides". It does not — `_IRQHandler` appears in exactly two directories at this pin
+  (`cpu/lpc23xx`, `pkg/driver_cryptocell_310`), and Cortex-M is named `isr_*`.
+
+  COUNTS AT THE PIN, for scale rather than as marks, from
+  `git grep -l <name> -- '*.c' '*.h' | wc -l`: irq_disable 259 files, irq_restore 183,
+  irq_is_in 45, mutex_lock 265, mutex_unlock 264. (1.0.0 stated 196/180/42/239/250 with no
+  method recorded; those figures do not reproduce by any glob tried and are replaced rather
+  than re-derived.)
 
 judge:
   model: claude-sonnet-4-5-20250929
@@ -81,15 +98,24 @@ questions:
         refs: [["core/mutex.c", 95], ["core/mutex.c", 101], ["core/mutex.c", 49]]
 
       - text: >-
-          identifies thread_yield_higher as the call that ends the blocking path, and states
-          that it is a context switch
+          states what the blocking path does to the CURRENT thread — `_block` marks
+          thread_get_active() as MUTEX_BLOCKED and queues it, which in interrupt context is the
+          INTERRUPTED thread, not the handler
         type: conclusion
         weight: 3
         evidence: |
-          core/mutex.c:87-88 restores the IRQ state and then calls `thread_yield_higher()`,
-          declared at core/include/thread.h:398. This is the step that makes the path unsafe
-          from an interrupt: there is no thread to switch away from.
-        refs: [["core/mutex.c", 87, 88], ["core/include/thread.h", 398]]
+          core/mutex.c:60 `thread_t *me = thread_get_active();`, :67
+          `sched_set_status(me, STATUS_MUTEX_BLOCKED)`, then the queue insert at :68-74 and
+          `thread_yield_higher()` at :88 (declared core/include/thread.h:398).
+
+          CORRECTED IN 1.1.0. The 1.0.0 mark asked for "thread_yield_higher ... is a context
+          switch and therefore invalid from an interrupt". That is not what the tree says:
+          `thread_yield_higher` is ISR-safe on every port — on Cortex-M it only pends PendSV
+          (cpu/cortexm_common/include/thread_arch.h:29-37) and the other ports test
+          `irq_is_in()` inside it. The defect is one level up: the handler parks somebody
+          else's thread on the mutex and `mutex_lock_internal` returns true (core/mutex.c:132)
+          as though the caller now owns it.
+        refs: [["core/mutex.c", 60], ["core/mutex.c", 67], ["core/mutex.c", 88], ["core/include/thread.h", 398]]
 
       - text: >-
           concludes that calling mutex_lock from an interrupt handler is invalid because the
@@ -112,15 +138,21 @@ questions:
         refs: [["core/lib/include/irq.h", 89], ["core/lib/assert.c", 34]]
 
       - text: >-
-          proposes a non-blocking alternative — mutex_trylock, or handing off through a
-          mechanism that does not yield
+          proposes an ISR-safe handoff — the handler SIGNALS rather than acquires
+          (mutex_unlock, msg_send_int, thread_flags_set), leaving the acquire to a thread
         type: conclusion
         weight: 2
         evidence: |
-          `mutex_lock_internal(mutex, false)` is the non-blocking form the same function
-          implements; core/include/mutex.h:80 documents that callers use the public wrappers
-          rather than calling it directly.
-        refs: [["core/include/mutex.h", 80], ["core/mutex.c", 95]]
+          core/include/mutex.h:257 documents `mutex_unlock` as safe to call from IRQ context,
+          which is the idiom RIOT drivers use: the thread holds the mutex and the ISR releases
+          it. core/include/msg.h:262-278 `msg_send_int` and core/include/thread_flags.h:18
+          ("from ISR's") are the other two ISR-side handoffs.
+
+          CORRECTED IN 1.1.0. The 1.0.0 mark offered `mutex_trylock` as the alternative.
+          core/include/mutex.h:184 documents it "@pre Must be called in thread context" — it
+          reaches the same `thread_get_active()` path — so crediting it rewards an answer that
+          is wrong about the tree.
+        refs: [["core/include/mutex.h", 257], ["core/include/mutex.h", 184], ["core/include/msg.h", 262]]
 
   - id: Q2
     intent: |
@@ -135,8 +167,8 @@ questions:
 
     prompt: |
       RIOT protects short critical sections by disabling interrupts rather than taking a lock.
-      Describe the exact API contract for that, and list every file under core/ that opens such
-      a section.
+      Describe the exact API contract for that, and list every file under core/ that calls
+      irq_disable().
 
     marks:
       - text: >-
@@ -154,23 +186,22 @@ questions:
           concludes that because the previous state is returned and restored, sections nest
           without a depth counter
         type: conclusion
-        weight: 2
+        weight: 3
         evidence: |
           A restore writes back what was saved rather than unconditionally enabling, so an inner
           section entered while interrupts were already disabled leaves them disabled on exit.
           Verified from the signatures at core/lib/include/irq.h:46 and :72.
         refs: [["core/lib/include/irq.h", 46], ["core/lib/include/irq.h", 72]]
 
-      - text: every file under core/ that opens an interrupt-disabled critical section
+      - text: every file under core/ that calls irq_disable()
         type: set
         weight: 1
         extract: |
-          List every file path the answer names as containing a site where interrupts are
-          disabled to open a critical section. Paths only, one per line, exactly as the answer
-          writes them. If it names none, reply NONE.
+          List every file path the answer names as containing a call to irq_disable(). Paths
+          only, one per line, exactly as the answer writes them. If it names none, reply NONE.
         members:
           - {value: "core/msg.c", evidence: "irq_disable() at :71, passed straight into _msg_send rather than bound"}
-          - {value: "core/thread.c", evidence: "irq_disable() at :72, return value discarded — the section is never reopened"}
+          - {value: "core/thread.c", evidence: "irq_disable() at :72, return value discarded — closed by irq_enable() at :74, not by irq_restore"}
           - {value: "core/cond.c", evidence: "irq_disable() at :34"}
           - {value: "core/mbox.c", evidence: "irq_disable() at :59"}
           - {value: "core/thread_flags.c", evidence: "irq_disable() at :56"}
@@ -178,12 +209,16 @@ questions:
           - {value: "core/msg_bus.c", evidence: "irq_disable() at :39"}
           - {value: "core/mutex.c", evidence: "irq_disable() at :101"}
           - {value: "core/sched.c", evidence: "irq_disable() at :315, cast to void for the same reason"}
+          - {value: "core/lib/atomic_c11.c", evidence: "irq_disable() at :272 and inside the TEMPLATE_* #define bodies from :77 — 12 sites, most of them invisible to a parser that does not expand macros"}
+          - {value: "core/lib/atomic_sync.c", evidence: "irq_disable() at :62 and in five further TEMPLATE_* #define bodies"}
+          - {value: "core/lib/init.c", evidence: "irq_disable() at :114 with no restore — the state is discarded before the kernel starts"}
+          - {value: "core/lib/panic.c", evidence: "irq_disable() at :77 with no restore — interrupts stay off for the panic"}
 
       - text: >-
           notes that mutex_unlock also runs inside such a section, so the mutex implementation
           is itself built on the interrupt primitive
         type: conclusion
-        weight: 2
+        weight: 3
         evidence: |
           core/mutex.c:184 `void mutex_unlock(mutex_t *mutex)` opens at :186 and restores at
           :193 and :200.
@@ -204,7 +239,7 @@ questions:
           notes that the primitives are MAYBE_INLINE, so on a port defining IRQ_API_INLINED
           they are always-inline statics rather than linked calls
         type: conclusion
-        weight: 2
+        weight: 3
         evidence: |
           core/lib/include/irq.h:30-34 defines MAYBE_INLINE as
           `static inline __attribute__((always_inline))` under IRQ_API_INLINED and as nothing
