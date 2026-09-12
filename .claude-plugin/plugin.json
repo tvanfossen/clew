@@ -1,6 +1,6 @@
 {
   "name": "clew",
-  "version": "1.0.33",
+  "version": "1.0.34",
   "description": "Index a C, C++, Rust or Python repository into a queryable graph — symbols, call edges, callbacks, threads, locks, shared-key dataflow, Kconfig gates, requirement-to-test links and prose — served over MCP as four tools: dossier, search, index and propose_declaration. Also installs one informational PostToolUse hook: it names the file you just inspected and the one index call that would have answered more, speaks more often the longer the index goes unused, and stops once it is used. It never blocks a tool call and is disabled with CLEW_HOOK_DISABLE=1. Requires the clew-trace package on PATH and the doxygen binary.",
   "author": {
     "name": "tvanfossen",
