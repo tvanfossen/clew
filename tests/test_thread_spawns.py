@@ -27,6 +27,7 @@ from clew.threads import (
     DEFAULT_SPAWN_PATTERNS,
     _walk_spawn_sites,
     load_thread_patterns,
+    patterns_by_name,
 )
 from clew.vocabulary import THREAD_KIND, THREAD_KIND_WIN32
 
@@ -93,7 +94,7 @@ def test_windows_spawns_are_harvested_and_posix_still_is() -> None:
     @brief All four spawn sites resolve to their own entry function.
     @version 1
     """
-    patterns = {p.name: p for p in load_thread_patterns(None)}
+    patterns = patterns_by_name(load_thread_patterns(None))
     tree, src = _parse_c(_WIN_AND_POSIX)
     sites = _walk_spawn_sites(tree, src, patterns)
 
@@ -432,7 +433,7 @@ def test_the_spawn_site_names_its_enclosing_function() -> None:
     FILE SCOPE IS EMPTY, not a placeholder, so a spawn in a static initialiser reads as "no
     enclosing function" rather than naming one that does not exist.
     """
-    patterns = {p.name: p for p in load_thread_patterns(None)}
+    patterns = patterns_by_name(load_thread_patterns(None))
     src = (
         b"#include <pthread.h>\n"
         b"static void *WorkerProc(void *a) { return a; }\n"
@@ -446,9 +447,11 @@ def test_the_spawn_site_names_its_enclosing_function() -> None:
     sites = _walk_spawn_sites(tree, raw, patterns)
 
     assert len(sites) == 1, f"expected the one pthread spawn, got {sites}"
-    ## The SEVENTH element, and the arity matters: the flattener folds positionally, so a walk
-    ## that emitted six would silently drop this for every row.
-    assert len(sites[0]) == 7, f"the payload must be a septet, got {len(sites[0])}"
+    ## The ARITY MATTERS: the flattener folds positionally, so a walk that emitted one element
+    ## fewer would silently drop the last field for every row. gh#47 made it an OCTET — the
+    ## eighth is `threads.source`, which tells a registration call apart from a handler
+    ## recognised at its definition.
+    assert len(sites[0]) == 8, f"the payload must be an octet, got {len(sites[0])}"
     assert sites[0][6] == "thread_create"
 
     ## FILE SCOPE: a spawn outside any function must report "" rather than borrow a name.
@@ -470,7 +473,7 @@ def test_the_enclosing_name_strips_a_pointer_return_sigil() -> None:
     the text is taken raw — and a name nobody can look up is worse than none, because it looks
     like an answer. `locks.py` learned this on the entropic grid; this is the same read.
     """
-    patterns = {p.name: p for p in load_thread_patterns(None)}
+    patterns = patterns_by_name(load_thread_patterns(None))
     tree, raw = _parse_c(
         b"#include <pthread.h>\n"
         b"static void *WorkerProc(void *a) { return a; }\n"
@@ -594,7 +597,7 @@ def test_a_wrapped_entry_argument_still_resolves() -> None:
     @brief All three argument shapes name the same entry.
     @version 1
     """
-    patterns = {p.name: p for p in load_thread_patterns(None)}
+    patterns = patterns_by_name(load_thread_patterns(None))
     tree, src = _parse_c(_BARE_AND_WRAPPED)
     sites = _walk_spawn_sites(tree, src, patterns)
 

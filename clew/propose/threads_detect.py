@@ -97,18 +97,29 @@ class _Evidence:
 
 ## @brief The built-in spawn primitives, as the fixpoint's seed map.
 ## @return Name -> Derived for every DEFAULT_SPAWN_PATTERNS entry.
-## @version 1
+## @version 2
 ## @req REQ-DDB-CONFIG-001
 def seed_map() -> dict[str, Derived]:
-    """@brief Seed the fixpoint with the language/OS spawn primitives."""
+    """A primitive that registers TWO entries in two contexts (`request_threaded_irq`, gh#47)
+    seeds NOTHING: the fixpoint derives a wrapper's entry index from the primitive's, and there
+    is no single index to derive from. Keeping either one silently would propose a wrapper
+    convention for half the primitive — the same shape this module's `refused` path exists to
+    report rather than guess at.
+
+    @brief Seed the fixpoint with the language/OS spawn primitives.
+    """
+    grouped: dict[str, list] = {}
+    for pattern in DEFAULT_SPAWN_PATTERNS:
+        grouped.setdefault(pattern.name, []).append(pattern)
     return {
-        pattern.name: Derived(
-            entry_arg_index=pattern.entry_arg_index,
-            name_arg_index=pattern.name_arg_index,
-            kind=pattern.kind,
+        name: Derived(
+            entry_arg_index=patterns[0].entry_arg_index,
+            name_arg_index=patterns[0].name_arg_index,
+            kind=patterns[0].kind,
             via=(),
         )
-        for pattern in DEFAULT_SPAWN_PATTERNS
+        for name, patterns in grouped.items()
+        if len({p.entry_arg_index for p in patterns}) == 1
     }
 
 

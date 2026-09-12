@@ -49,6 +49,7 @@ from clew.shared_key_edges import (
     resolve_shared_key_patterns,
 )
 from clew.threads import (
+    patterns_by_name,
     DEFAULT_PY_SPAWN_PATTERNS,
     _walk_spawn_sites,
     extract_threads,
@@ -240,7 +241,7 @@ def test_c_harvest_output_unchanged_on_the_c_fixture() -> None:
     to unwrap), and ZERO spawn sites. If the Python work had leaked into the C
     walkers, those two zeros are what would break — not the file count.
     """
-    patterns = {p.name: p for p in load_thread_patterns(None)}
+    patterns = patterns_by_name(load_thread_patterns(None))
     files = calls = plain = member = spawns = 0
     for path in sorted(CSAMPLE_ROOT.rglob("*")):
         if path.suffix not in (".c", ".h", ".cpp"):
@@ -580,7 +581,7 @@ def test_py_multicall_lambda_entry_fails_closed(tmp_path: Path) -> None:
     """A lambda body with MORE THAN ONE call is ambiguous, so no thread may be
     recorded — never one attributed to an arbitrary leading helper."""
     tree, src = _parse(FIXTURE_ROOT, FIXTURE_REL)
-    patterns = {p.name: p for p in load_thread_patterns(None)}
+    patterns = patterns_by_name(load_thread_patterns(None))
     sites = _walk_spawn_sites(tree, src, patterns)
     # `spawn_multi_lambda` uses (noop(), helper()); `noop` must never be an entry.
     entries = {site[1] for site in sites}
@@ -598,7 +599,7 @@ def test_py_declared_local_wrapper_matches_by_raw_name(tmp_path: Path) -> None:
     manifest.write_text(
         "spawns:\n  - name: spawn_task\n    entry_arg_index: 0\n    name_arg_index: 1\n",
     )
-    patterns = {p.name: p for p in load_thread_patterns(manifest)}
+    patterns = patterns_by_name(load_thread_patterns(manifest))
     sites = _walk_spawn_sites(tree, data, patterns)
     assert [s[1] for s in sites] == ["entry"]
     assert [s[0] for s in sites] == ["w"]
@@ -873,7 +874,7 @@ def test_an_aliased_thread_entry_is_resolved_through_the_import_map(tmp_path: Pa
     assert bindings.resolve("dox") == "clew.doxygen"
     assert bindings.resolve("ts") == "clew.testscope"
 
-    sites = _walk_spawn_sites(tree, data, {p.name: p for p in load_thread_patterns(None)})
+    sites = _walk_spawn_sites(tree, data, patterns_by_name(load_thread_patterns(None)))
     ## A site is a flat septet; index 3 is the QUALIFIED entry, which is the field the
     ## resolver matches against doxygen's `definition`. Indexed rather than named because the
     ## walker returns plain lists for the harvest cache, not `_SpawnSite` objects.

@@ -86,7 +86,9 @@ from .call_edges import (
     import_ast_call_edges,
     import_macro_hop_edges,
 )
+from .blocking import extract_blocking_calls
 from .callback_edges import import_callback_registration_edges
+from .context import extract_context_conflicts
 from .coverage import report_index_coverage
 from .external import EXTERNAL_ROOTS_META_KEY, stamp_external_provenance
 from .declaration import (
@@ -1769,7 +1771,7 @@ def _doxygen_stage(
 
 ## @brief Run every build stage against one (temp) output DB path.
 ## @param timer Stage timer; one `mark` closes each stage below. A fresh one when omitted.
-## @version 54
+## @version 55
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -1988,6 +1990,14 @@ def _build_stages(
     )
     timer.mark("locks")
 
+    ## gh#47 part 2. Beside the lock stage and for the same reason: the holder of a call site is
+    ## resolved from the function extents the call-edge layers built. What it records is the
+    ## half `call_edges` structurally cannot — a call to a primitive that is not in the index
+    ## (`k_sleep`, `vTaskDelay`), together with the TIMEOUT ARGUMENT that decides whether it
+    ## blocks at all.
+    extract_blocking_calls(output, repo_root, cache, plan.blocking)
+    timer.mark("blocking_calls")
+
     # Layer 6 — the declared indirect-dispatch recovery. Ordering is load-bearing
     # in BOTH directions: it reads the call edges Layers 1-4 produced (a virtual
     # call DOES land on the interface method, it just stops there), and its
@@ -2020,6 +2030,14 @@ def _build_stages(
     # the boundary annotation below.
     extract_threads(output, repo_root, thread_patterns, cache, plan.threads)
     timer.mark("threads")
+
+    ## gh#47 part 2, and it must run HERE: the interrupt closure needs the call graph final
+    ## (the dominated-fuzzy prune above is the last thing to change it), the lock rows from
+    ## Layer 5, the blocking-call rows from the stage beside it, and the interrupt threads the
+    ## line above just inserted. Every earlier position would read one of the four as empty and
+    ## report a confident zero.
+    extract_context_conflicts(output)
+    timer.mark("context_conflicts")
 
     import_shared_key_edges_inferred(
         output,

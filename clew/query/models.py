@@ -1067,6 +1067,49 @@ class Dossier:
     ## would be the substitution the field exists to prevent.
     callers_unresolved: int | None = None
 
+    ## WHAT THIS FUNCTION REACHES THAT AN INTERRUPT MAY NOT (gh#47 part 2). Empty for every
+    ## function no interrupt handler reaches, which is most of them — and the MCP layer elides
+    ## it there rather than shipping an empty key on every reply.
+    context_conflicts: list[ContextConflict] = field(default_factory=list)
+
+    ## HOW MANY INTERRUPT-REACHABLE SITES THIS INDEX COULD NOT DECIDE, on the
+    ## `callers_unresolved` precedent one field up and for the same reason: an empty
+    ## `context_conflicts` means "nothing blocks" ONLY when nothing was refused. A timeout this
+    ## layer will not evaluate (`k_sem_take(&s, cfg->wait)`), a call behind a runtime context
+    ## guard, and an acquisition whose lock identity never resolved are each counted here.
+    ##
+    ## A ZERO IS LOAD-BEARING and is never elided. None means the index predates the layer, so
+    ## the absence of a count is not evidence that nothing was refused.
+    context_undecidable: int | None = None
+
+
+## @brief One interrupt-context finding against one function.
+## @version 1
+@dataclass(frozen=True)
+class ContextConflict:
+    """A site an interrupt handler reaches that blocks — or one this index could not decide
+    about, which is a different row and says so in `verdict`.
+
+    `thread` names the handler the path starts at and `depth` how many calls away this function
+    is from it, so a reader can follow the path back rather than being handed a verdict about a
+    function three files from the interrupt. `detail` carries the deciding TEXT verbatim: the
+    timeout as written, the guard condition, or the lock kind.
+
+    @brief An interrupt-context conflict, or an undecidable site.
+    @version 1
+    """
+
+    thread: str
+    verdict: str
+    reason: str
+    evidence: str
+    detail: str
+    holder: str
+    file: str
+    line: int | None
+    depth: int
+    confidence: str
+
 
 ## @brief A verbatim, line-capped source body for one function.
 ## @version 3

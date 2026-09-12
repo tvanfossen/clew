@@ -352,9 +352,14 @@ THREAD_KIND = Vocabulary(
 
 THREAD_SOURCE = Vocabulary(
     id="thread_source",
-    values=("ast_spawn", "declared"),
-    means="whether the thread was found at a spawn call site or declared",
-    rank={"declared": 1, "ast_spawn": 0},
+    ## gh#47 part 1 splits interrupt handlers off from spawn calls, and splits them AGAIN by
+    ## the strength of the evidence: `ast_isr_decl` is what the source declares (an interrupt
+    ## attribute, a handler-defining macro), `ast_isr_name` is what a naming convention implies
+    ## (`*_IRQHandler`, `isr_*`). Folding either into `ast_spawn` would say a registration call
+    ## was found where none exists; folding them into each other would rate a guess as a fact.
+    values=("ast_spawn", "ast_isr_decl", "ast_isr_name", "declared"),
+    means="how this execution context was found: a spawn call, an interrupt declaration, a handler naming convention, or a declaration",
+    rank={"declared": 1, "ast_spawn": 0, "ast_isr_decl": 0, "ast_isr_name": 0},
     reserved=frozenset({"declared"}),
 )
 
@@ -374,14 +379,85 @@ MEMBERSHIP_SOURCE = Vocabulary(
     reserved=frozenset({"declared"}),
 )
 
+## `interrupt_mask` is the embedded critical section: `irq_disable()`, `irq_lock()`,
+## `taskENTER_CRITICAL()`. It is NOT a mutex and not a spinlock — it neither blocks the caller
+## nor spins on another CPU's release; it masks interrupts on this one. The distinction is
+## load-bearing rather than cosmetic: gh#47's context rule asks whether a hold taken on an
+## interrupt path can BLOCK, and masking interrupts is exactly what an interrupt handler is
+## supposed to do. Spelled as a mutex — which is what a declared lock defaults to — every
+## critical section in a firmware tree reports as a conflict with itself.
+_LOCK_KINDS = (
+    "mutex",
+    "recursive_mutex",
+    "shared_mutex",
+    "semaphore",
+    "spinlock",
+    "interrupt_mask",
+    "unknown",
+)
+
+## The kinds whose acquisition can PARK THE CALLER. Read by gh#47's context-conflict rule and
+## by anything else that has to tell "waits for another thread" from "excludes one". `unknown`
+## is deliberately absent: an unclassified hold is undecided, never assumed to block.
+BLOCKING_LOCK_KINDS = frozenset({"mutex", "recursive_mutex", "shared_mutex", "semaphore"})
+
 LOCK_KIND = Vocabulary(
     id="lock_kind",
-    values=("mutex", "recursive_mutex", "shared_mutex", "semaphore", "spinlock", "unknown"),
+    ## ONE TUPLE, read twice — `values` and the `rank` comprehension were two hand-maintained
+    ## copies, the shape THREAD_KIND already fixed at :329.
+    values=_LOCK_KINDS,
     means="the synchronization primitive this lock is — PART OF ITS IDENTITY",
-    rank={
-        k: 0
-        for k in ("mutex", "recursive_mutex", "shared_mutex", "semaphore", "spinlock", "unknown")
-    },
+    rank=dict.fromkeys(_LOCK_KINDS, 0),
+)
+
+## How long a blocking call would wait, read off its TIMEOUT ARGUMENT as written (gh#47 part 2).
+## `none` is the legal-in-an-interrupt case — `k_sem_take(&s, K_NO_WAIT)` and
+## `xQueueReceive(q, &x, 0)` are what correct interrupt code looks like — and `undecidable` is
+## an operand this layer will not evaluate, such as a forwarded parameter or a ternary.
+_BLOCKING_WAITS = ("unconditional", "forever", "bounded", "none", "undecidable")
+
+BLOCKING_WAIT = Vocabulary(
+    id="blocking_wait",
+    values=_BLOCKING_WAITS,
+    means="what the timeout argument of a blocking call says, verbatim from the source",
+    rank=dict.fromkeys(_BLOCKING_WAITS, 0),
+)
+
+## gh#47 part 2. A row states a violation or states that the index could not decide; "clean" is
+## the ABSENCE of a row against an interrupt handler that exists, which is why nothing here
+## spells it.
+_CONTEXT_VERDICTS = ("conflict", "undecidable")
+
+CONTEXT_VERDICT = Vocabulary(
+    id="context_verdict",
+    values=_CONTEXT_VERDICTS,
+    means="whether an interrupt-reachable site violates the context rule or could not be decided",
+    rank=dict.fromkeys(_CONTEXT_VERDICTS, 0),
+)
+
+## Why the row exists: two ways to violate, three ways to be undecidable. Each undecidable
+## reason names something a reader can go and settle by hand, which is the point of recording it
+## rather than counting it as clean.
+_CONTEXT_REASONS = (
+    "blocking_lock",
+    "blocking_call",
+    "undecidable_timeout",
+    "guarded_by_isr_predicate",
+    "unresolved_lock_identity",
+)
+
+CONTEXT_REASON = Vocabulary(
+    id="context_reason",
+    values=_CONTEXT_REASONS,
+    means="what makes this interrupt-reachable site a conflict, or what stopped the index deciding",
+    rank=dict.fromkeys(_CONTEXT_REASONS, 0),
+)
+
+CONTEXT_STRENGTH = Vocabulary(
+    id="context_strength",
+    values=("low", "medium", "high"),
+    means="how direct the path from the interrupt handler to this site is",
+    rank={"low": 0, "medium": 1, "high": 2},
 )
 
 LOCK_IDENTITY = Vocabulary(
@@ -597,6 +673,12 @@ STAGE_KCONFIG_GATES = "kconfig_gates"
 ## a non-type template argument (gh#9), so a `referenced_by` list built from it alone is partial.
 STAGE_MACRO_REFS = "macro_refs"
 
+## Blocking-primitive call sites with their timeout argument (gh#47 part 2). Its own partition
+## rather than a field on `ast_calls`: that payload is at version 7 and feeds every call-edge
+## consumer, so widening it would cold-parse every file in every index to answer a question
+## about eighty names.
+STAGE_BLOCKING = "blocking"
+
 STAGE = Vocabulary(
     id="stage",
     values=(
@@ -611,6 +693,7 @@ STAGE = Vocabulary(
         STAGE_AST_SYMBOLS,
         STAGE_KCONFIG_GATES,
         STAGE_MACRO_REFS,
+        STAGE_BLOCKING,
     ),
     means="extract_cache partition key — a typo is a permanent silent cache miss, not an error",
     rank={
@@ -625,6 +708,7 @@ STAGE = Vocabulary(
         STAGE_AST_SYMBOLS: 0,
         STAGE_KCONFIG_GATES: 0,
         STAGE_MACRO_REFS: 0,
+        STAGE_BLOCKING: 0,
     },
 )
 
@@ -885,6 +969,11 @@ GRAPH_LAYERS: tuple[str, ...] = (
     "locks",
     "lock_acquisitions",
     "critical_section_calls",
+    ## gh#47 part 2. Both are richness layers a repo either has or measurably does not: a tree
+    ## with no interrupt handler has an EMPTY context_conflicts table, which is a different
+    ## claim from a tree built before the layer existed.
+    "blocking_calls",
+    "context_conflicts",
     "external_boundaries",
     "req_edges",
     "req_test_edges",
@@ -901,6 +990,10 @@ GRAPH_LAYERS: tuple[str, ...] = (
 VOCABULARIES: dict[str, Vocabulary] = {
     v.id: v
     for v in (
+        BLOCKING_WAIT,
+        CONTEXT_VERDICT,
+        CONTEXT_REASON,
+        CONTEXT_STRENGTH,
         CALL_SOURCE,
         CALL_MATCH,
         KEY_SOURCE,
@@ -961,6 +1054,10 @@ COLUMNS: dict[tuple[str, str], Vocabulary] = {
     ("threads", "source"): THREAD_SOURCE,
     ("threads", "confidence"): THREAD_STRENGTH,
     ("thread_membership", "source"): MEMBERSHIP_SOURCE,
+    ("blocking_calls", "wait"): BLOCKING_WAIT,
+    ("context_conflicts", "verdict"): CONTEXT_VERDICT,
+    ("context_conflicts", "reason"): CONTEXT_REASON,
+    ("context_conflicts", "confidence"): CONTEXT_STRENGTH,
     ("locks", "kind"): LOCK_KIND,
     ("locks", "identity_confidence"): LOCK_IDENTITY,
     ("locks", "source"): LOCK_SOURCE,

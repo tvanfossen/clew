@@ -950,6 +950,7 @@ _DOSSIER_LISTS = (
     ## widely-called function under a coarse lock can be inside many of them.
     "sections",
     "locks_held",
+    "context_conflicts",
     "external_callees",
     ## gh#373. Budgeted like the rest even though the realistic count is one to three:
     ## a `#define` conditionally redefined per platform can have dozens of sites, and a
@@ -997,6 +998,10 @@ _DOSSIER_OPTIONAL = (
     "body",
     "sections",
     "locks_held",
+    ## gh#47 part 2. Elided when empty — most functions in any repo are not reachable from an
+    ## interrupt — and `context_undecidable` is NOT in this tuple for the reason
+    ## `callers_unresolved` is not: a zero is what makes the empty list trustworthy.
+    "context_conflicts",
     "external_callees",
     "macros",
     ## Elided for an ungated function, which is the common case in any repo that does not gate

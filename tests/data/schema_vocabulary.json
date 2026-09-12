@@ -1,4 +1,11 @@
 {
+  "blocking_calls.wait": [
+    "bounded",
+    "forever",
+    "none",
+    "unconditional",
+    "undecidable"
+  ],
   "call_edges.confidence": [
     "exact",
     "fuzzy",
@@ -12,6 +19,22 @@
     "doxygen_sqlite",
     "fnptr",
     "macro_hop"
+  ],
+  "context_conflicts.confidence": [
+    "high",
+    "low",
+    "medium"
+  ],
+  "context_conflicts.reason": [
+    "blocking_call",
+    "blocking_lock",
+    "guarded_by_isr_predicate",
+    "undecidable_timeout",
+    "unresolved_lock_identity"
+  ],
+  "context_conflicts.verdict": [
+    "conflict",
+    "undecidable"
   ],
   "critical_section_calls.resolution": [
     "ambiguous",
@@ -96,6 +119,7 @@
     "medium"
   ],
   "locks.kind": [
+    "interrupt_mask",
     "mutex",
     "recursive_mutex",
     "semaphore",
@@ -170,6 +194,8 @@
     "win32"
   ],
   "threads.source": [
+    "ast_isr_decl",
+    "ast_isr_name",
     "ast_spawn",
     "declared"
   ]

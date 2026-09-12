@@ -221,7 +221,10 @@ def test_invalid_declared_kind_fails_closed_rather_than_normalizing() -> None:
     message = str(exc.value)
     assert "'W'" in message
     assert "'bogus'" in message
-    assert "mutex, recursive_mutex, shared_mutex, semaphore, spinlock, unknown" in message
+    assert (
+        "mutex, recursive_mutex, shared_mutex, semaphore, spinlock, interrupt_mask, unknown"
+        in message
+    )
 
 
 def test_invalid_declared_role_fails_closed() -> None:
@@ -442,3 +445,117 @@ def test_an_undeclared_acquire_release_pair_is_suggested(tmp_path: Path) -> None
         conn.close()
     assert "proj_mutex_lock" not in after
     assert "bsp_sem_take" in after, "declaring one primitive must not silence the others"
+
+
+## The three critical-section shapes the embedded trees actually write, reduced. RIOT's
+## `irq_disable()`/`irq_restore(state)` (save/restore, no operand), FreeRTOS's
+## `taskENTER_CRITICAL()`/`taskEXIT_CRITICAL()` (operand-less pair), and Zephyr's
+## `irq_disable(irq)` — the SAME SPELLING as RIOT's, masking one interrupt line rather than
+## opening a section, paired with `irq_enable` and never with `irq_restore`.
+_CRITICAL_SECTIONS = b"""\
+unsigned irq_disable(void);
+void irq_restore(unsigned state);
+void irq_enable(unsigned line);
+void taskENTER_CRITICAL(void);
+void taskEXIT_CRITICAL(void);
+void touch(void);
+
+void riot_style(void)
+{
+    unsigned irqstate = irq_disable();
+    touch();
+    irq_restore(irqstate);
+}
+
+void freertos_style(void)
+{
+    taskENTER_CRITICAL();
+    touch();
+    taskEXIT_CRITICAL();
+}
+
+void zephyr_style(unsigned line)
+{
+    irq_disable(line);
+    touch();
+    irq_enable(line);
+}
+"""
+
+
+def test_critical_section_primitives_ship_as_defaults_with_a_non_blocking_kind() -> None:
+    """gh#47 part 3. Interrupt masking was DECLARABLE ONLY, and the acceptance target that
+    grades it (`acceptance/targets/riot`) builds with `declare: {}` — so on the arm the feature
+    exists for, nothing was detected at all.
+
+    THE KIND IS THE POINT, not the detection. `LOCK_KIND` had no way to spell "this hold masks
+    interrupts", and a declared lock with no kind defaults to `mutex` — which is what the
+    part-3 tests themselves declared. Every RIOT critical section would then read as a blocking
+    mutex, and the conflict rule gh#47 part 2 builds on top is a kind test: interrupt masking is
+    exactly what an interrupt handler is SUPPOSED to use.
+
+    @brief The embedded critical-section spellings are built in, as interrupt_mask.
+    @version 1
+    """
+    sites = _sites(_CRITICAL_SECTIONS, cpp=False)
+    by_name = {site[0]: site for site in sites}
+
+    assert "irq_disable" in by_name, (
+        f"irq_disable must be a built-in primitive; found {sorted(by_name)}"
+    )
+    assert "taskENTER_CRITICAL" in by_name, (
+        f"taskENTER_CRITICAL must be built in; found {sorted(by_name)}"
+    )
+    for name in ("irq_disable", "taskENTER_CRITICAL"):
+        assert by_name[name][6] == "interrupt_mask", (
+            f"{name} masks interrupts; it is not a mutex, got kind {by_name[name][6]!r}"
+        )
+        assert by_name[name][2] == "global", (
+            f"{name} holds a global, got scope {by_name[name][2]!r}"
+        )
+    assert by_name["irq_disable"][4] == 12, (
+        f"the RIOT-style hold ends at its irq_restore, got {by_name['irq_disable'][4]}"
+    )
+    assert by_name["taskENTER_CRITICAL"][4] == 19, (
+        f"the FreeRTOS-style hold ends at its taskEXIT_CRITICAL, got {by_name['taskENTER_CRITICAL'][4]}"
+    )
+
+
+def test_a_masking_primitive_that_takes_an_operand_is_not_this_primitive() -> None:
+    """THE SPELLING COLLISION THAT MAKES A DEFAULT DANGEROUS. Zephyr's `irq_disable(irq)`
+    (include/zephyr/irq.h:307) masks ONE interrupt line and pairs with `irq_enable`; RIOT's
+    `irq_disable()` masks all of them and pairs with `irq_restore`. One name, two primitives.
+
+    Matching the Zephyr call would mint a lock identity from whatever the argument is written as
+    — `line`, or `DT_IRQN(node)` truncated to `DT_IRQN` — at scope `unknown`, with no release in
+    sight, in every Zephyr driver in the tree. So the built-in is declared `global_only`: it
+    matches a call with NO arguments, which is the primitive it was derived from.
+
+    @brief An argument-taking call of the same name is refused, not misattributed.
+    @version 1
+    """
+    sites = _sites(_CRITICAL_SECTIONS, cpp=False)
+    zephyr_lines = [site for site in sites if site[3] == 26]
+    assert zephyr_lines == [], (
+        f"irq_disable(line) is a different primitive and must not be recorded, got {zephyr_lines}"
+    )
+
+
+def test_every_call_form_default_can_close_its_own_section() -> None:
+    """THE PARALLEL TABLE, PINNED. `_RELEASERS` and `DEFAULT_LOCK_PATTERNS` are two hand-kept
+    lists: a call-form default that appears in neither its own `releases` nor `_RELEASERS` gets
+    `Section(None, [], 'low')` at EVERY site — an acquisition the layer found and can never
+    close, reported as an unresolved extent rather than as a missing table entry.
+
+    @brief Every call-form default has a release route, and every route names a default.
+    @version 1
+    """
+    from clew.locks import _RELEASERS
+
+    calls = {p.name: p for p in DEFAULT_LOCK_PATTERNS if p.form == "call"}
+    unclosable = sorted(
+        name for name, p in calls.items() if not p.releases and name not in _RELEASERS
+    )
+    assert unclosable == [], f"call-form defaults with no release route: {unclosable}"
+    orphans = sorted(name for name in _RELEASERS if name not in calls)
+    assert orphans == [], f"_RELEASERS names no such default: {orphans}"

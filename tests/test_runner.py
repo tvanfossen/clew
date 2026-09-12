@@ -255,6 +255,35 @@ def test_unapplied_declaration_is_refused() -> None:
         runner.check_declaration_applied(rubric, {"options.locks.tier": "explicit"})
 
 
+## @brief A section stamped as a whole is accepted at the section name.
+## @return None.
+## @version 1
+def test_a_section_level_option_is_recognised_by_its_section_name() -> None:
+    """THE LEAF RULE IS RIGHT FOR `preprocessor.predefined` AND WRONG FOR EVERYTHING ELSE.
+    `tiers` stamps a MANIFEST or DOCUMENT option under its SECTION name — `options.index_scope`,
+    `options.thread_patterns`, `options.locks` — while `preprocessor` is the one section whose
+    inner keys are themselves options. Comparing only at the leaf therefore refuses a rubric
+    that declares `index_scope: {roots: [...]}` by looking for `options.roots.tier`, which no
+    build ever stamps, on a build whose declaration landed perfectly.
+
+    Measured before this fix: gh#47's Zephyr target must bound its scope to be buildable at all,
+    and provisioning refused it. `locks` passed only by the coincidence that its inner key is
+    also called `locks`.
+
+    @brief Either the section or its leaf carrying an explicit tier is enough.
+    @return None.
+    @version 1
+    """
+    scoped = _rubric("Q1", declare={"index_scope": {"roots": ["kernel"]}})
+    runner.check_declaration_applied(scoped, {"options.index_scope.tier": "explicit"})
+    with pytest.raises(ValueError, match="no explicit tier"):
+        runner.check_declaration_applied(scoped, {"options.index_scope.tier": "heuristic"})
+
+    ## The leaf route still works, for the section that genuinely stamps leaves.
+    leafy = _rubric("Q1", declare={"preprocessor": {"predefined": ["X"]}})
+    runner.check_declaration_applied(leafy, {"options.predefined.tier": "explicit"})
+
+
 ## @brief A rubric with no declaration needs no build metadata.
 ## @return None.
 ## @version 1

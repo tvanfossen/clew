@@ -41,6 +41,7 @@ from collections.abc import Sequence
 from ..vocabulary import EXTERNAL_ROOT_COLUMN
 from ._common import DbSource, connect, has_columns, rowids_for_name, table_exists
 from .models import (
+    ContextConflict,
     CriticalSection,
     LockEntry,
     LockInventory,
@@ -729,3 +730,94 @@ def _origin_per_mutex(entries: tuple[LockEntry, ...]) -> list[str | None]:
         origin = entry.external_root if entry.path_resolved else None
         per_mutex.setdefault((entry.name, entry.scope), set()).add(origin)
     return ["" if "" in origins else sorted(origins, key=str)[0] for origins in per_mutex.values()]
+
+
+## The columns one context-conflict row is read through, in the order `_build_conflict` unpacks
+## them. Shared by the rowid-scoped accessor and the whole-index one so the two cannot drift.
+_CONFLICT_COLUMNS = """
+    COALESCE(t.name, ''), c.verdict, c.reason, c.evidence, c.detail,
+    COALESCE(h.name, ''), COALESCE(p.name, ''), c.line, c.depth, c.confidence
+"""
+
+_CONFLICT_FROM = """
+FROM context_conflicts c
+LEFT JOIN threads t ON t.id = c.thread_id
+LEFT JOIN memberdef h ON h.rowid = c.member_rowid
+LEFT JOIN path p ON p.rowid = c.path_rowid
+"""
+
+
+## @brief Whether this index carries the interrupt-context layer at all.
+## @param conn Open connection.
+## @return True when context_conflicts exists.
+## @version 1
+## @dg_internal
+def _context_layer_present(conn: sqlite3.Connection) -> bool:
+    """An index built before gh#47 has no table, and that is NOT the same as a repository with
+    no interrupt handler — the first cannot say, the second measured zero. The accessors return
+    `[]` and `None` respectively, which is what keeps the two apart on the wire.
+
+    @brief Test for the context layer.
+    @return True when present.
+    @version 1
+    """
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='context_conflicts'"
+    ).fetchone()
+    return row is not None
+
+
+## @brief Interrupt-context conflicts filed against a set of functions.
+## @param conn Open connection.
+## @param rowids An identity's memberdef rowids.
+## @return The conflicts, worst-first then in source order.
+## @version 1
+## @req REQ-DDB-SCHEMA-011
+def context_conflicts_for_rowids(
+    conn: sqlite3.Connection, rowids: list[int]
+) -> list[ContextConflict]:
+    """Keyed on the IDENTITY's rowids, exactly as the threads and sections panels are: a
+    conflict is filed against the rowid the holder resolved to, and a dossier resolved from a
+    header declaration would otherwise report an empty panel for a function that has one.
+
+    @brief Conflicts for a resolved identity.
+    @return The conflict rows.
+    @version 1
+    """
+    if not rowids or not _context_layer_present(conn):
+        return []
+    marks = ",".join("?" * len(rowids))
+    rows = conn.execute(
+        f"SELECT {_CONFLICT_COLUMNS} {_CONFLICT_FROM} "
+        f"WHERE c.member_rowid IN ({marks}) AND c.verdict = 'conflict' "
+        "ORDER BY c.depth, p.name, c.line",
+        rowids,
+    ).fetchall()
+    return [ContextConflict(*row) for row in rows]
+
+
+## @brief How many interrupt-reachable sites the index could not decide, for these functions.
+## @param conn Open connection.
+## @param rowids An identity's memberdef rowids.
+## @return The count, or None when the index predates the layer.
+## @version 1
+## @req REQ-DDB-SCHEMA-011
+def context_undecidable_for_rowids(conn: sqlite3.Connection, rowids: list[int]) -> int | None:
+    """A ZERO AND A None ARE DIFFERENT ANSWERS. Zero is what makes an empty conflict list
+    trustworthy; None says this index was built before the layer existed and cannot say.
+
+    @brief Count undecidable sites for a resolved identity.
+    @return The count, or None.
+    @version 1
+    """
+    if not _context_layer_present(conn):
+        return None
+    if not rowids:
+        return 0
+    marks = ",".join("?" * len(rowids))
+    row = conn.execute(
+        f"SELECT COUNT(*) FROM context_conflicts "
+        f"WHERE member_rowid IN ({marks}) AND verdict = 'undecidable'",
+        rowids,
+    ).fetchone()
+    return int(row[0]) if row else 0

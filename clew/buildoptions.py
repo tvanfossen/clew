@@ -327,7 +327,20 @@ MANIFEST_SCHEMAS: dict[str, ManifestSchema] = {
                 ## parser). Without a release token `_section_for` finds nothing to close the
                 ## extent, so every critical section stays NULL: the declaration that makes
                 ## mbedtls's 48 lock sites harvestable was exactly the one this route rejected.
-                frozenset({"name", "form", "kind", "mode", "role", "operand_index", "releases"}),
+                ## `global_only` (gh#47 part 3) rides the same rule: the loader reads it, so
+                ## this set has to advertise it or the two routes disagree again.
+                frozenset(
+                    {
+                        "name",
+                        "form",
+                        "kind",
+                        "mode",
+                        "role",
+                        "operand_index",
+                        "releases",
+                        "global_only",
+                    }
+                ),
                 required=("name",),
             ),
         ),
