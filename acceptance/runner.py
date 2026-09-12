@@ -361,13 +361,28 @@ def check_declaration_applied(rubric: Rubric, build_meta: dict) -> None:
     if not rubric.declare:
         return
     rows = build_meta or {}
+
+    ## EITHER NAME COUNTS, because the pipeline stamps at two different levels and the rubric
+    ## cannot know which. `preprocessor` is the one section whose inner keys are themselves
+    ## options (`options.predefined`); a manifest or document option is stamped under its SECTION
+    ## name (`options.index_scope`, `options.thread_patterns`, `options.locks`). Comparing only
+    ## at the leaf refused a rubric declaring `index_scope: {roots: [...]}` — looking for
+    ## `options.roots.tier`, which no build stamps — on a build whose declaration had landed.
+    ## `locks` passed only because its inner key happens to repeat its section name.
+    def _applied(names: set[str]) -> bool:
+        return any(
+            str(rows.get(f"options.{name}.tier", "")) not in ("", "heuristic") for name in names
+        )
+
     wanted: set[str] = set()
+    unapplied: list[str] = []
     for section, body in rubric.declare.items():
-        leaves = body if isinstance(body, dict) else {}
-        wanted |= set(leaves) if leaves else {section}
-    unapplied = sorted(
-        leaf for leaf in wanted if str(rows.get(f"options.{leaf}.tier", "")) in ("", "heuristic")
-    )
+        leaves = set(body) if isinstance(body, dict) else set()
+        names = {section} | leaves
+        wanted |= names
+        if not _applied(names):
+            unapplied.append(section)
+    unapplied = sorted(unapplied)
     if unapplied:
         raise ValueError(
             f"the rubric declares {sorted(wanted)} but the built index records no explicit tier "
