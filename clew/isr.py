@@ -47,7 +47,12 @@ ISR_DEFINING_MACROS = frozenset({"ISR_DIRECT_DECLARE", "ISR_DIRECT_PM"})
 
 ## Tokens that say "this definition runs in interrupt context" in its own declaration
 ## specifiers. `__interrupt` is the IAR/TI keyword, `__irq` the ARM compiler's.
-ISR_ATTRIBUTE_TOKENS = ("__attribute__((interrupt", "__attribute__ ((interrupt", "__interrupt", "__irq")
+ISR_ATTRIBUTE_TOKENS = (
+    "__attribute__((interrupt",
+    "__attribute__ ((interrupt",
+    "__interrupt",
+    "__irq",
+)
 
 ## Names that ARE handlers, whatever their signature: the CMSIS core exceptions and the RTOS
 ## hooks whose own documentation puts them in interrupt context (FreeRTOS task.h:2052 for the
@@ -80,7 +85,9 @@ ISR_NAME_GLOBS = ("*_IRQHandler", "isr_*")
 
 ## Names that match a shape above and are NOT interrupt handlers. The reset entry is the one
 ## that matters: it calls main().
-NOT_AN_ISR = frozenset({"Reset_Handler", "ResetISR", "Default_Reset_Handler", "__iar_program_start"})
+NOT_AN_ISR = frozenset(
+    {"Reset_Handler", "ResetISR", "Default_Reset_Handler", "__iar_program_start"}
+)
 
 ## `threads.source` for a handler the SOURCE declares (attribute or defining macro), and for one
 ## recognised by NAME alone. Two values because they are two strengths of evidence.
@@ -92,7 +99,7 @@ ISR_SOURCE_NAMED = "ast_isr_name"
 ## @param node A declarator node, or None.
 ## @param src The file's raw bytes.
 ## @return The declared name, or "".
-## @version 1
+## @version 2
 ## @dg_internal
 def _declared_name(node: Any, src: bytes) -> str:
     """Walks down through `function_declarator` / `parenthesized_declarator` /
@@ -111,7 +118,11 @@ def _declared_name(node: Any, src: bytes) -> str:
         if nxt is None:
             nxt = next((c for c in current.named_children if c.type == "identifier"), None)
         current = nxt
-    return src[current.start_byte : current.end_byte].decode("utf-8", errors="replace") if current else ""
+    return (
+        src[current.start_byte : current.end_byte].decode("utf-8", errors="replace")
+        if current
+        else ""
+    )
 
 
 ## @brief Whether a function definition declares no parameters.
@@ -143,7 +154,7 @@ def _takes_no_parameters(node: Any, src: bytes) -> bool:
 ## @param node A `function_definition` node.
 ## @param src The file's raw bytes.
 ## @return (entry name, `threads.source` value), or None when it is not a handler.
-## @version 1
+## @version 2
 ## @req REQ-DDB-SCHEMA-001
 def isr_definition(node: Any, src: bytes) -> tuple[str, str] | None:
     """Ordered by strength: the attribute and the defining macro are read off the source, the
@@ -162,7 +173,11 @@ def isr_definition(node: Any, src: bytes) -> tuple[str, str] | None:
     if any(token in header_text for token in ISR_ATTRIBUTE_TOKENS):
         return (name, ISR_SOURCE_DECLARED)
     type_node = node.child_by_field_name("type")
-    macro = src[type_node.start_byte : type_node.end_byte].decode("utf-8", errors="replace") if type_node else ""
+    macro = (
+        src[type_node.start_byte : type_node.end_byte].decode("utf-8", errors="replace")
+        if type_node
+        else ""
+    )
     if macro in ISR_DEFINING_MACROS:
         return (name, ISR_SOURCE_DECLARED)
     if name in ISR_EXACT_NAMES:

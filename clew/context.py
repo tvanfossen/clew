@@ -159,7 +159,7 @@ def _confidence(depth: int, weakest: str) -> str:
 ## @param closure The handler's closure.
 ## @param thread_id The interrupt thread's id.
 ## @return Row tuples ready for insertion.
-## @version 1
+## @version 2
 ## @dg_internal
 def _lock_rows(
     conn: sqlite3.Connection, closure: dict[int, tuple[int, str]], thread_id: int
@@ -189,17 +189,31 @@ def _lock_rows(
         if lock_id is None:
             out.append(
                 (
-                    thread_id, holder, VERDICT_UNDECIDABLE, REASON_UNRESOLVED_LOCK,
-                    pattern, "the acquisition's operand did not resolve to a lock identity",
-                    path_rowid, line, depth, confidence,
+                    thread_id,
+                    holder,
+                    VERDICT_UNDECIDABLE,
+                    REASON_UNRESOLVED_LOCK,
+                    pattern,
+                    "the acquisition's operand did not resolve to a lock identity",
+                    path_rowid,
+                    line,
+                    depth,
+                    confidence,
                 )
             )
         elif kind in BLOCKING_LOCK_KINDS and role != "try_acquire":
             out.append(
                 (
-                    thread_id, holder, VERDICT_CONFLICT, REASON_BLOCKING_LOCK,
-                    lock_name or pattern, f"{kind} taken by {pattern}",
-                    path_rowid, line, depth, confidence,
+                    thread_id,
+                    holder,
+                    VERDICT_CONFLICT,
+                    REASON_BLOCKING_LOCK,
+                    lock_name or pattern,
+                    f"{kind} taken by {pattern}",
+                    path_rowid,
+                    line,
+                    depth,
+                    confidence,
                 )
             )
     return out
@@ -210,7 +224,7 @@ def _lock_rows(
 ## @param closure The handler's closure.
 ## @param thread_id The interrupt thread's id.
 ## @return Row tuples ready for insertion.
-## @version 1
+## @version 2
 ## @dg_internal
 def _call_rows(
     conn: sqlite3.Connection, closure: dict[int, tuple[int, str]], thread_id: int
@@ -236,23 +250,47 @@ def _call_rows(
         if guard:
             out.append(
                 (
-                    thread_id, holder, VERDICT_UNDECIDABLE, REASON_GUARDED,
-                    primitive, guard, path_rowid, line, depth, confidence,
+                    thread_id,
+                    holder,
+                    VERDICT_UNDECIDABLE,
+                    REASON_GUARDED,
+                    primitive,
+                    guard,
+                    path_rowid,
+                    line,
+                    depth,
+                    confidence,
                 )
             )
         elif wait == "undecidable":
             out.append(
                 (
-                    thread_id, holder, VERDICT_UNDECIDABLE, REASON_UNDECIDABLE_TIMEOUT,
-                    primitive, operand, path_rowid, line, depth, confidence,
+                    thread_id,
+                    holder,
+                    VERDICT_UNDECIDABLE,
+                    REASON_UNDECIDABLE_TIMEOUT,
+                    primitive,
+                    operand,
+                    path_rowid,
+                    line,
+                    depth,
+                    confidence,
                 )
             )
         elif wait in _BLOCKING_WAITS:
             detail = f"{primitive}({operand})" if operand else f"{primitive} blocks unconditionally"
             out.append(
                 (
-                    thread_id, holder, VERDICT_CONFLICT, REASON_BLOCKING_CALL,
-                    primitive, detail, path_rowid, line, depth, confidence,
+                    thread_id,
+                    holder,
+                    VERDICT_CONFLICT,
+                    REASON_BLOCKING_CALL,
+                    primitive,
+                    detail,
+                    path_rowid,
+                    line,
+                    depth,
+                    confidence,
                 )
             )
     return out
@@ -261,7 +299,7 @@ def _call_rows(
 ## @brief Derive every interrupt-context conflict in the index.
 ## @param db_path Database being built.
 ## @return None.
-## @version 1
+## @version 2
 ## @req REQ-DDB-SCHEMA-011
 def extract_context_conflicts(db_path: Path) -> None:
     """Runs after the thread stage, which is the first point at which the call graph, the lock
@@ -290,9 +328,7 @@ def extract_context_conflicts(db_path: Path) -> None:
     ).rowcount
     conn.commit()
     split = dict(
-        conn.execute(
-            "SELECT reason, COUNT(*) FROM context_conflicts GROUP BY reason"
-        ).fetchall()
+        conn.execute("SELECT reason, COUNT(*) FROM context_conflicts GROUP BY reason").fetchall()
     )
     conflicts = conn.execute(
         "SELECT COUNT(*) FROM context_conflicts WHERE verdict = ?", (VERDICT_CONFLICT,)

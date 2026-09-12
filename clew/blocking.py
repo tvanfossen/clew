@@ -70,7 +70,15 @@ _FOREVER_TOKENS = frozenset(
     {"K_FOREVER", "portMAX_DELAY", "osWaitForever", "-1", "0xFFFFFFFF", "portMAX_DELAY_TICKS"}
 )
 ## Macro spellings that turn a duration into a timeout: a BOUNDED wait, which still blocks.
-_BOUNDED_PREFIXES = ("K_MSEC", "K_SECONDS", "K_MINUTES", "K_HOURS", "K_TICKS", "K_USEC", "pdMS_TO_TICKS")
+_BOUNDED_PREFIXES = (
+    "K_MSEC",
+    "K_SECONDS",
+    "K_MINUTES",
+    "K_HOURS",
+    "K_TICKS",
+    "K_USEC",
+    "pdMS_TO_TICKS",
+)
 
 
 ## @brief One blocking primitive: its name and where its timeout argument sits.
@@ -388,7 +396,7 @@ def ensure_blocking_table(conn: sqlite3.Connection) -> None:
 ## @param cache Live index cache, or None.
 ## @param harvester Pre-built harvester from the shared parse pass, or None.
 ## @return None.
-## @version 1
+## @version 2
 ## @req REQ-DDB-SCHEMA-011
 def extract_blocking_calls(
     db_path: Path,
@@ -428,9 +436,7 @@ def extract_blocking_calls(
                 (holder, path_rowid, record[1], record[0], record[2], record[3], record[4]),
             ).rowcount
     conn.commit()
-    waits = dict(
-        conn.execute("SELECT wait, COUNT(*) FROM blocking_calls GROUP BY wait").fetchall()
-    )
+    waits = dict(conn.execute("SELECT wait, COUNT(*) FROM blocking_calls GROUP BY wait").fetchall())
     conn.close()
     logger.info(
         "blocking: %d call sites (%s)",

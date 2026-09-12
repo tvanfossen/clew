@@ -92,10 +92,19 @@ def test_registration_calls_are_isr_entries() -> None:
     sites = _sites(_REGISTRATIONS)
     found = {site[ENTRY]: site[KIND] for site in sites}
 
-    for entry in ("timer_isr", "dma_isr", "gpio_isr", "hard_isr", "on_int", "expiry",
-                  "button_pressed"):
+    for entry in (
+        "timer_isr",
+        "dma_isr",
+        "gpio_isr",
+        "hard_isr",
+        "on_int",
+        "expiry",
+        "button_pressed",
+    ):
         assert entry in found, f"{entry} must be harvested as an interrupt entry; got {found}"
-        assert found[entry] == "isr", f"{entry} runs in interrupt context, got kind {found[entry]!r}"
+        assert found[entry] == "isr", (
+            f"{entry} runs in interrupt context, got kind {found[entry]!r}"
+        )
 
 
 def test_a_threaded_irq_files_its_bottom_half_as_a_thread_not_an_isr() -> None:
@@ -190,8 +199,14 @@ def test_a_handler_declared_at_its_definition_is_an_isr_entry() -> None:
     """
     found = {site[ENTRY]: site for site in _sites(_DEFINITIONS)}
 
-    for entry in ("tim0_handler", "TIM1_IRQHandler", "isr_uart0", "SysTick_Handler",
-                  "vApplicationTickHook", "uarte_isr"):
+    for entry in (
+        "tim0_handler",
+        "TIM1_IRQHandler",
+        "isr_uart0",
+        "SysTick_Handler",
+        "vApplicationTickHook",
+        "uarte_isr",
+    ):
         assert entry in found, f"{entry} is an interrupt handler; found {sorted(found)}"
         assert found[entry][KIND] == "isr", f"{entry} got kind {found[entry][KIND]!r}"
 
