@@ -27,6 +27,7 @@ from clew.threads import (
     DEFAULT_SPAWN_PATTERNS,
     _walk_spawn_sites,
     load_thread_patterns,
+    patterns_by_name,
 )
 from clew.vocabulary import THREAD_KIND, THREAD_KIND_WIN32
 
@@ -93,7 +94,7 @@ def test_windows_spawns_are_harvested_and_posix_still_is() -> None:
     @brief All four spawn sites resolve to their own entry function.
     @version 1
     """
-    patterns = {p.name: p for p in load_thread_patterns(None)}
+    patterns = patterns_by_name(load_thread_patterns(None))
     tree, src = _parse_c(_WIN_AND_POSIX)
     sites = _walk_spawn_sites(tree, src, patterns)
 
@@ -432,7 +433,7 @@ def test_the_spawn_site_names_its_enclosing_function() -> None:
     FILE SCOPE IS EMPTY, not a placeholder, so a spawn in a static initialiser reads as "no
     enclosing function" rather than naming one that does not exist.
     """
-    patterns = {p.name: p for p in load_thread_patterns(None)}
+    patterns = patterns_by_name(load_thread_patterns(None))
     src = (
         b"#include <pthread.h>\n"
         b"static void *WorkerProc(void *a) { return a; }\n"
@@ -446,9 +447,11 @@ def test_the_spawn_site_names_its_enclosing_function() -> None:
     sites = _walk_spawn_sites(tree, raw, patterns)
 
     assert len(sites) == 1, f"expected the one pthread spawn, got {sites}"
-    ## The SEVENTH element, and the arity matters: the flattener folds positionally, so a walk
-    ## that emitted six would silently drop this for every row.
-    assert len(sites[0]) == 7, f"the payload must be a septet, got {len(sites[0])}"
+    ## The ARITY MATTERS: the flattener folds positionally, so a walk that emitted one element
+    ## fewer would silently drop the last field for every row. gh#47 made it an OCTET — the
+    ## eighth is `threads.source`, which tells a registration call apart from a handler
+    ## recognised at its definition.
+    assert len(sites[0]) == 8, f"the payload must be an octet, got {len(sites[0])}"
     assert sites[0][6] == "thread_create"
 
     ## FILE SCOPE: a spawn outside any function must report "" rather than borrow a name.
@@ -470,7 +473,7 @@ def test_the_enclosing_name_strips_a_pointer_return_sigil() -> None:
     the text is taken raw — and a name nobody can look up is worse than none, because it looks
     like an answer. `locks.py` learned this on the entropic grid; this is the same read.
     """
-    patterns = {p.name: p for p in load_thread_patterns(None)}
+    patterns = patterns_by_name(load_thread_patterns(None))
     tree, raw = _parse_c(
         b"#include <pthread.h>\n"
         b"static void *WorkerProc(void *a) { return a; }\n"
@@ -539,4 +542,66 @@ def test_the_spawn_diagnostic_ignores_non_callable_symbols() -> None:
         f"a spawn primitive is callable — a function or a wrapper macro. Got {found}; a variable, "
         f"typedef or enumeration that merely NAMES threading is a constant, not a primitive an "
         f"operator can declare"
+    )
+
+
+## The reported shape, reduced to the pair that isolates it: one bare entry argument and the
+## same identifier behind a cast. rtabmap's five `UThreadC::Create` overloads all use the cast
+## form, so its ENTIRE threading model was invisible while one Android logging thread resolved.
+_BARE_AND_WRAPPED = b"""\
+typedef void *(*pthread_fn)(void *);
+
+void *ThreadMainHandler(void *arg) { return 0; }
+
+void spawn_bare(void) {
+    pthread_t t;
+    pthread_create(&t, 0, ThreadMainHandler, 0);
+}
+
+void spawn_cast(void) {
+    pthread_t h;
+    pthread_create((pthread_t *)&h, 0, (pthread_fn)ThreadMainHandler, 0);
+}
+
+void spawn_parenthesized(void) {
+    pthread_t p;
+    pthread_create(&p, 0, (ThreadMainHandler), 0);
+}
+"""
+
+
+##
+# @brief A cast or parenthesised entry argument still names its function.
+# @return None.
+# @version 1
+def test_a_wrapped_entry_argument_still_resolves() -> None:
+    """gh#45. `_named_entry` unwrapped exactly one node type — `pointer_expression` — so
+    `(pthread_fn)ThreadMainHandler` reached `_tail_identifier` as a `cast_expression`, whose
+    handler table has no entry for it, and the site was dropped fail-closed. The primitive was
+    recognised the whole time; only the argument parse failed, so no `thread_patterns`
+    declaration could recover it.
+
+    MEASURED ON A REAL TREE: rtabmap indexed 1,439 files and 13,061 live symbols and yielded ONE
+    thread — an Android JNI logger whose entry argument happens to be bare. Its five real spawn
+    sites all sit in `UThreadC::Create` behind `(pthread_fn)`.
+
+    THE SET WAS ALREADY WRITTEN, one module over: `propose/astdefs.py` unwraps
+    `pointer_expression`, `parenthesized_expression` and `cast_expression` when asking the same
+    question — "is this argument a bare name?" — so the propose path understood casts while the
+    harvest path did not. Two answers to one question is the defect; sharing the constant is the
+    fix.
+
+    A LOOP RATHER THAN ONE UNWRAP, because the wrappers nest: `(pthread_fn)&Class::method` is a
+    cast over a pointer expression, and unwrapping once leaves the other in place.
+
+    @brief All three argument shapes name the same entry.
+    @version 1
+    """
+    patterns = patterns_by_name(load_thread_patterns(None))
+    tree, src = _parse_c(_BARE_AND_WRAPPED)
+    sites = _walk_spawn_sites(tree, src, patterns)
+
+    entries = sorted(site[1] for site in sites)
+    assert entries == ["ThreadMainHandler"] * 3, (
+        f"a cast or parenthesised entry argument must resolve like a bare one, got {entries}"
     )

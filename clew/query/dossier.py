@@ -39,7 +39,12 @@ from ._common import (
 )
 from .externcalls import external_callees
 from .kconfig import gates_covering
-from .locks import locks_held_for_rowids, sections_for_rowids
+from .locks import (
+    context_conflicts_for_rowids,
+    context_undecidable_for_rowids,
+    locks_held_for_rowids,
+    sections_for_rowids,
+)
 from .macros import MACRO_KIND, macro_definitions_conn
 from .models import BodyExcerpt, Dossier, ExternalCallee, MacroDef, ReqRef
 from .source import DEFAULT_BODY_LINES, body_excerpt
@@ -439,7 +444,7 @@ def function_dossier(
 ## @param repo_root Working tree, or None to skip the body and external-callee panels.
 ## @param max_body_lines Cap on the body excerpt.
 ## @return The populated Dossier, or None when `fn` resolves to nothing.
-## @version 6
+## @version 7
 ## @req REQ-DDB-QUERY-004
 ## @dg_internal
 def _dossier_conn(
@@ -545,6 +550,11 @@ def _dossier_conn(
         # why they are two fields and not one merged "locks" list.
         sections=sections_for_rowids(conn, ids),
         locks_held=locks_held_for_rowids(conn, ids),
+        ## gh#47 part 2, keyed on the SAME identity rowids as the two panels above and as
+        ## `threads`, so "this function runs in interrupt context" and "this function blocks
+        ## on an interrupt path" are answers about one identity rather than two.
+        context_conflicts=context_conflicts_for_rowids(conn, ids),
+        context_undecidable=context_undecidable_for_rowids(conn, ids),
         external_callees=externals,
         # gh#373. Reported even though the SUBJECT here is a function, because on
         # the case that motivated this the two collide: doxygen writes a

@@ -119,7 +119,33 @@ from .tiers import OPTIONS_META_PREFIX
 ##   by 1.0.28 therefore holds neither the recovered rows nor the corrected edges, and nothing
 ##   about its SOURCE changes to trigger the query-time auto-refresh — the same
 ##   answer-a-new-question-with-silence case versions 2 and 4 both record.
-CLEW_BUILD_VERSION = 5
+## 6 (clew 1.0.34) — gh#47's lock and interrupt-context work changes rows for identical source:
+##
+##     * `lock_acquisitions` holds a measured `end_line` and `confidence` for an OPERAND-LESS
+##       hold, and `critical_section_calls` holds its members (gh#47 part 3, b11ffab). Measured
+##       on RIOT at its pin: 23 of 37 `irq_disable` holds across `core/*.c` gained an extent,
+##       against 0 of 37 before.
+##     * `locks` and `lock_acquisitions` hold rows for the embedded critical sections with NO
+##       declaration at all (gh#47 part 3): `irq_disable`, `irq_lock`, `taskENTER_CRITICAL` and
+##       kin ship as built-in patterns at the new kind `interrupt_mask`, and an operand-less
+##       hold now persists an identity. Measured at their pins: RIOT `core/**/*.c` 43 holds
+##       (23 with a measured extent), FreeRTOS-Kernel 83 (78 with an extent), Zephyr `kernel/`
+##       2 irq_lock plus 173 k_spin_lock — all of them zero before, because the spellings were
+##       declarable-only and no declaration shipped.
+##     * `threads` holds rows with `kind='isr'` and the two new `source` values `ast_isr_decl`
+##       and `ast_isr_name` (gh#47 part 1): interrupt registrations, ISR-context driver
+##       callbacks, and handlers recognised at their definition. Measured at their pins with no
+##       declaration: RIOT (core + four cpu families + three drivers) 70 sites / 32 entries,
+##       Zephyr (kernel + gpio/mfd/i3c + two samples) 47 / 37, FreeRTOS Zynq demo 22 / 13 —
+##       all of them zero before, because nothing in the layer modelled interrupt context.
+##
+##   The stage cache is a separate mechanism and was bumped with it (`_LockHarvester`
+##   stage_version 3 -> 4): that makes one stage's payloads cold, while this makes an already
+##   BUILT index report itself stale. Both were owed by f037905/b11ffab and neither was paid,
+##   so an index built by 1.0.33 holds the pre-change rows and nothing about its source changes
+##   to trigger the query-time auto-refresh — the same answer-a-new-question-with-silence case
+##   versions 2, 4 and 5 each record.
+CLEW_BUILD_VERSION = 6
 
 
 ## @brief Stamp the build version, scope, coverage and preprocessor config into build_meta.

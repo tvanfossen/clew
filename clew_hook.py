@@ -140,6 +140,10 @@ SHELL_FLAG = "--shell"
 ## rather than a single literal.
 MODALITY_FLAGS = (READ_FLAG, PATTERN_FLAG, GLOB_FLAG, SHELL_FLAG)
 
+## Where the repository root comes from for the containment check. The client sets it; `os.getcwd()`
+## is the fallback, which for a `PostToolUse` hook is the session's working directory.
+_PROJECT_DIR_ENV = "CLAUDE_PROJECT_DIR"
+
 ## Which `tool_input` key holds the path, per modality. `Glob` is absent DELIBERATELY: its input is
 ## a pattern, not a path, and echoing a raw glob widens the surface for no gain.
 _FIELD_FOR = {
@@ -579,6 +583,31 @@ def _target_name(raw: bytes, modality: str) -> str | None:
         return None
     if not isinstance(event, dict):
         return None
+    return _safe_token(_input_value(event, modality))
+
+
+##
+# @brief The raw inspected-path value for one modality, before any sanitising.
+# @param event The parsed event object.
+# @param modality Which tool ran, from argv.
+# @return The value as the event carried it, or None.
+# @version 1
+# @dg_internal
+def _input_value(event: object, modality: str) -> object:
+    """SHARED WITH `_target_name` SO ONE RULE READS THE EVENT. Two extractions would be two
+    answers to "which file did this call inspect", and the containment check below and the note's
+    own name would eventually disagree about it.
+
+    RETURNS THE VALUE UNSANITISED, which `_target_name` then reduces to a safe token. Nothing here
+    echoes it: the only other caller compares it against the repository root and discards it. That
+    is the one use for which a basename is useless and a raw path is safe.
+
+    @brief Read the modality's `tool_input` field.
+    @return The raw value, or None.
+    @version 1
+    """
+    if not isinstance(event, dict):
+        return None
     field = _FIELD_FOR.get(modality)
     if field is None:
         return None
@@ -586,9 +615,52 @@ def _target_name(raw: bytes, modality: str) -> str | None:
     if not isinstance(tool_input, dict):
         return None
     value = tool_input.get(field)
-    if modality == SHELL_FLAG:
-        value = _bash_target(value)
-    return _safe_token(value)
+    return _bash_target(value) if modality == SHELL_FLAG else value
+
+
+##
+# @brief Whether the inspected path is PROVABLY outside the repository.
+# @param raw The event bytes, as drained from stdin.
+# @param modality Which tool ran, from argv.
+# @return True only on positive evidence of a path outside the root.
+# @version 1
+# @dg_internal
+def _outside_repo(raw: bytes, modality: str) -> bool:
+    """gh#44. THE TALLY COUNTED INSPECTIONS ANYWHERE ON DISK AND THE NOTE CALLED THEM "in this
+    repository". A session auditing markdown under `~/.claude/projects/<id>/memory/` accumulated
+    pressure from reads outside the tree entirely and was told that 45 file-inspection calls in
+    this repository had gone without an index call. The count was true; the location was not, and
+    the note fired hardest during work the index categorically cannot serve.
+
+    SKIP WHEN PROVABLY OUTSIDE, NEVER REQUIRE INSIDE, which is the same direction every other
+    uncertainty in this file resolves. A relative path, an unparseable event, a `Glob` pattern or
+    an oversized payload all return False and are counted exactly as before — a parser gap
+    degrades to the previous behaviour rather than silencing the hook.
+
+    THE PATH IS REPOSITORY-CONTROLLED TEXT AND IS NEVER ECHOED. It is compared against the root
+    and discarded; the note's own name still comes from `_safe_token`. This is the one question a
+    basename cannot answer, which is why the raw value is read here and nowhere else.
+
+    @brief Test the inspected path against the repository root.
+    @return True when it is certainly outside.
+    @version 1
+    """
+    if len(raw) > _MAX_EVENT:
+        return False
+    try:
+        value = _input_value(json.loads(raw), modality)
+    except Exception:
+        return False
+    if not isinstance(value, str) or not os.path.isabs(value):
+        return False
+    root = os.environ.get(_PROJECT_DIR_ENV) or os.getcwd()
+    try:
+        resolved_root = os.path.realpath(root)
+        return os.path.commonpath([os.path.realpath(value), resolved_root]) != resolved_root
+    except Exception:
+        ## Different drives, an empty root, or anything else `commonpath` refuses to compare.
+        ## Not evidence of being outside, so it counts.
+        return False
 
 
 ##
@@ -808,6 +880,12 @@ def main() -> int:
     ## about what gets said. A Bash call that inspects nothing is not a file-inspection call, and
     ## the note's own text claims to count those — so recording it made the number false.
     modality = next((flag for flag in MODALITY_FLAGS if flag in sys.argv[1:]), READ_FLAG)
+    ## gh#44, and the same rule as gh#11 one level out: that fix was about what gets COUNTED
+    ## versus what gets SAID for call SHAPE, and this is the split for call LOCATION. An
+    ## inspection outside the repository is not a file-inspection call in this repository, and
+    ## the note's own text claims to count those.
+    if _outside_repo(raw, modality):
+        return 0
     if modality == SHELL_FLAG and not _is_inspection(_event_command(raw)):
         ## THE ONE PLACE THE PARSER MOVED ONTO THE HOT PATH, and it buys back more than it costs:
         ## a session's Bash calls are mostly git, tests and process management, so most of them

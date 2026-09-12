@@ -86,7 +86,9 @@ from .call_edges import (
     import_ast_call_edges,
     import_macro_hop_edges,
 )
+from .blocking import extract_blocking_calls
 from .callback_edges import import_callback_registration_edges
+from .context import extract_context_conflicts
 from .coverage import report_index_coverage
 from .external import EXTERNAL_ROOTS_META_KEY, stamp_external_provenance
 from .declaration import (
@@ -1546,7 +1548,7 @@ def _replay_manifest_statements(args: argparse.Namespace, output: Path) -> list[
 ## @param args Parsed CLI arguments, carrying any stated or replayed manifest.
 ## @param decl The repo's parsed `.clew.yaml`.
 ## @return Option name to its DocumentResolution, for `options_meta`.
-## @version 1
+## @version 2
 ## @req REQ-DDB-CONFIG-006
 def _manifest_option_tiers(args: argparse.Namespace, decl: dict) -> dict[str, DocumentResolution]:
     """READS THE SAME TWO INPUTS `_declared_or_flag` DOES, in the same order, so the
@@ -1564,15 +1566,29 @@ def _manifest_option_tiers(args: argparse.Namespace, decl: dict) -> dict[str, Do
 
     @brief Resolve the recorded tier for every manifest option.
     @return The per-option resolutions.
-    @version 1
+    @version 2
     """
-    return {
+    stamped = {
         option: resolve_document(
             explicit=getattr(args, option, None),
             declared=section(decl, option),
         )
         for option in MANIFEST_OPTIONS
     }
+    ## gh#42. `data_model` IS STAMPED TOO, and it was missed for where it sits in the option
+    ## taxonomy rather than by any argument that it should not be. It is the one manifest that
+    ## is not YAML — an ingot/UDM TOML document NAMED by path rather than inlined — so it is a
+    ## PATH option, and this loop read `MANIFEST_OPTIONS` alone. A consumer reading an
+    ## unexpected data-model catalog could not tell an operator's statement from the
+    ## repository's own declaration from nobody having said anything.
+    ##
+    ## ITS DECLARATION IS A BARE STRING, not a section mapping, so it is read directly rather
+    ## than through `section` — which looks for a mapping and would find none.
+    stamped[SECTION_DATA_MODEL] = resolve_document(
+        explicit=getattr(args, SECTION_DATA_MODEL, None),
+        declared=decl.get(SECTION_DATA_MODEL),
+    )
+    return stamped
 
 
 ## @brief Resolve one manifest input: explicit statement, else the declaration.
@@ -1755,7 +1771,7 @@ def _doxygen_stage(
 
 ## @brief Run every build stage against one (temp) output DB path.
 ## @param timer Stage timer; one `mark` closes each stage below. A fresh one when omitted.
-## @version 53
+## @version 55
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -1785,7 +1801,7 @@ def _build_stages(
     per file. It changes no stage's position and emits nothing — see harvest.py.
 
     @brief Execute every augmentation stage against one output database.
-    @version 47
+    @version 48
     """
     timer = timer or StageTimer()
     repo_root = Path(args.repo_root).resolve() if args.repo_root else doxyfile.parent
@@ -1974,6 +1990,14 @@ def _build_stages(
     )
     timer.mark("locks")
 
+    ## gh#47 part 2. Beside the lock stage and for the same reason: the holder of a call site is
+    ## resolved from the function extents the call-edge layers built. What it records is the
+    ## half `call_edges` structurally cannot — a call to a primitive that is not in the index
+    ## (`k_sleep`, `vTaskDelay`), together with the TIMEOUT ARGUMENT that decides whether it
+    ## blocks at all.
+    extract_blocking_calls(output, repo_root, cache, plan.blocking)
+    timer.mark("blocking_calls")
+
     # Layer 6 — the declared indirect-dispatch recovery. Ordering is load-bearing
     # in BOTH directions: it reads the call edges Layers 1-4 produced (a virtual
     # call DOES land on the interface method, it just stops there), and its
@@ -2006,6 +2030,14 @@ def _build_stages(
     # the boundary annotation below.
     extract_threads(output, repo_root, thread_patterns, cache, plan.threads)
     timer.mark("threads")
+
+    ## gh#47 part 2, and it must run HERE: the interrupt closure needs the call graph final
+    ## (the dominated-fuzzy prune above is the last thing to change it), the lock rows from
+    ## Layer 5, the blocking-call rows from the stage beside it, and the interrupt threads the
+    ## line above just inserted. Every earlier position would read one of the four as empty and
+    ## report a confident zero.
+    extract_context_conflicts(output)
+    timer.mark("context_conflicts")
 
     import_shared_key_edges_inferred(
         output,
@@ -2045,8 +2077,16 @@ def _build_stages(
     ## MEASURED COST OF NOT BOUNDING THIS WALK: one control target vendors a YAML parser's
     ## benchmark corpus under `build/`, including a 10.7 MB pathological document, and the first
     ## version of this stage did not finish in twenty-five minutes at full CPU.
+    ## gh#42. THE DECLARED PATH REACHES THE CATALOG STAGE, not only the declared shared-key
+    ## pass above. It used to reach only that pass, so an operator who stated `data_model` got a
+    ## build that logged the statement as tier 1 and then reported an empty catalog — the same
+    ## answer a repository with no data model gets.
     data_model_set = import_data_model_keys(
-        output, repo_root, tuple(Path(p) for p in (args.extra_exclude or [])), cache
+        output,
+        repo_root,
+        tuple(Path(p) for p in (args.extra_exclude or [])),
+        cache,
+        data_model,
     )
     timer.mark("data_model_keys")
 

@@ -48,6 +48,7 @@ from clew.shared_key_edges import (
     resolve_shared_key_patterns,
 )
 from clew.signature import write_build_signature
+from clew.declaration import SECTION_DATA_MODEL
 from clew.tiers import (
     ACCUMULATING_TIERS,
     EXPLICIT_KEY,
@@ -792,8 +793,59 @@ def test_nothing_is_stated_and_nothing_replays_for_a_target_that_states_nothing(
     args = _manifest_namespace()
     write_build_signature(db, options=options_meta(**_manifest_option_tiers(args, {})))
 
+    ## gh#42 widened the stamped set: `data_model` is a PATH option rather than a manifest one
+    ## — the single manifest that is not YAML — and was previously the one stated option that
+    ## recorded nothing. The assertion stays EXACT, which is the property this test is written
+    ## for; only the enumeration follows the set that is actually stamped.
     assert _options_meta_section(db) == {
-        f"{option}.{TIER_KEY}": TIER_HEURISTIC for option in MANIFEST_OPTIONS
+        f"{option}.{TIER_KEY}": TIER_HEURISTIC for option in (*MANIFEST_OPTIONS, SECTION_DATA_MODEL)
     }
     assert stated_options(_options_meta_section(db)) == ()
     assert _replay_manifest_statements(_manifest_namespace(), db) == []
+
+
+##
+# @brief A stated `data_model` records its tier like every other stated option.
+# @return None.
+# @version 1
+def test_a_stated_data_model_records_its_tier() -> None:
+    """gh#42. `status.options` CARRIED TIER ROWS FOR NINE SECTIONS AND NONE FOR
+    `data_model`. The reporter stated it through `options`, watched the build log it as tier 1,
+    and then found no record of it anywhere in the index — so a consumer reading an unexpected
+    data-model catalog could not tell "this operator stated a manifest" from "this repository
+    declares one" from "nobody said anything".
+
+    THE STAMP IS THE OWNER'S CONDITION FOR ALLOWING A REPLAYED STATEMENT AT ALL, as
+    `_manifest_option_tiers` records: a statement that survives a rebuild means the index
+    carries a policy the repository does not declare, so two operators of one commit can hold
+    different indexes. That is acceptable only because it is deliberate AND recorded. An option
+    that is replayed and NOT recorded is the defect gh#352 rejected.
+
+    IT WAS MISSED BECAUSE OF WHERE IT SITS IN THE OPTION TAXONOMY, not by an argument that it
+    should not be stamped: `_manifest_option_tiers` iterates `MANIFEST_OPTIONS`, and
+    `data_model` is a PATH option — the one manifest that is not YAML, named by path rather
+    than inlined. The taxonomy is right and the stamping loop was reading only half of it.
+
+    @brief The `data_model` option appears in the options meta with its tier.
+    @return None.
+    @version 1
+    """
+    from clew.cli import _manifest_option_tiers
+    from clew.tiers import TIER_DECLARED, TIER_EXPLICIT, TIER_KEY
+
+    class _Args:
+        """@brief A namespace carrying only the stated option."""
+
+        data_model = "app/data/model.toml"
+
+    stated = _manifest_option_tiers(_Args(), {})
+    assert "data_model" in stated, (
+        "a stated data_model must reach the options meta like every other stated option"
+    )
+    assert options_meta(**stated)[f"data_model.{TIER_KEY}"] == TIER_EXPLICIT
+
+    class _Bare:
+        """@brief A namespace stating nothing."""
+
+    declared = _manifest_option_tiers(_Bare(), {"data_model": "app/data/model.toml"})
+    assert options_meta(**declared)[f"data_model.{TIER_KEY}"] == TIER_DECLARED

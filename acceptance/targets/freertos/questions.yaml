@@ -1,0 +1,207 @@
+# SPDX-License-Identifier: MIT
+#
+# THE GRADING KEY, AS DATA. Schema and rules: acceptance/DESIGN.md.
+#
+# Every mark below was verified by reading the FreeRTOS demo sources at the pinned commit — a
+# shallow fetch of that exact sha, HEAD confirmed before anything was read. A mark is an ANSWER
+# COMPONENT: what a complete answer contains, not what some tool happens to surface.
+
+schema: 1
+
+target: FreeRTOS/FreeRTOS
+commit: 152cf36d6775bce6026a791845af12201aae703d
+ref: "202411.00"
+version: 1.0.0
+
+ground_truth: |
+  FreeRTOS demo sources at the commit above, read directly from a shallow checkout at that sha.
+  Submodules are NOT initialised, which is deliberate and is part of what this target measures:
+  `FreeRTOS/Source` (the kernel) is a submodule and therefore ABSENT, so every kernel API these
+  demos call is an unresolvable external name. An index that can only answer about symbols it
+  has definitions for cannot answer any question here.
+
+  WHY THIS TARGET, BESIDE RIOT AND ZEPHYR. It is the third and last way a firmware tree gets a
+  function into interrupt context, and neither of the others has it:
+
+    * RIOT DEFINES its handlers and names them in a vector table.
+    * Zephyr REGISTERS them with `IRQ_CONNECT`.
+    * These demos hand them to the INTERRUPT CONTROLLER DRIVER — `XScuGic_Connect`,
+      `XScuGic_RegisterHandler`, `XEmacPs_SetHandler`, `Xil_ExceptionRegisterHandler`,
+      `xPortInstallInterruptHandler`, `vPortSetInterruptHandler` — six different vendor APIs
+      with three different handler argument positions, none of them a kernel API, and the
+      handler itself an ordinary static function.
+
+  THE CONTEXT FLAG IS A VARIABLE HERE, not a kernel predicate. The lwIP port keeps its own
+  `xInsideISR` counter (sys_arch.c:59) and raises it in two of the three Ethernet handlers —
+  `emacps_send_handler` (xemacpsif_dma.c:140) and `emacps_recv_handler` (:328) — which is what
+  makes the error handler's path the interesting one: the guard exists, is correct where it is
+  armed, and is not armed there.
+
+judge:
+  model: claude-sonnet-4-5-20250929
+  samples_when_weight_at_least: 2
+
+index:
+  declare:
+    index_scope:
+      roots:
+        - FreeRTOS/Demo/CORTEX_A9_Zynq_ZC702
+        - FreeRTOS/Demo/Common/Minimal
+        - FreeRTOS/Demo/Common/include
+        - FreeRTOS/Demo/Common/ethernet/lwip-1.4.0/src
+        - FreeRTOS/Demo/WIN32-MSVC
+  variant_note: |
+    SCOPE ONLY. The demo tree is 3,600 C files across a hundred boards that share nothing; the
+    roots above are one board's demo plus exactly the common code its own project file links
+    (CORTEX_A9_Zynq_ZC702/RTOSDemo/.project points at Demo/Common and
+    Demo/Common/ethernet/lwip-1.4.0), plus the Win32 simulator, which is the only demo where a
+    blocking call inside an interrupt handler is visible without following a macro.
+
+    NO `preprocessor`. Every one of these demos is a different SoC with a different
+    FreeRTOSConfig.h, and naming one would make every answer a claim about that build.
+
+questions:
+  - id: Q1
+    intent: |
+      The hardest shape in the matrix: a seven-hop path from an interrupt handler to a blocking
+      mutex, crossing a vendor driver, two lwIP core files and the port's own OS shim — with a
+      GUARD on the last hop that is correct and simply never armed on this path.
+
+      No single read reaches it, and neither does a naive reachability walk: the mutex is behind
+      a `#define` (`LWIP_MEM_FREE_PROTECT`), and the registration that makes the handler an
+      interrupt handler is a vendor API three files away. It also has a precise trap — the same
+      guard variable makes the SEND and RECEIVE handlers safe, so an answer that stops at
+      "xInsideISR protects it" is wrong for a reason the source states plainly.
+
+    prompt: |
+      In this demo's lwIP port, is emacps_error_handler allowed to call process_sent_bds? Follow
+      what that reaches and explain what happens at the end of the path, including anything that
+      is supposed to prevent it.
+
+    marks:
+      - text: >-
+          identifies emacps_error_handler as an interrupt handler because XEmacPs_SetHandler
+          registers it, not because of anything in its own definition
+        type: retrieval
+        weight: 2
+        evidence: |
+          xemacpsif_hw.c:120 `XEmacPs_SetHandler(&xemacpsif->emacps, XEMACPS_HANDLER_ERROR,
+          (void *) emacps_error_handler, (void *) xemac);` — the handler itself is a plain
+          `void emacps_error_handler(void *arg, u8 Direction, u32 ErrorWord)` at :146.
+        refs: [["FreeRTOS/Demo/CORTEX_A9_Zynq_ZC702/RTOSDemo/src/lwIP_Demo/lwIP_port/netif/xemacpsif_hw.c", 120], ["FreeRTOS/Demo/CORTEX_A9_Zynq_ZC702/RTOSDemo/src/lwIP_Demo/lwIP_port/netif/xemacpsif_hw.c", 146]]
+
+      - text: >-
+          follows the path from process_sent_bds through pbuf_free into lwIP's allocator
+        type: retrieval
+        weight: 3
+        evidence: |
+          xemacpsif_hw.c:203 calls `process_sent_bds(txring)` on the transmit-collision branch;
+          xemacpsif_dma.c:111 calls `pbuf_free`; pbuf.c:654 reaches `mem_free` for a PBUF_RAM
+          pbuf; mem.c:332 takes `LWIP_MEM_FREE_PROTECT()`.
+        refs: [["FreeRTOS/Demo/CORTEX_A9_Zynq_ZC702/RTOSDemo/src/lwIP_Demo/lwIP_port/netif/xemacpsif_hw.c", 203], ["FreeRTOS/Demo/Common/ethernet/lwip-1.4.0/src/core/mem.c", 332]]
+
+      - text: >-
+          states that the end of the path is a BLOCKING mutex take — xSemaphoreTake with
+          portMAX_DELAY — and that a mutex take is forbidden in interrupt context
+        type: conclusion
+        weight: 3
+        evidence: |
+          sys_arch.c:421 `while( xSemaphoreTake( *pxMutex, portMAX_DELAY ) != pdPASS );`, reached
+          through `sys_mutex_lock` at :414, which `LWIP_MEM_FREE_PROTECT` expands to (mem.c:211).
+          The kernel's own rule: an API without a `FromISR` suffix must not be called from an
+          interrupt.
+        refs: [["FreeRTOS/Demo/CORTEX_A9_Zynq_ZC702/RTOSDemo/src/lwIP_Demo/lwIP_port/sys_arch.c", 421], ["FreeRTOS/Demo/Common/ethernet/lwip-1.4.0/src/core/mem.c", 211]]
+
+      - text: >-
+          explains that the xInsideISR guard does NOT save this path — it is raised by the send
+          and receive handlers and never by the error handler, so the thread branch is taken
+          inside an interrupt
+        type: conclusion
+        weight: 3
+        evidence: |
+          sys_arch.c:419 `if( xInsideISR == 0 )` chooses the blocking branch. The counter is
+          incremented only at xemacpsif_dma.c:140 (`emacps_send_handler`) and :328
+          (`emacps_recv_handler`); `emacps_error_handler` (xemacpsif_hw.c:146) never touches it,
+          and it is the one that calls `process_sent_bds` directly.
+        refs: [["FreeRTOS/Demo/CORTEX_A9_Zynq_ZC702/RTOSDemo/src/lwIP_Demo/lwIP_port/sys_arch.c", 419], ["FreeRTOS/Demo/CORTEX_A9_Zynq_ZC702/RTOSDemo/src/lwIP_Demo/lwIP_port/netif/xemacpsif_dma.c", 140], ["FreeRTOS/Demo/CORTEX_A9_Zynq_ZC702/RTOSDemo/src/lwIP_Demo/lwIP_port/netif/xemacpsif_dma.c", 328]]
+
+      - text: >-
+          notes that the tree itself already knew: process_sent_bds was deliberately moved out
+          of the transmit ISR for exactly this reason, and the error handler still calls it
+        type: conclusion
+        weight: 2
+        evidence: |
+          xemacpsif_dma.c:152-155 records that the send handler defers this work "to prevent the
+          memory allocation files being accessed from the ISR"; the error path at
+          xemacpsif_hw.c:203 calls it inline anyway.
+        refs: [["FreeRTOS/Demo/CORTEX_A9_Zynq_ZC702/RTOSDemo/src/lwIP_Demo/lwIP_port/netif/xemacpsif_dma.c", 152]]
+
+  - id: Q2
+    intent: |
+      The critical-section contract, which FreeRTOS splits in two by execution context — and
+      the split is exactly what a tool that models locks without modelling context cannot see:
+      `taskENTER_CRITICAL()` and `taskENTER_CRITICAL_FROM_ISR()` are the same operation with
+      different nesting rules, and one of them asserts if you call it from the wrong side.
+
+      A set question bounded to the indexed scope, because the discriminating cost is finding
+      the sites rather than explaining any one of them.
+
+    prompt: |
+      FreeRTOS has two spellings for entering a critical section and a whole parallel API that
+      ends in FromISR. Explain when each is required, and list every file in the indexed scope
+      where interrupt-context code enters a critical section or calls a non-FromISR kernel API.
+
+    marks:
+      - text: >-
+          states the FromISR rule — an API without the suffix must not be called from an
+          interrupt — and that taskENTER_CRITICAL_FROM_ISR returns a saved mask the exit takes
+          back, where the task form nests on a counter
+        type: conclusion
+        weight: 3
+        evidence: |
+          Common/Minimal/IntQueue.c:100 `uxSavedInterruptStatus = taskENTER_CRITICAL_FROM_ISR();`
+          paired with `taskEXIT_CRITICAL_FROM_ISR( uxSavedInterruptStatus );` at :108 — the
+          save/restore shape — against the bare `taskENTER_CRITICAL()` / `taskEXIT_CRITICAL()`
+          pair used from task context at WIN32-MSVC/main_blinky.c:290 and :294.
+        refs: [["FreeRTOS/Demo/Common/Minimal/IntQueue.c", 100], ["FreeRTOS/Demo/Common/Minimal/IntQueue.c", 108]]
+
+      - text: >-
+          identifies a real violation in the Win32 simulator: the keyboard interrupt handler
+          reaches xTimerReset with portMAX_DELAY, which posts to the timer command queue and can
+          block
+        type: conclusion
+        weight: 3
+        evidence: |
+          WIN32-MSVC/main.c:210 registers `prvKeyboardInterruptHandler` through
+          `vPortSetInterruptHandler`; the handler at :471 calls
+          `vBlinkyKeyboardInterruptHandler` at :496, which takes `taskENTER_CRITICAL()` at
+          main_blinky.c:290 and calls `xTimerReset( xTimer, portMAX_DELAY )` at :297. The
+          ISR-safe form is `xTimerResetFromISR`. The comment at main_blinky.c:278 still says the
+          caller is a task, which it no longer is.
+        refs: [["FreeRTOS/Demo/WIN32-MSVC/main.c", 210], ["FreeRTOS/Demo/WIN32-MSVC/main_blinky.c", 297]]
+
+      - text: >-
+          distinguishes the lwIP port's guarded sites — sys_arch_protect and sys_sem_signal test
+          xInsideISR and take the FromISR path — from an unguarded one
+        type: conclusion
+        weight: 2
+        evidence: |
+          sys_arch.c:562 `if( xInsideISR == pdFALSE ) { taskENTER_CRITICAL(); }` and sys_arch.c:463
+          choosing `xSemaphoreGiveFromISR` over `xSemaphoreGive`. Both are correct BECAUSE the
+          receive handler raises the counter (xemacpsif_dma.c:328) — the same mechanism that
+          fails in Q1's error path.
+        refs: [["FreeRTOS/Demo/CORTEX_A9_Zynq_ZC702/RTOSDemo/src/lwIP_Demo/lwIP_port/sys_arch.c", 562]]
+
+      - text: every file in the indexed scope where interrupt-context code enters a critical section or calls a non-FromISR API
+        type: set
+        weight: 1
+        extract: |
+          List every file path the answer names as containing interrupt-context code that enters
+          a critical section or calls a kernel API without a FromISR suffix. Paths only, one per
+          line, exactly as the answer writes them. If it names none, reply NONE.
+        members:
+          - {value: "sys_arch.c", evidence: "sys_mutex_lock takes xSemaphoreTake(portMAX_DELAY) at :421 when xInsideISR reads 0, which the error path leaves unset; sys_arch_protect takes taskENTER_CRITICAL at :562"}
+          - {value: "main.c", evidence: "WIN32-MSVC: prvKeyboardInterruptHandler (registered :210) takes portENTER_CRITICAL at :484"}
+          - {value: "main_blinky.c", evidence: "WIN32-MSVC: vBlinkyKeyboardInterruptHandler, called from the keyboard interrupt handler, takes taskENTER_CRITICAL at :290 and calls xTimerReset(portMAX_DELAY) at :297"}
+          - {value: "IntQueue.c", evidence: "uses the correct FROM_ISR form at :100/:108 — named so the set is not purely a list of violations"}
+          - {value: "xemacpsif_dma.c", evidence: "raises xInsideISR at :140 and :328 around the handlers, and masks interrupts directly with mfcpsr/mtcpsr at :174-175"}

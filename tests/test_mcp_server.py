@@ -1409,6 +1409,9 @@ def test_wrappers_match_the_r2_library_exactly(
         "body",
         "sections",
         "locks_held",
+        ## gh#47 part 2: elided when a function is not interrupt-reachable, which is most of
+        ## them. Hand-copied on purpose, like every other name in this tuple.
+        "context_conflicts",
         "external_callees",
         "macros",
         "gated_by",

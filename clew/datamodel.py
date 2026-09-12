@@ -313,7 +313,7 @@ class ManifestSet:
 ## @param class_name The class the key sits in.
 ## @param key_id The key as the manifest writes it.
 ## @return The uppercase `NS_CLASS_KEY` token the generator emits.
-## @version 1
+## @version 2
 ## @req REQ-DDB-SCHEMA-013
 def define_name(namespace: str, class_name: str, key_id: str) -> str:
     """THE ONE PLACE the composition rule is spelled, and the rule is measured. See the
@@ -321,12 +321,58 @@ def define_name(namespace: str, class_name: str, key_id: str) -> str:
     identifier cannot carry are dropped, which is the difference between 104 and 135 of 135
     against a real target's own key list.
 
+    THE SPACE RULE IS PER-DIALECT AND LIVES AT THE CALL SITE (gh#42). Ingot converts a space to
+    an underscore and UDM's measured behaviour drops it; applying ingot's rule here broke three
+    UDM tests pinning the 135-of-135 result above, which is exactly the measurement this
+    docstring cites. A composer shared by two dialects must not carry one dialect's rule.
+
     @brief Compose a define name from a manifest triple.
     @return The composed key spelling.
-    @version 1
+    @version 3
     """
     parts = (namespace, class_name, key_id)
     return "_".join(_DROPPED_FROM_SEGMENT.sub("", str(part)).upper() for part in parts)
+
+
+## Ingot's own prefix for a generated key macro, from its `key_definitions.h` emitter and
+## confirmed against its shipped `examples/generated/full/`
+## (`DM_KEY_APPLIANCE_IDENTITY_PRODUCT_NAME`). `filter.rs` matches a bare name against this
+## form explicitly, so a codebase calling the generated macro and one calling the accessor
+## spelling name the same key two ways.
+_INGOT_KEY_PREFIX = "DM_KEY_"
+
+
+## @brief Whether a declared key is present in the observed vocabulary, by any of ingot's spellings.
+## @param declared The composed define name.
+## @param observed Every key name the shared-key layer saw.
+## @return True when the key was observed under any spelling ingot treats as the same key.
+## @version 1
+## @req REQ-DDB-SCHEMA-013
+def observed_match(declared: str, observed: frozenset[str]) -> bool:
+    """MATCHES THE WAY INGOT MATCHES, and the third spelling exists for a reason its own source
+    states: `filter.rs::normalize` strips underscores "so that TOML snake_case IDs (e.g.
+    STATE_OF_CHARGE) match YAML-era names (STATEOFCHARGE)". A repository that migrated dialects
+    carries both, and an exact-string join reports the declared key as unobserved while the
+    identical key sits in the vocabulary beside it.
+
+    WHICH SPELLING A CODEBASE USES IS NOT KNOWABLE FROM THE MANIFEST. `key_definitions.h` emits
+    the `DM_KEY_` form while the accessor spelling carries no prefix, so the observed vocabulary
+    depends on which generated artifact the code calls — and both are correct. Accepting all
+    three is what makes `observed` a fact about the code rather than about the generator's
+    output selection.
+
+    NOT A FUZZY MATCH. Each alternative is a spelling ingot itself treats as the same key;
+    nothing here matches on a prefix, a substring or an edit distance, so two different keys
+    cannot collide.
+
+    @brief Test a declared key against the observed vocabulary.
+    @return True when observed under any accepted spelling.
+    @version 1
+    """
+    if declared in observed or f"{_INGOT_KEY_PREFIX}{declared}" in observed:
+        return True
+    normalized = declared.replace("_", "")
+    return any(name.replace("_", "") == normalized for name in observed)
 
 
 ## @brief Read a candidate document's text, or refuse it for being too large.
@@ -453,7 +499,7 @@ def _is_ingot_class_list(classes: list) -> bool:
 ## @param namespace The manifest's namespace.
 ## @param manifest Repo-relative manifest path.
 ## @return One DeclaredKey per `[[classes.keys]]` table carrying an id.
-## @version 1
+## @version 2
 ## @dg_internal
 def _ingot_keys(classes: list, namespace: str, manifest: str) -> Iterable[DeclaredKey]:
     """A key with no `id` is SKIPPED rather than stored under an empty name: its define name
@@ -461,7 +507,7 @@ def _ingot_keys(classes: list, namespace: str, manifest: str) -> Iterable[Declar
     one row that looks like a real one.
 
     @brief Yield the keys an ingot class list declares.
-    @version 1
+    @version 2
     """
     for entry in classes:
         if not isinstance(entry, dict):
@@ -471,8 +517,17 @@ def _ingot_keys(classes: list, namespace: str, manifest: str) -> Iterable[Declar
             key_id = str(key.get("id", "")) if isinstance(key, dict) else ""
             if not key_id:
                 continue
+            ## gh#42. INGOT CONVERTS A SPACE TO AN UNDERSCORE, read from its source rather
+            ## than inferred: `src/model/filter.rs` composes the bare define name as
+            ## `class.to_uppercase().replace(' ', "_")` and the same for the key, while leaving
+            ## the namespace alone. Dropping the space instead composed `WHEELLINEARVEL` where
+            ## the generator emits `WHEEL_LINEAR_VEL`, so the catalog named a macro appearing
+            ## nowhere in the source. Applied HERE and not in `define_name`, because the UDM
+            ## dialect's measured rule drops the space and the composer serves both.
             yield DeclaredKey(
-                define_name=define_name(namespace, class_name, key_id),
+                define_name=define_name(
+                    namespace, class_name.replace(" ", "_"), key_id.replace(" ", "_")
+                ),
                 namespace=namespace,
                 class_name=class_name,
                 key_id=key_id,
@@ -716,16 +771,68 @@ def _candidates(repo_root: Path, excludes: tuple[Path, ...] = ()) -> tuple[list[
     return toml_paths, yaml_paths
 
 
+## @brief A stated `data_model` that cannot be honoured, raised rather than ignored.
+## @version 1
+class DeclaredModelError(RuntimeError):
+    """gh#42. A STATEMENT THAT IS ACCEPTED AND HAS NO EFFECT READS AS AGREEMENT. The reporter
+    stated `data_model` through `options`, watched the build log it as tier 1, and watched the
+    stage then report `0 key(s) over 0 class(es) from 0 manifest(s) in dialect(s) none` with no
+    line saying the declared path had been opened, parsed or rejected. Nothing was wrong with
+    the file; nothing had looked at it.
+
+    @brief Refusal for a declared data model that cannot be used.
+    @version 1
+    """
+
+
+## @brief Parse a manifest the operator NAMED, by dialect, refusing rather than declining.
+## @param declared The stated manifest path.
+## @param repo_root Root the stored manifest path is relative to.
+## @return (manifest key, declared keys).
+## @version 1
+## @dg_internal
+def _declared_manifest(declared: Path, repo_root: Path) -> tuple[str, tuple[DeclaredKey, ...]]:
+    """DECLINING IS RIGHT FOR A WALK AND WRONG FOR A STATEMENT. Both parsers return None for
+    "not this kind of document", which is what lets discovery pass over a lint config without
+    comment. Here the document was NAMED, so None is not a shrug — it is the answer to a
+    question the operator asked, and it is reported as one.
+
+    @brief Parse a declared manifest or refuse with the reason.
+    @return The manifest key and its keys.
+    @version 1
+    """
+    path = Path(declared).expanduser()
+    if not path.is_absolute():
+        path = (Path(repo_root) / path).resolve()
+    if not path.is_file():
+        raise DeclaredModelError(
+            f"data_model names {path}, which is not a file. A declared data model is refused "
+            f"rather than skipped: skipping it would report the same empty catalog a repository "
+            f"with no data model reports, which is agreement rather than an answer."
+        )
+    for parse in (parse_ingot_manifest, parse_udm_manifest):
+        keys = parse(path, repo_root)
+        if keys is not None:
+            return rel_key(path, repo_root), keys
+    raise DeclaredModelError(
+        f"data_model names {path}, which neither dialect recognises. The ingot dialect expects "
+        f"a `classes` list whose entries carry an `id` and a `keys` list; the UDM dialect "
+        f"expects a `keys` list. Refused rather than skipped, so a mis-stated path cannot read "
+        f"as a repository that declares nothing."
+    )
+
+
 ## @brief Discover a repository's declared data-model manifest set.
 ## @param repo_root The repository root, or None when the build has none.
 ## @param excludes Subtrees the BUILD excluded, so this layer looks where the index looks.
 ## @return The manifest set, empty when the repository declares no data model.
-## @version 2
+## @version 3
 ## @req REQ-DDB-SCHEMA-013
 def discover(
     repo_root: Path | None,
     excludes: tuple[Path, ...] = (),
     cache: Any = None,
+    declared: Path | None = None,
 ) -> ManifestSet:
     """TWO PASSES, and the ORDER is the fail-closed rule: every key list is collected first,
     and only then is a manifest admitted — on the evidence that the repository's own list
@@ -746,7 +853,7 @@ def discover(
 
     @brief Discover and select a repository's data-model manifest set.
     @return The discovered manifest set.
-    @version 3
+    @version 4
     """
     if repo_root is None:
         return ManifestSet()
@@ -760,6 +867,22 @@ def discover(
     toml_paths, yaml_paths = _candidates(repo_root, excludes)
     listed, list_count, udm_paths = _classify_yaml(yaml_paths, repo_root, cache)
     found = _select(toml_paths, udm_paths, repo_root, listed, list_count, cache)
+    ## gh#42. A DECLARED MANIFEST IS ADMITTED WITHOUT A KEY LIST, and the fail-closed rule above
+    ## is untouched for everything else. That rule exists because a vendored generator ships
+    ## example manifests which parse identically to a real one — a hazard of WALKING, and one
+    ## nobody stating a path is exposed to. On the reporting repository the model is declared in
+    ## TOML alone, so all 14 shape-matching documents were declined and every key in the
+    ## repository's own data model was missing from the index.
+    if declared is not None:
+        manifest, keys = _declared_manifest(declared, repo_root)
+        if manifest not in found.manifests:
+            found = replace(
+                found,
+                keys=(*found.keys, *keys),
+                manifests=(*found.manifests, manifest),
+                ## It was counted as declined by the walk that has just been overruled.
+                manifests_unlisted=max(0, found.manifests_unlisted - 1),
+            )
     return replace(
         found,
         oversized=_oversized_count([*toml_paths, *yaml_paths]),
@@ -1124,14 +1247,16 @@ def _observed_keys(conn: sqlite3.Connection) -> frozenset[str]:
 ## @param repo_root The repository root, or None.
 ## @param excludes Subtrees the BUILD excluded, so this layer looks where the index looks.
 ## @param cache Live index cache, or None to re-read every candidate document.
+## @param declared The manifest path the operator stated, or None.
 ## @return The manifest set that was discovered, for stamping.
-## @version 3
+## @version 5
 ## @req REQ-DDB-SCHEMA-013
 def import_data_model_keys(
     db_path: Path,
     repo_root: Path | None,
     excludes: tuple[Path, ...] = (),
     cache: Any = None,
+    declared: Path | None = None,
 ) -> ManifestSet:
     """RUNS AFTER the shared-key stages, because `observed` is a join against the vocabulary
     they wrote. That ordering is load-bearing and not incidental: run above them and every
@@ -1145,9 +1270,9 @@ def import_data_model_keys(
 
     @brief Import the declared data-model key catalog.
     @return The discovered manifest set.
-    @version 2
+    @version 3
     """
-    found = discover(repo_root, excludes, cache)
+    found = discover(repo_root, excludes, cache, declared)
     conn = sqlite3.connect(str(db_path))
     try:
         _ensure_table(conn)
@@ -1173,7 +1298,7 @@ def import_data_model_keys(
                     key.manifest,
                     ",".join(key.unresolved_fields) or None,
                     int(key.define_name in found.listed),
-                    int(key.define_name in observed),
+                    int(observed_match(key.define_name, observed)),
                 )
                 for key in found.keys
             ],

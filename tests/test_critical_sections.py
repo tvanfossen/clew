@@ -726,3 +726,329 @@ def test_enclosing_walks_parents_so_a_block_is_not_its_own_ancestor() -> None:
     inner = enclosing(calls[0], ("compound_statement",))
     outer = enclosing(inner, ("compound_statement",))
     assert outer is not None and outer.id != inner.id
+
+
+## The RIOT idiom, reduced. `irq_disable()` takes NO argument and returns the previous interrupt
+## state; `irq_restore(state)` takes that state back, not a lock. Verified against RIOT 2026.07:
+## `core/lib/include/irq.h:46` and `:72`.
+_OPERANDLESS = b"""\
+unsigned irq_disable(void);
+void irq_restore(unsigned state);
+void touch(void);
+
+void guarded(void)
+{
+    unsigned irqstate = irq_disable();
+    touch();
+    irq_restore(irqstate);
+}
+
+void discards_the_state(void)
+{
+    irq_disable();
+    touch();
+}
+"""
+
+
+##
+# @brief An operand-less primitive is a GLOBAL identity, not an unknown one.
+# @return None.
+# @version 1
+def test_an_operandless_primitive_is_scoped_global_not_unknown() -> None:
+    """gh#47 part 3. `_class_scope` reports an unresolved scope as `unknown` "rather than
+    silently collapsing into a global", which is right for a mutex whose OWNER could not be
+    found — the identity exists and we failed to resolve it.
+
+    AN OPERAND-LESS PRIMITIVE IS THE OTHER CASE ENTIRELY. `irq_disable()` takes no argument, so
+    there is no owner to resolve and nothing was missed: the thing being held is the interrupt
+    state, which is global by construction. Reporting that as `unknown` conflates "we could not
+    tell" with "there is nothing to tell", which is the absence-versus-measured-negative
+    distinction this project removes wherever it finds it.
+
+    MEASURED ON RIOT BEFORE THE CHANGE: declaring `irq_disable` as a call-form lock already
+    produced 21 sites across four `core/` files — the harvest was never the problem — and every
+    one of them read `operand: '', scope: 'unknown', confidence: 'low'`. Twenty-one sites of a
+    primitive the layer could describe exactly, reported as an unidentifiable hold.
+
+    THE RULE IS THE ARGUMENT LIST, NOT THE PATTERN. A call with no arguments at all has no
+    operand to name; a call whose operand merely failed to parse still reports `unknown`, which
+    keeps the existing distinction intact.
+
+    @brief A zero-argument acquisition is global with a real identity.
+    @version 1
+    """
+    from clew.locks import LockPattern, _walk_lock_sites
+
+    import tree_sitter_c
+    from tree_sitter import Language, Parser
+
+    parser = Parser(Language(tree_sitter_c.language()))
+    patterns = {
+        "irq_disable": LockPattern(
+            "irq_disable", form="call", kind="mutex", role="acquire", releases="irq_restore"
+        )
+    }
+    sites = _walk_lock_sites(parser.parse(_OPERANDLESS), _OPERANDLESS, patterns)
+
+    assert len(sites) == 2, f"both acquisitions must be found, got {len(sites)}"
+    for site in sites:
+        assert site[2] == "global", (
+            f"an operand-less primitive has no owner to fail to resolve; scope was {site[2]!r}"
+        )
+    ## The site that DISCARDS the returned state is found like the other — RIOT writes it that
+    ## way in core/thread.c:72 and core/sched.c:315, so a rule keyed on binding the result
+    ## would miss real critical sections.
+    assert sorted(site[3] for site in sites) == [7, 14], (
+        "the acquisition that drops the returned state must be recorded too"
+    )
+
+
+## The same idiom with its release present, and one without. RIOT writes both: `core/mutex.c`
+## pairs `irq_disable()` at :101 with `irq_restore` at :122 and :126, while `core/thread.c:72`
+## disables and never restores because the thread is about to be destroyed.
+_OPERANDLESS_PAIRED = b"""\
+unsigned irq_disable(void);
+void irq_restore(unsigned state);
+void touch(void);
+void other_release(unsigned state);
+
+void paired(void)
+{
+    unsigned irqstate = irq_disable();
+    touch();
+    irq_restore(irqstate);
+}
+
+void never_restored(void)
+{
+    irq_disable();
+    touch();
+}
+"""
+
+
+##
+# @brief An operand-less hold ends at its release, matched by name.
+# @return None.
+# @version 1
+def test_an_operandless_hold_is_paired_by_name_not_by_operand() -> None:
+    """gh#47 part 3, the extent half. `_releases` matches a release BY OPERAND, deliberately —
+    "releasing a DIFFERENT mutex inside this section is not the end of this hold, and treating
+    it as one would truncate the section at an unrelated statement". That rule is right for
+    `pthread_mutex_unlock(&m)` and cannot work here: `irq_restore(irqstate)` names the SAVED
+    STATE, not the lock, and that variable differs at every site.
+
+    So an operand-less hold pairs by NAME within the enclosing function, which is sound for
+    exactly the reason the operand rule exists elsewhere — there is only one interrupt state, so
+    a release of "a different one" is not a thing that can happen.
+
+    MEASURED BEFORE: all 21 `irq_disable` sites across four RIOT `core/` files reported
+    `end_line: None, confidence: low`, because `resolve_section` refuses outright when the
+    operand is empty.
+
+    @brief A named release closes an operand-less section.
+    @version 1
+    """
+    from clew.locks import LockPattern, _walk_lock_sites
+
+    import tree_sitter_c
+    from tree_sitter import Language, Parser
+
+    parser = Parser(Language(tree_sitter_c.language()))
+    patterns = {
+        "irq_disable": LockPattern(
+            "irq_disable", form="call", kind="mutex", role="acquire", releases="irq_restore"
+        )
+    }
+    sites = _walk_lock_sites(parser.parse(_OPERANDLESS_PAIRED), _OPERANDLESS_PAIRED, patterns)
+    by_line = {site[3]: site for site in sites}
+
+    paired = by_line[8]
+    assert paired[END_LINE] == 10, f"the hold ends at its irq_restore, got {paired[END_LINE]}"
+    assert paired[CONFIDENCE] == EXTENT_EXACT, (
+        f"one balanced pair needs no inference; got {paired[CONFIDENCE]}"
+    )
+    assert "touch" in [call[0] for call in paired[CALLS]], (
+        f"the call under the hold must be recorded, got {paired[CALLS]}"
+    )
+
+    ## THE FAIL-CLOSED HALF. An acquisition with no release still reports no extent — pairing by
+    ## name must not become "the rest of the function" on no evidence, which is the fail-open
+    ## `_section_for` refuses for call-form patterns generally.
+    unreleased = by_line[15]
+    assert unreleased[END_LINE] is None, "an unreleased hold has no measured extent"
+    assert unreleased[CONFIDENCE] == EXTENT_UNRESOLVED
+
+
+##
+# @brief An operand-less hold reaches the database with a global identity.
+# @return None.
+# @version 1
+def test_an_operandless_hold_gets_a_persisted_global_identity() -> None:
+    """gh#47 part 3, the half that never reached the DB. f037905 scopes an operand-less
+    acquisition `global` IN THE HARVEST PAYLOAD, and `_lock_id` then drops it: it returns None
+    whenever the operand is empty, so `irq_disable()` gets `lock_id NULL`, no `locks` row, and
+    neither its kind nor its global scope is persisted at all.
+
+    WHAT THAT COSTS, all of it downstream of one NULL: the hold is absent from
+    `search(corpus='locks')` (the roster reads FROM locks), it can never appear in a nesting
+    (the nesting SQL inner-joins `locks` twice), `dossier(kind='lock')` cannot name it, and the
+    `sections` panel shows a hold with an empty lock, empty scope and empty kind — which the
+    wire then prunes, leaving a row that says something was held and cannot say what.
+
+    THE RULE STAYS THE ONE f037905 SET. An empty operand with scope `unknown` is still dropped:
+    that is a lock whose identity exists and was not resolved, and merging those would invent
+    shared synchronization. An empty operand with scope `global` is the other case — there is
+    nothing to resolve — so it is named for the primitive that takes it.
+
+    @brief An operand-less acquisition is persisted as a named global lock.
+    @version 1
+    """
+    from clew.locks import _ensure_lock_tables, _insert_sites
+
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(
+        """
+        CREATE TABLE path (name TEXT);
+        CREATE TABLE memberdef (name TEXT, kind TEXT);
+        INSERT INTO path (name) VALUES ('src/irq.c');
+        INSERT INTO memberdef (name, kind) VALUES ('paired', 'function');
+        """
+    )
+    _ensure_lock_tables(conn)
+    record = [
+        "irq_disable",
+        "",
+        "global",
+        8,
+        10,
+        "call",
+        "mutex",
+        "exclusive",
+        "acquire",
+        "high",
+        [],
+    ]
+    unresolved = [
+        "m_lock",
+        "",
+        "unknown",
+        20,
+        None,
+        "call",
+        "mutex",
+        "exclusive",
+        "acquire",
+        "low",
+        [],
+    ]
+
+    _insert_sites(conn, 1, [record, unresolved], [(1, "paired", 1, 40)], {})
+
+    rows = conn.execute("SELECT name, scope, kind, identity_confidence FROM locks").fetchall()
+    assert rows == [("irq_disable", "global", "mutex", "high")], (
+        f"the operand-less hold must be persisted under the primitive's name, got {rows}"
+    )
+    held = conn.execute(
+        "SELECT pattern_name, lock_id IS NOT NULL FROM lock_acquisitions ORDER BY start_line"
+    ).fetchall()
+    assert held == [("irq_disable", 1), ("m_lock", 0)], (
+        f"only the global hold gets an identity; an unresolved operand keeps none, got {held}"
+    )
+
+
+##
+# @brief A payload cached before the operand-less extent landed is not served.
+# @return None.
+# @version 1
+def test_a_lock_payload_cached_before_the_operandless_extent_is_not_served(tmp_path) -> None:
+    """THE LOCKSTEP THE PART-3 COMMITS OWED. `_walk_lock_sites` changed twice in gh#47 part 3 —
+    f037905 gave an operand-less acquisition the scope `global`, b11ffab gave it a measured
+    extent and its section calls — and neither bumped `_LockHarvester.stage_version`.
+
+    The cache key is `(content_sha, stage, stage_version, extra_key)` and `extra_key` hashes the
+    DECLARED document only, so a repository that declared `irq_disable` and built before those
+    commits keys its payloads identically afterwards. Same file, same declaration, same version:
+    a hit. What it is served is the payload the old extraction produced — `scope: unknown`,
+    `end_line: None`, no section calls — which is exactly the report both commits exist to
+    replace, restored silently and with a cache-hit line saying the build was cheap.
+
+    @brief A stale-version lock payload must not be reused.
+    @version 1
+    """
+    from clew.harvest import run_harvest
+    from clew.indexcache import IndexCache
+    from clew.locks import lock_harvester
+
+    root = tmp_path / "repo"
+    (root / "src").mkdir(parents=True)
+    rel = "src/irq.c"
+    (root / rel).write_bytes(_OPERANDLESS_PAIRED)
+
+    declared = {
+        "locks": [
+            {
+                "name": "irq_disable",
+                "form": "call",
+                "kind": "mutex",
+                "role": "acquire",
+                "releases": "irq_restore",
+            }
+        ]
+    }
+    harvester = lock_harvester(declared)
+    cache = IndexCache(tmp_path / "index.idxcache", root)
+    sha = cache.sha_for(rel, root / rel)
+    assert sha is not None
+    ## The shape the OLD extraction produced for the paired site at line 8.
+    stale = [
+        ["irq_disable", "", "unknown", 8, None, "call", "mutex", "exclusive", "acquire", "low", []]
+    ]
+    cache.extract_put(sha, harvester.stage, 3, harvester.extra_key, stale)
+
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE path (name TEXT)")
+    conn.execute("INSERT INTO path (name) VALUES (?)", (rel,))
+
+    harvested = run_harvest(conn, root, harvester, try_import_tree_sitter(), cache)
+    payload = harvested[0][1]
+    paired = next(site for site in payload if site[3] == 8)
+
+    assert paired[2] == "global", (
+        f"a payload cached under the pre-f037905 version was served; scope was {paired[2]!r}"
+    )
+    assert paired[END_LINE] == 10, (
+        f"a payload cached under the pre-b11ffab version was served; end was {paired[END_LINE]!r}"
+    )
+
+
+##
+# @brief Operand-based pairing is unchanged by the by-name rule.
+# @return None.
+# @version 1
+def test_an_operand_hold_still_ignores_another_mutexs_release() -> None:
+    """THE CONTROL THAT MATTERS. The by-name rule applies ONLY where there is no operand; a
+    normal mutex must still ignore a release naming a different one, or every section in every
+    C codebase would truncate at the first unrelated unlock.
+
+    @brief A different mutex's unlock does not end this hold.
+    @version 1
+    """
+    src = b"""\
+#include <pthread.h>
+void touch(void);
+
+void f(pthread_mutex_t *a, pthread_mutex_t *b)
+{
+    pthread_mutex_lock(a);
+    pthread_mutex_unlock(b);
+    touch();
+    pthread_mutex_unlock(a);
+}
+"""
+    sites = _sites(src, cpp=False)
+    held = next(site for site in sites if site[OPERAND] == "a")
+    assert held[END_LINE] == 9, (
+        f"the hold on `a` ends at ITS unlock, not at `b`'s; got {held[END_LINE]}"
+    )

@@ -83,15 +83,15 @@ def test_call_edges_resolves_method_calls():
 
 
 def test_thread_spawn_resolves_closure_entry():
-    from clew.threads import _walk_spawn_sites, load_thread_patterns
+    from clew.threads import _walk_spawn_sites, load_thread_patterns, patterns_by_name
 
     tree, src = _parse(
         "fn worker() {}\nfn main() {\n    std::thread::spawn(|| { worker(); });\n}\n"
     )
-    patterns = {p.name: p for p in load_thread_patterns(None)}
+    patterns = patterns_by_name(load_thread_patterns(None))
     sites = _walk_spawn_sites(tree, src, patterns)
     assert len(sites) == 1
-    thread_name, entry_name, kind, qualified_entry, _sep, line, spawn_fn = sites[0]
+    thread_name, entry_name, kind, qualified_entry, _sep, line, spawn_fn, _source = sites[0]
     assert entry_name == "worker"
     assert kind == "pthread"
     assert spawn_fn == "main"
@@ -99,12 +99,12 @@ def test_thread_spawn_resolves_closure_entry():
 
 
 def test_thread_spawn_aliased_import_form():
-    from clew.threads import _walk_spawn_sites, load_thread_patterns
+    from clew.threads import _walk_spawn_sites, load_thread_patterns, patterns_by_name
 
     tree, src = _parse(
         "use std::thread;\nfn worker() {}\nfn main() {\n    thread::spawn(|| { worker(); });\n}\n"
     )
-    patterns = {p.name: p for p in load_thread_patterns(None)}
+    patterns = patterns_by_name(load_thread_patterns(None))
     sites = _walk_spawn_sites(tree, src, patterns)
     assert len(sites) == 1
     assert sites[0][1] == "worker"

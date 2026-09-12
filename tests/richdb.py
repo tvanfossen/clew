@@ -1098,6 +1098,8 @@ def run_real_stages(db: Path, repo_root: Path) -> None:
     from clew.datamodel import import_data_model_keys
     from clew.filedocs import ingest_file_docs
     from clew.kconfig_gates import import_kconfig_gates
+    from clew.blocking import extract_blocking_calls
+    from clew.context import extract_context_conflicts
     from clew.locks import extract_locks
     from clew.prose import ingest_supplementary_docs
     from clew.reachability import mark_reachability
@@ -1124,7 +1126,15 @@ def run_real_stages(db: Path, repo_root: Path) -> None:
     import_ast_call_edges(db, repo_root)
     import_callback_registration_edges(db, repo_root)
     extract_locks(db, repo_root)
+    ## gh#47's two stages sit exactly where cli._build_stages puts them: the blocking harvest
+    ## beside the lock stage (both resolve a holder from the call-edge layers' function
+    ## extents), the conflict derivation after the thread stage (it is the first point at which
+    ## the call graph, the locks and the interrupt threads are all final). A fixture missing a
+    ## shipped table is a licence to assert over a schema that does not exist — the gh#362
+    ## lesson this function's own comment records two stages down.
+    extract_blocking_calls(db, repo_root)
     extract_threads(db, repo_root)
+    extract_context_conflicts(db)
     import_shared_key_edges_inferred(db, repo_root, None)
     import_shared_key_edges_declared(db, repo_root / "data_model_keys.yaml")
     annotate_thread_boundaries(db)

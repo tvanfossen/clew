@@ -140,3 +140,105 @@ def test_the_recorded_split_survives_a_reload(tmp_path: Path, rich_db: Path) -> 
         "deps-tinyfsm",
         "deps-libIoT",
     )
+
+
+def test_the_listing_names_top_level_derived_trees_only(tmp_path: Path, rich_db: Path) -> None:
+    """gh#44's adjacent finding, and a regression I shipped in 1.0.33. gh#38 made every derived
+    name discoverable through `targets`; on a repository whose recursive split reaches ~300
+    names that turned the ORIENTATION call into **127,867 characters** — past the client's
+    result cap, so the call was unusable.
+
+    THE SAME ARGUMENT AS gh#41, one surface over. There the refusal listed 300 names and a
+    caller could not find the one they mistyped; here the listing does it and a caller cannot
+    read it at all. Top-level names, a count of what is nested under them, and the spelling rule
+    — every name stays BUILDABLE, only the enumeration narrows.
+
+    @brief Nested derived names are counted, not listed.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server.server import build_server
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    reg = st.TargetRegistry(tmp_path / "state")
+    built = reg.register(repo.resolve(), name=FIRST_PARTY_INDEX)
+    Path(built.db_path).write_bytes(rich_db.read_bytes())
+    reg.note_derived(
+        built.repo_path,
+        (
+            FIRST_PARTY_INDEX,
+            "deps-slam",
+            "deps-slam-deps-boost",
+            "deps-slam-deps-opencv",
+            "deps-slam-deps-pcl",
+            "deps-tinyfsm",
+        ),
+    )
+    _mcp, server = build_server(reg)
+
+    rows = server.list_targets()
+    listed = {row.get("sub_index") for row in rows}
+    assert {FIRST_PARTY_INDEX, "deps-slam", "deps-tinyfsm"} <= listed
+    for nested in ("deps-slam-deps-boost", "deps-slam-deps-opencv", "deps-slam-deps-pcl"):
+        assert nested not in listed, f"{nested!r} is nested and must be counted, not listed"
+    slam = next(row for row in rows if row.get("sub_index") == "deps-slam")
+    assert slam.get("nested_sub_indexes") == 3, slam
+
+
+def test_an_unbuilt_row_carries_no_staleness_block(tmp_path: Path, rich_db: Path) -> None:
+    """WHAT MADE THE REPLY 127,867 CHARACTERS. Each unbuilt row carried the full `db_status`
+    projection including a staleness block — a paragraph explaining that a database which was
+    never built is not current. Three hundred of those is the whole overflow.
+
+    An unbuilt sub-index has exactly two facts: its name, and that it is not built. Reporting a
+    staleness measurement for a database that does not exist is measuring something that was
+    never measurable, which this repository has a standing rule against.
+
+    @brief An unbuilt derived row is minimal.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server.server import build_server
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    reg = st.TargetRegistry(tmp_path / "state")
+    built = reg.register(repo.resolve(), name=FIRST_PARTY_INDEX)
+    Path(built.db_path).write_bytes(rich_db.read_bytes())
+    reg.note_derived(built.repo_path, (FIRST_PARTY_INDEX, "deps-tinyfsm"))
+    _mcp, server = build_server(reg)
+
+    unbuilt = next(r for r in server.list_targets() if r.get("sub_index") == "deps-tinyfsm")
+    assert unbuilt["exists"] is False
+    assert "staleness" not in unbuilt, "a database that was never built has no staleness"
+    assert "age_days" not in unbuilt, "nor an age"
+
+
+def test_the_whole_listing_is_bounded(tmp_path: Path, rich_db: Path) -> None:
+    """THE ONE REPLY WITH NO BOUND, which `list_targets`' own docstring already called out when
+    it trimmed the per-target payload: "this multiplied an unbounded per-target payload by an
+    unbounded target count". The payload got its bound then and the COUNT did not, so gh#38's
+    extra rows walked straight through the gap.
+
+    @brief A listing over many targets stays inside the cap.
+    @return None.
+    @version 1
+    """
+    import json
+
+    from clew.mcp_server.server import TARGETS_CAP, build_server
+
+    reg = st.TargetRegistry(tmp_path / "state")
+    for i in range(TARGETS_CAP + 20):
+        repo = tmp_path / f"repo{i}"
+        repo.mkdir()
+        target = reg.register(repo.resolve())
+        Path(target.db_path).write_bytes(rich_db.read_bytes())
+    _mcp, server = build_server(reg)
+
+    rows = server.list_targets()
+    assert len(rows) <= TARGETS_CAP + 1, f"{len(rows)} rows is not a bound"
+    rendered = json.dumps(rows)
+    assert len(rendered) < 100_000, f"{len(rendered)} characters still overflows a client"
+    assert any("more" in str(row) for row in rows), "the omission must be disclosed"

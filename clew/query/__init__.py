@@ -35,6 +35,8 @@ from .dossier import MAX_BATCH_SYMBOLS, function_dossier, function_dossiers
 from .graph import graph_stats
 from .kconfig import kconfig_space
 from .locks import (
+    context_conflicts_for_rowids,
+    context_undecidable_for_rowids,
     lock_nestings,
     lock_roster,
     locks_held_when,
@@ -43,6 +45,7 @@ from .locks import (
 )
 from .macros import macro_definitions
 from .models import (
+    ContextConflict,
     SUBJECT_KINDS,
     BodyExcerpt,
     CallEdge,
@@ -135,6 +138,7 @@ __all__ = [
     "ClassCandidate",
     "ClassEntry",
     "ClassMember",
+    "ContextConflict",
     "CriticalSection",
     ## The dossier body cap, exported because the MCP layer defaults its own argument to
     ## it rather than restating the number — one source for "how much body is a body".
@@ -224,6 +228,8 @@ __all__ = [
     "doc_scope",
     "list_files",
     "lock_nestings",
+    "context_conflicts_for_rowids",
+    "context_undecidable_for_rowids",
     "lock_roster",
     "locks_held_when",
     "lookup_class",

@@ -87,6 +87,11 @@ from .vocabulary import (
 ## not know what this is" — the fail-closed half of scope-qualified identity.
 SCOPE_UNKNOWN = "unknown"
 
+## Scope for a primitive that takes no operand at all (`irq_disable()`,
+## `taskENTER_CRITICAL()`): the thing held is global by construction, so there is
+## no owner to resolve and nothing was missed. gh#47 part 3.
+SCOPE_GLOBAL = "global"
+
 
 ## @brief One lock primitive convention: how it is written and what it means.
 ## @version 1
@@ -99,7 +104,16 @@ class LockPattern:
     @version 1
     """
 
-    __slots__ = ("form", "kind", "mode", "name", "operand_index", "releases", "role")
+    __slots__ = (
+        "form",
+        "global_only",
+        "kind",
+        "mode",
+        "name",
+        "operand_index",
+        "releases",
+        "role",
+    )
 
     ## @brief Store one lock convention.
     ## @param name Token naming the acquisition.
@@ -109,7 +123,8 @@ class LockPattern:
     ## @param mode Shared or exclusive ownership.
     ## @param role Acquisition role.
     ## @param releases For a `call` form, the token that ENDS the hold.
-    ## @version 2
+    ## @param global_only Match only a call that takes NO arguments.
+    ## @version 3
     ## @dg_internal
     def __init__(
         self,
@@ -120,6 +135,7 @@ class LockPattern:
         mode: str = "exclusive",
         role: str = "scoped",
         releases: str = "",
+        global_only: bool = False,
     ) -> None:
         self.name = name
         self.form = form
@@ -134,6 +150,13 @@ class LockPattern:
         ## sites detected, 0 with a resolved extent, purely for want of this
         ## field. RAII forms leave it empty — their hold ends with the block.
         self.releases = releases
+        ## ONE SPELLING, TWO PRIMITIVES. Zephyr's `irq_disable(irq)` masks one interrupt LINE
+        ## and pairs with `irq_enable`; RIOT's `irq_disable()` masks all of them and pairs with
+        ## `irq_restore`. Matching the argument-taking call would mint a lock identity out of
+        ## the argument text (`DT_IRQN`, `line`) at scope `unknown`, with no release anywhere —
+        ## in every driver of a tree that uses the other one. A pattern derived from an
+        ## operand-less primitive says so, and the walker refuses the rest.
+        self.global_only = global_only
 
 
 # Language/OS primitives — repo-independent, so both reference idioms work with
@@ -152,6 +175,109 @@ DEFAULT_LOCK_PATTERNS: list[LockPattern] = [
         "pthread_rwlock_rdlock", form="call", kind="shared_mutex", mode="shared", role="acquire"
     ),
     LockPattern("sem_wait", form="call", kind="semaphore", role="acquire"),
+    # Embedded critical sections (gh#47 part 3). OS primitives, not repo wrappers, so they
+    # belong in this list by its own rule — and the acceptance target that grades them builds
+    # with no declaration at all, where a declarable-only spelling contributes nothing.
+    #
+    # `global_only` on every interrupt-mask entry: each was derived from a call that takes no
+    # argument, and the same spellings exist elsewhere meaning something else (see the field).
+    # kind `interrupt_mask` because none of these can park the caller — the distinction gh#47
+    # part 2's conflict rule is a test of.
+    LockPattern(
+        "irq_disable",  # RIOT: unsigned irq_disable(void) / void irq_restore(unsigned)
+        form="call",
+        kind="interrupt_mask",
+        role="acquire",
+        releases="irq_restore",
+        global_only=True,
+    ),
+    LockPattern(
+        "irq_lock",  # Zephyr: unsigned int irq_lock(void) / void irq_unlock(unsigned int)
+        form="call",
+        kind="interrupt_mask",
+        role="acquire",
+        releases="irq_unlock",
+        global_only=True,
+    ),
+    LockPattern(
+        "taskENTER_CRITICAL",  # FreeRTOS, and the FROM_ISR form below
+        form="call",
+        kind="interrupt_mask",
+        role="acquire",
+        releases="taskEXIT_CRITICAL",
+        global_only=True,
+    ),
+    LockPattern(
+        "taskENTER_CRITICAL_FROM_ISR",
+        form="call",
+        kind="interrupt_mask",
+        role="acquire",
+        releases="taskEXIT_CRITICAL_FROM_ISR",
+        global_only=True,
+    ),
+    LockPattern(
+        "portENTER_CRITICAL",  # the port-level spelling taskENTER_CRITICAL expands to
+        form="call",
+        kind="interrupt_mask",
+        role="acquire",
+        releases="portEXIT_CRITICAL",
+        global_only=True,
+    ),
+    LockPattern(
+        "vPortEnterCritical",  # the function the FreeRTOS macros reach, one hop down
+        form="call",
+        kind="interrupt_mask",
+        role="acquire",
+        releases="vPortExitCritical",
+        global_only=True,
+    ),
+    LockPattern(
+        "taskDISABLE_INTERRUPTS",
+        form="call",
+        kind="interrupt_mask",
+        role="acquire",
+        releases="taskENABLE_INTERRUPTS",
+        global_only=True,
+    ),
+    LockPattern(
+        "portDISABLE_INTERRUPTS",
+        form="call",
+        kind="interrupt_mask",
+        role="acquire",
+        releases="portENABLE_INTERRUPTS",
+        global_only=True,
+    ),
+    LockPattern(
+        "__disable_irq",  # CMSIS
+        form="call",
+        kind="interrupt_mask",
+        role="acquire",
+        releases="__enable_irq",
+        global_only=True,
+    ),
+    # Spinlocks: these DO take an operand — the lock object — so identity works as it does for
+    # a mutex. They still do not block the caller in the scheduler sense, hence kind spinlock.
+    LockPattern(
+        "k_spin_lock",  # Zephyr
+        form="call",
+        kind="spinlock",
+        role="acquire",
+        releases="k_spin_unlock",
+    ),
+    LockPattern(
+        "spin_lock_irqsave",  # Linux
+        form="call",
+        kind="spinlock",
+        role="acquire",
+        releases="spin_unlock_irqrestore",
+    ),
+    LockPattern(
+        "spin_lock",  # Linux
+        form="call",
+        kind="spinlock",
+        role="acquire",
+        releases="spin_unlock",
+    ),
     # Rust std::sync::{Mutex,RwLock}: the guard returned by .lock()/.read()/
     # .write() (bare, or through .unwrap()/.expect()/`?` — parking_lot's
     # Mutex::lock() returns the guard directly with no Result at all, which is
@@ -251,7 +377,7 @@ def load_lock_patterns(source: Path | dict | None) -> list[LockPattern]:
 ## @param name The pattern's declared name.
 ## @param owner Origin label for a fail-closed error message.
 ## @return A LockPattern whose enum fields are all vocabulary members.
-## @version 2
+## @version 3
 ## @dg_internal
 def _declared_lock_pattern(entry: dict, name: str, owner: str) -> LockPattern:
     """Split out of `load_lock_patterns` so all four enum fields go through one
@@ -264,7 +390,7 @@ def _declared_lock_pattern(entry: dict, name: str, owner: str) -> LockPattern:
     form is only ever `'call'` or `'raii'`.
 
     @brief Validate and construct one declared lock pattern.
-    @version 2
+    @version 3
     """
     return LockPattern(
         name=name,
@@ -279,6 +405,7 @@ def _declared_lock_pattern(entry: dict, name: str, owner: str) -> LockPattern:
         ## which is the same honest answer as declaring nothing, not a fabricated
         ## critical section.
         releases=str(entry.get("releases", "")).strip(),
+        global_only=bool(entry.get("global_only", False)),
     )
 
 
@@ -520,7 +647,7 @@ def _primitive_names(patterns: dict) -> frozenset[str]:
 ## @param operand Mutex operand name.
 ## @param primitives Lock primitive names L2 must not record as members.
 ## @return The resolved Section.
-## @version 4
+## @version 5
 ## @dg_internal
 def _section_for(
     node: Any,
@@ -528,6 +655,7 @@ def _section_for(
     pattern: LockPattern,
     operand: str,
     primitives: frozenset[str] = frozenset(),
+    global_identity: bool = False,
 ) -> Section:
     """An RAII guard needs no release token — its hold ends with the enclosing
     block by language rule — so `None` is passed and L2 reads the block extent.
@@ -550,14 +678,14 @@ def _section_for(
     a primitive whose pairing it uses differently.
 
     @brief Choose the release convention for one acquisition, or refuse.
-    @version 3
+    @version 4
     """
     if pattern.form == "raii":
         return resolve_section(node, src, None, operand, primitives)
     releaser = pattern.releases or _RELEASERS.get(pattern.name)
     if not releaser:
         return Section(None, [], EXTENT_UNRESOLVED)
-    return resolve_section(node, src, releaser, operand, primitives)
+    return resolve_section(node, src, releaser, operand, primitives, global_identity)
 
 
 ## @brief Append one acquisition site record, extent and membership included.
@@ -569,7 +697,7 @@ def _section_for(
 ## @param sites Accumulator.
 ## @param primitives Lock primitive names L2 must not record as members.
 ## @return None.
-## @version 2
+## @version 5
 ## @dg_internal
 def _append_site(
     node: Any,
@@ -579,20 +707,21 @@ def _append_site(
     role: str,
     sites: list,
     primitives: frozenset[str],
+    scope: str | None = None,
 ) -> None:
     """Shared by both idioms so the record SHAPE is written once: the RAII and
     call visitors previously built the same nine-field list twice, which is
     exactly how a tenth field gets added to one of them only.
 
     @brief Build one rowid-free acquisition record.
-    @version 2
+    @version 4
     """
-    section = _section_for(node, src, pattern, operand, primitives)
+    section = _section_for(node, src, pattern, operand, primitives, scope == SCOPE_GLOBAL)
     sites.append(
         [
             pattern.name,
             operand,
-            _class_scope(node, src),
+            scope if scope is not None else _class_scope(node, src),
             node.start_point[0] + 1,
             section.end_line,
             pattern.form,
@@ -780,7 +909,7 @@ def _visit_rust_let_binding(node: Any, src: bytes, patterns: dict, sites: list) 
 ## @param patterns Pattern lookup by name.
 ## @param sites Accumulator.
 ## @return None.
-## @version 2
+## @version 5
 ## @dg_internal
 def _visit_call(node: Any, src: bytes, patterns: dict, sites: list) -> None:
     """@brief Append a site for `pthread_mutex_lock(&m)` and kin."""
@@ -788,9 +917,51 @@ def _visit_call(node: Any, src: bytes, patterns: dict, sites: list) -> None:
     pattern = patterns.get(callee)
     if pattern is None or pattern.form != "call":
         return
-    operands = _operand_names(node.child_by_field_name("arguments"), src)
+    arguments = node.child_by_field_name("arguments")
+    ## A pattern derived from an operand-less primitive matches ONLY an operand-less call. The
+    ## same token is a different primitive elsewhere — Zephyr's `irq_disable(irq)` masks one
+    ## line and pairs with `irq_enable`, RIOT's `irq_disable()` masks all of them and pairs with
+    ## `irq_restore` — and matching both would mint a lock identity out of the argument text in
+    ## every driver of the tree that writes the other one.
+    if pattern.global_only and not _takes_no_operand(arguments):
+        return
+    operands = _operand_names(arguments, src)
     operand = operands[pattern.operand_index] if len(operands) > pattern.operand_index else ""
-    _append_site(node, src, pattern, operand, pattern.role, sites, _primitive_names(patterns))
+    ## gh#47. AN OPERAND-LESS PRIMITIVE IS GLOBAL, NOT UNKNOWN. `_class_scope` reports an
+    ## unresolved owner as `unknown` "rather than silently collapsing into a global", which is
+    ## right when the identity EXISTS and resolution failed. A call taking no argument at all is
+    ## the other case: RIOT's `irq_disable()` holds the interrupt state, which has no owner to
+    ## resolve and none was missed. Reporting it as unknown conflates "could not tell" with
+    ## "nothing to tell" — and it is not hypothetical: declaring `irq_disable` as a call-form
+    ## lock finds 21 sites across four RIOT `core/` files, every one of them previously reading
+    ## `scope: unknown, confidence: low` for a primitive the layer can describe exactly.
+    ##
+    ## KEYED ON THE ARGUMENT LIST, NOT ON THE PATTERN, so a call whose operand merely failed to
+    ## parse still reports `unknown` and the existing distinction survives intact.
+    scope = SCOPE_GLOBAL if _takes_no_operand(arguments) else None
+    _append_site(
+        node, src, pattern, operand, pattern.role, sites, _primitive_names(patterns), scope
+    )
+
+
+## @brief Whether a call site passes no argument at all.
+## @param arguments The `arguments` field of a call node, or None.
+## @return True when the call has an empty argument list.
+## @version 2
+## @dg_internal
+def _takes_no_operand(arguments: Any) -> bool:
+    """DISTINGUISHES `f()` FROM `f(x)` WHOSE `x` DID NOT RESOLVE, which is the whole point: the
+    first has no owner to find and the second has one this layer failed to name. Reading the
+    node rather than the extracted operand list is what keeps those apart — an empty list is
+    produced by both.
+
+    @brief Test for an empty argument list.
+    @return True when the call takes nothing.
+    @version 1
+    """
+    return arguments is None or not any(
+        child.is_named for child in getattr(arguments, "children", [])
+    )
 
 
 ## @brief Harvest every lock declaration/acquisition site in one file.
@@ -850,7 +1021,19 @@ class _LockHarvester(Harvester):
     #    of a substring of the whole type text, so a payload cached by version 2
     #    may contain fabricated sites (`std::vector<unique_lock_stats>` recorded
     #    as an acquisition) that this version would never produce.
-    stage_version = 3
+    # 4: gh#47 part 3 changed what an OPERAND-LESS acquisition emits, twice, and
+    #    neither commit bumped this. f037905 scopes it `global` instead of
+    #    `unknown`; b11ffab gives it an extent and its section calls by pairing
+    #    the release by NAME. `extra_key` hashes the declared document only, so a
+    #    repository that declared `irq_disable` before those commits keys the same
+    #    payload afterwards and is served `scope: unknown, end_line: None` — the
+    #    exact report both commits replace, restored under a cache-hit line.
+    # 5: the BUILT-IN pattern set gained the embedded critical sections
+    #    (irq_disable, irq_lock, taskENTER_CRITICAL, ... at kind
+    #    `interrupt_mask`), and `extra_key` hashes only the DECLARED document —
+    #    so a warm payload from version 4 contains none of their sites while
+    #    reporting a cache hit.
+    stage_version = 5
     label = "lock sites"
 
     ## @brief Store the pattern map plus the manifest-derived cache key.
@@ -977,7 +1160,7 @@ def _insert_sites(
 ## @param record One harvested site record.
 ## @param holder Enclosing function's memberdef rowid.
 ## @return (rows inserted, the acquisition's id or None).
-## @version 1
+## @version 2
 ## @dg_internal
 def _insert_one_site(
     conn: sqlite3.Connection, path_rowid: int, record: list[Any], holder: int
@@ -992,7 +1175,14 @@ def _insert_one_site(
     @version 1
     """
     pattern_name, operand, scope, start, end, form, kind, mode, role, confidence = record[:10]
-    lock_id = _lock_id(conn, operand, scope, kind, path_rowid)
+    ## AN OPERAND-LESS HOLD IS NAMED FOR ITS PRIMITIVE (gh#47 part 3). `_lock_id` drops a site
+    ## with no operand, which is right for one whose operand failed to parse — that lock's
+    ## identity exists and merging unnamed ones would invent shared synchronization. A call that
+    ## takes NO argument is the other case: `scope` is already `global`, the thing held is the
+    ## interrupt state or the scheduler, and `irq_disable` names it exactly. Without this the
+    ## kind and the global scope reach no table at all.
+    identity = operand or (pattern_name if scope == SCOPE_GLOBAL else "")
+    lock_id = _lock_id(conn, identity, scope, kind, path_rowid)
     added = conn.execute(
         "INSERT OR IGNORE INTO lock_acquisitions "
         "(lock_id, holder_rowid, path_rowid, form, role, mode, start_line, end_line, "

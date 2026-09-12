@@ -125,7 +125,12 @@ import anyio
 
 from .._common import captured_output, logger
 from ..buildlock import build_lock
-from ..scope import FIRST_PARTY_INDEX, SCOPE_FROM_GUARD
+from ..declaration import SECTION_SUB_INDEXES
+from ..scope import (
+    FIRST_PARTY_INDEX,
+    SCOPE_FROM_GUARD,
+    declared_sub_index_excludes,
+)
 from ._sdk import Context, MCPServer, ToolError, lowlevel
 from .descriptions import load_descriptions
 from .freshness import code_identity, notices, refused, stale_code_refusal
@@ -698,11 +703,57 @@ def _buildable_sub_indexes(repo: Path) -> tuple[str, ...]:
     return tuple(s.name for s in derive_sub_indexes(repo))
 
 
+## @brief The buildable names a refusal should OFFER, rendered for a reader.
+## @param repo Resolved repository root.
+## @return One line naming the top-level sub-indexes, with nested counts.
+## @version 1
+## @dg_internal
+def _offered_sub_indexes(repo: Path) -> str:
+    """gh#41. THE FULL LIST IS CORRECT AND UNREADABLE. On a repository vendoring boost, opencv
+    and pcl the recursive split reaches ~300 names — every boost sub-library from
+    `-accumulators` to `-yap`, and a transitive dependency spelled
+    `deps-libBissellIoT-subm-d_lib_udm_communication-deps-d_lib_mqtt_serial_lite-Test-...`.
+    A caller who mistyped `deps-tinyfsm` cannot find it in that, so the refusal that was meant
+    to save them a round trip costs one instead.
+
+    TOP LEVEL ONLY, WITH THE REST COUNTED, and the spelling rule stated so a nested name is
+    derivable rather than enumerated. This is the same choice `_bounded_output` makes about
+    repeated warning lines: one example plus a count beats the full set. Every name remains
+    ACCEPTED — this narrows what is displayed, never what is buildable.
+
+    @brief Render the offered sub-index names.
+    @return The offered-names clause.
+    @version 1
+    """
+    from ..scope import derive_sub_indexes
+
+    split = list(derive_sub_indexes(repo))
+    vendored = [s for s in split if s.name != FIRST_PARTY_INDEX]
+    tops = [
+        s
+        for s in vendored
+        if not any(o is not s and s.roots[0].is_relative_to(o.roots[0]) for o in vendored)
+    ]
+    rendered = [repr(FIRST_PARTY_INDEX)] if any(s.name == FIRST_PARTY_INDEX for s in split) else []
+    for top in tops:
+        nested = sum(
+            1 for s in vendored if s is not top and s.roots[0].is_relative_to(top.roots[0])
+        )
+        rendered.append(f"{top.name!r}" + (f" (+{nested} nested)" if nested else ""))
+    clause = ", ".join(rendered)
+    if any(s is not t for t in tops for s in vendored if s.roots[0] != t.roots[0]):
+        clause += (
+            ". A nested tree's own sub-index is spelled '<parent>-<path under it>' and is "
+            "buildable by that name even though it is not listed here"
+        )
+    return clause
+
+
 ## @brief Why this sub-index cannot be built, or None when it can.
 ## @param target The target being built, named or unnamed.
 ## @param repo Resolved repository root.
 ## @return A refusal naming the alternatives, or None to proceed.
-## @version 1
+## @version 2
 ## @dg_internal
 def _sub_index_rejection(target: Target, repo: Path) -> str | None:
     """gh#35. `refresh(sub_index='no-such-tree')` DID NOT REFUSE. It registered a slug, took the
@@ -727,7 +778,7 @@ def _sub_index_rejection(target: Target, repo: Path) -> str | None:
 
     @brief Refuse a sub_index that names no buildable tree.
     @return The refusal message, or None.
-    @version 1
+    @version 2
     """
     if target.name is None:
         return None
@@ -740,7 +791,7 @@ def _sub_index_rejection(target: Target, repo: Path) -> str | None:
             f"no part named {target.name!r} to build. Refresh it without `sub_index` to build "
             f"the whole repository, which for this repository is the only index there is."
         )
-    listed = ", ".join(repr(name) for name in buildable)
+    listed = _offered_sub_indexes(repo)
     if Path(target.db_path).exists():
         return (
             f"Sub-index {target.name!r} of {repo} was built once but its tree is gone — a "
@@ -763,7 +814,7 @@ def _sub_index_rejection(target: Target, repo: Path) -> str | None:
 ## @param exclude The caller's exclusions, forwarded unchanged for a whole-repo target.
 ## @param options The caller's tier-1 options, forwarded unchanged for a whole-repo target.
 ## @return (exclude, options) to pass to `build_index`.
-## @version 5
+## @version 7
 ## @dg_internal
 def _sub_index_scope(
     target: Target,
@@ -784,7 +835,7 @@ def _sub_index_scope(
 
     @brief Resolve build scope for a sub-index target.
     @return The exclude list and options to build with.
-    @version 5
+    @version 7
     """
     if target.name is None:
         return exclude, options
@@ -808,8 +859,18 @@ def _sub_index_scope(
             f"scope of its own — refusing rather than widening to the whole repository."
         )
     nested = [str(p.relative_to(repo)) for p in match.excludes]
+    ## gh#39 route 2b. WHAT THE PARENT SAYS ABOUT THIS SUB-INDEX, validated against the derived
+    ## names so a block naming a tree the repository does not vendor is refused rather than left
+    ## sitting in the file doing nothing. Read for EVERY sub-index build, including first-party,
+    ## because a block keyed by name means the same thing whichever name it keys.
+    declared = declared_sub_index_excludes(
+        repo,
+        target.name,
+        _buildable_sub_indexes(repo),
+        stated=(options or {}).get(SECTION_SUB_INDEXES),
+    )
     if target.name == FIRST_PARTY_INDEX:
-        return list(exclude or []) + nested, options
+        return list(exclude or []) + nested + list(declared), options
     ## A VENDORED SUB-INDEX EXCLUDES ITS OWN CHILDREN TOO, now that `derive_sub_indexes`
     ## recurses: `roots=[tree]` bounds INPUT to everything under `tree`, and a nested tree
     ## one level further down is still inside that boundary — `match.excludes` names exactly
@@ -837,8 +898,112 @@ def _sub_index_scope(
     ## changes nothing `_declared_index_scope` reads (`section.get("excludes") or []` treats
     ## absent and empty identically) but would still be a payload shape every existing reader
     ## and test has to account for.
-    merged["index_scope"] = {"roots": [root], **({"excludes": nested} if nested else {})}
+    ## The declared excludes join the derived child-tree ones rather than replacing them: a
+    ## parent trimming a vendored tree is not also saying its children belong to it.
+    scoped = nested + list(declared)
+    merged["index_scope"] = {"roots": [root], **({"excludes": scoped} if scoped else {})}
     return exclude, merged
+
+
+## How many listing rows one reply may carry. `list_targets` trimmed its per-target PAYLOAD
+## when it was measured at tens of kilobytes, and left the ROW COUNT unbounded — its own
+## docstring names the multiplication ("an unbounded per-target payload by an unbounded target
+## count") and fixed only one factor. gh#38's derived rows then walked through the gap: 338 rows
+## and 127,867 characters on one repository, past the client's result cap, so the orientation
+## call returned nothing usable.
+TARGETS_CAP = 60
+
+
+## @brief The derived names that are not nested inside another derived name.
+## @param names Every recorded derived name for one repository.
+## @return The top-level names, in the recorded order.
+## @version 1
+## @dg_internal
+def _top_level_names(names: tuple[str, ...]) -> list[str]:
+    """DERIVED FROM THE NAMES THEMSELVES, because that is all the registry recorded and it is
+    enough: `_sub_index_name` builds a name from the tree's repo-relative path, so a nested
+    tree's name is its parent's name plus a separator plus the rest. No walk, which is the
+    property gh#38 chose this storage for.
+
+    @brief Split recorded names into top-level ones.
+    @return Top-level names.
+    @version 1
+    """
+    return [
+        name
+        for name in names
+        if name == FIRST_PARTY_INDEX
+        or not any(other != name and name.startswith(f"{other}-") for other in names)
+    ]
+
+
+## @brief How many recorded names sit under one top-level name.
+## @param parent The top-level name.
+## @param names Every recorded derived name for the repository.
+## @return The count of names nested under it.
+## @version 1
+## @dg_internal
+def _nested_under(parent: str, names: tuple[str, ...]) -> int:
+    """@brief Count one name's descendants.
+    @return The count.
+    @version 1
+    """
+    return sum(1 for name in names if name != parent and name.startswith(f"{parent}-"))
+
+
+## @brief A row for a sub-index that could be built but has not been.
+## @param repo_path The repository it belongs to.
+## @param name The derived sub-index name.
+## @param nested How many further names sit under it.
+## @return The listing row.
+## @version 1
+## @dg_internal
+def _buildable_row(repo_path: str, name: str, nested: int) -> dict[str, Any]:
+    """TWO FACTS AND NO MEASUREMENT. An unbuilt sub-index has a name and the fact that it is not
+    built; the full `db_status` projection additionally carried a staleness block explaining
+    that a database which was never built is not current, and three hundred of those paragraphs
+    is what took the reply past the client's cap. Reporting staleness for a database that does
+    not exist also measures something never measurable, which is the shape this repository
+    removes wherever it finds it.
+
+    @brief Render a buildable-but-unbuilt sub-index row.
+    @return The row.
+    @version 1
+    """
+    row: dict[str, Any] = {"repo_path": repo_path, "sub_index": name, "exists": False}
+    if nested:
+        row["nested_sub_indexes"] = nested
+        row["nested_spelling"] = f"{name}-<path under it>"
+    return row
+
+
+## @brief Trim a listing to the cap, disclosing what was dropped.
+## @param rows Every row the listing would carry.
+## @return The rows, with a final note when any were dropped.
+## @version 1
+## @dg_internal
+def _capped_listing(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """BUILT TARGETS FIRST, because they are the ones a caller can query right now — a cap that
+    dropped a built index to make room for a buildable one would be the wrong way round.
+
+    @brief Bound the listing.
+    @return The capped rows.
+    @version 1
+    """
+    if len(rows) <= TARGETS_CAP:
+        return rows
+    ordered = [r for r in rows if r.get("exists")] + [r for r in rows if not r.get("exists")]
+    kept = ordered[:TARGETS_CAP]
+    kept.append(
+        {
+            "note": (
+                f"{len(rows) - TARGETS_CAP} more target(s) not listed, to stay inside the "
+                f"client's result limit. Built indexes are listed first; name a repository with "
+                f"`target=` to see its own status."
+            )
+        }
+    )
+    return kept
 
 
 ## @brief Lifecycle state + tier-0 tool implementations for one server.
@@ -1753,7 +1918,7 @@ class DocsDbServer:
     ## @param ctx MCP request context (the only route to the client's roots).
     ## @param target Repo root or slug the call named, or None for the derived target.
     ## @return The Target to build, or None when no source supplied one.
-    ## @version 1
+    ## @version 2
     ## @req REQ-DDB-MCP-001
     async def _build_subject(
         self, ctx: Context, target: str | None, sub_index: str | None = None
@@ -1776,7 +1941,7 @@ class DocsDbServer:
 
         @brief Resolve and register the repository (or sub-index) a build is for.
         @return The Target, or None when nothing supplied one.
-        @version 2
+        @version 3
         """
         if target is None:
             if sub_index is not None:
@@ -1786,6 +1951,19 @@ class DocsDbServer:
                 )
             return await self.ensure_target(ctx)
         repo_path = self.resolve_target(target, sub_index).repo_path
+        ## gh#40. CHECKED BEFORE REGISTERING, because registering is what allocates the slug
+        ## directory and writes the `targets.json` entry. The gh#35 refusal landed after both,
+        ## so a mistyped name still left `<repo>.<bogus>/` on disk and a four-line registry
+        ## entry that `index(action='targets')` then listed as an unbuilt target forever. A
+        ## build needs somewhere to write; nothing needs somewhere to write when there is
+        ## nothing to build.
+        ##
+        ## `target_for` IS PURE — it allocates no directory and writes no registry — so the
+        ## candidate can be judged before anything about it reaches the filesystem.
+        candidate = target_for(repo_path, self.registry.home, sub_index)
+        rejection = _sub_index_rejection(candidate, Path(repo_path))
+        if rejection is not None:
+            raise RuntimeError(rejection)
         return self.registry.register(repo_path, sub_index)
 
     ## @brief Build one target, skipping when its index is already current.
@@ -1884,7 +2062,7 @@ class DocsDbServer:
 
     ## @brief Every known target with its database age and staleness.
     ## @return List of listing rows, one per registered target.
-    ## @version 4
+    ## @version 5
     ## @req REQ-DDB-MCP-002
     def list_targets(self) -> list[dict[str, Any]]:
         """A LISTING, WHICH IS WHAT THE TOOL DESCRIPTION ALREADY PROMISED — "every indexed
@@ -1920,18 +2098,18 @@ class DocsDbServer:
 
         @brief List registered targets and the sub-indexes they could still build.
         @return List of listing rows.
-        @version 4
+        @version 5
         """
         registered = self.registry.targets()
         rows = [_listing_row(db_status(t)) for t in registered]
         built = {(t.repo_path, t.name) for t in registered}
         for repo_path in dict.fromkeys(t.repo_path for t in registered):
-            for name in self.registry.derived_names(repo_path):
+            names = self.registry.derived_names(repo_path)
+            for name in _top_level_names(names):
                 if (repo_path, name) in built:
                     continue
-                unbuilt = target_for(repo_path, self.registry.home, name=name)
-                rows.append(_listing_row(db_status(unbuilt)))
-        return rows
+                rows.append(_buildable_row(repo_path, name, _nested_under(name, names)))
+        return _capped_listing(rows)
 
     ## @brief Remove aged-out or version-stale databases.
     ## @param max_age_days Age threshold in days (null disables the age rule).

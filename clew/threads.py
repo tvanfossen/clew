@@ -46,8 +46,15 @@ from typing import Any
 
 from ._common import logger
 from .declaration import SECTION_THREADS
-from .harvest import Harvester, enclosing, run_harvest, try_import_tree_sitter
+from .harvest import (
+    ENTRY_UNWRAP_TYPES,
+    Harvester,
+    enclosing,
+    run_harvest,
+    try_import_tree_sitter,
+)
 from .indexcache import IndexCache
+from .isr import count_macro_body_registrations, isr_definition
 from .pyast import (
     PyBindings,
     class_ranges,
@@ -84,6 +91,16 @@ from .vocabulary import (
 ## real self-index), so `.` is what delimits a Python class from its method.
 SCOPE_SEP_CPP = "::"
 SCOPE_SEP_PY = "."
+
+
+## Handler arguments that are NOT a function: the POSIX signal sentinels and the null pointer
+## a deregistering registration passes. Refused at the entry-argument reader, so no convention
+## has to remember to exclude them.
+_SENTINEL_ENTRIES = frozenset({"NULL", "nullptr", "SIG_IGN", "SIG_DFL", "SIG_ERR"})
+
+## The `threads.source` a registration CALL writes — the only value this layer wrote before
+## gh#47 added the two definition-site ones.
+THREAD_SOURCE_SPAWN = "ast_spawn"
 
 
 ## @brief One spawn-call convention: callee name + entry/name arg indices + kind.
@@ -187,6 +204,87 @@ DEFAULT_SPAWN_PATTERNS: list[SpawnPattern] = [
     SpawnPattern("_beginthread", entry_arg_index=0, name_arg_index=None, kind=THREAD_KIND_WIN32),
     SpawnPattern("_beginthreadex", entry_arg_index=2, name_arg_index=None, kind=THREAD_KIND_WIN32),
     SpawnPattern("CreateThread", entry_arg_index=2, name_arg_index=None, kind=THREAD_KIND_WIN32),
+    # ── INTERRUPT CONTEXT (gh#47 part 1) ─────────────────────────────────────────────────
+    #
+    # Every index below was read off a pinned tree, not off documentation: Zephyr v4.4.2,
+    # RIOT 50ae2eba, ESP-IDF as vendored by both, and the Linux signatures. An ISR is the
+    # OTHER execution context in firmware, and the question these rows exist to answer is
+    # "can this function run in interrupt context" — so the kind is stamped by what the
+    # REGISTRATION means, not by whether the handler happens to sit in a vector table.
+    #
+    # Zephyr: IRQ_CONNECT(irq, priority, isr, isr_param, flags) and kin. IRQ_CONNECT is a
+    # macro, but at a CALL SITE it parses as a call_expression like any other, so no new
+    # form is needed — the sites it cannot see are the ones written INSIDE another macro's
+    # body, which is measured rather than guessed (see the diagnostics count).
+    SpawnPattern("IRQ_CONNECT", entry_arg_index=2, name_arg_index=None, kind="isr"),
+    SpawnPattern("IRQ_DIRECT_CONNECT", entry_arg_index=2, name_arg_index=None, kind="isr"),
+    SpawnPattern("irq_connect_dynamic", entry_arg_index=2, name_arg_index=None, kind="isr"),
+    SpawnPattern("arch_irq_connect_dynamic", entry_arg_index=2, name_arg_index=None, kind="isr"),
+    # ESP-IDF: esp_intr_alloc(source, flags, handler, arg, &ret) and the GPIO service.
+    SpawnPattern("esp_intr_alloc", entry_arg_index=2, name_arg_index=None, kind="isr"),
+    SpawnPattern("gpio_isr_handler_add", entry_arg_index=1, name_arg_index=None, kind="isr"),
+    # Linux: request_irq(irq, handler, flags, name, dev) and the devm/threaded forms. The
+    # THREADED form registers two functions in two contexts — the hard handler at index 1
+    # and a kernel thread at index 2 — which is why one callee name carries two patterns.
+    SpawnPattern("request_irq", entry_arg_index=1, name_arg_index=3, kind="isr"),
+    SpawnPattern("devm_request_irq", entry_arg_index=2, name_arg_index=4, kind="isr"),
+    SpawnPattern("request_threaded_irq", entry_arg_index=1, name_arg_index=None, kind="isr"),
+    SpawnPattern("request_threaded_irq", entry_arg_index=2, name_arg_index=None, kind="task"),
+    # POSIX signals, the userspace analogue: a handler runs on some thread's stack with the
+    # signal masked, and the async-signal-safe rule is the same shape as the ISR rule.
+    # `sigaction` is NOT here: its handler arrives as a struct FIELD, which no call-argument
+    # pattern can express — stated as a gap rather than approximated.
+    SpawnPattern("signal", entry_arg_index=1, name_arg_index=None, kind="isr"),
+    # ── ISR-CONTEXT CALLBACKS ────────────────────────────────────────────────────────────
+    # A driver API whose callback the vendor documents as running in interrupt context. The
+    # handler never appears in a vector table and no static edge reaches it (the dispatch is
+    # a function pointer inside the controller's own ISR), so the registration site is the
+    # ONLY place the context is visible at all.
+    #
+    # Zephyr: k_timer expiry runs in the system clock interrupt handler (kernel.h:1861-1864,
+    # dispatched at kernel/timer.c:125); the GPIO handler is called from the controller ISR
+    # through gpio_fire_callbacks (drivers/gpio/gpio_utils.h:139); uart/can/ipm/mbox/pwm each
+    # say so in their own header. k_work_init is deliberately ABSENT — a work handler runs on
+    # a workqueue THREAD, and treating it as ISR context would flag the canonical correct way
+    # to get work out of an interrupt.
+    SpawnPattern("k_timer_init", entry_arg_index=1, name_arg_index=None, kind="isr"),
+    SpawnPattern("K_TIMER_DEFINE", entry_arg_index=1, name_arg_index=0, kind="isr"),
+    SpawnPattern("gpio_init_callback", entry_arg_index=1, name_arg_index=None, kind="isr"),
+    SpawnPattern("uart_irq_callback_set", entry_arg_index=1, name_arg_index=None, kind="isr"),
+    SpawnPattern(
+        "uart_irq_callback_user_data_set", entry_arg_index=1, name_arg_index=None, kind="isr"
+    ),
+    SpawnPattern("can_add_rx_filter", entry_arg_index=1, name_arg_index=None, kind="isr"),
+    SpawnPattern(
+        "can_set_state_change_callback", entry_arg_index=1, name_arg_index=None, kind="isr"
+    ),
+    SpawnPattern("ipm_register_callback", entry_arg_index=1, name_arg_index=None, kind="isr"),
+    SpawnPattern("mbox_register_callback", entry_arg_index=2, name_arg_index=None, kind="isr"),
+    SpawnPattern("mbox_register_callback_dt", entry_arg_index=1, name_arg_index=None, kind="isr"),
+    SpawnPattern("pwm_configure_capture", entry_arg_index=3, name_arg_index=None, kind="isr"),
+    # RIOT: AVR8_ISR(VECTOR, handler, args...) is written at FILE SCOPE and expands to the
+    # avr-libc ISR body, so the handler at index 1 runs in interrupt context; gpio_init_int's
+    # callback is documented "called in interrupt context" (drivers/include/periph/gpio.h:174).
+    # `timer_init` and `uart_init` carry ISR callbacks too and are NOT shipped: those two
+    # spellings are generic enough to mean something else in an unrelated tree, and a
+    # fabricated execution context is worse than a missing one. They are declarable.
+    SpawnPattern("AVR8_ISR", entry_arg_index=1, name_arg_index=0, kind="isr"),
+    SpawnPattern("gpio_init_int", entry_arg_index=3, name_arg_index=None, kind="isr"),
+    # The interrupt-controller APIs a FreeRTOS port registers through. Read off the 202411.00
+    # demos, where they are how EVERY Cortex-A and MicroBlaze handler is installed: the
+    # vector table belongs to the controller driver, not to the application, so no *_IRQHandler
+    # name and no attribute appears anywhere. `xPortInstallInterruptHandler` is the port's own.
+    SpawnPattern("XScuGic_Connect", entry_arg_index=2, name_arg_index=None, kind="isr"),
+    SpawnPattern("XScuGic_RegisterHandler", entry_arg_index=2, name_arg_index=None, kind="isr"),
+    SpawnPattern("XIntc_Connect", entry_arg_index=2, name_arg_index=None, kind="isr"),
+    SpawnPattern(
+        "Xil_ExceptionRegisterHandler", entry_arg_index=1, name_arg_index=None, kind="isr"
+    ),
+    SpawnPattern("XEmacPs_SetHandler", entry_arg_index=2, name_arg_index=None, kind="isr"),
+    SpawnPattern(
+        "xPortInstallInterruptHandler", entry_arg_index=1, name_arg_index=None, kind="isr"
+    ),
+    SpawnPattern("vPortSetInterruptHandler", entry_arg_index=1, name_arg_index=None, kind="isr"),
 ]
 
 # Python's spawn primitives. Language/stdlib primitives exactly as pthread_create
@@ -274,7 +372,7 @@ DEFAULT_PY_SPAWN_PATTERNS: list[SpawnPattern] = [
 ## @brief Load --thread-patterns YAML, merged over the built-in defaults.
 ## @param path Path to the YAML file, or None to use only the defaults.
 ## @return Merged spawn-pattern list (loaded entries override defaults by name).
-## @version 7
+## @version 8
 ## @req REQ-DDB-SCHEMA-001
 def load_thread_patterns(path: Path | dict | None) -> list[SpawnPattern]:
     """Merge an optional `--thread-patterns` YAML over `DEFAULT_SPAWN_PATTERNS`.
@@ -301,13 +399,20 @@ def load_thread_patterns(path: Path | dict | None) -> list[SpawnPattern]:
     a several-hundred-line build log.
 
     @brief Merge declared spawn patterns over the built-in defaults.
-    @version 5
+    @version 6
     """
-    merged: dict[str, SpawnPattern] = {
-        p.name: p for p in (*DEFAULT_SPAWN_PATTERNS, *DEFAULT_PY_SPAWN_PATTERNS)
-    }
+    ## ONE CALLEE NAME, SEVERAL PATTERNS (gh#47 part 1). `request_threaded_irq(irq, handler,
+    ## thread_fn, ...)` registers TWO functions in TWO execution contexts: `handler` runs in
+    ## hard interrupt context and `thread_fn` on a kernel thread created for it, where blocking
+    ## is the whole point. A single pattern per name can express one of them, and filing the
+    ## bottom half as an ISR would report every lock it takes as an interrupt-context conflict.
+    ## A DECLARED entry still replaces the whole list for its name, so a repo can correct a
+    ## built-in rather than add to it.
+    merged: dict[str, list[SpawnPattern]] = {}
+    for builtin in (*DEFAULT_SPAWN_PATTERNS, *DEFAULT_PY_SPAWN_PATTERNS):
+        merged.setdefault(builtin.name, []).append(builtin)
     if path is None:
-        return list(merged.values())
+        return [p for patterns in merged.values() for p in patterns]
     if isinstance(path, dict):
         data = path
     else:
@@ -322,19 +427,41 @@ def load_thread_patterns(path: Path | dict | None) -> list[SpawnPattern]:
         name_arg = entry.get("name_arg_index")
         entry_kwarg = entry.get("entry_kwarg")
         name_kwarg = entry.get("name_kwarg")
-        merged[name] = SpawnPattern(
-            name=name,
-            entry_arg_index=int(entry.get("entry_arg_index", 0)),
-            name_arg_index=None if name_arg is None else int(name_arg),
-            kind=THREAD_KIND.validated(
-                str(entry.get("kind", "task")),
-                owner=f"{origin}: spawn pattern {name!r}",
-                field="kind",
-            ),
-            entry_kwarg=None if entry_kwarg is None else str(entry_kwarg),
-            name_kwarg=None if name_kwarg is None else str(name_kwarg),
-        )
-    return list(merged.values())
+        merged[name] = [
+            SpawnPattern(
+                name=name,
+                entry_arg_index=int(entry.get("entry_arg_index", 0)),
+                name_arg_index=None if name_arg is None else int(name_arg),
+                kind=THREAD_KIND.validated(
+                    str(entry.get("kind", "task")),
+                    owner=f"{origin}: spawn pattern {name!r}",
+                    field="kind",
+                ),
+                entry_kwarg=None if entry_kwarg is None else str(entry_kwarg),
+                name_kwarg=None if name_kwarg is None else str(name_kwarg),
+            )
+        ]
+    return [p for patterns in merged.values() for p in patterns]
+
+
+## @brief Index spawn patterns by the callee name they match.
+## @param patterns The loaded pattern list.
+## @return Callee name -> every pattern registered for it.
+## @version 1
+## @req REQ-DDB-SCHEMA-001
+def patterns_by_name(patterns: list[SpawnPattern]) -> dict[str, list[SpawnPattern]]:
+    """THE ONE PLACE THE MAP IS BUILT, because a name can carry several patterns since gh#47
+    and every consumer building `{p.name: p for p in ...}` for itself would silently keep only
+    the last of them.
+
+    @brief Group spawn patterns by callee name.
+    @return The grouping.
+    @version 1
+    """
+    grouped: dict[str, list[SpawnPattern]] = {}
+    for pattern in patterns:
+        grouped.setdefault(pattern.name, []).append(pattern)
+    return grouped
 
 
 ## @brief Create threads + thread_membership tables (+ indexes) if absent.
@@ -447,6 +574,7 @@ class _SpawnSite:
         "path_rowid",
         "qualified_entry",
         "separator",
+        "source",
         "spawn_function",
     )
 
@@ -471,8 +599,14 @@ class _SpawnSite:
         line: int | None = None,
         path_rowid: int | None = None,
         spawn_function: str = "",
+        source: str = THREAD_SOURCE_SPAWN,
     ) -> None:
         self.name = name
+        ## HOW this execution context was found (gh#47): a spawn call, an interrupt attribute or
+        ## handler-defining macro, or a handler naming convention. Three different strengths of
+        ## evidence, and a reader weighing an interrupt-context conflict needs to know which one
+        ## it rests on — so the column says it instead of one value standing for all three.
+        self.source = source
         self.entry_name = entry_name
         self.kind = kind
         ## WHO CREATES THE THREAD, which is not the same question as what the thread RUNS and was
@@ -654,7 +788,7 @@ def _entry_names(call_node: Any, index: int, src_bytes: bytes) -> tuple[str, str
 ## @param arg The spawn call's entry argument, or None.
 ## @param src_bytes The file's raw source bytes.
 ## @return (qualified text, bare tail), or None when the arg names no function.
-## @version 1
+## @version 3
 ## @dg_internal
 def _named_entry(arg: Any, src_bytes: bytes) -> tuple[str, str] | None:
     """Unwraps `&Class::method` to the inner name before reading it, so the
@@ -662,18 +796,37 @@ def _named_entry(arg: Any, src_bytes: bytes) -> tuple[str, str] | None:
 
     @brief Read a named entry argument's qualified + tail names.
     @return (qualified, tail) or None.
-    @version 1
+    @version 3
     """
     if arg is None:
         return None
-    if arg.type == "pointer_expression":
+    ## gh#45. A LOOP OVER EVERY WRAPPER, not one unwrap of one type. `(pthread_fn)Handler`
+    ## reached `_tail_identifier` as a `cast_expression`, whose handler table has no entry for
+    ## it, so the site was dropped fail-closed — the primitive was recognised the whole time and
+    ## only the argument parse failed, which is why no `thread_patterns` declaration could
+    ## recover it. The wrappers also NEST: `(pthread_fn)&Class::method` is a cast over a pointer
+    ## expression, and unwrapping once leaves the other in place.
+    while arg is not None and arg.type in ENTRY_UNWRAP_TYPES:
         inner = next(
-            (c for c in arg.named_children if c.type in ("identifier", "qualified_identifier")),
+            (
+                c
+                for c in arg.named_children
+                if c.type in ("identifier", "qualified_identifier", *ENTRY_UNWRAP_TYPES)
+            ),
             None,
         )
-        arg = inner if inner is not None else arg
+        if inner is None:
+            break
+        arg = inner
     tail = _tail_identifier(arg, src_bytes)
     qualified = src_bytes[arg.start_byte : arg.end_byte].decode("utf-8", errors="replace")
+    ## A SENTINEL NAMES NO FUNCTION (gh#47). `signal(SIGTERM, SIG_IGN)` and RIOT's
+    ## deregistering `install_irq(RTC_INT, NULL, 1)` are ordinary identifiers to the parser, so
+    ## without this they mint a thread called SIG_IGN or NULL whose entry never resolves — and a
+    ## NULL entry does not deduplicate, because SQLite treats NULLs as distinct inside a UNIQUE
+    ## constraint, so every such site adds another row to the roster.
+    if tail in _SENTINEL_ENTRIES:
+        return None
     return (qualified, tail) if tail is not None else None
 
 
@@ -756,12 +909,12 @@ def _enclosing_function_name(node: Any, src: bytes) -> str:
 
 ## @brief Walk one parsed file, harvesting spawn call sites.
 ## @return List of [thread_name, entry_name, kind, qualified_entry, separator, spawn_line, spawn_function] septets.
-## @version 7
+## @version 8
 ## @dg_internal
 def _walk_spawn_sites(
     tree: Any,
     src_bytes: bytes,
-    patterns_by_name: dict[str, SpawnPattern],
+    patterns_by_name: dict[str, list[SpawnPattern]],
 ) -> list[list[Any]]:
     """Iterative parse-tree walk keying every `call_expression`'s callee
     identifier against the spawn-pattern map. Spawn sites are already
@@ -774,7 +927,7 @@ def _walk_spawn_sites(
     whose entry argument is usually a keyword.
 
     @brief Harvest spawn call sites from one file's AST.
-    @version 4
+    @version 5
     """
     if is_python_tree(tree):
         return _walk_py_spawn_sites(tree, src_bytes, patterns_by_name)
@@ -786,6 +939,17 @@ def _walk_spawn_sites(
     while stack:
         node = stack.pop()
         stack.extend(node.children)
+        if node.type == "function_definition":
+            ## gh#47 part 1. A handler nobody passes anywhere: the vector table is in assembly
+            ## or generated at build time, and the C side is a DEFINITION the linker resolves by
+            ## name. No registration call exists to match, so the definition is the site.
+            declared = isr_definition(node, src_bytes)
+            if declared is not None:
+                entry, source = declared
+                sites.append(
+                    [entry, entry, "isr", entry, SCOPE_SEP_CPP, node.start_point[0] + 1, "", source]
+                )
+            continue
         if node.type != "call_expression":
             continue
         callee = node.child_by_field_name("function")
@@ -804,11 +968,12 @@ def _walk_spawn_sites(
             "utf-8",
             errors="replace",
         )
-        pattern = patterns_by_name.get(callee_name)
-        if pattern is None:
-            continue
-        site = _resolve_spawn_site(node, src_bytes, pattern)
-        if site is not None:
+        ## EVERY pattern registered for this callee, not the first: `request_threaded_irq`
+        ## carries one for its hard handler and one for its threaded bottom half (gh#47).
+        for pattern in patterns_by_name.get(callee_name, ()):
+            site = _resolve_spawn_site(node, src_bytes, pattern)
+            if site is None:
+                continue
             sites.append(
                 [
                     site.name,
@@ -822,6 +987,7 @@ def _walk_spawn_sites(
                     ## And WHO creates it. The line alone gave an agent a coordinate with no name
                     ## to ask a follow-up about, so it read the file instead.
                     _enclosing_function_name(node, src_bytes),
+                    THREAD_SOURCE_SPAWN,
                 ]
             )
     return sites
@@ -832,12 +998,12 @@ def _walk_spawn_sites(
 ## @param src_bytes The file's raw bytes.
 ## @param patterns_by_name Spawn patterns keyed by callee name.
 ## @return List of [thread_name, entry_name, kind, qualified_entry, separator, spawn_line, spawn_function] septets.
-## @version 5
+## @version 6
 ## @dg_internal
 def _walk_py_spawn_sites(
     tree: Any,
     src_bytes: bytes,
-    patterns_by_name: dict[str, SpawnPattern],
+    patterns_by_name: dict[str, list[SpawnPattern]],
 ) -> list[list[Any]]:
     """Resolves each callee through the file's OWN import bindings before
     matching, so `threading.Thread`, `th.Thread` and `from threading import
@@ -851,7 +1017,7 @@ def _walk_py_spawn_sites(
 
     @brief Harvest Python spawn call sites via import-resolved callee names.
     @return Rowid-free spawn-site quints.
-    @version 4
+    @version 5
     """
     bindings = collect_bindings(tree, src_bytes)
     classes = class_ranges(tree, src_bytes)
@@ -863,11 +1029,10 @@ def _walk_py_spawn_sites(
         stack.extend(node.children)
         if node.type != "call":
             continue
-        pattern = _py_matched_pattern(node, src_bytes, bindings, patterns_by_name)
-        if pattern is None:
-            continue
-        site = _resolve_py_spawn_site(node, src_bytes, pattern, classes, bindings)
-        if site is not None:
+        for pattern in _py_matched_patterns(node, src_bytes, bindings, patterns_by_name):
+            site = _resolve_py_spawn_site(node, src_bytes, pattern, classes, bindings)
+            if site is None:
+                continue
             sites.append(
                 [
                     site.name,
@@ -882,6 +1047,7 @@ def _walk_py_spawn_sites(
                     ## And the same SEVENTH, for the same reason. `_enclosing_function_name` reads
                     ## `name` here where the C grammar has `declarator`, so one helper serves both.
                     _enclosing_function_name(node, src_bytes),
+                    THREAD_SOURCE_SPAWN,
                 ]
             )
     return sites
@@ -892,27 +1058,27 @@ def _walk_py_spawn_sites(
 ## @param src_bytes The file's raw bytes.
 ## @param bindings The file's import/receiver bindings.
 ## @param patterns_by_name Spawn patterns keyed by callee name.
-## @return The matched SpawnPattern, or None.
-## @version 1
+## @return Every SpawnPattern registered for this callee, possibly empty.
+## @version 2
 ## @dg_internal
-def _py_matched_pattern(
+def _py_matched_patterns(
     node: Any,
     src_bytes: bytes,
     bindings: PyBindings,
-    patterns_by_name: dict[str, SpawnPattern],
-) -> SpawnPattern | None:
-    """@brief Match a Python callee (import-resolved, else raw) to a spawn pattern.
+    patterns_by_name: dict[str, list[SpawnPattern]],
+) -> list[SpawnPattern]:
+    """@brief Match a Python callee (import-resolved, else raw) to its spawn patterns.
 
-    @return Matched pattern or None.
-    @version 1
+    @return Matched patterns, or [].
+    @version 2
     """
     dotted = dotted_name(node.child_by_field_name("function"), src_bytes)
     if dotted is None:
-        return None
+        return []
     resolved = bindings.resolve(dotted)
     # An unbound name falls back to raw text so a declared local wrapper matches;
     # a BOUND name does not, so an import from elsewhere is refused outright.
-    return patterns_by_name.get(resolved if resolved is not None else dotted)
+    return list(patterns_by_name.get(resolved if resolved is not None else dotted, ()))
 
 
 ## @brief Resolve one matched Python spawn call into a _SpawnSite.
@@ -1039,28 +1205,43 @@ class _SpawnHarvester(Harvester):
     ## (`clew.doxygen.func`) where it used to be the raw source text (`dox.func`). The cached
     ## payload therefore holds a different string, and serving an old one would keep the NULL
     ## entry rowid this fix exists to remove — silently, on every warm build.
-    stage_version = 5
+    ## BUMPED FOR gh#47 part 1: the BUILT-IN pattern set gained the interrupt-registration and
+    ## ISR-context-callback conventions, one callee name can now match several patterns, and a
+    ## sentinel handler argument (SIG_IGN, NULL) is refused. `extra_key` hashes only the
+    ## DECLARED document, so none of that moves the cache key — a warm v5 payload holds no ISR
+    ## site at all while the build reports a hit.
+    stage_version = 6
     label = "thread spawns"
 
     ## @brief Store the spawn-pattern map plus the manifest-derived cache key.
     ## @version 1
     ## @dg_internal
-    def __init__(self, patterns_by_name: dict[str, SpawnPattern], extra_key: str) -> None:
+    def __init__(self, patterns_by_name: dict[str, list[SpawnPattern]], extra_key: str) -> None:
         super().__init__(extra_key)
         self.patterns_by_name = patterns_by_name
 
     ## @brief Harvest one file's spawn call sites.
     ## @return List of [thread_name, entry_name, kind] triples.
-    ## @version 1
+    ## @version 2
     ## @req REQ-DDB-SCHEMA-001
     def harvest(self, tree: Any, src_bytes: bytes) -> Any:
-        return _walk_spawn_sites(tree, src_bytes, self.patterns_by_name)
+        ## A MAPPING since gh#47, not the bare site list: it carries the sites AND the number of
+        ## interrupt registrations this walk could not read because they are written inside a
+        ## `#define` body. A count of what was refused is the difference between "this tree has
+        ## no interrupt handler" and "this layer could not see two thirds of them" — Zephyr
+        ## writes 718 of its 1110 `IRQ_CONNECT` sites that way.
+        return {
+            "sites": _walk_spawn_sites(tree, src_bytes, self.patterns_by_name),
+            "macro_registrations": count_macro_body_registrations(
+                tree, src_bytes, frozenset(self.patterns_by_name)
+            ),
+        }
 
 
 ## @brief The thread stage's harvester for one declared spawn vocabulary.
 ## @param thread_patterns_path Declared `threads:` section, a YAML path, or None.
 ## @return A Harvester keyed on the declaration's content hash.
-## @version 1
+## @version 2
 ## @req REQ-DDB-SCHEMA-001
 def spawn_harvester(thread_patterns_path: Path | dict | None = None) -> Harvester:
     """The ONE construction site, so gh#358's shared parse pass and this stage key on
@@ -1069,15 +1250,15 @@ def spawn_harvester(thread_patterns_path: Path | dict | None = None) -> Harveste
     right direction for a refusal.
 
     @brief Build this stage's harvester.
-    @version 1
+    @version 2
     """
     patterns = load_thread_patterns(thread_patterns_path)
-    return _SpawnHarvester({p.name: p for p in patterns}, manifest_key(thread_patterns_path))
+    return _SpawnHarvester(patterns_by_name(patterns), manifest_key(thread_patterns_path))
 
 
 ## @brief Harvest every spawn call site across all indexed files, each with its spawning file.
 ## @return Flat list of _SpawnSite in path order.
-## @version 7
+## @version 8
 ## @dg_internal
 def _harvest_all_spawn_sites(
     conn: sqlite3.Connection,
@@ -1085,7 +1266,7 @@ def _harvest_all_spawn_sites(
     harvester: Harvester,
     ts_classes: tuple[Any, Any],
     cache: IndexCache | None = None,
-) -> list[_SpawnSite]:
+) -> tuple[list[_SpawnSite], int]:
     """Drive the cached per-file harvest and flatten it back into _SpawnSite.
 
     A payload row is a SEPTET (…, separator, spawn line, spawning function); a shorter row from an older
@@ -1107,7 +1288,16 @@ def _harvest_all_spawn_sites(
     @brief Per-file AST walk collecting thread-spawn sites.
     @version 7
     """
-    return [
+    ## TWO PAYLOAD SHAPES, folded here. Since gh#47 a file's payload is a MAPPING carrying the
+    ## sites plus the count of registrations hidden in macro bodies; a payload cached by an
+    ## older stage_version is the bare LIST of sites and folds with a zero refusal count, which
+    ## is what those versions could measure.
+    harvested = [
+        (path_rowid, payload if isinstance(payload, dict) else {"sites": payload})
+        for path_rowid, payload in run_harvest(conn, repo_root, harvester, ts_classes, cache)
+    ]
+    refused = sum(int(payload.get("macro_registrations", 0)) for _rowid, payload in harvested)
+    sites = [
         _SpawnSite(
             row[0],
             row[1],
@@ -1119,10 +1309,14 @@ def _harvest_all_spawn_sites(
             ## Absent on a payload cached by an older stage_version, which reads as "no enclosing
             ## function recorded" — the same tolerant fold the separator and line already use.
             row[6] if len(row) > 6 else "",
+            ## Absent on a payload cached before gh#47, which folds to the only source those
+            ## payloads could have carried.
+            row[7] if len(row) > 7 else THREAD_SOURCE_SPAWN,
         )
-        for path_rowid, payload in run_harvest(conn, repo_root, harvester, ts_classes, cache)
-        for row in payload
+        for path_rowid, payload in harvested
+        for row in payload.get("sites", ())
     ]
+    return sites, refused
 
 
 _IDENT_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")
@@ -1259,8 +1453,43 @@ def _scope_qualified_entry(
     return int(row[0]) if row else None
 
 
+## @brief The one candidate defined in the registering file, when exactly one is.
+## @param conn Open connection.
+## @param candidates Same-named function rowids.
+## @param path_rowid The path the registration site sits in.
+## @return That rowid, or None when the file does not disambiguate.
+## @version 1
+## @dg_internal
+def _candidate_in_same_file(
+    conn: sqlite3.Connection, candidates: list[int], path_rowid: int | None
+) -> int | None:
+    """MEASURED ON ZEPHYR (gh#47). `button_pressed` is defined in two sample directories, each
+    registered in the file that defines it, each calling `k_sleep` from a GPIO callback — and
+    the bare name resolved to two candidates, so BOTH threads got a NULL entry, no closure, and
+    no conflict. The layer found two interrupt handlers and could say nothing about either.
+
+    An interrupt handler is normally `static` and registered where it is defined, so the file is
+    the disambiguator that is always to hand. Applied only when the name alone is ambiguous, and
+    only when the file narrows it to exactly ONE — two same-named statics are never merged, and
+    a registration whose handler lives elsewhere still resolves to nothing rather than to a
+    guess.
+
+    @brief Narrow an ambiguous entry name by the registering file.
+    @return The unique in-file candidate, or None.
+    @version 1
+    """
+    if not candidates or path_rowid is None:
+        return None
+    marks = ",".join("?" * len(candidates))
+    rows = conn.execute(
+        f"SELECT rowid FROM memberdef WHERE rowid IN ({marks}) AND bodyfile_id = ?",
+        (*candidates, path_rowid),
+    ).fetchall()
+    return int(rows[0][0]) if len(rows) == 1 else None
+
+
 ## @brief Insert harvested spawn sites as threads rows, each with its spawn site.
-## @version 6
+## @version 7
 ## @dg_internal
 def _insert_threads(
     conn: sqlite3.Connection,
@@ -1285,7 +1514,7 @@ def _insert_threads(
     @brief Insert threads rows from harvested spawn sites, each with its spawn site.
     @version 6
     """
-    rows: list[tuple[str, int | None, str, int | None, int | None, str | None]] = []
+    rows: list[tuple[str, int | None, str, str, int | None, int | None, str | None]] = []
     for site in sites:
         if site.separator in site.qualified_entry:
             # A member-pointer entry must resolve to ITS OWN class or stay NULL;
@@ -1298,12 +1527,17 @@ def _insert_threads(
             entry_rowid = _resolve_qualified_entry(conn, site.qualified_entry, site.separator)
         else:
             candidates = name_index.get(site.entry_name, [])
-            entry_rowid = candidates[0] if len(candidates) == 1 else None
+            entry_rowid = (
+                candidates[0]
+                if len(candidates) == 1
+                else _candidate_in_same_file(conn, candidates, site.path_rowid)
+            )
         rows.append(
             (
                 site.name,
                 entry_rowid,
                 site.kind,
+                site.source,
                 site.path_rowid,
                 site.line,
                 ## NULL rather than "" when there is no enclosing function, so "not recorded" and
@@ -1315,7 +1549,7 @@ def _insert_threads(
     return conn.executemany(
         "INSERT OR IGNORE INTO threads (name, entry_memberdef_rowid, kind, "
         "source, confidence, spawn_path_rowid, spawn_line, spawn_function) "
-        "VALUES (?, ?, ?, 'ast_spawn', 'medium', ?, ?, ?)",
+        "VALUES (?, ?, ?, ?, 'medium', ?, ?, ?)",
         rows,
     ).rowcount
 
@@ -1355,7 +1589,7 @@ def _populate_membership(conn: sqlite3.Connection) -> int:
 ## @param thread_patterns_path Optional --thread-patterns YAML, or None.
 ## @param cache Optional incremental index cache; None disables caching.
 ## @param harvester Pre-built harvester from the shared parse pass; built here when omitted.
-## @version 5
+## @version 6
 ## @req REQ-DDB-SCHEMA-001
 def extract_threads(
     db_path: Path,
@@ -1387,7 +1621,7 @@ def extract_threads(
         return
 
     name_index = _definition_preferring_name_index(conn)
-    sites = _harvest_all_spawn_sites(
+    sites, macro_registrations = _harvest_all_spawn_sites(
         conn,
         repo_root,
         harvester or spawn_harvester(thread_patterns_path),
@@ -1400,10 +1634,17 @@ def extract_threads(
     conn.commit()
     conn.close()
     logger.info(
-        "threads: harvested %d spawn sites, inserted %d threads, %d membership rows",
+        "threads: harvested %d spawn sites, inserted %d threads, %d membership rows%s",
         len(sites),
         inserted_threads,
         inserted_members,
+        ## NOT HARVESTED, AND SAID SO. A registration written inside a `#define` body is opaque
+        ## text to the parser; Zephyr writes about two thirds of its `IRQ_CONNECT` sites that
+        ## way. Printing the count is what keeps a low handler count from reading as a measured
+        ## zero. Omitted entirely when there are none, so the ordinary line does not grow.
+        f" ({macro_registrations} registration(s) inside macro bodies were not harvested)"
+        if macro_registrations
+        else "",
     )
 
 

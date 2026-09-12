@@ -57,6 +57,23 @@ from typing import Any
 from ._common import logger, make_progress
 from .indexcache import IndexCache
 
+## Expression wrappers unwrapped when asking "is this argument a bare name?". `&fn`, `(fn)` and
+## `(entry_t)fn` all name a function as plainly as `fn` does.
+##
+## SHARED BECAUSE TWO PATHS ASKED THE SAME QUESTION AND ANSWERED IT DIFFERENTLY (gh#45).
+## `propose/astdefs.py` carried this set while `threads._named_entry` unwrapped
+## `pointer_expression` alone, so the PROPOSE path understood a cast entry argument and the
+## HARVEST path dropped it — fail-closed, silently. On rtabmap that cost every thread the
+## repository has: all five spawn sites funnel through `UThreadC::Create`, all five write
+## `(pthread_fn)ThreadMainHandler`, and the index reported one thread (an Android logger whose
+## argument happens to be bare) out of 1,439 files.
+##
+## Lives here rather than in either caller because `harvest` is the tree-sitter plumbing both
+## sit on, and because a set that decides what an argument MAY look like must have one answer.
+ENTRY_UNWRAP_TYPES = frozenset(
+    {"pointer_expression", "parenthesized_expression", "cast_expression"}
+)
+
 _CPP_EXTS = (".cpp", ".cc", ".cxx", ".c++", ".hpp", ".hh", ".hxx", ".h++")
 _C_EXTS = (".c", ".h")
 # doxygen indexes Python too, so a Python codebase already had memberdefs, prose and

@@ -44,6 +44,7 @@ from typing import Any
 
 from .ast_symbols import function_definition_harvester
 from .call_edges import call_site_harvester
+from .blocking import blocking_harvester
 from .callback_edges import callback_harvester
 from .dispatch import DispatchManifest
 from .dispatch_edges import dispatch_harvester
@@ -86,12 +87,15 @@ class HarvestPlan:
     ## 1,549-file target, very nearly a second copy of the 32.1 s shared pass it should have been
     ## reading. Membership here is the entire fix.
     macro_refs: Harvester
+    ## gh#47 part 2: blocking-primitive call sites with their timeout argument. Always runs;
+    ## its pattern set is built in, so there is no declaration to make it conditional.
+    blocking: Harvester
     dispatch: Harvester | None = None
     subscribe: Harvester | None = None
 
     ## @brief The stages the shared parse pass should warm.
     ## @return Every non-None harvester in this plan.
-    ## @version 2
+    ## @version 3
     ## @req REQ-DDB-PIPE-003
     def active(self) -> list[Harvester]:
         """Order is irrelevant to the shared pass — it warms cache rows and emits
@@ -118,6 +122,7 @@ class HarvestPlan:
                 self.shared_key,
                 self.py_entrypoints,
                 self.macro_refs,
+                self.blocking,
                 self.dispatch,
                 self.subscribe,
             )
@@ -134,7 +139,7 @@ class HarvestPlan:
 ## @param dispatch_key Manifest-derived cache-key component for the dispatch harvest.
 ## @param mqtt_dispatch The --mqtt-dispatch manifest, or None.
 ## @return The assembled plan.
-## @version 2
+## @version 3
 ## @req REQ-DDB-PIPE-003
 def build_harvest_plan(
     lock_patterns: Path | dict | None = None,
@@ -167,6 +172,7 @@ def build_harvest_plan(
         ## stage genuinely finds the warmed row. A harvester built differently here would warm a
         ## row the stage then misses, and the only symptom would be the cost coming back.
         macro_refs=MacroRefHarvester(),
+        blocking=blocking_harvester(),
         dispatch=(dispatch_harvester(dispatch, dispatch_key) if dispatch is not None else None),
         subscribe=subscribe_harvester(mqtt_dispatch),
     )

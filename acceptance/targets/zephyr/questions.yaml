@@ -1,0 +1,224 @@
+# SPDX-License-Identifier: MIT
+#
+# THE GRADING KEY, AS DATA. Schema and rules: acceptance/DESIGN.md.
+#
+# Every mark below was verified by reading Zephyr source at the pinned commit — a shallow fetch
+# of that exact sha, HEAD confirmed before anything was read. A mark is an ANSWER COMPONENT:
+# what a complete answer contains, not what some tool happens to surface.
+
+schema: 1
+
+target: zephyrproject-rtos/zephyr
+commit: dccb09599635bdff17633fa7e9dab014b91dce90
+ref: "v4.4.2"
+version: 1.0.0
+
+ground_truth: |
+  Zephyr source at the commit above, read directly from a shallow checkout at that sha. Every
+  line number was taken from that tree with no modifications.
+
+  WHY THIS TARGET, BESIDE RIOT. Both are firmware trees with a second execution context, and
+  they get an interrupt handler there by OPPOSITE routes — which is the whole reason a pattern
+  set derived against one is not evidence about the other:
+
+    * RIOT DEFINES its handlers (`isr_uart0`, `AVR8_ISR(...)`, `__attribute__((interrupt))`) and
+      the vector table names them.
+    * Zephyr REGISTERS them: `IRQ_CONNECT(irq, prio, isr, arg, flags)`, 1110 sites at this pin,
+      plus a second family whose CALLBACK the driver API documents as running in interrupt
+      context — `k_timer_init`'s expiry function (include/zephyr/kernel.h:1861-1864, dispatched
+      at kernel/timer.c:125) and the GPIO handler fired from the controller's own ISR
+      (include/zephyr/drivers/gpio/gpio_utils.h:139). Nothing in those handlers' DEFINITIONS
+      marks them: 963 distinct handler names at this pin are ordinary static functions.
+
+  THE HARD PART IS NOT THE SPELLING. 718 of the 1110 `IRQ_CONNECT` sites (64.7%; 69.0% under
+  drivers/) sit INSIDE a `#define` body, which tree-sitter exposes only as opaque text — e.g.
+  `drivers/i3c/i3c_stm32.c:2174`, three levels of macro nesting under
+  `DT_INST_FOREACH_STATUS_OKAY`. Any tool that reads C without preprocessing sees about a third
+  of Zephyr's interrupt registrations, and the questions below are deliberately answerable
+  WITHOUT that third: they turn on the callback family, which is written in ordinary function
+  bodies.
+
+  WHAT MAKES AN ANSWER WRONG HERE, in the direction that matters: Zephyr's correct way to get
+  work out of an interrupt is to submit it to a workqueue (`k_work_submit`), whose handler then
+  runs on a THREAD and may block — 720 `k_work_init` sites at this pin. An answer that treats a
+  work handler as interrupt context has inverted the rule it is being asked about.
+
+judge:
+  model: claude-sonnet-4-5-20250929
+  samples_when_weight_at_least: 2
+
+index:
+  declare:
+    index_scope:
+      roots:
+        - kernel
+        - drivers/gpio
+        - drivers/mfd
+        - drivers/mipi_dbi
+        - drivers/i3c
+        - subsys/pm
+        - samples/bluetooth/encrypted_advertising
+        - samples/drivers/uart/echo_bot
+        - include/zephyr
+  variant_note: |
+    SCOPE ONLY, AND NOTHING ELSE. Zephyr is 8,557 C files; indexing all of them measures a
+    build, not an answer. The roots above are the smallest set that contains every mechanism
+    the questions ask about — the kernel's own blocking implementations and ISR assertions,
+    the densest interrupt-registration family (drivers/gpio), the three drivers carrying the
+    real conflicts, the power-management path whose guard lives in a timeout argument, and two
+    samples that put a blocking call directly in a GPIO callback.
+
+    NO `preprocessor` and NO `predefined`. Zephyr's interrupt code is per-SoC by construction,
+    and naming one board would make every answer a claim about that board rather than about
+    Zephyr — the same reason the RIOT target declares nothing at all.
+
+questions:
+  - id: Q1
+    intent: |
+      THE FIRMWARE QUESTION, in the form Zephyr poses it: the handler is an ordinary static
+      function that nothing in its own file marks as interrupt code, and the fact that it runs
+      in interrupt context is recorded 80 lines away, in a registration call, and one header
+      deeper, in the driver API that fires it.
+
+      The complete answer spans four files — the driver, the GPIO callback plumbing, the
+      kernel's documented rule, and the assertion that enforces it — and no single read reaches
+      them. It also has a trap: the same handler ALREADY does the right thing (it submits to a
+      workqueue) and still holds a mutex while doing it, so an answer that stops at "it defers,
+      so it is fine" is wrong for a reason the source shows plainly.
+
+    prompt: |
+      In drivers/mfd/mfd_max22017.c, max22017_isr takes a mutex before submitting work. Is that
+      safe? Explain how that function comes to run in interrupt context, what the kernel does
+      about the mutex, and what the driver should do instead.
+
+    marks:
+      - text: >-
+          identifies the registration that puts max22017_isr in interrupt context —
+          gpio_init_callback plus gpio_add_callback, not anything in the handler itself
+        type: retrieval
+        weight: 2
+        evidence: |
+          drivers/mfd/mfd_max22017.c:318 `gpio_init_callback(&data->callback_int, max22017_isr,
+          BIT(config->gpio_int.pin));` followed by `gpio_add_callback` at :319. The handler at
+          :173 is a plain `static void`; nothing in its definition says interrupt.
+        refs: [["drivers/mfd/mfd_max22017.c", 318], ["drivers/mfd/mfd_max22017.c", 173]]
+
+      - text: names the k_mutex_lock call and the K_FOREVER timeout it passes
+        type: retrieval
+        weight: 1
+        evidence: |
+          drivers/mfd/mfd_max22017.c:178 `k_mutex_lock(&data->lock, K_FOREVER);`, released at
+          :185.
+        refs: [["drivers/mfd/mfd_max22017.c", 178], ["drivers/mfd/mfd_max22017.c", 185]]
+
+      - text: >-
+          concludes it is illegal REGARDLESS of the timeout — a mutex may not be locked in an
+          ISR at all — rather than treating K_FOREVER as the defect
+        type: conclusion
+        weight: 3
+        evidence: |
+          include/zephyr/kernel.h:3514 "Mutexes may not be locked in ISRs." and kernel/mutex.c:115
+          `__ASSERT(!arch_is_in_isr(), "mutexes cannot be used inside ISRs")`. The assertion does
+          not look at the timeout: `k_mutex_lock(&l, K_NO_WAIT)` from an ISR is equally illegal,
+          which is what separates a mutex from `k_sem_take`.
+        refs: [["include/zephyr/kernel.h", 3514], ["kernel/mutex.c", 115]]
+
+      - text: >-
+          explains that the interrupt context comes from the GPIO PROVIDER — the controller's
+          ISR fires the callback — and is therefore a property of the hardware behind the pin
+        type: conclusion
+        weight: 3
+        evidence: |
+          include/zephyr/drivers/gpio/gpio_utils.h:139 `cb->handler(port, cb, cb->pin_mask &
+          pins);` inside `gpio_fire_callbacks`, which an SoC GPIO driver calls from its own
+          IRQ_CONNECT'd handler. An I2C/SPI expander cannot do that and defers instead:
+          drivers/gpio/gpio_pca95xx.c:623-624 says so in a comment and submits work.
+        refs: [["include/zephyr/drivers/gpio/gpio_utils.h", 139], ["drivers/gpio/gpio_pca95xx.c", 624]]
+
+      - text: >-
+          proposes the fix Zephyr itself uses — do the blocking part in the work handler, which
+          runs on a thread, and take the lock there rather than in the callback
+        type: conclusion
+        weight: 3
+        evidence: |
+          The handler already calls `k_work_submit(&data->int_work)` at
+          drivers/mfd/mfd_max22017.c:180; the whole defect is that it holds a mutex across it.
+          include/zephyr/kernel.h:3921-3927 documents a work handler as running on the workqueue
+          THREAD, which is why the same lock is legal there.
+        refs: [["drivers/mfd/mfd_max22017.c", 180], ["include/zephyr/kernel.h", 3921]]
+
+      - text: names k_is_in_isr as the runtime predicate for "am I in interrupt context"
+        type: retrieval
+        weight: 1
+        evidence: |
+          include/zephyr/kernel.h:1396 declares it; kernel/thread.c:76 implements it. Drivers
+          use it to refuse a bus operation from an ISR — drivers/gpio/gpio_bd8lb600fs.c:43.
+        refs: [["include/zephyr/kernel.h", 1396], ["drivers/gpio/gpio_bd8lb600fs.c", 43]]
+
+  - id: Q2
+    intent: |
+      The same rule from the other side, as a bounded enumeration. It discriminates on exactly
+      the distinction that makes the layer usable: a timeout of K_NO_WAIT is CORRECT interrupt
+      code, the identical call with K_FOREVER is a bug, and a handler that submits work is
+      doing the right thing — so an answer that lists every kernel call reachable from an
+      interrupt has not answered the question.
+
+    prompt: |
+      Zephyr forbids blocking in interrupt context, but allows several of its APIs there with a
+      K_NO_WAIT timeout. State the rule precisely, then list every file in the indexed scope
+      where a function that runs in interrupt context reaches a call that can actually block.
+
+    marks:
+      - text: >-
+          states the rule as a property of the TIMEOUT for the waiting APIs — legal from an ISR
+          only with K_NO_WAIT — and separately that mutexes and k_sleep are forbidden outright
+        type: conclusion
+        weight: 3
+        evidence: |
+          include/zephyr/kernel.h:3730 "@a timeout must be set to K_NO_WAIT if called from ISR"
+          with the assertion at kernel/sem.c:136
+          `__ASSERT(((arch_is_in_isr() == false) || K_TIMEOUT_EQ(timeout, K_NO_WAIT)), "")`;
+          against the unconditional kernel/sched.c:1222 `__ASSERT(!arch_is_in_isr(), "")` in
+          `z_impl_k_sleep` and kernel/mutex.c:115.
+        refs: [["include/zephyr/kernel.h", 3730], ["kernel/sem.c", 136], ["kernel/sched.c", 1222]]
+
+      - text: >-
+          distinguishes a runtime GUARD from a deferral — subsys/pm/device_runtime.c chooses its
+          timeout with k_is_in_isr(), while drivers/gpio/gpio_pca95xx.c hands the work to a
+          thread — and counts neither as a violation
+        type: conclusion
+        weight: 3
+        evidence: |
+          subsys/pm/device_runtime.c:71
+          `k_sem_take(&pm->lock, k_is_in_isr() ? K_NO_WAIT : K_FOREVER);` — the guard IS the
+          argument. drivers/gpio/gpio_pca95xx.c:624 `k_work_submit(&drv_data->interrupt_worker);`
+          under the comment at :623, "Cannot read PCA95xx registers from ISR context, queue
+          worker".
+        refs: [["subsys/pm/device_runtime.c", 71], ["drivers/gpio/gpio_pca95xx.c", 624]]
+
+      - text: >-
+          notes that a k_timer expiry function is interrupt context too, so the rule is not only
+          about IRQ_CONNECT
+        type: conclusion
+        weight: 2
+        evidence: |
+          include/zephyr/kernel.h:1861-1864 "A timer's expiry function is executed by the system
+          clock interrupt handler"; kernel/timer.c:125 calls it. The in-scope example is
+          drivers/gpio/gpio_max22017.c:379 `k_timer_init(t, isr_quirk_handler, NULL)`, whose
+          handler takes a mutex at :40.
+        refs: [["include/zephyr/kernel.h", 1861], ["drivers/gpio/gpio_max22017.c", 379]]
+
+      - text: every file in the indexed scope where interrupt-context code reaches a blocking call
+        type: set
+        weight: 1
+        extract: |
+          List every file path the answer names as containing a function that runs in interrupt
+          context and reaches a call that can block. Paths only, one per line, exactly as the
+          answer writes them. If it names none, reply NONE.
+        members:
+          - {value: "drivers/mfd/mfd_max22017.c", evidence: "max22017_isr (GPIO callback, registered :318) calls k_mutex_lock(&data->lock, K_FOREVER) at :178"}
+          - {value: "drivers/gpio/gpio_max22017.c", evidence: "isr_quirk_handler is a k_timer expiry fn (k_timer_init at :379) and calls k_mutex_lock(..., K_FOREVER) at :40"}
+          - {value: "drivers/i3c/i3c_stm32.c", evidence: "i3c_stm32_event_isr (:1753, IRQ_CONNECT inside the macro body at :2174) calls k_sem_take(&data->ibi_lock_sem, K_FOREVER) at :1815"}
+          - {value: "drivers/mipi_dbi/mipi_dbi_bflb.c", evidence: "mipi_dbi_bflb_isr (:718, IRQ_CONNECT at :748) reaches mipi_dbi_bflb_detrigger, which calls k_usleep(1) at :157"}
+          - {value: "samples/bluetooth/encrypted_advertising/central/src/main.c", evidence: "button_pressed (GPIO callback, registered :99) calls k_sleep(K_SECONDS(1)) at :50"}
+          - {value: "samples/bluetooth/encrypted_advertising/peripheral/src/main.c", evidence: "button_pressed (GPIO callback, registered :93) calls k_sleep(K_SECONDS(1)) at :44"}

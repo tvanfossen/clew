@@ -46,6 +46,8 @@ from clew.callback_edges import _ensure_external_boundaries_table
 from clew.datamodel import _ensure_table as _ensure_data_model_keys_table
 from clew.kconfig import ensure_kconfig_tables
 from clew.kconfig_gates import ensure_kconfig_gates_table
+from clew.blocking import ensure_blocking_table
+from clew.context import ensure_context_table
 from clew.locks import _ensure_lock_tables
 from clew.reachability import mark_reachability
 from clew.requirements import _create_req_edges_table
@@ -203,6 +205,11 @@ def schema_db(tmp_path: Path) -> Path:
         "VALUES (1, 2, 'doxygen_sqlite', 'exact')",
     )
     _ensure_lock_tables(conn)
+    ## gh#47's two tables, created by their own stages exactly as the lock tables are — a repo
+    ## with no interrupt handler gets EMPTY ones, never absent ones, so no consumer branches on
+    ## existence and this fixture can call them unconditionally.
+    ensure_blocking_table(conn)
+    ensure_context_table(conn)
     _ensure_threads_tables(conn)
     _ensure_shared_key_edges_table(conn)
     _ensure_external_boundaries_table(conn)

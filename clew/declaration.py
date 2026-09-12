@@ -81,6 +81,12 @@ SECTION_SEPARATOR = ", "
 ## distribution name, so a reader seeing it in someone else's config knows what owns it.
 PASSTHROUGH_TOOL = "clew"
 
+## Scope a repository states for its OWN named sub-indexes (gh#39). Keyed by the derived
+## sub-index name, so a parent can trim a vendored tree it does not own — the case a
+## `.clew.yaml` inside that tree cannot serve, because declaration discovery is rooted at the
+## parent and the tree belongs to somebody else.
+SECTION_SUB_INDEXES = "sub_indexes"
+
 ## Sections that mirror a standalone manifest's whole document.
 SECTION_SHARED_KEY = "shared_key_patterns"
 SECTION_THREADS = "thread_patterns"
@@ -254,6 +260,7 @@ KNOWN_SECTIONS = frozenset(
         SECTION_DOXYFILE,
         SECTION_EVENT_TAGS,
         "index_scope",
+        SECTION_SUB_INDEXES,
     }
 )
 

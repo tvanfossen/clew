@@ -46,6 +46,7 @@ from ..declaration import (
     SECTION_PREPROCESSOR,
     SECTION_REQUIREMENTS,
     SECTION_SHARED_KEY,
+    SECTION_SUB_INDEXES,
     SECTION_THREADS,
     SECTION_VENDORED,
     load_declaration,
@@ -93,6 +94,15 @@ HAND_DECLARED: dict[str, str] = {
         "`vendor/` and `third_party/` are conventions, and a `3rdparty/` full of "
         "first-party glue is a real thing. Guessing here would mislabel a project's own "
         "code as somebody else's, which is worse than saying nothing."
+    ),
+    SECTION_SUB_INDEXES: (
+        "clew derives the sub-index NAMES mechanically — every nested git tree gets one — but "
+        "which of a vendored tree's own subtrees is worth indexing is a policy judgment about "
+        "what an operator wants to reason about, and nothing in the tree carries it. b12-slam "
+        "vendors boost, opencv and pcl; whether they belong in b12-slam's index or are dead "
+        "weight depends on the question being asked, not on the repository. A guess here "
+        "SILENTLY NARROWS an index and reports it as healthy, which is the #511 failure this "
+        "project has already paid for once."
     ),
     SECTION_MQTT: (
         "a topic-subscription call is not distinguishable by shape: the topic is a "

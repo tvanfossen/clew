@@ -1038,3 +1038,185 @@ def test_an_edited_yaml_document_is_parsed_again(tmp_path: Path, monkeypatch) ->
     discover(repo, (), cache=cache)
 
     assert loads["n"] > 0, "an edited document must be read again, not served from the cache"
+
+
+##
+# @brief An ingot-shaped manifest with no key list beside it.
+# @param root Directory to build the repository in.
+# @return The manifest path.
+# @version 1
+def _ingot_manifest(root: Path) -> Path:
+    """THE REPORTED SHAPE: a repository whose data model is declared in TOML alone, with no
+    separate key-list YAML anywhere — which is what makes discovery decline it.
+
+    @brief Write an ingot manifest and nothing else.
+    @return The manifest path.
+    @version 1
+    """
+    path = root / "app" / "data" / "shim_datamodel.toml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        '[meta]\nid = "B12"\n\n'
+        '[[classes]]\nid = "Drive"\n\n'
+        '[[classes.keys]]\nid = "WheelLinearVel"\ntype = "float"\n',
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_discovery_still_declines_a_manifest_no_key_list_names(tmp_path: Path) -> None:
+    """THE RULE THAT MUST NOT MOVE. A generator ships example manifests that parse identically
+    to a real one, so during DISCOVERY a shape match is not evidence — the repository's own key
+    list is. `manifests_unlisted` counts what that rule declined, and this pins it.
+
+    @brief An undeclared, unlisted manifest contributes nothing.
+    @return None.
+    @version 1
+    """
+    from clew.datamodel import discover
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _ingot_manifest(repo)
+
+    found = discover(repo, ())
+    assert found.keys == (), "discovery must not admit a manifest no key list names"
+    assert found.manifests_unlisted == 1, "and must say so by count"
+
+
+def test_a_declared_manifest_is_admitted_without_a_key_list(tmp_path: Path) -> None:
+    """gh#42. THE OPERATOR NAMING THE PATH IS THE EVIDENCE. The key-list gate exists because a
+    vendored generator's `examples/` parse identically to a real manifest during a WALK — a
+    concern that does not survive somebody stating the path. On the reporting repository the
+    model is declared in TOML alone, so every one of its 14 shape-matching documents was
+    declined and `dossier` on a real key answered a definitive negative.
+
+    THE DECLARED MANIFEST IS ADMITTED, NOT THE REST. The other documents the walk found stay
+    subject to the key-list rule, so declaring one path does not open the repository to a
+    vendored generator's examples.
+
+    @brief A declared manifest contributes its keys with no key list present.
+    @return None.
+    @version 1
+    """
+    from clew.datamodel import discover
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    manifest = _ingot_manifest(repo)
+
+    found = discover(repo, (), declared=manifest)
+    assert [k.define_name for k in found.keys], "the declared manifest's keys must be admitted"
+    assert any("shim_datamodel.toml" in m for m in found.manifests), found.manifests
+
+
+def test_a_declared_manifest_that_cannot_be_read_is_refused(tmp_path: Path) -> None:
+    """NEVER SILENTLY SKIPPED, which is what this issue is really about. The reporter stated
+    `data_model` through `options`, watched the build log it as tier 1, and then watched the
+    stage report `0 key(s) ... from 0 manifest(s) in dialect(s) none` with no line saying the
+    declared path had been opened, parsed or rejected. A statement that is accepted and has no
+    effect is worse than one that is refused: it reads as agreement.
+
+    @brief A declared path that is not a manifest is refused by name.
+    @return None.
+    @version 1
+    """
+    import pytest
+
+    from clew.datamodel import DeclaredModelError, discover
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    plain = repo / "pyproject.toml"
+    plain.write_text("[tool.black]\nline-length = 100\n", encoding="utf-8")
+
+    with pytest.raises(DeclaredModelError, match="pyproject.toml"):
+        discover(repo, (), declared=plain)
+
+
+def test_a_declared_path_that_is_absent_is_refused(tmp_path: Path) -> None:
+    """THE OTHER WAY A STATEMENT GOES WRONG, and the one a typo produces. Refused with the
+    path named, rather than degrading to the discovery answer that would have been given
+    anyway — which is precisely the outcome that reads as agreement.
+
+    @brief A declared path that does not exist is refused.
+    @return None.
+    @version 1
+    """
+    import pytest
+
+    from clew.datamodel import DeclaredModelError, discover
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    with pytest.raises(DeclaredModelError, match="missing.toml"):
+        discover(repo, (), declared=repo / "missing.toml")
+
+
+def test_a_space_in_a_key_id_becomes_an_underscore(tmp_path: Path) -> None:
+    """gh#42. INGOT'S OWN RULE, read from its source rather than inferred from an example.
+    `src/model/filter.rs` composes the bare define name as::
+
+        format!("{}_{}_{}", ns.to_uppercase(),
+                class.to_uppercase().replace(' ', "_"),
+                key.to_uppercase().replace(' ', "_"))
+
+    A space becomes an underscore. `_DROPPED_FROM_SEGMENT` dropped it instead, so a key id
+    written with spaces composed `WHEELLINEARVEL` where the generator emits
+    `WHEEL_LINEAR_VEL` — and the declared catalog then named a macro that appears nowhere in
+    the source.
+
+    UNDERSCORES ALREADY INSIDE A SEGMENT ARE STILL PRESERVED, which the module docstring
+    records as the difference between 104 and 135 of 135 against a real target's key list. This
+    adds the space rule; it does not revisit that one.
+
+    @brief A space composes as an underscore, like ingot's generator.
+    @version 1
+    """
+    from clew.datamodel import _ingot_keys
+
+    manifest = [{"id": "Drive", "keys": [{"id": "wheel linear vel"}, {"id": "wheel_linear_vel"}]}]
+    names = [key.define_name for key in _ingot_keys(manifest, "B12", "m.toml")]
+    assert names == ["B12_DRIVE_WHEEL_LINEAR_VEL", "B12_DRIVE_WHEEL_LINEAR_VEL"], names
+
+    ## AND THE UDM DIALECT IS UNTOUCHED. Its rule drops the space, measured at 135 of 135
+    ## against a real target's own key list, so ingot's rule lives at ingot's call site rather
+    ## than in the composer both dialects share.
+    from clew.datamodel import define_name
+
+    assert define_name("B12", "Drive", "wheel linear vel") == "B12_DRIVE_WHEELLINEARVEL"
+
+
+def test_a_declared_key_is_observed_under_ingots_own_spellings(tmp_path: Path) -> None:
+    """gh#42. THE JOIN MUST MATCH THE WAY INGOT MATCHES, or a declared key sits beside the
+    identical observed key reading `observed = 0`. `filter.rs` accepts three spellings of one
+    key, and its own comment says why the third exists::
+
+        list.names.contains(name)
+        || list.names.contains(&format!("DM_KEY_{name}"))
+        || normalized (uppercase, underscores STRIPPED) — "so that TOML snake_case IDs
+           (e.g. STATE_OF_CHARGE) match YAML-era names (STATEOFCHARGE)"
+
+    Ingot's generated `key_definitions.h` emits the `DM_KEY_` form
+    (`DM_KEY_APPLIANCE_IDENTITY_PRODUCT_NAME`, checked against its shipped
+    `examples/generated/full/`), while the accessor spelling a codebase actually calls carries
+    no prefix — so which spelling the shared-key layer observes depends on which artifact the
+    code uses, and an exact-string join is wrong for at least one of them.
+
+    @brief The observed join accepts the prefixed and normalized spellings.
+    @version 1
+    """
+    from clew.datamodel import observed_match
+
+    declared = "B12_BATTERY_STATE_OF_CHARGE"
+    assert observed_match(declared, frozenset({declared})), "the bare spelling must match"
+    assert observed_match(declared, frozenset({f"DM_KEY_{declared}"})), (
+        "ingot's generated key_definitions.h emits the DM_KEY_ form"
+    )
+    assert observed_match(declared, frozenset({"B12BATTERYSTATEOFCHARGE"})), (
+        "ingot normalizes by stripping underscores, so a YAML-era name still matches"
+    )
+    assert not observed_match(declared, frozenset({"B12_BATTERY_VOLTAGE"})), (
+        "a different key must not match, or every declared key would read as observed"
+    )
