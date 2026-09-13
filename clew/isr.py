@@ -81,7 +81,14 @@ ISR_EXACT_NAMES = frozenset(
 
 ## Name SHAPES, matched only on a definition that takes no arguments. `*_IRQHandler` is the
 ## CMSIS vendor convention; `isr_*` is RIOT's Cortex-M spelling.
-ISR_NAME_GLOBS = ("*_IRQHandler", "isr_*")
+## MEASURED ON RIOT: the two globs below found 14 of 26 definition-form handlers in the
+## acceptance scope, and every one of the 12 misses was named by a BOARD MACRO —
+## `void ISR_GPIOTE(void)` (cpu/nrf5x_common/periph/gpio.c:231), `TIMER_0_ISR`, `ISR_SPIM0`,
+## `SERIAL0_ISR`. The macro expands to `isr_gpiote` and the mapping lives in
+## `boards/*/periph_conf.h`, outside any cpu-scoped index, so the expansion is not available to
+## read — but the SHAPE is not ambiguous, and a zero-argument void definition is required either
+## way.
+ISR_NAME_GLOBS = ("*_IRQHandler", "isr_*", "ISR_*", "*_ISR")
 
 ## Names that match a shape above and are NOT interrupt handlers. The reset entry is the one
 ## that matters: it calls main().

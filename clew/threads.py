@@ -54,7 +54,12 @@ from .harvest import (
     try_import_tree_sitter,
 )
 from .indexcache import IndexCache
-from .isr import count_macro_body_registrations, isr_definition
+from .isr import (
+    ISR_SOURCE_DECLARED,
+    ISR_SOURCE_NAMED,
+    count_macro_body_registrations,
+    isr_definition,
+)
 from .pyast import (
     PyBindings,
     class_ranges,
@@ -96,7 +101,23 @@ SCOPE_SEP_PY = "."
 ## Handler arguments that are NOT a function: the POSIX signal sentinels and the null pointer
 ## a deregistering registration passes. Refused at the entry-argument reader, so no convention
 ## has to remember to exclude them.
-_SENTINEL_ENTRIES = frozenset({"NULL", "nullptr", "SIG_IGN", "SIG_DFL", "SIG_ERR"})
+## `ISR_BLOCK`/`ISR_NAKED`/`ISR_NOBLOCK`/`ISR_ALIASOF` are avr-libc's ISR ATTRIBUTES, which sit
+## in the same argument position the msp430 macro puts its handler name in
+## (`ISR(BADISR_vect, ISR_NAKED)` vs `ISR(TIMER0_ISR_CC0, isr_timer0_cc0)`). One spelling, two
+## meanings, told apart by the token itself.
+_SENTINEL_ENTRIES = frozenset(
+    {
+        "NULL",
+        "nullptr",
+        "SIG_IGN",
+        "SIG_DFL",
+        "SIG_ERR",
+        "ISR_BLOCK",
+        "ISR_NAKED",
+        "ISR_NOBLOCK",
+        "ISR_ALIASOF",
+    }
+)
 
 ## The `threads.source` a registration CALL writes — the only value this layer wrote before
 ## gh#47 added the two definition-site ones.
@@ -269,6 +290,13 @@ DEFAULT_SPAWN_PATTERNS: list[SpawnPattern] = [
     # spellings are generic enough to mean something else in an unrelated tree, and a
     # fabricated execution context is worse than a missing one. They are declarable.
     SpawnPattern("AVR8_ISR", entry_arg_index=1, name_arg_index=0, kind="isr"),
+    # msp430: `ISR(VECTOR, name) { ... }` expands to
+    # `void __attribute__((naked, interrupt(VECTOR))) name(void)` (cpu/msp430/include/cpu.h:42).
+    # tree-sitter parses the site as a CALL followed by a DETACHED compound statement, so there
+    # is no function_definition for the definition walk to classify — but as a call it is an
+    # ordinary registration naming its handler at index 1. avr-libc spells `ISR(vect, ISR_NAKED)`
+    # the same way with an ATTRIBUTE there, which `_SENTINEL_ENTRIES` refuses.
+    SpawnPattern("ISR", entry_arg_index=1, name_arg_index=0, kind="isr"),
     SpawnPattern("gpio_init_int", entry_arg_index=3, name_arg_index=None, kind="isr"),
     # The interrupt-controller APIs a FreeRTOS port registers through. Read off the 202411.00
     # demos, where they are how EVERY Cortex-A and MicroBlaze handler is installed: the
@@ -1453,6 +1481,38 @@ def _scope_qualified_entry(
     return int(row[0]) if row else None
 
 
+## The `threads.source` values that mean "found AT its own definition" (gh#47). A registration
+## names its handler from somewhere else and must look the name up; these do not.
+_DEFINITION_SOURCES = frozenset({ISR_SOURCE_DECLARED, ISR_SOURCE_NAMED})
+
+
+## @brief The memberdef a definition-form site IS, resolved by line.
+## @param file_funcs Function extents per path rowid.
+## @param site The harvested site.
+## @return The definition's rowid, or None when the site is not a definition form.
+## @version 1
+## @dg_internal
+def _definition_site_entry(file_funcs: dict, site: _SpawnSite) -> int | None:
+    """MEASURED ON RIOT: five handlers carried no entry and therefore no closure, because two
+    `#if` arms of one file define the same name twice (`isr_svc`, `isr_pendsv` in
+    cpu/cortexm_common/thread_arch.c) and neither the name nor the file narrows it to one.
+
+    A handler found at its definition does not need the name index at all — the site IS the
+    definition and its line pins the row, which is the same resolution the lock layer uses for a
+    holder. Falling back to the name lookup when the line resolves nothing keeps a registration
+    working exactly as before.
+
+    @brief Resolve a definition-form entry by its own line.
+    @return The rowid, or None.
+    @version 1
+    """
+    from .call_edges import _ast_caller_at_line
+
+    if site.source not in _DEFINITION_SOURCES or site.path_rowid is None or site.line is None:
+        return None
+    return _ast_caller_at_line(file_funcs.get(site.path_rowid, []), site.line)
+
+
 ## @brief The one candidate defined in the registering file, when exactly one is.
 ## @param conn Open connection.
 ## @param candidates Same-named function rowids.
@@ -1495,6 +1555,7 @@ def _insert_threads(
     conn: sqlite3.Connection,
     sites: list[_SpawnSite],
     name_index: dict[str, list[int]],
+    file_funcs: dict | None = None,
 ) -> int:
     """Resolve each spawn site's entry function to a memberdef rowid and insert
     a `threads` row (`ast_spawn`/`medium`). A qualified member-pointer entry
@@ -1514,6 +1575,7 @@ def _insert_threads(
     @brief Insert threads rows from harvested spawn sites, each with its spawn site.
     @version 6
     """
+    file_funcs = file_funcs or {}
     rows: list[tuple[str, int | None, str, str, int | None, int | None, str | None]] = []
     for site in sites:
         if site.separator in site.qualified_entry:
@@ -1526,12 +1588,14 @@ def _insert_threads(
             # `_run` would be a 5-way collision.
             entry_rowid = _resolve_qualified_entry(conn, site.qualified_entry, site.separator)
         else:
-            candidates = name_index.get(site.entry_name, [])
-            entry_rowid = (
-                candidates[0]
-                if len(candidates) == 1
-                else _candidate_in_same_file(conn, candidates, site.path_rowid)
-            )
+            entry_rowid = _definition_site_entry(file_funcs, site)
+            if entry_rowid is None:
+                candidates = name_index.get(site.entry_name, [])
+                entry_rowid = (
+                    candidates[0]
+                    if len(candidates) == 1
+                    else _candidate_in_same_file(conn, candidates, site.path_rowid)
+                )
         rows.append(
             (
                 site.name,
@@ -1589,7 +1653,7 @@ def _populate_membership(conn: sqlite3.Connection) -> int:
 ## @param thread_patterns_path Optional --thread-patterns YAML, or None.
 ## @param cache Optional incremental index cache; None disables caching.
 ## @param harvester Pre-built harvester from the shared parse pass; built here when omitted.
-## @version 6
+## @version 7
 ## @req REQ-DDB-SCHEMA-001
 def extract_threads(
     db_path: Path,
@@ -1628,7 +1692,10 @@ def extract_threads(
         ts_classes,
         cache,
     )
-    inserted_threads = _insert_threads(conn, sites, name_index)
+    from .call_edges import _build_function_indexes
+
+    _names, file_funcs = _build_function_indexes(conn)
+    inserted_threads = _insert_threads(conn, sites, name_index, file_funcs)
     conn.commit()
     inserted_members = _populate_membership(conn)
     conn.commit()
