@@ -1548,7 +1548,7 @@ def _replay_manifest_statements(args: argparse.Namespace, output: Path) -> list[
 ## @param args Parsed CLI arguments, carrying any stated or replayed manifest.
 ## @param decl The repo's parsed `.clew.yaml`.
 ## @return Option name to its DocumentResolution, for `options_meta`.
-## @version 2
+## @version 3
 ## @req REQ-DDB-CONFIG-006
 def _manifest_option_tiers(args: argparse.Namespace, decl: dict) -> dict[str, DocumentResolution]:
     """READS THE SAME TWO INPUTS `_declared_or_flag` DOES, in the same order, so the
@@ -1588,6 +1588,18 @@ def _manifest_option_tiers(args: argparse.Namespace, decl: dict) -> dict[str, Do
         explicit=getattr(args, SECTION_DATA_MODEL, None),
         declared=decl.get(SECTION_DATA_MODEL),
     )
+    ## gh#47. THE SECTION-DOCUMENT OPTIONS ARE STAMPED FOR THE SAME REASON, and their absence
+    ## was found the same way: a consumer asked whether a declaration had reached the build and
+    ## the answer did not exist. `acceptance/runner.check_declaration_applied` reads
+    ## `options.<name>.tier` to refuse a rubric whose declaration was ignored; a rubric
+    ## declaring `index_scope` was refused on a build where it had landed perfectly, because
+    ## nothing stamped the row it reads. Teaching the reader another exception would have left
+    ## the claim untrue — this makes it true.
+    for option in SECTION_DOCUMENT_OPTIONS:
+        stamped[option] = resolve_document(
+            explicit=getattr(args, option, None),
+            declared=section(decl, option),
+        )
     return stamped
 
 

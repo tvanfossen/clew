@@ -1238,7 +1238,13 @@ class _SpawnHarvester(Harvester):
     ## sentinel handler argument (SIG_IGN, NULL) is refused. `extra_key` hashes only the
     ## DECLARED document, so none of that moves the cache key — a warm v5 payload holds no ISR
     ## site at all while the build reports a hit.
-    stage_version = 6
+    ## 7: gh#47's follow-up moved three more harvest-time inputs and bumped nothing, which is
+    ##    the rule the note above states being broken one commit later: `ISR_NAME_GLOBS` gained
+    ##    `ISR_*`/`*_ISR`, `DEFAULT_SPAWN_PATTERNS` gained the msp430 `ISR(VECTOR, name)` form,
+    ##    and `_SENTINEL_ENTRIES` gained the avr-libc attribute tokens. MEASURED ON RIOT: 104
+    ##    interrupt rows cold against 79 from a warm v6 payload — a quarter of the roster
+    ##    missing, silently, with the conflict layer running over what survives.
+    stage_version = 7
     label = "thread spawns"
 
     ## @brief Store the spawn-pattern map plus the manifest-derived cache key.

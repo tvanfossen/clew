@@ -502,3 +502,50 @@ def test_two_definitions_of_one_handler_in_one_file_each_resolve(tmp_path) -> No
 
     assert entries == [1, 2], f"each arm resolves to its own definition, got {entries}"
     assert members == 4, f"both closures are populated (entry + drain, twice), got {members}"
+
+
+def test_a_thread_payload_cached_before_the_widened_patterns_is_not_served(tmp_path) -> None:
+    """THE SAME LOCKSTEP THE LOCK STAGE ALREADY OWED ONCE. gh#47's follow-up widened
+    `ISR_NAME_GLOBS`, added the msp430 `ISR` spawn pattern and added the avr-libc attribute
+    sentinels — three inputs read AT HARVEST TIME — and bumped nothing. The stage key is
+    `(content_sha, stage, stage_version, extra_key)` and `extra_key` hashes only the DECLARED
+    document, so a repository that built under the previous release keys the same payload
+    afterwards: a hit, serving the handler set from before the widening.
+
+    MEASURED ON RIOT AT ITS PIN: 104 interrupt rows cold against 79 from a warm pre-widening
+    payload — 25 handlers, a quarter of the roster, vanishing with no miss and no warning, and
+    the conflict layer runs over whatever survives.
+
+    @brief A stale-version thread payload must not be reused.
+    @version 1
+    """
+    import sqlite3
+
+    from clew.harvest import run_harvest
+    from clew.indexcache import IndexCache
+    from clew.threads import spawn_harvester
+
+    root = tmp_path / "repo"
+    (root / "src").mkdir(parents=True)
+    rel = "src/vectors.c"
+    (root / rel).write_bytes(
+        b"void drain(void);\nvoid ISR_GPIOTE(void) { drain(); }\n"
+        b"ISR(PORT1_VECTOR, isr_port1)\n{\n    drain();\n}\n"
+    )
+    harvester = spawn_harvester(None)
+    cache = IndexCache(tmp_path / "index.idxcache", root)
+    sha = cache.sha_for(rel, root / rel)
+    assert sha is not None
+    ## What the previous release's extraction produced for this file: nothing at all.
+    cache.extract_put(sha, harvester.stage, 6, harvester.extra_key, {"sites": []})
+
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE path (name TEXT)")
+    conn.execute("INSERT INTO path (name) VALUES (?)", (rel,))
+
+    payload = run_harvest(conn, root, harvester, try_import_tree_sitter(), cache)[0][1]
+    entries = sorted(site[ENTRY] for site in payload["sites"])
+
+    assert entries == ["ISR_GPIOTE", "isr_port1"], (
+        f"a payload cached under the pre-widening version was served; got {entries}"
+    )

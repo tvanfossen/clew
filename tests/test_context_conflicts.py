@@ -277,3 +277,40 @@ def test_a_path_through_a_multiply_defined_name_says_so(tmp_path) -> None:
     assert "bus_acquire" in detail and "2" in detail, (
         f"the row must name the ambiguous hop and how many definitions it has; got {detail!r}"
     )
+
+
+def test_the_handler_itself_answers_for_what_its_closure_reaches(tmp_path) -> None:
+    """THE QUESTION THE FEATURE EXISTS FOR, and it was answered wrongly. A conflict is filed
+    against the function that HOLDS the site — `spi_acquire`, four calls deep — so a dossier on
+    the interrupt handler, which is the name a firmware engineer actually types, came back with
+    an empty `context_conflicts` and `context_undecidable: 0`. That reads as a certificate: this
+    handler reaches nothing that blocks, and nothing was refused.
+
+    MEASURED ON RIOT: `nrf24l01p_rx_cb` had 0 rows against its own rowid and 9 against the
+    thread it owns — including the mutex path this whole layer was built to find.
+
+    A handler answers for its closure. Every other function still answers for itself.
+
+    @brief An ISR entry reports the conflicts of the thread it owns.
+    @version 1
+    """
+    from clew.query.locks import context_conflicts_for_rowids, context_undecidable_for_rowids
+
+    db = _context_db(tmp_path)
+    extract_context_conflicts(db)
+    conn = sqlite3.connect(str(db))
+
+    ## rowid 1 is the handler; every conflict is filed against rowid 2, the helper it calls.
+    on_handler = context_conflicts_for_rowids(conn, [1])
+    undecidable = context_undecidable_for_rowids(conn, [1])
+    on_helper = context_conflicts_for_rowids(conn, [2])
+    ## The control: a function that is not interrupt-reachable answers for itself only.
+    on_task = context_conflicts_for_rowids(conn, [4])
+    conn.close()
+
+    assert on_handler, "the handler must report what its own closure reaches"
+    assert {c.evidence for c in on_handler} == {c.evidence for c in on_helper}, (
+        "the handler's answer is its thread's findings, not a different set"
+    )
+    assert undecidable == 3, f"and the refusals of that thread too, got {undecidable}"
+    assert on_task == [], "a function outside any interrupt path still answers for itself"

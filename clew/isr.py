@@ -36,6 +36,7 @@ WHAT IS REFUSED, and why each refusal is a measurement and not an oversight:
 
 from __future__ import annotations
 
+import re
 from fnmatch import fnmatchcase
 from typing import Any
 
@@ -199,7 +200,7 @@ def isr_definition(node: Any, src: bytes) -> tuple[str, str] | None:
 ## @param src The file's raw bytes.
 ## @param spellings The registration callee names this build matches.
 ## @return How many registration spellings appear inside preprocessor definitions.
-## @version 1
+## @version 2
 ## @req REQ-DDB-SCHEMA-001
 def count_macro_body_registrations(tree: Any, src: bytes, spellings: frozenset[str]) -> int:
     """THE ONE NUMBER THAT MAKES A ZERO HONEST. tree-sitter exposes a `#define` body as opaque
@@ -228,5 +229,10 @@ def count_macro_body_registrations(tree: Any, src: bytes, spellings: frozenset[s
         if value is None:
             continue
         text = src[value.start_byte : value.end_byte].decode("utf-8", errors="replace")
-        found += sum(1 for name in spellings if f"{name}(" in text.replace(" (", "("))
+        ## AN IDENTIFIER BOUNDARY, and ONE count per macro body. Matching `f"{name}("` as a
+        ## bare substring counts `devm_request_irq(` once for itself and again for the
+        ## `request_irq(` inside it, and counts a body holding several spellings several times —
+        ## inflating a number whose whole purpose is to be trusted as "what I could not read".
+        joined = "|".join(re.escape(name) for name in sorted(spellings))
+        found += 1 if joined and re.search(rf"(?<![A-Za-z0-9_$:]) ?({joined})\s*\(", text) else 0
     return found
