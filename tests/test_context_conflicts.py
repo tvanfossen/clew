@@ -198,3 +198,82 @@ def _run(tmp_path) -> "object":
     db = _context_db(tmp_path)
     extract_context_conflicts(db)
     return db
+
+
+## @brief Build a database where the blocking function has several definitions.
+## @param tmp_path Pytest temporary directory.
+## @return Path to the database.
+## @version 1
+def _ported_db(tmp_path) -> "object":
+    """RIOT's shape, reduced: one driver, one name, several per-port implementations, and ONE
+    edge — whichever the indexer happened to resolve.
+
+    @brief Hand-build a multi-port call graph.
+    @version 1
+    """
+    db = tmp_path / "clew.db"
+    conn = sqlite3.connect(str(db))
+    conn.executescript(
+        """
+        CREATE TABLE path (name TEXT);
+        CREATE TABLE memberdef (
+            rowid INTEGER PRIMARY KEY, kind TEXT, name TEXT,
+            file_id INTEGER, bodyfile_id INTEGER, bodystart INTEGER, bodyend INTEGER);
+        CREATE TABLE call_edges (
+            caller_rowid INTEGER, callee_rowid INTEGER, source TEXT, confidence TEXT);
+        INSERT INTO path (rowid, name) VALUES
+          (1, 'drivers/radio.c'), (2, 'cpu/port_a/spi.c'), (3, 'cpu/port_b/spi.c');
+        INSERT INTO memberdef (rowid, kind, name, file_id, bodyfile_id, bodystart, bodyend)
+          VALUES (1, 'function', 'radio_isr', 1, 1, 10, 20),
+                 (2, 'function', 'bus_acquire', 2, 2, 5, 9),
+                 (3, 'function', 'bus_acquire', 3, 3, 5, 9);
+        INSERT INTO call_edges VALUES (1, 2, 'doxygen_sqlite', 'exact');
+        """
+    )
+    _ensure_threads_tables(conn)
+    _ensure_lock_tables(conn)
+    ensure_blocking_table(conn)
+    conn.executescript(
+        """
+        INSERT INTO threads
+          (name, entry_memberdef_rowid, kind, source, confidence, spawn_path_rowid, spawn_line)
+          VALUES ('radio_isr', 1, 'isr', 'ast_isr_name', 'medium', 1, 10);
+        INSERT INTO blocking_calls
+          (holder_rowid, path_rowid, line, primitive, wait, wait_operand, guard)
+          VALUES (2, 2, 7, 'mutex_lock', 'unconditional', '', '');
+        """
+    )
+    conn.commit()
+    conn.close()
+    return db
+
+
+def test_a_path_through_a_multiply_defined_name_says_so(tmp_path) -> None:
+    """MEASURED ON RIOT: `spi_acquire` has FIVE definitions, one per CPU port, and doxygen
+    emitted exactly ONE edge for the driver's call — to `cpu/atmega_common/periph/spi.c`,
+    labelled `exact`. An nRF radio driver was therefore reported as reaching atmega's SPI
+    implementation, and msp430's USART, with a path that reads as precise and is arbitrary: the
+    index resolved a name, the LINKER resolves the port, and nothing in the tree says which
+    build is meant. 251 of 2470 definition names in that index are multiply defined.
+
+    The finding is not wrong — every one of those implementations does take a mutex, and the
+    handler does reach one of them — but the row must say WHICH CLAIM IT IS MAKING. So a path
+    through a multiply-defined name is reported at low confidence, naming the count.
+
+    @brief An ambiguous hop lowers confidence and is named in the row.
+    @version 1
+    """
+    db = _ported_db(tmp_path)
+    extract_context_conflicts(db)
+    rows = _rows(db)
+
+    key = ("blocking_call", "mutex_lock", 7)
+    assert key in rows, f"the conflict is still reported, got {rows}"
+    verdict, detail, _depth, confidence = rows[key]
+    assert verdict == VERDICT_CONFLICT
+    assert confidence == "low", (
+        f"a path through a name with several definitions is not exact; got {confidence}"
+    )
+    assert "bus_acquire" in detail and "2" in detail, (
+        f"the row must name the ambiguous hop and how many definitions it has; got {detail!r}"
+    )
