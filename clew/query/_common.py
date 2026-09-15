@@ -233,7 +233,7 @@ def resolve_rowid(conn: sqlite3.Connection, name: str, qualified: str | None = N
 ## @param name Bare function name (`memberdef.name`).
 ## @param qualified Optional identity selector; see `matching_identity`. None keeps every same-named row.
 ## @return List of (rowid, signature, file, line_start, has_body) tuples, definition rows first then by rowid; empty when the name is unknown or no row carries that identity.
-## @version 7
+## @version 8
 ## @req REQ-DDB-QUERY-003
 ## @req REQ-DDB-QUERY-010
 def function_candidates(
@@ -265,9 +265,22 @@ def function_candidates(
     """
     if not table_exists(conn, "memberdef"):
         return []
+    ## ONE LOCATION, FROM ONE PLACE. The path is the DECLARING file (`file_id`), so the line has
+    ## to be a line OF THAT FILE. It used to be `bodystart` — a line of the DEFINING file — which
+    ## for a header declaration pairs `module.h` with a line of `module.c`: a colleague's valkey
+    ## reply listed `src/module.h:9296` for a 252-line header. A definition row keeps
+    ## `bodystart` (its declaring and defining files are the same file); a declaration row reports
+    ## where it is declared. A `memberdef` without the `line` column — hand-built fixtures, never
+    ## doxygen's own schema — keeps the old reading rather than raising.
+    has_line = any(column[1] == "line" for column in conn.execute("PRAGMA table_info(memberdef)"))
+    line_expr = (
+        "CASE WHEN m.file_id = m.bodyfile_id THEN m.bodystart ELSE m.line END"
+        if has_line
+        else "m.bodystart"
+    )
     rows = conn.execute(
         "SELECT m.rowid, COALESCE(m.definition, m.name), COALESCE(p.name,''), "
-        "m.bodystart, (COALESCE(m.bodyfile_id, 0) > 0 AND COALESCE(m.bodystart, 0) > 0) AS has_body "
+        f"{line_expr}, (COALESCE(m.bodyfile_id, 0) > 0 AND COALESCE(m.bodystart, 0) > 0) AS has_body "
         "FROM memberdef m LEFT JOIN path p ON p.rowid = m.file_id "
         "WHERE m.name=? AND m.kind='function' "
         f"ORDER BY {_test_scope_term(conn, 'm.file_id')}"
