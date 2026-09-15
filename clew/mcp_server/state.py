@@ -281,7 +281,7 @@ class Target:
 
 
 ## @brief The repository ONE query answers from, resolved before the query runs.
-## @version 1
+## @version 2
 @dataclass(frozen=True)
 class Answering:
     """What a routed tool call needs to know about the repository it was told to read:
@@ -293,13 +293,20 @@ class Answering:
     a correct answer, and answering from the wrong index is this project's most expensive
     recorded defect.
 
-    @brief Resolved routing target for one query (db + repo + staleness).
-    @version 1
+    `sub_index` AND `not_searched` SAY HOW MUCH OF THE REPOSITORY THIS IS (gh#48). A bare call on a
+    split repository is answered from its first-party index, and a negative from there about a
+    symbol that lives in a vendored tree was worded as "a definitive negative from the database".
+    The reply has to name the part that answered and the built parts it did not read.
+
+    @brief Resolved routing target for one query (db + repo + staleness + which part answered).
+    @version 2
     """
 
     db: Path
     repo: Path
     staleness: list[dict[str, str]]
+    sub_index: str | None = None
+    not_searched: tuple[str, ...] = ()
 
 
 ## @brief Allocate the Target record for a repo path (pure; no I/O).

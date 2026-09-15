@@ -44,6 +44,7 @@ RUNTIME_SERVED_MODULES = (
     "clew/mcp_server/freshness.py",
     "clew/mcp_server/tools_query.py",
     "clew/mcp_server/server.py",
+    "clew/mcp_server/routing.py",
 )
 
 ## The other half of the partition: package modules that serve NO text, each excluded for a

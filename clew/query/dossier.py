@@ -437,6 +437,52 @@ def function_dossier(
         return _dossier_conn(conn, fn, qualified, repo_root, max_body_lines)
 
 
+## @brief The candidate whose recorded span actually opens on the function, when the first does not.
+## @param conn Open connection.
+## @param cands Same-identity candidate rows, in preference order.
+## @param repo_root Working tree, or None when no body can be read.
+## @param max_body_lines Excerpt cap, forwarded so the probe reads what the panel would.
+## @return The rowid the dossier should describe.
+## @version 1
+## @dg_internal
+def _anchored_pick(
+    conn: sqlite3.Connection,
+    cands: list[tuple],
+    repo_root: Path | str | None,
+    max_body_lines: int,
+) -> int:
+    """A COLLEAGUE'S REPORT, against valkey at 7f1dffed: doxygen recorded every body span in
+    src/module.c three lines early, so `dossier("moduleAcquireGIL")` quoted the TAIL OF THE
+    PRECEDING FUNCTION as its body. `anchor_mismatch` said so — correctly — and the text was still
+    there to quote, while the parser-recovered row of the SAME identity sat in `candidates` with
+    the exact span.
+
+    The preference order stays the one `function_candidates` defines; this only steps past a row
+    whose span is demonstrably not the function, and only to a row whose OWN span is. No nearby
+    line is ever guessed: with no anchored sibling the first pick stands and the flag discloses
+    it, which is the behaviour a missing better row deserves.
+
+    Costs nothing on the common path: the first row's excerpt is read once here and it anchors.
+
+    @brief Prefer an anchored row of the same identity over an unanchored first pick.
+    @return The chosen rowid.
+    @version 1
+    """
+    first = cands[0][0]
+    if repo_root is None or len(cands) < 2:
+        return first
+    probe = body_excerpt(conn, first, repo_root, max_lines=max_body_lines)
+    if probe is None or not probe.anchor_mismatch:
+        return first
+    for candidate in cands[1:]:
+        if not candidate[4]:
+            continue
+        sibling = body_excerpt(conn, candidate[0], repo_root, max_lines=max_body_lines)
+        if sibling is not None and not sibling.anchor_mismatch:
+            return candidate[0]
+    return first
+
+
 ## @brief Assemble one dossier on an ALREADY-OPEN connection.
 ## @param conn Open connection to a built index.
 ## @param fn Bare function name.
@@ -444,7 +490,7 @@ def function_dossier(
 ## @param repo_root Working tree, or None to skip the body and external-callee panels.
 ## @param max_body_lines Cap on the body excerpt.
 ## @return The populated Dossier, or None when `fn` resolves to nothing.
-## @version 7
+## @version 8
 ## @req REQ-DDB-QUERY-004
 ## @dg_internal
 def _dossier_conn(
@@ -475,7 +521,7 @@ def _dossier_conn(
         ## specific function identity, and answering it with a macro would
         ## substitute a different symbol for the one that was asked for.
         return _macro_dossier(macros) if macros and qualified is None else None
-    rowid = cands[0][0]
+    rowid = _anchored_pick(conn, cands, repo_root, max_body_lines)
     ident = _identity(conn, rowid)
     if ident is None:
         return None

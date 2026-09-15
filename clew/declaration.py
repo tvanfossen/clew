@@ -352,22 +352,87 @@ def load_declaration_located(
 
 ## @brief Parse a YAML file expected to hold a mapping.
 ## @param path File to read.
-## @return The mapping, or {} when unreadable, malformed, or not a mapping.
-## @version 1
+## @return The mapping, or {} when unreadable, malformed, empty, or not a mapping.
+## @version 2
 ## @dg_internal
 def _read_mapping(path: Path) -> dict[str, Any]:
-    """@brief Read a YAML mapping, warning and degrading to {} on any problem."""
+    """AN EMPTY OR COMMENT-ONLY FILE IS NOT MALFORMED (gh#48). It is exactly what
+    `propose_declaration` hands an owner — a draft written entirely as comments so that committing
+    it changes nothing — and it used to log "does not contain a mapping — ignoring it", a WARNING
+    that reads as a broken file and sent a reporter looking for damage that was not there. It
+    states nothing, so the defaults apply, and that is said at INFO in those words.
+
+    @brief Read a YAML mapping, degrading to {} with a message that names the actual state.
+    @return The mapping, or {}.
+    @version 2
+    """
+    data, problem = _parsed_declaration(path)
+    if problem is not None:
+        logger.warning("%s %s — ignoring it, using built-in defaults", path, problem)
+    elif not data:
+        logger.info(
+            "%s states nothing (it is empty or comments only) — built-in defaults apply", path
+        )
+    return data
+
+
+## @brief Parse a declaration file into (mapping, problem).
+## @param path File to read.
+## @return The mapping ({} when empty), and a phrase naming why it is unusable, or None.
+## @version 1
+## @dg_internal
+def _parsed_declaration(path: Path) -> tuple[dict[str, Any], str | None]:
+    """ONE PARSE FOR THE BUILD AND FOR THE MESSAGES that describe it, so a refusal saying
+    "comments only" and a build honouring nothing cannot disagree about the same file.
+
+    @brief Parse a declaration file, classifying why it holds nothing.
+    @return (mapping, problem phrase or None).
+    @version 1
+    """
     import yaml
 
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
     except (OSError, yaml.YAMLError) as exc:
-        logger.warning("%s is unreadable (%s) — ignoring it, using defaults", path, exc)
-        return {}
+        return {}, f"is unreadable ({exc})"
+    if data is None:
+        return {}, None
     if not isinstance(data, dict):
-        logger.warning("%s does not contain a mapping — ignoring it, using defaults", path)
-        return {}
-    return data
+        return {}, f"holds a {type(data).__name__}, not a mapping of sections"
+    return data, None
+
+
+## @brief One sentence on a repository's `.clew.yaml` and whether a build honours it.
+## @param repo_root The repository root.
+## @return The sentence, or "" when the repository has no `.clew.yaml`.
+## @version 1
+## @req REQ-DDB-CONFIG-001
+def describe_declaration(repo_root: Path) -> str:
+    """gh#48 ASK 4. A reporter's split repository carried a `.clew.yaml` that was comments only, so
+    its guidance reached neither clew nor the agent — and nothing on the tool surface said so. A
+    refusal about that repository now names the file and whether it was honoured, which is where an
+    owner would go to change the behaviour being refused.
+
+    SILENT WHEN THE FILE IS ABSENT, which is the common case and not news: most repositories declare
+    nothing, and a sentence saying so on every refusal is a sentence nobody reads.
+
+    @brief Describe a repository's declaration file for a message.
+    @return The sentence, or "".
+    @version 1
+    """
+    path = Path(repo_root) / DECLARATION_NAME
+    if not path.is_file():
+        return ""
+    data, problem = _parsed_declaration(path)
+    if problem is not None:
+        return f"Its {DECLARATION_NAME} {problem}, so it is ignored and built-in defaults apply."
+    if not data:
+        return (
+            f"Its {DECLARATION_NAME} holds only comments, so it states nothing and built-in "
+            f"defaults apply — uncomment a section to have builds honour it."
+        )
+    sections = ", ".join(sorted(str(k) for k in data))
+    return f"Its {DECLARATION_NAME} declares {sections}, which every build honours."
 
 
 ## @brief Identify a STATED declaration document for the build record.
