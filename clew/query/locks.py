@@ -747,6 +747,17 @@ LEFT JOIN path p ON p.rowid = c.path_rowid
 """
 
 
+## WHO A CONFLICT BELONGS TO: the function that HOLDS the site, and the interrupt handler whose
+## closure reaches it. Filing it against the holder alone was a certificate of safety for the
+## name a firmware engineer actually types — measured on RIOT, `nrf24l01p_rx_cb` answered with
+## zero conflicts while nine stood against the thread it owns, the mutex path this layer exists
+## to find among them.
+_CONFLICT_SUBJECT = (
+    "c.member_rowid IN ({marks}) "
+    "OR c.thread_id IN (SELECT id FROM threads WHERE entry_memberdef_rowid IN ({marks}))"
+)
+
+
 ## @brief Whether this index carries the interrupt-context layer at all.
 ## @param conn Open connection.
 ## @return True when context_conflicts exists.
@@ -771,7 +782,7 @@ def _context_layer_present(conn: sqlite3.Connection) -> bool:
 ## @param conn Open connection.
 ## @param rowids An identity's memberdef rowids.
 ## @return The conflicts, worst-first then in source order.
-## @version 1
+## @version 2
 ## @req REQ-DDB-SCHEMA-011
 def context_conflicts_for_rowids(
     conn: sqlite3.Connection, rowids: list[int]
@@ -789,9 +800,9 @@ def context_conflicts_for_rowids(
     marks = ",".join("?" * len(rowids))
     rows = conn.execute(
         f"SELECT {_CONFLICT_COLUMNS} {_CONFLICT_FROM} "
-        f"WHERE c.member_rowid IN ({marks}) AND c.verdict = 'conflict' "
+        f"WHERE ({_CONFLICT_SUBJECT.format(marks=marks)}) AND c.verdict = 'conflict' "
         "ORDER BY c.depth, p.name, c.line",
-        rowids,
+        [*rowids, *rowids],
     ).fetchall()
     return [ContextConflict(*row) for row in rows]
 
@@ -800,7 +811,7 @@ def context_conflicts_for_rowids(
 ## @param conn Open connection.
 ## @param rowids An identity's memberdef rowids.
 ## @return The count, or None when the index predates the layer.
-## @version 1
+## @version 2
 ## @req REQ-DDB-SCHEMA-011
 def context_undecidable_for_rowids(conn: sqlite3.Connection, rowids: list[int]) -> int | None:
     """A ZERO AND A None ARE DIFFERENT ANSWERS. Zero is what makes an empty conflict list
@@ -816,8 +827,8 @@ def context_undecidable_for_rowids(conn: sqlite3.Connection, rowids: list[int]) 
         return 0
     marks = ",".join("?" * len(rowids))
     row = conn.execute(
-        f"SELECT COUNT(*) FROM context_conflicts "
-        f"WHERE member_rowid IN ({marks}) AND verdict = 'undecidable'",
-        rowids,
+        f"SELECT COUNT(*) FROM context_conflicts c "
+        f"WHERE ({_CONFLICT_SUBJECT.format(marks=marks)}) AND c.verdict = 'undecidable'",
+        [*rowids, *rowids],
     ).fetchone()
     return int(row[0]) if row else 0

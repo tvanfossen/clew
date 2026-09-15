@@ -220,5 +220,11 @@ questions:
           - {value: "drivers/gpio/gpio_max22017.c", evidence: "isr_quirk_handler is a k_timer expiry fn (k_timer_init at :379) and calls k_mutex_lock(..., K_FOREVER) at :40"}
           - {value: "drivers/i3c/i3c_stm32.c", evidence: "i3c_stm32_event_isr (:1753, IRQ_CONNECT inside the macro body at :2174) calls k_sem_take(&data->ibi_lock_sem, K_FOREVER) at :1815"}
           - {value: "drivers/mipi_dbi/mipi_dbi_bflb.c", evidence: "mipi_dbi_bflb_isr (:718, IRQ_CONNECT at :748) reaches mipi_dbi_bflb_detrigger, which calls k_usleep(1) at :157"}
-          - {value: "samples/bluetooth/encrypted_advertising/central/src/main.c", evidence: "button_pressed (GPIO callback, registered :99) calls k_sleep(K_SECONDS(1)) at :50"}
-          - {value: "samples/bluetooth/encrypted_advertising/peripheral/src/main.c", evidence: "button_pressed (GPIO callback, registered :93) calls k_sleep(K_SECONDS(1)) at :44"}
+          ## ONE MEMBER FOR BOTH SAMPLES, deliberately. Set members are compared on the LAST
+          ## PATH SEGMENT (acceptance/grader/score.py:155), so
+          ## `.../central/src/main.c` and `.../peripheral/src/main.c` key identically and would
+          ## be two members grading as one item — the collision that function's own docstring
+          ## warns about. The defect is duplicated verbatim in the peripheral sample
+          ## (button_pressed at :39, registered :93, k_sleep at :44) and naming either one is
+          ## the same finding.
+          - {value: "samples/bluetooth/encrypted_advertising/central/src/main.c", evidence: "button_pressed (GPIO callback, registered :99) calls k_sleep(K_SECONDS(1)) at :50; the peripheral sample repeats it at :44"}

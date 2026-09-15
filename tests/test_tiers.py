@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from clew.buildoptions import MANIFEST_OPTIONS
+from clew.buildoptions import MANIFEST_OPTIONS, SECTION_DOCUMENT_OPTIONS
 from clew.cli import (
     OPTION_ENTRY_PATTERNS,
     OPTION_KEY_ALIAS_PREFIXES,
@@ -795,10 +795,14 @@ def test_nothing_is_stated_and_nothing_replays_for_a_target_that_states_nothing(
 
     ## gh#42 widened the stamped set: `data_model` is a PATH option rather than a manifest one
     ## — the single manifest that is not YAML — and was previously the one stated option that
-    ## recorded nothing. The assertion stays EXACT, which is the property this test is written
-    ## for; only the enumeration follows the set that is actually stamped.
+    ## recorded nothing. gh#47 widened it again to the SECTION-DOCUMENT options, for the same
+    ## reason and found the same way: a consumer asked whether a declaration reached the build
+    ## and the row it reads did not exist, so `index_scope` was refused on a build where it had
+    ## landed. The assertion stays EXACT, which is the property this test is written for; only
+    ## the enumeration follows the set that is actually stamped.
     assert _options_meta_section(db) == {
-        f"{option}.{TIER_KEY}": TIER_HEURISTIC for option in (*MANIFEST_OPTIONS, SECTION_DATA_MODEL)
+        f"{option}.{TIER_KEY}": TIER_HEURISTIC
+        for option in (*MANIFEST_OPTIONS, SECTION_DATA_MODEL, *SECTION_DOCUMENT_OPTIONS)
     }
     assert stated_options(_options_meta_section(db)) == ()
     assert _replay_manifest_statements(_manifest_namespace(), db) == []

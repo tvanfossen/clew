@@ -198,3 +198,119 @@ def _run(tmp_path) -> "object":
     db = _context_db(tmp_path)
     extract_context_conflicts(db)
     return db
+
+
+## @brief Build a database where the blocking function has several definitions.
+## @param tmp_path Pytest temporary directory.
+## @return Path to the database.
+## @version 1
+def _ported_db(tmp_path) -> "object":
+    """RIOT's shape, reduced: one driver, one name, several per-port implementations, and ONE
+    edge — whichever the indexer happened to resolve.
+
+    @brief Hand-build a multi-port call graph.
+    @version 1
+    """
+    db = tmp_path / "clew.db"
+    conn = sqlite3.connect(str(db))
+    conn.executescript(
+        """
+        CREATE TABLE path (name TEXT);
+        CREATE TABLE memberdef (
+            rowid INTEGER PRIMARY KEY, kind TEXT, name TEXT,
+            file_id INTEGER, bodyfile_id INTEGER, bodystart INTEGER, bodyend INTEGER);
+        CREATE TABLE call_edges (
+            caller_rowid INTEGER, callee_rowid INTEGER, source TEXT, confidence TEXT);
+        INSERT INTO path (rowid, name) VALUES
+          (1, 'drivers/radio.c'), (2, 'cpu/port_a/spi.c'), (3, 'cpu/port_b/spi.c');
+        INSERT INTO memberdef (rowid, kind, name, file_id, bodyfile_id, bodystart, bodyend)
+          VALUES (1, 'function', 'radio_isr', 1, 1, 10, 20),
+                 (2, 'function', 'bus_acquire', 2, 2, 5, 9),
+                 (3, 'function', 'bus_acquire', 3, 3, 5, 9);
+        INSERT INTO call_edges VALUES (1, 2, 'doxygen_sqlite', 'exact');
+        """
+    )
+    _ensure_threads_tables(conn)
+    _ensure_lock_tables(conn)
+    ensure_blocking_table(conn)
+    conn.executescript(
+        """
+        INSERT INTO threads
+          (name, entry_memberdef_rowid, kind, source, confidence, spawn_path_rowid, spawn_line)
+          VALUES ('radio_isr', 1, 'isr', 'ast_isr_name', 'medium', 1, 10);
+        INSERT INTO blocking_calls
+          (holder_rowid, path_rowid, line, primitive, wait, wait_operand, guard)
+          VALUES (2, 2, 7, 'mutex_lock', 'unconditional', '', '');
+        """
+    )
+    conn.commit()
+    conn.close()
+    return db
+
+
+def test_a_path_through_a_multiply_defined_name_says_so(tmp_path) -> None:
+    """MEASURED ON RIOT: `spi_acquire` has FIVE definitions, one per CPU port, and doxygen
+    emitted exactly ONE edge for the driver's call — to `cpu/atmega_common/periph/spi.c`,
+    labelled `exact`. An nRF radio driver was therefore reported as reaching atmega's SPI
+    implementation, and msp430's USART, with a path that reads as precise and is arbitrary: the
+    index resolved a name, the LINKER resolves the port, and nothing in the tree says which
+    build is meant. 251 of 2470 definition names in that index are multiply defined.
+
+    The finding is not wrong — every one of those implementations does take a mutex, and the
+    handler does reach one of them — but the row must say WHICH CLAIM IT IS MAKING. So a path
+    through a multiply-defined name is reported at low confidence, naming the count.
+
+    @brief An ambiguous hop lowers confidence and is named in the row.
+    @version 1
+    """
+    db = _ported_db(tmp_path)
+    extract_context_conflicts(db)
+    rows = _rows(db)
+
+    key = ("blocking_call", "mutex_lock", 7)
+    assert key in rows, f"the conflict is still reported, got {rows}"
+    verdict, detail, _depth, confidence = rows[key]
+    assert verdict == VERDICT_CONFLICT
+    assert confidence == "low", (
+        f"a path through a name with several definitions is not exact; got {confidence}"
+    )
+    assert "bus_acquire" in detail and "2" in detail, (
+        f"the row must name the ambiguous hop and how many definitions it has; got {detail!r}"
+    )
+
+
+def test_the_handler_itself_answers_for_what_its_closure_reaches(tmp_path) -> None:
+    """THE QUESTION THE FEATURE EXISTS FOR, and it was answered wrongly. A conflict is filed
+    against the function that HOLDS the site — `spi_acquire`, four calls deep — so a dossier on
+    the interrupt handler, which is the name a firmware engineer actually types, came back with
+    an empty `context_conflicts` and `context_undecidable: 0`. That reads as a certificate: this
+    handler reaches nothing that blocks, and nothing was refused.
+
+    MEASURED ON RIOT: `nrf24l01p_rx_cb` had 0 rows against its own rowid and 9 against the
+    thread it owns — including the mutex path this whole layer was built to find.
+
+    A handler answers for its closure. Every other function still answers for itself.
+
+    @brief An ISR entry reports the conflicts of the thread it owns.
+    @version 1
+    """
+    from clew.query.locks import context_conflicts_for_rowids, context_undecidable_for_rowids
+
+    db = _context_db(tmp_path)
+    extract_context_conflicts(db)
+    conn = sqlite3.connect(str(db))
+
+    ## rowid 1 is the handler; every conflict is filed against rowid 2, the helper it calls.
+    on_handler = context_conflicts_for_rowids(conn, [1])
+    undecidable = context_undecidable_for_rowids(conn, [1])
+    on_helper = context_conflicts_for_rowids(conn, [2])
+    ## The control: a function that is not interrupt-reachable answers for itself only.
+    on_task = context_conflicts_for_rowids(conn, [4])
+    conn.close()
+
+    assert on_handler, "the handler must report what its own closure reaches"
+    assert {c.evidence for c in on_handler} == {c.evidence for c in on_helper}, (
+        "the handler's answer is its thread's findings, not a different set"
+    )
+    assert undecidable == 3, f"and the refusals of that thread too, got {undecidable}"
+    assert on_task == [], "a function outside any interrupt path still answers for itself"

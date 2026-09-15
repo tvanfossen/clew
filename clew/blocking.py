@@ -265,7 +265,7 @@ def _enclosing_condition(node: Any, src: bytes) -> str:
 ## @param src_bytes The file's raw bytes.
 ## @param patterns_by_name Blocking patterns keyed by callee name.
 ## @return A list of [primitive, line, wait, wait_operand, guard] records.
-## @version 1
+## @version 2
 ## @req REQ-DDB-SCHEMA-011
 def walk_blocking_sites(tree: Any, src_bytes: bytes, patterns_by_name: dict) -> list[list[Any]]:
     """Rowid-free like every harvest payload: the holder is resolved by LINE at insert time,
@@ -290,7 +290,16 @@ def walk_blocking_sites(tree: Any, src_bytes: bytes, patterns_by_name: dict) -> 
         if pattern is None:
             continue
         arguments = node.child_by_field_name("arguments")
-        named = [child for child in arguments.named_children] if arguments is not None else []
+        ## A COMMENT IS A NAMED CHILD. tree-sitter-c makes `comment` an extra, so
+        ## `xEventGroupWaitBits(eg, BIT0, /* xClearOnExit */ pdTRUE, pdFALSE, portMAX_DELAY)`
+        ## shifts every argument after it by one and the timeout index lands on `pdFALSE` — a
+        ## zero token — which classifies a K_FOREVER wait as legal in an interrupt and drops the
+        ## conflict silently. Vendor headers and demo code comment their arguments constantly.
+        named = (
+            [child for child in arguments.named_children if child.type != "comment"]
+            if arguments is not None
+            else []
+        )
         operand = ""
         if pattern.timeout_arg_index is not None and len(named) > pattern.timeout_arg_index:
             argument = named[pattern.timeout_arg_index]

@@ -367,3 +367,185 @@ def test_two_handlers_of_the_same_name_resolve_to_their_own_file(tmp_path) -> No
     assert [(r[1], r[2]) for r in rows] == [(1, "src/a.c"), (3, "src/b.c")], (
         f"each registration must resolve to the handler defined beside it, got {rows}"
     )
+
+
+_MACRO_NAMED = b"""\
+void drain(void);
+void timer_isr_cc0(int chan);
+
+void ISR_GPIOTE(void) { drain(); }
+
+void TIMER_0_ISR(void) { drain(); }
+
+ISR(TIMER0_ISR_CC0, isr_timer0_cc0)
+{
+    timer_isr_cc0(0);
+}
+
+ISR(BADISR_vect, ISR_NAKED)
+{
+    drain();
+}
+"""
+
+
+def test_a_handler_named_by_a_board_macro_is_still_a_handler() -> None:
+    """MEASURED ON RIOT AT ITS PIN: 12 vector handlers in the indexed scope were missed because
+    the function's NAME is a board macro — `void ISR_GPIOTE(void)` (cpu/nrf5x_common/periph/gpio.c:231),
+    `void TIMER_0_ISR(void)` (periph/timer.c:301), `ISR_SPIM0`, `SERIAL0_ISR`. The macro expands
+    to `isr_gpiote` and the mapping lives in `boards/*/periph_conf.h`, outside any cpu-scoped
+    index, so the expansion is not available — but the SHAPE is unambiguous: a zero-argument
+    void definition whose name is ISR-prefixed or ISR-suffixed.
+
+    @brief The ISR_*/*_ISR naming shapes are recognised.
+    @version 1
+    """
+    found = {site[ENTRY]: site for site in _sites(_MACRO_NAMED)}
+
+    for entry in ("ISR_GPIOTE", "TIMER_0_ISR"):
+        assert entry in found, f"{entry} is a vector handler; found {sorted(found)}"
+        assert found[entry][SOURCE] == "ast_isr_name", (
+            f"a macro name is an inference, not a declaration; got {found[entry][SOURCE]!r}"
+        )
+
+
+def test_the_msp430_two_argument_isr_macro_names_its_handler() -> None:
+    """`ISR(VECTOR, name) { ... }` (cpu/msp430/include/cpu.h:42) expands to
+    `void __attribute__((naked, interrupt(VECTOR))) name(void)`, and tree-sitter parses the site
+    as a CALL followed by a detached compound statement — so there is no function_definition to
+    classify and the definition walk sees nothing. 9 handlers missed in the RIOT scope.
+
+    As a call it is an ordinary registration whose second argument names the handler, which the
+    existing spawn machinery already expresses.
+
+    THE AVR FORM SHARES THE SPELLING AND MUST NOT MATCH. avr-libc's `ISR(vect, ISR_NAKED)` takes
+    an ATTRIBUTE in that position (cpu/atmega_common/atmega_cpu.c:87), and recording it would
+    mint a handler called ISR_NAKED whose entry never resolves.
+
+    @brief The msp430 ISR macro is a registration; the AVR attribute form is refused.
+    @version 1
+    """
+    found = {site[ENTRY]: site for site in _sites(_MACRO_NAMED)}
+
+    assert "isr_timer0_cc0" in found, f"the msp430 handler must be named; found {sorted(found)}"
+    assert found["isr_timer0_cc0"][KIND] == "isr"
+    assert "ISR_NAKED" not in found, "an avr-libc ISR attribute is not a handler"
+    assert "ISR_BLOCK" not in found, "an avr-libc ISR attribute is not a handler"
+
+
+def test_two_definitions_of_one_handler_in_one_file_each_resolve(tmp_path) -> None:
+    """MEASURED ON RIOT: five rows carried NO entry and therefore no closure — `isr_svc` twice
+    and `isr_pendsv` twice, each pair being the two `#if` arms of ONE file
+    (cpu/cortexm_common/thread_arch.c:311/378 and :460/540), plus `RTC_IRQHandler`. The name is
+    ambiguous and the FILE does not disambiguate either, so name resolution failed both ways and
+    the layer said "a handler is here" while being unable to say what it reaches.
+
+    A handler found at its DEFINITION does not need a name lookup at all: the site IS the
+    definition, and its line pins the exact memberdef — the same resolution the lock layer uses
+    for a holder. Only a REGISTRATION, which names its handler from somewhere else, has to look
+    a name up.
+
+    @brief A definition-form handler resolves by its own line, not by its name.
+    @version 1
+    """
+    import sqlite3
+
+    from clew.threads import extract_threads
+
+    db = tmp_path / "clew.db"
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.c").write_text(
+        "void drain(void);\n"
+        "#ifdef CPU_A\n"
+        "void isr_svc(void)\n"
+        "{\n"
+        "    drain();\n"
+        "}\n"
+        "#else\n"
+        "void isr_svc(void)\n"
+        "{\n"
+        "    drain();\n"
+        "}\n"
+        "#endif\n"
+    )
+    conn = sqlite3.connect(str(db))
+    conn.executescript(
+        """
+        CREATE TABLE path (name TEXT);
+        CREATE TABLE memberdef (
+            rowid INTEGER PRIMARY KEY, kind TEXT, name TEXT,
+            file_id INTEGER, bodyfile_id INTEGER, bodystart INTEGER, bodyend INTEGER);
+        CREATE TABLE call_edges (
+            caller_rowid INTEGER, callee_rowid INTEGER, source TEXT, confidence TEXT);
+        INSERT INTO path (rowid, name) VALUES (1, 'src/a.c');
+        INSERT INTO memberdef (rowid, kind, name, file_id, bodyfile_id, bodystart, bodyend)
+          VALUES (1, 'function', 'isr_svc', 1, 1, 3, 6),
+                 (2, 'function', 'isr_svc', 1, 1, 8, 11),
+                 (3, 'function', 'drain', 1, 1, 1, 1);
+        INSERT INTO call_edges VALUES (1, 3, 'ast', 'resolved'), (2, 3, 'ast', 'resolved');
+        """
+    )
+    conn.commit()
+    conn.close()
+
+    extract_threads(db, tmp_path)
+
+    conn = sqlite3.connect(str(db))
+    entries = [
+        r[0]
+        for r in conn.execute(
+            "SELECT entry_memberdef_rowid FROM threads WHERE kind='isr' ORDER BY spawn_line"
+        )
+    ]
+    members = conn.execute("SELECT COUNT(*) FROM thread_membership").fetchone()[0]
+    conn.close()
+
+    assert entries == [1, 2], f"each arm resolves to its own definition, got {entries}"
+    assert members == 4, f"both closures are populated (entry + drain, twice), got {members}"
+
+
+def test_a_thread_payload_cached_before_the_widened_patterns_is_not_served(tmp_path) -> None:
+    """THE SAME LOCKSTEP THE LOCK STAGE ALREADY OWED ONCE. gh#47's follow-up widened
+    `ISR_NAME_GLOBS`, added the msp430 `ISR` spawn pattern and added the avr-libc attribute
+    sentinels — three inputs read AT HARVEST TIME — and bumped nothing. The stage key is
+    `(content_sha, stage, stage_version, extra_key)` and `extra_key` hashes only the DECLARED
+    document, so a repository that built under the previous release keys the same payload
+    afterwards: a hit, serving the handler set from before the widening.
+
+    MEASURED ON RIOT AT ITS PIN: 104 interrupt rows cold against 79 from a warm pre-widening
+    payload — 25 handlers, a quarter of the roster, vanishing with no miss and no warning, and
+    the conflict layer runs over whatever survives.
+
+    @brief A stale-version thread payload must not be reused.
+    @version 1
+    """
+    import sqlite3
+
+    from clew.harvest import run_harvest
+    from clew.indexcache import IndexCache
+    from clew.threads import spawn_harvester
+
+    root = tmp_path / "repo"
+    (root / "src").mkdir(parents=True)
+    rel = "src/vectors.c"
+    (root / rel).write_bytes(
+        b"void drain(void);\nvoid ISR_GPIOTE(void) { drain(); }\n"
+        b"ISR(PORT1_VECTOR, isr_port1)\n{\n    drain();\n}\n"
+    )
+    harvester = spawn_harvester(None)
+    cache = IndexCache(tmp_path / "index.idxcache", root)
+    sha = cache.sha_for(rel, root / rel)
+    assert sha is not None
+    ## What the previous release's extraction produced for this file: nothing at all.
+    cache.extract_put(sha, harvester.stage, 6, harvester.extra_key, {"sites": []})
+
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE path (name TEXT)")
+    conn.execute("INSERT INTO path (name) VALUES (?)", (rel,))
+
+    payload = run_harvest(conn, root, harvester, try_import_tree_sitter(), cache)[0][1]
+    entries = sorted(site[ENTRY] for site in payload["sites"])
+
+    assert entries == ["ISR_GPIOTE", "isr_port1"], (
+        f"a payload cached under the pre-widening version was served; got {entries}"
+    )

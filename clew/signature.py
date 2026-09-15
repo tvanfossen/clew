@@ -145,7 +145,18 @@ from .tiers import OPTIONS_META_PREFIX
 ##   so an index built by 1.0.33 holds the pre-change rows and nothing about its source changes
 ##   to trigger the query-time auto-refresh — the same answer-a-new-question-with-silence case
 ##   versions 2, 4 and 5 each record.
-CLEW_BUILD_VERSION = 6
+## 7 (clew 1.0.35) — gh#47's two follow-ups change rows for identical source, and an index
+##   built by 1.0.34 reports itself current while holding the old ones:
+##
+##     * `threads` holds the handlers named by a board macro (`ISR_GPIOTE`, `TIMER_0_ISR`) and
+##       the msp430 `ISR(VECTOR, name)` registrations, and a definition-form site now resolves
+##       its entry by (path, line) rather than by name, so rows that carried no entry — and
+##       therefore no closure — now carry one. Measured on RIOT at its pin: 104 interrupt rows
+##       against 79, and 14 entry-less rows against 5.
+##     * `context_conflicts` holds different `confidence` values and a qualified `detail`: a
+##       path through a name this index defines more than once is reported `low` rather than
+##       `medium`, which is 9 of RIOT's 12 conflicts.
+CLEW_BUILD_VERSION = 7
 
 
 ## @brief Stamp the build version, scope, coverage and preprocessor config into build_meta.

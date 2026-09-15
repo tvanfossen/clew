@@ -535,9 +535,18 @@ def test_a_masking_primitive_that_takes_an_operand_is_not_this_primitive() -> No
     @version 1
     """
     sites = _sites(_CRITICAL_SECTIONS, cpp=False)
-    zephyr_lines = [site for site in sites if site[3] == 26]
-    assert zephyr_lines == [], (
-        f"irq_disable(line) is a different primitive and must not be recorded, got {zephyr_lines}"
+    ## LINE 24 IS THE ZEPHYR-SHAPED CALL, and the assertion has to name it: an earlier version
+    ## of this test filtered on line 26 — `irq_enable(line)`, which matches no pattern at all —
+    ## so it passed against an absence that was structurally guaranteed and would have passed
+    ## just as green with `global_only` deleted.
+    argument_taking = [site for site in sites if site[3] == 24]
+    assert argument_taking == [], (
+        f"irq_disable(line) at :24 is a different primitive and must not be recorded, "
+        f"got {argument_taking}"
+    )
+    ## The positive half, so the test cannot pass by finding nothing at all.
+    assert [site[3] for site in sites if site[0] == "irq_disable"] == [10], (
+        "the operand-less call at :10 is still the one that matches"
     )
 
 
@@ -559,3 +568,41 @@ def test_every_call_form_default_can_close_its_own_section() -> None:
     assert unclosable == [], f"call-form defaults with no release route: {unclosable}"
     orphans = sorted(name for name in _RELEASERS if name not in calls)
     assert orphans == [], f"_RELEASERS names no such default: {orphans}"
+
+
+def test_a_commented_argument_does_not_shift_the_timeout() -> None:
+    """A COMMENT IS A NAMED CHILD of the argument list in tree-sitter-c, so reading the Nth
+    named child reads the wrong argument the moment anyone documents one inline — which vendor
+    headers and RTOS demos do constantly.
+
+    The failure is silent and in the dangerous direction: the index lands on a neighbouring
+    token, and if that token is zero-shaped the call is classified `none` — legal in an
+    interrupt — and the conflict disappears.
+
+    @brief An inline comment does not shift the timeout argument.
+    @version 1
+    """
+    import tree_sitter_c
+    from tree_sitter import Language, Parser
+
+    from clew.blocking import DEFAULT_BLOCKING_PATTERNS, walk_blocking_sites
+
+    src = b"""\
+void f(void)
+{
+    xEventGroupWaitBits(eg, BIT0, /* xClearOnExit */ pdTRUE, pdFALSE, portMAX_DELAY);
+    k_sem_take(&sem, /* wait */ K_FOREVER);
+}
+"""
+    parser = Parser(Language(tree_sitter_c.language()))
+    sites = walk_blocking_sites(
+        parser.parse(src), src, {p.name: p for p in DEFAULT_BLOCKING_PATTERNS}
+    )
+    waits = {site[0]: (site[2], site[3]) for site in sites}
+
+    assert waits["xEventGroupWaitBits"] == ("forever", "portMAX_DELAY"), (
+        f"the comment must not shift the timeout argument, got {waits['xEventGroupWaitBits']}"
+    )
+    assert waits["k_sem_take"] == ("forever", "K_FOREVER"), (
+        f"same for a comment sitting immediately before the timeout, got {waits['k_sem_take']}"
+    )

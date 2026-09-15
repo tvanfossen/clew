@@ -98,13 +98,46 @@ def ensure_context_table(conn: sqlite3.Connection) -> None:
     )
 
 
+## @brief Function names this index holds more than one definition of.
+## @param conn Open connection.
+## @return name -> how many definitions, for names with more than one.
+## @version 1
+## @dg_internal
+def _multiply_defined(conn: sqlite3.Connection) -> dict[str, int]:
+    """MEASURED ON RIOT: `spi_acquire` has five definitions, one per CPU port, and doxygen
+    emitted ONE edge for a driver's call to it — to whichever it resolved, labelled `exact`. An
+    nRF driver was reported reaching atmega's implementation. The index resolves a NAME; the
+    linker resolves the PORT; nothing in a multi-port tree says which build is meant. 251 of
+    2470 definition names in that index are multiply defined.
+
+    @brief Count definitions per function name.
+    @return The ambiguous names.
+    @version 1
+    """
+    ## DEGRADES RATHER THAN RAISES on a database whose `memberdef` predates the file columns —
+    ## the same contract every accessor in this area keeps. Reporting no ambiguity there is a
+    ## statement about what can be read, not a claim that every name is unique.
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(memberdef)")}
+    where = "kind='function'" + (
+        " AND file_id = bodyfile_id" if {"file_id", "bodyfile_id"} <= columns else ""
+    )
+    return {
+        name: count
+        for name, count in conn.execute(
+            f"SELECT name, COUNT(*) FROM memberdef WHERE {where} GROUP BY name HAVING COUNT(*) > 1"
+        )
+    }
+
+
 ## @brief Walk the call graph from one entry, excluding deferral edges.
 ## @param conn Open connection.
 ## @param entry_rowid The handler's memberdef rowid.
 ## @return {rowid: (depth, weakest source on the path)} including the entry itself.
 ## @version 1
 ## @dg_internal
-def _isr_closure(conn: sqlite3.Connection, entry_rowid: int) -> dict[int, tuple[int, str]]:
+def _isr_closure(
+    conn: sqlite3.Connection, entry_rowid: int, ambiguous: dict[str, int] | None = None
+) -> dict[int, tuple[int, str, str]]:
     """Breadth-first so `depth` is the SHORTEST hop count from the handler, which is what a
     reader following the path back has to walk. The weakest source seen on the way in decides
     the row's confidence: a hop recovered through a function pointer is a real edge and an
@@ -114,24 +147,31 @@ def _isr_closure(conn: sqlite3.Connection, entry_rowid: int) -> dict[int, tuple[
     @return The closure.
     @version 1
     """
-    seen: dict[int, tuple[int, str]] = {entry_rowid: (0, "")}
+    ambiguous = ambiguous or {}
+    seen: dict[int, tuple[int, str, str]] = {entry_rowid: (0, "", "")}
     frontier = [entry_rowid]
     depth = 0
     while frontier:
         depth += 1
         rows = conn.execute(
-            "SELECT caller_rowid, callee_rowid, source FROM call_edges "
-            f"WHERE caller_rowid IN ({','.join('?' * len(frontier))}) "
-            "AND confidence != 'fuzzy' AND source != ?",
+            "SELECT e.caller_rowid, e.callee_rowid, e.source, m.name FROM call_edges e "
+            "JOIN memberdef m ON m.rowid = e.callee_rowid "
+            f"WHERE e.caller_rowid IN ({','.join('?' * len(frontier))}) "
+            "AND e.confidence != 'fuzzy' AND e.source != ?",
             (*frontier, _EXCLUDED_EDGE_SOURCE),
         ).fetchall()
         nxt: list[int] = []
-        for caller, callee, source in rows:
+        for caller, callee, source, callee_name in rows:
             if callee in seen:
                 continue
-            inherited = seen[caller][1]
+            _depth, inherited, ambiguous_via = seen[caller]
             weakest = source if source in _INDIRECT_SOURCES else inherited
-            seen[callee] = (depth, weakest)
+            ## THE PORT THE INDEX PICKED IS NOT THE PORT THE BUILD PICKS. A hop into a name this
+            ## index defines more than once is one implementation of several, chosen by name
+            ## resolution; everything reached THROUGH it inherits that qualification.
+            if callee_name in ambiguous and not ambiguous_via:
+                ambiguous_via = f"{callee_name} ({ambiguous[callee_name]} definitions)"
+            seen[callee] = (depth, weakest, ambiguous_via)
             nxt.append(callee)
         frontier = nxt
     return seen
@@ -143,13 +183,13 @@ def _isr_closure(conn: sqlite3.Connection, entry_rowid: int) -> dict[int, tuple[
 ## @return A context_conflicts.confidence value.
 ## @version 1
 ## @dg_internal
-def _confidence(depth: int, weakest: str) -> str:
+def _confidence(depth: int, weakest: str, ambiguous_via: str = "") -> str:
     """@brief Grade a witness path.
 
     @return The confidence.
     @version 1
     """
-    if weakest in _INDIRECT_SOURCES:
+    if weakest in _INDIRECT_SOURCES or ambiguous_via:
         return "low"
     return "high" if depth == 0 else "medium"
 
@@ -159,7 +199,7 @@ def _confidence(depth: int, weakest: str) -> str:
 ## @param closure The handler's closure.
 ## @param thread_id The interrupt thread's id.
 ## @return Row tuples ready for insertion.
-## @version 2
+## @version 3
 ## @dg_internal
 def _lock_rows(
     conn: sqlite3.Connection, closure: dict[int, tuple[int, str]], thread_id: int
@@ -184,8 +224,9 @@ def _lock_rows(
     ).fetchall()
     out: list[tuple] = []
     for holder, path_rowid, line, pattern, role, lock_id, lock_name, kind in rows:
-        depth, weakest = closure[holder]
-        confidence = _confidence(depth, weakest)
+        depth, weakest, ambiguous_via = closure[holder]
+        confidence = _confidence(depth, weakest, ambiguous_via)
+        qualifier = f" — reached through {ambiguous_via}" if ambiguous_via else ""
         if lock_id is None:
             out.append(
                 (
@@ -194,7 +235,7 @@ def _lock_rows(
                     VERDICT_UNDECIDABLE,
                     REASON_UNRESOLVED_LOCK,
                     pattern,
-                    "the acquisition's operand did not resolve to a lock identity",
+                    "the acquisition's operand did not resolve to a lock identity" + qualifier,
                     path_rowid,
                     line,
                     depth,
@@ -209,7 +250,7 @@ def _lock_rows(
                     VERDICT_CONFLICT,
                     REASON_BLOCKING_LOCK,
                     lock_name or pattern,
-                    f"{kind} taken by {pattern}",
+                    f"{kind} taken by {pattern}{qualifier}",
                     path_rowid,
                     line,
                     depth,
@@ -224,7 +265,7 @@ def _lock_rows(
 ## @param closure The handler's closure.
 ## @param thread_id The interrupt thread's id.
 ## @return Row tuples ready for insertion.
-## @version 2
+## @version 3
 ## @dg_internal
 def _call_rows(
     conn: sqlite3.Connection, closure: dict[int, tuple[int, str]], thread_id: int
@@ -245,8 +286,9 @@ def _call_rows(
     ).fetchall()
     out: list[tuple] = []
     for holder, path_rowid, line, primitive, wait, operand, guard in rows:
-        depth, weakest = closure[holder]
-        confidence = _confidence(depth, weakest)
+        depth, weakest, ambiguous_via = closure[holder]
+        confidence = _confidence(depth, weakest, ambiguous_via)
+        qualifier = f" — reached through {ambiguous_via}" if ambiguous_via else ""
         if guard:
             out.append(
                 (
@@ -279,6 +321,7 @@ def _call_rows(
             )
         elif wait in _BLOCKING_WAITS:
             detail = f"{primitive}({operand})" if operand else f"{primitive} blocks unconditionally"
+            detail += qualifier
             out.append(
                 (
                     thread_id,
@@ -299,7 +342,7 @@ def _call_rows(
 ## @brief Derive every interrupt-context conflict in the index.
 ## @param db_path Database being built.
 ## @return None.
-## @version 2
+## @version 3
 ## @req REQ-DDB-SCHEMA-011
 def extract_context_conflicts(db_path: Path) -> None:
     """Runs after the thread stage, which is the first point at which the call graph, the lock
@@ -315,9 +358,10 @@ def extract_context_conflicts(db_path: Path) -> None:
         "SELECT id, entry_memberdef_rowid FROM threads "
         "WHERE kind = 'isr' AND entry_memberdef_rowid IS NOT NULL"
     ).fetchall()
+    ambiguous = _multiply_defined(conn)
     rows: list[tuple] = []
     for thread_id, entry_rowid in handlers:
-        closure = _isr_closure(conn, entry_rowid)
+        closure = _isr_closure(conn, entry_rowid, ambiguous)
         rows.extend(_lock_rows(conn, closure, thread_id))
         rows.extend(_call_rows(conn, closure, thread_id))
     inserted = conn.executemany(
