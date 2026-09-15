@@ -152,6 +152,55 @@ def test_a_first_party_miss_is_scoped_even_when_no_other_part_is_built(
     assert "definitive negative" not in reply["note"], reply["note"]
 
 
+def test_a_hit_whose_callees_are_unresolved_says_which_parts_it_did_not_read(
+    tmp_path: Path, rich_db: Path, repo_root: Path
+) -> None:
+    """ASK 3 IN THE WORDS THE ISSUE USED: "a dossier answered from first-party whose callees live
+    in a vendored sub-index should say so, rather than presenting an apparently complete
+    neighbour list." A HIT is the dangerous case, because the reply looks complete.
+    `external_callees` already names the call sites that resolve to no indexed function; what was
+    missing is the connection to the parts of the repository this answer never read.
+
+    THE UNRESOLVED CALL IS MANUFACTURED by dropping one callee's rows from a copy of the fixture
+    index — which is exactly the shape a split repository produces: the caller is first-party,
+    the callee is indexed somewhere this database is not.
+
+    @brief A hit with unresolved call sites names the unread parts beside them.
+    @version 1
+    """
+    import shutil
+    import sqlite3
+
+    home = tmp_path / "state"
+    repo = _split_repo(tmp_path / "repo")
+    ## The fixture index records paths relative to the csample tree, and `external_callees`
+    ## PARSES THE BODY off disk — so the split repository has to hold those sources for the call
+    ## sites to be found at all.
+    shutil.copytree(repo_root, repo, dirs_exist_ok=True)
+    registry = st.TargetRegistry(home)
+    ## `note_derived` records the split onto this repository's existing records, which is what a
+    ## build leaves behind — so the first-party record has to exist, as it would after one.
+    registry.register(repo, FIRST_PARTY_INDEX)
+    registry.note_derived(str(repo), (FIRST_PARTY_INDEX, "deps-tinyfsm"))
+    _built_on_disk(home, repo, FIRST_PARTY_INDEX, rich_db)
+    first_party = st.target_for(repo, home, FIRST_PARTY_INDEX)
+    conn = sqlite3.connect(first_party.db_path)
+    conn.execute("DELETE FROM memberdef WHERE name = 'DataModel_Set_DEMOBOT_POWER_BATTERY_MV'")
+    conn.commit()
+    conn.close()
+    _mcp, state = build_server(registry)
+
+    reply = state.tools.dossier("sensor_poll", target=str(repo))
+
+    assert reply.get("found") is not False, reply
+    assert reply.get("external_callees"), "premise: this subject has unresolved call sites"
+    assert reply.get("not_searched") == ["deps-tinyfsm"], reply.get("not_searched")
+    note = str(reply.get("scope_note"))
+    assert "not_searched" in note and FIRST_PARTY_INDEX in note, (
+        f"a hit with unresolved callees must point at the unread parts: {note!r}"
+    )
+
+
 def test_the_refusal_names_what_is_built_and_never_advises_an_unscoped_build(
     tmp_path: Path, rich_db: Path
 ) -> None:

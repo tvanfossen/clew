@@ -32,7 +32,7 @@ from .. import wire
 from ..query import _common
 from .descriptions import load_descriptions
 from .emptiness import prose_emptiness, search_emptiness
-from .routing import MAX_LISTED_SIBLINGS
+from .routing import MAX_LISTED_SIBLINGS, no_index_message
 from .state import Answering
 
 DbProvider = Callable[[], Path]
@@ -299,6 +299,42 @@ def _bounded_names(names: tuple[str, ...]) -> list[str]:
             f"+{len(names) - MAX_LISTED_SIBLINGS} more — index(action='targets') lists them"
         )
     return shown
+
+
+## What a HIT from one part of a split repository says about its own unresolved edges. gh#48 ask 3:
+## "a dossier answered from first-party whose callees live in a vendored sub-index should say so,
+## rather than presenting an apparently complete neighbour list." A miss is rewritten by
+## `_scope_definitive`; a hit reads as complete, which is why it needs saying here.
+_UNRESOLVED_ACROSS_INDEXES = (
+    "{count} call site(s) in `external_callees` resolve to no function in THIS index, and this "
+    "answer read only sub-index {name!r} — `not_searched` lists the parts of this repository it "
+    "did not read, and an unresolved name may be defined in one of them. Ask again with "
+    "sub_index=<one of those> to follow the edge."
+)
+
+
+## @brief Say that a hit's unresolved call sites may resolve in a part this answer did not read.
+## @param payload The reply or batch entry.
+## @param answered_from The sub-index that answered.
+## @return None.
+## @version 1
+## @req REQ-DDB-MCP-001
+def _scope_hit(payload: dict[str, Any], answered_from: str) -> None:
+    """ONLY WHEN THERE IS AN EDGE TO EXPLAIN. A first-party hit whose every callee resolved is
+    complete as far as the question goes, and annotating it would be the over-hedging gh#393
+    reverted. `external_callees` being non-empty is the measured signal that something this
+    reply names is defined somewhere it did not look.
+
+    @brief Annotate a hit whose unresolved edges may cross into an unread index.
+    @return None.
+    @version 1
+    """
+    external = payload.get("external_callees")
+    if payload.get("found") is False or not external:
+        return
+    payload["scope_note"] = _UNRESOLVED_ACROSS_INDEXES.format(
+        count=len(external), name=answered_from
+    )
 
 
 ## @brief Withdraw a definitive negative that was answered from one part of a split repository.
@@ -1464,7 +1500,7 @@ def _many(
 ## @brief The one message a caller gets when the database they need does not exist yet.
 ## @param repo_path Repository the missing database would describe, or "" when unknown.
 ## @return An actionable sentence naming the call that fixes it.
-## @version 1
+## @version 2
 ## @req REQ-DDB-MCP-003
 def unbuilt_index_message(repo_path: str = "") -> str:
     """SPELLED ONCE, because it was spelled twice and neither copy covered the common path. The
@@ -1477,16 +1513,18 @@ def unbuilt_index_message(repo_path: str = "") -> str:
     with a driver error is worse than an absent one. A tool that says what to call next is better
     than both, which is what lets the registration gate go away.
 
+    SPELLED IN `routing.no_index_message` SINCE gh#48, with the split-aware refusal, so the
+    three wordings that had already drifted once cannot drift again. This shape has no registry
+    behind it — it is `QueryTools` bound to one database — so it states the sentence and no
+    sub-index clauses.
+
     @brief The actionable message for an index that has not been built.
     @return The message.
-    @version 1
+    @version 2
     """
-    where = f" for {repo_path}" if repo_path else ""
+    what = repo_path or "the repository these tools are bound to"
     target = f", target={repo_path!r}" if repo_path else ""
-    return (
-        f"No database has been built{where} yet — call index(action='refresh'{target}) first. "
-        f"Nothing is wrong with this repository; it has simply not been indexed."
-    )
+    return no_index_message(what, f"index(action='refresh'{target})")
 
 
 ## @brief Tier-1 tool implementations, routed per call to any indexed repository.
@@ -1704,7 +1742,7 @@ class QueryTools:
     ## @param target Repository the call named, or None when the derived one answered.
     ## @param sub_index Name of the part the call named, or None.
     ## @return The reply, always a dict, always carrying `target` and any staleness.
-    ## @version 6
+    ## @version 7
     ## @dg_internal
     def _answered(
         self,
@@ -1748,7 +1786,7 @@ class QueryTools:
 
         @brief Stamp the answering target, and any staleness, onto a reply.
         @return The reply as a dict carrying `target`.
-        @version 6
+        @version 7
         """
         answering = self._route(target, sub_index) if target is not None else self._default()
         out = (
@@ -1791,9 +1829,11 @@ class QueryTools:
             _withdraw_definitive(out, staleness)
         if answering is not None and answering.sub_index is not None and answering.not_searched:
             _scope_definitive(out, answering.sub_index)
+            _scope_hit(out, answering.sub_index)
             for entry in out.get("results") or []:
                 if isinstance(entry, dict):
                     _scope_definitive(entry, answering.sub_index)
+                    _scope_hit(entry, answering.sub_index)
         return out
 
     ## @brief The default target's routing record, or None when it cannot be resolved.
