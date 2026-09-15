@@ -44,7 +44,7 @@ from __future__ import annotations
 import contextlib
 import os
 import subprocess
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -216,7 +216,7 @@ def _direct_parent(tree: Path, root: Path, all_nested: list[Path]) -> Path:
 ## @brief Split a repository into first-party and per-nested-tree indexes, at any depth.
 ## @param repo_root The repository root.
 ## @return The sub-indexes, or an empty list when the repo holds no nested trees.
-## @version 4
+## @version 5
 ## @req REQ-DDB-INDEX-002
 def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
     """EMPTY MEANS "DO NOT SPLIT", and that is the compatibility contract. A repository with
@@ -240,7 +240,7 @@ def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
 
     @brief Derive the sub-index split from nested git trees, at any depth.
     @return The split, or [] to build the repository whole.
-    @version 4
+    @version 5
     """
     root = Path(repo_root).expanduser().resolve()
     ## THE SPLIT USES THE BUILD'S OWN RULE, and skipping this cost a real target twenty minutes.
@@ -286,21 +286,7 @@ def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
     for tree in nested:
         git_ignored |= {p.resolve() for p in _gitignored_paths(tree)}
 
-    def _own_ignores(tree: Path, children: list[Path]) -> list[Path]:
-        """This tree's own gitignored paths, minus anything a child already excludes."""
-        kids = set(children)
-        return sorted(
-            p
-            for p in git_ignored
-            if p != tree and _under_any(p, {tree}) and not _under_any(p, kids)
-        )
-
-    first_children = children_of.get(root, [])
-    first = SubIndex(
-        name=FIRST_PARTY_INDEX,
-        roots=(root,),
-        excludes=tuple(first_children + _own_ignores(root, first_children)),
-    )
+    first = _first_party(root, children_of.get(root, []), git_ignored)
     others = []
     for tree in nested:
         kids = children_of.get(tree, [])
@@ -308,10 +294,79 @@ def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
             SubIndex(
                 name=_sub_index_name(tree, root),
                 roots=(tree,),
-                excludes=tuple(kids + _own_ignores(tree, kids)),
+                excludes=tuple(kids + _own_ignores(tree, kids, git_ignored)),
             )
         )
     return [first] + others
+
+
+## @brief One tree's own gitignored paths, minus anything a child tree already excludes.
+## @param tree The tree whose sub-index is being scoped.
+## @param children Its direct nested trees.
+## @param git_ignored Every ignored path known, from this tree and any others.
+## @return The tree's own ignores, sorted.
+## @version 1
+## @dg_internal
+def _own_ignores(tree: Path, children: list[Path], git_ignored: set[Path]) -> list[Path]:
+    """@brief A tree's own ignores. @return Sorted paths. @version 1"""
+    kids = set(children)
+    return sorted(
+        p for p in git_ignored if p != tree and _under_any(p, {tree}) and not _under_any(p, kids)
+    )
+
+
+## @brief The first-party SubIndex from a repository's direct nested trees and its ignores.
+## @param root Resolved repository root.
+## @param direct The repository's direct (depth-1) nested trees, in derivation order.
+## @param git_ignored Ignored paths; only the root's own survive the filter.
+## @return The first-party SubIndex.
+## @version 1
+## @dg_internal
+def _first_party(root: Path, direct: list[Path], git_ignored: set[Path]) -> SubIndex:
+    """ONE RULE FOR BOTH ROUTES, so the full split and the shortcut cannot drift into naming two
+    different first-party scopes.
+
+    @brief Assemble the first-party SubIndex.
+    @return The SubIndex.
+    @version 1
+    """
+    return SubIndex(
+        name=FIRST_PARTY_INDEX,
+        roots=(root,),
+        excludes=tuple(direct + _own_ignores(root, direct, git_ignored)),
+    )
+
+
+## @brief The first-party sub-index of a split repository, without walking any vendored tree.
+## @param repo_root The repository root.
+## @return The first-party SubIndex, equal to `derive_sub_indexes(repo_root)[0]`; None when unsplit.
+## @version 1
+## @req REQ-DDB-INDEX-002
+def first_party_sub_index(repo_root: Path) -> SubIndex | None:
+    """gh#48's "<10 s nominally", on the repository that set the bar. `derive_sub_indexes`
+    recurses INTO every vendored tree to find the trees nested inside it: 24.6 s per pass on a
+    repository vendoring boost, opencv and pcl. A first-party refresh paid for four passes. None
+    of that recursion can change first-party's scope. First-party excludes its DIRECT nested
+    trees whole, so what lies inside them is irrelevant, and the ignore paths a vendored tree
+    contributes all sit under a direct child and are filtered out.
+
+    So this reads only what the full derivation's first entry reads: the root's non-ignored
+    direct nested trees, from a walk that stops at every nested boundary, and the root's own git
+    ignores. `tests/test_first_party_walk.py` pins equality with the full derivation on a
+    depth-2 fixture with ignored clones on both sides of a boundary.
+
+    @brief Derive only the first-party sub-index, cheaply.
+    @return The SubIndex, or None when the repository has no nested trees.
+    @version 1
+    """
+    root = Path(repo_root).expanduser().resolve()
+    ignored = {p.resolve() for p in whole_repo_scope(root).excludes}
+    direct = sorted(
+        p for p in {q.resolve() for q in nested_repo_roots(root)} if not _under_any(p, ignored)
+    )
+    if not direct:
+        return None
+    return _first_party(root, direct, {p.resolve() for p in _gitignored_paths(root)})
 
 
 ## @brief Directories the last derivation refused to descend past.
@@ -453,13 +508,16 @@ _SUB_INDEX_KEYS = frozenset({"excludes"})
 ## @brief Excludes the parent repository declares for one of its named sub-indexes.
 ## @param repo_root Resolved repository root.
 ## @param name The sub-index being built.
-## @param buildable Every derived sub-index name, for validating what the declaration claims.
+## @param buildable Every derived sub-index name, or a callable producing them when first needed.
 ## @param stated The tier-1 block from the caller's options, or None to read the declaration.
 ## @return The repo-relative excludes for this sub-index; empty when none apply.
-## @version 2
+## @version 3
 ## @req REQ-DDB-CONFIG-001
 def declared_sub_index_excludes(
-    repo_root: Path, name: str, buildable: tuple[str, ...], stated: dict | None = None
+    repo_root: Path,
+    name: str,
+    buildable: tuple[str, ...] | Callable[[], tuple[str, ...]],
+    stated: dict | None = None,
 ) -> tuple[str, ...]:
     """gh#39. A REPOSITORY VENDORING A TREE THAT VENDORS NINE MORE could say nothing about it.
     `_sub_index_scope` builds a vendored sub-index from its `roots` alone; a `.clew.yaml` inside
@@ -485,9 +543,13 @@ def declared_sub_index_excludes(
     one section over: a declaration section that could only be written into the target's tree is
     unreachable for an operator who does not own it.
 
+    `buildable` MAY BE A CALLABLE, resolved only when there is a block to validate. The names
+    come from the full split, which walks every vendored tree, and most repositories declare no
+    `sub_indexes:` block, so a first-party refresh should not pay for a check with nothing to check.
+
     @brief Read the declared or stated excludes for one sub-index, refusing what cannot apply.
     @return The excludes, or ().
-    @version 2
+    @version 3
     """
     from .declaration import SECTION_SUB_INDEXES, load_declaration
 
@@ -501,6 +563,8 @@ def declared_sub_index_excludes(
             f"{SECTION_SUB_INDEXES} is {type(declared).__name__}, not a mapping of sub-index "
             f"name to its scope."
         )
+    if callable(buildable):
+        buildable = buildable()
     unknown = sorted(str(k) for k in declared if str(k) not in buildable)
     if unknown:
         raise ValueError(

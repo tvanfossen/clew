@@ -133,6 +133,8 @@ from ..scope import (
     FIRST_PARTY_INDEX,
     SCOPE_FROM_GUARD,
     declared_sub_index_excludes,
+    first_party_sub_index,
+    nested_tree_cache,
 )
 from ._sdk import Context, MCPServer, ToolError, lowlevel
 from .descriptions import load_descriptions
@@ -845,7 +847,7 @@ def _offered_sub_indexes(repo: Path) -> str:
 ## @param target The target being built, named or unnamed.
 ## @param repo Resolved repository root.
 ## @return A refusal naming the alternatives, or None to proceed.
-## @version 2
+## @version 3
 ## @dg_internal
 def _sub_index_rejection(target: Target, repo: Path) -> str | None:
     """gh#35. `refresh(sub_index='no-such-tree')` DID NOT REFUSE. It registered a slug, took the
@@ -870,9 +872,14 @@ def _sub_index_rejection(target: Target, repo: Path) -> str | None:
 
     @brief Refuse a sub_index that names no buildable tree.
     @return The refusal message, or None.
-    @version 2
+    @version 3
     """
     if target.name is None:
+        return None
+    ## FIRST-PARTY IS DECIDED WITHOUT THE FULL SPLIT: it is buildable exactly when the repository
+    ## has a nested tree, which a walk stopping at every boundary answers. This check runs on every
+    ## first-party refresh, and the full derivation recurses through every vendored tree.
+    if target.name == FIRST_PARTY_INDEX and first_party_sub_index(repo) is not None:
         return None
     buildable = _buildable_sub_indexes(repo)
     if target.name in buildable:
@@ -906,7 +913,7 @@ def _sub_index_rejection(target: Target, repo: Path) -> str | None:
 ## @param exclude The caller's exclusions, forwarded unchanged for a whole-repo target.
 ## @param options The caller's tier-1 options, forwarded unchanged for a whole-repo target.
 ## @return (exclude, options) to pass to `build_index`.
-## @version 7
+## @version 8
 ## @dg_internal
 def _sub_index_scope(
     target: Target,
@@ -927,13 +934,19 @@ def _sub_index_scope(
 
     @brief Resolve build scope for a sub-index target.
     @return The exclude list and options to build with.
-    @version 7
+    @version 8
     """
     if target.name is None:
         return exclude, options
     from ..scope import derive_sub_indexes
 
-    match = next((s for s in derive_sub_indexes(repo) if s.name == target.name), None)
+    ## First-party from the shortcut that never enters a vendored tree (see
+    ## `first_party_sub_index`); a vendored part needs the full split to find its own children.
+    match = (
+        first_party_sub_index(repo)
+        if target.name == FIRST_PARTY_INDEX
+        else next((s for s in derive_sub_indexes(repo) if s.name == target.name), None)
+    )
     if match is None:
         ## gh#35. THIS BRANCH USED TO RETURN THE CALLER'S SCOPE, and for a sub-index build the
         ## caller's scope is the WHOLE REPOSITORY — so a name matching nothing widened instead
@@ -958,7 +971,7 @@ def _sub_index_scope(
     declared = declared_sub_index_excludes(
         repo,
         target.name,
-        _buildable_sub_indexes(repo),
+        functools.partial(_buildable_sub_indexes, repo),
         stated=(options or {}).get(SECTION_SUB_INDEXES),
     )
     if target.name == FIRST_PARTY_INDEX:
@@ -1394,7 +1407,7 @@ class DocsDbServer:
     ## @brief Run one first build to completion in a worker thread.
     ## @param job The build's shared state.
     ## @return None.
-    ## @version 1
+    ## @version 2
     ## @req REQ-DDB-MCP-004
     def _first_build_worker(self, job: FirstBuild) -> None:
         """A BARE CALL ON A SPLIT REPOSITORY BUILDS FIRST-PARTY, NEVER THE WHOLE. The whole-repo
@@ -1407,11 +1420,11 @@ class DocsDbServer:
 
         @brief Build the absent index (first-party instead of whole on a split repository).
         @return None.
-        @version 1
+        @version 2
         """
         try:
             target = job.asked
-            if target.name is None and _buildable_sub_indexes(Path(target.repo_path)):
+            if target.name is None and first_party_sub_index(Path(target.repo_path)) is not None:
                 target = target_for(target.repo_path, self.registry.home, FIRST_PARTY_INDEX)
             job.building = target
             registered = self.registry.register(target.repo_path, target.name)
@@ -2771,10 +2784,42 @@ class DocsDbServer:
     ## @param exclude Operator-stated exclusions; None inherits the recorded ones, [] withdraws them.
     ## @param options Tier-1 build options keyed by declaration-file section name; None states nothing.
     ## @return Result dict (ok / built / doxyfile / output, plus error and traceback on a failure).
-    ## @version 13
+    ## @version 14
     ## @req REQ-DDB-CONFIG-008
     ## @dg_internal
     def _run_build(
+        self,
+        target: Target,
+        doxyfile: str | None,
+        scope: str = SCOPE_FROM_GUARD,
+        exclude: list[str] | None = None,
+        options: dict[str, Any] | None = None,
+        skip_if_fresh: bool = False,
+    ) -> dict[str, Any]:
+        """ONE WALK PER BUILD, INCLUDING THE CHECKS BEFORE IT. `build_index` already shares its
+        nested-tree walks through `nested_tree_cache` (gh#24), but the refusal, the recorded split
+        and the sub-index scope all ran here, outside it, and each walked the repository again.
+        The outermost activation owns the cache, so the pipeline's own becomes inert.
+
+        @brief Execute the build pipeline in-process, sharing one walk cache.
+        @return Build result dict.
+        @version 14
+        """
+        with nested_tree_cache():
+            return self._run_build_walked(target, doxyfile, scope, exclude, options, skip_if_fresh)
+
+    ## @brief The build itself, run inside the caller's walk cache.
+    ## @param target Target to build.
+    ## @param doxyfile Explicit Doxyfile path, or None to discover one.
+    ## @param scope Scope source handed to the pipeline.
+    ## @param exclude Operator-stated exclusions; None inherits the recorded ones, [] withdraws them.
+    ## @param options Tier-1 build options keyed by declaration-file section name; None states nothing.
+    ## @param skip_if_fresh Skip when another process made the index current while waiting.
+    ## @return Result dict (ok / built / doxyfile / output, plus error and traceback on a failure).
+    ## @version 1
+    ## @req REQ-DDB-CONFIG-008
+    ## @dg_internal
+    def _run_build_walked(
         self,
         target: Target,
         doxyfile: str | None,
@@ -2835,7 +2880,12 @@ class DocsDbServer:
         ## saves `targets` a whole-tree walk per repository. Only for a sub-index build: an
         ## unnamed target never derives the split, and paying a walk to record one would add
         ## cost to the whole-repo path that gains nothing from it.
-        if target.name is not None:
+        ## NOT ON EVERY FIRST-PARTY REFRESH: recording the split derives it in full, recursing
+        ## through every vendored tree, and first-party is the index that refreshes on every edit.
+        ## A vendored build, or a first-party build with nothing recorded yet, still records it.
+        if target.name is not None and (
+            target.name != FIRST_PARTY_INDEX or not self.registry.derived_names(target.repo_path)
+        ):
             self.registry.note_derived(target.repo_path, _buildable_sub_indexes(repo))
         doxy = Path(doxyfile).expanduser().resolve() if doxyfile else discover_doxyfile(repo)
         # A missing Doxyfile is never fatal here: under `from-guard` the pipeline
