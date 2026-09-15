@@ -637,7 +637,7 @@ def synthesize_doxyfile(repo_root: Path, output_dir: Path) -> Path:
 
 
 ## @brief Build the augmented Doxyfile content piped to doxygen on stdin.
-## @version 12
+## @version 13
 ## @req REQ-DDB-INDEX-001
 def _build_doxyfile_content(
     doxyfile: Path,
@@ -696,9 +696,7 @@ def _build_doxyfile_content(
         # --extra-exclude still applies standalone: append to the repo's own
         # EXCLUDE (no clear — with no extra_input there is no submodule source
         # to un-hide). Previously this early-returned, silently dropping it.
-        for path in extra_exclude or []:
-            content += f"EXCLUDE += {path}\n"
-        return content
+        return content + _exclude_lines(_inlineable(list(extra_exclude or []), "EXCLUDE"))
     if replace_input:
         content += "INPUT =\n"
         ## AND `EXCLUDE_PATTERNS`, which is the GLOB spelling of the same decision
@@ -717,14 +715,55 @@ def _build_doxyfile_content(
         content += f"INPUT += {path}\n"
     content += "EXCLUDE =\n"
     if extra_exclude:
-        for path in _inlineable(list(extra_exclude), "EXCLUDE"):
-            content += f"EXCLUDE += {path}\n"
+        content += _exclude_lines(_inlineable(list(extra_exclude), "EXCLUDE"))
     logger.info(
         "Appending %d extra INPUT entries (EXCLUDE cleared, %d re-excluded)",
         len(extra_input),
         len(extra_exclude) if extra_exclude else 0,
     )
     return content
+
+
+## Characters doxygen's wildcard matching gives a meaning. A directory whose path contains one
+## cannot be written as a literal pattern, so it stays an `EXCLUDE` entry: slower, still correct.
+_WILDCARD_CHARS = frozenset("*?[]")
+
+
+## @brief Render exclusions, sending absolute directories to EXCLUDE_PATTERNS so doxygen prunes them.
+## @param paths Paths to exclude, as the caller stated them.
+## @return Doxyfile lines appending each exclusion.
+## @version 1
+## @req REQ-DDB-INDEX-001
+def _exclude_lines(paths: list[str]) -> str:
+    """DOXYGEN READS AN EXCLUDED DIRECTORY IN FULL. Measured against 1.18.0: a directory named in
+    `EXCLUDE` is expanded into the set of every file beneath it before anything is excluded, so
+    excluding a vendored tree costs a read of the whole tree. On a 60k-file fixture that was
+    1.73 s against 0.03 s for the equivalent pattern. The pattern is matched as doxygen recurses,
+    so a matching directory is never entered. Across three real repositories a full build's
+    doxygen pass dropped by 40-60% with file-for-file identical output
+    (`tests/test_doxygen_exclude_walk.py`).
+
+    MOVED, NOT DUPLICATED. With both spellings present the `EXCLUDE` entry still forces the read
+    (1.30 s on the same fixture).
+
+    ANCHORED AT THE ABSOLUTE PATH: `<dir>/*` rather than `*/<name>/*`, which would also drop an
+    unrelated directory of the same name. Doxygen matches patterns against absolute file paths,
+    so a relative exclusion cannot be rewritten and stays in `EXCLUDE`. So does a file, which
+    costs nothing to exclude, and a path containing a wildcard character.
+
+    @brief Render EXCLUDE / EXCLUDE_PATTERNS lines for a list of exclusions.
+    @return The lines, newline-terminated.
+    @version 1
+    """
+    lines = []
+    for path in paths:
+        pruned = (
+            Path(path).is_absolute()
+            and not _WILDCARD_CHARS.intersection(path)
+            and Path(path).is_dir()
+        )
+        lines.append(f"EXCLUDE_PATTERNS += {path}/*\n" if pruned else f"EXCLUDE += {path}\n")
+    return "".join(lines)
 
 
 ## @brief Drop paths that cannot be written as a Doxyfile value.
