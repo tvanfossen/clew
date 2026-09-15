@@ -32,6 +32,7 @@ from .. import wire
 from ..query import _common
 from .descriptions import load_descriptions
 from .emptiness import prose_emptiness, search_emptiness
+from .routing import MAX_LISTED_SIBLINGS
 from .state import Answering
 
 DbProvider = Callable[[], Path]
@@ -49,7 +50,10 @@ RepoProvider = Callable[[], Path]
 ## It then REFUSES an explicit target instead of ignoring it, because answering from the
 ## bound repository while stamping that repository's name onto the reply is indistinguishable
 ## from a successful routed call.
-Answerer = Callable[[str, str | None], Answering]
+##
+## `None` AS THE TARGET ASKS FOR THE DEFAULT, through the same resolution (gh#48), so a reply to a
+## call that named nothing is attributed — `sub_index`, `not_searched` — exactly as a routed one is.
+Answerer = Callable[[str | None, str | None], Answering]
 
 ## Supplies the staleness axes in play at reply time, or an empty list when the tool is
 ## current. A CALLABLE for the same reason the db path is one — it must be measured per
@@ -275,6 +279,57 @@ def _withdraw_definitive(payload: dict[str, Any], staleness: list[dict[str, str]
     ## note spent its second half telling the reader to check `target`, and `target` was right.
     kept = re.split(r"(?i)this is a definitive|do not retry", note)[0].rstrip()
     payload["note"] = f"{kept}{replacement}"
+
+
+## The claim a partial answer cannot make, matched where every definitive note in this module
+## makes it. `a definitive negative` is the batch entry's spelling of the same sentence.
+_DEFINITIVE_SPLIT = r"(?i)this is a definitive|(?<!not )a definitive negative|do not retry"
+
+
+## @brief A name list capped for a reply, with the overflow counted in a final entry.
+## @param names Every name.
+## @return At most `MAX_LISTED_SIBLINGS` names, plus one "+N more" entry when any were dropped.
+## @version 1
+## @dg_internal
+def _bounded_names(names: tuple[str, ...]) -> list[str]:
+    """@brief Cap a name list for a reply. @return The capped list. @version 1"""
+    shown = list(names[:MAX_LISTED_SIBLINGS])
+    if len(names) > MAX_LISTED_SIBLINGS:
+        shown.append(
+            f"+{len(names) - MAX_LISTED_SIBLINGS} more — index(action='targets') lists them"
+        )
+    return shown
+
+
+## @brief Withdraw a definitive negative that was answered from one part of a split repository.
+## @details gh#48. A bare call on a split repository is answered from its first-party index, and a
+##          symbol that lives in a vendored tree came back "a definitive negative from the
+##          database" — a confident false negative about code one index over. The measured fact
+##          is `not_searched`: the same reply names built indexes it did not read. So a negative
+##          is scoped to the part that answered and routed to the parts that did not.
+##
+##          ONLY ON A NEGATIVE — a subject miss, or an empty result list. A hit from first-party is
+##          a hit; hedging every reply because siblings exist is the over-hedging gh#393 reverted.
+## @param payload The reply or batch entry, whose note may carry a definitive claim.
+## @param answered_from The sub-index that answered.
+## @return None.
+## @version 1
+## @req REQ-DDB-MCP-004
+def _scope_definitive(payload: dict[str, Any], answered_from: str) -> None:
+    """@brief Scope a negative to the sub-index that answered it. @version 1"""
+    note = payload.get("note")
+    negative = payload.get("found") is False or payload.get("count") == 0
+    if not isinstance(note, str) or not negative:
+        return
+    if not re.search(_DEFINITIVE_SPLIT, note):
+        return
+    kept = re.split(_DEFINITIVE_SPLIT, note)[0].rstrip()
+    payload["note"] = (
+        f"{kept} NOT DEFINITIVE FOR THE REPOSITORY: only sub-index {answered_from!r} was "
+        f"searched, and `not_searched` lists this repository's other parts. Ask again with "
+        f"sub_index=<one of those> before concluding it does not exist — a part with no index "
+        f"yet starts building on that call."
+    )
 
 
 ## @brief Trim a row list to the byte budget, describing what it dropped.
@@ -1618,10 +1673,13 @@ class QueryTools:
     ## @brief Unsupported kinds this index holds for a name that failed to resolve.
     ## @param subject The name that missed, or None.
     ## @param target Repository the call named, or None for the derived one.
+    ## @param sub_index Name of the part the call named, or None.
     ## @return The unsupported kinds, or () when there are none or nothing can be read.
-    ## @version 1
+    ## @version 2
     ## @dg_internal
-    def _unresolved_for(self, subject: str | None, target: str | None) -> tuple[str, ...]:
+    def _unresolved_for(
+        self, subject: str | None, target: str | None, sub_index: str | None = None
+    ) -> tuple[str, ...]:
         """NEVER RAISES ON THE MISS PATH. This runs while building an answer that has already
         failed to find something, so a database that cannot be opened — the very case
         `unbuilt_index_message` exists for — must not turn a clean negative into a traceback.
@@ -1630,12 +1688,12 @@ class QueryTools:
 
         @brief Probe the unsupported kinds behind a miss, tolerating any failure.
         @return The kinds, or ().
-        @version 1
+        @version 2
         """
         if not subject:
             return ()
         try:
-            return q.unresolved_kinds(self.db(target), subject)
+            return q.unresolved_kinds(self.db(target, sub_index), subject)
         except Exception:
             return ()
 
@@ -1644,8 +1702,9 @@ class QueryTools:
     ## @param kind What was looked for (e.g. "dossier").
     ## @param subject What it was looked for by (e.g. a function name).
     ## @param target Repository the call named, or None when the derived one answered.
+    ## @param sub_index Name of the part the call named, or None.
     ## @return The reply, always a dict, always carrying `target` and any staleness.
-    ## @version 5
+    ## @version 6
     ## @dg_internal
     def _answered(
         self,
@@ -1689,9 +1748,9 @@ class QueryTools:
 
         @brief Stamp the answering target, and any staleness, onto a reply.
         @return The reply as a dict carrying `target`.
-        @version 5
+        @version 6
         """
-        answering = None if target is None else self._route(target, sub_index)
+        answering = self._route(target, sub_index) if target is not None else self._default()
         out = (
             payload
             if payload is not None
@@ -1708,7 +1767,7 @@ class QueryTools:
                     ## gh#6: and if the name IS indexed under a kind this surface cannot
                     ## describe, the sentence above is FALSE as a negative — so it is
                     ## qualified here rather than left to mislead.
-                    + _kind_limitation_clause(self._unresolved_for(subject, target))
+                    + _kind_limitation_clause(self._unresolved_for(subject, target, sub_index))
                 ),
             }
         )
@@ -1716,18 +1775,46 @@ class QueryTools:
         ## `_shrink_to_budget` trims to `RESPONSE_BUDGET_BYTES - _LIMITED_BLOCK_ALLOWANCE`,
         ## and a path plus a key is a rounding error against that 1,800-byte headroom.
         out["target"] = self._target_name(answering)
-        ## PRESENT ONLY WHEN NAMED, the same falsy-drop convention every other stamped field
-        ## in this project uses: an unnamed reply omits the key rather than writing `null`, so
-        ## "no sub-index" and "sub-index of unknown name" stay distinguishable.
-        if answering is not None and sub_index is not None:
-            out["sub_index"] = sub_index
+        ## PRESENT WHENEVER A SUB-INDEX ANSWERED, named or defaulted (gh#48). It used to be
+        ## stamped only when the caller NAMED one, so a bare call answered from first-party read
+        ## exactly like a whole-repository answer. Absent — not `null` — for a whole-repository
+        ## answer, the falsy-drop convention every stamped field here uses.
+        if answering is not None and answering.sub_index is not None:
+            out["sub_index"] = answering.sub_index
+            if answering.not_searched:
+                out["not_searched"] = _bounded_names(answering.not_searched)
         ## AFTER the target, so the fit is measured against the finished payload rather
         ## than one that is still going to grow.
         staleness = self._staleness(out, answering)
         if staleness:
             out["staleness"] = staleness
             _withdraw_definitive(out, staleness)
+        if answering is not None and answering.sub_index is not None and answering.not_searched:
+            _scope_definitive(out, answering.sub_index)
+            for entry in out.get("results") or []:
+                if isinstance(entry, dict):
+                    _scope_definitive(entry, answering.sub_index)
         return out
+
+    ## @brief The default target's routing record, or None when it cannot be resolved.
+    ## @return The Answering for the default target, or None.
+    ## @version 1
+    ## @dg_internal
+    def _default(self) -> Answering | None:
+        """NON-RAISING, like `_target_name`: it attributes a reply that has already been
+        answered, so a default that cannot be resolved costs the attribution, never the answer.
+        A tool set with no answerer — the bound, test-only shape — keeps its old stamps.
+
+        @brief Resolve the default target for attribution, tolerating failure.
+        @return Answering or None.
+        @version 1
+        """
+        if self._answerer is None:
+            return None
+        try:
+            return self._answerer(None, None)
+        except Exception:
+            return None
 
     ## @brief The staleness axes to attach to this reply, sized to fit.
     ## @param payload The reply as it stands, target included.
@@ -1900,9 +1987,10 @@ class QueryTools:
             Field(
                 description=(
                     "Name of one PART of `target`, when the repository is split into several "
-                    "indexes — a first-party index plus one per vendored dependency. Omit for "
-                    "the whole repository. `index(action='targets')` reports each repository's sub_index "
-                    "names."
+                    "indexes — a first-party index plus one per vendored dependency. Omit and "
+                    "the whole-repository index answers, or first-party when only the split is "
+                    "built; the reply's `sub_index` says which and `not_searched` names the parts "
+                    "it did not read."
                 )
             ),
         ] = None,
@@ -2175,9 +2263,10 @@ class QueryTools:
             Field(
                 description=(
                     "Name of one PART of `target`, when the repository is split into several "
-                    "indexes — a first-party index plus one per vendored dependency. Omit for "
-                    "the whole repository. `index(action='targets')` reports each repository's sub_index "
-                    "names."
+                    "indexes — a first-party index plus one per vendored dependency. Omit and "
+                    "the whole-repository index answers, or first-party when only the split is "
+                    "built; the reply's `sub_index` says which and `not_searched` names the parts "
+                    "it did not read."
                 )
             ),
         ] = None,

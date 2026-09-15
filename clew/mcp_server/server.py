@@ -112,10 +112,13 @@ from __future__ import annotations
 
 import argparse
 import functools
+import os
+import threading
 import time
 import traceback
 import warnings
 from collections import Counter
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -134,6 +137,7 @@ from ..scope import (
 from ._sdk import Context, MCPServer, ToolError, lowlevel
 from .descriptions import load_descriptions
 from .freshness import code_identity, notices, refused, stale_code_refusal
+from .routing import RepoIndexes, repo_indexes, unbuilt_refusal
 from .state import (
     PROJECT_DIR_ENV,
     ROOTS_DEPRECATED_IN,
@@ -469,7 +473,8 @@ intended path, not a failure.
 DO NOT OPEN A SESSION WITH `index(action='status')`. Every query reply already carries a `target`
 naming the repository it answered from, and a `staleness` block if and only if that index is stale.
 A current index costs zero calls to establish; a stale one announces itself on the first reply you
-were going to make anyway. CHECK `target` BEFORE CONCLUDING A SYMBOL DOES NOT EXIST.
+were going to make anyway. CHECK `target` AND ANY `not_searched` BEFORE CONCLUDING A SYMBOL DOES
+NOT EXIST.
 
 TARGETS. One server answers about any indexed repository. Every tool takes an optional `target` —
 a repo root or slug; omit it and the DEFAULT answers, DERIVED from --repo else $CLAUDE_PROJECT_DIR.
@@ -681,6 +686,93 @@ def _failure_result(exc: BaseException, rendered: str) -> dict[str, Any]:
 ## it — and when one does, a stale answer carrying its staleness notice beats a call that never
 ## returns. A single hung MCP call was the field failure that motivated bounding this at all.
 _LOCK_WAIT_SECONDS = 120
+
+## HOW LONG A QUERY WAITS FOR THE FIRST BUILD IT STARTED BEFORE REFUSING WITH "BUILDING". Sized so a
+## small repository's first build finishes inside the call that asked for it — the call just
+## answers — while a large one's refusal arrives well inside any client's tool timeout. The build
+## itself runs on regardless; this only bounds how long one caller watches it.
+_FIRST_BUILD_WAIT_SECONDS = 20.0
+
+## Seconds between background checks that the indexes this session has used are still current.
+## `0` disables the loop; the query-time refresh still runs either way.
+REFRESH_INTERVAL_ENV = "CLEW_REFRESH_INTERVAL"
+DEFAULT_REFRESH_INTERVAL_SECONDS = 15.0
+
+
+## @brief The background refresh interval in force for this process.
+## @param env Environment to read (defaults to `os.environ`; injected for testing).
+## @return Seconds between background checks; 0 means disabled.
+## @version 1
+## @req REQ-DDB-MCP-004
+def refresh_interval(env: dict[str, str] | None = None) -> float:
+    """A MALFORMED VALUE FALLS BACK TO THE DEFAULT AND SAYS SO, because the variable is set by an
+    operator in a launch config nobody rereads, and a typo that silently disabled keeping indexes
+    current would be discovered only as stale answers.
+
+    @brief Read the background refresh interval.
+    @return The interval in seconds.
+    @version 1
+    """
+    raw = (env if env is not None else os.environ).get(REFRESH_INTERVAL_ENV)
+    if raw is None or not raw.strip():
+        return DEFAULT_REFRESH_INTERVAL_SECONDS
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        logger.warning(
+            "%s=%r is not a number of seconds — using the default %.0f s",
+            REFRESH_INTERVAL_ENV,
+            raw,
+            DEFAULT_REFRESH_INTERVAL_SECONDS,
+        )
+        return DEFAULT_REFRESH_INTERVAL_SECONDS
+
+
+## @brief One automatic first build of an index nobody had built, running off the event loop.
+## @version 1
+@dataclass
+class FirstBuild:
+    """THE LSP SHAPE (gh#48, owner decision). A language server that is asked about a workspace it
+    has not indexed starts indexing and says so; it does not tell the editor to go and run the
+    indexer. A query against a repository with no index used to refuse with advice — and on a
+    split repository the advice was the one build that cannot finish.
+
+    A PLAIN THREAD, NOT A TASK, because nothing owns a task group that outlives the request that
+    started it, and the build is blocking work that would occupy a worker thread anyway. `done`
+    is what a later query waits on, bounded, and `outcome` is `_run_build`'s own result dict.
+
+    @brief State of one background first build.
+    @version 1
+    """
+
+    asked: Target
+    started: float = field(default_factory=time.monotonic)
+    building: Target | None = None
+    outcome: dict[str, Any] | None = None
+    done: threading.Event = field(default_factory=threading.Event)
+
+    ## @brief One sentence for a refusal describing this build.
+    ## @return The sentence, or "" once the build has succeeded.
+    ## @version 1
+    ## @dg_internal
+    def describe(self) -> str:
+        """@brief Describe the build for a message. @return The sentence. @version 1"""
+        part = self.building if self.building is not None else self.asked
+        which = f"sub-index {part.name!r}" if part.name is not None else "the whole repository"
+        age = int(time.monotonic() - self.started)
+        if self.done.is_set() and (self.outcome or {}).get("ok"):
+            return ""
+        if not self.done.is_set():
+            return (
+                f"The index for {part.repo_path} ({which}) is being built in the background, "
+                f"started {age} s ago by an earlier query."
+            )
+        error = (self.outcome or {}).get("error", "no result was recorded")
+        return (
+            f"An automatic first build of {part.repo_path} ({which}) ran and FAILED: {error}. "
+            f"It is not retried automatically; an explicit refresh retries it and returns the "
+            f"full build output."
+        )
 
 
 ## @brief Every sub-index name this repository can be asked to build.
@@ -1019,7 +1111,7 @@ class DocsDbServer:
 
     ## @brief Construct the server state.
     ## @param registry Target registry (defaults to the per-user one).
-    ## @version 7
+    ## @version 8
     ## @dg_internal
     def __init__(self, registry: TargetRegistry | None = None) -> None:
         self.registry = registry if registry is not None else TargetRegistry()
@@ -1037,6 +1129,12 @@ class DocsDbServer:
         ## the RESOLVED repo path rather than by whatever string a caller typed —
         ## `~/proj`, `/home/me/proj` and a slug are three spellings of one build.
         self._build_locks: dict[str, anyio.Lock] = {}
+        ## Every index this session has answered from or adopted, keyed by slug — the set the
+        ## background loop keeps current. A session's own working set, the way a language server
+        ## watches the workspaces it has open rather than every one on disk.
+        self._touched: dict[str, Target] = {}
+        ## Automatic first builds, keyed by the slug of the target a query ASKED for.
+        self._first_builds: dict[str, FirstBuild] = {}
         self.tools = QueryTools(
             self.active_db, self.active_repo, self.staleness_notices, self.answering
         )
@@ -1098,10 +1196,11 @@ class DocsDbServer:
             return False
         return any(notice.get("axis") == "data" for notice in notices(status, identity))
 
-    ## @brief Bring a stale index current before answering from it.
+    ## @brief Bring a stale index current, or start building an absent one, before answering.
     ## @param target The caller's target argument, or None for the default.
+    ## @param sub_index The caller's sub_index argument, or None.
     ## @return None.
-    ## @version 4
+    ## @version 6
     ## @req REQ-DDB-MCP-004
     async def _auto_refresh(self, target: str | None, sub_index: str | None = None) -> None:
         """WHY A QUERY BUILDS AT ALL. Reporting staleness and leaving the fix to the caller
@@ -1126,19 +1225,44 @@ class DocsDbServer:
         with its staleness notice intact — a stale answer plus a warning is strictly better
         than an error, and the caller can still refresh explicitly.
 
-        @brief Refresh a stale index before answering.
+        AN ABSENT INDEX IS BUILT TOO, IN THE BACKGROUND (gh#48). The check above only ever fired for
+        an index that resolved AND was stale, and an index that does not exist is neither — so the
+        state that most needed handling refused, with advice. Absence is checked only once the
+        stale path has declined, so a data-stale index keeps its existing route exactly.
+
+        @brief Refresh a stale index, or start building an absent one, before answering.
         @return None.
-        @version 5
+        @version 6
         """
         try:
-            resolved = self.resolve_target(target, sub_index) if target else self.active
+            resolved = self.resolve_target(target, sub_index) if target else self._current_active()
         except Exception:
             logger.debug(
                 "auto-refresh: %r (sub_index=%r) does not resolve to a target", target, sub_index
             )
             resolved = None
-        if resolved is None or not self._data_stale(resolved):
+        if resolved is None:
             return
+        if self._data_stale(resolved):
+            self._touched[resolved.slug] = resolved
+            await self._refresh_stale(resolved)
+        elif not Path(resolved.db_path).is_file():
+            await self._await_first_build(resolved)
+
+    ## @brief Rebuild one stale index under its repository's build lock.
+    ## @param resolved The index to bring current.
+    ## @return None.
+    ## @version 1
+    ## @req REQ-DDB-MCP-004
+    async def _refresh_stale(self, resolved: Target) -> None:
+        """SPLIT OUT OF `_auto_refresh` SO THE BACKGROUND LOOP TAKES THE SAME ROUTE a query does:
+        the same bounded lock wait, the same re-check inside it, the same failure logging. Two
+        copies of this would be two answers to "can a refresh hang this process".
+
+        @brief Refresh a stale index, deduplicated and bounded.
+        @return None.
+        @version 1
+        """
         ## BOUNDED ACQUIRE, BECAUSE AN UNBOUNDED ONE TURNS ONE SLOW BUILD INTO A HUNG SESSION.
         ## This method's own docstring promises "a stale answer plus a warning is strictly better
         ## than an error" — and it did not honour that when the failure was a STALL rather than an
@@ -1199,6 +1323,158 @@ class DocsDbServer:
             ## removes, permanently and for every later query.
             self._build_lock(resolved.repo_path).release()
 
+    ## @brief Why an absent index may not be built automatically, or None when it may.
+    ## @param asked The index a query resolved to.
+    ## @return A reason, or None.
+    ## @version 1
+    ## @req REQ-DDB-MCP-004
+    def _first_build_refusal(self, asked: Target) -> str | None:
+        """A QUERY NAMING A DIRECTORY IS NOT CONSENT TO INDEX IT. `target=` accepts any directory,
+        and starting doxygen over a home directory because a call mistyped a path is the failure
+        `unknown_target_error` exists to prevent. So an automatic build needs evidence the
+        directory is a repository someone means to index: a git work tree root, or a record of a
+        previous registration. Everything else keeps the refusal naming the explicit build.
+
+        And never from a process older than its own source — the one build that corrupts.
+
+        @brief Decide whether a query may start a first build.
+        @return The reason not to, or None.
+        @version 1
+        """
+        repo = Path(asked.repo_path)
+        registered = any(t.repo_path == asked.repo_path for t in self.registry.targets())
+        reason = None
+        if not repo.is_dir():
+            reason = "the directory does not exist"
+        elif not (repo / ".git").exists() and not registered:
+            reason = "it is neither a git work tree root nor a registered repository"
+        elif stale_code_refusal(code_identity()) is not None:
+            reason = "this server process predates its own source"
+        return reason
+
+    ## @brief Start (or join) a background first build for an absent index, waiting briefly.
+    ## @param asked The index a query resolved to, whose database is absent.
+    ## @return None.
+    ## @version 1
+    ## @req REQ-DDB-MCP-004
+    async def _await_first_build(self, asked: Target) -> None:
+        """ONE BUILD PER ASKED INDEX PER SESSION, and a failed one is not retried by the next
+        query. A build that fails deterministically — no doxygen, an unreadable tree — would
+        otherwise be relaunched by every call and cost its full duration each time, which is the
+        retry loop gh#48 recorded agents falling into, moved into the server. An explicit refresh
+        clears it.
+
+        @brief Start a background first build, waiting for it within a bound.
+        @return None.
+        @version 1
+        """
+        if asked.slug in self._first_builds:
+            return
+        reason = self._first_build_refusal(asked)
+        if reason is not None:
+            logger.info("not building %s automatically: %s", asked.repo_path, reason)
+            return
+        job = self._first_builds[asked.slug] = FirstBuild(asked=asked)
+        threading.Thread(
+            target=self._first_build_worker,
+            args=(job,),
+            name=f"clew-first-build-{asked.slug}",
+            daemon=True,
+        ).start()
+        logger.info(
+            "no index for %s (%s) — building it in the background",
+            asked.repo_path,
+            asked.name or "whole repository",
+        )
+        ## ONLY THE CALL THAT STARTED THE BUILD WAITS. A later query while it runs refuses at
+        ## once with "being built": making every call of an agent's next several sit out the
+        ## bound would spend minutes of its time watching one build.
+        await anyio.to_thread.run_sync(job.done.wait, _FIRST_BUILD_WAIT_SECONDS)
+
+    ## @brief Run one first build to completion in a worker thread.
+    ## @param job The build's shared state.
+    ## @return None.
+    ## @version 1
+    ## @req REQ-DDB-MCP-004
+    def _first_build_worker(self, job: FirstBuild) -> None:
+        """A BARE CALL ON A SPLIT REPOSITORY BUILDS FIRST-PARTY, NEVER THE WHOLE. The whole-repo
+        target is what an unsplit repository's default is, and on a split one it is the
+        87,911-file build gh#48 recorded dying at doxygen's limit. The split is derived HERE, on
+        this thread, because it walks the tree — 24.6 s on that repository, which is fine for a
+        background build and unacceptable on a query.
+
+        A NAMED sub-index is built as named: the caller asked for that part.
+
+        @brief Build the absent index (first-party instead of whole on a split repository).
+        @return None.
+        @version 1
+        """
+        try:
+            target = job.asked
+            if target.name is None and _buildable_sub_indexes(Path(target.repo_path)):
+                target = target_for(target.repo_path, self.registry.home, FIRST_PARTY_INDEX)
+            job.building = target
+            registered = self.registry.register(target.repo_path, target.name)
+            job.outcome = self._run_build(registered, None, SCOPE_FROM_GUARD, None, None, True)
+        except Exception as exc:
+            job.outcome = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
+        finally:
+            job.done.set()
+        outcome = job.outcome or {}
+        if outcome.get("ok"):
+            built = job.building or job.asked
+            ## Into the working set, so the loop keeps what it just built current.
+            self._touched[built.slug] = built
+            logger.info("background first build of %s finished", built)
+        else:
+            logger.warning(
+                "background first build of %s failed: %s",
+                job.building or job.asked,
+                outcome.get("error") or outcome,
+            )
+
+    ## @brief Bring every index this session has used current, once.
+    ## @return Slugs of the indexes refreshed.
+    ## @version 1
+    ## @req REQ-DDB-MCP-004
+    async def refresh_touched(self) -> list[str]:
+        """THE WORK MOVES OFF THE QUERY. A query-time refresh is correct and stays, but it charges
+        the refresh to whichever call happens to come next — five to eight seconds on a thousand-
+        file C target — so an agent's first question after an edit is its slowest. Checking the
+        session's own indexes between queries means the next one usually finds nothing to do.
+
+        MEASURED OFF THE LOOP. `_data_stale` stats every indexed file, and doing that on the event
+        loop for several indexes would stall the transport for exactly the time this exists to
+        save. Never raises: a background pass that failed must not end the loop that runs it.
+
+        @brief Refresh any stale index in this session's working set.
+        @return The refreshed slugs.
+        @version 1
+        """
+        refreshed: list[str] = []
+        for target in list(self._touched.values()):
+            try:
+                if not Path(target.db_path).is_file():
+                    continue
+                if not await anyio.to_thread.run_sync(self._data_stale, target):
+                    continue
+                await self._refresh_stale(target)
+                refreshed.append(target.slug)
+            except Exception as exc:
+                logger.warning("background refresh of %s failed: %s", target.slug, exc)
+        return refreshed
+
+    ## @brief Keep this session's indexes current until cancelled.
+    ## @param interval Seconds between checks.
+    ## @return None; runs until its task group is cancelled.
+    ## @version 1
+    ## @req REQ-DDB-MCP-004
+    async def keep_current(self, interval: float) -> None:
+        """@brief Background refresh loop. @return None. @version 1"""
+        while True:
+            await anyio.sleep(interval)
+            await self.refresh_touched()
+
     ## @brief The staleness axes in play right now, for stamping onto query replies.
     ## @return List of {axis, message}; EMPTY when the tool is current or has no target.
     ## @version 2
@@ -1227,40 +1503,34 @@ class DocsDbServer:
                 logger.debug("staleness could not be measured for %s", self.active.repo_path)
         return found
 
-    ## @brief The Target a bare, sub_index-less call to a repository answers from.
-    ## @param siblings Every registered Target sharing one `repo_path`.
-    ## @return The whole-repo Target if built, else the first-party sub-index if built, else None.
+    ## @brief Every index of the repository a target string names, or None when it names none.
+    ## @param target Repo root path as the caller spelled it, or a registered repo_path.
+    ## @return The repository's indexes, or None when the string is neither registered nor a directory.
     ## @version 1
     ## @req REQ-DDB-MCP-001
-    def _preferred_default(self, siblings: list[Target]) -> Target | None:
-        """A SPLIT REPOSITORY'S DEFAULT IS ITS FIRST-PARTY SUB-INDEX, never a vendored one and
-        never a silent build of the (usually never-built) whole-repo index. Sub-indexes exist so
-        a caller never pays doxygen's cost for a pinned dependency's millions of lines on every
-        session — a default that fell back to the whole-repo target would erase that saving on
-        the single most common call shape, the one that omits `target`/`sub_index` entirely. A
-        vendored sibling is reached only by FOLLOWING AN EDGE that names it (Phase 2), never by
-        being guessed at as a default — a call that lands there without asking for it by name is
-        exactly the wrong-index failure this module's docstring calls its most expensive.
+    def _indexes_for(self, target: str) -> RepoIndexes | None:
+        """THE CALLER'S SPELLING IS NORMALISED BEFORE MATCHING. Siblings were matched by exact
+        string against the recorded `repo_path`, so `~/proj`, a trailing slash or a symlinked
+        path found no record at all and fell through to deriving the whole-repository target. A
+        registered repository whose directory has since MOVED is still matched by its recorded
+        string, because its index is still readable.
 
-        WHOLE STILL WINS WHEN BOTH EXIST, because a repository that never split still means
-        exactly what it always meant: the bare root is the whole thing. This only matters once a
-        repo has ACTUALLY split, which is the case a whole-repo record can no longer represent by
-        itself.
-
-        @brief Prefer the whole-repo Target, else the first-party sub-index, else None.
-        @return The default Target for a bare call, or None when neither exists.
+        @brief Collect a target string's repository indexes.
+        @return The RepoIndexes, or None.
         @version 1
         """
-        whole = next((c for c in siblings if c.name is None), None)
-        if whole is not None:
-            return whole
-        return next((c for c in siblings if c.name == FIRST_PARTY_INDEX), None)
+        if any(t.repo_path == target for t in self.registry.targets()):
+            return repo_indexes(self.registry, target)
+        path = Path(target).expanduser()
+        if not path.is_dir():
+            return None
+        return repo_indexes(self.registry, str(path.resolve()))
 
     ## @brief Resolve a caller-supplied target string to a known repository.
     ## @param target Repo root path, or a slug from `list_targets`.
     ## @param sub_index Name of the part to read, or None for the whole repository.
     ## @return The Target it names.
-    ## @version 5
+    ## @version 6
     ## @req REQ-DDB-MCP-001
     def resolve_target(self, target: str, sub_index: str | None = None) -> Target:
         """THREE SPELLINGS OF ONE REPOSITORY, resolved to one record. The registry is
@@ -1286,7 +1556,7 @@ class DocsDbServer:
 
         @brief Resolve a target string, plus an optional sub-index name, to its Target record.
         @return The resolved Target.
-        @version 4
+        @version 6
         """
         known = self.registry.targets()
         ## THE SLUG FIRST, because it is unique and it is a string this server handed the
@@ -1295,7 +1565,8 @@ class DocsDbServer:
         for candidate in known:
             if target == candidate.slug:
                 return candidate
-        siblings = [c for c in known if c.repo_path == target]
+        indexes = self._indexes_for(target)
+        siblings = list(indexes.sub_indexes) if indexes is not None else []
         if sub_index is not None:
             for candidate in siblings:
                 if candidate.name == sub_index:
@@ -1323,31 +1594,29 @@ class DocsDbServer:
         ## split repo — its own source, not a vendored dependency), and a REFUSAL naming every
         ## available sub-index only when neither exists to prefer, rather than served from
         ## whichever happened to sort first.
-        preferred = self._preferred_default(siblings)
+        ##
+        ## gh#48: "exists" means ON DISK as well as in the registry, and a BUILT index outranks a
+        ## merely registered one — see `RepoIndexes.preferred`.
+        if indexes is None:
+            raise RuntimeError(unknown_target_error(target, known))
+        preferred = indexes.preferred()
         if preferred is not None:
             return preferred
         if siblings:
-            names = ", ".join(sorted(c.name for c in siblings if c.name is not None))
+            ## ONLY VENDORED PARTS ON RECORD: nothing to prefer, so refuse — with the same message
+            ## an absent default gets, which names what is built and the first-party build.
             raise RuntimeError(
-                f"{target} is indexed as {len(siblings)} sub-index(es) and has no whole-repository "
-                f"index, so this call cannot say which one to read. Pass sub_index=<name>: {names}"
+                unbuilt_refusal(indexes, indexes.whole, self._background_note(indexes.whole))
             )
-        path = Path(target).expanduser()
-        if path.is_dir():
-            ## `sub_index` CARRIES THROUGH THE UNREGISTERED-DIRECTORY FALLBACK, which is the
-            ## case that matters most for it: the FIRST build of a sub-index has no registry
-            ## entry to have matched above. Dropping it here would silently derive the
-            ## WHOLE-repo target for a caller that explicitly named a part.
-            return target_for(path, self.registry.home, sub_index)
-        raise RuntimeError(unknown_target_error(target, known))
+        return indexes.whole
 
     ## @brief Resolve a routed target into the database, tree and staleness to answer with.
-    ## @param target Repo root path, or a slug from `list_targets`.
+    ## @param target Repo root path, or a slug from `list_targets`; None for the default target.
     ## @param sub_index Name of the part to read, or None for the whole repository.
     ## @return Everything one query needs about that repository.
-    ## @version 3
+    ## @version 4
     ## @req REQ-DDB-MCP-001
-    def answering(self, target: str, sub_index: str | None = None) -> Answering:
+    def answering(self, target: str | None, sub_index: str | None = None) -> Answering:
         """The query-side half of resolution, and the reason it is separate from
         `resolve_target`: a query needs a BUILT index and a build does not. Refusing an
         unbuilt target here — by name, with the exact call that fixes it — is what stops
@@ -1358,23 +1627,104 @@ class DocsDbServer:
         has otherwise succeeded, so a state directory that vanished mid-session must cost
         an annotation rather than the answer.
 
-        @brief Resolve a routed target for querying.
-        @return The database, working tree and staleness for it.
-        @version 3
+        `target=None` ANSWERS FOR THE DEFAULT TARGET THROUGH THE SAME CODE (gh#48), so a reply
+        to a call that named nothing carries the same `sub_index` and `not_searched` a routed one
+        does. The default path used to stamp only the repository, which on a split repository
+        hid that the answer came from one part of it.
+
+        @brief Resolve a routed or default target for querying.
+        @return The database, working tree, staleness and scope for it.
+        @version 4
         """
-        resolved = self.resolve_target(target, sub_index)
-        db = Path(resolved.db_path)
-        if not db.is_file():
-            raise RuntimeError(
-                f"No database has been built for {resolved.repo_path} yet — call "
-                f"index(action='refresh', target={resolved.repo_path!r}) first."
-            )
+        resolved, indexes = self._answerable(target, sub_index)
         found: list[dict[str, str]] = []
         try:
             found = notices(db_status(resolved))
         except Exception:
             logger.debug("staleness could not be measured for %s", resolved.repo_path)
-        return Answering(db=db, repo=Path(resolved.repo_path), staleness=found)
+        return Answering(
+            db=Path(resolved.db_path),
+            repo=Path(resolved.repo_path),
+            staleness=found,
+            sub_index=resolved.name,
+            not_searched=indexes.not_searched(resolved),
+        )
+
+    ## @brief The built index a query would read, or the refusal saying why there is none.
+    ## @param target Repo root path or slug, or None for the default target.
+    ## @param sub_index Name of the part to read, or None.
+    ## @return (the resolved Target, its repository's indexes).
+    ## @version 1
+    ## @req REQ-DDB-MCP-001
+    def _answerable(
+        self, target: str | None, sub_index: str | None = None
+    ) -> tuple[Target, RepoIndexes]:
+        """SEPARATE FROM `answering` SO THE DB-PATH PROVIDER DOES NOT MEASURE STALENESS. That
+        stats every indexed file, and `active_db` runs on every default-target query before the
+        reply's own staleness stamp measures it again.
+
+        @brief Resolve and check a query's index without measuring staleness.
+        @return (Target, RepoIndexes).
+        @version 1
+        """
+        if target is None:
+            if sub_index is not None:
+                raise RuntimeError(
+                    f"sub_index={sub_index!r} was given without target — a sub-index belongs to a "
+                    "named repository, so target= must be stated too."
+                )
+            resolved = self._current_active()
+            if resolved is None:
+                raise RuntimeError(NO_TARGET_ERROR)
+        else:
+            resolved = self.resolve_target(target, sub_index)
+        indexes = repo_indexes(self.registry, resolved.repo_path)
+        if not Path(resolved.db_path).is_file():
+            raise RuntimeError(unbuilt_refusal(indexes, resolved, self._background_note(resolved)))
+        self._touched[resolved.slug] = resolved
+        return resolved, indexes
+
+    ## @brief The background first build a refusal about this index should describe.
+    ## @param asked The index whose database is absent.
+    ## @return The build's description, or "" when none was started for it.
+    ## @version 1
+    ## @dg_internal
+    def _background_note(self, asked: Target) -> str:
+        """MATCHED ON WHAT IS BEING BUILT AS WELL AS WHAT WAS ASKED, because a bare call on a
+        split repository asks for the whole target and the worker builds first-party — and the
+        moment it registers first-party, the next call resolves to first-party instead.
+
+        @brief Find the first build covering an absent index.
+        @return The description, or "".
+        @version 1
+        """
+        for job in self._first_builds.values():
+            covered = {job.asked.slug} | ({job.building.slug} if job.building else set())
+            if asked.slug in covered:
+                return job.describe()
+        return ""
+
+    ## @brief The default target, moved to its preferred index when its own was never built.
+    ## @return The active Target, or None when there is no default.
+    ## @version 1
+    ## @req REQ-DDB-MCP-001
+    def _current_active(self) -> Target | None:
+        """`self.active` IS A CACHE THAT A BUILD ELSEWHERE MAKES WRONG. It is resolved once, at
+        adoption, and nothing but this session's own build re-resolves it — so a first-party index
+        built by another session, by the CLI or by a background first build left every bare call
+        refusing against the whole-repository target it was adopted as. Re-resolved only while the
+        cached index is ABSENT and only ONTO a built one: a working default never moves.
+
+        @brief Resolve the default target, following a build that happened elsewhere.
+        @return The active Target, or None.
+        @version 1
+        """
+        active = self.active
+        if active is not None and not Path(active.db_path).is_file():
+            preferred = repo_indexes(self.registry, active.repo_path).preferred()
+            if preferred is not None and Path(preferred.db_path).is_file():
+                self.active = preferred
+        return self.active
 
     ## @brief Bring tier-1 into line with whether this server knows of any repository.
     ## @version 3
@@ -1420,7 +1770,7 @@ class DocsDbServer:
     ## @param repo_path Repo root to serve.
     ## @param source Which resolution source supplied it (a TARGET_SOURCE_* value).
     ## @return The newly-active Target.
-    ## @version 4
+    ## @version 5
     ## @req REQ-DDB-MCP-001
     def adopt(self, repo_path: str, source: str) -> Target:
         """Make the repo active. Does NOT register it, and does NOT build.
@@ -1466,11 +1816,12 @@ class DocsDbServer:
 
         @brief Adopt a target repo and register the query tools.
         @return The active Target.
-        @version 4
+        @version 5
         """
-        derived = target_for(repo_path, self.registry.home)
-        siblings = [c for c in self.registry.targets() if c.repo_path == derived.repo_path]
-        self.active = self._preferred_default(siblings) or derived
+        indexes = repo_indexes(self.registry, target_for(repo_path, self.registry.home).repo_path)
+        self.active = indexes.preferred() or indexes.whole
+        ## The session's default is its working set before any query names it.
+        self._touched[self.active.slug] = self.active
         self.target_source = source
         self._sync_tier1()
         status = db_status(self.active)
@@ -1713,7 +2064,7 @@ class DocsDbServer:
 
     ## @brief Path of the active target's database.
     ## @return Path to the active clew.db.
-    ## @version 4
+    ## @version 5
     ## @req REQ-DDB-MCP-001
     def active_db(self) -> Path:
         """Resolve the active db path, raising a NAMED error for each of the two
@@ -1726,19 +2077,14 @@ class DocsDbServer:
         database file" from three frames deeper. The second message names
         `build_or_refresh`, which is the one action that fixes it.
 
+        ONE ROUTE WITH THE ROUTED CALL (gh#48): `answering(None)` resolves the default, follows
+        a first-party index built elsewhere, and refuses in the one split-aware wording.
+
         @brief Resolve the active database path.
         @return Active clew.db path.
-        @version 4
+        @version 5
         """
-        if self.active is None:
-            raise RuntimeError(NO_TARGET_ERROR)
-        db = Path(self.active.db_path)
-        if not db.is_file():
-            raise RuntimeError(
-                f"No database has been built for {self.active.repo_path} yet — call "
-                "index(action='refresh') first."
-            )
-        return db
+        return Path(self._answerable(None)[0].db_path)
 
     ## @brief Working-tree root of the active target.
     ## @return Path to the repo the active database was built from.
@@ -1768,7 +2114,7 @@ class DocsDbServer:
     ## @param sub_index Name of one PART of `target` to build; omit for the whole repository.
     ## @param options Tier-1 build options keyed by declaration-file section name; omit to state nothing.
     ## @return Result dict with build outcome, MEASURED duration, status, registered tool names and the answering target; or a refusal when this process predates its source.
-    ## @version 13
+    ## @version 14
     ## @req REQ-DDB-MCP-002
     ## @req REQ-DDB-MCP-004
     ## @req REQ-DDB-CONFIG-001
@@ -1852,7 +2198,7 @@ class DocsDbServer:
 
         @brief Build/refresh the target database and activate query tools.
         @return Build result dict, carrying a measured duration.
-        @version 13
+        @version 14
         """
         started = time.perf_counter()
         try:
@@ -1898,6 +2244,12 @@ class DocsDbServer:
         ):
             self.adopt(resolved.repo_path, self.target_source)
         if result.get("ok"):
+            ## An explicit build supersedes any automatic first build of the same index, including
+            ## a failed one that would otherwise go on describing itself in refusals.
+            for slug, job in list(self._first_builds.items()):
+                if resolved.slug in {job.asked.slug, job.building.slug if job.building else None}:
+                    self._first_builds.pop(slug, None)
+            self._touched[resolved.slug] = resolved
             result["tools"] = await self._activate_tier1(ctx)
         result["duration_ms"] = int((time.perf_counter() - started) * 1000)
         result["status"] = db_status(resolved)
@@ -2177,8 +2529,9 @@ class DocsDbServer:
                 description=(
                     "Name of one PART of `target`, when the repository is split into several "
                     "indexes — a first-party index plus one per vendored dependency. Omit for "
-                    "the whole repository. `index(action='targets')` reports each repository's "
-                    "sub_index names."
+                    "the whole repository, which on a split repository indexes every vendored "
+                    "tree: refresh sub_index='first-party' there instead. "
+                    "`index(action='targets')` reports each repository's sub_index names."
                 )
             ),
         ] = None,
@@ -2753,8 +3106,35 @@ async def run_stdio(mcp: MCPServer) -> None:
         )
 
 
+## @brief Serve one transport while keeping the session's indexes current in the background.
+## @param mcp MCP server instance to serve.
+## @param state The server state whose indexes are kept current.
+## @param interval Seconds between background checks; 0 disables the loop.
+## @param transport The serving coroutine, `run_stdio` unless a test supplies one.
+## @return None, once the transport ends.
+## @version 1
+## @req REQ-DDB-MCP-004
+async def serve(
+    mcp: MCPServer, state: DocsDbServer, interval: float, transport: Any = None
+) -> None:
+    """THE LOOP LIVES AND DIES WITH THE TRANSPORT. It is started beside the stdio session in one
+    task group and cancelled the moment the session ends, so a disconnected client never leaves a
+    process refreshing indexes for nobody.
+
+    @brief Run the transport alongside the background refresh loop.
+    @return None.
+    @version 1
+    """
+    serving = transport if transport is not None else run_stdio
+    async with anyio.create_task_group() as tg:
+        if interval > 0:
+            tg.start_soon(state.keep_current, interval)
+        await serving(mcp)
+        tg.cancel_scope.cancel()
+
+
 ## @brief Entry point — run the server over stdio.
-## @version 5
+## @version 6
 ## @req REQ-DDB-MCP-001
 def main() -> None:
     """Run the clew MCP server on the stdio transport.
@@ -2772,7 +3152,7 @@ def main() -> None:
     first call that needs one.
 
     @brief Run the MCP server (stdio) with a derived target.
-    @version 4
+    @version 5
     """
     parser = argparse.ArgumentParser(prog="clew-mcp", description="clew MCP server (stdio).")
     parser.add_argument(
@@ -2786,7 +3166,7 @@ def main() -> None:
     args = parser.parse_args()
     mcp, state = build_server()
     state.resolve_startup_target(args.repo)
-    anyio.run(run_stdio, mcp)
+    anyio.run(serve, mcp, state, refresh_interval())
 
 
 ## RUNNABLE AS A MODULE, NOT ONLY AS A CONSOLE SCRIPT (gh#14). Without this block

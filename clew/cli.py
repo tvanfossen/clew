@@ -1488,7 +1488,7 @@ def _recorded_predefined(args: argparse.Namespace, output: Path) -> list[str] | 
 ## @param args Parsed CLI arguments; each manifest option is None when unstated this run.
 ## @param output Live database path, which still holds the PREVIOUS build's record.
 ## @return The option names replayed, sorted, for logging.
-## @version 2
+## @version 3
 ## @req REQ-DDB-CONFIG-006
 ## @req REQ-DDB-CONFIG-008
 def _replay_manifest_statements(args: argparse.Namespace, output: Path) -> list[str]:
@@ -1521,7 +1521,7 @@ def _replay_manifest_statements(args: argparse.Namespace, output: Path) -> list[
 
     @brief Resolve the tier-1 manifest statements in force for this build.
     @return The replayed option names.
-    @version 1
+    @version 2
     """
     ## NOT named `section`: that is `declaration.section`, imported into this module and
     ## used by the resolver two functions down. A local shadowing it here would read as
@@ -1533,7 +1533,10 @@ def _replay_manifest_statements(args: argparse.Namespace, output: Path) -> list[
     ## form is a DOCUMENT, so `recorded_document` reads it, while `predefined` is a LIST and
     ## needs `recorded_explicit`. One loop over two readers would have to branch per option,
     ## which is the shape that lets one option take the other's decoder.
-    for option in (*MANIFEST_OPTIONS, OPTION_EVENT_TAGS):
+    ## SECTION DOCUMENTS TOO (`index_scope`, `preprocessor`, `kconfig`, `sub_indexes`): stamped
+    ## since gh#47 by the same writer and therefore readable by the same reader, but never read
+    ## back — so a stated `index_scope` lasted exactly one build.
+    for option in (*MANIFEST_OPTIONS, OPTION_EVENT_TAGS, *SECTION_DOCUMENT_OPTIONS):
         if getattr(args, option, None) is not None:
             continue
         recorded = recorded_document(recorded_section, option)
@@ -2700,7 +2703,7 @@ def _run_pipeline(args: argparse.Namespace) -> None:
 ## @brief Run every build stage and swap the result onto --output.
 ## @param args Parsed CLI arguments.
 ## @return None.
-## @version 18
+## @version 19
 ## @req REQ-DDB-CLI-001
 def _run_pipeline_inner(args: argparse.Namespace) -> None:
     """Build into a sibling temp DB, then os.replace() it onto --output.
@@ -2717,7 +2720,7 @@ def _run_pipeline_inner(args: argparse.Namespace) -> None:
     partition the duration it is reported beside instead of some inner part of it.
 
     @brief Run the build pipeline, recording what it cost.
-    @version 18
+    @version 19
     """
     started = time.perf_counter()
     timer = StageTimer()
@@ -2733,6 +2736,18 @@ def _run_pipeline_inner(args: argparse.Namespace) -> None:
     _apply_declared_document(args)
     output = Path(args.output).resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
+    ## The operator's tier-1 DOCUMENT statements, replayed BEFORE ANYTHING RESOLVES SCOPE. They
+    ## sat below `_apply_scope` until measured on RIOT: a stated `index_scope` was recorded by one
+    ## build and read back only after the next build had already derived the whole repository —
+    ## 14,711 files where 1,141 were stated, on exactly the plain refresh an automatic one issues.
+    ## Nothing here needs the repository root, so there is no reason for any consumer to run first.
+    replayed = _replay_manifest_statements(args, output)
+    if replayed:
+        logger.info(
+            "build options: replaying the tier-1 statement recorded by an earlier build "
+            "(this index carries a policy the repository does not declare) — %s",
+            ", ".join(replayed),
+        )
     doxyfile, repo_root = _resolve_doxyfile_and_root(args, output)
     # gh#3. Checked AFTER the Doxyfile is resolved (its FILE_PATTERNS is the thing
     # that excludes) and BEFORE `_apply_scope`, which PREPENDS derived scope roots
@@ -2764,18 +2779,11 @@ def _run_pipeline_inner(args: argparse.Namespace) -> None:
     ## SEPARATE from the manifest loop because a list and a document have different stored
     ## forms and therefore different readers.
     args.predefined = _recorded_predefined(args, output)
-    ## The operator's tier-1 MANIFEST statements, replayed here for the same reason and
-    ## at the same moment: `output` is the previous build's database and it is gone after
-    ## the swap. Written back onto `args` so `_declared_or_flag` in the build stages reads
-    ## ONE value whether it was stated on this call or on an earlier one — and so the tier
-    ## stamped by `_manifest_option_tiers` describes the document the stages were given.
-    replayed = _replay_manifest_statements(args, output)
-    if replayed:
-        logger.info(
-            "build options: replaying the tier-1 statement recorded by an earlier build "
-            "(this index carries a policy the repository does not declare) — %s",
-            ", ".join(replayed),
-        )
+    ## The tier-1 MANIFEST and SECTION-DOCUMENT statements were replayed at the top of this
+    ## function, before scope resolution — see there. Written back onto `args` so
+    ## `_declared_or_flag` in the build stages reads ONE value whether it was stated on this call
+    ## or on an earlier one, and so the tier stamped by `_manifest_option_tiers` describes the
+    ## document the stages were given.
     cache = _open_index_cache(args, output, repo_root)
     timer.mark("resolve")
     tmp = staging_path(output)
