@@ -273,6 +273,33 @@ def _isolate_claude_config(tmp_path_factory: pytest.TempPathFactory) -> Iterator
         os.environ["CLAUDE_CONFIG_DIR"] = previous
 
 
+@pytest.fixture(autouse=True)
+def _isolate_state_home(tmp_path_factory: pytest.TempPathFactory) -> Iterator[None]:
+    """THE SAME HARD SAFETY REQUIREMENT AS THE CONFIG ISOLATION BESIDE IT, one directory over.
+    `TargetRegistry()` and `target_for(repo)` with no home resolve to `$CLEW_STATE_HOME`, else
+    `~/.local/state/clew` — the user's real registry and every built index under it. A test that
+    registers a target, or a CLI build that registers the one it just wrote, would otherwise
+    write into that file; `cull` would delete databases out of it.
+
+    Autouse, so protection comes from existing rather than from remembering to ask, and per-test
+    so no registry state leaks between tests. A test that wants to exercise the resolution rules
+    themselves overrides the variable with monkeypatch, which restores it afterwards.
+
+    @brief Redirect the clew state root away from the user's real one.
+    @param tmp_path_factory Session-scoped temporary-directory factory.
+    @return Generator yielding once.
+    @version 1
+    """
+    isolated = tmp_path_factory.mktemp("clew-state")
+    previous = os.environ.get("CLEW_STATE_HOME")
+    os.environ["CLEW_STATE_HOME"] = str(isolated)
+    yield
+    if previous is None:
+        os.environ.pop("CLEW_STATE_HOME", None)
+    else:
+        os.environ["CLEW_STATE_HOME"] = previous
+
+
 ## @brief The real source tree the `rich_db` index's paths point at.
 ## @return Path to `tests/data/csample/`.
 ## @version 1

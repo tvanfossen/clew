@@ -574,7 +574,7 @@ class TargetRegistry:
     ## @brief Register (or re-register) a repo and allocate its db path.
     ## @param repo_path Repo root to register.
     ## @return The Target recorded for that repo.
-    ## @version 2
+    ## @version 3
     ## @req REQ-DDB-MCP-001
     def register(self, repo_path: Path | str, name: str | None = None) -> Target:
         """Allocate the Target for `repo_path`, persist it, and ensure its
@@ -591,10 +591,18 @@ class TargetRegistry:
 
         @brief Register a target repo, or one of its sub-indexes.
         @return The registered Target.
-        @version 3
+        @version 4
         """
         target = target_for(repo_path, self.home, name)
         data = self.load()
+        ## THE LEGACY ROW FOR THIS SAME TARGET GOES WITH THE WRITE. The registry was keyed by
+        ## repo path and is now keyed by slug, and re-registering wrote the new row beside the
+        ## old one rather than in place of it — measured on this machine: one repository listed
+        ## twice by `index(action='targets')`, and counted twice by every sibling lookup. Guarded
+        ## on the SLUG so a sub-index registration cannot drop the whole repository's row.
+        legacy = data.get(str(target.repo_path))
+        if isinstance(legacy, dict) and legacy.get("slug", target.slug) == target.slug:
+            data.pop(str(target.repo_path), None)
         record = {
             "slug": target.slug,
             "db_path": target.db_path,
@@ -659,27 +667,37 @@ class TargetRegistry:
 
     ## @brief Every registered target.
     ## @return List of Target in registration-key order.
-    ## @version 2
+    ## @version 3
     ## @req REQ-DDB-MCP-001
     def targets(self) -> list[Target]:
         """Rebuild Target records from the persisted mapping.
 
         @brief List all registered targets.
         @return List of Target.
-        @version 2
+        @version 3
         """
         ## `repo_path` FALLS BACK TO THE KEY, which is exactly right for every entry written
         ## before sub-indexes existed — there the key IS the repo path — and is never reached for
         ## a composite key, because `register` writes the field whenever it writes one.
-        return [
-            Target(
+        ##
+        ## DE-DUPLICATED BY SLUG, on the READ side as well as the write side, so a registry that
+        ## already holds both shapes for one target is listed correctly on the next call rather
+        ## than on the next build. The slug IS the identity: it is derived from (repo path,
+        ## sub-index name), so two rows carrying one slug are two spellings of one database. The
+        ## row that names its own `repo_path` wins, because the other's path comes from a key
+        ## whose format predates sub-indexes.
+        found: dict[str, Target] = {}
+        for repo, rec in sorted(self.load().items()):
+            slug = rec.get("slug", "")
+            target = Target(
                 repo_path=rec.get("repo_path") or repo,
-                slug=rec.get("slug", ""),
+                slug=slug,
                 db_path=rec.get("db_path", ""),
                 name=rec.get("name"),
             )
-            for repo, rec in sorted(self.load().items())
-        ]
+            if slug not in found or rec.get("repo_path"):
+                found[slug] = target
+        return list(found.values())
 
     ## @brief Forget a target and delete its built database directory.
     ## @param repo_path Repo root to drop every sub-index of, or an exact slug.
