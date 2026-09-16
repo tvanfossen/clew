@@ -307,6 +307,10 @@ class Answering:
     staleness: list[dict[str, str]]
     sub_index: str | None = None
     not_searched: tuple[str, ...] = ()
+    ## Whether the REPOSITORY is split, independently of whether any other part is on record.
+    ## A first-party index built by the CLI registers no sibling and records no split, so
+    ## `not_searched` is empty there — and a negative from one part is still not one for the whole.
+    split: bool = False
 
 
 ## @brief Allocate the Target record for a repo path (pure; no I/O).

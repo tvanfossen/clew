@@ -32,7 +32,7 @@ from .. import wire
 from ..query import _common
 from .descriptions import load_descriptions
 from .emptiness import prose_emptiness, search_emptiness
-from .routing import MAX_LISTED_SIBLINGS
+from .routing import MAX_LISTED_SIBLINGS, no_index_message
 from .state import Answering
 
 DbProvider = Callable[[], Path]
@@ -301,6 +301,42 @@ def _bounded_names(names: tuple[str, ...]) -> list[str]:
     return shown
 
 
+## What a HIT from one part of a split repository says about its own unresolved edges. gh#48 ask 3:
+## "a dossier answered from first-party whose callees live in a vendored sub-index should say so,
+## rather than presenting an apparently complete neighbour list." A miss is rewritten by
+## `_scope_definitive`; a hit reads as complete, which is why it needs saying here.
+_UNRESOLVED_ACROSS_INDEXES = (
+    "{count} call site(s) in `external_callees` resolve to no function in THIS index, and this "
+    "answer read only sub-index {name!r} — `not_searched` lists the parts of this repository it "
+    "did not read, and an unresolved name may be defined in one of them. Ask again with "
+    "sub_index=<one of those> to follow the edge."
+)
+
+
+## @brief Say that a hit's unresolved call sites may resolve in a part this answer did not read.
+## @param payload The reply or batch entry.
+## @param answered_from The sub-index that answered.
+## @return None.
+## @version 1
+## @req REQ-DDB-MCP-001
+def _scope_hit(payload: dict[str, Any], answered_from: str) -> None:
+    """ONLY WHEN THERE IS AN EDGE TO EXPLAIN. A first-party hit whose every callee resolved is
+    complete as far as the question goes, and annotating it would be the over-hedging gh#393
+    reverted. `external_callees` being non-empty is the measured signal that something this
+    reply names is defined somewhere it did not look.
+
+    @brief Annotate a hit whose unresolved edges may cross into an unread index.
+    @return None.
+    @version 1
+    """
+    external = payload.get("external_callees")
+    if payload.get("found") is False or not external:
+        return
+    payload["scope_note"] = _UNRESOLVED_ACROSS_INDEXES.format(
+        count=len(external), name=answered_from
+    )
+
+
 ## @brief Withdraw a definitive negative that was answered from one part of a split repository.
 ## @details gh#48. A bare call on a split repository is answered from its first-party index, and a
 ##          symbol that lives in a vendored tree came back "a definitive negative from the
@@ -315,8 +351,16 @@ def _bounded_names(names: tuple[str, ...]) -> list[str]:
 ## @return None.
 ## @version 1
 ## @req REQ-DDB-MCP-004
-def _scope_definitive(payload: dict[str, Any], answered_from: str) -> None:
-    """@brief Scope a negative to the sub-index that answered it. @version 1"""
+def _scope_definitive(payload: dict[str, Any], answered_from: str, others: bool = True) -> None:
+    """`others` SAYS WHETHER ANY OTHER PART IS ON RECORD. Found by driving a model at a fixture
+    (gh#48 ask 5): a first-party index built by the CLI registers no sibling and records no
+    split, so `not_searched` was empty and the negative kept its definitive wording — and the
+    model then reported a symbol as absent from the REPOSITORY. The repository still declares
+    itself split in `.gitmodules`; with no names to offer, the reply says how to find them.
+
+    @brief Scope a negative to the sub-index that answered it.
+    @version 2
+    """
     note = payload.get("note")
     negative = payload.get("found") is False or payload.get("count") == 0
     if not isinstance(note, str) or not negative:
@@ -324,11 +368,18 @@ def _scope_definitive(payload: dict[str, Any], answered_from: str) -> None:
     if not re.search(_DEFINITIVE_SPLIT, note):
         return
     kept = re.split(_DEFINITIVE_SPLIT, note)[0].rstrip()
+    where = (
+        "`not_searched` lists this repository's other parts. Ask again with sub_index=<one of "
+        "those> before concluding it does not exist — a part with no index yet starts building "
+        "on that call."
+        if others
+        else "this repository is split into parts and no other part is indexed yet. Call "
+        "index(action='targets') to see them, and refresh one with sub_index=<name> before "
+        "concluding it does not exist."
+    )
     payload["note"] = (
         f"{kept} NOT DEFINITIVE FOR THE REPOSITORY: only sub-index {answered_from!r} was "
-        f"searched, and `not_searched` lists this repository's other parts. Ask again with "
-        f"sub_index=<one of those> before concluding it does not exist — a part with no index "
-        f"yet starts building on that call."
+        f"searched, and {where}"
     )
 
 
@@ -1464,7 +1515,7 @@ def _many(
 ## @brief The one message a caller gets when the database they need does not exist yet.
 ## @param repo_path Repository the missing database would describe, or "" when unknown.
 ## @return An actionable sentence naming the call that fixes it.
-## @version 1
+## @version 2
 ## @req REQ-DDB-MCP-003
 def unbuilt_index_message(repo_path: str = "") -> str:
     """SPELLED ONCE, because it was spelled twice and neither copy covered the common path. The
@@ -1477,16 +1528,18 @@ def unbuilt_index_message(repo_path: str = "") -> str:
     with a driver error is worse than an absent one. A tool that says what to call next is better
     than both, which is what lets the registration gate go away.
 
+    SPELLED IN `routing.no_index_message` SINCE gh#48, with the split-aware refusal, so the
+    three wordings that had already drifted once cannot drift again. This shape has no registry
+    behind it — it is `QueryTools` bound to one database — so it states the sentence and no
+    sub-index clauses.
+
     @brief The actionable message for an index that has not been built.
     @return The message.
-    @version 1
+    @version 2
     """
-    where = f" for {repo_path}" if repo_path else ""
+    what = repo_path or "the repository these tools are bound to"
     target = f", target={repo_path!r}" if repo_path else ""
-    return (
-        f"No database has been built{where} yet — call index(action='refresh'{target}) first. "
-        f"Nothing is wrong with this repository; it has simply not been indexed."
-    )
+    return no_index_message(what, f"index(action='refresh'{target})")
 
 
 ## @brief Tier-1 tool implementations, routed per call to any indexed repository.
@@ -1704,7 +1757,7 @@ class QueryTools:
     ## @param target Repository the call named, or None when the derived one answered.
     ## @param sub_index Name of the part the call named, or None.
     ## @return The reply, always a dict, always carrying `target` and any staleness.
-    ## @version 6
+    ## @version 8
     ## @dg_internal
     def _answered(
         self,
@@ -1748,7 +1801,7 @@ class QueryTools:
 
         @brief Stamp the answering target, and any staleness, onto a reply.
         @return The reply as a dict carrying `target`.
-        @version 6
+        @version 8
         """
         answering = self._route(target, sub_index) if target is not None else self._default()
         out = (
@@ -1789,11 +1842,17 @@ class QueryTools:
         if staleness:
             out["staleness"] = staleness
             _withdraw_definitive(out, staleness)
-        if answering is not None and answering.sub_index is not None and answering.not_searched:
-            _scope_definitive(out, answering.sub_index)
-            for entry in out.get("results") or []:
-                if isinstance(entry, dict):
-                    _scope_definitive(entry, answering.sub_index)
+        if answering is not None and answering.sub_index is not None:
+            ## `split` WITHOUT `not_searched` IS THE CLI-BUILT REPOSITORY: nothing else on record,
+            ## and the repository's own `.gitmodules` saying there is more of it.
+            others = bool(answering.not_searched)
+            if others or answering.split:
+                _scope_definitive(out, answering.sub_index, others)
+                _scope_hit(out, answering.sub_index)
+                for entry in out.get("results") or []:
+                    if isinstance(entry, dict):
+                        _scope_definitive(entry, answering.sub_index, others)
+                        _scope_hit(entry, answering.sub_index)
         return out
 
     ## @brief The default target's routing record, or None when it cannot be resolved.

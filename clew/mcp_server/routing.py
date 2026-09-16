@@ -194,12 +194,34 @@ def listed_names(names: tuple[str, ...] | list[str]) -> str:
     return shown + (f" (+{extra} more — index(action='targets') lists them)" if extra > 0 else "")
 
 
+## @brief The sentence every unbuilt-index refusal opens with.
+## @param what The index that is missing, named for a reader.
+## @param remedy The exact call that builds it.
+## @return The sentence.
+## @version 1
+## @req REQ-DDB-MCP-003
+def no_index_message(what: str, remedy: str) -> str:
+    """ONE WORDING FOR EVERY SHAPE THAT CAN REFUSE. There were three; gh#48 folded the two server
+    paths into `unbuilt_refusal`, and this is the third — `QueryTools` bound to a single database,
+    which has no registry to ask about sub-indexes and so cannot use the full refusal. It can
+    still say the same sentence.
+
+    @brief The shared "no index yet" sentence.
+    @return The sentence.
+    @version 1
+    """
+    return (
+        f"No index has been built for {what} yet — call {remedy} first. Nothing is wrong with "
+        f"this repository; it has simply not been indexed."
+    )
+
+
 ## @brief The one message for a query whose index does not exist.
 ## @param indexes What the repository has.
 ## @param asked The Target the call resolved to, whose database is absent.
 ## @param background A sentence describing a background build of it, or "" when none runs.
 ## @return The refusal, naming what is built and the one build that fixes it.
-## @version 1
+## @version 2
 ## @req REQ-DDB-MCP-001
 def unbuilt_refusal(indexes: RepoIndexes, asked: Target, background: str = "") -> str:
     """WRITTEN FOR A MODEL CHOOSING ITS NEXT CALL, because gh#48 recorded what the old wording
@@ -213,7 +235,7 @@ def unbuilt_refusal(indexes: RepoIndexes, asked: Target, background: str = "") -
 
     @brief Compose the unbuilt-index refusal.
     @return The message.
-    @version 1
+    @version 2
     """
     repo = indexes.repo_path
     built = [str(t.name) for t in indexes.built()]
@@ -232,7 +254,7 @@ def unbuilt_refusal(indexes: RepoIndexes, asked: Target, background: str = "") -
         f"{background} Nothing is wrong with this repository; ask again once it finishes, or call "
         f"{remedy}, which waits for that same build rather than starting another."
         if background
-        else f"No index has been built for {what} yet — call {remedy} first."
+        else no_index_message(what, remedy)
     ]
     if built:
         parts.append(f"Queryable now with the same target: sub_index= {listed_names(built)}.")
