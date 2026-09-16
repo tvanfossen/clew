@@ -2703,7 +2703,7 @@ def _run_pipeline(args: argparse.Namespace) -> None:
 ## @brief Run every build stage and swap the result onto --output.
 ## @param args Parsed CLI arguments.
 ## @return None.
-## @version 19
+## @version 20
 ## @req REQ-DDB-CLI-001
 def _run_pipeline_inner(args: argparse.Namespace) -> None:
     """Build into a sibling temp DB, then os.replace() it onto --output.
@@ -2720,7 +2720,7 @@ def _run_pipeline_inner(args: argparse.Namespace) -> None:
     partition the duration it is reported beside instead of some inner part of it.
 
     @brief Run the build pipeline, recording what it cost.
-    @version 19
+    @version 20
     """
     started = time.perf_counter()
     timer = StageTimer()
@@ -2810,6 +2810,49 @@ def _run_pipeline_inner(args: argparse.Namespace) -> None:
     report_stats(output)
     timer.mark("report_stats")
     _stamp_refresh_metrics(output, started, counts, timer)
+    _register_built_target(args.repo_root, output)
+
+
+##
+# @brief Record a CLI build that landed where the MCP server reads, so `targets` lists it.
+# @param repo_root The repository that was indexed, or None when there is none.
+# @param output The database this build wrote.
+# @return None.
+# @version 1
+# @req REQ-DDB-MCP-001
+def _register_built_target(repo_root: str | None, output: Path) -> None:
+    """MEASURED ON THIS MACHINE: six built indexes under the state root, four registered. The two
+    missing ones were CLI builds — `--output` defaults to exactly the path the server reads
+    (`_resolve_output`), and nothing then recorded that a database was there, so
+    `index(action='targets')` did not list them and `cull` could not reach them. The disk held
+    indexes the registry denied, which is gh#48's complaint one level up.
+
+    ONLY FOR THE SERVED LOCATION. A build to a path of the caller's own choosing — the
+    acceptance harness does this for every cell — is not reachable by any query, so recording it
+    as a target would list a repository whose index nothing can read.
+
+    AFTER THE SWAP, because registration is the claim that a database is there. It is also
+    non-fatal: an unwritable registry must not fail a build that has already succeeded.
+
+    @brief Register a repository whose CLI build landed at the served path.
+    @return None.
+    @version 1
+    """
+    if not repo_root:
+        return
+    from .mcp_server.state import TargetRegistry, target_for
+
+    try:
+        registry = TargetRegistry()
+        repo = Path(repo_root).expanduser().resolve()
+        if Path(target_for(repo, registry.home).db_path) != Path(output):
+            return
+        registry.register(repo)
+        logger.info("registered %s, so index(action='targets') lists this build", repo)
+    except OSError as exc:
+        logger.warning(
+            "could not register %s (%s) — the build itself is unaffected", repo_root, exc
+        )
 
 
 ##
