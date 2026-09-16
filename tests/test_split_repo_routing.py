@@ -201,6 +201,35 @@ def test_a_hit_whose_callees_are_unresolved_says_which_parts_it_did_not_read(
     )
 
 
+def test_a_negative_from_first_party_is_scoped_even_with_nothing_else_on_record(
+    tmp_path: Path, rich_db: Path
+) -> None:
+    """FOUND BY DRIVING A MODEL AT IT (gh#48 ask 5). A repository whose first-party index was
+    built by the CLI registers no sub-index and records no split, so `not_searched` is empty —
+    and a miss for a symbol that lives in a vendored tree came back as "a definitive negative
+    from the database". The repository says it is split in its own `.gitmodules`, which costs a
+    stat to read, and an answer from ONE part of it is never definitive for the whole.
+
+    @brief A sub-index negative is scoped by declared split evidence, with nothing else recorded.
+    @version 1
+    """
+    home = tmp_path / "state"
+    repo = _split_repo(tmp_path / "repo")
+    (repo / ".gitmodules").write_text(
+        '[submodule "deps/tinyfsm"]\n\tpath = deps/tinyfsm\n', encoding="utf-8"
+    )
+    _built_on_disk(home, repo, FIRST_PARTY_INDEX, rich_db)
+    _mcp, state = build_server(st.TargetRegistry(home))
+
+    reply = state.tools.dossier("vendored_only_symbol", target=str(repo))
+
+    assert reply.get("found") is False
+    assert "definitive negative" not in reply["note"], reply["note"]
+    assert "sub_index" in reply["note"], (
+        f"a scoped negative must route to the parts that were not read: {reply['note']!r}"
+    )
+
+
 def test_the_refusal_names_what_is_built_and_never_advises_an_unscoped_build(
     tmp_path: Path, rich_db: Path
 ) -> None:

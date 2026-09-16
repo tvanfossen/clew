@@ -351,8 +351,16 @@ def _scope_hit(payload: dict[str, Any], answered_from: str) -> None:
 ## @return None.
 ## @version 1
 ## @req REQ-DDB-MCP-004
-def _scope_definitive(payload: dict[str, Any], answered_from: str) -> None:
-    """@brief Scope a negative to the sub-index that answered it. @version 1"""
+def _scope_definitive(payload: dict[str, Any], answered_from: str, others: bool = True) -> None:
+    """`others` SAYS WHETHER ANY OTHER PART IS ON RECORD. Found by driving a model at a fixture
+    (gh#48 ask 5): a first-party index built by the CLI registers no sibling and records no
+    split, so `not_searched` was empty and the negative kept its definitive wording — and the
+    model then reported a symbol as absent from the REPOSITORY. The repository still declares
+    itself split in `.gitmodules`; with no names to offer, the reply says how to find them.
+
+    @brief Scope a negative to the sub-index that answered it.
+    @version 2
+    """
     note = payload.get("note")
     negative = payload.get("found") is False or payload.get("count") == 0
     if not isinstance(note, str) or not negative:
@@ -360,11 +368,18 @@ def _scope_definitive(payload: dict[str, Any], answered_from: str) -> None:
     if not re.search(_DEFINITIVE_SPLIT, note):
         return
     kept = re.split(_DEFINITIVE_SPLIT, note)[0].rstrip()
+    where = (
+        "`not_searched` lists this repository's other parts. Ask again with sub_index=<one of "
+        "those> before concluding it does not exist — a part with no index yet starts building "
+        "on that call."
+        if others
+        else "this repository is split into parts and no other part is indexed yet. Call "
+        "index(action='targets') to see them, and refresh one with sub_index=<name> before "
+        "concluding it does not exist."
+    )
     payload["note"] = (
         f"{kept} NOT DEFINITIVE FOR THE REPOSITORY: only sub-index {answered_from!r} was "
-        f"searched, and `not_searched` lists this repository's other parts. Ask again with "
-        f"sub_index=<one of those> before concluding it does not exist — a part with no index "
-        f"yet starts building on that call."
+        f"searched, and {where}"
     )
 
 
@@ -1742,7 +1757,7 @@ class QueryTools:
     ## @param target Repository the call named, or None when the derived one answered.
     ## @param sub_index Name of the part the call named, or None.
     ## @return The reply, always a dict, always carrying `target` and any staleness.
-    ## @version 7
+    ## @version 8
     ## @dg_internal
     def _answered(
         self,
@@ -1786,7 +1801,7 @@ class QueryTools:
 
         @brief Stamp the answering target, and any staleness, onto a reply.
         @return The reply as a dict carrying `target`.
-        @version 7
+        @version 8
         """
         answering = self._route(target, sub_index) if target is not None else self._default()
         out = (
@@ -1827,13 +1842,17 @@ class QueryTools:
         if staleness:
             out["staleness"] = staleness
             _withdraw_definitive(out, staleness)
-        if answering is not None and answering.sub_index is not None and answering.not_searched:
-            _scope_definitive(out, answering.sub_index)
-            _scope_hit(out, answering.sub_index)
-            for entry in out.get("results") or []:
-                if isinstance(entry, dict):
-                    _scope_definitive(entry, answering.sub_index)
-                    _scope_hit(entry, answering.sub_index)
+        if answering is not None and answering.sub_index is not None:
+            ## `split` WITHOUT `not_searched` IS THE CLI-BUILT REPOSITORY: nothing else on record,
+            ## and the repository's own `.gitmodules` saying there is more of it.
+            others = bool(answering.not_searched)
+            if others or answering.split:
+                _scope_definitive(out, answering.sub_index, others)
+                _scope_hit(out, answering.sub_index)
+                for entry in out.get("results") or []:
+                    if isinstance(entry, dict):
+                        _scope_definitive(entry, answering.sub_index, others)
+                        _scope_hit(entry, answering.sub_index)
         return out
 
     ## @brief The default target's routing record, or None when it cannot be resolved.

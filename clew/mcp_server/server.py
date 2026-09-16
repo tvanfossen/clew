@@ -1627,7 +1627,7 @@ class DocsDbServer:
     ## @param target Repo root path, or a slug from `list_targets`; None for the default target.
     ## @param sub_index Name of the part to read, or None for the whole repository.
     ## @return Everything one query needs about that repository.
-    ## @version 4
+    ## @version 5
     ## @req REQ-DDB-MCP-001
     def answering(self, target: str | None, sub_index: str | None = None) -> Answering:
         """The query-side half of resolution, and the reason it is separate from
@@ -1647,7 +1647,7 @@ class DocsDbServer:
 
         @brief Resolve a routed or default target for querying.
         @return The database, working tree, staleness and scope for it.
-        @version 4
+        @version 5
         """
         resolved, indexes = self._answerable(target, sub_index)
         found: list[dict[str, str]] = []
@@ -1661,6 +1661,7 @@ class DocsDbServer:
             staleness=found,
             sub_index=resolved.name,
             not_searched=indexes.not_searched(resolved),
+            split=indexes.split_evidence(),
         )
 
     ## @brief The built index a query would read, or the refusal saying why there is none.
