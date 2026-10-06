@@ -22,9 +22,16 @@ def test_every_substrate_extension_for_a_gated_language_is_mapped():
 
 
 def test_languages_without_a_spec_are_not_mapped():
-    """JavaScript is in the substrate but the gate has no LanguageSpec for it yet."""
-    assert ".js" not in EXTENSION_TO_LANGUAGE
-    assert language_for_file("app.js", {}) is None
+    """Go is in the substrate but the gate has no LanguageSpec for it."""
+    assert ".go" not in EXTENSION_TO_LANGUAGE
+    assert language_for_file("main.go", {}) is None
+
+
+def test_tsx_is_routed_to_the_jsx_aware_grammar():
+    """The substrate files `.tsx` under typescript; the gate parses it with the tsx grammar."""
+    assert EXTENSION_TO_LANGUAGE[".tsx"] == "typescript"
+    assert language_for_file("App.tsx", {}) == "tsx"
+    assert language_for_file("app.ts", {}) == "typescript"
 
 
 def test_c_header_is_mapped_although_the_substrate_marks_it_explicit_only():
@@ -34,4 +41,5 @@ def test_c_header_is_mapped_although_the_substrate_marks_it_explicit_only():
 
 
 def test_every_language_spec_is_reachable_by_some_extension():
-    assert set(LANGUAGE_SPECS) == set(EXTENSION_TO_LANGUAGE.values())
+    """Every spec but `tsx` comes from the registry; `tsx` is reached by language_for_file."""
+    assert set(LANGUAGE_SPECS) - {"tsx"} == set(EXTENSION_TO_LANGUAGE.values())

@@ -73,7 +73,7 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
-from .vocabulary import EXTERNAL_ROOT_COLUMN, SYMBOL_SOURCE_COLUMN, SYMBOL_SOURCE_DOXYGEN
+from .vocabulary import EXTERNAL_ROOT_COLUMN, SYMBOL_SOURCE_AST, SYMBOL_SOURCE_COLUMN
 
 logger = logging.getLogger(__name__)
 
@@ -354,7 +354,7 @@ def _line_count(path: Path) -> int:
 ## @param conn Open connection to the built index.
 ## @param documented_only Restrict the count to doxygen-sourced rows.
 ## @return Mapping of path rowid → number of memberdef rows attributed.
-## @version 3
+## @version 4
 ## @dg_internal
 def _symbols_by_file(conn: sqlite3.Connection, *, documented_only: bool = False) -> dict[int, int]:
     """The UNION is the decl/def duality, and it is load-bearing — see the module
@@ -372,11 +372,13 @@ def _symbols_by_file(conn: sqlite3.Connection, *, documented_only: bool = False)
 
     @brief Per-file symbol yield under unioned attribution.
     @return path rowid → memberdef row count.
-    @version 3
+    @version 4
     """
     predicate = "IS NOT NULL"
     if documented_only and _has_provenance(conn):
-        predicate = f"IS NOT NULL AND {SYMBOL_SOURCE_COLUMN} = '{SYMBOL_SOURCE_DOXYGEN}'"
+        ## Documented means "a front end that read the docs wrote it": doxygen, or the
+        ## parse-built JS/TS front end. Everything but an 'ast' recovery row.
+        predicate = f"IS NOT NULL AND {SYMBOL_SOURCE_COLUMN} != '{SYMBOL_SOURCE_AST}'"
     rows = conn.execute(
         "SELECT fid, COUNT(*) FROM ("
         f"  SELECT rowid AS mid, file_id AS fid FROM memberdef WHERE file_id {predicate}"

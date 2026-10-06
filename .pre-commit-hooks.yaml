@@ -6,5 +6,5 @@
   description: Validate doxygen comments for presence, version staleness, and custom tag syntax
   entry: clew-guard
   language: python
-  types_or: [c, c++, python, rust]
+  types_or: [c, c++, python, rust, javascript, jsx, ts, tsx]
   require_serial: true

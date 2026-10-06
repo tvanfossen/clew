@@ -35,6 +35,7 @@ from .config import (
     validate_output_path,
 )
 from .errors import ConfigError, GuardError
+from .filters import gate_exclusion
 from .git import get_branch_diff_range, get_file_at_revision, git_add
 from .impact import (
     build_impact_report,
@@ -151,7 +152,8 @@ def _add_files_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 ## @brief Orchestrate presence, staleness, and tag checks for one file.
-#  @version 1.11
+#  @details Skips files the shared toolchain config ignores and binary files (filters.py).
+#  @version 1.12
 #  @req REQ-DDB-GUARD-001
 def validate_file(
     file_path: str,
@@ -164,6 +166,10 @@ def validate_file(
         if re.search(pattern, file_path):
             logger.debug("Skipping %s — matches exclude pattern '%s'", file_path, pattern)
             return []
+    skip = gate_exclusion(file_path)
+    if skip is not None:
+        logger.info("Skipping %s — %s", file_path, skip)
+        return []
 
     functions = parse_source_file(file_path, config)
     if functions is None:

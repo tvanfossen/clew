@@ -156,7 +156,15 @@ from .tiers import OPTIONS_META_PREFIX
 ##     * `context_conflicts` holds different `confidence` values and a qualified `detail`: a
 ##       path through a name this index defines more than once is reported `low` rather than
 ##       `medium`, which is 9 of RIOT's 12 conflicts.
-CLEW_BUILD_VERSION = 7
+## 8 (substrate PR 2b) — identical source now yields different rows, and an index built
+##   before it would report itself current while missing them:
+##
+##     * JavaScript / TypeScript files have `path`, `memberdef` (dg_source='parse'),
+##       `compounddef`, `member` and `compoundref` rows from the parse-built front end
+##       (clew/synth.py), and their call sites come from jsast — before this they had no
+##       rows at all, and a JS-only repo still ran doxygen for nothing.
+##     * binary files and the repo's toolchain.toml / suppress.toml exclusions leave the index.
+CLEW_BUILD_VERSION = 8
 
 
 ## @brief Stamp the build version, scope, coverage and preprocessor config into build_meta.

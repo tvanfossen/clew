@@ -70,6 +70,12 @@ TEST_PATH_FACTS: tuple[str, ...] = (
     "*_spec.*",
     "*Test.*",
     "*Tests.*",
+    ## JavaScript / TypeScript conventions: `foo.test.ts`, `foo.spec.js`, and Jest's
+    ## `__tests__/` directory beside the code.
+    "*.test.*",
+    "*.spec.*",
+    "__tests__/*",
+    "*/__tests__/*",
 )
 
 _DDL = """

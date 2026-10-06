@@ -101,8 +101,8 @@ VALIDATE_DEFAULTS: dict[str, Any] = {
     "exclude": [],
 }
 
-# Languages the gate supports but does not check unless a repo DECLARES them. Declaring
-# `validate.languages.rust: {}` is enough — the declared mapping is merged over these
+# Languages the gate supports but does not check unless a repo DECLARES them (Rust,
+# JavaScript, TypeScript). Declaring `validate.languages.rust: {}` is enough — the declared mapping is merged over these
 # defaults. Opt-in rather than default because the published hook now passes `.rs` files,
 # and a repo that adopted the gate for its C would otherwise start failing on its Rust
 # the first time it bumps `rev:`.
@@ -123,6 +123,23 @@ OPT_IN_LANGUAGE_DEFAULTS: dict[str, dict[str, Any]] = {
             "start": r"^\s*///(?!/)",
             "end": r"^\s*//",
         },
+        "require_return": False,
+    },
+    # JSDoc. JavaScript has no return annotation, so a JS function always counts as void
+    # and `require_return: true` only bites in TypeScript, where `: void` / `Promise<void>`
+    # / `never` / `undefined` are void and any other annotation is not.
+    "javascript": {
+        "extensions": [".js", ".mjs", ".cjs", ".jsx"],
+        "function_pattern": r"^\s*(?:export\s+)?(?:async\s+)?function\*?\s+(\w+)",
+        "exclude_names": [],
+        "comment_style": {"start": r"/\*\*(?!\*)", "end": r"\*/"},
+        "require_return": False,
+    },
+    "typescript": {
+        "extensions": [".ts", ".tsx"],
+        "function_pattern": r"^\s*(?:export\s+)?(?:async\s+)?function\*?\s+(\w+)",
+        "exclude_names": [],
+        "comment_style": {"start": r"/\*\*(?!\*)", "end": r"\*/"},
         "require_return": False,
     },
 }

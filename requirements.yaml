@@ -685,6 +685,60 @@ requirements:
       stagetimer.StageTimer, marked through cli._build_stages and stamped as `refresh.stages`. Q7
       mark 7 and Q8 mark 5 are the acceptance marks this exists to satisfy; tests/test_freshness.py
       and tests/test_stage_timings.py hold the controls.
+  REQ-DDB-CONFIG-009:
+    subsystem: config
+    name: The shared toolchain config (toolchain.toml, suppress.toml) is honoured
+    acceptance_criteria: 'A repo-root toolchain.toml `[ignore].paths` and suppress.toml entries
+      with `tool = "*"` and no `rule` exclude their files from the index (doxygen, the tree scan,
+      the cache key, the data-model walk) and from the gate; `[clew.ignore].paths` and entries
+      with `tool = "clew"` exclude from the gate only; entries naming a `rule`, or another tool,
+      exclude nothing. The index records `scope.toolchain_config`, `scope.toolchain_ignores`
+      (JSON) and `scope.toolchain_excluded`, and never replays them as operator excludes. A file
+      that cannot be read, or a malformed value, is reported and ignored, never fatal.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'clew/toolchain.py; clew/cli.py _apply_toolchain_exclusions / _toolchain_scope;
+      clew/guard/filters.py; tests/test_toolchain.py, tests/guard/test_guard_filters.py.'
+  REQ-DDB-PIPE-011:
+    subsystem: pipeline
+    name: Binary files are never parsed or hashed, whatever their extension
+    acceptance_criteria: 'A file lang-parsing-substrate classifies as binary (magic number or
+      byte distribution) is dropped from the scanned tree before doxygen, the cache scan or any
+      tree-sitter stage reads it, and the gate skips it. Empty files and large text files are
+      not skipped. The index records `scope.skipped_binary` and a bounded sample.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'clew/filetypes.py; clew/cli.py _drop_binary_files / _skipped_files_scope;
+      clew/harvest.py _parseable_file; clew/guard/filters.py; tests/test_toolchain.py.'
+  REQ-DDB-PIPE-012:
+    subsystem: pipeline
+    name: JavaScript and TypeScript are indexed through a parse-built front end
+    acceptance_criteria: 'Every in-scope .js .mjs .cjs .jsx .ts .mts .cts .tsx file gets a `path`
+      row; its functions (declarations, methods, names bound to arrow functions or function
+      expressions) become `memberdef` rows with dg_source=parse, dotted `definition`/`scope`
+      (`src.util.strings.Formatter.trim`), the TypeScript return annotation as `type`, and the
+      JSDoc rendered as doxygen markup (brief, version simplesect, other tags literal, text
+      escaped); classes, interfaces and enums become `compounddef` rows with `member` links and
+      `compoundref` for a uniquely named base. Call sites are plain `f()`, qualified `this.m()` /
+      `super.m()`, receiver-carrying `obj.m()`, `new C()` as `C.constructor`, and functions passed
+      by name as bindings; a bare call in a method is never self-recursion. A repo with nothing
+      doxygen reads does not run doxygen; a mixed repo gets both front ends in one index.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'clew/synth.py, clew/jsast.py, clew/cli.py _doxygen_has_source /
+      _scanned_files, call_edges.py jsast dispatch and _inside_js_method, filedocs.JsFileDoc.
+      tests/test_jsts.py.'
+  REQ-DDB-PIPE-013:
+    subsystem: pipeline
+    name: PEP 257 docstrings document the Python definitions doxygen left bare
+    acceptance_criteria: 'Doxygen stays the Python front end. A doxygen function or class row whose
+      brief is empty and whose definition has a docstring gets the docstring summary line (or its
+      explicit @brief) as the brief, and the docstring @version as the version simplesect when the
+      detail has none. A row doxygen documented from a two-hash block is never changed, and a
+      recovered ast row is never given documentation. Matched on (file, def line, name).'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'clew/pydocs.py; clew/cli.py stage py_docstrings; tests/test_pydocs.py.'
   REQ-DDB-PIPE-001:
     subsystem: pipeline
     name: Build a layered SQLite knowledge db from a target repo's Doxyfile
@@ -1132,10 +1186,11 @@ requirements:
     x-upstream-id: REQ-PARSE-004
   REQ-DDB-GUARD-021:
     subsystem: guard
-    name: Python docstring tag extraction
-    acceptance_criteria: Functions whose docstring carries brief and version tags satisfy presence checks
-      without a preceding block; a preceding block takes precedence when both exist; docstrings without
-      recognized tags are not treated as doxygen blocks
+    name: Python docstrings are documentation (PEP 257 leads)
+    acceptance_criteria: A non-empty function docstring is the function's doc block, with or
+      without tags; its summary line satisfies brief unless brief is written; version and req
+      tags go inside it; a preceding two-hash block takes precedence when both exist; an empty
+      docstring is not a block. (Changed from doxygen-guard, which ignored untagged docstrings.)
     x-priority: P1
     x-status: implemented
     x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-021; tests under tests/guard/.
@@ -1174,3 +1229,19 @@ requirements:
       _is_rust_test_item, parser.py apply_autobrief, checks.py _require_return /
       _is_rust_unit_fn / _RUST_FILE_DOC_STARTS, config.py OPT_IN_LANGUAGE_DEFAULTS.
       tests/guard/test_guard_rust.py.'
+  REQ-DDB-GUARD-025:
+    subsystem: guard
+    name: JavaScript and TypeScript (JSDoc) functions are gated when a repo declares them
+    acceptance_criteria: 'With `validate.languages.javascript` / `typescript` declared,
+      function and generator declarations, methods, and names bound to an arrow function or
+      function expression (`const f = () => ...`, a class field) carry a `/** */` JSDoc block,
+      found above the `export` / `const` around them. The JSDoc summary satisfies @brief unless
+      @brief is written. @return is not required unless `require_return` is true, and then only
+      for a TypeScript return annotation other than void, never, undefined or Promise of those.
+      Anonymous functions and bodiless signatures are not gated; `.tsx` parses with the
+      JSX-aware grammar. Undeclared, these files are not checked.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'clew/guard/ts_parser.py _bound_function / _function_carrier / _js_returns_void
+      and the jsdoc branch of _find_preceding_doxygen; ts_languages.py javascript / typescript /
+      tsx specs; config.py OPT_IN_LANGUAGE_DEFAULTS. tests/guard/test_guard_jsts.py.'

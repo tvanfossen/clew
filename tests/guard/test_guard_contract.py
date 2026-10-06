@@ -220,7 +220,15 @@ class TestContractEnvelopeShape:
         "requirements_catalog",
     }
     EFFECTIVE_KEYS = {"contract_version", "config", "resolved", "passthrough_sections"}
-    FILES_KEYS = {"contract_version", "source_dirs", "exclude", "files", "count"}
+    FILES_KEYS = {
+        "contract_version",
+        "source_dirs",
+        "exclude",
+        "toolchain_config",
+        "toolchain_ignores",
+        "files",
+        "count",
+    }
     CATALOG_KEYS = {
         "root_key",
         "format_default",

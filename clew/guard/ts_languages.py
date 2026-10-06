@@ -55,6 +55,41 @@ LANGUAGE_SPECS: dict[str, LanguageSpec] = {
         comment_node_types=("line_comment", "block_comment"),
         doc_style="rust",
     ),
+    # JSDoc: a `/** */` block above the function (or above the `export` / `const` around
+    # it). A name bound to an arrow function or function expression counts as a function;
+    # see ts_parser._bound_function. TypeScript's bodiless signatures are declarations.
+    "javascript": LanguageSpec(
+        grammar_module="substrate:javascript",
+        function_node_types=(
+            "function_declaration",
+            "generator_function_declaration",
+            "method_definition",
+        ),
+        comment_node_types=("comment",),
+        doc_style="jsdoc",
+    ),
+    "typescript": LanguageSpec(
+        grammar_module="substrate:typescript",
+        function_node_types=(
+            "function_declaration",
+            "generator_function_declaration",
+            "method_definition",
+        ),
+        comment_node_types=("comment",),
+        doc_style="jsdoc",
+    ),
+    # Not a registry language: `.tsx` is filed under `typescript` by the substrate, and
+    # routed here by language_for_file because it needs the JSX-aware grammar.
+    "tsx": LanguageSpec(
+        grammar_module="substrate:tsx",
+        function_node_types=(
+            "function_declaration",
+            "generator_function_declaration",
+            "method_definition",
+        ),
+        comment_node_types=("comment",),
+        doc_style="jsdoc",
+    ),
 }
 
 
@@ -132,7 +167,9 @@ def language_for_extension(ext: str) -> str | None:
 
 
 ## @brief Resolve a file path to a language name using config extensions.
-#  @version 1.2
+#  @details `.tsx` gets the JSX-aware grammar ("tsx"), though the registry files it
+#  under typescript, so the typescript config entry still governs it.
+#  @version 1.3
 #  @req REQ-DDB-GUARD-020
 #  @return Language name string, or None if no language matches the file
 def language_for_file(file_path: str, config: dict[str, Any]) -> str | None:
@@ -142,6 +179,8 @@ def language_for_file(file_path: str, config: dict[str, Any]) -> str | None:
     lang = language_for_extension(ext)
     if lang == "c" and ext == ".h" and _looks_like_cpp_header(file_path):
         lang = "cpp"
+    if lang == "typescript" and ext == ".tsx":
+        lang = "tsx"
     if lang is None:
         lang = _language_from_config(ext, config)
     return lang
