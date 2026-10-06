@@ -29,8 +29,11 @@ class TestGetParserForLanguage:
         assert tree.root_node.child_count > 0
 
     def test_python_parser_produces_tree(self):
+        # Python parses through lang-parsing-substrate (clew/tsnode.py), as the harvest does.
+        from clew.tsnode import Parser as SubstrateParser
+
         parser = get_parser_for_language("python")
-        assert isinstance(parser, Parser)
+        assert isinstance(parser, SubstrateParser)
         tree = parser.parse(b"def hello():\n    pass\n")
         assert tree.root_node.type == "module"
 

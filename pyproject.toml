@@ -41,24 +41,20 @@ dependencies = [
     # the only untruncatable routing signal to zero, so the version window is ours
     # to state rather than fastmcp's to change under us.
     "pydantic>=2.0,<3",
-    # The 0.23 window predates the doxygen-guard absorption (clew/guard/), when it was
-    # doxygen-guard's window and both stacks shared one venv. Kept as-is: tree-sitter-rust
-    # below is pinned to this ABI, and widening it is its own change.
+    # py-tree-sitter now serves C and C++ only: Python and Rust parse through
+    # lang-parsing-substrate below (clew/tsnode.py), with the grammars knots, moldy and
+    # aurora-lint share. The 0.23 window stays until C/C++ move as well and these four
+    # pins can go together.
     "tree-sitter>=0.23,<0.24",
     "tree-sitter-c>=0.23,<0.23.5",
     "tree-sitter-cpp>=0.23,<0.23.5",
-    # Declared, not left transitive: the importer swallows ImportError, so losing
-    # this takes the whole Python AST layer to zero rows with no error.
-    "tree-sitter-python>=0.23,<0.23.5",
-    # <0.23.3, not <0.23.5 like the sibling pins above: 0.23.3 ships a newer
-    # ABI (language version 15) than this project's pinned tree-sitter 0.23.2
-    # python binding accepts (13-14) — verified empirically, not assumed.
-    "tree-sitter-rust>=0.23,<0.23.3",
     # The shared Rust parsing substrate (knots, moldy, aurora-lint), through its PyO3
     # wheels. Capped at the next minor: it is 0.x, so a minor release may break the API.
-    # Today it supplies the gate's extension -> language table (clew/guard/ts_languages.py);
-    # moving clew's own per-language harvesters onto it is staged follow-up work.
-    "lang-parsing-substrate>=0.10,<0.11",
+    # It parses Python and Rust for every harvester and the gate (`parse_tree`, wrapped
+    # by clew/tsnode.py; 0.11 is the first release with it), and supplies the gate's
+    # extension -> language table. NOT optional: the harvest routes `.py`/`.rs` to it,
+    # so losing it takes both languages' AST layers to zero rows.
+    "lang-parsing-substrate>=0.11,<0.12",
     # Pinned <15: reads Kconfig.unique_defined_syms, unique_choices,
     # Symbol.orig_type, MenuNode.prompt/help/filename/linenr, expr_str.
     "kconfiglib>=14,<15",

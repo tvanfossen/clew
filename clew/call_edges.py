@@ -1828,7 +1828,7 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
 ## @param db_path Path to the clew.db being built.
 ## @param repo_root Repository root (for resolving indexed relative paths).
 ## @param cache Optional incremental index cache; None disables caching.
-## @version 12
+## @version 13
 ## @req REQ-DDB-PIPE-003
 def import_ast_call_edges(
     db_path: Path,
@@ -1850,14 +1850,14 @@ def import_ast_call_edges(
     guarantees structurally instead of by remembering to check.
 
     @brief Populate call_edges from tree-sitter AST walk, then guard self-edges.
-    @version 12
+    @version 13
     """
     ts_classes = try_import_tree_sitter()
     if ts_classes is None:
         logger.info(
             "tree_sitter not available — skipping Layer 3 AND the self-edge guard "
             "(every self-edge is left in place, unverified; install tree-sitter + "
-            "tree-sitter-c + tree-sitter-cpp + tree-sitter-python to enable)",
+            "tree-sitter-c + tree-sitter-cpp to enable)",
         )
         return
 

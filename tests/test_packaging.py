@@ -149,6 +149,12 @@ def test_every_third_party_import_is_declared() -> None:
     )
 
 
+def _grammar_provider(modname: str) -> str:
+    """The module that supplies a `_TS_GRAMMARS` entry: a `substrate:<key>` grammar is
+    served by lang-parsing-substrate, not by a module of that name."""
+    return "lang_parsing_substrate" if modname.startswith("substrate:") else modname
+
+
 def test_dynamically_loaded_grammars_are_declared() -> None:
     """#77's EXACT shape, closed by reading the registry rather than inferring it.
 
@@ -164,7 +170,7 @@ def test_dynamically_loaded_grammars_are_declared() -> None:
     this fails."""
     from clew.harvest import _TS_GRAMMARS
 
-    named = {modname for _exts, modname in _TS_GRAMMARS}
+    named = {_grammar_provider(modname) for _exts, modname in _TS_GRAMMARS}
     assert named, "precondition: the grammar registry must not be empty"
 
     undeclared = named - _declared_modules()
@@ -186,7 +192,7 @@ def test_the_declared_dependencies_are_all_actually_used() -> None:
     simply never appear in an `import` statement."""
     from clew.harvest import _TS_GRAMMARS
 
-    used = _imported_top_level() | {modname for _exts, modname in _TS_GRAMMARS}
+    used = _imported_top_level() | {_grammar_provider(m) for _exts, m in _TS_GRAMMARS}
     unused = {mod for mod in _declared_modules() if mod not in used}
     assert unused == set(), f"declared but never imported: {sorted(unused)}"
 
