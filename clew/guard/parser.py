@@ -30,7 +30,7 @@ class DoxygenBlock:
 
 
 ## @brief Represents a function with its location and optional doxygen block.
-#  @version 1.2
+#  @version 1.3
 #  @dg_internal
 @dataclass
 class Function:
@@ -42,6 +42,9 @@ class Function:
     # Whitespace-normalized parameter list text, e.g. "(Event const& e)". Distinguishes
     # overloads sharing a name — see checks._index_by_identity.
     signature: str = ""
+    # Whether the function returns no value, when the parser knows (JS/TS, from the
+    # annotation). None leaves the decision to checks._is_void_function's text heuristics.
+    returns_void: bool | None = None
 
     ## @brief Check if this function is a constructor of its enclosing class.
     #  @version 1.0
@@ -150,9 +153,10 @@ _AUTOBRIEF_STOP_RE = re.compile(r"^(?:#|@\w)")
 #  @details rustdoc's convention is that the first paragraph IS the summary, and doxygen
 #  implements the same rule as JAVADOC_AUTOBRIEF. So a Rust item documented idiomatically —
 #  `/// Adds one.` then tags — satisfies the \@brief requirement without restating it. An
-#  explicit \@brief always wins. Applied to Rust blocks only; for C, C++ and Python the gate
+#  explicit \@brief always wins. Applied to Rust doc comments, JSDoc blocks and Python
+#  docstrings (PEP 257's summary line); for C/C++ blocks and Python `##` blocks the gate
 #  still requires the tag to be written.
-#  @version 1.0
+#  @version 1.1
 #  @req REQ-DDB-GUARD-024
 def apply_autobrief(block_text: str, tags: dict[str, list[str]]) -> None:
     if "brief" in tags:
@@ -160,16 +164,20 @@ def apply_autobrief(block_text: str, tags: dict[str, list[str]]) -> None:
     prefix_re = re.compile(r"^\s*(?:/\*\*|\*/|[/*]+!?)\s?")
     summary: list[str] = []
     for raw_line in block_text.splitlines():
-        line = prefix_re.sub("", raw_line).removesuffix("*/").strip()
+        line = _mask_escaped_at(prefix_re.sub("", raw_line).removesuffix("*/").strip())
         if not line:
             if summary:
                 break
             continue
         if _AUTOBRIEF_STOP_RE.match(line):
             break
-        summary.append(line)
+        # A one-line block (`/** Adds one. @version 1 */`) ends its summary at the tag.
+        segments = _split_inline_tags(line)
+        summary.append(segments[0])
+        if len(segments) > 1:
+            break
     if summary:
-        tags["brief"] = [" ".join(summary)]
+        tags["brief"] = [_unmask_escaped_at(" ".join(summary))]
 
 
 _INLINE_SPLIT_RE = re.compile(r"(?=\s@\w+(?:\s|$))")

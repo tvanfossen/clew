@@ -51,10 +51,12 @@ dependencies = [
     # The shared Rust parsing substrate (knots, moldy, aurora-lint), through its PyO3
     # wheels. Capped at the next minor: it is 0.x, so a minor release may break the API.
     # It parses Python and Rust for every harvester and the gate (`parse_tree`, wrapped
-    # by clew/tsnode.py; 0.11 is the first release with it), and supplies the gate's
-    # extension -> language table. NOT optional: the harvest routes `.py`/`.rs` to it,
-    # so losing it takes both languages' AST layers to zero rows.
-    "lang-parsing-substrate>=0.11,<0.12",
+    # by clew/tsnode.py; 0.11 is the first release with it), supplies the gate's
+    # extension -> language table, classifies binaries out of every file walk
+    # (classify_file, 0.11.1) and matches toolchain.toml globs (PathIgnore, 0.11.1).
+    # NOT optional: the harvest routes `.py`/`.rs` to it, so losing it takes both
+    # languages' AST layers to zero rows.
+    "lang-parsing-substrate>=0.11.1,<0.12",
     # Pinned <15: reads Kconfig.unique_defined_syms, unique_choices,
     # Symbol.orig_type, MenuNode.prompt/help/filename/linenr, expr_str.
     "kconfiglib>=14,<15",

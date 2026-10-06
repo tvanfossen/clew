@@ -24,14 +24,47 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+# JS/TS nodes that bind a name to a value, and the values that make the binding a function.
+_JS_BINDINGS = ("variable_declarator", "public_field_definition", "field_definition")
+_JS_FUNCTION_VALUES = ("arrow_function", "function_expression", "function", "generator_function")
+# Wrappers a JSDoc block sits above rather than the definition itself: `export ...`, and the
+# `const`/`let`/`var` statement around a declarator.
+_JS_DOC_WRAPPERS = ("export_statement", "lexical_declaration", "variable_declaration")
+
+
+## @brief The function a JS/TS binding names, e.g. the arrow in `const f = () => 1`.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-025
+#  @return The function-valued node, or None when the node is not such a binding
+def _bound_function(node: Node) -> Node | None:
+    if node.type not in _JS_BINDINGS:
+        return None
+    value = node.child_by_field_name("value")
+    return value if value is not None and value.type in _JS_FUNCTION_VALUES else None
+
+
+## @brief The node that carries a function's `body` and `parameters`.
+#  @details Itself, except for a JS/TS binding, whose function is its value.
+#  @version 1.0
+#  @dg_internal
+#  @return The node to read the body and parameters from
+def _function_carrier(func_node: Node) -> Node:
+    return _bound_function(func_node) or func_node
+
+
 ## @brief Resolve a child node to a function_definition, handling wrappers.
-#  @version 1.2
+#  @details In JS/TS a name bound to an arrow function or function expression
+#  (`const f = () => ...`, a class field `f = () => ...`) is a function too, and the
+#  binding node stands for it.
+#  @version 1.3
 #  @req REQ-DDB-GUARD-020
 #  @return The function_definition node, or None
 def _resolve_function_node(child: Node, spec: LanguageSpec) -> Node | None:
     unwrapped = _unwrap_decorated(child)
     if unwrapped.type in spec.function_node_types:
         return unwrapped
+    if spec.doc_style == "jsdoc" and _bound_function(child) is not None:
+        return child
     if child.type in ("template_declaration", "linkage_specification"):
         for sub in child.children:
             if sub.type in spec.function_node_types:
@@ -86,10 +119,11 @@ def _extract_function_name(node: Node, spec: LanguageSpec) -> str | None:
 #  @details Python's function_definition carries a "parameters" field directly; C/C++
 #  carries it on the (possibly qualified) declarator chain instead. Whitespace is
 #  collapsed so reformatting alone does not change the signature.
-#  @version 1.0
+#  @version 1.1
 #  @req REQ-DDB-GUARD-020
 #  @return Normalized parameter-list text, e.g. "(Event const& e)", or "" if not found
 def _extract_signature(node: Node) -> str:
+    node = _function_carrier(node)
     params = node.child_by_field_name("parameters")
     declarator = node.child_by_field_name("declarator")
     while params is None and declarator is not None:
@@ -179,7 +213,9 @@ def _collect_c_comment(
 
 
 ## @brief Find the doxygen comment block preceding a function node.
-#  @version 1.8
+#  @details A JSDoc block sits above the outermost statement: `export ...`, or the
+#  `const` declaration around a bound arrow function. Its summary stands in for brief.
+#  @version 1.9
 #  @req REQ-DDB-GUARD-020
 def _find_preceding_doxygen(
     func_node: Node,
@@ -193,6 +229,10 @@ def _find_preceding_doxygen(
         "linkage_specification",
     ):
         target = func_node.parent
+
+    if spec.doc_style == "jsdoc":
+        while target.parent is not None and target.parent.type in _JS_DOC_WRAPPERS:
+            target = target.parent
 
     prev = _preceding_node(target)
     is_rust = spec.doc_style == "rust"
@@ -220,7 +260,7 @@ def _find_preceding_doxygen(
     source = root.text or b""
     raw = source[start_byte:end_byte].decode("utf-8", errors="replace")
     tags = parse_doxygen_tags(raw)
-    if is_rust:
+    if is_rust or spec.doc_style == "jsdoc":
         apply_autobrief(raw, tags)
     return DoxygenBlock(
         start_line=comment_lines[0].start_point[0],
@@ -341,21 +381,25 @@ def _preceding_node(target: Node) -> Node | None:
 
 
 ## @brief Find a docstring inside a Python function body and parse doxygen tags.
-#  @details PEP 257 docstrings are idiomatic for Python; many codebases carry
-#  `@brief`/`@version` tags inside the function docstring rather than in a
-#  preceding `##` comment block. Only treated as a doxygen block when at least
-#  one recognized tag (`@brief` or `@version`) is present.
-#  @version 1.1
+#  @details PEP 257 leads: a docstring IS the function's documentation, with or
+#  without tags, and its summary line stands in for \@brief (PEP 257's own rule).
+#  The tags the gate needs (`@version`, `@req`) go inside it. Upstream doxygen-guard
+#  ignored a docstring with no `@brief`/`@version`, so an idiomatic docstring
+#  reported "no doxygen comment" instead of naming the one missing tag. A preceding
+#  `##` block still takes precedence when both exist.
+#  @version 1.2
 #  @req REQ-DDB-GUARD-021
-#  @return DoxygenBlock if the docstring carries tags, else None
+#  @return DoxygenBlock for a non-empty docstring, else None
 def _find_python_docstring_block(func_node: Node) -> DoxygenBlock | None:
     string_node = _find_python_docstring_node(func_node)
     if string_node is None or not string_node.text:
         return None
     raw = string_node.text.decode("utf-8", errors="replace")
-    tags = parse_doxygen_tags(_strip_docstring_quotes(raw))
-    if "brief" not in tags and "version" not in tags:
+    body = _strip_docstring_quotes(raw)
+    if not body.strip():
         return None
+    tags = parse_doxygen_tags(body)
+    apply_autobrief(body, tags)
     return DoxygenBlock(
         start_line=string_node.start_point[0],
         end_line=string_node.end_point[0],
@@ -425,7 +469,8 @@ def parse_functions_ts(
 
 ## @brief Recursively collect function definitions from the AST.
 #  @details Rust test code (`#[test]` functions, the `#[cfg(test)]` module) is skipped.
-#  @version 1.5
+#  A JS/TS function bound to a name is read through its value (_function_carrier).
+#  @version 1.6
 #  @req REQ-DDB-GUARD-020
 def _collect_functions(
     node: Node,
@@ -444,7 +489,7 @@ def _collect_functions(
             name = _extract_function_name(func_node, spec)
             if name is None or name in exclude:
                 continue
-            body_node = func_node.child_by_field_name("body")
+            body_node = _function_carrier(func_node).child_by_field_name("body")
             if body_node is None:
                 continue
             doxygen = _find_preceding_doxygen(func_node, spec, comment_start_pattern)
@@ -457,6 +502,7 @@ def _collect_functions(
                     doxygen=doxygen,
                     enclosing_class=resolved_enclosing,
                     signature=_extract_signature(func_node),
+                    returns_void=_js_returns_void(func_node) if spec.doc_style == "jsdoc" else None,
                 )
             )
         else:
@@ -465,14 +511,40 @@ def _collect_functions(
             )
 
 
+# A TypeScript return annotation that means "no value": `void`, `never`, `undefined`,
+# and the same wrapped in `Promise<...>`.
+_TS_VOID_RETURN_RE = re.compile(r"^:\s*(?:Promise\s*<\s*)?(?:void|never|undefined)\s*>?\s*$")
+
+
+## @brief Whether a JS/TS function returns no value, as far as its annotation says.
+#  @details Plain JavaScript has no annotation, so it is treated as void: the gate cannot
+#  know, and demanding \@return of every JS function would be noise rather than policy.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-025
+#  @return True when unannotated or annotated void-like
+def _js_returns_void(func_node: Node) -> bool:
+    annotation = _function_carrier(func_node).child_by_field_name("return_type")
+    if annotation is None or annotation.text is None:
+        return True
+    return bool(_TS_VOID_RETURN_RE.match(annotation.text.decode("utf-8", errors="replace")))
+
+
 ## @brief Resolve enclosing class name when entering a class/struct node.
 #  @details Rust has no class: an `impl` block names its self type and a `trait` its own
-#  name, and those play the role of the enclosing class.
-#  @version 1.2
+#  name, and those play the role of the enclosing class. JS/TS classes name themselves.
+#  @version 1.3
 #  @dg_internal
 #  @return Class/struct name if node is a class definition, else parent value
 def _enclosing_class_for(child: Node, parent: str | None) -> str | None:
-    if child.type in ("class_specifier", "struct_specifier", "class_definition", "trait_item"):
+    if child.type in (
+        "class_specifier",
+        "struct_specifier",
+        "class_definition",
+        "trait_item",
+        "class_declaration",
+        "abstract_class_declaration",
+        "class",
+    ):
         name_node = child.child_by_field_name("name")
         if name_node and name_node.text:
             return name_node.text.decode("utf-8")

@@ -215,6 +215,25 @@ def _cached_parser(mod_name: str, parser_cache: dict, Parser, Language):
     return parser
 
 
+## @brief Whether a file may be parsed: it exists and is not binary.
+## @param abs_path Absolute path of the candidate file.
+## @return True for a regular file that classify_file does not call binary.
+## @version 1
+## @req REQ-DDB-PIPE-011
+def _parseable_file(abs_path: Path) -> bool:
+    """The doxygen stage already drops binaries from the scanned tree, but `path` rows
+    also come from doxygen's followed includes and from rustdoc, outside that scan. This
+    is the gate in front of every harvest read, and it sits before the content hash so a
+    2 GB archive named `.c` is never read whole.
+
+    @brief Existence plus binary check ahead of a parse.
+    @return Whether to parse the file.
+    """
+    from .filetypes import binary_file
+
+    return abs_path.is_file() and binary_file(abs_path) is None
+
+
 ## @brief Count ERROR/MISSING nodes in a parsed tree.
 ## @param root Tree-sitter root node.
 ## @return Number of ERROR or missing nodes in the subtree.
@@ -258,7 +277,7 @@ def _disambiguate_header(c_tree, src_bytes: bytes, parser_cache: dict, Parser, L
 
 ## @brief Parse one file with the appropriate tree-sitter grammar.
 ## @return (tree, src_bytes), or None for an unhandled/unreadable file.
-## @version 3
+## @version 4
 ## @dg_internal
 def _ast_parse_one_file(
     rel_path: str,
@@ -276,7 +295,7 @@ def _ast_parse_one_file(
     A `.h` that fails to parse as C is retried as C++ (see _AMBIGUOUS_EXTS).
 
     @brief Parse one source file into a tree-sitter tree.
-    @version 3
+    @version 4
     """
     lang_mod = _ts_language_for(rel_path)
     parser = (
@@ -284,7 +303,7 @@ def _ast_parse_one_file(
         if lang_mod is not None
         else None
     )
-    if parser is None or not abs_path.is_file():
+    if parser is None or not _parseable_file(abs_path):
         return None
     try:
         src_bytes = abs_path.read_bytes()
@@ -397,7 +416,7 @@ class HarvestTally:
 
 ## @brief Serve one file's payload from cache, or parse + harvest + store it.
 ## @return The file's payload, or None when the file isn't parseable.
-## @version 3
+## @version 4
 ## @dg_internal
 def _harvest_one_file(
     rel_path: str,
@@ -413,12 +432,12 @@ def _harvest_one_file(
     computed simply parses (fail toward the MISS).
 
     @brief Cached single-file harvest.
-    @version 2
+    @version 3
     """
     # Non-source paths and paths doxygen recorded but that don't exist under
     # the repo root (system headers it followed) never reach the parser, so
     # they never reach the cache either.
-    if _ts_language_for(rel_path) is None or not abs_path.is_file():
+    if _ts_language_for(rel_path) is None or not _parseable_file(abs_path):
         return None
     sha = cache.sha_for(rel_path, abs_path) if cache is not None else None
     hit = _cached_payload(harvester, cache, sha)
@@ -581,7 +600,7 @@ def run_harvest(
 ## @param abs_path Absolute path to read.
 ## @param cache Live index cache.
 ## @return The file's content sha, or None to leave it to the per-stage driver.
-## @version 1
+## @version 2
 ## @dg_internal
 def _shareable_sha(rel_path: str, abs_path: Path, cache: IndexCache) -> str | None:
     """None means "not shareable", for either of the two reasons the per-stage
@@ -590,9 +609,9 @@ def _shareable_sha(rel_path: str, abs_path: Path, cache: IndexCache) -> str | No
     themselves — the pre-gh#358 behaviour, which is slow and correct.
 
     @brief Sha for a file the shared pass can warm, else None.
-    @version 1
+    @version 2
     """
-    if _ts_language_for(rel_path) is None or not abs_path.is_file():
+    if _ts_language_for(rel_path) is None or not _parseable_file(abs_path):
         return None
     return cache.sha_for(rel_path, abs_path)
 

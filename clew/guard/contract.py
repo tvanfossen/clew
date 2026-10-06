@@ -30,6 +30,7 @@ from .config import (
     get_impact,
     get_validate,
 )
+from .filters import toolchain_contract
 from .tags import find_source_files
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,9 @@ logger = logging.getLogger(__name__)
 # 3: absorbed into clew (`clew guard`). `opt_in_language_defaults` added: languages the
 #    gate supports only when declared (Rust), with the defaults a declaration is completed
 #    from. Absent from `config_defaults` because they are not in force until declared.
-CONTRACT_VERSION = 3
+# 4: `files` carries `toolchain_config` / `toolchain_ignores`, the shared toolchain globs
+#    the file set honours beside `exclude`, and the set drops binary files.
+CONTRACT_VERSION = 4
 
 _OPEN_NODE = "<any>"
 
@@ -141,7 +144,7 @@ def build_effective_contract(config: dict[str, Any]) -> dict[str, Any]:
 
 
 ## @brief Build the exact post-exclude file set the gate walks for the given roots.
-#  @version 1.0
+#  @version 1.1
 #  @req REQ-DDB-GUARD-015
 #  @return JSON-serializable file set with the exclude patterns that produced it
 def build_files_contract(source_dirs: list[str], config: dict[str, Any]) -> dict[str, Any]:
@@ -155,6 +158,7 @@ def build_files_contract(source_dirs: list[str], config: dict[str, Any]) -> dict
         "contract_version": CONTRACT_VERSION,
         "source_dirs": list(source_dirs),
         "exclude": exclude,
+        **toolchain_contract(),
         "files": unique,
         "count": len(unique),
     }

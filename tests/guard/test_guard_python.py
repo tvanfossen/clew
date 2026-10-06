@@ -261,15 +261,30 @@ class TestPythonDocstringTags:
         assert dox.tags["version"] == ["1.2"]
         assert "return" in dox.tags
 
-    def test_docstring_without_tags_not_recognized(self):
+    def test_prose_docstring_is_the_block_and_its_summary_the_brief(self):
+        """PEP 257 leads (changed from upstream, which ignored an untagged docstring): the
+        docstring documents the function, so only the missing revision tag is reported."""
         content = dedent('''\
             def helper():
-                """Just a prose docstring."""
+                """Just a prose docstring.
+
+                More detail that is not the summary.
+                """
                 return 1
         ''')
         functions = parse_python(content)
         assert len(functions) == 1
-        assert functions[0].doxygen is None
+        assert functions[0].doxygen is not None
+        assert functions[0].doxygen.tags["brief"] == ["Just a prose docstring."]
+        assert "version" not in functions[0].doxygen.tags
+
+    def test_empty_docstring_is_not_a_block(self):
+        content = dedent('''\
+            def helper():
+                """"""
+                return 1
+        ''')
+        assert parse_python(content)[0].doxygen is None
 
     def test_block_above_takes_precedence_over_docstring(self):
         content = dedent('''\

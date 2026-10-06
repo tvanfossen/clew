@@ -22,14 +22,19 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+_JS_SUFFIXES = (".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx")
+
+
 ## @brief Build a language-appropriate doxygen skeleton suggestion.
-#  @version 1.1
+#  @version 1.2
 #  @dg_internal
 #  @return Single-line skeleton string in the file's native comment style
 def _suggest_skeleton(file_path: str, *, with_return: bool = False) -> str:
     return_tag = " @return <description>" if with_return else ""
     if Path(file_path).suffix.lower() == ".rs":
         return f"'/// <summary sentence>' then '/// @version 1{return_tag}' (above the fn)"
+    if Path(file_path).suffix.lower() in _JS_SUFFIXES:
+        return f"'/** <summary sentence> @version 1{return_tag} */' (JSDoc, above the function)"
     if Path(file_path).suffix.lower() == ".py":
         return f"'## @brief <description> @version 1.0{return_tag}' (two-hash style, above the def)"
     return f"'/** @brief <description> @version 1.0{return_tag} */' before function"
@@ -50,11 +55,11 @@ def _suggest_file_skeleton(file_path: str) -> str:
 
 
 ## @brief How to supply a missing brief, in the file's own convention.
-#  @version 1.0
+#  @version 1.1
 #  @dg_internal
 #  @return The remedy text for a missing-@brief violation
 def _brief_hint(file_path: str) -> str:
-    if Path(file_path).suffix.lower() == ".rs":
+    if Path(file_path).suffix.lower() in (".rs", ".py", *_JS_SUFFIXES):
         return "start the doc comment with a summary sentence, or add '@brief <description>'"
     return "add '@brief <description>' to the doxygen comment"
 
@@ -232,10 +237,13 @@ def _is_rust_unit_fn(func: Function, lines: list[str]) -> bool:
 
 
 ## @brief Check if a function returns void based on its definition lines.
-#  @version 1.3
+#  @details A parser that knows (JS/TS) sets Function.returns_void, which wins.
+#  @version 1.4
 #  @req REQ-DDB-GUARD-005
 #  @return True if the function returns void/None
 def _is_void_function(func: Function, lines: list[str]) -> bool:
+    if func.returns_void is not None:
+        return func.returns_void
     if func.def_line < len(lines) and _RUST_FN_RE.search(lines[func.def_line]):
         return _is_rust_unit_fn(func, lines)
     for offset in range(3):
