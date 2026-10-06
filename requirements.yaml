@@ -710,6 +710,35 @@ requirements:
     x-status: implemented
     x-evidence: 'clew/filetypes.py; clew/cli.py _drop_binary_files / _skipped_files_scope;
       clew/harvest.py _parseable_file; clew/guard/filters.py; tests/test_toolchain.py.'
+  REQ-DDB-PIPE-012:
+    subsystem: pipeline
+    name: JavaScript and TypeScript are indexed through a parse-built front end
+    acceptance_criteria: 'Every in-scope .js .mjs .cjs .jsx .ts .mts .cts .tsx file gets a `path`
+      row; its functions (declarations, methods, names bound to arrow functions or function
+      expressions) become `memberdef` rows with dg_source=parse, dotted `definition`/`scope`
+      (`src.util.strings.Formatter.trim`), the TypeScript return annotation as `type`, and the
+      JSDoc rendered as doxygen markup (brief, version simplesect, other tags literal, text
+      escaped); classes, interfaces and enums become `compounddef` rows with `member` links and
+      `compoundref` for a uniquely named base. Call sites are plain `f()`, qualified `this.m()` /
+      `super.m()`, receiver-carrying `obj.m()`, `new C()` as `C.constructor`, and functions passed
+      by name as bindings; a bare call in a method is never self-recursion. A repo with nothing
+      doxygen reads does not run doxygen; a mixed repo gets both front ends in one index.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'clew/synth.py, clew/jsast.py, clew/cli.py _doxygen_has_source /
+      _scanned_files, call_edges.py jsast dispatch and _inside_js_method, filedocs.JsFileDoc.
+      tests/test_jsts.py.'
+  REQ-DDB-PIPE-013:
+    subsystem: pipeline
+    name: PEP 257 docstrings document the Python definitions doxygen left bare
+    acceptance_criteria: 'Doxygen stays the Python front end. A doxygen function or class row whose
+      brief is empty and whose definition has a docstring gets the docstring summary line (or its
+      explicit @brief) as the brief, and the docstring @version as the version simplesect when the
+      detail has none. A row doxygen documented from a two-hash block is never changed, and a
+      recovered ast row is never given documentation. Matched on (file, def line, name).'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'clew/pydocs.py; clew/cli.py stage py_docstrings; tests/test_pydocs.py.'
   REQ-DDB-PIPE-001:
     subsystem: pipeline
     name: Build a layered SQLite knowledge db from a target repo's Doxyfile

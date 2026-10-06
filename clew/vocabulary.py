@@ -679,6 +679,16 @@ STAGE_MACRO_REFS = "macro_refs"
 ## about eighty names.
 STAGE_BLOCKING = "blocking"
 
+## JavaScript / TypeScript DEFINITIONS for the parse-built front end (clew/synth.py). Its own
+## partition because doxygen writes no rows for these files at all: this payload IS their
+## symbol table, read before any call layer resolves, the way `ast_symbols` is for the rows
+## doxygen missed.
+STAGE_JS_SYMBOLS = "js_symbols"
+
+## Python definition DOCSTRINGS (clew/pydocs.py): the PEP 257 summary and @version of each
+## function and class, used only where doxygen left the row undocumented.
+STAGE_PY_DOCSTRINGS = "py_docstrings"
+
 STAGE = Vocabulary(
     id="stage",
     values=(
@@ -694,6 +704,8 @@ STAGE = Vocabulary(
         STAGE_KCONFIG_GATES,
         STAGE_MACRO_REFS,
         STAGE_BLOCKING,
+        STAGE_JS_SYMBOLS,
+        STAGE_PY_DOCSTRINGS,
     ),
     means="extract_cache partition key — a typo is a permanent silent cache miss, not an error",
     rank={
@@ -709,6 +721,8 @@ STAGE = Vocabulary(
         STAGE_KCONFIG_GATES: 0,
         STAGE_MACRO_REFS: 0,
         STAGE_BLOCKING: 0,
+        STAGE_JS_SYMBOLS: 0,
+        STAGE_PY_DOCSTRINGS: 0,
     },
 )
 
@@ -734,6 +748,11 @@ STAGE = Vocabulary(
 ## stated, the other is what we recovered from the source text.
 SYMBOL_SOURCE_DOXYGEN = "doxygen"
 SYMBOL_SOURCE_AST = "ast"
+## Written by clew's own parse-built front end (clew/synth.py) for a language doxygen
+## cannot read (JavaScript, TypeScript). Like a 'doxygen' row it was produced by a front
+## end that read the documentation (JSDoc: brief, detail, @req), so it ranks with
+## 'doxygen' above 'ast'; it is named separately so nothing claims doxygen read the file.
+SYMBOL_SOURCE_PARSE = "parse"
 
 ## The COLUMN NAME is deliberately namespaced, and this is the one place it is
 ## spelled. `memberdef` belongs to doxygen: an unprefixed `source` would collide
@@ -775,9 +794,9 @@ UNRESOLVED_PATH_COLUMN = "dg_unresolved"
 
 SYMBOL_SOURCE = Vocabulary(
     id="symbol_source",
-    values=(SYMBOL_SOURCE_DOXYGEN, SYMBOL_SOURCE_AST),
-    means="whether a memberdef row was documented by doxygen or recovered by the tree-sitter parser (an 'ast' row has NO brief, no documented parameters and no @req tags)",
-    rank={SYMBOL_SOURCE_DOXYGEN: 1, SYMBOL_SOURCE_AST: 0},
+    values=(SYMBOL_SOURCE_DOXYGEN, SYMBOL_SOURCE_PARSE, SYMBOL_SOURCE_AST),
+    means="whether a memberdef row was documented by doxygen, written by clew's parse-built front end for a language doxygen cannot read (JS/TS, with its JSDoc), or recovered by the tree-sitter parser (an 'ast' row has NO brief, no documented parameters and no @req tags)",
+    rank={SYMBOL_SOURCE_DOXYGEN: 1, SYMBOL_SOURCE_PARSE: 1, SYMBOL_SOURCE_AST: 0},
 )
 
 ## CLI-ONLY, like KEY_DIRECTION and STAGE above: these three constrain tokens the

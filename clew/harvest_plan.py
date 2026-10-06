@@ -54,7 +54,9 @@ from .kconfig_gates import gate_harvester
 from .locks import lock_harvester
 from .macro_refs import MacroRefHarvester
 from .py_entrypoints import main_guard_harvester
+from .pydocs import docstring_harvester
 from .shared_key_edges import shared_key_harvester, subscribe_harvester
+from .synth import js_symbol_harvester
 from .threads import spawn_harvester
 
 
@@ -90,12 +92,17 @@ class HarvestPlan:
     ## gh#47 part 2: blocking-primitive call sites with their timeout argument. Always runs;
     ## its pattern set is built in, so there is no declaration to make it conditional.
     blocking: Harvester
+    ## The parse-built front end's JS/TS definitions (clew/synth.py). Warmed here so
+    ## `emit_definitions` reads cached payloads instead of parsing every JS/TS file again.
+    js_symbols: Harvester
+    ## PEP 257 docstrings for clew/pydocs.py, warmed with the rest for the same reason.
+    py_docstrings: Harvester
     dispatch: Harvester | None = None
     subscribe: Harvester | None = None
 
     ## @brief The stages the shared parse pass should warm.
     ## @return Every non-None harvester in this plan.
-    ## @version 3
+    ## @version 4
     ## @req REQ-DDB-PIPE-003
     def active(self) -> list[Harvester]:
         """Order is irrelevant to the shared pass — it warms cache rows and emits
@@ -108,7 +115,7 @@ class HarvestPlan:
         package's `Harvester` subclasses instead of trusting this tuple.
 
         @brief The plan's live harvesters.
-        @version 2
+        @version 3
         """
         return [
             h
@@ -123,6 +130,8 @@ class HarvestPlan:
                 self.py_entrypoints,
                 self.macro_refs,
                 self.blocking,
+                self.js_symbols,
+                self.py_docstrings,
                 self.dispatch,
                 self.subscribe,
             )
@@ -139,7 +148,7 @@ class HarvestPlan:
 ## @param dispatch_key Manifest-derived cache-key component for the dispatch harvest.
 ## @param mqtt_dispatch The --mqtt-dispatch manifest, or None.
 ## @return The assembled plan.
-## @version 3
+## @version 4
 ## @req REQ-DDB-PIPE-003
 def build_harvest_plan(
     lock_patterns: Path | dict | None = None,
@@ -156,7 +165,7 @@ def build_harvest_plan(
     is a behaviour change worth naming: the same bad declaration used to fail later.
 
     @brief Resolve every declaration and construct all eleven harvesters.
-    @version 2
+    @version 3
     """
     return HarvestPlan(
         kconfig_gates=gate_harvester(),
@@ -173,6 +182,8 @@ def build_harvest_plan(
         ## row the stage then misses, and the only symptom would be the cost coming back.
         macro_refs=MacroRefHarvester(),
         blocking=blocking_harvester(),
+        js_symbols=js_symbol_harvester(),
+        py_docstrings=docstring_harvester(),
         dispatch=(dispatch_harvester(dispatch, dispatch_key) if dispatch is not None else None),
         subscribe=subscribe_harvester(mqtt_dispatch),
     )

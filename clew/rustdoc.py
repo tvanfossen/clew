@@ -680,7 +680,7 @@ def _trait_self_membership(doc: dict[str, Any], doc_prefix: str) -> list[_Impl]:
 ## @return An open connection to the new database.
 ## @version 1
 ## @dg_internal
-def _create_schema(db_path: Path) -> sqlite3.Connection:
+def create_doxygen_schema(db_path: Path) -> sqlite3.Connection:
     """@brief Load doxygen's own schema (clew/data/doxygen_schema.sql) into a fresh db."""
     db_path.parent.mkdir(parents=True, exist_ok=True)
     if db_path.exists():
@@ -973,7 +973,7 @@ def _write_compounds(
 ## @param repo_root Repository root (a cargo package or workspace).
 ## @param db_path Where to write the resulting database.
 ## @return `db_path`, for symmetry with `doxygen.run_doxygen`'s return contract.
-## @version 2
+## @version 3
 ## @utility
 def run_rustdoc(repo_root: Path, db_path: Path) -> Path:
     """The Rust analog of `doxygen.run_doxygen`: same contract (a Path to a
@@ -995,7 +995,7 @@ def run_rustdoc(repo_root: Path, db_path: Path) -> Path:
     @return Path to the generated database (`db_path`).
     @raises RustdocUnavailableError when cargo/nightly rustdoc is unusable, or no
         lib/bin target is found.
-    @version 2
+    @version 3
     """
     repo_root = Path(repo_root).resolve()
     _require_nightly_rustdoc()
@@ -1020,7 +1020,7 @@ def run_rustdoc(repo_root: Path, db_path: Path) -> Path:
             compounds.extend(_compounds_from_json(doc, prefix))
             impls.extend(_impls_from_json(doc, prefix))
             impls.extend(_trait_self_membership(doc, prefix))
-    conn = _create_schema(Path(db_path))
+    conn = create_doxygen_schema(Path(db_path))
     try:
         state = _write_symbols(conn, symbols)
         _write_compounds(conn, state, compounds, impls)

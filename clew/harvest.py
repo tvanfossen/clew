@@ -90,6 +90,12 @@ _PY_EXTS = (".py", ".pyi")
 # repo the SAME tree-sitter richness layers (call edges, threads, locks) a
 # doxygen-sourced C/C++/Python repo already gets.
 _RUST_EXTS = (".rs",)
+# JavaScript and TypeScript have no doxygen front end at all: clew/synth.py writes their
+# rows from this same parse. `.tsx` needs the JSX-aware grammar, which the substrate keeps
+# under its own key; JSX in plain JavaScript is handled by the javascript grammar.
+_JS_EXTS = (".js", ".mjs", ".cjs", ".jsx")
+_TS_EXTS = (".ts", ".mts", ".cts")
+_TSX_EXTS = (".tsx",)
 # Extension group → grammar module, in PRECEDENCE order: the C++ suffixes are
 # tried first so `.hpp`/`.h++` never fall through to the C grammar. A table
 # rather than an if-chain because the house limit is three returns per function
@@ -104,6 +110,9 @@ _TS_GRAMMARS: tuple[tuple[tuple[str, ...], str], ...] = (
     (_C_EXTS, "tree_sitter_c"),
     (_PY_EXTS, "substrate:python"),
     (_RUST_EXTS, "substrate:rust"),
+    (_JS_EXTS, "substrate:javascript"),
+    (_TS_EXTS, "substrate:typescript"),
+    (_TSX_EXTS, "substrate:tsx"),
 )
 
 _SUBSTRATE_PREFIX = "substrate:"

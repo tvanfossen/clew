@@ -284,7 +284,7 @@ def _matches_file_patterns(name: str, patterns: list[str]) -> bool:
 ## @param extra_exclude The user-supplied --extra-exclude entries.
 ## @param repo_root Repo root, for enumeration keying.
 ## @return Resolved roots whose every file is excluded by FILE_PATTERNS.
-## @version 3
+## @version 4
 ## @req REQ-DDB-INDEX-001
 def roots_matching_no_file_pattern(
     doxyfile: Path,
@@ -315,9 +315,10 @@ def roots_matching_no_file_pattern(
 
     @brief Roots whose files are all excluded by FILE_PATTERNS.
     @return The offending resolved roots, empty when every root contributes.
-    @version 3
+    @version 5
     """
     from .doxygen import effective_file_patterns
+    from .synth import claims
 
     if not extra_input:
         return []
@@ -329,7 +330,8 @@ def roots_matching_no_file_pattern(
         present = _files_under(root, excludes)
         if not present:
             continue  # empty or absent: the patterns are not the reason
-        if not any(_matches_file_patterns(p.name, patterns) for p in present):
+        ## A JS/TS file contributes through the parse-built front end, not doxygen.
+        if not any(_matches_file_patterns(p.name, patterns) or claims(p.name) for p in present):
             offenders.append(root)
     return offenders
 

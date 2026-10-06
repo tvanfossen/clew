@@ -31,7 +31,7 @@ repos:
     rev: <clew release tag>
     hooks:
       - id: doxygen-guard
-        types_or: [c, c++, python]   # add rust once it is declared — see below
+        types_or: [c, c++, python]   # add rust / javascript / ts once declared — see below
 ```
 
 **Migrating from doxygen-guard** is the `repo:` and `rev:` lines only. The hook id stays
@@ -108,8 +108,10 @@ requirements, plus documented functions carrying no `@req`. Exit code 1 when gap
 |---|---|---|---|
 | C | `.c`, `.h` | `/** ... */` | by default |
 | C++ | `.cpp`, `.cc`, `.cxx`, `.hpp`, `.hxx` | `/** ... */` | by default |
-| Python | `.py` | `##` block above the `def`, **or** tags inside the docstring | by default |
+| Python | `.py` | the docstring (PEP 257), **or** a `##` block above the `def` | by default |
 | Rust | `.rs` | `///` lines or one `/** ... */`, above the item | when declared |
+| JavaScript | `.js`, `.mjs`, `.cjs`, `.jsx` | JSDoc `/** ... */` above the function | when declared |
+| TypeScript | `.ts`, `.tsx` | JSDoc `/** ... */` above the function | when declared |
 
 Which extension is which language comes from
 [lang-parsing-substrate](https://github.com/brandon-arrendondo/lang_parsing_substrate)'s
@@ -118,20 +120,56 @@ parsed as C++. A language's `extensions:` list in the config decides which files
 
 ### Python
 
-Both forms satisfy the gate. They are **not** equivalent to doxygen: doxygen renders `"""`
-docstrings as preformatted text, so if you also generate docs, use the `##` form, open the
-docstring with `"""!`, or set `PYTHON_DOCSTRING = NO`.
+PEP 257 leads. A function's docstring is its documentation, with or without tags. Its
+summary line (the first line, up to a blank line) stands in for `@brief`, and the tags the
+gate needs go inside it:
 
 ```python
-## @brief Apply a unified-diff patch to a project directory.
-#  @version 1.0
-#  @return 0 on success, non-zero on failure.
 def apply_patch(repo_path: str, patch: str) -> int:
-    ...
+    """Apply a unified-diff patch to a project directory.
+
+    @version 1
+    @req REQ-PATCH-001
+    @return 0 on success, non-zero on failure.
+    """
 ```
 
-A `##` block above the `def` takes precedence over the docstring. A docstring with no
-recognised tag is not treated as a block.
+A doxygen `##` block above the `def` is accepted too, and takes precedence when both exist,
+so a codebase already documented for doxygen keeps working unchanged. An empty docstring is
+not a block.
+
+> **Changed from doxygen-guard:** a docstring with no `@brief`/`@version` used to be ignored,
+> so an idiomatic docstring reported "no doxygen comment". It now counts as the block, and
+> only the missing tag (usually `@version`) is reported.
+
+doxygen itself renders a docstring as preformatted text. clew's index reads the summary line
+and `@version` out of it where doxygen left the function undocumented (see
+[Python integration](languages/PYTHON_INTEGRATION.md)). If you also generate docs with
+doxygen, prefer the `##` form or open the docstring with `"""!`.
+
+### JavaScript and TypeScript
+
+JSDoc, opt-in like Rust (`validate.languages.javascript: {}` / `typescript: {}`):
+
+```ts
+/**
+ * Trim and normalise a label.
+ * @version 2
+ * @req REQ-UI-004
+ */
+export const cleanLabel = (s: string): string => s.trim();
+```
+
+- A function is a function declaration, a method, or a name bound to an arrow function or
+  function expression (`const f = () => ...`, a class field `f = () => ...`). Anonymous
+  callbacks are not gated; neither are bodiless TypeScript signatures.
+- The JSDoc block sits above the function, or above the `export` / `const` around it.
+- Its summary stands in for `@brief`, as for Rust.
+- `@return` (or `@returns`) is not required unless the language entry sets
+  `require_return: true`, and then only where a TypeScript return annotation says the
+  function returns a value: not `void`, `never`, `undefined` or `Promise` of those. Plain
+  JavaScript has no annotation, so it never requires one.
+- `.tsx` is parsed with the JSX-aware grammar and governed by the `typescript` entry.
 
 ### Rust
 
@@ -190,14 +228,40 @@ is literal text), parse markdown sections such as `# Errors`, check `macro_rules
 closures, or require docs on structs, enums and traits (the gate checks functions in every
 language).
 
+## Files the gate skips
+
+- **Binary files**, whatever their extension: a zip or object file named `.c` is never
+  parsed. Detection is lang-parsing-substrate's `classify_file` (magic numbers and byte
+  statistics from the first 8 KiB).
+- **The repository's shared toolchain config**, the files knots, moldy and aurora-lint
+  also read (lang-parsing-substrate's `docs/unified-config-spec.md`), at the repo root:
+
+  ```toml
+  # toolchain.toml
+  [ignore]
+  paths = ["vendor/**", "third_party/**"]   # every tool, including clew's index
+  [clew.ignore]
+  paths = ["legacy/**"]                     # clew's gate only
+
+  # suppress.toml
+  [[suppress]]
+  name = "generated"
+  tool = "*"                                # every tool ("clew" = the gate only)
+  file_glob = "gen/**"
+  ```
+
+  An entry that names a `rule` suppresses that rule only and excludes no file. These apply
+  after `validate.exclude`, and `clew guard files` reports them (`toolchain_config`,
+  `toolchain_ignores`).
+
 ## Configuration reference
 
 ### `validate`
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `languages` | dict | C, C++, Python | Per-language extensions, comment styles and excludes; `rust` on request |
-| `languages.<lang>.require_return` | bool | — | Overrides `presence.require_return` for one language (`false` for Rust) |
+| `languages` | dict | C, C++, Python | Per-language extensions, comment styles and excludes; `rust`, `javascript`, `typescript` on request |
+| `languages.<lang>.require_return` | bool | — | Overrides `presence.require_return` for one language (`false` for Rust, JavaScript, TypeScript) |
 | `presence.require_doxygen` | bool | `true` | Require a block on every function |
 | `presence.require_return` | bool | `true` | Require `@return` on non-void functions |
 | `presence.require_file_doxygen` | bool | `false` | Require a file-level block |
@@ -271,8 +335,8 @@ clew guard config --effective    # the merged config in force and what it resolv
 clew guard files src/            # the exact post-exclude file set the gate walks
 ```
 
-All three emit JSON carrying `contract_version` (3 since the absorption, which added
-`opt_in_language_defaults`). Typed errors are importable from `clew.guard.errors`:
+All three emit JSON carrying `contract_version`: 3 added `opt_in_language_defaults`, and 4
+added the toolchain fields to `files`. Typed errors are importable from `clew.guard.errors`:
 `GuardError`, with `ConfigError` and `RequirementsError`.
 
 ## CLI
@@ -299,6 +363,8 @@ clew guard -v coverage src/                # log which config sections were decl
 
 ## Requirement ids in clew's own catalog
 
-The gate's requirements are clew's `REQ-DDB-GUARD-001`–`024` in `requirements.yaml`. 001–023
+The gate's requirements are clew's `REQ-DDB-GUARD-001`–`025` in `requirements.yaml`. 001–023
 are renumbered from doxygen-guard's catalog, and each entry keeps its old id as
-`x-upstream-id`. 024 is the Rust support.
+`x-upstream-id`. 024 is the Rust support and 025 JavaScript/TypeScript. The shared toolchain
+config is `REQ-DDB-CONFIG-009` and binary skipping `REQ-DDB-PIPE-011`, because the index
+honours them too.

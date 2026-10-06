@@ -163,7 +163,10 @@ from .requirements import (
     load_guard_config,
     resolve_req_id_pattern,
 )
+from .pydocs import enrich_python_docstrings
 from .rustdoc import run_rustdoc, uses_rustdoc
+from .synth import emit_definitions as emit_synth_definitions
+from .synth import register_paths as register_synth_paths
 from .scope import (
     DerivedScope,
     INDEX_SCOPE_SECTION,
@@ -1700,7 +1703,7 @@ def _is_rust_only_repo(repo_root: Path) -> bool:
 ## @param preprocessor The resolved preprocessor configuration this index represents.
 ## @param timer Stage timer, marked once the tree scan and its hash are complete.
 ## @return Path to the doxygen SQLite output (cached or freshly generated).
-## @version 10
+## @version 11
 ## @dg_internal
 def _doxygen_stage(
     doxyfile: Path,
@@ -1731,7 +1734,7 @@ def _doxygen_stage(
     caller's `doxygen` segment covers the whole stage — which is what happened.
 
     @brief Doxygen stage with tree-hash-based skip.
-    @version 8
+    @version 9
     """
     predefined = doxyfile_lines(preprocessor or PreprocessorConfig())
     replace_input = getattr(args, "replace_input", False)
@@ -1748,6 +1751,9 @@ def _doxygen_stage(
     ## the cache key moves when one appears or goes, and `cache.scan` never hashes a 2 GB
     ## archive named `.c`.
     in_scope = _drop_binary_files(args, in_scope)
+    ## The scanned tree, kept for the parse-built front end (`_scanned_files`): the JS/TS
+    ## files doxygen will not read are registered from it after doxygen runs.
+    args.scanned_files = sorted(in_scope)
     ## THE SIZE OF THE JOB, WHICH NOTHING RECORDED. `coverage.indexed_files` counts first-party
     ## rows doxygen produced; this counts files the build was ASKED to index. On a vendored C++
     ## target those were 526 and 84,502 — a 160x gap, and the small number is the one everybody
@@ -1763,6 +1769,16 @@ def _doxygen_stage(
     ## the SCOPE and has nothing to do with whether results were cached. The cost is one tree
     ## walk on a path that is already doing a full doxygen run.
     args.files_in_scope = len(in_scope)
+    ## NOTHING FOR DOXYGEN TO READ — a JavaScript / TypeScript repo, whose rows come from the
+    ## parse-built front end — so doxygen is not run at all. It would otherwise spend the
+    ## build reading README.md for nothing. The stages below get an empty doxygen-schema
+    ## database, exactly as a rustdoc build starts from one.
+    if not _doxygen_has_source(in_scope):
+        logger.info(
+            "doxygen: skipped — none of the %d file(s) in scope is a language doxygen reads",
+            len(in_scope),
+        )
+        return _empty_doxygen_database()
     if cache is None:
         return _run_doxygen_from_args(doxyfile, args, predefined)
     summary = cache.scan(in_scope)
@@ -1798,7 +1814,7 @@ def _doxygen_stage(
 
 ## @brief Run every build stage against one (temp) output DB path.
 ## @param timer Stage timer; one `mark` closes each stage below. A fresh one when omitted.
-## @version 55
+## @version 56
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -1828,7 +1844,7 @@ def _build_stages(
     per file. It changes no stage's position and emits nothing — see harvest.py.
 
     @brief Execute every augmentation stage against one output database.
-    @version 48
+    @version 49
     """
     timer = timer or StageTimer()
     repo_root = Path(args.repo_root).resolve() if args.repo_root else doxyfile.parent
@@ -1878,6 +1894,12 @@ def _build_stages(
     timer.mark("repair_names")
     ingest_supplementary_docs(output, repo_root)
     timer.mark("supplementary_docs")
+    ## THE PARSE-BUILT FRONT END (clew/synth.py), for the languages doxygen cannot read:
+    ## JavaScript and TypeScript. Its files are registered in `path` HERE, before the shared
+    ## parse, because the harvest's file set IS the `path` table; their definitions are
+    ## written right after the shared parse, below.
+    register_synth_paths(output, _scanned_files(args, repo_root))
+    timer.mark("synth_paths")
     ## gh#18. IMMEDIATELY AFTER prose ingestion and not before, because
     ## `ingest_supplementary_docs` DROPs and recreates `supplementary_docs` on every
     ## build: run above it, the Kconfig help chunks would be inserted and then deleted,
@@ -1935,6 +1957,11 @@ def _build_stages(
     )
     warm_harvest_plan(output, repo_root, plan, cache, _resolve_jobs())
     timer.mark("shared_parse")
+    ## JS/TS definitions, from the payloads the shared parse just cached. Above every layer
+    ## that resolves against `memberdef` (and above `recover_ast_symbols`, which must see
+    ## these spans as covered), for the reason given at that stage.
+    emit_synth_definitions(output, repo_root, cache)
+    timer.mark("synth_definitions")
     ## gh#18 part 3, and INDEPENDENT of the line above on purpose: a gate on a symbol no
     ## Kconfig declares is dead code behind a symbol nobody can set, which is a finding
     ## worth keeping rather than filtering away — and this layer still works when the
@@ -1960,6 +1987,13 @@ def _build_stages(
     ## so recovering the graph cannot silence the advice to declare PREDEFINED.
     recover_ast_symbols(output, repo_root, cache)
     timer.mark("ast_symbols")
+    ## PEP 257 (clew/pydocs.py): a Python function or class doxygen left undocumented — a plain
+    ## docstring, which doxygen keeps as verbatim detail with no brief — gets the docstring's
+    ## summary line as its brief, and its @version as the simplesect. Rows doxygen documented
+    ## from a `##` block are untouched. Before everything that reads briefs (coverage, file
+    ## docs, requirements, search).
+    enrich_python_docstrings(output, repo_root, cache)
+    timer.mark("py_docstrings")
     ## AFTER prose ingestion, deliberately. Coverage excludes files that yielded PROSE
     ## instead of symbols — a markdown file is not barren, it is not code — and it can
     ## only do that once `supplementary_docs` is populated. Measured on mbedtls: run
@@ -2331,6 +2365,61 @@ def _build_stages(
 ## WHICH tree is deep — which is the actionable half — without turning one metadata value into a
 ## page of paths on a repo that hits the limit everywhere.
 _DEPTH_LIMIT_NAMED = 5
+
+
+## Doxygen patterns that are documentation, not source: a repo holding only these and JS/TS
+## gives doxygen nothing to index (markdown reaches the index through `supplementary_docs`).
+_DOXYGEN_DOC_PATTERNS = frozenset({"*.md", "*.markdown", "*.dox"})
+
+
+## @brief Whether any scanned file is source doxygen would index.
+## @param in_scope Repo-relative key -> absolute path.
+## @return True when at least one file matches a doxygen source pattern.
+## @version 1
+## @req REQ-DDB-PIPE-012
+def _doxygen_has_source(in_scope: dict[str, Path]) -> bool:
+    """@brief Is there anything for doxygen to read?"""
+    import fnmatch
+
+    patterns = [p for p in effective_file_patterns(Path(".")) if p not in _DOXYGEN_DOC_PATTERNS]
+    return any(
+        fnmatch.fnmatchcase(Path(rel).name, pattern) for rel in in_scope for pattern in patterns
+    )
+
+
+## @brief A fresh, empty database carrying doxygen's schema, standing in for its output.
+## @return Path to the database.
+## @version 1
+## @dg_internal
+def _empty_doxygen_database() -> Path:
+    """@brief Doxygen's schema with no rows, for a build doxygen has nothing to add to."""
+    import tempfile
+
+    from .rustdoc import create_doxygen_schema
+
+    path = Path(tempfile.mkdtemp(prefix="clew-nodoxygen-")) / "doxygen_sqlite3.db"
+    create_doxygen_schema(path).close()
+    return path
+
+
+## @brief The repo-relative files this build scanned, for the parse-built front end.
+## @param args Parsed CLI arguments; `scanned_files` when the doxygen stage ran.
+## @param repo_root Repository root.
+## @return Repo-relative POSIX paths.
+## @version 1
+## @req REQ-DDB-PIPE-012
+def _scanned_files(args: argparse.Namespace, repo_root: Path) -> list[str]:
+    """A rustdoc build never enumerates the tree, so the repo is walked here under the
+    same exclusions (scope, operator, toolchain, binaries are classified downstream).
+
+    @brief Files in scope, as the doxygen stage saw them or freshly walked.
+    @return The relative paths.
+    """
+    scanned = getattr(args, "scanned_files", None)
+    if scanned is None:
+        excludes = [Path(e) for e in (getattr(args, "extra_exclude", None) or [])]
+        scanned = sorted(enumerate_tree([repo_root], excludes, repo_root))
+    return [Path(rel).as_posix() for rel in scanned]
 
 
 ## @brief Apply the repo's toolchain.toml / suppress.toml exclusions to this build.

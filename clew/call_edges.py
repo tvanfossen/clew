@@ -65,6 +65,8 @@ from .harvest import (
     try_import_tree_sitter,
 )
 from .indexcache import IndexCache
+from .jsast import harvest_calls as harvest_js_calls
+from .jsast import is_js_tree
 from .pyast import SELF_NAMES, harvest_calls, is_python_tree, node_text
 from .vocabulary import (
     CALL_MATCH_RESOLVED,
@@ -1135,7 +1137,7 @@ def _sole_child(node: Any) -> Any:
 
 ## @brief Harvest one file's rowid-free (callee_name, call_line, source) call sites.
 ## @return List of [callee_name, call_line, source] triples in walk order.
-## @version 9
+## @version 10
 ## @dg_internal
 def _ast_harvest_calls(tree: Any, src_bytes: bytes) -> list[list[Any]]:
     """Walk the parse tree iteratively, recording every direct call's callee
@@ -1160,11 +1162,17 @@ def _ast_harvest_calls(tree: Any, src_bytes: bytes) -> list[list[Any]]:
     falls through to the C/C++ path below for a Rust tree and produces the same
     `[name, line, source]` shape with no Rust-specific code here at all.
 
-    @brief Per-file call-site harvest (C/C++/Rust here, Python via pyast).
-    @version 7
+    JAVASCRIPT / TYPESCRIPT DO NEED ONE. On the C path only `f()` is a call: `this.m()`,
+    `obj.m()` (a `member_expression`) and `new C()` were silently dropped. Their sites come
+    from `jsast.harvest_calls` in Python's payload shape.
+
+    @brief Per-file call-site harvest (C/C++/Rust here, Python via pyast, JS/TS via jsast).
+    @version 9
     """
     if is_python_tree(tree):
         return harvest_calls(tree, src_bytes, SOURCE_AST, SOURCE_AST_MEMBER, SOURCE_BINDING)
+    if is_js_tree(tree):
+        return harvest_js_calls(tree, src_bytes, SOURCE_AST, SOURCE_AST_MEMBER, SOURCE_BINDING)
     sites: list[list[Any]] = []
     stack = [tree.root_node]
     while stack:
@@ -1392,7 +1400,9 @@ class _CallSiteHarvester(Harvester):
     #    A payload cached at 6 has three elements, so `_fold_call_payload` reads empty
     #    strings for both and every Python member call keeps refusing exactly as before —
     #    the bump is what makes the fix take effect on an existing index.
-    stage_version = 7
+    ## 8: JS/TS sites come from jsast (they used to take the C path and lose every
+    ## member call), so a payload cached for a JS file must be re-harvested.
+    stage_version = 8
     label = "tree-sitter"
 
     ## @brief Harvest one file's call sites.
@@ -2020,7 +2030,26 @@ _CALL_NODES = ("call_expression", "call")
 _RECEIVER_FIELDS = {
     "field_expression": ("argument", "field"),
     "attribute": ("object", "attribute"),
+    ## JavaScript / TypeScript `this.m()`.
+    "member_expression": ("object", "property"),
 }
+
+## JavaScript / TypeScript function nodes, and the ones that are METHODS: a method, or a
+## function bound to a class field (`m = () => ...`). JS has no implicit `this` either, so
+## gh#30's rule applies to it unchanged: a bare `m()` inside method `m` names some other
+## `m`, never the method.
+_JS_FUNCTION_NODES = frozenset(
+    {
+        "function_declaration",
+        "generator_function_declaration",
+        "function_expression",
+        "function",
+        "generator_function",
+        "arrow_function",
+        "method_definition",
+    }
+)
+_JS_CLASS_FIELDS = ("public_field_definition", "field_definition")
 
 ## Python's class-body node, and the node Python's own grammar uses for a function.
 ## Their spelling is what makes gh#30's rule language-conditional WITHOUT a language
@@ -2073,7 +2102,7 @@ def _inside_python_method(node: Any) -> bool:
 ## @param node A `call_expression` (C/C++) or `call` (Python) node.
 ## @param src_bytes The file's raw bytes.
 ## @return The callee's name when the call is bare or self-rooted, else None.
-## @version 3
+## @version 4
 ## @dg_internal
 def _self_directed_callee(node: Any, src_bytes: bytes) -> str | None:
     """Refuses every qualified form that is NOT rooted at the running object,
@@ -2084,18 +2113,43 @@ def _self_directed_callee(node: Any, src_bytes: bytes) -> str | None:
 
     The bare-identifier branch is refused inside a Python method (gh#30): with no
     implicit `this`, `cull(...)` in a method named `cull` names something else
-    entirely, so accepting it fabricated recursion for `DocsDbServer.cull`.
+    entirely, so accepting it fabricated recursion for `DocsDbServer.cull`. A
+    JavaScript / TypeScript method is the same case.
 
     @brief Name a call's callee when the call targets the enclosing object.
     @return Callee name, or None when the shape is not self-directed.
-    @version 3
+    @version 5
     """
     callee = node.child_by_field_name("function")
     if callee is None:
         return None
     if callee.type == "identifier":
-        return None if _inside_python_method(node) else node_text(callee, src_bytes)
+        if _inside_python_method(node) or _inside_js_method(node):
+            return None
+        return node_text(callee, src_bytes)
     return _self_rooted_name(callee, src_bytes)
+
+
+## @brief True when a node sits inside the body of a JavaScript / TypeScript METHOD.
+## @param node Any node, typically a call whose callee is a bare identifier.
+## @return True if the nearest enclosing function is a method or a class-field function.
+## @version 1
+## @dg_internal
+def _inside_js_method(node: Any) -> bool:
+    """The nearest enclosing function decides, as for Python: a closure inside a method
+    is its own function, so a bare recursive call there is still recursion.
+
+    @brief Report whether a bare call here sits in a JS method.
+    @return True inside a method body.
+    """
+    fn = node.parent
+    while fn is not None and fn.type not in _JS_FUNCTION_NODES:
+        fn = fn.parent
+    if fn is None:
+        return False
+    if fn.type == "method_definition":
+        return True
+    return fn.parent is not None and fn.parent.type in _JS_CLASS_FIELDS
 
 
 ## @brief The tail name of a member call whose receiver is `this`/`self`/`cls`.
@@ -2179,7 +2233,8 @@ def _self_edge_callers(conn: sqlite3.Connection) -> list[tuple[int, str, int]]:
 ## under 1% of call sites — the objection `_gather_self_call_evidence` already recorded — while a
 ## separate tag leaves that key untouched and still spares an unchanged file the parse.
 _SELF_SITES_STAGE = "self_sites"
-_SELF_SITES_STAGE_VERSION = 1
+## 2: JS/TS `this.m()` is self-rooted, and a bare call in a JS method is refused.
+_SELF_SITES_STAGE_VERSION = 2
 
 
 ## @brief One file's self-rooted call sites, cached by content so an unchanged file is read once.

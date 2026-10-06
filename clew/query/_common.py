@@ -34,7 +34,7 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ..vocabulary import SYMBOL_SOURCE_AST, SYMBOL_SOURCE_COLUMN, SYMBOL_SOURCE_DOXYGEN
+from ..vocabulary import SYMBOL_SOURCE_AST, SYMBOL_SOURCE_COLUMN
 
 if TYPE_CHECKING:  # pragma: no cover — annotation only, kept out of the runtime graph
     from .models import Candidate
@@ -491,7 +491,7 @@ def symbol_provenance(conn: sqlite3.Connection, rowid: int) -> str | None:
 ## @param conn Open connection.
 ## @param alias Table alias the column is reached through.
 ## @return A comparison expression ordering doxygen rows first, or '' when unsupported.
-## @version 2
+## @version 3
 ## @req REQ-DDB-INDEX-004
 def documented_first(conn: sqlite3.Connection, alias: str) -> str:
     """WHY A COLLAPSE MUST PREFER DOCUMENTATION. `search` collapses every
@@ -512,11 +512,12 @@ def documented_first(conn: sqlite3.Connection, alias: str) -> str:
 
     @brief ORDER BY fragment preferring doxygen-sourced rows.
     @return A comparison expression, or '' when provenance is not recorded.
-    @version 2
+    @version 3
     """
     if not records_provenance(conn):
         return ""
-    return f"({alias}.{SYMBOL_SOURCE_COLUMN} = '{SYMBOL_SOURCE_DOXYGEN}') DESC, "
+    ## A parse-built JS/TS row read its JSDoc, so it counts as documented here too.
+    return f"({alias}.{SYMBOL_SOURCE_COLUMN} != '{SYMBOL_SOURCE_AST}') DESC, "
 
 
 _IDENT_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")

@@ -4,7 +4,8 @@
 > out of the labyrinth. It is the archaic spelling, and the direct ancestor, of the word "clue".*
 
 **Give an agent the thread, not a map of the whole maze.** `clew` runs doxygen (or, for a Rust
-repo, `rustdoc`) and tree-sitter over a C, C++, Python or Rust repository and compiles the result
+repo, `rustdoc`; for JavaScript and TypeScript, its own parse) and tree-sitter over a C, C++,
+Python, Rust, JavaScript or TypeScript repository and compiles the result
 into a SQLite graph — symbols, call edges, callbacks, threads, locks, dataflow, requirement
 links, file inventory, prose — then serves it over MCP. Pull on one symbol and you get its
 callers, its locks, the thread it runs on and the requirement it satisfies.
@@ -13,7 +14,15 @@ Per-language setup, what each front end populates, and what it cannot:
 [C](docs/languages/C_INTEGRATION.md) ·
 [C++](docs/languages/CPP_INTEGRATION.md) ·
 [Rust](docs/languages/RUST_INTEGRATION.md) ·
-[Python](docs/languages/PYTHON_INTEGRATION.md).
+[Python](docs/languages/PYTHON_INTEGRATION.md) ·
+[JavaScript / TypeScript](docs/languages/JS_TS_INTEGRATION.md).
+
+**Files that are not source are never read**, whatever their extension: a zip or object file
+named `.c` is detected (lang-parsing-substrate's `classify_file`) and skipped before doxygen or
+any parser sees it, and the build records how many. **The repo's shared toolchain config** —
+`toolchain.toml` `[ignore].paths` and `suppress.toml` entries for every tool, the files knots,
+moldy and aurora-lint also read — excludes paths from the index and the gate; see
+[docs/GUARD.md](docs/GUARD.md#files-the-gate-skips).
 
 **What it is for is aggregation, not capability.** Nothing here is a question `grep` cannot
 answer. The difference is that "who calls this, transitively, across a function-pointer

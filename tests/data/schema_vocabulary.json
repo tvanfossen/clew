@@ -134,7 +134,8 @@
   ],
   "memberdef.dg_source": [
     "ast",
-    "doxygen"
+    "doxygen",
+    "parse"
   ],
   "shared_key_edges.confidence": [
     "high",

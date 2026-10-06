@@ -25,14 +25,25 @@ This repository's own index (Python, whole-repo scope, no Doxyfile):
 
 Reproduce it with `clew --repo-root .` from a checkout of this repository.
 
-## Docstrings and `##` blocks
+## Docstrings (PEP 257) and `##` blocks
 
-doxygen reads both a `##` comment block above a definition and the definition's own docstring.
-This repository writes both and bumps `@version` in both when a body changes, because which one a
-consumer reads is not reliably predictable and bumping both is monotonic.
+Both work, and a codebase may use either.
+
+- **A `##` block** above a definition is doxygen's own convention, and doxygen parses it fully:
+  `@brief`, `@version`, `@req`, aliases. Nothing about it changes.
+- **A PEP 257 docstring** is, to doxygen, preformatted text: it lands in the detail as
+  `<verbatim>`, the brief stays empty and a `@version` inside it is never parsed. So clew
+  reads it itself (`clew/pydocs.py`): where doxygen left a function or class without a brief,
+  the docstring's summary line becomes the brief and its `@version` the version. `@req` in a
+  docstring already works, because the requirements pass reads the literal tag out of the
+  detail.
+
+Where both exist, the `##` block wins, in the index and in the gate. This repository writes
+both and bumps `@version` in both when a body changes.
 
 Neither is required for indexing. A module with no prose at all still yields symbols, call edges
-and liveness; docs fill in `brief` and `detail`.
+and liveness; docs fill in `brief` and `detail`. To gate them, see
+[`clew guard`](../GUARD.md#python), where the docstring is the primary form.
 
 ## File-level docs
 
