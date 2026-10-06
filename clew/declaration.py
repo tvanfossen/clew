@@ -596,7 +596,7 @@ def declared_path(
 ## @param repo_root Repo root to look in.
 ## @param guard_config Explicit guard-config path overriding discovery, or None.
 ## @return (passthrough mapping, the config path it was read from or would have been).
-## @version 3
+## @version 4
 ## @dg_internal
 def _passthrough_declaration(
     repo_root: Path, guard_config: Path | str | None = None
@@ -615,7 +615,7 @@ def _passthrough_declaration(
     maintained. A repo that runs the gate already maintains `.doxygen-guard.yaml`, so
     declaring here is the only option that adds no new artifact.
 
-    The prefix is read from `doxygen_guard.config.PASSTHROUGH_PREFIX` rather than
+    The prefix is read from `clew.guard.config.PASSTHROUGH_PREFIX` rather than
     hardcoded, so if upstream changes it this follows — the same no-hardcoding rule applied
     to the mechanism that exists to carry our declarations.
 
@@ -635,7 +635,7 @@ def _passthrough_declaration(
 
     @brief Read the `x-<tool>` passthrough section from the discovered guard config.
     @return (declared mapping or {}, the config path).
-    @version 3
+    @version 4
     """
     location = discover_guard_config(repo_root, guard_config)
     path = location.path or (repo_root / GUARD_CONFIG_NAME)
@@ -656,14 +656,14 @@ def _passthrough_declaration(
 ## @param path Path to the repo's .doxygen-guard.yaml.
 ## @param repo_root Repo root, so a version skew can name the rev the target pins.
 ## @return (config mapping, prefix); ({}, 'x-') when the config is unusable.
-## @version 3
+## @version 4
 ## @dg_internal
 def _guard_config_and_prefix(
     path: Path, repo_root: Path | str | None = None
 ) -> tuple[dict[str, Any], str]:
     """Split out to keep `_passthrough_declaration` inside the max-3-returns standard.
 
-    The prefix comes from `doxygen_guard.config.PASSTHROUGH_PREFIX` rather than a literal,
+    The prefix comes from `clew.guard.config.PASSTHROUGH_PREFIX` rather than a literal,
     so if upstream moves it this follows — the no-hardcoding rule applied to the very
     mechanism that carries our declarations. The `'x-'` fallback covers a guard old enough
     not to export it.
@@ -680,12 +680,12 @@ def _guard_config_and_prefix(
 
     @brief Load the guard config and its passthrough prefix, tolerating skew and failure.
     @return (config, prefix).
-    @version 3
+    @version 4
     """
     from .guardconfig import read_guard_config
 
     try:
-        from doxygen_guard import config as dg_config
+        from .guard import config as dg_config
 
         prefix = str(getattr(dg_config, "PASSTHROUGH_PREFIX", "x-"))
     except Exception as exc:

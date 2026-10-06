@@ -1,0 +1,251 @@
+"""Tests for clew.guard.git (absorbed from doxygen-guard)."""
+
+from __future__ import annotations
+
+import subprocess
+
+from clew.guard.git import (
+    GIT_ERRORS,
+    get_branch_diff_range,
+    get_changed_lines_for_file,
+    get_diff,
+    get_merge_base,
+    get_staged_diff,
+    git_add,
+    parse_changed_lines,
+    run_git,
+)
+
+
+class TestParseChangedLines:
+    """Tests for parse_changed_lines."""
+
+    def test_single_line_addition(self):
+        diff = """\
+@@ -0,0 +1 @@
++new line
+"""
+        result = parse_changed_lines(diff)
+        assert result == {0}  # line 1 → 0-indexed
+
+    def test_multi_line_addition(self):
+        diff = """\
+@@ -0,0 +1,3 @@
++line one
++line two
++line three
+"""
+        result = parse_changed_lines(diff)
+        assert result == {0, 1, 2}
+
+    def test_modification_in_middle(self):
+        diff = """\
+@@ -10,2 +10,2 @@
+-old line A
+-old line B
++new line A
++new line B
+"""
+        result = parse_changed_lines(diff)
+        assert result == {9, 10}  # lines 10-11 → 0-indexed
+
+    def test_multiple_hunks(self):
+        diff = """\
+@@ -5,1 +5,1 @@
+-old
++new
+@@ -20,1 +20,1 @@
+-old
++new
+"""
+        result = parse_changed_lines(diff)
+        assert result == {4, 19}
+
+    def test_pure_deletion(self):
+        diff = """\
+@@ -5,2 +5,0 @@
+-deleted line 1
+-deleted line 2
+"""
+        result = parse_changed_lines(diff)
+        assert result == set()
+
+    def test_empty_diff(self):
+        result = parse_changed_lines("")
+        assert result == set()
+
+    def test_real_world_diff(self):
+        diff = """\
+diff --git a/src/main.c b/src/main.c
+index abc123..def456 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -10,3 +10,5 @@ void Module_Init(void) {
+-    old_setup();
++    new_setup();
++    configure();
++    validate();
+@@ -25,1 +27,1 @@ int Module_Process(const char *data) {
+-    return process(data);
++    return process_v2(data);
+"""
+        result = parse_changed_lines(diff)
+        # First hunk: lines 10-14 (5 lines starting at 10)
+        assert {9, 10, 11, 12, 13}.issubset(result)
+        # Second hunk: line 27
+        assert 26 in result
+
+
+class TestGetStagedDiff:
+    """Tests for get_staged_diff with injected command runner."""
+
+    def test_calls_git_diff_cached(self):
+        calls = []
+
+        def mock_runner(cmd):
+            calls.append(cmd)
+            return "mock diff output"
+
+        result = get_staged_diff("src/main.c", run_command=mock_runner)
+        assert result == "mock diff output"
+        assert calls == [["git", "diff", "--cached", "-U0", "--", "src/main.c"]]
+
+
+class TestGetDiff:
+    """Tests for get_diff with injected command runner."""
+
+    def test_calls_git_diff_with_range(self):
+        calls = []
+
+        def mock_runner(cmd):
+            calls.append(cmd)
+            return "mock diff output"
+
+        result = get_diff("src/main.c", "HEAD~3..HEAD", run_command=mock_runner)
+        assert result == "mock diff output"
+        assert calls == [["git", "diff", "-U0", "HEAD~3..HEAD", "--", "src/main.c"]]
+
+
+class TestGetChangedLinesForFile:
+    """Tests for get_changed_lines_for_file integration."""
+
+    def test_combines_diff_and_parse(self):
+        def mock_runner(cmd):
+            return """\
+@@ -5,1 +5,1 @@
+-old
++new
+"""
+
+        result = get_changed_lines_for_file("test.c", run_command=mock_runner)
+        assert result == {4}
+
+
+class TestGetMergeBase:
+    """Tests for get_merge_base and get_branch_diff_range."""
+
+    def test_returns_commit_hash(self):
+        def mock_runner(cmd):
+            assert cmd == ["git", "merge-base", "origin/main", "HEAD"]
+            return "abc123def456\n"
+
+        result = get_merge_base("origin/main", run_command=mock_runner)
+        assert result == "abc123def456"
+
+    def test_returns_none_on_failure(self):
+        import subprocess
+
+        def mock_runner(cmd):
+            raise subprocess.CalledProcessError(1, cmd)
+
+        result = get_merge_base("origin/main", run_command=mock_runner)
+        assert result is None
+
+    def test_branch_diff_range_builds_range_string(self):
+        def mock_runner(cmd):
+            if "rev-parse" in cmd:
+                return "def456\n"
+            return "abc123\n"
+
+        result = get_branch_diff_range("origin/main", run_command=mock_runner)
+        assert result == "abc123...HEAD"
+
+    def test_branch_diff_range_returns_none_on_main(self):
+        """When merge-base == HEAD (on main), returns None for staged fallback."""
+
+        def mock_runner(cmd):
+            return "abc123\n"
+
+        result = get_branch_diff_range("origin/main", run_command=mock_runner)
+        assert result is None
+
+    def test_branch_diff_range_returns_none_on_failure(self):
+        import subprocess
+
+        def mock_runner(cmd):
+            raise subprocess.CalledProcessError(1, cmd)
+
+        result = get_branch_diff_range("origin/main", run_command=mock_runner)
+        assert result is None
+
+
+class TestGitFailureContract:
+    """A hung or failing git command must not crash the gate.
+
+    subprocess.TimeoutExpired derives from SubprocessError, NOT OSError, so the old
+    `except (CalledProcessError, OSError)` at three sites let a timeout escape as an
+    uncaught traceback. run_git owns the contract now and every caller uses it.
+    """
+
+    def test_timeout_expired_is_in_the_canonical_tuple(self):
+        assert subprocess.TimeoutExpired in GIT_ERRORS
+
+    def test_timeout_expired_is_not_an_oserror(self):
+        """The reason the old tuple was wrong."""
+        assert not issubclass(subprocess.TimeoutExpired, OSError)
+
+    def test_run_git_returns_none_on_timeout(self):
+        def hang(cmd):
+            raise subprocess.TimeoutExpired(cmd, 30)
+
+        assert run_git(["git", "diff"], hang) is None
+
+    def test_run_git_returns_none_on_called_process_error(self):
+        def fail(cmd):
+            raise subprocess.CalledProcessError(1, cmd)
+
+        assert run_git(["git", "diff"], fail) is None
+
+    def test_run_git_returns_none_when_git_missing(self):
+        def missing(cmd):
+            raise FileNotFoundError("git")
+
+        assert run_git(["git", "diff"], missing) is None
+
+    def test_changed_lines_is_empty_when_diff_unavailable(self):
+        def hang(cmd):
+            raise subprocess.TimeoutExpired(cmd, 30)
+
+        assert get_changed_lines_for_file("a.c", hang) == set()
+
+    def test_git_add_uses_double_dash(self):
+        seen: list[list[str]] = []
+
+        def capture(cmd):
+            seen.append(cmd)
+            return ""
+
+        git_add(["-weird-name.md"], capture)
+        assert "--" in seen[0]
+        assert seen[0].index("--") < seen[0].index("-weird-name.md")
+
+    def test_diff_range_that_looks_like_an_option_is_refused(self):
+        """git diff supports --output=<file>, an arbitrary write primitive."""
+        called: list[list[str]] = []
+
+        def capture(cmd):
+            called.append(cmd)
+            return ""
+
+        assert get_diff("a.c", "--output=/tmp/pwned", capture) is None
+        assert called == []

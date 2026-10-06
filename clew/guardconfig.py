@@ -2,12 +2,15 @@
 """Read a target's `.doxygen-guard.yaml` ACROSS a doxygen-guard version skew.
 
 gh#32. A target's guard config is written against whatever doxygen-guard release
-THAT repo pins in its `.pre-commit-config.yaml`. We parse it with whatever release
-THIS package pins. Those are independent decisions by independent repos and nothing
+THAT repo pins in its `.pre-commit-config.yaml`. We parse it with the gate THIS package
+ships — doxygen-guard is absorbed as `clew.guard`, so "this package's release" is
+clew's own, at the doxygen-guard lineage `clew.guard.UPSTREAM_BASELINE` names. A
+target that moves its hook onto clew's repository closes the skew for good; one that
+still pins upstream doxygen-guard keeps the case this module exists for. Those are independent decisions by independent repos and nothing
 forces them to agree, so a config we cannot fully parse is the NORMAL case at scale,
 not an authoring error.
 
-`doxygen_guard.config.load_config` is a GATE's loader: one unrecognised key and the
+`clew.guard.config.load_config` (upstream `doxygen_guard.config.load_config`) is a GATE's loader: one unrecognised key and the
 whole document is refused (`ConfigError`). Observed on a real target — a config found
 via gh#16 and then discarded over `validate.presence.skip_forward_declarations`, a
 flag valid in the 1.2.9 the target gates with and absent from the schema we import.
@@ -29,7 +32,7 @@ makes parsing it brittle by nature; the re-validation is what turns that brittle
 into a safe refusal instead of a wrong parse.
 
 @brief Version-skew-tolerant loading of a target's doxygen-guard config.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -105,39 +108,47 @@ class GuardConfigRead:
         return bool(self.config)
 
 
-## @brief Import doxygen_guard.config, or None when it is unavailable.
+## @brief Import clew.guard.config, or None when it is unavailable.
 ## @param path Config path, named in the warning.
 ## @return The module, or None.
-## @version 2
+## @version 3
 ## @dg_internal
 def _import_guard_config(path: Path) -> Any | None:
-    """@brief Import the upstream config module, warning rather than raising."""
+    """The gate ships inside this package now, so this cannot fail on a sound install.
+    The guard stays because a broken install (a missing tree-sitter grammar the gate
+    imports) must cost the index its declaration, loudly, rather than the whole build.
+
+    @brief Import the absorbed gate's config module, warning rather than raising.
+    @return The module, or None.
+    @version 3
+    """
     try:
-        from doxygen_guard import config as dg_config
+        from .guard import config as dg_config
     except Exception as exc:
-        logger.warning("guard config: cannot import doxygen_guard.config (%s) — %s", exc, path)
+        logger.warning("guard config: cannot import clew.guard.config (%s) — %s", exc, path)
         return None
     return dg_config
 
 
 ## @brief The doxygen-guard release THIS process imports.
-## @return Version string, or "unknown" when the package does not report one.
-## @version 2
+## @return The absorbed gate's lineage and clew's own version, e.g. "1.4.2 (clew-trace 1.0.40)".
+## @version 3
 ## @req REQ-DDB-CONFIG-001
 def imported_guard_version() -> str:
-    """Read from the installed distribution rather than hardcoded, for the same
-    reason the passthrough prefix is: a version this file states is a version this
-    file will one day be wrong about.
+    """Names BOTH numbers. A target's `rev:` is a doxygen-guard release, so the skew
+    report has to state a doxygen-guard release for the owner to compare it with — that
+    is the absorbed baseline. Changes since the absorption ship as clew releases, so the
+    clew version is what says which of them this process has.
 
     @brief The doxygen-guard version in this process.
     @return Version string or "unknown".
-    @version 2
+    @version 3
     """
     try:
-        import doxygen_guard
+        from . import guard
     except Exception:
         return "unknown"
-    return str(getattr(doxygen_guard, "__version__", "unknown"))
+    return f"{guard.UPSTREAM_BASELINE} (clew-trace {guard.__version__})"
 
 
 ## @brief Parse a YAML mapping, degrading to {} rather than raising.
@@ -156,7 +167,7 @@ def _read_raw_mapping(path: Path) -> dict[str, Any]:
 
 
 ## @brief Run upstream's schema validation, when the imported module offers it.
-## @param dg_config The imported doxygen_guard.config module.
+## @param dg_config The imported clew.guard.config module.
 ## @param raw Raw parsed config mapping.
 ## @param path Config path, named in the warning when validation itself fails.
 ## @return Problem strings; () when the validator is unavailable.
@@ -231,7 +242,7 @@ def _pruned(raw: dict[str, Any], keys: tuple[str, ...]) -> dict[str, Any]:
 
 
 ## @brief Merge a pruned config over upstream's built-in defaults.
-## @param dg_config The imported doxygen_guard.config module.
+## @param dg_config The imported clew.guard.config module.
 ## @param pruned The pruned user config.
 ## @return The merged config, or the pruned config when defaults are unavailable.
 ## @version 1
@@ -320,7 +331,7 @@ def skew_report(
 
 
 ## @brief Load a config through upstream's strict loader, tolerating refusal.
-## @param dg_config The imported doxygen_guard.config module.
+## @param dg_config The imported clew.guard.config module.
 ## @param path Config path to load.
 ## @return A GuardConfigRead; its config is empty when upstream refused.
 ## @version 2
@@ -347,7 +358,7 @@ def _strict_load(dg_config: Any, path: Path) -> GuardConfigRead:
 ## @brief Warn that a guard config could not be used, distinguishing the cause.
 ## @param path The config that could not be used.
 ## @param exc What went wrong.
-## @version 1
+## @version 2
 ## @dg_internal
 def _warn_unusable(path: Path, exc: BaseException) -> None:
     """The two causes read differently because they ARE different. A `SystemExit`
@@ -360,12 +371,12 @@ def _warn_unusable(path: Path, exc: BaseException) -> None:
     exists to prevent.
 
     @brief Warn about an unusable guard config, naming the likely fix.
-    @version 1
+    @version 2
     """
     if isinstance(exc, SystemExit):
         logger.warning(
             "guard config: %s is INVALID — doxygen-guard rejected it (exit %s). Continuing "
-            "with built-in defaults; run 'doxygen-guard validate' against that file to see "
+            "with built-in defaults; run 'clew guard validate' against that file to see "
             "which key it refuses.",
             path,
             exc.code,
@@ -459,7 +470,7 @@ def _refuse(
 
 
 ## @brief Recover the keys we read from a document upstream's schema refuses.
-## @param dg_config The imported doxygen_guard.config module.
+## @param dg_config The imported clew.guard.config module.
 ## @param path Config path being read.
 ## @param raw Raw parsed config mapping.
 ## @param problems Problems upstream's validator reported.

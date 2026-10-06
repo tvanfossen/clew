@@ -1,0 +1,463 @@
+"""Tests for clew.guard.config (absorbed from doxygen-guard)."""
+
+from __future__ import annotations
+
+from textwrap import dedent
+
+import pytest
+
+from clew.guard.config import (
+    CONFIG_DEFAULTS,
+    deep_merge,
+    get_language_config,
+    load_config,
+    parse_version,
+    validate_config_schema,
+    validate_output_path,
+)
+from clew.guard.errors import ConfigError
+
+
+class TestDeepMerge:
+    """Tests for deep_merge function."""
+
+    def test_empty_override(self):
+        base = {"a": 1, "b": {"c": 2}}
+        assert deep_merge(base, {}) == base
+
+    def test_empty_base(self):
+        override = {"a": 1}
+        assert deep_merge({}, override) == override
+
+    def test_flat_override(self):
+        base = {"a": 1, "b": 2}
+        override = {"b": 3}
+        assert deep_merge(base, override) == {"a": 1, "b": 3}
+
+    def test_nested_merge(self):
+        base = {"a": {"b": 1, "c": 2}, "d": 3}
+        override = {"a": {"c": 99}}
+        result = deep_merge(base, override)
+        assert result == {"a": {"b": 1, "c": 99}, "d": 3}
+
+    def test_override_adds_new_keys(self):
+        base = {"a": 1}
+        override = {"b": 2}
+        assert deep_merge(base, override) == {"a": 1, "b": 2}
+
+    def test_override_replaces_non_dict_with_dict(self):
+        base = {"a": 1}
+        override = {"a": {"nested": True}}
+        assert deep_merge(base, override) == {"a": {"nested": True}}
+
+    def test_override_replaces_dict_with_non_dict(self):
+        base = {"a": {"nested": True}}
+        override = {"a": "flat"}
+        assert deep_merge(base, override) == {"a": "flat"}
+
+    def test_does_not_mutate_base(self):
+        base = {"a": {"b": 1}}
+        override = {"a": {"b": 2}}
+        deep_merge(base, override)
+        assert base == {"a": {"b": 1}}
+
+
+class TestLoadConfig:
+    """Tests for load_config function."""
+
+    def test_no_config_file_returns_defaults(self, tmp_path):
+        config = load_config(tmp_path / "nonexistent.yaml")
+        assert config == CONFIG_DEFAULTS
+
+    def test_empty_config_file_returns_defaults(self, tmp_path):
+        config_file = tmp_path / ".doxygen-guard.yaml"
+        config_file.write_text("")
+        config = load_config(config_file)
+        assert config == CONFIG_DEFAULTS
+
+    def test_partial_validate_override(self, tmp_path):
+        config_file = tmp_path / ".doxygen-guard.yaml"
+        config_file.write_text(
+            dedent("""\
+                validate:
+                  presence:
+                    require_doxygen: false
+            """)
+        )
+        config = load_config(config_file)
+        assert config["validate"]["presence"]["require_doxygen"] is False
+        # Other defaults preserved
+        assert "c" in config["validate"]["languages"]
+
+    def test_custom_tags(self, tmp_path):
+        config_file = tmp_path / ".doxygen-guard.yaml"
+        config_file.write_text(
+            dedent("""\
+                validate:
+                  tags:
+                    req:
+                      pattern: "^REQ-\\\\w+$"
+            """)
+        )
+        config = load_config(config_file)
+        assert "req" in config["validate"]["tags"]
+        assert config["validate"]["tags"]["req"]["pattern"] == r"^REQ-\w+$"
+
+    def test_impact_section_override(self, tmp_path):
+        config_file = tmp_path / ".doxygen-guard.yaml"
+        config_file.write_text(
+            dedent("""\
+                impact:
+                  requirements:
+                    file: reqs.csv
+                    format: csv
+            """)
+        )
+        config = load_config(config_file)
+        assert config["impact"]["requirements"]["file"] == "reqs.csv"
+
+    def test_full_config(self, tmp_path):
+        config_file = tmp_path / ".doxygen-guard.yaml"
+        config_file.write_text(
+            dedent("""\
+                output_dir: docs/out/
+                validate:
+                  languages:
+                    kotlin:
+                      extensions: [.kt]
+                      function_pattern: "public\\\\s+\\\\w+"
+                      exclude_names: []
+                  version:
+                    tag: "@ver"
+                  exclude:
+                    - "^gen/"
+                impact:
+                  requirements:
+                    file: reqs.csv
+                    format: csv
+            """)
+        )
+        config = load_config(config_file)
+        assert "kotlin" in config["validate"]["languages"]
+        assert config["validate"]["version"]["tag"] == "@ver"
+        assert config["validate"]["exclude"] == ["^gen/"]
+        assert config["output_dir"] == "docs/out/"
+
+    def test_non_mapping_config_returns_defaults(self, tmp_path):
+        config_file = tmp_path / ".doxygen-guard.yaml"
+        config_file.write_text("just a string")
+        config = load_config(config_file)
+        assert config == CONFIG_DEFAULTS
+
+    def test_exclude_patterns(self, tmp_path):
+        config_file = tmp_path / ".doxygen-guard.yaml"
+        config_file.write_text(
+            dedent("""\
+                validate:
+                  exclude:
+                    - "^gen/"
+                    - "vendor/"
+            """)
+        )
+        config = load_config(config_file)
+        assert config["validate"]["exclude"] == ["^gen/", "vendor/"]
+
+
+class TestGetLanguageConfig:
+    """Tests for get_language_config function."""
+
+    def test_c_file(self):
+        config = CONFIG_DEFAULTS
+        result = get_language_config(config, "src/main.c")
+        assert result is not None
+        assert ".c" in result["extensions"]
+
+    def test_header_file(self):
+        config = CONFIG_DEFAULTS
+        result = get_language_config(config, "include/driver.h")
+        assert result is not None
+        assert ".h" in result["extensions"]
+
+    def test_cpp_file(self):
+        config = CONFIG_DEFAULTS
+        result = get_language_config(config, "src/app.cpp")
+        assert result is not None
+        assert ".cpp" in result["extensions"]
+
+    def test_unknown_extension(self):
+        config = CONFIG_DEFAULTS
+        result = get_language_config(config, "script.rs")
+        assert result is None
+
+    def test_no_extension(self):
+        config = CONFIG_DEFAULTS
+        result = get_language_config(config, "Makefile")
+        assert result is None
+
+
+class TestValidateConfigSchema:
+    """Tests for validate_config_schema."""
+
+    def test_empty_config_passes(self):
+        assert validate_config_schema({}) == []
+
+    def test_valid_output_dir(self):
+        assert validate_config_schema({"output_dir": "docs/"}) == []
+
+    def test_unknown_top_level_key(self):
+        errors = validate_config_schema({"bogus": 1})
+        assert len(errors) == 1
+        assert "bogus" in errors[0]
+
+    def test_unknown_nested_key(self):
+        errors = validate_config_schema({"validate": {"bogus": 1}})
+        assert len(errors) == 1
+        assert "validate.bogus" in errors[0]
+
+    def test_wrong_type_string(self):
+        errors = validate_config_schema({"output_dir": 123})
+        assert len(errors) == 1
+        assert "expected str" in errors[0]
+
+    def test_wrong_type_bool(self):
+        errors = validate_config_schema({"validate": {"presence": {"require_doxygen": "yes"}}})
+        assert len(errors) == 1
+        assert "expected bool" in errors[0]
+
+    def test_open_dict_allows_custom_languages(self):
+        errors = validate_config_schema(
+            {"validate": {"languages": {"rust": {"extensions": [".rs"]}}}}
+        )
+        assert errors == []
+
+    def test_open_dict_allows_custom_tags(self):
+        errors = validate_config_schema({"validate": {"tags": {"custom_tag": {"pattern": ".*"}}}})
+        assert errors == []
+
+    def test_removed_trace_section_rejected(self):
+        errors = validate_config_schema({"trace": {"format": "plantuml"}})
+        assert len(errors) == 1
+        assert "trace" in errors[0]
+
+    def test_stale_test_mapping_rejected(self):
+        errors = validate_config_schema({"impact": {"test_mapping": []}})
+        assert len(errors) == 1
+        assert "test_mapping" in errors[0]
+
+    def test_version_gate_accepted(self):
+        errors = validate_config_schema({"validate": {"version_gate": {"current_version": "v1.0"}}})
+        assert errors == []
+
+    def test_non_dict_where_dict_expected(self):
+        errors = validate_config_schema({"validate": "garbage"})
+        assert len(errors) == 1
+        assert "expected dict" in errors[0]
+
+    def test_multiple_errors(self):
+        errors = validate_config_schema({"bogus1": 1, "bogus2": 2})
+        assert len(errors) == 2
+
+
+class TestParseVersion:
+    """Tests for parse_version."""
+
+    def test_basic(self):
+        assert parse_version("v1.8.2") == (1, 8, 2)
+
+    def test_no_prefix(self):
+        assert parse_version("1.8.2") == (1, 8, 2)
+
+    def test_two_parts(self):
+        assert parse_version("v1.0") == (1, 0)
+
+    def test_single_part(self):
+        assert parse_version("v3") == (3,)
+
+    def test_prerelease_version(self):
+        assert parse_version("v1.0.0-rc1") == (1, 0, 0)
+
+    def test_build_metadata(self):
+        assert parse_version("v2.1.0+build123") == (2, 1, 0)
+
+    def test_invalid_raises(self):
+        """An unparseable version must fail loudly, not sort as (0,).
+
+        Returning (0,) made every catalogued requirement compare as not-yet-active,
+        which silently disabled the whole @req coverage gate while the run still
+        exited 0 — the worst case being a shallow CI clone where "auto:git" resolves
+        to nothing.
+        """
+        with pytest.raises(ConfigError, match="Could not parse version"):
+            parse_version("not-a-version")
+
+
+class TestValidateOutputPath:
+    """Tests for validate_output_path."""
+
+    def test_relative_path_passes(self):
+        result = validate_output_path("docs/generated/")
+        assert result.parts[0] == "docs"
+
+    def test_nested_relative_passes(self):
+        result = validate_output_path("docs/generated/sequences")
+        assert len(result.parts) == 3
+
+    def test_absolute_path_rejected(self):
+        with pytest.raises(ConfigError, match="must be relative"):
+            validate_output_path("/etc/cron.d")
+
+    def test_traversal_rejected(self):
+        with pytest.raises(ConfigError, match="directory traversal"):
+            validate_output_path("../outside")
+
+    def test_mid_path_traversal_rejected(self):
+        with pytest.raises(ConfigError, match="directory traversal"):
+            validate_output_path("docs/../../etc")
+
+
+class TestConfigErrorContract:
+    """load_config must raise a catchable error, never kill the process."""
+
+    def _write(self, tmp_path, body: str):
+        config_file = tmp_path / ".doxygen-guard.yaml"
+        config_file.write_text(dedent(body))
+        return config_file
+
+    def test_unknown_key_raises_config_error(self, tmp_path):
+        config_file = self._write(
+            tmp_path,
+            """\
+            shared_key_patterns:
+              - foo
+        """,
+        )
+        with pytest.raises(ConfigError) as exc:
+            load_config(config_file)
+        assert any("shared_key_patterns" in p for p in exc.value.problems)
+
+    def test_config_error_is_caught_by_except_exception(self, tmp_path):
+        """The whole point of issue #5: SystemExit escaped `except Exception`."""
+        config_file = self._write(tmp_path, "bogus_key: 1\n")
+        try:
+            load_config(config_file)
+        except Exception:
+            return
+        pytest.fail("load_config did not raise a catchable Exception")
+
+    def test_unreadable_yaml_raises_config_error(self, tmp_path):
+        config_file = self._write(tmp_path, "validate: [unclosed\n")
+        with pytest.raises(ConfigError):
+            load_config(config_file)
+
+
+class TestPassthroughKeys:
+    """Consumers may declare x-* sections that the guard validates but ignores."""
+
+    def test_top_level_passthrough_accepted(self):
+        assert validate_config_schema({"x-doxyguard-db": {"index_path": ".cache"}}) == []
+
+    def test_nested_passthrough_accepted(self):
+        assert validate_config_schema({"validate": {"x-custom": {"anything": [1, 2]}}}) == []
+
+    def test_passthrough_does_not_excuse_sibling_typos(self):
+        errors = validate_config_schema({"x-tool": {}, "validat": {}})
+        assert len(errors) == 1
+        assert "validat" in errors[0]
+
+    def test_passthrough_survives_load_and_merge(self, tmp_path):
+        config_file = tmp_path / ".doxygen-guard.yaml"
+        config_file.write_text("x-doxyguard-db:\n  index_path: .cache/db\n")
+        config = load_config(config_file)
+        assert config["x-doxyguard-db"]["index_path"] == ".cache/db"
+
+
+class TestDidYouMean:
+    """README documented these suggestions long before they existed."""
+
+    def test_suggests_close_top_level_key(self):
+        errors = validate_config_schema({"validat": {}})
+        assert "did you mean 'validate'?" in errors[0]
+
+    def test_suggests_close_nested_key(self):
+        errors = validate_config_schema({"validate": {"exclud": []}})
+        assert "did you mean 'exclude'?" in errors[0]
+
+    def test_no_suggestion_when_nothing_is_close(self):
+        errors = validate_config_schema({"zzzzzzzz": {}})
+        assert "did you mean" not in errors[0]
+
+
+class TestSchemaMatchesImplementation:
+    """CONFIG_SCHEMA is a second hand-maintained enumeration of the key space.
+
+    It has drifted in both directions. require_file_doxygen was implemented
+    (check_file_presence), documented in the README, specified as REQ-VAL-006 and
+    tested six times — yet omitted from the schema, so no user could enable it: the
+    run failed with "Unknown config key". The existing tests missed it because they
+    build config dicts with deep_merge and never route through load_config.
+    """
+
+    def test_every_documented_presence_key_loads(self, tmp_path):
+        for key in ("require_doxygen", "require_return", "require_file_doxygen"):
+            config_file = tmp_path / ".doxygen-guard.yaml"
+            config_file.write_text(f"validate:\n  presence:\n    {key}: true\n")
+            config = load_config(config_file)
+            assert config["validate"]["presence"][key] is True, key
+
+    def test_every_default_key_is_permitted_by_the_schema(self):
+        """Anything with a default must be settable, or the default is unreachable."""
+        errors = validate_config_schema({"validate": CONFIG_DEFAULTS["validate"]})
+        assert errors == [], errors
+
+    def test_schema_leaves_round_trip_through_load_config(self, tmp_path):
+        """Every scalar schema leaf under validate.* must survive load_config.
+
+        Guards the drift class directly: a schema key with no default, or a default
+        with no schema key, is caught here rather than by a user hitting it.
+        """
+        import yaml as _yaml
+
+        from clew.guard.config import CONFIG_SCHEMA
+
+        scalars = {k: v for k, v in CONFIG_SCHEMA["validate"].items() if v in (bool, str, list)}
+        sample = {bool: True, str: "x", list: []}
+        assert scalars, "expected scalar leaves under validate.*"
+        for key, kind in scalars.items():
+            config_file = tmp_path / ".doxygen-guard.yaml"
+            config_file.write_text(_yaml.safe_dump({"validate": {key: sample[kind]}}))
+            config = load_config(config_file)
+            assert config["validate"][key] == sample[kind], key
+
+
+class TestDefaultsAreNotAliased:
+    """load_config must not hand back the module-level defaults by reference.
+
+    deep_merge is a shallow merge, so config["validate"] used to BE VALIDATE_DEFAULTS
+    when no config file existed. main.py then wrote through that alias (--exclude
+    appending, version-gate resolution) and permanently mutated global state, leaking
+    across load_config calls in one process.
+    """
+
+    def test_nested_sections_are_independent_objects(self, tmp_path):
+        config = load_config(tmp_path / "nonexistent.yaml")
+        assert config["validate"] is not CONFIG_DEFAULTS["validate"]
+        assert config["impact"] is not CONFIG_DEFAULTS["impact"]
+
+    def test_mutating_a_loaded_config_does_not_touch_the_defaults(self, tmp_path):
+        before = list(CONFIG_DEFAULTS["validate"]["exclude"])
+        config = load_config(tmp_path / "nonexistent.yaml")
+        config["validate"]["exclude"].append("^leaked/")
+        config["validate"].setdefault("version_gate", {})["_resolved"] = "v9.9.9"
+        assert CONFIG_DEFAULTS["validate"]["exclude"] == before
+        assert "_resolved" not in CONFIG_DEFAULTS["validate"].get("version_gate", {})
+
+    def test_two_loads_are_independent(self, tmp_path):
+        first = load_config(tmp_path / "nonexistent.yaml")
+        first["validate"]["exclude"].append("^from-first/")
+        second = load_config(tmp_path / "nonexistent.yaml")
+        assert "^from-first/" not in second["validate"]["exclude"]
+
+    def test_language_dicts_are_deep_copied(self, tmp_path):
+        config = load_config(tmp_path / "nonexistent.yaml")
+        config["validate"]["languages"]["c"]["extensions"].append(".leaked")
+        assert ".leaked" not in CONFIG_DEFAULTS["validate"]["languages"]["c"]["extensions"]

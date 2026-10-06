@@ -137,7 +137,7 @@ def load_guard_config(
 ## @brief Resolve the target repo's DECLARED `@req` id pattern (or fallback).
 ## @param guard_cfg Parsed .doxygen-guard.yaml dict, or None.
 ## @return Compiled regex the captured `@req` id token must fully match.
-## @version 2
+## @version 3
 ## @req REQ-DDB-CONFIG-001
 def resolve_req_id_pattern(guard_cfg: dict | None) -> re.Pattern[str]:
     """Return the compiled `validate.tags.req.pattern` from the guard config.
@@ -146,10 +146,10 @@ def resolve_req_id_pattern(guard_cfg: dict | None) -> re.Pattern[str]:
     PERMISSIVE default — never to a hardcoded per-repo format.
 
     @brief Resolve the declared @req id pattern (permissive fallback).
-    @version 2
+    @version 3
     """
     if guard_cfg:
-        from doxygen_guard import config as dg_config
+        from .guard import config as dg_config
 
         validate = dg_config.get_validate(guard_cfg)
         declared = (validate.get("tags", {}).get("req", {}) or {}).get("pattern")
@@ -162,7 +162,7 @@ def resolve_req_id_pattern(guard_cfg: dict | None) -> re.Pattern[str]:
 ## @brief Resolve the DECLARED requirements-catalog id/name column names.
 ## @param guard_cfg Parsed .doxygen-guard.yaml dict, or None.
 ## @return (id_column, name_column) — declared mapping or {id,title} default.
-## @version 3
+## @version 4
 ## @req REQ-DDB-CONFIG-001
 def resolve_catalog_columns(guard_cfg: dict | None) -> tuple[str, str]:
     """Return the id/name column keys for a flat requirements catalog.
@@ -172,11 +172,11 @@ def resolve_catalog_columns(guard_cfg: dict | None) -> tuple[str, str]:
     otherwise the clew convention `{id, title}`.
 
     @brief Resolve declared catalog id/name columns (id/title default).
-    @version 3
+    @version 4
     """
     id_col, name_col = "id", "title"
     if guard_cfg:
-        from doxygen_guard import config as dg_config
+        from .guard import config as dg_config
 
         req = dg_config.get_impact(guard_cfg).get("requirements") or {}
         id_col = req.get("id_column", id_col)
@@ -832,7 +832,7 @@ def resolve_catalog_path(guard_cfg: dict | None, repo_root: Path) -> Path | None
 ## @brief The raw `impact.requirements.file` value a config declares, if any.
 ## @param guard_cfg Parsed .doxygen-guard.yaml dict, or None.
 ## @return The declared path string, or '' when nothing is declared.
-## @version 1
+## @version 2
 ## @dg_internal
 def _declared_catalog_field(guard_cfg: dict | None) -> str:
     """Split out purely to keep `declared_catalog_path` inside the max-3-returns
@@ -840,10 +840,10 @@ def _declared_catalog_field(guard_cfg: dict | None) -> str:
 
     @brief Read the declared catalog path field.
     @return The declared value, or ''.
-    @version 1
+    @version 2
     """
     if not guard_cfg:
         return ""
-    from doxygen_guard import config as dg_config
+    from .guard import config as dg_config
 
     return str((dg_config.get_impact(guard_cfg).get("requirements") or {}).get("file") or "")

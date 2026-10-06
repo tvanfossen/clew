@@ -43,6 +43,55 @@ lock nesting even though nothing is named that. That is a different mechanism fr
 metrics module, a dispatch or threading module) is worth more than `///` on each of its functions,
 for the same reason a C file benefits from a leading `/*! ... */`.
 
+## Gating Rust doc comments (`clew guard`)
+
+The index needs no doc comments. A repo that also wants the doxygen gate's policy on its Rust
+(a block on every function, a revision tag bumped when the body changes, `@req` traceability)
+declares Rust in `.doxygen-guard.yaml`:
+
+```yaml
+validate:
+  languages:
+    rust: {}
+```
+
+The convention is **the same tags, inside rustdoc's own comments**:
+
+```rust
+/// Read the raw temperature.
+///
+/// @version 2
+/// @req REQ-SENSE-001
+#[inline]
+pub fn read_temperature(channel: u8) -> u16 { ... }
+```
+
+- the block is the outer doc comment (`///` or `/** */`), found across `#[...]` attributes
+- the summary paragraph stands in for `@brief`
+- `@return` is not required (`require_return: true` on the `rust` entry turns it back on)
+- `#[test]`-style functions and the `#[cfg(test)]` module are not gated
+- a `//!` block is the file-level block, with no `@file` needed
+
+`@req` written this way also reaches the index: rustdoc's JSON carries the full doc text into
+`detaileddescription`, which the requirements pass reads, so `req_trace` works the same as for
+a C repo. Full rules and limits: [docs/GUARD.md § Rust](../GUARD.md#rust).
+
+**Why tags rather than rustdoc-native sections.** rustdoc has no tag vocabulary: a doc comment
+is markdown, and only the first paragraph means anything (the summary). That leaves two ways
+to express "revision 2, satisfies REQ-SENSE-001":
+
+1. **The gate's tags inside `///`**, which is what is implemented. The gate's existing parser,
+   staleness check, catalog cross-reference and coverage report apply unchanged, and the index
+   reads `@req` from the same text it already ingests. The cost: rustdoc renders `@version 2`
+   as literal text in generated docs.
+2. **Markdown sections** (`# Requirements`, `# Version`) read as structured data. This reads
+   more naturally in rendered docs, but it is new parsing on both sides (gate and index), and
+   the result can't be checked against what doxygen, the C/C++ front end, does with the same
+   tags.
+
+(1) is the minimal support. (2) can be added later as an alternative spelling that feeds the
+same tag dictionary, without changing anything downstream.
+
 ## Limitations, and they are structural
 
 **`xrefs` is empty by construction.** rustdoc's JSON is a documentation index — items,
