@@ -144,21 +144,24 @@ def test_unknown_key_does_not_discard_the_passthrough_declaration(tmp_path: Path
 
 
 ## @brief The diagnosis must name both versions and the key, not blame the author.
-## @version 1
+## @version 2
 def test_skew_is_reported_with_both_versions_and_the_offending_key(tmp_path: Path, caplog) -> None:
     """ "Unknown config key" alone reads as the target author's mistake. It is not:
     their key is valid for the release their gate runs and unknown to the release
     this index imports, which only a message stating both can convey.
 
     @brief The skew report names the pinned rev, the imported version and the key.
-    @version 1
+    @version 2
     """
     ## Read INDEPENDENTLY of the code under test. Asserting
     ## `guardconfig.imported_guard_version() in report` would pass while both were the
-    ## string "unknown" — a test green because two wrongs agreed.
+    ## string "unknown" — a test green because two wrongs agreed. The gate is absorbed
+    ## (clew/guard/), so "the release we import" is the doxygen-guard baseline it was
+    ## absorbed at — stated here as a literal, not read back from the package — plus
+    ## clew's own installed version.
     from importlib.metadata import version
 
-    ours = version("doxygen-guard")
+    ours = ("1.4.2", version("clew-trace"))
     config = _write_skewed_repo(tmp_path)
 
     with caplog.at_level(logging.WARNING):
@@ -168,7 +171,7 @@ def test_skew_is_reported_with_both_versions_and_the_offending_key(tmp_path: Pat
     assert reports, "a version skew reported as a bare unknown-key error is a wrong diagnosis"
     report = reports[0]
     assert _PINNED_REV in report, "the report must name the release the TARGET pins"
-    assert ours in report, "the report must name the release WE import"
+    assert all(v in report for v in ours), "the report must name the release WE import"
     assert _SKEW_KEY in report, "the report must name the key that was not recognised"
 
 

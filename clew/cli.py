@@ -218,6 +218,11 @@ EXPORT_COMMAND = "export"
 ## build invocation must not drag the registration doctor — or the MCP SDK it
 ## probes for — into its import graph.
 INIT_COMMAND = "init"
+## The absorbed doxygen-guard gate (`clew/guard/`). Dispatched on the first word like its
+## siblings and imported lazily, so a build never pays for the gate's tree-sitter parsers
+## and the gate never pays for the pipeline. `clew-guard` is the same entry point as a
+## console script, which is what the pre-commit hook runs.
+GUARD_COMMAND = "guard"
 
 ## The `build_meta` section carrying the scope decision, and the key inside it that
 ## records what the OPERATOR removed — kept apart from `scope.excludes`, which is
@@ -405,7 +410,7 @@ def _resolve_output(args: argparse.Namespace) -> None:
 
 
 ## @brief Construct the argparse.ArgumentParser for the build script.
-## @version 18
+## @version 19
 ## @req REQ-DDB-CLI-001
 ## @return Configured ArgumentParser with all build-script CLI arguments registered.
 def _build_argparser() -> argparse.ArgumentParser:
@@ -449,6 +454,7 @@ def _build_argparser() -> argparse.ArgumentParser:
             f"  {INIT_COMMAND:<10}register the MCP server and check it can run\n"
             f"  {PROPOSE_COMMAND:<10}propose a .clew.yaml declaration for a repository\n"
             f"  {EXPORT_COMMAND:<10}export an index\n"
+            f"  {GUARD_COMMAND:<10}validate doxygen comments (the absorbed doxygen-guard)\n"
             f"\nRun `clew <command> --help` for a command's own options.\n"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -3235,7 +3241,7 @@ def _stamp_refresh_metrics(
 
 
 ## @brief Entry point — dispatch a subcommand, else parse args and build.
-## @version 16
+## @version 17
 ## @req REQ-DDB-CLI-001
 def main() -> None:
     """Entry point — parse args, run doxygen, optionally enrich.
@@ -3286,6 +3292,10 @@ def main() -> None:
         )
 
         sys.exit(init_main(sys.argv[2:]))
+    if sys.argv[1:2] == [GUARD_COMMAND]:
+        from .guard.main import main as guard_main
+
+        sys.exit(guard_main(sys.argv[2:]))
     args = _build_argparser().parse_args()
     _configure_logging(args.verbose)
     _resolve_output(args)

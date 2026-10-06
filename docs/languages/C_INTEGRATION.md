@@ -65,3 +65,7 @@ without a release token every critical section stays NULL.
 repo's own `.doxygen-guard.yaml`, never assumed. A catalog (`requirements.yaml`) is optional
 metadata: without one, `req_edges` still populate from tags and only titles and priorities are
 missing.
+
+To *enforce* the tags (presence, revision bumps, catalog membership) at commit time, use the
+gate that ships with clew: `clew guard`, the absorbed doxygen-guard. See
+[docs/GUARD.md](../GUARD.md).

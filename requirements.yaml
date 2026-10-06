@@ -13,7 +13,7 @@
 # pattern because doxygen-guard validates the whole `@req` line while clew
 # splits id from marker — see the comment on that key for why declaring it was the
 # honest fix rather than deleting the marker.
-# Product domains only: PIPE, SCHEMA, QUERY, MCP, CONFIG, INDEX, CLI.
+# Product domains only: PIPE, SCHEMA, QUERY, MCP, CONFIG, INDEX, CLI, GUARD.
 #
 # `evidence:` IS PROSE AND IT DRIFTS. As of task #62 the machine-checkable link is
 # `@req REQ-DDB-*` tags in the source, queryable with `req_trace`; evidence is a
@@ -943,3 +943,234 @@ requirements:
       four guard holes - columns that accepted any string because no CHECK had ever been
       written. CHECK text is built by explicit quote-and-join with '''' escaping, never a repr,
       because a repr emits a trailing comma on a 1-tuple and Python quoting is not SQL quoting.'
+
+  # ---------------------------------------------------------------------------
+  # GUARD: the absorbed doxygen-guard gate (clew/guard/). Renumbered from
+  # doxygen-guard's own catalog at its 1.4.2 baseline; `x-upstream-id` keeps the old
+  # id so a reader following an upstream issue or CHANGELOG entry can find it.
+  # ---------------------------------------------------------------------------
+  REQ-DDB-GUARD-001:
+    subsystem: guard
+    name: Doxygen presence check
+    acceptance_criteria: Undocumented functions produce presence violations; documented functions pass clean
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-001; tests under tests/guard/.
+    x-upstream-id: REQ-VAL-001
+  REQ-DDB-GUARD-002:
+    subsystem: guard
+    name: Version staleness detection
+    acceptance_criteria: Modified function body without version tag change produces staleness violation
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-002; tests under tests/guard/.
+    x-upstream-id: REQ-VAL-002
+  REQ-DDB-GUARD-003:
+    subsystem: guard
+    name: Tag syntax validation
+    acceptance_criteria: Tag values not matching configured pattern or prefix produce tag violations
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-003; tests under tests/guard/.
+    x-upstream-id: REQ-VAL-003
+  REQ-DDB-GUARD-004:
+    subsystem: guard
+    name: Req coverage enforcement
+    acceptance_criteria: Functions without req or an exemption tag (utility/dg_internal/callback) produce
+      coverage violations
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-004; tests under tests/guard/.
+    x-upstream-id: REQ-VAL-004
+  REQ-DDB-GUARD-005:
+    subsystem: guard
+    name: Return tag enforcement
+    acceptance_criteria: Non-void functions without a return tag produce violations; void functions and
+      exemption-tagged functions are exempt; require_return config controls enforcement
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-005; tests under tests/guard/.
+    x-upstream-id: REQ-VAL-005
+  REQ-DDB-GUARD-006:
+    subsystem: guard
+    name: File-level doxygen validation
+    acceptance_criteria: Files missing file-level doxygen produce a violation when require_file_doxygen
+      is enabled; blocks missing file, brief or version produce tag violations
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-006; tests under tests/guard/.
+    x-upstream-id: REQ-VAL-006
+  REQ-DDB-GUARD-007:
+    subsystem: guard
+    name: Duplicate tag detection
+    acceptance_criteria: A block carrying two brief, version, return or file tags produces a tag violation
+      naming the count; repeatable tags such as req and param are unaffected; duplicate_tags_error set false
+      disables the check
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-007; tests under tests/guard/.
+    x-upstream-id: REQ-VAL-007
+  REQ-DDB-GUARD-008:
+    subsystem: guard
+    name: Changed function detection from git diff
+    acceptance_criteria: Functions whose body lines overlap with git diff changed lines are reported as
+      changed
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-008; tests under tests/guard/.
+    x-upstream-id: REQ-IMPACT-001
+  REQ-DDB-GUARD-009:
+    subsystem: guard
+    name: Requirements file loading
+    acceptance_criteria: Requirements loaded and accessible by ID for the impact report and coverage analysis
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-009; tests under tests/guard/.
+    x-upstream-id: REQ-IMPACT-002
+  REQ-DDB-GUARD-010:
+    subsystem: guard
+    name: Impact report generation
+    acceptance_criteria: Impact report lists affected requirements with their changed functions
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-010; tests under tests/guard/.
+    x-upstream-id: REQ-IMPACT-003
+  REQ-DDB-GUARD-011:
+    subsystem: guard
+    name: Requirements catalog schema enforcement
+    acceptance_criteria: A missing file, unknown format, wrong document shape, missing required field or
+      an ID failing the configured req pattern each raise RequirementsError; a valid catalog loads with
+      every declared field preserved
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-011; tests under tests/guard/.
+    x-upstream-id: REQ-IMPACT-004
+  REQ-DDB-GUARD-012:
+    subsystem: guard
+    name: YAML config loading and merging
+    acceptance_criteria: User config overrides defaults; missing keys retain defaults; unknown keys are
+      rejected with a suggestion; x- prefixed keys pass through uninterpreted
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-012; tests under tests/guard/.
+    x-upstream-id: REQ-CONFIG-001
+  REQ-DDB-GUARD-013:
+    subsystem: guard
+    name: Per-language parse settings
+    acceptance_criteria: Each language gets correct comment start/end patterns and body style (braces vs
+      indent)
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-013; tests under tests/guard/.
+    x-upstream-id: REQ-CONFIG-002
+  REQ-DDB-GUARD-014:
+    subsystem: guard
+    name: Typed errors at the library boundary
+    acceptance_criteria: load_config raises ConfigError rather than calling sys.exit, so a caller guarding
+      with except Exception handles it; the CLI catches GuardError and returns exit 1
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-014; tests under tests/guard/.
+    x-upstream-id: REQ-CONFIG-003
+  REQ-DDB-GUARD-015:
+    subsystem: guard
+    name: Machine-readable consumer contract
+    acceptance_criteria: config --schema emits the schema, defaults, catalog constants and a contract version;
+      config --effective emits the merged config and what it resolved to; files emits the same path set
+      the gate walks together with the exclude patterns that produced it
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-015; tests under tests/guard/.
+    x-upstream-id: REQ-CONFIG-004
+  REQ-DDB-GUARD-016:
+    subsystem: guard
+    name: Config-supplied path containment
+    acceptance_criteria: A catalog path resolving outside the repository raises ConfigError before the file
+      is opened, including via traversal or a symlinked component; reported catalog problems are capped
+      in number and each key is truncated and flattened to one line
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-016; tests under tests/guard/.
+    x-upstream-id: REQ-CONFIG-006
+  REQ-DDB-GUARD-017:
+    subsystem: guard
+    name: Doxyfile fragment generation
+    acceptance_criteria: doxygen-guard doxyfile emits an ALIASES line for every tool-owned tag including
+      a non-default validate.version.tag and any configured custom tags, never aliases a real doxygen command,
+      and requires no doxygen installation to run
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-017; tests under tests/guard/.
+    x-upstream-id: REQ-CONFIG-007
+  REQ-DDB-GUARD-018:
+    subsystem: guard
+    name: Function detection
+    acceptance_criteria: Functions matched by pattern with correct name capture; excludes filtered; forward
+      declarations skipped
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-018; tests under tests/guard/.
+    x-upstream-id: REQ-PARSE-001
+  REQ-DDB-GUARD-019:
+    subsystem: guard
+    name: Doxygen block extraction
+    acceptance_criteria: Doxygen blocks associated with correct functions including C++ template functions;
+      tree-sitter prev_sibling handles template_declaration and decorated_definition wrappers; all tags
+      parsed including multi-tag single lines
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-019; tests under tests/guard/.
+    x-upstream-id: REQ-PARSE-002
+  REQ-DDB-GUARD-020:
+    subsystem: guard
+    name: Tree-sitter function indexing
+    acceptance_criteria: Functions detected via AST node types including template_declaration and decorated_definition
+      wrappers; doxygen blocks associated via prev_sibling with correct handling of comment styles per language
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-020; tests under tests/guard/.
+    x-upstream-id: REQ-PARSE-004
+  REQ-DDB-GUARD-021:
+    subsystem: guard
+    name: Python docstring tag extraction
+    acceptance_criteria: Functions whose docstring carries brief and version tags satisfy presence checks
+      without a preceding block; a preceding block takes precedence when both exist; docstrings without
+      recognized tags are not treated as doxygen blocks
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-021; tests under tests/guard/.
+    x-upstream-id: REQ-PARSE-005
+  REQ-DDB-GUARD-022:
+    subsystem: guard
+    name: Requirement coverage analysis
+    acceptance_criteria: Requirements categorized as covered, uncovered or orphan; documented functions
+      carrying no requirement tag are reported, excluding internal helpers; reports in text, JSON and markdown;
+      exit code 1 when gaps exist
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-022; tests under tests/guard/.
+    x-upstream-id: REQ-COVERAGE-001
+  REQ-DDB-GUARD-023:
+    subsystem: guard
+    name: Git diff parsing
+    acceptance_criteria: Hunk headers parsed to 0-indexed line sets; pure deletions excluded; git add supported
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/ — tagged @req REQ-DDB-GUARD-023; tests under tests/guard/.
+    x-upstream-id: REQ-GIT-001
+  REQ-DDB-GUARD-024:
+    subsystem: guard
+    name: Rust (rustdoc) items are gated when a repo declares Rust
+    acceptance_criteria: 'With `validate.languages.rust` declared, every `fn` with a body carries
+      a rustdoc outer doc comment (`///` lines or one `/** */`, reached across `#[...]` attributes);
+      its summary paragraph satisfies @brief unless @brief is written; the revision tag and @req
+      rules apply as for C/C++/Python; @return is not required unless the language entry sets
+      `require_return` true; `#[test]`-style functions and the `#[cfg(test)]` module are not
+      gated; a `//!` or `/*!` inner doc is the file-level block and needs no @file. Undeclared,
+      `.rs` files are not checked.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'clew/guard/ts_parser.py _collect_rust_doc / _skip_rust_attributes /
+      _is_rust_test_item, parser.py apply_autobrief, checks.py _require_return /
+      _is_rust_unit_fn / _RUST_FILE_DOC_STARTS, config.py OPT_IN_LANGUAGE_DEFAULTS.
+      tests/guard/test_guard_rust.py.'

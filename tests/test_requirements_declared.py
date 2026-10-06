@@ -263,8 +263,10 @@ def test_is_flat_req_list_honors_declared_id_column() -> None:
 # ─── a rejected guard config must not kill the build ─────────────────────────
 
 
-def test_a_guard_config_rejected_by_doxygen_guard_is_survived(tmp_path: Path, caplog) -> None:
-    """`doxygen_guard.config.load_config` does not RAISE on a bad config — it calls
+def test_a_guard_config_rejected_by_doxygen_guard_is_survived(
+    tmp_path: Path, caplog, monkeypatch
+) -> None:
+    """`doxygen_guard.config.load_config` did not RAISE on a bad config — it called
     `sys.exit(1)`. `SystemExit` derives from BaseException, so it sailed straight
     through this loader's `except Exception` handler, whose own comment says
     "config is optional; never fatal", and out through the CLI.
@@ -274,6 +276,10 @@ def test_a_guard_config_rejected_by_doxygen_guard_is_survived(tmp_path: Path, ca
     key in its `.doxygen-guard.yaml` burned an entire build and then died at exit 1
     with a message from a different tool.
 
+    The gate is absorbed as `clew.guard` and raises `ConfigError` now, so the exit is
+    simulated by patching that module — the arm it guards is still the one that matters
+    if a loader ever exits again.
+
     Both halves are asserted. Returning None is the "never fatal" contract. The
     WARNING is the other half and matters just as much: the declared `@req` pattern
     is now unavailable and the build silently falls back to the permissive default,
@@ -282,26 +288,19 @@ def test_a_guard_config_rejected_by_doxygen_guard_is_survived(tmp_path: Path, ca
     import logging
 
     from clew import requirements as requirements_module
+    from clew.guard import config as guard_config
 
     config_path = tmp_path / ".doxygen-guard.yaml"
     config_path.write_text("stray_top_level_key: true\n", encoding="utf-8")
 
-    class _Rejecting:
-        @staticmethod
-        def load_config(_path):
-            raise SystemExit(1)
+    def _exit(_path):
+        raise SystemExit(1)
 
-    import sys
-
-    sys.modules["doxygen_guard"] = type(sys)("doxygen_guard")
-    sys.modules["doxygen_guard"].config = _Rejecting  # type: ignore[attr-defined]
-    sys.modules["doxygen_guard.config"] = _Rejecting  # type: ignore[assignment]
-    try:
-        with caplog.at_level(logging.WARNING):
-            result = requirements_module.load_guard_config(config_path)
-    finally:
-        for name in ("doxygen_guard", "doxygen_guard.config"):
-            sys.modules.pop(name, None)
+    ## No schema problems reported, so the read takes the STRICT path — the one that exits.
+    monkeypatch.setattr(guard_config, "validate_config_schema", lambda _raw: [])
+    monkeypatch.setattr(guard_config, "load_config", _exit)
+    with caplog.at_level(logging.WARNING):
+        result = requirements_module.load_guard_config(config_path)
 
     assert result is None, "a rejected config must degrade to defaults, not propagate"
     assert any("INVALID" in rec.message for rec in caplog.records), (

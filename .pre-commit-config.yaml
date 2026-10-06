@@ -7,6 +7,7 @@ exclude: |
     docs/generated/.*|
     acceptance/targets/.*|
     tests/data/.*|
+    tests/guard/fixtures/.*|
     .*\.egg-info/.*
   )$
 
@@ -16,12 +17,19 @@ repos:
     hooks:
       - id: knots
 
-  - repo: https://github.com/tvanfossen/doxygen-guard
-    rev: 1.4.2
+  ## The gate is clew's own code now (clew/guard/), so this repo runs it from its own tree
+  ## rather than a published rev: a change to the gate is exercised by the very commit that
+  ## makes it. Adopting repos use the published hook in .pre-commit-hooks.yaml instead.
+  ## The ID stays `doxygen-guard` — clew/precommit.py finds the hook by that ID.
+  - repo: local
     hooks:
       - id: doxygen-guard
+        name: doxygen-guard (clew guard)
+        entry: .venv/bin/python -m clew guard
+        language: system
         args: [validate]
         files: ^(clew|acceptance|tests)/.*\.py$
+        require_serial: true
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.1

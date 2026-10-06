@@ -1,0 +1,10 @@
+## The doxygen gate, absorbed from doxygen-guard (clew/guard/). The hook ID is UNCHANGED so an
+## adopting repo moves by editing `repo:` and `rev:` only — and so clew/precommit.py, which finds
+## the hook by its ID, keeps reading that repo's `--config` argument either way.
+- id: doxygen-guard
+  name: Doxygen Guard (clew)
+  description: Validate doxygen comments for presence, version staleness, and custom tag syntax
+  entry: clew-guard
+  language: python
+  types_or: [c, c++, python, rust]
+  require_serial: true

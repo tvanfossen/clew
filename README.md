@@ -20,12 +20,13 @@ answer. The difference is that "who calls this, transitively, across a function-
 boundary, and which of those run on another thread" is one query instead of a dozen searches
 and a mental model you rebuild every session. It is a cache for work you would otherwise redo.
 
-**doxygen-guard is optional.** [It](https://github.com/tvanfossen/doxygen-guard) is a
-pre-commit gate that keeps a repo's doxygen accurate, and a repo that uses it gets a richer
-index — briefs, requirement tags, versioned comments. But `clew` needs neither the gate nor a
-Doxyfile: a repo that declares nothing gets its whole tree indexed, and three of the four
-reference repositories are measured that way. If you want the gate, it is a separate tool with
-one job; if you do not, this still works.
+**The doxygen gate is optional.** `clew guard`, formerly the separate
+[doxygen-guard](https://github.com/tvanfossen/doxygen-guard), is a pre-commit gate that keeps a
+repo's doxygen accurate. A repo that uses it gets a richer index: briefs, requirement tags,
+versioned comments. But `clew` needs neither the gate nor a Doxyfile. A repo that declares
+nothing gets its whole tree indexed, and three of the four reference repositories are measured
+that way. The gate ships in this package and stays off until a repo declares its hook. See
+[docs/GUARD.md](docs/GUARD.md).
 
 ## The four tools
 
@@ -257,7 +258,7 @@ tells you if it is missing. Everything else, including the MCP SDK, comes with t
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -e .[dev]   # pipeline + doxygen-guard + gates
+.venv/bin/pip install -e .[dev]   # pipeline + the doxygen gate + dev tooling
 sudo apt install doxygen          # external binary (plantuml optional)
 ```
 
@@ -310,7 +311,7 @@ of the MCP `index(action="refresh")` tool, so an agent with no shell can state a
 
 The repo's `.doxygen-guard.yaml` — which supplies the declared `@req` id pattern and the
 catalog column mapping — is **discovered** from `--repo-root`: its root, then the path the
-doxygen-guard pre-commit hook names in its own `--config` argument, then
+`doxygen-guard` pre-commit hook (upstream's or this repo's) names in its own `--config` argument, then
 `conf/ | config/ | .config/`.
 
 ### Commit what you stated
@@ -375,6 +376,7 @@ the narrower form that describes a function or macro and returns `None` for anyt
 |---|---|
 | `clew/` | The pipeline (`python -m clew`) |
 | `clew/query/` | The stable query API the MCP server is a view over |
+| `clew/guard/` | The doxygen gate (`clew guard`, formerly doxygen-guard); tests in `tests/guard/` |
 | `tests/` | `.venv/bin/python -m pytest tests/ -q` (add `--integration` for the tier that builds real repos) |
 | `acceptance/DESIGN.md` | The schema and grading routine for the instrument being rebuilt |
 | `acceptance/operational/` | Build and refresh cost, and judge variance — measured beside the matrix, never inside it |
@@ -382,12 +384,20 @@ the narrower form that describes a function or macro and returns `None` for anyt
 ## Dogfooding
 
 clew runs its own gate: `.venv/bin/pre-commit run --all-files` → ruff (lint +
-format), doxygen-guard (`@brief`/`@version`/`@return` presence on the shipped
-package), and the full test suite. Its own catalog lives in `requirements.yaml`.
+format), the doxygen gate (`@brief`/`@version`/`@return` presence on the shipped
+package, run from this tree as `python -m clew guard`), and the full test suite. Its own
+catalog lives in `requirements.yaml`.
 
-## doxygen-guard
+## The doxygen gate (`clew guard`)
 
-[doxygen-guard](https://github.com/tvanfossen/doxygen-guard) is a separate tool, consumed here as
-a pip dependency and pinned by `rev:` in `.pre-commit-config.yaml`. Its scope is
-validation, traceability and change impact; nothing here extends it, and `clew` does not require
-it — see the top of this file.
+doxygen-guard was a separate tool that clew consumed as a pip dependency. It is now part of
+clew (`clew/guard/`, absorbed at its 1.4.2 release), so a target's `.doxygen-guard.yaml` is
+read by the same schema the gate enforces. The config file, the tags and the hook id are
+unchanged. Adopting repos switch the hook's `repo:` and `rev:` to this repository. The gate
+also checks Rust (rustdoc `///` comments) when a repo declares it. Its scope is unchanged:
+validation, traceability and change impact. It is optional, and the index pipeline never runs
+it. Full reference: [docs/GUARD.md](docs/GUARD.md).
+
+Language detection for the gate comes from
+[lang-parsing-substrate](https://github.com/brandon-arrendondo/lang_parsing_substrate), the
+Rust parsing library shared with knots, moldy and aurora-lint, installed from its PyPI wheels.
