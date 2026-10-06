@@ -29,8 +29,7 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-from tree_sitter import Language, Parser
-from tree_sitter_python import language as py_language
+from clew.tsnode import Parser as SubstrateParser
 
 from clew.call_edges import SOURCE_AST_MEMBER, _ast_harvest_calls
 
@@ -220,7 +219,7 @@ def test_ast_member_rows_are_qualifier_verified_not_name_keyed(self_index_db: Pa
         "The qualifier's whole value is picking among SAME-NAMED candidates."
     )
 
-    parser = Parser(Language(py_language()))
+    parser = SubstrateParser("python")
     package = Path(__file__).resolve().parents[2] / "clew"
     sites = 0
     for source_file in sorted(package.rglob("*.py")):

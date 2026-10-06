@@ -94,19 +94,50 @@ _RUST_EXTS = (".rs",)
 # tried first so `.hpp`/`.h++` never fall through to the C grammar. A table
 # rather than an if-chain because the house limit is three returns per function
 # and adding Python made the fourth.
+#
+# A `substrate:<key>` entry is parsed by lang-parsing-substrate (clew/tsnode.py) rather
+# than by a py-tree-sitter grammar package: same Node API, the grammars knots, moldy and
+# aurora-lint share, and no per-language Python package pinned to py-tree-sitter's ABI.
+# C and C++ still use their packages until they move too.
 _TS_GRAMMARS: tuple[tuple[tuple[str, ...], str], ...] = (
     (_CPP_EXTS, "tree_sitter_cpp"),
     (_C_EXTS, "tree_sitter_c"),
-    (_PY_EXTS, "tree_sitter_python"),
-    (_RUST_EXTS, "tree_sitter_rust"),
+    (_PY_EXTS, "substrate:python"),
+    (_RUST_EXTS, "substrate:rust"),
 )
+
+_SUBSTRATE_PREFIX = "substrate:"
+
+
+## @brief A grammar served by the substrate, standing in for a grammar module.
+## @version 1
+## @dg_internal
+class _SubstrateGrammar:
+    """Only `__name__` is read off a grammar module outside this file (it keys the
+    parser cache and `propose/scanning.py`'s grammar filter), so that is all this
+    carries.
+
+    @brief Grammar handle for a substrate language key.
+    """
+
+    __slots__ = ("__name__", "key")
+
+    ## @brief Record the grammar name and its substrate key.
+    ## @param name A `substrate:<key>` grammar name.
+    ## @version 1
+    ## @dg_internal
+    def __init__(self, name: str) -> None:
+        self.__name__ = name
+        self.key = name[len(_SUBSTRATE_PREFIX) :]
 
 
 ## @brief Import a tree-sitter grammar module by name, or None if absent.
-## @return The imported grammar module, or None when it isn't installed.
-## @version 1
+## @return The imported grammar module (or substrate handle), or None when it isn't installed.
+## @version 2
 ## @dg_internal
 def _try_import_ts_module(modname: str):
+    if modname.startswith(_SUBSTRATE_PREFIX):
+        return _SubstrateGrammar(modname)
     try:
         return __import__(modname)
     except ImportError:
@@ -161,14 +192,25 @@ _FLUSH_EVERY = 500
 ## @param Parser tree_sitter Parser class.
 ## @param Language tree_sitter Language class.
 ## @return A Parser, or None when the grammar module is not installed.
-## @version 1
+## @version 2
 ## @dg_internal
 def _cached_parser(mod_name: str, parser_cache: dict, Parser, Language):
-    """@brief Build (once) and return the parser for a grammar module."""
+    """A substrate grammar ignores `Parser`/`Language`: its parser is clew/tsnode.py's,
+    which needs no py-tree-sitter at all.
+
+    @brief Build (once) and return the parser for a grammar module.
+    @return A parser, or None when the grammar is unavailable.
+    @version 2
+    """
     parser = parser_cache.get(mod_name)
     if parser is None:
         mod = _try_import_ts_module(mod_name)
-        parser = Parser(Language(mod.language())) if mod is not None else None
+        if isinstance(mod, _SubstrateGrammar):
+            from .tsnode import Parser as SubstrateParser
+
+            parser = SubstrateParser(mod.key)
+        else:
+            parser = Parser(Language(mod.language())) if mod is not None else None
         parser_cache[mod_name] = parser
     return parser
 

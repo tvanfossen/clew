@@ -48,8 +48,10 @@ library whose callers are all external would read as entirely orphaned.
 
 ## Both edge layers run, and tree-sitter is the larger one
 
-`tree-sitter-python` is a declared dependency and is registered alongside the C, C++ and Rust
-grammars, so Python is **not** a doxygen-only language. On this repository's own index:
+Python's tree-sitter layer parses through
+[lang-parsing-substrate](https://github.com/brandon-arrendondo/lang_parsing_substrate) (its
+Python grammar, via `clew/tsnode.py`), so Python is **not** a doxygen-only language. On this
+repository's own index:
 
 | layer | edges |
 |---|---|
@@ -58,9 +60,9 @@ grammars, so Python is **not** a doxygen-only language. On this repository's own
 | `binding` | 40 |
 | `fnptr` | 2 |
 
-`tree-sitter-python` is pinned explicitly rather than left transitive: the grammar importer
-swallows `ImportError`, so losing it takes the whole Python AST layer to zero rows **with no
-error**.
+`lang-parsing-substrate` is a declared, required dependency. Losing it would take the whole
+Python AST layer to zero rows, so the packaging tests check that every grammar the harvest
+routes to has a declared provider.
 
 ## Limitations
 

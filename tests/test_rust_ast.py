@@ -16,28 +16,15 @@ grammar.
 from __future__ import annotations
 
 
-import pytest
-
-from clew.harvest import _ts_language_for, try_import_tree_sitter
-
-try:
-    import tree_sitter_rust as _tsrust
-except ImportError:
-    _tsrust = None
-
-pytestmark = pytest.mark.skipif(
-    try_import_tree_sitter() is None or _tsrust is None,
-    reason="Rust AST tests need tree_sitter + tree-sitter-rust",
-)
+from clew.harvest import _ts_language_for
+from clew.tsnode import Parser
 
 
+## Rust parses through lang-parsing-substrate (clew/tsnode.py), the same parser the
+## harvest routes `.rs` to, so these tests exercise the shipped path.
 def _parse(src: str):
-    from tree_sitter import Language, Parser
-
-    lang = Language(_tsrust.language())
-    parser = Parser(lang)
     src_bytes = src.encode("utf-8")
-    return parser.parse(src_bytes), src_bytes
+    return Parser("rust").parse(src_bytes), src_bytes
 
 
 # ─── grammar routing ────────────────────────────────────────────────────────

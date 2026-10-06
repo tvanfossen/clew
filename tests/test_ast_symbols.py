@@ -706,10 +706,10 @@ def test_python_recovers_functions_and_still_no_module_variables(tmp_path: Path)
     ts = try_import_tree_sitter()
     assert ts is not None
     language_cls, parser_cls = ts
-    import tree_sitter_python
+    from clew.tsnode import Parser as SubstrateParser
 
     src = b"TOP_LEVEL = 3\n\n\ndef top():\n    return 1\n"
-    tree = parser_cls(language_cls(tree_sitter_python.language())).parse(src)
+    tree = SubstrateParser("python").parse(src)
 
     from clew.ast_symbols import (
         _PAYLOAD_FUNCTIONS,
@@ -1022,10 +1022,10 @@ def test_python_definitions_are_recovered_with_class_qualification() -> None:
     ts = try_import_tree_sitter()
     assert ts is not None
     language_cls, parser_cls = ts
-    import tree_sitter_python
+    from clew.tsnode import Parser as SubstrateParser
 
     src = _PY_SOURCE.encode()
-    tree = parser_cls(language_cls(tree_sitter_python.language())).parse(src)
+    tree = SubstrateParser("python").parse(src)
     found = {f.name: f for f in harvest_python_definitions(tree, src)}
 
     assert "top_level_plain" in found
@@ -1061,10 +1061,10 @@ def test_the_harvester_ITSELF_returns_python_functions_not_an_empty_payload() ->
     ts = try_import_tree_sitter()
     assert ts is not None
     language_cls, parser_cls = ts
-    import tree_sitter_python
+    from clew.tsnode import Parser as SubstrateParser
 
     src = _PY_SOURCE.encode()
-    tree = parser_cls(language_cls(tree_sitter_python.language())).parse(src)
+    tree = SubstrateParser("python").parse(src)
     payload = function_definition_harvester().harvest(tree, src)
 
     assert payload, "an empty payload means the Python branch is unwired"

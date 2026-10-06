@@ -42,13 +42,13 @@ LANGUAGE_SPECS: dict[str, LanguageSpec] = {
         comment_node_types=("comment",),
     ),
     "python": LanguageSpec(
-        grammar_module="tree_sitter_python",
+        grammar_module="substrate:python",
         function_node_types=("function_definition",),
         comment_node_types=("comment",),
         doc_style="python",
     ),
     "rust": LanguageSpec(
-        grammar_module="tree_sitter_rust",
+        grammar_module="substrate:rust",
         # `function_signature_item` (a trait method with no body) is a declaration, the
         # Rust analogue of a C prototype, and is skipped for the same reason.
         function_node_types=("function_item",),
@@ -95,14 +95,22 @@ def _load_language(grammar_module: str) -> Language:
 
 
 ## @brief Get a tree-sitter Parser for a named language.
-#  @version 1.1
+#  @details A `substrate:<key>` grammar is parsed by lang-parsing-substrate through
+#  clew/tsnode.py, whose nodes answer the same API; the rest load a py-tree-sitter
+#  grammar package. Mirrors the routing in clew/harvest.py, so the gate and the index
+#  read a file with the same grammar.
+#  @version 1.2
 #  @req REQ-DDB-GUARD-020
 #  @return Configured Parser instance, or None if language is unsupported
-def get_parser_for_language(lang_name: str) -> Parser | None:
+def get_parser_for_language(lang_name: str) -> Any:
     spec = LANGUAGE_SPECS.get(lang_name)
     if spec is None:
         logger.warning("No tree-sitter spec for language: %s", lang_name)
         return None
+    if spec.grammar_module.startswith("substrate:"):
+        from ..tsnode import Parser as SubstrateParser
+
+        return SubstrateParser(spec.grammar_module.removeprefix("substrate:"))
     language = _load_language(spec.grammar_module)
     return Parser(language)
 

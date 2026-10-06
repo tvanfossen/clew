@@ -6,6 +6,7 @@
 | front end | **rustdoc JSON** — `cargo +nightly rustdoc -- -Z unstable-options --output-format json` |
 | requires | `cargo` **and a nightly toolchain**. `rustup toolchain install nightly` |
 | doxygen | **not used, not required.** `clew init` reports `doxygen  not required` for a cargo repo |
+| tree-sitter layer | lang-parsing-substrate's Rust grammar (`clew/tsnode.py`), the one knots and moldy use |
 
 Doxygen has no Rust parser — a `.rs` file fed to it produces zero rows, silently. So
 `clew/rustdoc.py` synthesizes the same `path`/`refid`/`memberdef`/`compounddef`/`member`/
