@@ -3,7 +3,8 @@
 
 | | |
 |---|---|
-| front end | **doxygen** (sqlite3 output) **+ tree-sitter-cpp** |
+| front end | **doxygen** (sqlite3 output) **+ tree-sitter** |
+| tree-sitter layer | lang-parsing-substrate's C++ grammar (`clew/tsnode.py`), the one knots, moldy and aurora-lint use |
 | requires | `doxygen` built with sqlite3 support; `gcc` |
 
 Everything in [`C_INTEGRATION.md`](C_INTEGRATION.md) applies — scope keys, macro blindness,

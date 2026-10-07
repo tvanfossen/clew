@@ -146,7 +146,7 @@ def repo_source_files(repo_root: Path) -> tuple[Path, ...]:
 ## rather than C's `declarator` chain — so those files parse, contribute nothing,
 ## and would otherwise make an untouched Python codebase look like a MEASURED empty
 ## C repo. Named here so the detectors can say which of the two it is.
-_AST_GRAMMARS = frozenset({"tree_sitter_c", "tree_sitter_cpp"})
+_AST_GRAMMARS = frozenset({"substrate:c", "substrate:cpp"})
 
 
 ## @brief How many in-scope files a grammar the AST detectors understand handles.

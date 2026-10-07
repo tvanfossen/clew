@@ -42,21 +42,18 @@ pytestmark = pytest.mark.skipif(
 ## @return (tree, src_bytes).
 ## @version 1
 def _parse_c(src: bytes) -> tuple[Any, bytes]:
-    """REUSES `_cached_parser` rather than rebuilding the parser here, and that is not just
-    tidiness: `try_import_tree_sitter` returns `(Language, Parser)` — Language FIRST — and a
-    hand-rolled `Parser(Language(mod.language()))` with the tuple unpacked the other way round
-    fails with `argument 1 must be tree_sitter.Language, not PyCapsule`. One construction site
-    cannot get the order wrong in two places.
+    """REUSES `_cached_parser` rather than building a parser here, so the test parses with
+    exactly the grammar the harvest routes `.c` to.
 
     @brief Build a C parse tree for a source snippet.
     @return The tree and the bytes it was built from.
-    @version 2
+    @version 3
     """
     imported = try_import_tree_sitter()
     assert imported is not None
     language_cls, parser_cls = imported
-    parser = _cached_parser("tree_sitter_c", {}, parser_cls, language_cls)
-    assert parser is not None, "the C grammar must be importable"
+    parser = _cached_parser("substrate:c", {}, parser_cls, language_cls)
+    assert parser is not None, "the C grammar must be available"
     return parser.parse(src), src
 
 

@@ -248,25 +248,21 @@ _MACRO_PARSER: list[Any] = []
 
 
 ## @brief Memoised C parser used for macro replacement text.
-## @param ts_classes (Language, Parser) from tree_sitter.
-## @return A Parser, or None when the C grammar is not installed.
-## @version 2
+## @param ts_classes Unused; kept for the callers' (Language, Parser) plumbing.
+## @return The substrate's C parser.
+## @version 3
 ## @dg_internal
 def _macro_parser(ts_classes: tuple[Any, Any]) -> Any:
     """Always the C grammar: a replacement list is preprocessor text, and the
     C++ grammar buys nothing for the call shapes this module reads.
 
     @brief Build (once) the parser for macro bodies.
-    @version 2
+    @version 3
     """
     if not _MACRO_PARSER:
-        language_cls, parser_cls = ts_classes
-        try:
-            import tree_sitter_c
+        from ..tsnode import Parser
 
-            _MACRO_PARSER.append(parser_cls(language_cls(tree_sitter_c.language())))
-        except ImportError:
-            _MACRO_PARSER.append(None)
+        _MACRO_PARSER.append(Parser("c"))
     return _MACRO_PARSER[0]
 
 

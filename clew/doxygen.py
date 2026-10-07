@@ -1541,14 +1541,13 @@ def _repair_one_attribute_row(
 ## (paths repo-relative) and before the AST edge layers, so the corrected name
 ## + single row are in place before call/shared-key edges resolve. Returns
 ## rows repaired.
-## @version 3
+## @version 4
 ## @return Number of memberdef rows whose mis-recorded '__attribute__' name was repaired.
 ## @req REQ-DDB-INDEX-001
 def repair_attribute_named_functions(db_path: Path, repo_root: Path) -> int:
-    try:
-        from tree_sitter import Language, Parser
-    except ImportError:
-        return 0
+    from .harvest import try_import_tree_sitter
+
+    Language, Parser = try_import_tree_sitter()
     conn = sqlite3.connect(str(db_path))
     try:
         rows = conn.execute(

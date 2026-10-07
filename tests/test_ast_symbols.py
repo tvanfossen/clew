@@ -267,12 +267,9 @@ def test_a_guarded_body_is_parsed_even_though_doxygen_saw_nothing() -> None:
     """The premise of the whole issue: the parser does not care about the
     preprocessor. Asserted on the harvest alone, so a failure here separates "we
     cannot see these functions" from "we cannot store them"."""
-    ts = try_import_tree_sitter()
-    assert ts is not None
-    language_cls, parser_cls = ts
-    import tree_sitter_c
+    from clew.tsnode import Parser as SubstrateParser
 
-    tree = parser_cls(language_cls(tree_sitter_c.language())).parse(_GUARDED_C.encode())
+    tree = SubstrateParser("c").parse(_GUARDED_C.encode())
     found = {f.name: f for f in harvest_function_definitions(tree, _GUARDED_C.encode())}
 
     assert set(found) == {
@@ -293,13 +290,10 @@ def test_a_nested_definition_is_not_recorded_as_a_second_symbol() -> None:
     """A GNU nested function sits INSIDE its parent's span, so recording both would
     make the span-overlap dedup order-dependent — whichever was seen second would
     lose. The walk stops descending at a definition instead."""
-    ts = try_import_tree_sitter()
-    assert ts is not None
-    language_cls, parser_cls = ts
-    import tree_sitter_c
+    from clew.tsnode import Parser as SubstrateParser
 
     src = b"int outer(void) {\n  int inner(void) { return 1; }\n  return inner();\n}\n"
-    tree = parser_cls(language_cls(tree_sitter_c.language())).parse(src)
+    tree = SubstrateParser("c").parse(src)
 
     assert [f.name for f in harvest_function_definitions(tree, src)] == ["outer"]
 
@@ -315,10 +309,7 @@ def test_every_cpp_declarator_shape_that_has_a_name_is_recovered() -> None:
     `operator=` stays refused on purpose: its declarator is a `reference_declarator`
     with no `function_declarator` beneath it, so there is no name node to read, and
     inventing one would put a guess into every downstream resolution."""
-    ts = try_import_tree_sitter()
-    assert ts is not None
-    language_cls, parser_cls = ts
-    import tree_sitter_cpp
+    from clew.tsnode import Parser as SubstrateParser
 
     src = (
         b"namespace ns {\nclass W {\n public:\n"
@@ -331,7 +322,7 @@ def test_every_cpp_declarator_shape_that_has_a_name_is_recovered() -> None:
         b"static int free_fn(int a) { return a; }\n"
         b"template <typename T> T tmpl(T v) { return v; }\n}\n"
     )
-    tree = parser_cls(language_cls(tree_sitter_cpp.language())).parse(src)
+    tree = SubstrateParser("cpp").parse(src)
     found = {f.name: f for f in harvest_function_definitions(tree, src)}
 
     assert set(found) == {
@@ -366,17 +357,14 @@ def test_a_defaulted_or_deleted_special_member_is_not_recovered() -> None:
     Pinned on the grammar's own discriminator — a real definition has a `body`
     field, a defaulted one does not — rather than on the clause node's name.
     """
-    ts = try_import_tree_sitter()
-    assert ts is not None
-    language_cls, parser_cls = ts
-    import tree_sitter_cpp
+    from clew.tsnode import Parser as SubstrateParser
 
     src = (
         b"class W {\n public:\n  W() = default;\n  W(W&&) = default;\n"
         b"  W(const W&) = delete;\n  int real() { return 1; }\n};\n"
         b"W::~W() = default;\n"
     )
-    tree = parser_cls(language_cls(tree_sitter_cpp.language())).parse(src)
+    tree = SubstrateParser("cpp").parse(src)
 
     assert [f.name for f in harvest_function_definitions(tree, src)] == ["real"]
 
@@ -703,9 +691,6 @@ def test_python_recovers_functions_and_still_no_module_variables(tmp_path: Path)
     no-op on C. On the self-index, doxygen rows moved 4,493 -> 4,497 and the four were
     verified to be exactly this change's own new code, not disturbed rows.
     """
-    ts = try_import_tree_sitter()
-    assert ts is not None
-    language_cls, parser_cls = ts
     from clew.tsnode import Parser as SubstrateParser
 
     src = b"TOP_LEVEL = 3\n\n\ndef top():\n    return 1\n"
@@ -1019,9 +1004,6 @@ def test_python_definitions_are_recovered_with_class_qualification() -> None:
     appear, because a nested def sits inside its parent's span and recording both makes the
     span-overlap dedup order-dependent.
     """
-    ts = try_import_tree_sitter()
-    assert ts is not None
-    language_cls, parser_cls = ts
     from clew.tsnode import Parser as SubstrateParser
 
     src = _PY_SOURCE.encode()
@@ -1058,9 +1040,6 @@ def test_the_harvester_ITSELF_returns_python_functions_not_an_empty_payload() ->
     @brief The harvester's own payload carries Python functions.
     @version 1
     """
-    ts = try_import_tree_sitter()
-    assert ts is not None
-    language_cls, parser_cls = ts
     from clew.tsnode import Parser as SubstrateParser
 
     src = _PY_SOURCE.encode()
@@ -1096,10 +1075,7 @@ def test_a_guarded_typedef_is_recovered_as_a_typedef_row() -> None:
     `typedef struct foo_s foo_t;` has a struct TAG and a typedef NAME that differ, and it is
     the declarator a caller types.
     """
-    ts = try_import_tree_sitter()
-    assert ts is not None
-    language_cls, parser_cls = ts
-    import tree_sitter_c
+    from clew.tsnode import Parser as SubstrateParser
 
     src = (
         b"#if defined(DEMO_GUARD)\n"
@@ -1108,7 +1084,7 @@ def test_a_guarded_typedef_is_recovered_as_a_typedef_row() -> None:
         b"typedef struct tag_differs_s tag_differs_t;\n"
         b"int demo_fn(void) {\n  typedef int local_alias;\n  return 0;\n}\n"
     )
-    tree = parser_cls(language_cls(tree_sitter_c.language())).parse(src)
+    tree = SubstrateParser("c").parse(src)
     found = {t.name for t in harvest_type_definitions(tree, src)}
 
     ## Behind an unsatisfied guard, which is the whole point.
@@ -1130,13 +1106,10 @@ def test_the_harvester_payload_carries_typedefs_separately_from_variables() -> N
     with different `memberdef.kind` values and a shared list would have to carry the kind per
     row — the shape that lets one loop write the wrong one.
     """
-    ts = try_import_tree_sitter()
-    assert ts is not None
-    language_cls, parser_cls = ts
-    import tree_sitter_c
+    from clew.tsnode import Parser as SubstrateParser
 
     src = b"typedef struct only_a_type_t { int x; } only_a_type_t;\nint only_a_var;\n"
-    tree = parser_cls(language_cls(tree_sitter_c.language())).parse(src)
+    tree = SubstrateParser("c").parse(src)
     payload = function_definition_harvester().harvest(tree, src)
 
     assert [row[0] for row in payload["typedefs"]] == ["only_a_type_t"]
@@ -1243,13 +1216,8 @@ def test_reference_returning_definitions_are_recovered() -> None:
     @return None.
     @version 1
     """
-    import tree_sitter_cpp
 
-    from clew.harvest import try_import_tree_sitter
-
-    ts = try_import_tree_sitter()
-    assert ts is not None, "precondition: tree-sitter must be importable"
-    language_cls, parser_cls = ts
+    from clew.tsnode import Parser as SubstrateParser
 
     src = (
         b"#include <array>\n"
@@ -1261,7 +1229,7 @@ def test_reference_returning_definitions_are_recovered() -> None:
         b"Row* ptr_return() { return &g_row; }\n"
         b"int value_return() { return 1; }\n"
     )
-    tree = parser_cls(language_cls(tree_sitter_cpp.language())).parse(src)
+    tree = SubstrateParser("cpp").parse(src)
     found = {f.name for f in harvest_function_definitions(tree, src)}
 
     assert "const_ref_return" in found, (

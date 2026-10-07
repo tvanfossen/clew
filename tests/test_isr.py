@@ -43,10 +43,9 @@ NAME, ENTRY, KIND, QUALIFIED, SEP, LINE, ENCLOSING, SOURCE = range(8)
 ## @version 1
 def _sites(src: bytes) -> list[list]:
     """@brief Walk one C blob with the shipped pattern set."""
-    import tree_sitter_c
-    from tree_sitter import Language, Parser
+    from clew.tsnode import Parser
 
-    parser = Parser(Language(tree_sitter_c.language()))
+    parser = Parser("c")
     return _walk_spawn_sites(parser.parse(src), src, patterns_by_name(load_thread_patterns(None)))
 
 
@@ -269,8 +268,7 @@ def test_a_registration_inside_a_macro_body_is_counted_not_ignored() -> None:
     @brief Registrations hidden in macro bodies are counted.
     @version 1
     """
-    import tree_sitter_c
-    from tree_sitter import Language, Parser
+    from clew.tsnode import Parser
 
     from clew.isr import count_macro_body_registrations
 
@@ -287,7 +285,7 @@ void visible_setup(void)
     IRQ_CONNECT(3, 1, other_isr, NULL, 0);
 }
 """
-    parser = Parser(Language(tree_sitter_c.language()))
+    parser = Parser("c")
     tree = parser.parse(src)
     spellings = frozenset(load_thread_patterns(None) and {p.name for p in DEFAULT_SPAWN_PATTERNS})
 

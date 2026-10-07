@@ -8,10 +8,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from functools import lru_cache
 from typing import Any
-
-from tree_sitter import Language, Parser
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +29,12 @@ class LanguageSpec:
 
 LANGUAGE_SPECS: dict[str, LanguageSpec] = {
     "c": LanguageSpec(
-        grammar_module="tree_sitter_c",
+        grammar_module="substrate:c",
         function_node_types=("function_definition",),
         comment_node_types=("comment",),
     ),
     "cpp": LanguageSpec(
-        grammar_module="tree_sitter_cpp",
+        grammar_module="substrate:cpp",
         function_node_types=("function_definition",),
         comment_node_types=("comment",),
     ),
@@ -118,23 +115,11 @@ def _substrate_extension_table() -> dict[str, str]:
 EXTENSION_TO_LANGUAGE: dict[str, str] = _substrate_extension_table()
 
 
-## @brief Load a tree-sitter Language object by importing the grammar module.
-#  @version 1.0
-#  @dg_internal
-@lru_cache(maxsize=8)
-def _load_language(grammar_module: str) -> Language:
-    import importlib
-
-    mod = importlib.import_module(grammar_module)
-    return Language(mod.language())
-
-
 ## @brief Get a tree-sitter Parser for a named language.
-#  @details A `substrate:<key>` grammar is parsed by lang-parsing-substrate through
-#  clew/tsnode.py, whose nodes answer the same API; the rest load a py-tree-sitter
-#  grammar package. Mirrors the routing in clew/harvest.py, so the gate and the index
-#  read a file with the same grammar.
-#  @version 1.2
+#  @details Every grammar is parsed by lang-parsing-substrate through clew/tsnode.py,
+#  whose nodes answer py-tree-sitter's API. Mirrors the routing in clew/harvest.py, so
+#  the gate and the index read a file with the same grammar.
+#  @version 1.3
 #  @req REQ-DDB-GUARD-020
 #  @return Configured Parser instance, or None if language is unsupported
 def get_parser_for_language(lang_name: str) -> Any:
@@ -142,12 +127,9 @@ def get_parser_for_language(lang_name: str) -> Any:
     if spec is None:
         logger.warning("No tree-sitter spec for language: %s", lang_name)
         return None
-    if spec.grammar_module.startswith("substrate:"):
-        from ..tsnode import Parser as SubstrateParser
+    from ..tsnode import Parser as SubstrateParser
 
-        return SubstrateParser(spec.grammar_module.removeprefix("substrate:"))
-    language = _load_language(spec.grammar_module)
-    return Parser(language)
+    return SubstrateParser(spec.grammar_module.removeprefix("substrate:"))
 
 
 ## @brief Get the LanguageSpec for a named language.

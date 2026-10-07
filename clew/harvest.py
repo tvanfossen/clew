@@ -104,10 +104,10 @@ _TSX_EXTS = (".tsx",)
 # A `substrate:<key>` entry is parsed by lang-parsing-substrate (clew/tsnode.py) rather
 # than by a py-tree-sitter grammar package: same Node API, the grammars knots, moldy and
 # aurora-lint share, and no per-language Python package pinned to py-tree-sitter's ABI.
-# C and C++ still use their packages until they move too.
+# Every grammar is a substrate one now, so py-tree-sitter is not a dependency at all.
 _TS_GRAMMARS: tuple[tuple[tuple[str, ...], str], ...] = (
-    (_CPP_EXTS, "tree_sitter_cpp"),
-    (_C_EXTS, "tree_sitter_c"),
+    (_CPP_EXTS, "substrate:cpp"),
+    (_C_EXTS, "substrate:c"),
     (_PY_EXTS, "substrate:python"),
     (_RUST_EXTS, "substrate:rust"),
     (_JS_EXTS, "substrate:javascript"),
@@ -140,17 +140,14 @@ class _SubstrateGrammar:
         self.key = name[len(_SUBSTRATE_PREFIX) :]
 
 
-## @brief Import a tree-sitter grammar module by name, or None if absent.
-## @return The imported grammar module (or substrate handle), or None when it isn't installed.
-## @version 2
+## @brief The grammar handle for a `substrate:<key>` name, or None for any other name.
+## @return The substrate grammar handle, or None.
+## @version 3
 ## @dg_internal
 def _try_import_ts_module(modname: str):
     if modname.startswith(_SUBSTRATE_PREFIX):
         return _SubstrateGrammar(modname)
-    try:
-        return __import__(modname)
-    except ImportError:
-        return None
+    return None
 
 
 ## @brief Select the C, C++, Python or Rust tree-sitter language by extension.
@@ -195,31 +192,29 @@ _AMBIGUOUS_EXTS = (".h",)
 _FLUSH_EVERY = 500
 
 
-## @brief Memoized tree-sitter parser for one grammar module name.
-## @param mod_name Grammar module to load ("tree_sitter_c" / "tree_sitter_cpp").
+## @brief Memoized substrate parser for one grammar name.
+## @param mod_name Grammar name to load ("substrate:c", "substrate:cpp", ...).
 ## @param parser_cache Mutated in place to memoize parsers per grammar.
-## @param Parser tree_sitter Parser class.
-## @param Language tree_sitter Language class.
-## @return A Parser, or None when the grammar module is not installed.
-## @version 2
+## @param Parser Unused; kept for the callers' (Language, Parser) plumbing.
+## @param Language Unused; kept for the callers' (Language, Parser) plumbing.
+## @return A Parser, or None for a name that is not a substrate grammar.
+## @version 3
 ## @dg_internal
 def _cached_parser(mod_name: str, parser_cache: dict, Parser, Language):
-    """A substrate grammar ignores `Parser`/`Language`: its parser is clew/tsnode.py's,
-    which needs no py-tree-sitter at all.
+    """Every grammar is parsed by clew/tsnode.py's substrate parser, which needs no
+    py-tree-sitter at all, so `Parser`/`Language` are ignored.
 
-    @brief Build (once) and return the parser for a grammar module.
-    @return A parser, or None when the grammar is unavailable.
-    @version 2
+    @brief Build (once) and return the parser for a grammar name.
+    @return A parser, or None when the grammar is unknown.
+    @version 3
     """
     parser = parser_cache.get(mod_name)
     if parser is None:
         mod = _try_import_ts_module(mod_name)
-        if isinstance(mod, _SubstrateGrammar):
+        if mod is not None:
             from .tsnode import Parser as SubstrateParser
 
             parser = SubstrateParser(mod.key)
-        else:
-            parser = Parser(Language(mod.language())) if mod is not None else None
         parser_cache[mod_name] = parser
     return parser
 
@@ -264,10 +259,10 @@ def _parse_error_count(root) -> int:
 ## @param c_tree The tree produced by the C grammar.
 ## @param src_bytes Raw file bytes.
 ## @param parser_cache Parser memo.
-## @param Parser tree_sitter Parser class.
-## @param Language tree_sitter Language class.
+## @param Parser Passed through to _cached_parser.
+## @param Language Passed through to _cached_parser.
 ## @return Whichever tree has fewer parse errors.
-## @version 1
+## @version 2
 ## @dg_internal
 def _disambiguate_header(c_tree, src_bytes: bytes, parser_cache: dict, Parser, Language):
     """Only reached for a `.h` whose C parse ALREADY errored, so a genuine C
@@ -275,7 +270,7 @@ def _disambiguate_header(c_tree, src_bytes: bytes, parser_cache: dict, Parser, L
     zero) keeps the right grammar for a C++ header that also trips on macros.
     Ties keep C, so nothing changes unless C++ is strictly better.
     """
-    cpp = _cached_parser("tree_sitter_cpp", parser_cache, Parser, Language)
+    cpp = _cached_parser("substrate:cpp", parser_cache, Parser, Language)
     if cpp is None:
         return c_tree
     cpp_tree = cpp.parse(src_bytes)
@@ -324,24 +319,22 @@ def _ast_parse_one_file(
     return tree, src_bytes
 
 
-## @brief Try importing tree_sitter's Language/Parser classes.
-## @return (Language, Parser), or None if tree_sitter isn't installed.
-## @version 2
+## @brief The (Language, Parser) pair the harvest stages thread through to the parser cache.
+## @return A pair that is never None: parsing is the substrate's, a hard dependency.
+## @version 3
 ## @req REQ-DDB-PIPE-003
 def try_import_tree_sitter() -> tuple[Any, Any] | None:
-    """Return (Language, Parser), or None if tree_sitter isn't importable.
+    """This used to import py-tree-sitter, and returned None without it so each stage
+    could skip. Every grammar now parses through lang-parsing-substrate (clew/tsnode.py),
+    which is a hard dependency, so there is nothing optional left to import. The pair
+    is the substrate parser class in both slots; `_cached_parser` ignores it.
 
-    @brief Optional tree_sitter import.
-    @version 2
+    @brief Parser classes for the harvest stages.
+    @version 3
     """
-    try:
-        from tree_sitter import (  # type: ignore[import-not-found]
-            Language,
-            Parser,
-        )
-    except ImportError:
-        return None
-    return Language, Parser
+    from .tsnode import Parser
+
+    return Parser, Parser
 
 
 ## @brief Nearest enclosing node of one of the given types.

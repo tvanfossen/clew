@@ -65,12 +65,9 @@ OPERAND, END_LINE, CONFIDENCE, CALLS = 1, 4, 9, 10
 ## @version 1
 def _sites(src: bytes, cpp: bool = True) -> list[list]:
     """@brief Walk one source blob for lock sites + their critical sections."""
-    import tree_sitter_c
-    import tree_sitter_cpp
-    from tree_sitter import Language, Parser
+    from clew.tsnode import Parser
 
-    mod = tree_sitter_cpp if cpp else tree_sitter_c
-    parser = Parser(Language(mod.language()))
+    parser = Parser("cpp" if cpp else "c")
     patterns = {p.name: p for p in DEFAULT_LOCK_PATTERNS}
     return _walk_lock_sites(parser.parse(src), src, patterns)
 
@@ -282,10 +279,9 @@ void maybe(int x) {
 ## @version 1
 def _rootless_node():
     """@brief A node with no `compound_statement` ancestor, for degenerate input."""
-    import tree_sitter_c
-    from tree_sitter import Language, Parser
+    from clew.tsnode import Parser
 
-    parser = Parser(Language(tree_sitter_c.language()))
+    parser = Parser("c")
     return parser.parse(b"int x;").root_node
 
 
@@ -711,10 +707,9 @@ def test_enclosing_walks_parents_so_a_block_is_not_its_own_ancestor() -> None:
     """The shadowing chain relies on it: `enclosing(block, BLOCK_TYPES)` must
     give the block OUTSIDE, or the walk from a node to the acquisition's block
     would never terminate and a release would shadow itself."""
-    import tree_sitter_c
-    from tree_sitter import Language, Parser
+    from clew.tsnode import Parser
 
-    parser = Parser(Language(tree_sitter_c.language()))
+    parser = Parser("c")
     tree = parser.parse(b"void f(void){ { g(); } }")
     calls = []
     stack = [tree.root_node]
@@ -780,10 +775,9 @@ def test_an_operandless_primitive_is_scoped_global_not_unknown() -> None:
     """
     from clew.locks import LockPattern, _walk_lock_sites
 
-    import tree_sitter_c
-    from tree_sitter import Language, Parser
+    from clew.tsnode import Parser
 
-    parser = Parser(Language(tree_sitter_c.language()))
+    parser = Parser("c")
     patterns = {
         "irq_disable": LockPattern(
             "irq_disable", form="call", kind="mutex", role="acquire", releases="irq_restore"
@@ -852,10 +846,9 @@ def test_an_operandless_hold_is_paired_by_name_not_by_operand() -> None:
     """
     from clew.locks import LockPattern, _walk_lock_sites
 
-    import tree_sitter_c
-    from tree_sitter import Language, Parser
+    from clew.tsnode import Parser
 
-    parser = Parser(Language(tree_sitter_c.language()))
+    parser = Parser("c")
     patterns = {
         "irq_disable": LockPattern(
             "irq_disable", form="call", kind="mutex", role="acquire", releases="irq_restore"

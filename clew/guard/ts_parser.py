@@ -17,7 +17,7 @@ from .ts_languages import (
 )
 
 if TYPE_CHECKING:
-    from tree_sitter import Node
+    from lang_parsing_substrate import Node
 
     from .ts_languages import LanguageSpec
 
