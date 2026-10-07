@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from tree_sitter import Parser
-
 from clew.guard.ts_languages import (
     LANGUAGE_SPECS,
     get_language_spec,
@@ -11,6 +9,9 @@ from clew.guard.ts_languages import (
     language_for_extension,
     language_for_file,
 )
+
+# Every language parses through lang-parsing-substrate (clew/tsnode.py), as the harvest does.
+from clew.tsnode import Parser
 
 
 class TestGetParserForLanguage:
@@ -29,11 +30,8 @@ class TestGetParserForLanguage:
         assert tree.root_node.child_count > 0
 
     def test_python_parser_produces_tree(self):
-        # Python parses through lang-parsing-substrate (clew/tsnode.py), as the harvest does.
-        from clew.tsnode import Parser as SubstrateParser
-
         parser = get_parser_for_language("python")
-        assert isinstance(parser, SubstrateParser)
+        assert isinstance(parser, Parser)
         tree = parser.parse(b"def hello():\n    pass\n")
         assert tree.root_node.type == "module"
 

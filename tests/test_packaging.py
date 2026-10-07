@@ -44,10 +44,6 @@ PACKAGE = REPO_ROOT / "clew"
 _DIST_TO_MODULE = {
     "pyyaml": "yaml",
     "doxygen-guard": "doxygen_guard",
-    "tree-sitter": "tree_sitter",
-    "tree-sitter-c": "tree_sitter_c",
-    "tree-sitter-cpp": "tree_sitter_cpp",
-    "tree-sitter-python": "tree_sitter_python",
 }
 
 ## Imported by the package but deliberately NOT a dependency, each with the reason.
@@ -160,10 +156,11 @@ def test_dynamically_loaded_grammars_are_declared() -> None:
 
     `tree-sitter-python` was installed, load-bearing and undeclared, and no
     import-syntax scan could ever have caught it: `harvest._TS_GRAMMARS` names the
-    grammars as STRINGS and `_try_import_ts_module` loads them via `__import__`.
-    Worse, that loader swallows `ImportError` and returns None, so an undeclared
-    grammar does not crash — the whole AST layer for that language silently drops
-    to zero rows.
+    grammars as STRINGS and `_try_import_ts_module` loaded them via `__import__`.
+    Worse, that loader swallowed `ImportError` and returned None, so an undeclared
+    grammar did not crash — the whole AST layer for that language silently dropped
+    to zero rows. Every grammar is now a `substrate:<key>`, all provided by
+    lang-parsing-substrate, and this keeps that one provider declared.
 
     Reading the registry the shipped code actually uses means this test follows a
     new language automatically: add a grammar there and forget the dependency, and
@@ -176,7 +173,7 @@ def test_dynamically_loaded_grammars_are_declared() -> None:
     undeclared = named - _declared_modules()
     assert undeclared == set(), (
         f"grammar module(s) loaded dynamically but not declared: {sorted(undeclared)} — "
-        f"_try_import_ts_module swallows ImportError, so this fails SILENTLY at runtime"
+        f"an unprovided grammar leaves its AST layer SILENTLY empty at runtime"
     )
 
 
@@ -188,8 +185,8 @@ def test_the_declared_dependencies_are_all_actually_used() -> None:
     silence a gate is worse than the gap, because every entry is weight a consumer
     installs and a resolver has to satisfy.
 
-    The grammar registry counts as use: those three are real dependencies that
-    simply never appear in an `import` statement."""
+    The grammar registry counts as use: its provider is a real dependency that
+    need not appear in an `import` statement."""
     from clew.harvest import _TS_GRAMMARS
 
     used = _imported_top_level() | {_grammar_provider(m) for _exts, m in _TS_GRAMMARS}

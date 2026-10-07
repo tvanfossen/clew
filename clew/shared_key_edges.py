@@ -106,7 +106,7 @@ from .call_edges import (
     _build_function_indexes,
 )
 from .declaration import SECTION_SHARED_KEY
-from .harvest import Harvester, run_harvest, try_import_tree_sitter
+from .harvest import Harvester, run_harvest
 from .indexcache import IndexCache
 from .pyast import (
     SELF_NAMES,
@@ -1421,7 +1421,6 @@ def _walk_all_files_for_shared_keys(
     conn: sqlite3.Connection,
     repo_root: Path,
     harvester: Harvester,
-    ts_classes: tuple[Any, Any],
     cache: IndexCache | None = None,
 ) -> _SharedKeyCollector:
     """Drive the content-sha-cached per-file harvest, then fold each file's
@@ -1437,7 +1436,7 @@ def _walk_all_files_for_shared_keys(
     """
     _, file_funcs = _build_function_indexes(conn)
     collector = _SharedKeyCollector()
-    for path_rowid, payload in run_harvest(conn, repo_root, harvester, ts_classes, cache):
+    for path_rowid, payload in run_harvest(conn, repo_root, harvester, cache):
         funcs_in_file = file_funcs.get(path_rowid, [])
         if funcs_in_file:
             _fold_shared_key_payload(payload, funcs_in_file, collector)
@@ -1706,9 +1705,8 @@ def import_shared_key_edges_inferred(
     matching call sites against caller-supplied writer/reader accessor
     patterns AND every switch/case dispatch site (unconditional once this
     pass runs at all — see the module docstring), and emit shared_key_edges
-    rows for every (writer, reader) pair sharing a literal key. No-ops
-    cleanly when no patterns config is given, or when tree_sitter isn't
-    installed.
+    rows for every (writer, reader) pair sharing a literal key. With no
+    patterns config given it falls back to the built-in accessor defaults.
 
     `extra` is a SECOND declared patterns document merged over the first — the
     `dispatch` manifest's `shared_key_wrappers` section, which IS the
@@ -1730,16 +1728,9 @@ def import_shared_key_edges_inferred(
     twice and would let the warmed cache key drift from the read one.
 
     @brief Import inferred shared-key edges from an AST pattern + case match.
-    @version 11
+    @version 12
     @req REQ-DDB-SCHEMA-005
     """
-    ts_classes = try_import_tree_sitter()
-    if ts_classes is None:
-        logger.info(
-            "tree_sitter not available — skipping inferred shared-key pass",
-        )
-        return
-
     # No --shared-key-patterns given ⇒ fall back to the built-in ingot accessor
     # defaults (they fire only where such accessors exist), rather than skipping
     # the pass entirely and leaving the causal dataflow layer empty.
@@ -1758,7 +1749,6 @@ def import_shared_key_edges_inferred(
         conn,
         repo_root,
         harvester,
-        ts_classes,
         cache,
     )
 
@@ -2333,7 +2323,6 @@ def _harvest_subscribe_sites(
     conn: sqlite3.Connection,
     repo_root: Path,
     harvester: Harvester,
-    ts_classes: tuple[Any, Any],
     cache: IndexCache | None = None,
 ) -> list[_SubscribeSite]:
     """@brief Per-file AST walk collecting topic-subscription sites.
@@ -2345,7 +2334,7 @@ def _harvest_subscribe_sites(
     """
     _, file_funcs = _build_function_indexes(conn)
     sites: list[_SubscribeSite] = []
-    for path_rowid, payload in run_harvest(conn, repo_root, harvester, ts_classes, cache):
+    for path_rowid, payload in run_harvest(conn, repo_root, harvester, cache):
         funcs_in_file = file_funcs.get(path_rowid, [])
         if not funcs_in_file:
             continue
@@ -2398,7 +2387,7 @@ def _build_keyed_edges(
 ## @param mqtt_dispatch_path Path to the --mqtt-dispatch YAML manifest, or None.
 ## @param cache Optional incremental index cache; None disables caching.
 ## @param harvester Pre-built harvester from the shared parse pass; built here when omitted.
-## @version 5
+## @version 6
 ## @req REQ-DDB-SCHEMA-004
 def import_mqtt_dispatch_edges(
     db_path: Path,
@@ -2410,22 +2399,17 @@ def import_mqtt_dispatch_edges(
     """Harvest topic-subscription registrations declared in an optional
     `--mqtt-dispatch` manifest and record them as keyed `shared_key_edges`
     (dispatch_mode='keyed', declared=1). No-ops cleanly when no manifest is
-    given or tree_sitter is absent. AST inference of the runtime map-lookup
+    given. AST inference of the runtime map-lookup
     dispatch itself remains a documented follow-on (see R1-SPEC §2e).
 
     @brief Import keyed topic→handler dispatch edges from --mqtt-dispatch.
-    @version 4
+    @version 5
     """
     if mqtt_dispatch_path is None:
         logger.info(
             "shared_key_edges: no --mqtt-dispatch given — skipping keyed pass",
         )
         return
-    ts_classes = try_import_tree_sitter()
-    if ts_classes is None:
-        logger.info("tree_sitter not available — skipping keyed MQTT pass")
-        return
-
     conn = sqlite3.connect(str(db_path))
     _ensure_shared_key_edges_table(conn)
     name_to_rowids = _definition_preferring_name_index(conn)
@@ -2435,7 +2419,6 @@ def import_mqtt_dispatch_edges(
         # Never None here: `subscribe_harvester` returns None only for the
         # undeclared manifest this function already returned on, above.
         harvester or subscribe_harvester(mqtt_dispatch_path),  # type: ignore[arg-type]
-        ts_classes,
         cache,
     )
     edges, unresolved = _build_keyed_edges(sites, name_to_rowids)

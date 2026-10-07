@@ -196,7 +196,7 @@ def build_harvest_plan(
 ## @param cache Live index cache; None disables the pass.
 ## @param jobs Worker processes for the parse; 1 keeps the serial path.
 ## @return The shared pass's tally.
-## @version 2
+## @version 3
 ## @req REQ-DDB-PIPE-003
 def warm_harvest_plan(
     db_path: Path,
@@ -210,15 +210,11 @@ def warm_harvest_plan(
     it writes goes to the sidecar cache, never to the index.
 
     @brief Drive the shared parse pass over one build's plan.
-    @version 2
+    @version 3
     """
-    from .harvest import try_import_tree_sitter
 
-    ts_classes = try_import_tree_sitter()
-    if ts_classes is None:
-        return HarvestTally()
     conn = sqlite3.connect(str(db_path))
     try:
-        return run_shared_parse(conn, repo_root, plan.active(), ts_classes, cache, jobs)
+        return run_shared_parse(conn, repo_root, plan.active(), cache, jobs)
     finally:
         conn.close()

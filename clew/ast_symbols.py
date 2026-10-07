@@ -204,7 +204,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .harvest import Harvester, run_harvest, try_import_tree_sitter
+from .harvest import Harvester, run_harvest
 from .indexcache import IndexCache
 from .pyast import class_ranges, enclosing_class, is_python_tree, node_text
 
@@ -1976,7 +1976,7 @@ def _insert_recovered(conn: sqlite3.Connection, file_rowid: int, fn: ParsedFunct
 ## @param repo_root Repository root the indexed paths are relative to.
 ## @param cache Optional incremental index cache; None disables caching.
 ## @return Number of memberdef rows inserted.
-## @version 1
+## @version 2
 ## @req REQ-DDB-INDEX-004
 def recover_ast_symbols(
     db_path: Path,
@@ -1997,14 +1997,11 @@ def recover_ast_symbols(
 
     @brief Insert ast-sourced memberdef rows for parser-visible definitions.
     @return Rows inserted.
-    @version 1
+    @version 2
     """
-    ts_classes = try_import_tree_sitter()
-    if ts_classes is None:
-        return 0
     conn = sqlite3.connect(str(db_path))
     try:
-        inserted = _recover_into(conn, repo_root, ts_classes, cache)
+        inserted = _recover_into(conn, repo_root, cache)
         conn.commit()
     finally:
         conn.close()
@@ -2241,7 +2238,6 @@ def _insert_recovered_class_field(
 ## @brief Run the harvest and insert every recoverable definition.
 ## @param conn Open connection to the database being built.
 ## @param repo_root Repository root the indexed paths are relative to.
-## @param ts_classes (Language, Parser) from tree_sitter.
 ## @param cache Optional incremental index cache.
 ## @return Number of memberdef rows inserted.
 ## @version 6
@@ -2249,7 +2245,6 @@ def _insert_recovered_class_field(
 def _recover_into(
     conn: sqlite3.Connection,
     repo_root: Path,
-    ts_classes: tuple[Any, Any],
     cache: IndexCache | None,
 ) -> int:
     """Split from `recover_ast_symbols` so the connection's lifetime is owned in one
@@ -2272,7 +2267,7 @@ def _recover_into(
         return 0
     ensure_symbol_provenance(conn)
     covered = _covered_body_spans(conn)
-    harvested = run_harvest(conn, repo_root, function_definition_harvester(), ts_classes, cache)
+    harvested = run_harvest(conn, repo_root, function_definition_harvester(), cache)
     functions = 0
     for file_rowid, payload in harvested:
         for fn in _recoverable(payload.get(_PAYLOAD_FUNCTIONS, []), covered.get(file_rowid, [])):

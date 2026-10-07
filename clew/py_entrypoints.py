@@ -51,7 +51,7 @@ from pathlib import Path
 from typing import Any
 
 from ._common import logger
-from .harvest import Harvester, run_harvest, try_import_tree_sitter
+from .harvest import Harvester, run_harvest
 from .indexcache import IndexCache
 from .pyast import dotted_name, is_python_tree, node_text, tail_name
 from .threads import SCOPE_SEP_PY, _resolve_qualified_entry
@@ -370,7 +370,7 @@ def _resolve_unique(conn: sqlite3.Connection, name: str) -> int | None:
 ## @param repo_root Repository root (for pyproject.toml and indexed paths).
 ## @param cache Optional incremental index cache; None disables caching.
 ## @return Memberdef rowids to seed the reachability BFS with.
-## @version 3
+## @version 4
 ## @req REQ-DDB-PIPE-004
 def python_entry_seeds(
     db_path: Path,
@@ -384,15 +384,12 @@ def python_entry_seeds(
 
     @brief Compute Python entry-point seed rowids.
     @return Seed rowids (empty for a non-Python codebase).
-    @version 3
+    @version 4
     """
     conn = sqlite3.connect(str(db_path))
     scripts = _resolve_console_scripts(conn, console_script_targets(repo_root))
-    guards: set[int] = set()
-    ts_classes = try_import_tree_sitter()
-    if ts_classes is not None:
-        harvested = run_harvest(conn, repo_root, main_guard_harvester(), ts_classes, cache)
-        guards = _resolve_guard_names(conn, harvested)
+    harvested = run_harvest(conn, repo_root, main_guard_harvester(), cache)
+    guards = _resolve_guard_names(conn, harvested)
     conn.close()
     seeds = scripts | guards
     if seeds:

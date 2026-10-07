@@ -48,7 +48,7 @@ from pathlib import Path
 from typing import Any
 
 from ._common import logger
-from .harvest import Harvester, run_harvest, try_import_tree_sitter
+from .harvest import Harvester, run_harvest
 from .indexcache import IndexCache
 from .vocabulary import STAGE_MACRO_REFS
 
@@ -216,7 +216,7 @@ def _identifiers_in(body: Any, src_bytes: bytes) -> list[tuple[str, int]]:
 # @param repo_root Repository the index describes.
 # @param cache Index cache, or None.
 # @return Number of xrefs rows inserted.
-# @version 1
+# @version 2
 # @req REQ-DDB-PIPE-003
 def import_ast_macro_refs(db: Path, repo_root: Path, cache: IndexCache | None = None) -> int:
     """FILTERED AGAINST REAL MACRO ROWS, so an identifier that merely shares a name with nothing
@@ -234,16 +234,11 @@ def import_ast_macro_refs(db: Path, repo_root: Path, cache: IndexCache | None = 
 
     @brief Recover and insert AST-sourced macro references.
     @return Rows inserted.
-    @version 1
+    @version 2
     """
-    ts = try_import_tree_sitter()
-    if ts is None:
-        logger.info("macro_refs: tree-sitter unavailable — skipping (doxygen xrefs only)")
-        return 0
-
     conn = sqlite3.connect(str(db))
     try:
-        payloads = run_harvest(conn, repo_root, MacroRefHarvester(), ts, cache)
+        payloads = run_harvest(conn, repo_root, MacroRefHarvester(), cache)
         macros = {
             name: rowid
             for rowid, name in conn.execute(

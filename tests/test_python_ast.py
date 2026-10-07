@@ -27,7 +27,6 @@ from clew.call_edges import _ast_harvest_calls, import_ast_call_edges
 from clew.harvest import (
     _ast_parse_one_file,
     _ts_language_for,
-    try_import_tree_sitter,
 )
 from clew.py_entrypoints import (
     console_script_targets,
@@ -76,10 +75,7 @@ def _parse(root: Path, rel_path: str):
     @return (tree, src_bytes).
     @version 1
     """
-    classes = try_import_tree_sitter()
-    assert classes is not None, "tree_sitter must be installed for this suite"
-    language_cls, parser_cls = classes
-    parsed = _ast_parse_one_file(rel_path, root / rel_path, {}, parser_cls, language_cls)
+    parsed = _ast_parse_one_file(rel_path, root / rel_path, {})
     assert parsed is not None, f"{rel_path} did not parse"
     return parsed
 
@@ -247,7 +243,7 @@ def test_c_harvest_output_unchanged_on_the_c_fixture() -> None:
         if path.suffix not in (".c", ".h", ".cpp"):
             continue
         rel = str(path.relative_to(CSAMPLE_ROOT))
-        parsed = _ast_parse_one_file(rel, path, {}, *reversed(try_import_tree_sitter()))
+        parsed = _ast_parse_one_file(rel, path, {})
         if parsed is None:
             continue
         files += 1

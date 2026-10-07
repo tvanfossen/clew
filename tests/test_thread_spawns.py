@@ -20,9 +20,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import pytest
-
-from clew.harvest import _cached_parser, try_import_tree_sitter
+from clew.harvest import _cached_parser
 from clew.threads import (
     DEFAULT_SPAWN_PATTERNS,
     _walk_spawn_sites,
@@ -31,32 +29,21 @@ from clew.threads import (
 )
 from clew.vocabulary import THREAD_KIND, THREAD_KIND_WIN32
 
-pytestmark = pytest.mark.skipif(
-    try_import_tree_sitter() is None,
-    reason="the spawn-pattern tests need tree_sitter + its C/C++ grammars",
-)
-
 
 ## @brief Parse C source into a tree-sitter tree.
 ## @param src The source bytes.
 ## @return (tree, src_bytes).
 ## @version 1
 def _parse_c(src: bytes) -> tuple[Any, bytes]:
-    """REUSES `_cached_parser` rather than rebuilding the parser here, and that is not just
-    tidiness: `try_import_tree_sitter` returns `(Language, Parser)` — Language FIRST — and a
-    hand-rolled `Parser(Language(mod.language()))` with the tuple unpacked the other way round
-    fails with `argument 1 must be tree_sitter.Language, not PyCapsule`. One construction site
-    cannot get the order wrong in two places.
+    """REUSES `_cached_parser` rather than building a parser here, so the test parses with
+    exactly the grammar the harvest routes `.c` to.
 
     @brief Build a C parse tree for a source snippet.
     @return The tree and the bytes it was built from.
-    @version 2
+    @version 3
     """
-    imported = try_import_tree_sitter()
-    assert imported is not None
-    language_cls, parser_cls = imported
-    parser = _cached_parser("tree_sitter_c", {}, parser_cls, language_cls)
-    assert parser is not None, "the C grammar must be importable"
+    parser = _cached_parser("substrate:c", {})
+    assert parser is not None, "the C grammar must be available"
     return parser.parse(src), src
 
 

@@ -407,6 +407,6 @@ also checks Rust (rustdoc `///` comments) when a repo declares it. Its scope is 
 validation, traceability and change impact. It is optional, and the index pipeline never runs
 it. Full reference: [docs/GUARD.md](docs/GUARD.md).
 
-Language detection for the gate comes from
-[lang-parsing-substrate](https://github.com/brandon-arrendondo/lang_parsing_substrate), the
+Language detection for the gate, and every tree-sitter parse in the gate and the index, comes
+from [lang-parsing-substrate](https://github.com/brandon-arrendondo/lang_parsing_substrate), the
 Rust parsing library shared with knots, moldy and aurora-lint, installed from its PyPI wheels.

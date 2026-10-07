@@ -37,7 +37,7 @@ from pathlib import Path
 from typing import Any
 
 from ._common import logger
-from .harvest import Harvester, run_harvest, try_import_tree_sitter
+from .harvest import Harvester, run_harvest
 from .vocabulary import STAGE_JS_SYMBOLS, SYMBOL_SOURCE_COLUMN, SYMBOL_SOURCE_PARSE
 
 ## The extensions this front end claims. `.mts`/`.cts` are TypeScript's ES-module and
@@ -130,19 +130,18 @@ def register_paths(db_path: Path, files: list[str]) -> int:
 ## @param repo_root Repository root.
 ## @param cache The index cache (the shared parse warmed it), or None.
 ## @return (functions written, classes written).
-## @version 1
+## @version 2
 ## @req REQ-DDB-PIPE-012
 def emit_definitions(db_path: Path, repo_root: Path, cache: Any = None) -> tuple[int, int]:
     """@brief Turn the cached js_symbols payloads into rows."""
     from .ast_symbols import ensure_symbol_provenance
 
-    ts_classes = try_import_tree_sitter()
     conn = sqlite3.connect(str(db_path))
     try:
         if not _has_claimed_path(conn):
             return 0, 0
         ensure_symbol_provenance(conn)
-        harvested = run_harvest(conn, repo_root, js_symbol_harvester(), ts_classes, cache)
+        harvested = run_harvest(conn, repo_root, js_symbol_harvester(), cache)
         writer = _Writer(conn)
         for path_rowid, payload in harvested:
             if payload:

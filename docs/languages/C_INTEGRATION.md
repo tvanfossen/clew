@@ -3,7 +3,8 @@
 
 | | |
 |---|---|
-| front end | **doxygen** (sqlite3 output) **+ tree-sitter-c** |
+| front end | **doxygen** (sqlite3 output) **+ tree-sitter** |
+| tree-sitter layer | lang-parsing-substrate's C grammar (`clew/tsnode.py`), the one knots, moldy and aurora-lint use |
 | requires | `doxygen` built with sqlite3 support; `gcc` for preprocessor work |
 | Doxyfile | optional — one is synthesized when a repo ships none |
 

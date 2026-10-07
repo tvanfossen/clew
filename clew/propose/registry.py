@@ -12,8 +12,8 @@ So `_DETECTED` holds the sections with a detector, `HAND_DECLARED` holds the one
 clew deliberately refuses to guess (each carrying the reason), and
 `index_scope` is report-only. Every one of them returns a `SectionProposal`.
 
-The AST detectors are also gated as a group, because four conditions make them
-meaningless rather than merely empty: no tree-sitter, no DERIVED index scope (the
+The AST detectors are also gated as a group, because three conditions make them
+meaningless rather than merely empty: no DERIVED index scope (the
 detectors have no notion of "first-party" without one — `threads_detect` rule 1),
 no parseable source at all, and no C/C++ file inside that scope. Reporting
 `no_candidates` in any of those cases would claim a measured absence clew never
@@ -51,7 +51,6 @@ from ..declaration import (
     SECTION_VENDORED,
     load_declaration,
 )
-from ..harvest import try_import_tree_sitter
 from ..scope import INDEX_SCOPE_SECTION, derive_scope
 from ..signature import CLEW_BUILD_VERSION, read_build_signature
 from .context import Context
@@ -60,7 +59,6 @@ from .model import Proposal, SectionProposal, SectionStatus
 from .notindexed import report_not_indexed
 from .render import render_declaration
 from .scanning import (
-    Corpus,
     ast_readable_in_scope,
     repo_source_files,
     scan_repo,
@@ -198,12 +196,6 @@ HAND_DECLARED: dict[str, str] = {
     ),
 }
 
-_NO_TREE_SITTER = (
-    "tree_sitter (or its C/C++ grammars) is not importable in this environment, so no "
-    "AST corpus could be built. NOTHING was scanned — this is not a measured absence. "
-    "Install the grammars and re-run."
-)
-
 _NO_DERIVED_SCOPE = (
     "this repo's index scope is NOT derived from a declaration: {reason}. Without a "
     "derived scope clew has no notion of which source is FIRST-PARTY, and the first "
@@ -236,7 +228,7 @@ _ALREADY_DECLARED = (
 ## @param dry_run Whether candidates may be measured against the index.
 ## @param use_declaration Read the repo's own `.clew.yaml` (False = as if undeclared).
 ## @return The assembled Context.
-## @version 1
+## @version 2
 ## @req REQ-DDB-CONFIG-001
 def build_context(
     repo_root: Path | str,
@@ -254,18 +246,13 @@ def build_context(
     repo than the one being indexed.
 
     @brief Build the shared detector context for one repo.
-    @version 1
+    @version 2
     """
     root = Path(repo_root).expanduser().resolve()
     scope = derive_scope(root)
-    ts_classes = try_import_tree_sitter()
     files = repo_source_files(root)
     in_scope = scope_membership(scope)
-    corpus = (
-        scan_repo(root, files, in_scope, ts_classes, split_accessor)
-        if ts_classes is not None
-        else Corpus()
-    )
+    corpus = scan_repo(root, files, in_scope, split_accessor)
     return Context(
         repo_root=root,
         db_path=Path(db_path).expanduser().resolve() if db_path else None,
@@ -274,7 +261,6 @@ def build_context(
         files=files,
         in_scope=in_scope,
         corpus=corpus,
-        ts_classes=ts_classes if ts_classes is not None else (None, None),
         dry_run=dry_run,
     )
 
@@ -340,7 +326,7 @@ def _sections(ctx: Context) -> tuple[SectionProposal, ...]:
 ## @brief Why the AST detectors cannot run, when they cannot.
 ## @param ctx Shared detector inputs.
 ## @return (status, reason) when detection is impossible, else None.
-## @version 3
+## @version 4
 ## @dg_internal
 def _blocking(ctx: Context) -> tuple[SectionStatus, str] | None:
     """Ordered most-fundamental first, so the reported reason is the root cause
@@ -354,12 +340,11 @@ def _blocking(ctx: Context) -> tuple[SectionStatus, str] | None:
     which is a claim about the repo where the truth is a claim about the detector.
 
     @brief Decide whether the AST detectors can produce a measured answer.
-    @version 3
+    @version 4
     """
     corpus = ctx.corpus
     readable = ast_readable_in_scope(ctx.files, ctx.in_scope)
     checks = (
-        (ctx.ts_classes == (None, None), SectionStatus.NOT_ANALYSED, _NO_TREE_SITTER),
         (
             not ctx.scope.is_derived(),
             SectionStatus.NOT_ANALYSED,

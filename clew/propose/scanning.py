@@ -146,7 +146,7 @@ def repo_source_files(repo_root: Path) -> tuple[Path, ...]:
 ## rather than C's `declarator` chain — so those files parse, contribute nothing,
 ## and would otherwise make an untouched Python codebase look like a MEASURED empty
 ## C repo. Named here so the detectors can say which of the two it is.
-_AST_GRAMMARS = frozenset({"tree_sitter_c", "tree_sitter_cpp"})
+_AST_GRAMMARS = frozenset({"substrate:c", "substrate:cpp"})
 
 
 ## @brief How many in-scope files a grammar the AST detectors understand handles.
@@ -216,7 +216,6 @@ def scope_membership(scope: DerivedScope) -> Any:
 ## @param repo_root Repo root the paths are relative to.
 ## @param files Files to parse (from repo_source_files).
 ## @param in_scope Scope-membership predicate from scope_membership.
-## @param ts_classes (Language, Parser) from tree_sitter.
 ## @param accessor_split Callable(name) -> None when the name is not accessor-shaped.
 ## @return The assembled Corpus.
 ## @version 1
@@ -225,7 +224,6 @@ def scan_repo(
     repo_root: Path,
     files: tuple[Path, ...],
     in_scope: Any,
-    ts_classes: tuple[Any, Any],
     accessor_split: Any,
 ) -> Corpus:
     """One pass over every file collecting the two compact things the detectors
@@ -238,16 +236,15 @@ def scan_repo(
     """
     corpus = Corpus(truncated=len(files) > MAX_CORPUS_FILES)
     parser_cache: dict = {}
-    language_cls, parser_cls = ts_classes
     for path in files[:MAX_CORPUS_FILES]:
         rel = relative_to(path, repo_root)
-        parsed = _ast_parse_one_file(rel, path, parser_cache, parser_cls, language_cls)
+        parsed = _ast_parse_one_file(rel, path, parser_cache)
         if parsed is None:
             continue
         corpus.files_parsed += 1
         scoped = bool(in_scope(path))
         corpus.files_in_scope += 1 if scoped else 0
-        _absorb_file(corpus, parsed, rel, scoped, accessor_split, ts_classes)
+        _absorb_file(corpus, parsed, rel, scoped, accessor_split)
     return corpus
 
 
@@ -257,7 +254,6 @@ def scan_repo(
 ## @param rel Repo-relative path.
 ## @param scoped Whether the file is inside the derived index scope.
 ## @param accessor_split Accessor-shape predicate.
-## @param ts_classes (Language, Parser) from tree_sitter.
 ## @version 1
 ## @dg_internal
 def _absorb_file(
@@ -266,13 +262,12 @@ def _absorb_file(
     rel: str,
     scoped: bool,
     accessor_split: Any,
-    ts_classes: tuple[Any, Any],
 ) -> None:
     """@brief Record one file's definitions and accessor call sites."""
     tree, src = parsed
     for node in walk(tree.root_node):
         if node.type in DEF_TYPES:
-            fdef = definition_record(node, src, rel, scoped, ts_classes)
+            fdef = definition_record(node, src, rel, scoped)
             if fdef is not None:
                 corpus.defs.setdefault(fdef.name, []).append(fdef)
         elif node.type == "call_expression":
@@ -306,7 +301,6 @@ def _accessor_site(
 ## @param repo_root Repo root the paths are relative to.
 ## @param files Files to consider (from repo_source_files).
 ## @param in_scope Scope-membership predicate.
-## @param ts_classes (Language, Parser) from tree_sitter.
 ## @param watch Callee names to collect sites for.
 ## @return Every matching call site, in file order.
 ## @version 1
@@ -315,7 +309,6 @@ def census_call_sites(
     repo_root: Path,
     files: tuple[Path, ...],
     in_scope: Any,
-    ts_classes: tuple[Any, Any],
     watch: frozenset[str],
 ) -> list[CallSite]:
     """Byte-prefiltered: a file that does not literally contain a watched name
@@ -330,14 +323,13 @@ def census_call_sites(
         return []
     needles = [name.encode("utf-8") for name in watch]
     parser_cache: dict = {}
-    language_cls, parser_cls = ts_classes
     sites: list[CallSite] = []
     for path in files[:MAX_CORPUS_FILES]:
         raw = _read_bytes(path)
         if raw is None or not any(needle in raw for needle in needles):
             continue
         rel = relative_to(path, repo_root)
-        parsed = _ast_parse_one_file(rel, path, parser_cache, parser_cls, language_cls)
+        parsed = _ast_parse_one_file(rel, path, parser_cache)
         if parsed is not None:
             _collect_watched(sites, parsed, rel, bool(in_scope(path)), watch)
     return sites

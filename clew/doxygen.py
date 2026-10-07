@@ -1472,13 +1472,11 @@ def sanitize_doxygen_text(db_path: Path) -> int:
 ## @brief Find the real function name at a body span via tree-sitter.
 ## @utility
 ## @version 2
-def _real_function_name_at(
-    repo_root: Path, rel: str, bstart: int, cache: dict, parser, language
-) -> str | None:
+def _real_function_name_at(repo_root: Path, rel: str, bstart: int, cache: dict) -> str | None:
     from .call_edges import _ast_parse_one_file
     from .callback_edges import _innermost_identifier
 
-    parsed = _ast_parse_one_file(rel, repo_root / rel, cache, parser, language)
+    parsed = _ast_parse_one_file(rel, repo_root / rel, cache)
     if parsed is None:
         return None
     tree, _ = parsed
@@ -1541,14 +1539,10 @@ def _repair_one_attribute_row(
 ## (paths repo-relative) and before the AST edge layers, so the corrected name
 ## + single row are in place before call/shared-key edges resolve. Returns
 ## rows repaired.
-## @version 3
+## @version 5
 ## @return Number of memberdef rows whose mis-recorded '__attribute__' name was repaired.
 ## @req REQ-DDB-INDEX-001
 def repair_attribute_named_functions(db_path: Path, repo_root: Path) -> int:
-    try:
-        from tree_sitter import Language, Parser
-    except ImportError:
-        return 0
     conn = sqlite3.connect(str(db_path))
     try:
         rows = conn.execute(
@@ -1560,7 +1554,7 @@ def repair_attribute_named_functions(db_path: Path, repo_root: Path) -> int:
         cache: dict = {}
         fixed = 0
         for rowid, bstart, bend, file_id, rel in rows:
-            real = _real_function_name_at(repo_root, rel, bstart, cache, Parser, Language)
+            real = _real_function_name_at(repo_root, rel, bstart, cache)
             if real and real != "__attribute__":
                 _repair_one_attribute_row(conn, rowid, bstart, bend, file_id, real)
                 fixed += 1

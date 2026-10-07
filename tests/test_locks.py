@@ -16,7 +16,6 @@ from pathlib import Path
 
 import pytest
 
-from clew.harvest import try_import_tree_sitter
 from clew.locks import (
     DEFAULT_LOCK_PATTERNS,
     SCOPE_UNKNOWN,
@@ -25,11 +24,6 @@ from clew.locks import (
     load_lock_patterns,
 )
 from clew.vocabulary import DeclarationError
-
-pytestmark = pytest.mark.skipif(
-    try_import_tree_sitter() is None,
-    reason="the lock-layer tests need tree_sitter + its C/C++ grammars",
-)
 
 _CPP = b"""\
 namespace demo {
@@ -72,12 +66,9 @@ void unbalanced(void) {
 ## @version 1
 def _sites(src: bytes, cpp: bool = True) -> list[list]:
     """@brief Walk one source blob for lock acquisition sites."""
-    import tree_sitter_c
-    import tree_sitter_cpp
-    from tree_sitter import Language, Parser
+    from clew.tsnode import Parser
 
-    mod = tree_sitter_cpp if cpp else tree_sitter_c
-    parser = Parser(Language(mod.language()))
+    parser = Parser("cpp" if cpp else "c")
     patterns = {p.name: p for p in DEFAULT_LOCK_PATTERNS}
     return _walk_lock_sites(parser.parse(src), src, patterns)
 
@@ -183,10 +174,9 @@ void guarded(void) {
         "the declared release counterpart must survive parsing"
     )
 
-    import tree_sitter_c
-    from tree_sitter import Language, Parser
+    from clew.tsnode import Parser
 
-    parser = Parser(Language(tree_sitter_c.language()))
+    parser = Parser("c")
     sites = _walk_lock_sites(parser.parse(src), src, {p.name: p for p in declared})
     takes = [s for s in sites if s[0] == "bsp_lock_take"]
     assert takes, "the declared wrapper must be detected at all"
@@ -582,8 +572,7 @@ def test_a_commented_argument_does_not_shift_the_timeout() -> None:
     @brief An inline comment does not shift the timeout argument.
     @version 1
     """
-    import tree_sitter_c
-    from tree_sitter import Language, Parser
+    from clew.tsnode import Parser
 
     from clew.blocking import DEFAULT_BLOCKING_PATTERNS, walk_blocking_sites
 
@@ -594,7 +583,7 @@ void f(void)
     k_sem_take(&sem, /* wait */ K_FOREVER);
 }
 """
-    parser = Parser(Language(tree_sitter_c.language()))
+    parser = Parser("c")
     sites = walk_blocking_sites(
         parser.parse(src), src, {p.name: p for p in DEFAULT_BLOCKING_PATTERNS}
     )

@@ -44,7 +44,6 @@ class Context:
     files: tuple[Path, ...]
     in_scope: Any
     corpus: Corpus
-    ts_classes: tuple[Any, Any]
     dry_run: bool = True
 
     ## @brief Whether this run can measure a candidate against a real index.
