@@ -1,3 +1,4 @@
-validate:
-  presence:
-    require_doxygen: true
+guard:
+  validate:
+    presence:
+      require_doxygen: true

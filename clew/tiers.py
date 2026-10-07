@@ -8,7 +8,7 @@ In one line: **you can correct our guesses; you cannot un-discover a fact.**
 | tier | name | what it is | combines by |
 |---|---|---|---|
 | 1 | explicit | a CLI flag | REPLACES the stated layer |
-| 2 | declared | `.clew.yaml` / the `x-clew` passthrough | REPLACES the stated layer |
+| 2 | declared | `.clew.yaml` | REPLACES the stated layer |
 | 3 | target-fact | facts someone else already wrote — a Doxyfile's ALIASES/PREDEFINED, a generator manifest, a language or platform entry point | ACCUMULATES |
 | 4 | ecosystem | a known-ecosystem signature (UDM, ingot) | ACCUMULATES |
 | 5 | heuristic | name-pattern matching; the floor, explicitly provisional | REPLACES the stated layer |

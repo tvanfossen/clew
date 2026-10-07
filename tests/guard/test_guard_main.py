@@ -6,7 +6,7 @@ from textwrap import dedent
 
 from clew.guard.config import CONFIG_DEFAULTS, parse_source_file
 from clew.guard.main import main, validate_file
-from guard_helpers import FIXTURES_DIR
+from guard_helpers import FIXTURES_DIR, guard_yaml
 
 NO_REQ_CONFIG = str(FIXTURES_DIR / "no_requirements_config.yaml")
 
@@ -144,11 +144,13 @@ class TestMain:
     def test_custom_config(self, tmp_path):
         config_file = tmp_path / "custom.yaml"
         config_file.write_text(
-            dedent("""\
+            guard_yaml(
+                dedent("""\
                 validate:
                   presence:
                     require_doxygen: false
             """)
+            )
         )
         c_file = tmp_path / "test.c"
         c_file.write_text("void Undoc(void) { x(); }")
@@ -203,9 +205,10 @@ class TestPrecommitPipeline:
         )
         req_file = tmp_path / "reqs.csv"
         req_file.write_text("Req ID,Name,Subsystem\nREQ-001,Data Processing,DataSvc\n")
-        config_file = tmp_path / ".doxygen-guard.yaml"
+        config_file = tmp_path / ".clew.yaml"
         config_file.write_text(
-            dedent("""\
+            guard_yaml(
+                dedent("""\
                 output_dir: out/
                 impact:
                   requirements:
@@ -214,6 +217,7 @@ class TestPrecommitPipeline:
                     name_column: "Name"
                     format: csv
             """)
+            )
         )
         result = main(["--config", str(config_file), str(c_file)])
         assert result == 0
@@ -249,8 +253,9 @@ class TestVersionGateFailsClosed:
                     min_version: v0.1.0
             """)
         )
-        (tmp_path / ".doxygen-guard.yaml").write_text(
-            dedent("""\
+        (tmp_path / ".clew.yaml").write_text(
+            guard_yaml(
+                dedent("""\
                 validate:
                   version_gate:
                     current_version: "auto:git"
@@ -260,6 +265,7 @@ class TestVersionGateFailsClosed:
                     file: reqs.yaml
                     format: yaml
             """)
+            )
         )
         c_file = tmp_path / "a.c"
         c_file.write_text("/**\n * @brief No req tag.\n * @version 1.0\n */\nvoid F(void) { }\n")
@@ -281,7 +287,7 @@ class TestVersionGateFailsClosed:
 
     def test_literal_version_resolves(self, tmp_path, monkeypatch):
         c_file = self._project(tmp_path)
-        cfg = tmp_path / ".doxygen-guard.yaml"
+        cfg = tmp_path / ".clew.yaml"
         cfg.write_text(cfg.read_text().replace('"auto:git"', '"v1.0.0"'))
         monkeypatch.chdir(tmp_path)
         # Gate resolves, so the requirement is active and the missing @req is caught.
@@ -289,8 +295,8 @@ class TestVersionGateFailsClosed:
 
     def test_no_gate_declared_is_not_an_error(self, tmp_path, monkeypatch):
         c_file = self._project(tmp_path)
-        (tmp_path / ".doxygen-guard.yaml").write_text(
-            "impact:\n  requirements:\n    file: reqs.yaml\n    format: yaml\n"
+        (tmp_path / ".clew.yaml").write_text(
+            guard_yaml("impact:\n  requirements:\n    file: reqs.yaml\n    format: yaml\n")
         )
         monkeypatch.chdir(tmp_path)
         # No version_gate declared: nothing to resolve, so no error from resolution.

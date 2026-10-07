@@ -3,7 +3,7 @@
 
 gh#18. Kconfig is the configuration system of most of the embedded C world this
 tool targets (Zephyr, Linux, U-Boot, Buildroot, ESP-IDF), and the pipeline read
-none of it while reading `.doxygen-guard.yaml`, `.pre-commit-config.yaml` and a
+none of it while reading `.clew.yaml`, `.pre-commit-config.yaml` and a
 Doxyfile. Kconfig *is* a declaration — a formal, parseable one — so ignoring it
 was the no-hardcoding mandate's own omission.
 
@@ -86,7 +86,7 @@ SECTION_KCONFIG = "kconfig"
 KEY_ROOT = "root"
 
 ## Provenance values for `kconfig.source`. Per-module constants rather than
-## `vocabulary.py` entries, matching `preprocessor.py`, `scope.py` and `precommit.py`:
+## `vocabulary.py` entries, matching `preprocessor.py` and `scope.py`:
 ## these are `build_meta` strings, and `vocabulary.py` is the source for values a DDL
 ## CHECK constrains.
 SOURCE_NONE = "none"
@@ -117,8 +117,7 @@ class KconfigLocation:
     and every location that was tried.
 
     `searched` is the load-bearing field, for the reason
-    `precommit.GuardConfigLocation.searched` and `preprocessor.PreprocessorConfig.searched`
-    both record: a capability that finds nothing and does not say where it looked
+    `preprocessor.PreprocessorConfig.searched` also records: a capability that finds nothing and does not say where it looked
     leaves "this repo has no Kconfig" indistinguishable from "we looked in the wrong
     place", and the observable result of both is zero rows.
 
@@ -284,14 +283,14 @@ class KconfigModel:
 ## @param repo_root Repo root to search.
 ## @param declaration The repo's parsed declaration (from load_declaration).
 ## @return A KconfigLocation whose `path` is None when nothing was found.
-## @version 1
+## @version 2
 ## @req REQ-DDB-CONFIG-005
 def discover_kconfig(
     repo_root: Path | str | None, declaration: dict[str, Any] | None = None
 ) -> KconfigLocation:
-    """Follows `precommit.discover_guard_config` exactly — explicit, then
-    convention, then a REFUSAL when convention is ambiguous — because the wrong
-    answer here has the same shape as the wrong answer there: a Kconfig belonging to
+    """Explicit, then convention, then a REFUSAL when convention is ambiguous —
+    the rule `preprocessor` follows too — because a wrong answer here looks like a
+    right one: a Kconfig belonging to
     a vendored subsystem describes a configuration space the repo does not ship,
     and every count taken from it looks legitimate.
 
@@ -303,7 +302,7 @@ def discover_kconfig(
 
     @brief Discover the repo's top-level Kconfig with its provenance.
     @return The located Kconfig and how it was found.
-    @version 1
+    @version 2
     """
     if repo_root is None:
         return KconfigLocation(path=None)

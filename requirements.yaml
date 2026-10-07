@@ -4,10 +4,10 @@
 # Extra keys {status, evidence} are clew's own live implementation-tracking
 # view (the guard ignores unknown keys; @req COVERAGE is NOT gated yet — see
 # REQ-DDB-CONFIG-002). clew controls its OWN flat format here; arbitrary
-# target repos' catalog shape is read from THEIR .doxygen-guard.yaml declaration
+# target repos' catalog shape is read from THEIR .clew.yaml `guard:` declaration
 # (STRICTLY NO HARDCODING).
 #
-# @req id shape (declared in .doxygen-guard.yaml):
+# @req id shape (declared in .clew.yaml `guard:`):
 #   ^REQ-DDB-[A-Z]+-[0-9]{3}( \[inferred\])?$
 # The optional suffix is a CONFIDENCE marker, not part of the id. It is in the
 # pattern because doxygen-guard validates the whole `@req` line while clew
@@ -49,8 +49,8 @@ requirements:
       its declared default (build_index sources defaults BY PARSING; apply_options assigns onto those
       dests), so no value MEANS anything different — pinned by tests/test_cli_surface.py, which asserts
       the exact six, that each folded dest still exists, and that the declaration route reaches the same
-      stage the flag did. --guard-config was DELETED in favour of discover_guard_config rather than
-      folded. --doxyfile/--scope/--index-cache stay reachable on the typed surface only.'
+      stage the flag did. --guard-config was DELETED, since the gate config is the guard section of
+      the .clew.yaml at the repo root. --doxyfile/--scope/--index-cache stay reachable on the typed surface only.'
   REQ-DDB-CLI-002:
     subsystem: cli
     name: init registers the MCP server surgically, and doctors the environment
@@ -76,31 +76,29 @@ requirements:
     subsystem: config
     name: No hardcoded repo conventions - read declarations (STRICTLY NO HARDCODING)
     acceptance_criteria: The @req id pattern (validate.tags.req.pattern) and requirements-catalog column
-      mapping (impact.requirements.{id_column,name_column}) are read from the target repo's .doxygen-guard.yaml,
-      never hardcoded; permissive fallback when no config exists.
+      mapping (impact.requirements.{id_column,name_column}) are read from the `guard:` section of the
+      target repo's .clew.yaml, never hardcoded; permissive fallback when no config exists.
     x-priority: P0
     x-status: implemented
     x-evidence: clew/requirements.py load_guard_config/resolve_req_id_pattern/resolve_catalog_columns;
-      declaration.py load_declaration/section/declared_path (the .clew.yaml surface); precommit.py
-      discover_guard_config/discover_guard_config_logged (the repo's own pre-commit hook DECLARES where
-      its guard config lives, via the --config arg) and pinned_guard_rev (which release that config is
-      written against); cli.py _declared_or_flag (explicit flag beats declaration); tests/test_requirements_declared.py,
-      tests/test_declaration.py, tests/test_guard_config_discovery.py. The prior field named only the
-      first two functions and so predated both resolve_catalog_columns and the whole declaration.py/precommit.py
-      surface; it then cited precommit.py load_guard_declaration, which was DELETED with the guard tier
-      of index-scope derivation (its compiled hook-level files/exclude filter had no consumer left).
+      declaration.py load_declaration/section/declared_path (the .clew.yaml surface); guardconfig.py
+      read_guard_config (the `guard:` section, read with the gate's schema); cli.py _declared_or_flag
+      (explicit flag beats declaration); tests/test_requirements_declared.py, tests/test_declaration.py,
+      tests/test_guard_config_index.py. precommit.py (guard-config discovery through the pre-commit
+      hook's --config arg, and the pinned-rev skew report) was DELETED when the gate's config moved into
+      .clew.yaml, because with one location there is nothing to discover.
   REQ-DDB-CONFIG-002:
     subsystem: config
     name: Dogfooding - clew enforces doxygen-guard + ruff + pytest on itself
-    acceptance_criteria: clew carries .doxygen-guard.yaml, requirements.yaml, and .pre-commit-config.yaml;
+    acceptance_criteria: clew carries .clew.yaml (its guard section), requirements.yaml, and .pre-commit-config.yaml;
       pre-commit runs ruff, doxygen-guard (presence/@version/@return), and the full pytest suite green
       on the package code.
     x-priority: P0
-    coverage_exempt: satisfied by configuration FILES (.doxygen-guard.yaml, .pre-commit-config.yaml),
+    coverage_exempt: satisfied by configuration FILES (.clew.yaml, .pre-commit-config.yaml),
       not by any function — a tag here would have to be attached to something arbitrary
     x-status: partial
     x-evidence: 'NO IMPLEMENTER BY NATURE — satisfied by configuration files, not by any function, so
-      it is deliberately left untagged. .doxygen-guard.yaml + .pre-commit-config.yaml are present and
+      it is deliberately left untagged. .clew.yaml + .pre-commit-config.yaml are present and
       the hook set is ruff, ruff-format, doxygen-guard (pinned upstream at rev v1.3.1, not repo:local),
       single-path, oss-scrub and the full pytest suite. Still `partial` for one reason only: @req COVERAGE
       is not GATED — a requirement with no implementer does not fail the build. Tag coverage itself is
@@ -113,7 +111,7 @@ requirements:
       are still read from THEIR declarations.
     x-priority: P1
     x-status: implemented
-    x-evidence: 'This file''s header + .doxygen-guard.yaml req.pattern; tests/data/csample/requirements.yaml
+    x-evidence: 'This file''s header + .clew.yaml guard.validate.tags.req.pattern; tests/data/csample/requirements.yaml
       carries a target-repo shape that differs. Code link tagged [inferred], because the requirement is
       chiefly a property of a DATA file: requirements.py _is_flat_req_list / _keyed_req_entries / _insert_req_entry
       are the functions that read either shape.'

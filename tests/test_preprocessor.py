@@ -89,14 +89,12 @@ CONFIG_HEADER = """\
 ## @brief Write the guarded-source fixture repo and return its root.
 ## @param tmp_path Pytest temporary directory.
 ## @param declaration Text for `.clew.yaml`, or "" to write none.
-## @param guard_config Text for `.doxygen-guard.yaml`, or "" to write none.
 ## @param doxyfile_extra Extra lines appended to the fixture's Doxyfile.
 ## @return The repo root.
-## @version 1
+## @version 2
 def _fixture_repo(
     tmp_path: Path,
     declaration: str = "",
-    guard_config: str = "",
     doxyfile_extra: str = "",
 ) -> Path:
     """The Doxyfile names `src` as its INPUT and nothing else, so the build indexes
@@ -104,7 +102,7 @@ def _fixture_repo(
 
     @brief Create a repo whose only source sits behind preprocessor guards.
     @return The repo root.
-    @version 1
+    @version 2
     """
     root = tmp_path / "repo"
     (root / "src").mkdir(parents=True)
@@ -117,8 +115,6 @@ def _fixture_repo(
     )
     if declaration:
         (root / ".clew.yaml").write_text(declaration, encoding="utf-8")
-    if guard_config:
-        (root / ".doxygen-guard.yaml").write_text(guard_config, encoding="utf-8")
     return root
 
 
@@ -253,38 +249,31 @@ def test_a_declared_predefined_list_reaches_doxygen(tmp_path: Path) -> None:
     )
 
 
-## @brief The declaration works from the `x-clew` passthrough, not just a file.
+## @brief The declaration is read from a `.clew.yaml` that also configures the gate.
 ## @param tmp_path Pytest temporary directory.
 ## @return None.
-## @version 1
+## @version 2
 @needs_doxygen
-def test_the_declaration_works_from_the_guard_config_passthrough(tmp_path: Path) -> None:
-    """The passthrough is the owner's STATED PREFERENCE — a repo running the gate already
-    maintains `.doxygen-guard.yaml`, so declaring there adds no new artifact. It is also
-    the half most likely to rot silently: the section could be read from a dedicated
-    `.clew.yaml` and quietly ignored in the passthrough, and every test written
-    against the dedicated file would still pass.
-
-    Note there is NO `.clew.yaml` here at all, so a passthrough that failed to
-    resolve would leave the macro unsupplied and `feature_entry` absent.
+def test_the_declaration_works_beside_the_guard_section(tmp_path: Path) -> None:
+    """One file carries both: the gate's `guard:` section and the index's declaration. The
+    half most likely to rot silently is a declaration section that the shared file's
+    `guard:` handling swallows, which no test against a declaration-only file would see.
     """
     root = _fixture_repo(
         tmp_path,
-        guard_config=(
-            "validate:\n"
-            "  tags:\n"
-            "    req:\n"
-            "      pattern: '^REQ-[0-9]+$'\n"
-            "x-clew:\n"
-            "  preprocessor:\n"
-            "    predefined:\n"
-            "      - FIXTURE_FEATURE_C\n"
+        declaration=(
+            "guard:\n"
+            "  validate:\n"
+            "    tags:\n"
+            "      req:\n"
+            "        pattern: '^REQ-[0-9]+$'\n"
+            "preprocessor:\n"
+            "  predefined:\n"
+            "    - FIXTURE_FEATURE_C\n"
         ),
     )
     functions = _doxygen_functions(_build(root, tmp_path / "out.db"))
-    assert "feature_entry" in functions, (
-        "the x-clew passthrough did not carry the preprocessor section"
-    )
+    assert "feature_entry" in functions, "the preprocessor section beside guard: was not honoured"
 
 
 ## @brief A declared config header supplies its macros, including a valued one.
@@ -537,8 +526,8 @@ def test_auto_discovery_finds_one_conventional_header(tmp_path: Path) -> None:
 ## @return None.
 ## @version 1
 def test_auto_discovery_refuses_two_candidates(tmp_path: Path) -> None:
-    """Follows `precommit._guard_config_conventional` and `discover_doxyfile`, and the
-    stakes here are higher than either. Choosing the wrong config header does not merely
+    """Follows `discover_doxyfile`, and the stakes here are higher than there.
+    Choosing the wrong config header does not merely
     index the wrong FILES — it indexes a different VARIANT of the right ones, and every
     count taken from the result still looks legitimate.
 

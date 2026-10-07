@@ -205,8 +205,9 @@ def test_every_known_section_is_accepted(tmp_path: Path) -> None:
     from clew.declaration import KNOWN_SECTIONS, load_declaration
 
     body = "".join(f"{section}: []\n" for section in sorted(KNOWN_SECTIONS))
-    (tmp_path / ".clew.yaml").write_text(body, encoding="utf-8")
+    (tmp_path / ".clew.yaml").write_text(body + "guard: {}\n", encoding="utf-8")
 
+    # `guard:` is accepted and then dropped: it is the gate's section, not a declaration.
     assert set(load_declaration(tmp_path)) == set(KNOWN_SECTIONS)
 
 
@@ -262,54 +263,27 @@ def test_the_index_scope_spelling_cannot_drift() -> None:
     assert INDEX_SCOPE_SECTION in KNOWN_SECTIONS
 
 
-def test_declaration_can_live_in_the_guard_config_passthrough(tmp_path: Path) -> None:
-    """The owner's call: "doxygen-guard.yaml should have a -x option for us to pass
-    relevant args in now."
-
-    doxygen-guard reserves the `x-` prefix for consumers (`config --schema` reports
-    `passthrough_prefix: "x-"` at contract_version 2) and `load_config` preserves such keys
-    verbatim. So a repo declares in the ONE file it already maintains for the gate, and
-    needs no file that exists only for this tool.
-
-    Every alternative shape was rejected on its own merits and it is worth recording why,
-    because each looks reasonable alone: args-only cannot work (the MCP server has no argv —
-    the hole `.clew.yaml` was created to close), a second checked-in file is
-    maintenance the owner does not want, and a file under our state directory is INVISIBLE,
-    which is worse than maintained."""
-    (tmp_path / ".doxygen-guard.yaml").write_text(
-        "validate:\n"
-        "  tags:\n"
-        "    req:\n"
-        "      pattern: '^REQ-X-[A-Z]+-[0-9]{3}$'\n"
-        "x-clew:\n"
-        "  index_scope:\n"
-        "    include: ['^src/']\n",
+def test_the_declaration_and_the_gate_config_share_one_file(tmp_path: Path) -> None:
+    """Tristan's call: one `.clew.yaml` standard rather than a second file for the gate. The
+    gate reads its `guard:` section; the index reads the rest, and never sees `guard:`."""
+    (tmp_path / ".clew.yaml").write_text(
+        "guard:\n"
+        "  validate:\n"
+        "    tags:\n"
+        "      req:\n"
+        "        pattern: '^REQ-X-[A-Z]+-[0-9]{3}$'\n"
+        "index_scope:\n"
+        "  include: ['^src/']\n",
         encoding="utf-8",
     )
-    declared = load_declaration(tmp_path)
-    assert declared.get("index_scope") == {"include": ["^src/"]}
+    assert load_declaration(tmp_path) == {"index_scope": {"include": ["^src/"]}}
 
 
-def test_a_dedicated_declaration_file_wins_over_the_passthrough(tmp_path: Path) -> None:
-    """Precedence, matching every other rule here: the MORE SPECIFIC declaration wins
-    (CLI flag > declaration file > guard passthrough > guard config > Doxyfile). A repo
-    carrying both is stating that the dedicated file is the one it maintains."""
-    (tmp_path / ".doxygen-guard.yaml").write_text(
-        "x-clew:\n  index_scope:\n    include: ['^from-guard/']\n", encoding="utf-8"
-    )
+def test_an_unknown_section_beside_the_guard_section_is_still_refused(tmp_path: Path) -> None:
+    """Sharing the file must not loosen the allow-list: a misspelled section next to a valid
+    `guard:` parses, nothing reads it, and the build would report the declaration honoured."""
     (tmp_path / ".clew.yaml").write_text(
-        "index_scope:\n  include: ['^from-dedicated/']\n", encoding="utf-8"
-    )
-    assert load_declaration(tmp_path)["index_scope"] == {"include": ["^from-dedicated/"]}
-
-
-def test_an_unknown_section_in_the_passthrough_is_still_refused(tmp_path: Path) -> None:
-    """A misspelling is as quiet in the passthrough as in the dedicated file — it parses,
-    nothing reads it, and the build runs on built-in defaults while reporting the
-    declaration was honoured. The document-level allow-list must therefore apply to BOTH
-    sources, not just the one it was written for."""
-    (tmp_path / ".doxygen-guard.yaml").write_text(
-        "x-clew:\n  thread_pattern:\n    spawns: []\n", encoding="utf-8"
+        "guard:\n  output_dir: o/\nthread_pattern:\n  spawns: []\n", encoding="utf-8"
     )
     from clew.vocabulary import DeclarationError
 
@@ -317,10 +291,12 @@ def test_an_unknown_section_in_the_passthrough_is_still_refused(tmp_path: Path) 
         load_declaration(tmp_path)
 
 
-def test_a_guard_config_without_a_passthrough_declares_nothing(tmp_path: Path) -> None:
-    """The common case: a repo runs the gate and has never heard of this tool. It must get
-    built-in defaults silently, not a warning and not an error."""
-    (tmp_path / ".doxygen-guard.yaml").write_text("validate:\n  exclude: []\n", encoding="utf-8")
+def test_the_old_guard_config_passthrough_is_not_read(tmp_path: Path) -> None:
+    """HARD BREAK: `.doxygen-guard.yaml` and its `x-clew` passthrough are gone. A repo that
+    has not moved its declaration gets the built-in defaults, not a silent fallback."""
+    (tmp_path / ".doxygen-guard.yaml").write_text(
+        "x-clew:\n  index_scope:\n    include: ['^from-guard/']\n", encoding="utf-8"
+    )
     assert load_declaration(tmp_path) == {}
 
 

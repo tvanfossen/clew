@@ -6,7 +6,7 @@
 Applied after `validate.exclude`, in `validate_file` (pre-commit and `validate`) and in
 `find_source_files` (`coverage`, `files`). Paths are matched relative to the working
 directory, which is the repository root when pre-commit runs the hook, the same root
-`.doxygen-guard.yaml` is read from.
+`.clew.yaml` is read from.
 """
 
 from __future__ import annotations

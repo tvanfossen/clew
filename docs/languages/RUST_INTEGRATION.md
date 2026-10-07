@@ -48,12 +48,13 @@ for the same reason a C file benefits from a leading `/*! ... */`.
 
 The index needs no doc comments. A repo that also wants the doxygen gate's policy on its Rust
 (a block on every function, a revision tag bumped when the body changes, `@req` traceability)
-declares Rust in `.doxygen-guard.yaml`:
+declares Rust in the `guard:` section of `.clew.yaml`:
 
 ```yaml
-validate:
-  languages:
-    rust: {}
+guard:
+  validate:
+    languages:
+      rust: {}
 ```
 
 The convention is **the same tags, inside rustdoc's own comments**:

@@ -55,9 +55,9 @@ result would be a well-formed index of a different thing, reporting success.
 WHAT DID *NOT* BECOME A DECLARATION, and the distinction is worth stating because it is the
 one a reader will test this claim against. `--scope`, `--index-cache` and
 `--rebuild` are build MECHANICS — facts about one run, not about the repository — so they
-have no section and never should. `--guard-config` was DELETED in favour of discovery rather
-than folded, because `discover_guard_config` already finds it from the repo root alone and
-carrying a declaration is what `--declare` now does directly. `--verbose` changes the CLI's
+have no section and never should. `--guard-config` was DELETED: the gate's config is the
+`guard:` section of the repo's own `.clew.yaml`, so there is no location left to state.
+`--verbose` changes the CLI's
 own stderr and nothing that reaches the index.
 
 `index_scope` was the last gap and took its own route rather than the merge. It is resolved by

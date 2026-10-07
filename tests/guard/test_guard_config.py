@@ -16,6 +16,7 @@ from clew.guard.config import (
     validate_output_path,
 )
 from clew.guard.errors import ConfigError
+from guard_helpers import guard_yaml
 
 
 class TestDeepMerge:
@@ -70,19 +71,21 @@ class TestLoadConfig:
         assert config == CONFIG_DEFAULTS
 
     def test_empty_config_file_returns_defaults(self, tmp_path):
-        config_file = tmp_path / ".doxygen-guard.yaml"
-        config_file.write_text("")
+        config_file = tmp_path / ".clew.yaml"
+        config_file.write_text(guard_yaml(""))
         config = load_config(config_file)
         assert config == CONFIG_DEFAULTS
 
     def test_partial_validate_override(self, tmp_path):
-        config_file = tmp_path / ".doxygen-guard.yaml"
+        config_file = tmp_path / ".clew.yaml"
         config_file.write_text(
-            dedent("""\
+            guard_yaml(
+                dedent("""\
                 validate:
                   presence:
                     require_doxygen: false
             """)
+            )
         )
         config = load_config(config_file)
         assert config["validate"]["presence"]["require_doxygen"] is False
@@ -90,36 +93,41 @@ class TestLoadConfig:
         assert "c" in config["validate"]["languages"]
 
     def test_custom_tags(self, tmp_path):
-        config_file = tmp_path / ".doxygen-guard.yaml"
+        config_file = tmp_path / ".clew.yaml"
         config_file.write_text(
-            dedent("""\
+            guard_yaml(
+                dedent("""\
                 validate:
                   tags:
                     req:
                       pattern: "^REQ-\\\\w+$"
             """)
+            )
         )
         config = load_config(config_file)
         assert "req" in config["validate"]["tags"]
         assert config["validate"]["tags"]["req"]["pattern"] == r"^REQ-\w+$"
 
     def test_impact_section_override(self, tmp_path):
-        config_file = tmp_path / ".doxygen-guard.yaml"
+        config_file = tmp_path / ".clew.yaml"
         config_file.write_text(
-            dedent("""\
+            guard_yaml(
+                dedent("""\
                 impact:
                   requirements:
                     file: reqs.csv
                     format: csv
             """)
+            )
         )
         config = load_config(config_file)
         assert config["impact"]["requirements"]["file"] == "reqs.csv"
 
     def test_full_config(self, tmp_path):
-        config_file = tmp_path / ".doxygen-guard.yaml"
+        config_file = tmp_path / ".clew.yaml"
         config_file.write_text(
-            dedent("""\
+            guard_yaml(
+                dedent("""\
                 output_dir: docs/out/
                 validate:
                   languages:
@@ -136,6 +144,7 @@ class TestLoadConfig:
                     file: reqs.csv
                     format: csv
             """)
+            )
         )
         config = load_config(config_file)
         assert "kotlin" in config["validate"]["languages"]
@@ -144,20 +153,22 @@ class TestLoadConfig:
         assert config["output_dir"] == "docs/out/"
 
     def test_non_mapping_config_returns_defaults(self, tmp_path):
-        config_file = tmp_path / ".doxygen-guard.yaml"
+        config_file = tmp_path / ".clew.yaml"
         config_file.write_text("just a string")
         config = load_config(config_file)
         assert config == CONFIG_DEFAULTS
 
     def test_exclude_patterns(self, tmp_path):
-        config_file = tmp_path / ".doxygen-guard.yaml"
+        config_file = tmp_path / ".clew.yaml"
         config_file.write_text(
-            dedent("""\
+            guard_yaml(
+                dedent("""\
                 validate:
                   exclude:
                     - "^gen/"
                     - "vendor/"
             """)
+            )
         )
         config = load_config(config_file)
         assert config["validate"]["exclude"] == ["^gen/", "vendor/"]
@@ -319,8 +330,8 @@ class TestConfigErrorContract:
     """load_config must raise a catchable error, never kill the process."""
 
     def _write(self, tmp_path, body: str):
-        config_file = tmp_path / ".doxygen-guard.yaml"
-        config_file.write_text(dedent(body))
+        config_file = tmp_path / ".clew.yaml"
+        config_file.write_text(guard_yaml(dedent(body)))
         return config_file
 
     def test_unknown_key_raises_config_error(self, tmp_path):
@@ -350,25 +361,21 @@ class TestConfigErrorContract:
             load_config(config_file)
 
 
-class TestPassthroughKeys:
-    """Consumers may declare x-* sections that the guard validates but ignores."""
+class TestNoPassthroughKeys:
+    """The `x-` passthrough went with `.doxygen-guard.yaml`: the gate's config is one section of
+    `.clew.yaml`, and the rest of that file is the index's, so an `x-` key is just unknown."""
 
-    def test_top_level_passthrough_accepted(self):
-        assert validate_config_schema({"x-doxyguard-db": {"index_path": ".cache"}}) == []
-
-    def test_nested_passthrough_accepted(self):
-        assert validate_config_schema({"validate": {"x-custom": {"anything": [1, 2]}}}) == []
-
-    def test_passthrough_does_not_excuse_sibling_typos(self):
-        errors = validate_config_schema({"x-tool": {}, "validat": {}})
+    def test_an_x_key_is_an_unknown_key(self):
+        errors = validate_config_schema({"x-tool": {}})
         assert len(errors) == 1
-        assert "validat" in errors[0]
+        assert "x-tool" in errors[0]
 
-    def test_passthrough_survives_load_and_merge(self, tmp_path):
-        config_file = tmp_path / ".doxygen-guard.yaml"
-        config_file.write_text("x-doxyguard-db:\n  index_path: .cache/db\n")
+    def test_the_rest_of_clew_yaml_is_not_the_gates(self, tmp_path):
+        config_file = tmp_path / ".clew.yaml"
+        config_file.write_text("index_scope:\n  roots: [src]\n" + guard_yaml("output_dir: o/\n"))
         config = load_config(config_file)
-        assert config["x-doxyguard-db"]["index_path"] == ".cache/db"
+        assert config["output_dir"] == "o/"
+        assert "index_scope" not in config
 
 
 class TestDidYouMean:
@@ -399,8 +406,8 @@ class TestSchemaMatchesImplementation:
 
     def test_every_documented_presence_key_loads(self, tmp_path):
         for key in ("require_doxygen", "require_return", "require_file_doxygen"):
-            config_file = tmp_path / ".doxygen-guard.yaml"
-            config_file.write_text(f"validate:\n  presence:\n    {key}: true\n")
+            config_file = tmp_path / ".clew.yaml"
+            config_file.write_text(guard_yaml(f"validate:\n  presence:\n    {key}: true\n"))
             config = load_config(config_file)
             assert config["validate"]["presence"][key] is True, key
 
@@ -423,8 +430,8 @@ class TestSchemaMatchesImplementation:
         sample = {bool: True, str: "x", list: []}
         assert scalars, "expected scalar leaves under validate.*"
         for key, kind in scalars.items():
-            config_file = tmp_path / ".doxygen-guard.yaml"
-            config_file.write_text(_yaml.safe_dump({"validate": {key: sample[kind]}}))
+            config_file = tmp_path / ".clew.yaml"
+            config_file.write_text(guard_yaml(_yaml.safe_dump({"validate": {key: sample[kind]}})))
             config = load_config(config_file)
             assert config["validate"][key] == sample[kind], key
 

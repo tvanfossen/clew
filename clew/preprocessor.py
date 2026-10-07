@@ -19,8 +19,7 @@ that recovers it, which is why gh#11's own docstring calls this the better fix.
 
 THREE THINGS, and the third stands alone::
 
-    # <repo>/.clew.yaml, or the `x-clew:` section of
-    # .doxygen-guard.yaml (the passthrough — no second file to maintain)
+    # <repo>/.clew.yaml
     preprocessor:
       predefined:                       # (1) explicit, and always wins
         - MBEDTLS_SSL_TLS_C
@@ -48,7 +47,7 @@ discovering that would index a configuration nobody ships, dressed in the
 authority of a recorded declaration.
 
 So the DECISION to discover is declared (`config_header: auto`) and the discovery
-itself refuses to guess, following `precommit.discover_guard_config` exactly: a
+itself refuses to guess: a
 fixed set of conventional locations, every one of them named in the log, and a
 REFUSAL when two or more exist. A repo that declares nothing gets nothing —
 byte-identical behaviour to before this module.
@@ -102,7 +101,7 @@ KEY_CONFIG_HEADER = "config_header"
 CONFIG_HEADER_AUTO = "auto"
 
 ## Provenance values for `preprocessor.source`. Per-module constants rather than
-## `vocabulary.py` entries, matching `scope.py` and `precommit.py`: these are
+## `vocabulary.py` entries, matching `scope.py`: these are
 ## `build_meta` strings, and `vocabulary.py` is the source for values a DDL CHECK
 ## constrains.
 SOURCE_NONE = "none"
@@ -285,8 +284,7 @@ class PreprocessorConfig:
     it answerable later: which source decided it, and which config header (repo-relative)
     was read.
 
-    `searched` exists for the same reason `precommit.GuardConfigLocation.searched` does.
-    A declared `auto` that finds nothing leaves the index representing the unconfigured
+    `searched` exists because a declared `auto` that finds nothing leaves the index representing the unconfigured
     variant, and doing that without saying WHERE we looked is the silence gh#16 named:
     the build succeeds and nothing distinguishes "this repo generates no config header"
     from "we looked in the wrong place".
@@ -543,11 +541,11 @@ def _token(name: str, value: str) -> str:
 ## @brief Locate a generated config header among conventional locations, refusing to guess.
 ## @param repo_root Resolved repo root to search.
 ## @return (path or None, the locations tried).
-## @version 1
+## @version 2
 ## @dg_internal
 def _discover_config_header(repo_root: Path) -> tuple[Path | None, tuple[str, ...]]:
-    """REFUSES ON AMBIGUITY, following `precommit._guard_config_conventional` and
-    `doxygen.discover_doxyfile` for the reason both record: the latter once resolved
+    """REFUSES ON AMBIGUITY, following `doxygen.discover_doxyfile` for the reason it
+    records: it once resolved
     strays alphabetically and was caught selecting a TEST FIXTURE's Doxyfile to index a
     whole project. Here the wrong choice is worse than that precedent, because it does
     not merely index the wrong files — it indexes a DIFFERENT VARIANT of the right ones,
@@ -558,7 +556,7 @@ def _discover_config_header(repo_root: Path) -> tuple[Path | None, tuple[str, ..
 
     @brief Find a conventionally-placed generated config header, or refuse.
     @return (path or None, search locations).
-    @version 1
+    @version 2
     """
     searched = tuple(str(Path(name)) for name in _CONVENTIONAL_HEADERS)
     found = [p for name in _CONVENTIONAL_HEADERS if (p := repo_root / name).is_file()]

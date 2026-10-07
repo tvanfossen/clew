@@ -1,0 +1,27 @@
+# The INDEX scope. It is separate from the gate's `files:` regex in
+# `.pre-commit-config.yaml` on purpose: the gate says what must be DOCUMENTED, this
+# says what should be REASONABLE-ABOUT, and this fixture exists to pin the reading of both.
+index_scope:
+  roots:
+    - src
+    - gen
+    - test
+
+# The gate's config. Declares the @req id shape: the pipeline reads the pattern from
+# here rather than hardcoding `REQ-\d+` — that is the no-hardcoding mandate, and this
+# section is what makes the req_edges layer of the fixture a DECLARED behaviour rather
+# than a built-in assumption.
+guard:
+  output_dir: docs/generated/
+
+  validate:
+    exclude:
+      - "^gen/"
+    tags:
+      req:
+        pattern: "^REQ-[0-9]{4}$"
+
+  impact:
+    requirements:
+      id_column: "id"
+      name_column: "title"

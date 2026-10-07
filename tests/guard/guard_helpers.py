@@ -70,3 +70,9 @@ def parse_cpp(content: str, settings=None, skip_fwd=True):
 def parse_python(content: str, settings=None, skip_fwd=True):
     """Parse Python source through the production path."""
     return parse_lang("python", content, settings, skip_fwd)
+
+
+def guard_yaml(body: str) -> str:
+    """Nest a flat gate config under `guard:`, the shape `.clew.yaml` carries it in."""
+    lines = body.splitlines()
+    return "guard:\n" + "".join(f"  {line}\n" if line.strip() else "\n" for line in lines)
