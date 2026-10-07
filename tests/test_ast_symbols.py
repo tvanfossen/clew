@@ -35,17 +35,11 @@ from clew.ast_symbols import (
     recover_ast_symbols,
 )
 from clew.coverage import measure_index_coverage
-from clew.harvest import try_import_tree_sitter
 from clew.query import function_dossier, resolve_symbol, search, source
 from clew.vocabulary import (
     SYMBOL_SOURCE_AST,
     SYMBOL_SOURCE_COLUMN,
     SYMBOL_SOURCE_DOXYGEN,
-)
-
-pytestmark = pytest.mark.skipif(
-    try_import_tree_sitter() is None,
-    reason="gh#11 recovery needs tree_sitter + its C/C++ grammars",
 )
 
 DOXYGEN_SCHEMA = Path(__file__).resolve().parent.parent / "clew" / "data" / "doxygen_schema.sql"

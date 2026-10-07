@@ -25,13 +25,8 @@ from typing import Any
 import pytest
 
 from clew import harvest
-from clew.harvest import Harvester, run_harvest, run_shared_parse, try_import_tree_sitter
+from clew.harvest import Harvester, run_harvest, run_shared_parse
 from clew.indexcache import IndexCache
-
-pytestmark = pytest.mark.skipif(
-    try_import_tree_sitter() is None,
-    reason="the shared parse pass needs tree_sitter + its C grammar",
-)
 
 ## Three trivial C files. Content differs so each has its own content sha; two of
 ## them define a function so a payload is non-empty, and one is deliberately empty
@@ -165,7 +160,7 @@ def test_shared_pass_parses_each_file_once(
     cache, stages = _fixture_stages(repo, cache_path)
 
     conn = sqlite3.connect(str(db))
-    tally = run_shared_parse(conn, repo, stages, try_import_tree_sitter(), cache)
+    tally = run_shared_parse(conn, repo, stages, cache)
     conn.close()
 
     assert len(counter.paths) == len(_FILES)
@@ -196,12 +191,12 @@ def test_stages_after_shared_pass_do_not_parse(
     repo, db, cache_path = indexed_repo
     cache, stages = _fixture_stages(repo, cache_path)
     conn = sqlite3.connect(str(db))
-    run_shared_parse(conn, repo, stages, try_import_tree_sitter(), cache)
+    run_shared_parse(conn, repo, stages, cache)
 
     counter = _ParseCounter()
     monkeypatch.setattr(harvest, "_ast_parse_one_file", counter)
     for stage in stages:
-        results = run_harvest(conn, repo, stage, try_import_tree_sitter(), cache)
+        results = run_harvest(conn, repo, stage, cache)
         assert len(results) == len(_FILES)
     conn.close()
 
@@ -228,12 +223,12 @@ def test_one_stage_version_bump_recomputes_only_that_stage(
     repo, db, cache_path = indexed_repo
     cache, stages = _fixture_stages(repo, cache_path)
     conn = sqlite3.connect(str(db))
-    run_shared_parse(conn, repo, stages, try_import_tree_sitter(), cache)
+    run_shared_parse(conn, repo, stages, cache)
 
     stages[1].stage_version += 1
     counter = _ParseCounter()
     monkeypatch.setattr(harvest, "_ast_parse_one_file", counter)
-    tally = run_shared_parse(conn, repo, stages, try_import_tree_sitter(), cache)
+    tally = run_shared_parse(conn, repo, stages, cache)
     conn.close()
 
     # Each file is still parsed at most once, and only the bumped stage recomputes.
@@ -269,11 +264,11 @@ def test_unchanged_tree_parses_nothing(
     repo, db, cache_path = indexed_repo
     cache, stages = _fixture_stages(repo, cache_path)
     conn = sqlite3.connect(str(db))
-    run_shared_parse(conn, repo, stages, try_import_tree_sitter(), cache)
+    run_shared_parse(conn, repo, stages, cache)
 
     counter = _ParseCounter()
     monkeypatch.setattr(harvest, "_ast_parse_one_file", counter)
-    tally = run_shared_parse(conn, repo, stages, try_import_tree_sitter(), cache)
+    tally = run_shared_parse(conn, repo, stages, cache)
     conn.close()
 
     assert counter.paths == []
@@ -302,16 +297,16 @@ def test_rebuild_still_parses_each_file_once(
     repo, db, cache_path = indexed_repo
     warm, stages = _fixture_stages(repo, cache_path)
     conn = sqlite3.connect(str(db))
-    run_shared_parse(conn, repo, stages, try_import_tree_sitter(), warm)
+    run_shared_parse(conn, repo, stages, warm)
     warm.conn.commit()
 
     rebuild = IndexCache(cache_path, repo, read_enabled=False)
     fresh = [_CountingHarvester(f"probe_{n}") for n in range(4)]
     counter = _ParseCounter()
     monkeypatch.setattr(harvest, "_ast_parse_one_file", counter)
-    tally = run_shared_parse(conn, repo, fresh, try_import_tree_sitter(), rebuild)
+    tally = run_shared_parse(conn, repo, fresh, rebuild)
     for stage in fresh:
-        assert len(run_harvest(conn, repo, stage, try_import_tree_sitter(), rebuild)) == len(_FILES)
+        assert len(run_harvest(conn, repo, stage, rebuild)) == len(_FILES)
     conn.close()
 
     # Everything was recomputed (nothing on disk was trusted) …
@@ -339,16 +334,16 @@ def test_pair_accounting_is_not_double_counted(
     repo, db, cache_path = indexed_repo
     cache, stages = _fixture_stages(repo, cache_path)
     conn = sqlite3.connect(str(db))
-    run_shared_parse(conn, repo, stages, try_import_tree_sitter(), cache)
+    run_shared_parse(conn, repo, stages, cache)
     for stage in stages:
-        run_harvest(conn, repo, stage, try_import_tree_sitter(), cache)
+        run_harvest(conn, repo, stage, cache)
     assert (cache.hits, cache.misses) == (0, len(_FILES) * len(stages))
     cache.conn.commit()
 
     warm = IndexCache(cache_path, repo)
-    run_shared_parse(conn, repo, stages, try_import_tree_sitter(), warm)
+    run_shared_parse(conn, repo, stages, warm)
     for stage in stages:
-        run_harvest(conn, repo, stage, try_import_tree_sitter(), warm)
+        run_harvest(conn, repo, stage, warm)
     conn.close()
     assert (warm.hits, warm.misses) == (len(_FILES) * len(stages), 0)
 

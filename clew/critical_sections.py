@@ -170,11 +170,11 @@ class Section:
 ## @brief Create the L2 membership table if it does not exist.
 ## @param conn Open connection to the database being built.
 ## @return None.
-## @version 1
+## @version 2
 ## @req REQ-DDB-SCHEMA-011
 def ensure_section_table(conn: sqlite3.Connection) -> None:
-    """Created unconditionally alongside the L1 tables — including on a build
-    with no tree_sitter and on a repo with no locks — so R2 and R4 never branch
+    """Created unconditionally alongside the L1 tables — including on a repo
+    with no locks — so R2 and R4 never branch
     on table existence. That is the same contract `locks`/`lock_acquisitions`
     already give, and the requirements-table precedent both follow.
 
@@ -184,7 +184,7 @@ def ensure_section_table(conn: sqlite3.Connection) -> None:
     twice under two different resolutions.
 
     @brief Create critical_section_calls.
-    @version 1
+    @version 2
     """
     conn.executescript(
         f"""

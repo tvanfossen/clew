@@ -54,7 +54,7 @@ from pathlib import Path
 import pytest
 
 from clew.ast_symbols import harvest_macro_definitions, recover_ast_symbols
-from clew.harvest import _ast_parse_one_file, try_import_tree_sitter
+from clew.harvest import _ast_parse_one_file
 from clew.kconfig_gates import import_kconfig_gates
 from clew.query import function_dossier
 from clew.query.macros import MACRO_KIND, macro_definitions
@@ -63,10 +63,6 @@ from clew.vocabulary import (
     KCONFIG_GATE_IFNDEF,
     SYMBOL_SOURCE_AST,
     SYMBOL_SOURCE_DOXYGEN,
-)
-
-pytestmark = pytest.mark.skipif(
-    try_import_tree_sitter() is None, reason="tree-sitter is not installed"
 )
 
 ## THE EXACT SHAPE, transcribed from `include/mbedtls/private_access.h` including the
@@ -215,9 +211,7 @@ def test_the_harvest_reads_both_branches_of_a_conditional_define(repo: Path) -> 
     """The parser has no preprocessor, so BOTH `#define`s are ordinary nodes to it. This
     is the premise of the whole change and it is asserted before anything is stored: if
     the walk saw one, no dedup rule downstream could recover the other."""
-    ts_classes = try_import_tree_sitter()
-    language_cls, parser_cls = ts_classes
-    parsed = _ast_parse_one_file(HEADER, repo / HEADER, {}, parser_cls, language_cls)
+    parsed = _ast_parse_one_file(HEADER, repo / HEADER, {})
     assert parsed is not None
     tree, src = parsed
 

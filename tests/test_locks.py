@@ -16,7 +16,6 @@ from pathlib import Path
 
 import pytest
 
-from clew.harvest import try_import_tree_sitter
 from clew.locks import (
     DEFAULT_LOCK_PATTERNS,
     SCOPE_UNKNOWN,
@@ -25,11 +24,6 @@ from clew.locks import (
     load_lock_patterns,
 )
 from clew.vocabulary import DeclarationError
-
-pytestmark = pytest.mark.skipif(
-    try_import_tree_sitter() is None,
-    reason="the lock-layer tests need tree_sitter + its C/C++ grammars",
-)
 
 _CPP = b"""\
 namespace demo {

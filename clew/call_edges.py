@@ -32,9 +32,8 @@ weigh an edge.
       function, then `GLOBAL(...)` call sites elsewhere) into real
       call_edges rows. source='fnptr'.
 
-Layer 3 (and Layer 4, which reuses its AST plumbing) is graceful-
-fallback: if tree_sitter or its grammars aren't installed, we log and
-skip without aborting.
+Layer 3 (and Layer 4, which reuses its AST plumbing) parses through
+lang-parsing-substrate, a hard dependency, so it always runs.
 
   SELF-EDGE GUARD — `prune_fabricated_self_edges`, run at the end of
       Layer 3 because that is the only point where every name-resolving
@@ -62,7 +61,6 @@ from .harvest import (
     _ast_parse_one_file,
     _ts_language_for,
     run_harvest,
-    try_import_tree_sitter,
 )
 from .indexcache import IndexCache
 from .jsast import harvest_calls as harvest_js_calls
@@ -1415,15 +1413,15 @@ class _CallSiteHarvester(Harvester):
 
 ## @brief Layer 3's per-file harvester.
 ## @return A Harvester whose cache key this stage will look for.
-## @version 1
+## @version 2
 ## @req REQ-DDB-PIPE-003
 def call_site_harvester() -> Harvester:
     """Public factory for gh#358's shared parse pass. Only the PARSE is shared: the
     self-edge guard this layer runs after resolution still runs from inside the
-    stage, so a build without tree-sitter structurally cannot prune.
+    stage, after resolution, never from the shared pass.
 
     @brief Build this stage's harvester.
-    @version 1
+    @version 2
     """
     return _CallSiteHarvester()
 
@@ -1838,7 +1836,7 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
 ## @param db_path Path to the clew.db being built.
 ## @param repo_root Repository root (for resolving indexed relative paths).
 ## @param cache Optional incremental index cache; None disables caching.
-## @version 13
+## @version 14
 ## @req REQ-DDB-PIPE-003
 def import_ast_call_edges(
     db_path: Path,
@@ -1855,22 +1853,11 @@ def import_ast_call_edges(
 
     Ends by running `prune_fabricated_self_edges` over Layers 1-3, which is
     placed here rather than in the pipeline driver because this is the only
-    stage that holds the AST evidence the guard needs — and because a build
-    without tree-sitter must NOT prune, which the shared early return below
-    guarantees structurally instead of by remembering to check.
+    stage that holds the AST evidence the guard needs.
 
     @brief Populate call_edges from tree-sitter AST walk, then guard self-edges.
-    @version 13
+    @version 14
     """
-    ts_classes = try_import_tree_sitter()
-    if ts_classes is None:
-        logger.info(
-            "tree_sitter not available — skipping Layer 3 AND the self-edge guard "
-            "(every self-edge is left in place, unverified; install tree-sitter + "
-            "tree-sitter-c + tree-sitter-cpp to enable)",
-        )
-        return
-
     conn = sqlite3.connect(str(db_path))
     name_to_rowids, file_funcs = _build_function_indexes(conn)
     ## THE RECEIVER-TYPE MAPS (#482). Built once per build, from rows doxygen already
@@ -1902,7 +1889,7 @@ def import_ast_call_edges(
                 )
             }
 
-    harvested = run_harvest(conn, repo_root, call_site_harvester(), ts_classes, cache)
+    harvested = run_harvest(conn, repo_root, call_site_harvester(), cache)
 
     definition_of = _definition_index(conn)
     edges_resolved, edges_fuzzy, unresolved = _fold_all_files(
@@ -1934,7 +1921,7 @@ def import_ast_call_edges(
         edges_resolved,
         edges_fuzzy,
     )
-    prune_fabricated_self_edges(conn, repo_root, ts_classes, file_funcs, cache=cache)
+    prune_fabricated_self_edges(conn, repo_root, file_funcs, cache=cache)
     logger.info(
         "call_edges: %d call site(s) named a function and did not resolve, understating the "
         "callers of %d symbol(s) — recorded, so an empty `callers` can be graded",
@@ -2240,7 +2227,6 @@ _SELF_SITES_STAGE_VERSION = 2
 ## @brief One file's self-rooted call sites, cached by content so an unchanged file is read once.
 ## @param rel_path The file's repo-relative path, as the index records it.
 ## @param abs_path Where to read it from.
-## @param ts_classes (Language, Parser) from tree_sitter.
 ## @param parser_cache Per-run parser reuse, as `_ast_parse_one_file` expects.
 ## @param cache Live index cache, or None to always parse.
 ## @return The (name, line) sites, or None when the file could not be parsed at all.
@@ -2249,7 +2235,6 @@ _SELF_SITES_STAGE_VERSION = 2
 def _self_sites_for(
     rel_path: str,
     abs_path: Path,
-    ts_classes: tuple[Any, Any],
     parser_cache: dict,
     cache: IndexCache | None,
 ) -> list[tuple[str, int]] | None:
@@ -2266,14 +2251,13 @@ def _self_sites_for(
     @return The sites, or None when the file did not parse.
     @version 1
     """
-    language_cls, parser_cls = ts_classes
     sha = cache.sha_for(rel_path, abs_path) if cache is not None else None
     if cache is not None and sha:
         stored = cache.extract_get(sha, _SELF_SITES_STAGE, _SELF_SITES_STAGE_VERSION, "")
         if stored is not None:
             cache.record_pair(sha, _SELF_SITES_STAGE, _SELF_SITES_STAGE_VERSION, "", True)
             return [(str(name), int(line)) for name, line in stored]
-    parsed = _ast_parse_one_file(rel_path, abs_path, parser_cache, parser_cls, language_cls)
+    parsed = _ast_parse_one_file(rel_path, abs_path, parser_cache)
     if parsed is None:
         return None
     sites = list(_self_directed_sites(parsed[0], parsed[1]))
@@ -2327,7 +2311,6 @@ def _file_self_edge_verdicts(
 ## @brief Gather self-call evidence for every self-edge caller, file by file.
 ## @param conn Open connection to the database being built.
 ## @param repo_root Repository root, for resolving indexed paths.
-## @param ts_classes (Language, Parser) from tree_sitter.
 ## @param file_funcs bodyfile_id -> function ranges, from _build_function_indexes.
 ## @param by_file file rowid -> that file's self-edge callers.
 ## @param cache Live index cache, or None to parse every file.
@@ -2337,7 +2320,6 @@ def _file_self_edge_verdicts(
 def _gather_self_call_evidence(
     conn: sqlite3.Connection,
     repo_root: Path,
-    ts_classes: tuple[Any, Any],
     file_funcs: dict[int, list[tuple[int, str, int, int]]],
     by_file: dict[int, list[tuple[int, str]]],
     cache: IndexCache | None = None,
@@ -2367,7 +2349,7 @@ def _gather_self_call_evidence(
     for file_id, members in by_file.items():
         rel_path = paths.get(file_id)
         sites = (
-            _self_sites_for(rel_path, repo_root / rel_path, ts_classes, parser_cache, cache)
+            _self_sites_for(rel_path, repo_root / rel_path, parser_cache, cache)
             if rel_path
             else None
         )
@@ -2481,14 +2463,12 @@ def _log_self_edge_verdict(
 ## @brief Drop self-edges that no self-directed call site in the caller supports.
 ## @param conn Open connection to the database being built (not committed here).
 ## @param repo_root Repository root, for resolving indexed paths.
-## @param ts_classes (Language, Parser) from tree_sitter.
 ## @param file_funcs bodyfile_id -> function ranges, from _build_function_indexes.
 ## @version 1
 ## @req REQ-DDB-PIPE-003
 def prune_fabricated_self_edges(
     conn: sqlite3.Connection,
     repo_root: Path,
-    ts_classes: tuple[Any, Any],
     file_funcs: dict[int, list[tuple[int, str, int, int]]],
     cache: IndexCache | None = None,
 ) -> None:
@@ -2521,7 +2501,7 @@ def prune_fabricated_self_edges(
     for rowid, name, file_id in callers:
         by_file.setdefault(file_id, []).append((rowid, name))
     proved, unverifiable = _gather_self_call_evidence(
-        conn, repo_root, ts_classes, file_funcs, by_file, cache=cache
+        conn, repo_root, file_funcs, by_file, cache=cache
     )
     doomed = [r for r, _n, _f in callers if r not in proved and r not in unverifiable]
     deleted = _delete_self_edges(conn, doomed)

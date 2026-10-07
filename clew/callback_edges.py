@@ -50,8 +50,7 @@ same-named candidates are 'fuzzy', matching Layer 3's own convention).
 
 Runs unconditionally as part of the standard pipeline (no CLI flag) —
 the pattern is purely structural, not repo-specific, so there is nothing
-to configure. Graceful no-op when tree_sitter isn't installed, mirroring
-Layer 3.
+to configure.
 
 R1: the previously-discarded unresolved-external case (a registration whose
 binding forwards a parameter out of repo and dead-ends) is now recorded in an
@@ -158,7 +157,7 @@ from .call_edges import (
     _ast_record_call_edge,
     _build_function_indexes,
 )
-from .harvest import Harvester, enclosing, run_harvest, try_import_tree_sitter
+from .harvest import Harvester, enclosing, run_harvest
 from .indexcache import IndexCache
 from .preprocessor import PreprocessorConfig, evaluate_condition
 from .pyast import node_text
@@ -1631,7 +1630,7 @@ def _log_branch_verdicts(collector: _CallbackCollector, config: PreprocessorConf
 ## @param repo_root Repository root (for resolving indexed relative paths).
 ## @param cache Optional incremental index cache; None disables caching.
 ## @param preprocessor The resolved preprocessor configuration, for gh#35 branch selection.
-## @version 6
+## @version 7
 ## @req REQ-DDB-PIPE-003
 def import_callback_registration_edges(
     db_path: Path,
@@ -1642,8 +1641,7 @@ def import_callback_registration_edges(
     """Walk every indexed C/C++ file, detect `GLOBAL = PARAM;` callback
     registrations, resolve each to its concrete function(s), and insert
     `call_edges` rows for every call site of the registered global.
-    No-ops cleanly when tree_sitter isn't installed. Runs unconditionally
-    — no CLI flag, since the pattern is structural, not repo-specific.
+    Runs unconditionally — no CLI flag, since the pattern is structural, not repo-specific.
 
     The per-file harvest is content-sha cached; the rowid resolution and the
     cross-file binding resolution always rerun.
@@ -1655,20 +1653,8 @@ def import_callback_registration_edges(
     rather than asserting the wrong branch as fact.
 
     @brief Import callback-registration call edges (Layer 4).
-    @version 5
+    @version 6
     """
-    ts_classes = try_import_tree_sitter()
-    if ts_classes is None:
-        logger.info(
-            "tree_sitter not available — skipping callback-edge resolution",
-        )
-        # Still create the terminus table (empty) so consumers never branch
-        # on its existence — mirrors the always-create tables elsewhere.
-        conn = sqlite3.connect(str(db_path))
-        _ensure_external_boundaries_table(conn)
-        conn.close()
-        return
-
     conn = sqlite3.connect(str(db_path))
     _ensure_external_boundaries_table(conn)
     name_to_rowids, file_funcs = _build_function_indexes(conn)
@@ -1677,7 +1663,6 @@ def import_callback_registration_edges(
         conn,
         repo_root,
         callback_harvester(),
-        ts_classes,
         cache,
     ):
         _fold_callback_payload(payload, file_funcs.get(path_rowid, []), collector)

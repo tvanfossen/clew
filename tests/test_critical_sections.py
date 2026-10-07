@@ -28,8 +28,6 @@ from __future__ import annotations
 
 import sqlite3
 
-import pytest
-
 from clew.critical_sections import (
     EXTENT_EXACT,
     EXTENT_INFERRED,
@@ -38,18 +36,13 @@ from clew.critical_sections import (
     insert_section_calls,
     resolve_section,
 )
-from clew.harvest import enclosing, try_import_tree_sitter
+from clew.harvest import enclosing
 from clew.locks import DEFAULT_LOCK_PATTERNS, _walk_lock_sites
 from clew.vocabulary import (
     SECTION_MATCH_AMBIGUOUS,
     SECTION_MATCH_EXTERNAL,
     SECTION_MATCH_RECEIVER_UNVERIFIED,
     SECTION_MATCH_RESOLVED,
-)
-
-pytestmark = pytest.mark.skipif(
-    try_import_tree_sitter() is None,
-    reason="the critical-section tests need tree_sitter + its C/C++ grammars",
 )
 
 ## Index of the harvested site record's fields, so a test reads by meaning.
@@ -1004,7 +997,7 @@ def test_a_lock_payload_cached_before_the_operandless_extent_is_not_served(tmp_p
     conn.execute("CREATE TABLE path (name TEXT)")
     conn.execute("INSERT INTO path (name) VALUES (?)", (rel,))
 
-    harvested = run_harvest(conn, root, harvester, try_import_tree_sitter(), cache)
+    harvested = run_harvest(conn, root, harvester, cache)
     payload = harvested[0][1]
     paired = next(site for site in payload if site[3] == 8)
 

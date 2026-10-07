@@ -34,19 +34,12 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-import pytest
 from test_python_ast import _make_py_db, _parse
 from test_r1_richness import _make_db
 
 from clew.call_edges import _ast_harvest_calls, import_ast_call_edges
 from clew.callback_edges import import_callback_registration_edges
-from clew.harvest import try_import_tree_sitter
 from clew.preprocessor import SOURCE_DECLARED, PreprocessorConfig
-
-pytestmark = pytest.mark.skipif(
-    try_import_tree_sitter() is None,
-    reason="the gh#1 binding tests need tree_sitter + its C/Python grammars",
-)
 
 ## The Mbed-TLS shape: a file-scope function-pointer object initialised to a
 ## concrete implementation, then invoked indirectly from a second function.

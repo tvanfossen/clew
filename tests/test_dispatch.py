@@ -38,7 +38,6 @@ from clew.dispatch import (
     shared_key_document,
 )
 from clew.dispatch_edges import import_declared_dispatch_edges
-from clew.harvest import try_import_tree_sitter
 from clew.shared_key_edges import (
     DEFAULT_SHARED_KEY_PATTERNS_VERSION,
     _inferred_cache_key,
@@ -52,11 +51,6 @@ from clew.vocabulary import (
     CALL_MATCH_RESOLVED,
     CALL_SOURCE_DECLARED_DISPATCH,
     DeclarationError,
-)
-
-pytestmark = pytest.mark.skipif(
-    try_import_tree_sitter() is None,
-    reason="the dispatch-table harvest needs tree_sitter + its C/C++ grammars",
 )
 
 # ─── fixtures ────────────────────────────────────────────────────────────────

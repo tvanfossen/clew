@@ -33,7 +33,7 @@ from pathlib import Path
 from typing import Any
 
 from ._common import logger
-from .harvest import Harvester, run_harvest, try_import_tree_sitter
+from .harvest import Harvester, run_harvest
 from .vocabulary import STAGE_PY_DOCSTRINGS, SYMBOL_SOURCE_AST, SYMBOL_SOURCE_COLUMN
 
 _DEFINITIONS = ("function_definition", "class_definition")
@@ -128,15 +128,13 @@ def summarize(body: str) -> tuple[str, str]:
 ## @param repo_root Repository root.
 ## @param cache The index cache (the shared parse warmed it), or None.
 ## @return How many rows were enriched.
-## @version 1
+## @version 2
 ## @req REQ-DDB-PIPE-013
 def enrich_python_docstrings(db_path: Path, repo_root: Path, cache: Any = None) -> int:
     """@brief Write docstring summaries into the rows doxygen left bare."""
     conn = sqlite3.connect(str(db_path))
     try:
-        harvested = run_harvest(
-            conn, repo_root, docstring_harvester(), try_import_tree_sitter(), cache
-        )
+        harvested = run_harvest(conn, repo_root, docstring_harvester(), cache)
         provenance = _has_provenance(conn)
         enriched = 0
         for path_rowid, payload in harvested:

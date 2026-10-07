@@ -35,7 +35,7 @@ from pathlib import Path
 from typing import Any
 
 from ._common import logger
-from .harvest import Harvester, enclosing, run_harvest, try_import_tree_sitter
+from .harvest import Harvester, enclosing, run_harvest
 from .indexcache import IndexCache
 from .vocabulary import BLOCKING_WAIT, STAGE_BLOCKING, check
 
@@ -370,16 +370,16 @@ def blocking_harvester() -> Harvester:
 ## @brief Create the blocking_calls table.
 ## @param conn Open connection.
 ## @return None.
-## @version 1
+## @version 2
 ## @req REQ-DDB-SCHEMA-011
 def ensure_blocking_table(conn: sqlite3.Connection) -> None:
-    """Created unconditionally, like the lock tables, so a repository with no blocking call —
-    or a build without tree_sitter — yields an EMPTY table rather than an absent one and no
+    """Created unconditionally, like the lock tables, so a repository with no blocking call
+    yields an EMPTY table rather than an absent one and no
     consumer has to branch on existence.
 
     @brief Create blocking_calls if it does not exist.
     @return None.
-    @version 1
+    @version 2
     """
     conn.executescript(
         f"""
@@ -405,7 +405,7 @@ def ensure_blocking_table(conn: sqlite3.Connection) -> None:
 ## @param cache Live index cache, or None.
 ## @param harvester Pre-built harvester from the shared parse pass, or None.
 ## @return None.
-## @version 2
+## @version 3
 ## @req REQ-DDB-SCHEMA-011
 def extract_blocking_calls(
     db_path: Path,
@@ -418,22 +418,16 @@ def extract_blocking_calls(
 
     @brief Populate blocking_calls.
     @return None.
-    @version 1
+    @version 2
     """
     from .call_edges import _ast_caller_at_line, _build_function_indexes
 
     conn = sqlite3.connect(str(db_path))
     ensure_blocking_table(conn)
-    ts_classes = try_import_tree_sitter()
-    if ts_classes is None:
-        logger.info("blocking: tree_sitter unavailable — skipping (table still created)")
-        conn.commit()
-        conn.close()
-        return
     _name_to_rowids, file_funcs = _build_function_indexes(conn)
     harvester = harvester or blocking_harvester()
     inserted = 0
-    for path_rowid, payload in run_harvest(conn, repo_root, harvester, ts_classes, cache):
+    for path_rowid, payload in run_harvest(conn, repo_root, harvester, cache):
         for record in payload:
             holder = _ast_caller_at_line(file_funcs.get(path_rowid, []), record[1])
             if holder is None:

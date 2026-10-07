@@ -381,7 +381,7 @@ def proposable_names(known: dict[str, Derived], corpus_defs: dict[str, list[Func
 ## @brief Detect `thread_patterns.spawns` entries for a repo.
 ## @param ctx Shared detector inputs.
 ## @return The section proposal (entries, rejections, and what was checked).
-## @version 2
+## @version 3
 ## @req REQ-DDB-CONFIG-001
 def propose_thread_patterns(ctx: Context) -> SectionProposal:
     """@brief Run the forwarding fixpoint and gate every candidate."""
@@ -391,7 +391,7 @@ def propose_thread_patterns(ctx: Context) -> SectionProposal:
     seeds = frozenset(seed_map())
     candidates = sorted(name for name in known if name not in seeds)
     watch = frozenset(candidates)
-    sites = census_call_sites(ctx.repo_root, ctx.files, ctx.in_scope, ctx.ts_classes, watch)
+    sites = census_call_sites(ctx.repo_root, ctx.files, ctx.in_scope, watch)
     by_callee: dict[str, list[CallSite]] = {}
     for site in sites:
         by_callee.setdefault(site.callee, []).append(site)

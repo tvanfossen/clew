@@ -20,9 +20,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import pytest
-
-from clew.harvest import _cached_parser, try_import_tree_sitter
+from clew.harvest import _cached_parser
 from clew.threads import (
     DEFAULT_SPAWN_PATTERNS,
     _walk_spawn_sites,
@@ -30,11 +28,6 @@ from clew.threads import (
     patterns_by_name,
 )
 from clew.vocabulary import THREAD_KIND, THREAD_KIND_WIN32
-
-pytestmark = pytest.mark.skipif(
-    try_import_tree_sitter() is None,
-    reason="the spawn-pattern tests need tree_sitter + its C/C++ grammars",
-)
 
 
 ## @brief Parse C source into a tree-sitter tree.
@@ -49,10 +42,7 @@ def _parse_c(src: bytes) -> tuple[Any, bytes]:
     @return The tree and the bytes it was built from.
     @version 3
     """
-    imported = try_import_tree_sitter()
-    assert imported is not None
-    language_cls, parser_cls = imported
-    parser = _cached_parser("substrate:c", {}, parser_cls, language_cls)
+    parser = _cached_parser("substrate:c", {})
     assert parser is not None, "the C grammar must be available"
     return parser.parse(src), src
 

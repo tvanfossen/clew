@@ -47,10 +47,8 @@ version was noise on Python:
     `pow` and `open` are also real libc functions and a C file calling them
     means it.
 
-Degrades to `[]` — never raises — when tree-sitter or its grammars are absent,
-when the working tree cannot be read, or when the file's extension has no
-grammar. That is the same graceful-fallback contract the build's AST layers
-carry, for the same reason: an index built without tree-sitter must still answer.
+Degrades to `[]` — never raises — when the working tree cannot be read, or when
+the file's extension has no grammar, so a query against any index still answers.
 
 @brief Query-time recovery of unresolvable callee names from a function body.
 @version 1
@@ -64,7 +62,7 @@ from pathlib import Path
 from typing import Any
 
 from ..call_edges import _ast_harvest_calls
-from ..harvest import _ast_parse_one_file, _ts_language_for, try_import_tree_sitter
+from ..harvest import _ast_parse_one_file, _ts_language_for
 from ..vocabulary import CALL_SOURCE_AST
 from .models import ExternalCallee
 
@@ -86,7 +84,7 @@ MAX_LINES_PER_CALLEE = 6
 ## @param repo_root Working-tree root the recorded path is relative to.
 ## @param file Repo-relative source path as the index recorded it.
 ## @return List of `[callee_name, line, source, qualifier]` sites, or None on any failure.
-## @version 1
+## @version 2
 ## @dg_internal
 def _harvest_file(repo_root: Path, file: str) -> list[list[Any]] | None:
     """Parses the WHOLE FILE rather than the body slice, which costs more and is the
@@ -102,17 +100,13 @@ def _harvest_file(repo_root: Path, file: str) -> list[list[Any]] | None:
 
     @brief Parse one indexed file and harvest its call sites.
     @return Harvested sites, or None.
-    @version 1
+    @version 2
     """
-    imported = try_import_tree_sitter()
-    if imported is None:
-        return None
-    language, parser = imported
     root = repo_root.expanduser().resolve()
     abs_path = (root / file).resolve()
     if not abs_path.is_relative_to(root):
         return None
-    parsed = _ast_parse_one_file(file, abs_path, {}, parser, language)
+    parsed = _ast_parse_one_file(file, abs_path, {})
     if parsed is None:
         return None
     tree, src_bytes = parsed
