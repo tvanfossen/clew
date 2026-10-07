@@ -3,7 +3,7 @@
 
 Covers the STRICTLY-NO-HARDCODING mandate: the @req id pattern and the
 requirements-catalog column mapping come from the target repo's DECLARED
-`.doxygen-guard.yaml`, with a permissive fallback when nothing is declared.
+`guard:` section of `.clew.yaml`, with a permissive fallback when nothing is declared.
 
 @brief Tests for declaration-driven @req pattern + format-tolerant catalog.
 @version 1
@@ -103,32 +103,32 @@ def test_import_req_edges_permissive_default_populates(tmp_path: Path) -> None:
 # ─── declared pattern (C++-style nested repo) ───────────────────────────────
 
 
-## @brief Write a .doxygen-guard.yaml declaring a C++-style @req pattern.
-## @param tmp_path Pytest tmp dir.
+## @brief Write a .clew.yaml whose guard: section declares a C++-style @req pattern.
+## @param tmp_path Pytest tmp dir, used as the repo root.
 ## @param req_file Catalog file path to reference under impact.requirements.
-## @return Path to the written config.
-## @version 1
+## @return The repo root the config was written into.
+## @version 2
 def _write_guard_config(tmp_path: Path, req_file: str) -> Path:
     """Write a guard config with a declared req pattern + catalog mapping.
 
-    @brief Write a .doxygen-guard.yaml fixture.
-    @version 1
+    @brief Write a .clew.yaml guard-section fixture.
+    @version 2
     """
-    cfg = tmp_path / ".doxygen-guard.yaml"
-    cfg.write_text(
-        "validate:\n"
-        "  tags:\n"
-        "    req:\n"
-        '      pattern: "^REQ-X-[A-Z]+-[0-9]{3}$"\n'
-        "impact:\n"
-        "  requirements:\n"
-        f"    file: {req_file}\n"
-        "    format: yaml\n"
-        '    id_column: "req_id"\n'
-        '    name_column: "summary"\n',
+    (tmp_path / ".clew.yaml").write_text(
+        "guard:\n"
+        "  validate:\n"
+        "    tags:\n"
+        "      req:\n"
+        '        pattern: "^REQ-X-[A-Z]+-[0-9]{3}$"\n'
+        "  impact:\n"
+        "    requirements:\n"
+        f"      file: {req_file}\n"
+        "      format: yaml\n"
+        '      id_column: "req_id"\n'
+        '      name_column: "summary"\n',
         encoding="utf-8",
     )
-    return cfg
+    return tmp_path
 
 
 def test_declared_pattern_read_from_guard_config(tmp_path: Path) -> None:
@@ -263,44 +263,25 @@ def test_is_flat_req_list_honors_declared_id_column() -> None:
 # ─── a rejected guard config must not kill the build ─────────────────────────
 
 
-def test_a_guard_config_rejected_by_doxygen_guard_is_survived(
-    tmp_path: Path, caplog, monkeypatch
-) -> None:
-    """`doxygen_guard.config.load_config` did not RAISE on a bad config — it called
-    `sys.exit(1)`. `SystemExit` derives from BaseException, so it sailed straight
-    through this loader's `except Exception` handler, whose own comment says
-    "config is optional; never fatal", and out through the CLI.
+def test_an_invalid_guard_section_is_survived(tmp_path: Path, caplog) -> None:
+    """An invalid `guard:` section must cost the index its declared values, loudly, and
+    never the build. This loader runs AFTER the doxygen run and every edge-import stage,
+    so a target repo with one stray key used to burn an entire build and then die at
+    exit 1 with a message from a different tool.
 
-    The damage was disproportionate to the cause: this loader runs AFTER the doxygen
-    run and after every edge-import stage, so a target repo with one stray top-level
-    key in its `.doxygen-guard.yaml` burned an entire build and then died at exit 1
-    with a message from a different tool.
-
-    The gate is absorbed as `clew.guard` and raises `ConfigError` now, so the exit is
-    simulated by patching that module — the arm it guards is still the one that matters
-    if a loader ever exits again.
-
-    Both halves are asserted. Returning None is the "never fatal" contract. The
-    WARNING is the other half and matters just as much: the declared `@req` pattern
-    is now unavailable and the build silently falls back to the permissive default,
-    which is the "runs on built-in defaults without saying so" outcome the
-    no-hardcoding mandate exists to prevent."""
+    Both halves are asserted. Returning None is the "never fatal" contract. The WARNING
+    is the other half and matters just as much: the declared `@req` pattern is now
+    unavailable and the build falls back to the permissive default, which is the "runs
+    on built-in defaults without saying so" outcome the no-hardcoding mandate exists to
+    prevent."""
     import logging
 
     from clew import requirements as requirements_module
-    from clew.guard import config as guard_config
 
-    config_path = tmp_path / ".doxygen-guard.yaml"
-    config_path.write_text("stray_top_level_key: true\n", encoding="utf-8")
+    (tmp_path / ".clew.yaml").write_text("guard:\n  stray_top_level_key: true\n", encoding="utf-8")
 
-    def _exit(_path):
-        raise SystemExit(1)
-
-    ## No schema problems reported, so the read takes the STRICT path — the one that exits.
-    monkeypatch.setattr(guard_config, "validate_config_schema", lambda _raw: [])
-    monkeypatch.setattr(guard_config, "load_config", _exit)
     with caplog.at_level(logging.WARNING):
-        result = requirements_module.load_guard_config(config_path)
+        result = requirements_module.load_guard_config(tmp_path)
 
     assert result is None, "a rejected config must degrade to defaults, not propagate"
     assert any("INVALID" in rec.message for rec in caplog.records), (
@@ -420,7 +401,7 @@ def test_this_repo_DECLARES_where_its_own_requirements_catalog_lives() -> None:
     `bd2d34e` taught the index to honour `impact.requirements.file` because a repo that
     declares its catalog had the declaration read by the gate and ignored by the index. We
     shipped that fix for other repos and never applied it to ourselves: this repo's
-    `.doxygen-guard.yaml` had no `impact:` section, so a bare `--scope from-guard` build
+    guard config had no `impact:` section, so a bare `--scope from-guard` build
     ingested ZERO catalog rows.
 
     The failure was invisible from the side anyone looks at. `req_edges` populate from TAGS,
@@ -434,14 +415,13 @@ def test_this_repo_DECLARES_where_its_own_requirements_catalog_lives() -> None:
     """
     import yaml
 
-    from clew.declaration import GUARD_CONFIG_NAME
+    from clew.declaration import DECLARATION_NAME, SECTION_GUARD
 
-    cfg = yaml.safe_load(
-        Path(__file__).resolve().parents[1].joinpath(GUARD_CONFIG_NAME).read_text()
-    )
+    doc = yaml.safe_load(Path(__file__).resolve().parents[1].joinpath(DECLARATION_NAME).read_text())
+    cfg = doc.get(SECTION_GUARD) or {}
     declared = (cfg.get("impact") or {}).get("requirements", {}).get("file")
     assert declared, (
-        f"{GUARD_CONFIG_NAME} must declare impact.requirements.file, or our own index "
+        f"{DECLARATION_NAME} `guard:` must declare impact.requirements.file, or our own index "
         "silently ingests no catalog — the exact hole bd2d34e closed for other repos"
     )
     catalog = Path(__file__).resolve().parents[1] / str(declared)

@@ -36,7 +36,7 @@ class GuardError(Exception):
         return self.details()
 
 
-## @brief Raised when .doxygen-guard.yaml is unreadable or violates the config schema.
+## @brief Raised when the `guard:` section of .clew.yaml is unreadable or violates the schema.
 #  @version 1.0
 #  @req REQ-DDB-GUARD-014
 class ConfigError(GuardError):

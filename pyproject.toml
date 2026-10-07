@@ -107,7 +107,7 @@ include = [
     "/README.md",
     "/LICENSE",
     "/requirements.yaml",
-    "/.doxygen-guard.yaml",
+    "/.clew.yaml",
     "/.pre-commit-config.yaml",
     "/.pre-commit-hooks.yaml",
 ]

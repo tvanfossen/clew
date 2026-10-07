@@ -145,7 +145,6 @@ from .datamodel import import_data_model_keys
 from .kconfig import import_kconfig
 from .kconfig_gates import import_kconfig_gates
 from .locks import extract_locks
-from .precommit import discover_guard_config_logged
 from .preprocessor import PreprocessorConfig, doxyfile_lines, resolve_preprocessor
 from .prose import ingest_supplementary_docs
 from .py_entrypoints import python_entry_seeds
@@ -328,13 +327,8 @@ def report_stats(db_path: Path) -> None:
 ##   * `extra_input` / `extra_exclude` — absorbed by `index_scope:` (`roots:` / `excludes:`),
 ##     which `_apply_scope` folds into exactly these two dests, so the fold target is
 ##     literally the same list the flags appended to.
-##   * `guard_config` — DELETED in favour of discovery, not folded. `discover_guard_config`'s
-##     own docstring is the evidence: it searches the root, the path the doxygen-guard
-##     pre-commit hook names in its `--config` arg, then `conf/ | config/ | .config/`, and it
-##     says "Discovery (not a new flag) is deliberately the fix … a target keeping its config
-##     in `conf/` is indexable through both entry points with nothing passed". The flag's
-##     other job — carrying a declaration in the `x-clew` passthrough — is what
-##     `--declare` now does directly and better, because it needs no guard config at all.
+##   * `guard_config` — DELETED. The gate's config is the `guard:` section of the repo's own
+##     `.clew.yaml`, at the root by definition, so there is no location left to state.
 ##   * `doxyfile` / `scope` — build MECHANICS with no declaration home, kept reachable on the
 ##     typed surface (`build_index(doxyfile=…, scope=…)`, `index(action='refresh',
 ##     doxyfile=…, scope=…)`) and by Doxyfile DISCOVERY for the CLI operator. `SCOPE_DOXYFILE`
@@ -345,7 +339,6 @@ def report_stats(db_path: Path) -> None:
 _FOLDED_BUILD_DEFAULTS: dict[str, Any] = {
     "doxyfile": None,
     "scope": SCOPE_FROM_GUARD,
-    "guard_config": None,
     "enrich": None,
     "requirements": None,
     "extra_input": None,
@@ -753,7 +746,7 @@ def _fold_scope_into_args(args: argparse.Namespace, scope: DerivedScope) -> None
 ## @brief Apply `--scope from-guard` by folding the resolved roots into the args.
 ## @param args Parsed CLI arguments (mutated in place).
 ## @param repo_root Repo root whose declaration is read.
-## @version 9
+## @version 10
 ## @req REQ-DDB-CLI-001
 def _apply_scope(args: argparse.Namespace, repo_root: Path) -> None:
     """`--scope from-guard` RESOLVES the indexed file set from the target's own
@@ -774,7 +767,7 @@ def _apply_scope(args: argparse.Namespace, repo_root: Path) -> None:
     would only be a way for the two to disagree.
 
     @brief Resolve the build's file scope from the requested source.
-    @version 9
+    @version 10
     """
     args.replace_input = False
     if args.scope != SCOPE_FROM_GUARD:
@@ -812,11 +805,7 @@ def _apply_scope(args: argparse.Namespace, repo_root: Path) -> None:
     ## the NARROWEST one an operator asked for. Measured cost on a real repo: a WARNING line
     ## nobody was reading, and a 900s doxygen timeout under a vendored tree the rejected
     ## declaration was trying to keep out.
-    rejection = declared_scope_rejection(
-        repo_root,
-        getattr(args, "guard_config", None),
-        getattr(args, INDEX_SCOPE_SECTION, None),
-    )
+    rejection = declared_scope_rejection(repo_root, getattr(args, INDEX_SCOPE_SECTION, None))
     if rejection is not None:
         logger.error(
             "%s — refusing rather than silently falling back to the whole repository, "
@@ -825,11 +814,7 @@ def _apply_scope(args: argparse.Namespace, repo_root: Path) -> None:
             rejection,
         )
         sys.exit(1)
-    derived = derive_scope_logged(
-        repo_root,
-        getattr(args, "guard_config", None),
-        getattr(args, INDEX_SCOPE_SECTION, None),
-    )
+    derived = derive_scope_logged(repo_root, getattr(args, INDEX_SCOPE_SECTION, None))
     _fold_scope_into_args(args, derived)
     ## STASHED FOR `_scope_provenance`, WHICH USED TO RE-DERIVE THIS FROM SCRATCH — a second
     ## full `nested_repo_roots`/`_gitignored_paths` walk of the whole repository, on every
@@ -1814,7 +1799,7 @@ def _doxygen_stage(
 
 ## @brief Run every build stage against one (temp) output DB path.
 ## @param timer Stage timer; one `mark` closes each stage below. A fresh one when omitted.
-## @version 56
+## @version 57
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -1844,7 +1829,7 @@ def _build_stages(
     per file. It changes no stage's position and emits nothing — see harvest.py.
 
     @brief Execute every augmentation stage against one output database.
-    @version 49
+    @version 50
     """
     timer = timer or StageTimer()
     repo_root = Path(args.repo_root).resolve() if args.repo_root else doxyfile.parent
@@ -1857,7 +1842,7 @@ def _build_stages(
     # decides what doxygen is even asked to parse — unlike every other section, which
     # annotates an already-built graph. It was previously read twice further down; one
     # read now serves all three consumers.
-    decl = _with_stated_sections(load_declaration(repo_root, args.guard_config), args)
+    decl = _with_stated_sections(load_declaration(repo_root), args)
     _apply_declared_paths(args, decl, repo_root)
     preprocessor = resolve_preprocessor(repo_root, decl, getattr(args, "predefined", None))
     timer.mark("declaration")
@@ -2184,18 +2169,10 @@ def _build_stages(
     timer.mark("thread_boundaries")
 
     requirements_yaml = Path(args.requirements).resolve() if args.requirements else None
-    # Declaration-driven requirement-tag handling: explicit --guard-config, else the
-    # UNIFIED discovery in `precommit` — root, the path the pre-commit hook's args
-    # declare, then convention (gh#16). This site used to hardcode the root literal,
-    # one of three independent copies; `load_guard_config` returns None (→ permissive
-    # fallback) when nothing is found, so builds still work config-free, and
-    # `_logged` now says which config was used or where it looked and failed.
-    # `repo_root` travels with the path so a VERSION SKEW can name the `rev:` the target
-    # pins as well as the release we import (gh#32) — a report with only our half of the
-    # story reads as the target author's mistake.
-    guard_cfg = load_guard_config(
-        discover_guard_config_logged(repo_root, args.guard_config).path, repo_root
-    )
+    # Declaration-driven requirement-tag handling: the `guard:` section of the repo's
+    # `.clew.yaml`, the same section the gate reads. `load_guard_config` returns None
+    # (→ permissive fallback) when nothing is declared, so builds still work config-free.
+    guard_cfg = load_guard_config(repo_root)
     req_id_pattern = resolve_req_id_pattern(guard_cfg)
     ## gh#368 follow-up: ONE resolver for both doors. The MCP server used to compose
     ## `repo/"requirements.yaml"` and pass it as this flag, which put the CONVENTION above
@@ -2569,7 +2546,7 @@ def _depth_limit_scope(rel: Any) -> dict[str, str]:
 ## @param rel Callable rendering a path repo-relative.
 ## @param args Parsed CLI arguments, carrying the guard config and any stated sections.
 ## @return Mapping of `vendored_*` keys, empty when nothing was declared.
-## @version 1
+## @version 2
 ## @dg_internal
 def _vendored_scope(root: Path, rel: Any, args: argparse.Namespace) -> dict[str, str]:
     """ONLY PATHS THAT EXIST ARE NAMED, and the rest are COUNTED. gh#335 nearly published a
@@ -2587,7 +2564,7 @@ def _vendored_scope(root: Path, rel: Any, args: argparse.Namespace) -> dict[str,
 
     @brief Flatten declared vendored paths, naming only the ones present.
     @return Mapping of `vendored_*` keys.
-    @version 1
+    @version 2
     """
     ## RE-DERIVED FROM THE SAME INPUTS the stages got, not carried. `diagnostics.collect`
     ## makes this argument for itself: "CALLED WITH THE SAME INPUTS THE STAGES GOT, which is
@@ -2604,10 +2581,7 @@ def _vendored_scope(root: Path, rel: Any, args: argparse.Namespace) -> dict[str,
     stated = getattr(args, "vendored", None)
     if stated is None:
         try:
-            stated = (
-                load_declaration(root, getattr(args, "guard_config", None)).get(SECTION_VENDORED)
-                or ()
-            )
+            stated = load_declaration(root).get(SECTION_VENDORED) or ()
         except Exception as exc:  # pragma: no cover - metadata must not break a built index
             logger.warning("vendored paths not recorded (%s)", exc)
             return {}
@@ -2699,7 +2673,7 @@ def _doxyfile_scope(root: Path, rel: Any, stated: str | None = None) -> dict[str
 ## @param repo_root Repository root, or None when unknown.
 ## @param args Parsed CLI arguments, which carry the tier the build actually took.
 ## @return {source, reason, roots, excludes, operator_excludes, doxyfile_*} as strings; empty when nothing was resolved.
-## @version 12
+## @version 13
 ## @req REQ-DDB-CONFIG-001
 def _scope_provenance(repo_root: Path | None, args: argparse.Namespace) -> dict[str, str]:
     """A PURE FUNCTION OF THE REPO AGAIN (gh#333). It used to read the tier from
@@ -2733,7 +2707,7 @@ def _scope_provenance(repo_root: Path | None, args: argparse.Namespace) -> dict[
 
     @brief Flatten the resolved scope into build_meta values, repo-relative.
     @return Mapping of provenance keys to strings.
-    @version 10
+    @version 11
     """
     if repo_root is None:
         return {}
@@ -2761,9 +2735,7 @@ def _scope_provenance(repo_root: Path | None, args: argparse.Namespace) -> dict[
         derived = cached
     else:
         try:
-            derived = derive_scope(
-                root, getattr(args, "guard_config", None), getattr(args, INDEX_SCOPE_SECTION, None)
-            )
+            derived = derive_scope(root, getattr(args, INDEX_SCOPE_SECTION, None))
         except Exception as exc:
             logger.warning("scope provenance not recorded (%s)", exc)
             return {}
@@ -3279,7 +3251,7 @@ def build_index(
 ## @param args Parsed CLI arguments.
 ## @param output Resolved --output path (its parent hosts a synthesized Doxyfile).
 ## @return (doxyfile, repo_root). Exits 1 when neither can be established.
-## @version 3
+## @version 4
 ## @dg_internal
 def _resolve_doxyfile_and_root(args: argparse.Namespace, output: Path) -> tuple[Path, Path]:
     """EXTRACTED from `_run_pipeline`, which the gh#3/gh#4 messaging work took to
@@ -3293,7 +3265,7 @@ def _resolve_doxyfile_and_root(args: argparse.Namespace, output: Path) -> tuple[
 
     @brief Decide the Doxyfile and repo root for this build.
     @return The resolved (doxyfile, repo_root) pair.
-    @version 3
+    @version 4
     """
     doxyfile = Path(args.doxyfile).resolve() if args.doxyfile else None
     if doxyfile is None and args.repo_root:
@@ -3310,7 +3282,7 @@ def _resolve_doxyfile_and_root(args: argparse.Namespace, output: Path) -> tuple[
     elif (
         args.scope == SCOPE_FROM_GUARD
         and args.repo_root
-        and derive_scope(Path(args.repo_root).resolve(), args.guard_config).is_derived()
+        and derive_scope(Path(args.repo_root).resolve()).is_derived()
     ):
         # No usable Doxyfile, but the repo DECLARES its scope (a doxygen-guard
         # hook that actually derives roots) — synthesize a minimal one rather

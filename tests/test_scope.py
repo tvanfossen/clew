@@ -17,7 +17,6 @@ from pathlib import Path
 
 import pytest
 
-from clew import precommit as pc
 from clew import scope as sc
 
 
@@ -150,81 +149,7 @@ def test_no_declaration_yields_the_whole_repo(tmp_path: Path) -> None:
     assert not derived.is_derived()
     assert derived.roots == (root.resolve(),)
     assert sc.INDEX_SCOPE_SECTION in derived.reason
-    assert pc.GUARD_CONFIG_NAME in derived.reason
-
-
-## @brief A pre-commit config with other hooks but no doxygen-guard reads as no hook.
-## @version 3
-def test_other_hook_ids_are_ignored(tmp_path: Path) -> None:
-    """The hook is matched by ID, never by repo URL or position. A config full of
-    other hooks — including ones with their own `files:` patterns — declares no
-    doxygen mandate.
-
-    Asserted through `discover_guard_config`, the live consumer of the hook
-    lookup. The decoy hook carries its OWN `--config` arg naming a file that
-    EXISTS, which is what gives this test teeth: matching the first hook by
-    position instead of by id would read that argument and report another tool's
-    config as this repo's guard config. `tools/` is deliberately not one of the
-    conventional guard-config directories, so nothing else can find it either.
-
-    @brief The gate declaration is located by hook id alone.
-    @version 3
-    """
-    root = _repo(
-        tmp_path / "repo",
-        """\
-        repos:
-          - repo: https://example.invalid/other
-            rev: v1
-            hooks:
-              - id: some-other-linter
-                files: ^src/.*\\.c$
-                args: ["--config", "tools/other-linter.yaml"]
-        """,
-    )
-    _write(root / "src" / "a.c")
-    _write(root / "tools" / "other-linter.yaml", "other-linter: {}\n")
-
-    location = pc.discover_guard_config(root)
-
-    assert location.path is None, "another hook's --config is not this repo's guard config"
-    assert location.source == pc.GUARD_SOURCE_NONE
-
-
-## @brief The hook id is matched even for a `repo: local` declaration.
-## @version 3
-def test_local_repo_hook_is_found(tmp_path: Path) -> None:
-    """Adopting repos run doxygen-guard either from its upstream URL or as a
-    `repo: local` system hook — reading the declaration must not care which.
-
-    Asserted through `discover_guard_config`, the live consumer of the hook
-    lookup. The declared config sits in `tools/`, which the conventional finder
-    does not search, so it is reachable ONLY by locating the `repo: local` hook
-    by its id — a fallback cannot answer for the mechanism under test.
-
-    @brief A `repo: local` doxygen-guard hook is found by id.
-    @version 3
-    """
-    root = _repo(
-        tmp_path / "repo",
-        """\
-        repos:
-          - repo: local
-            hooks:
-              - id: doxygen-guard
-                entry: doxygen-guard validate
-                language: system
-                files: ^core/.*\\.c$
-                args: ["validate", "--config", "tools/guard.yaml"]
-        """,
-    )
-    _write(root / "core" / "a.c")
-    _write(root / "tools" / "guard.yaml", "validate: {}\n")
-
-    location = pc.discover_guard_config(root)
-
-    assert location.path == (root / "tools" / "guard.yaml").resolve()
-    assert location.source == pc.GUARD_SOURCE_HOOK_ARGS
+    assert ".clew.yaml" in derived.reason
 
 
 ## @brief Dot-directories are excluded from the whole-repo scope, not indexed.
@@ -386,31 +311,6 @@ def test_unparseable_config_falls_back_to_the_whole_repo(tmp_path: Path) -> None
     (root / ".pre-commit-config.yaml").write_text("repos: [ unbalanced\n", encoding="utf-8")
 
     assert sc.derive_scope(root).source == sc.SOURCE_WHOLE_REPO
-
-
-## @brief A valid-but-non-dict config does not crash guard-config discovery.
-## @version 2
-def test_non_dict_config_does_not_crash_guard_discovery(tmp_path: Path) -> None:
-    """Parses cleanly yet isn't the expected mapping — the `isinstance(data,
-    dict)` guard in `_load_precommit_config` must return None rather than hand a
-    LIST to `_find_guard_hook`, which would raise `AttributeError` on `.get`.
-    Distinct from the unparseable case (this YAML is valid, just the wrong shape).
-
-    Asserted through `discover_guard_config`, which reaches that guard on its
-    hook-args step; the repo has no root-level guard config, so the step is
-    actually taken rather than short-circuited.
-
-    @brief Valid non-dict YAML reads as 'no declaration'.
-    @version 2
-    """
-    root = tmp_path / "repo"
-    root.mkdir()
-    (root / ".pre-commit-config.yaml").write_text("- just\n- a\n- list\n", encoding="utf-8")
-
-    location = pc.discover_guard_config(root)
-
-    assert location.path is None
-    assert location.source == pc.GUARD_SOURCE_NONE
 
 
 ## @brief Build a repo whose guard gates only src/ but which has more code.

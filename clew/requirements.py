@@ -5,7 +5,7 @@ Three stages, run after the call-graph layers and before reachability:
 
   1. `ingest_requirements_yaml` — loads a target repo's OPTIONAL, format-
      tolerant `requirements.yaml`. Ingests only the flat `[{id, ...}]` shape
-     (id/name columns via the repo's DECLARED `.doxygen-guard.yaml`
+     (id/name columns via the repo's DECLARED `.clew.yaml` `guard:`
      `impact.requirements` mapping when present, else the {id,title,...}
      convention). Nested/unknown catalogs (e.g. a `domains:` tree) yield 0
      rows — the structure is never guessed. No universal format is assumed.
@@ -13,7 +13,7 @@ Three stages, run after the call-graph layers and before reachability:
   2. `import_req_edges` — scans `memberdef.briefdescription` and
      `memberdef.detaileddescription` for `@req <id>` tags, keeping ids that
      match the target repo's DECLARED pattern
-     (`.doxygen-guard.yaml` `validate.tags.req.pattern`) or a permissive
+     (`.clew.yaml` `guard.validate.tags.req.pattern`) or a permissive
      fallback — NOT a hardcoded `REQ-\\d+`. Populates
      `req_edges(req_id, memberdef_rowid)` regardless of whether the catalog
      parsed. There is NO confidence column: the `[inferred]` marker was retired
@@ -84,58 +84,35 @@ _XREF_DESC_RE = re.compile(
 _ID_TOKEN_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
 
 # Permissive fallback used when the target repo declares NO `@req` id pattern
-# (no .doxygen-guard.yaml, or no validate.tags.req.pattern). Deliberately NOT
+# (no `guard:` section in .clew.yaml, or no validate.tags.req.pattern). Deliberately NOT
 # the old hardcoded `REQ-\d+` — it accepts any `REQ-<alnum>...` id (demobot's
 # `REQ-0621`, `REQ-PROJ-NAV-002`, etc.) so req_edges populate for any
 # repo that has not declared a stricter shape.
 _PERMISSIVE_REQ_ID_RE = re.compile(r"^REQ-[A-Za-z0-9][A-Za-z0-9_-]*$")
 
 
-## @brief Load a target repo's .doxygen-guard.yaml (declaration source).
-## @param guard_config_path Path to the repo's .doxygen-guard.yaml, or None.
-## @param repo_root Repo root, so a version skew can name the rev the target pins.
+## @brief Load a target repo's gate config: the `guard:` section of its `.clew.yaml`.
+## @param repo_root Repo root whose `.clew.yaml` is read.
 ## @return Parsed config dict, or None if absent / unusable.
-## @version 6
+## @version 7
 ## @req REQ-DDB-CONFIG-001
-def load_guard_config(
-    guard_config_path: Path | None, repo_root: Path | str | None = None
-) -> dict | None:
-    """Load a repo's `.doxygen-guard.yaml` through `guardconfig.read_guard_config`.
-
-    Single source of the config load so both the `@req` pattern resolution
+def load_guard_config(repo_root: Path | str) -> dict | None:
+    """Single source of the config load so both the `@req` pattern resolution
     and the catalog column mapping read from ONE parsed dict. Returns None
-    (not an error) when there is no config to read — every declaration-driven
-    lookup then falls back to its permissive built-in default.
+    (not an error) when there is nothing declared — every declaration-driven
+    lookup then falls back to its permissive built-in default. An invalid section
+    is reported by `guardconfig.read_guard_config` and also returns None.
 
-    THE READ IS PERMISSIVE (gh#32). It used to call `doxygen_guard.config.load_config`
-    directly, which is a GATE's loader: one key from another doxygen-guard release and
-    the whole document was refused, taking the declared `@req` id pattern and catalog
-    mapping with it. A target pins its own release and we pin ours, so that is the
-    normal case at scale rather than an authoring error — `read_guard_config` drops the
-    keys we never read, keeps the ones we do, and reports the skew as a skew.
-
-    The `SystemExit` arm that used to live here moved with the load; the note on why it
-    is kept is in `guardconfig._strict_load`.
-
-    @brief Load the target repo's declared doxygen-guard config, tolerating skew.
-    @version 6
+    @brief Load the target repo's declared gate config.
     """
-    if guard_config_path is None or not guard_config_path.exists():
-        return None
     from .guardconfig import read_guard_config
 
-    read = read_guard_config(guard_config_path, repo_root)
+    read = read_guard_config(repo_root)
     return read.config if read.usable() else None
 
 
-## The unusable-config warning MOVED to `guardconfig._warn_unusable` with the load it
-## belongs to (gh#32). It is one function, not two, for the same reason discovery is one
-## function: two copies of "what happens when the guard config cannot be used" is how one
-## consumer ends up tolerant and the other fatal on the same file.
-
-
 ## @brief Resolve the target repo's DECLARED `@req` id pattern (or fallback).
-## @param guard_cfg Parsed .doxygen-guard.yaml dict, or None.
+## @param guard_cfg Parsed `guard:` section of .clew.yaml, or None.
 ## @return Compiled regex the captured `@req` id token must fully match.
 ## @version 3
 ## @req REQ-DDB-CONFIG-001
@@ -160,7 +137,7 @@ def resolve_req_id_pattern(guard_cfg: dict | None) -> re.Pattern[str]:
 
 
 ## @brief Resolve the DECLARED requirements-catalog id/name column names.
-## @param guard_cfg Parsed .doxygen-guard.yaml dict, or None.
+## @param guard_cfg Parsed `guard:` section of .clew.yaml, or None.
 ## @return (id_column, name_column) — declared mapping or {id,title} default.
 ## @version 4
 ## @req REQ-DDB-CONFIG-001
@@ -235,13 +212,13 @@ def _create_requirements_table(conn: sqlite3.Connection) -> None:
 ## @param entry One catalog entry.
 ## @param keys Candidate keys, most specific first.
 ## @return The first truthy value, or None.
-## @version 1
+## @version 2
 ## @dg_internal
 def _first(entry: dict, *keys: str) -> object | None:
     """ONE CATALOG, TWO VOCABULARIES. Our own flat shape says `{block, title, acceptance,
     priority}`; doxygen-guard's keyed YAML catalog says `{subsystem, name,
     acceptance_criteria}` with `name` as its only required field, and our extras move behind
-    the `x-` passthrough prefix. Both are legitimate, and a repo that adopts the guard's shape
+    an `x-` prefix. Both are legitimate, and a repo that adopts the guard's shape
     is the normal case rather than an oddity.
 
     Reading one spelling only is what broke here: converting this repo's catalog to the keyed
@@ -252,7 +229,7 @@ def _first(entry: dict, *keys: str) -> object | None:
 
     @brief Pick the first populated key from a candidate list.
     @return The value, or None when no candidate is present.
-    @version 1
+    @version 2
     """
     for key in keys:
         value = entry.get(key)
@@ -345,7 +322,7 @@ def _keyed_req_entries(data: object) -> list[dict]:
 ## @brief Load a target repo's requirements.yaml into the requirements table.
 ## @param db_path Path to the clew.db being built.
 ## @param requirements_yaml Path to requirements.yaml, or None if absent.
-## @param guard_cfg Parsed .doxygen-guard.yaml dict (declares column mapping), or None.
+## @param guard_cfg Parsed `guard:` section of .clew.yaml (declares column mapping), or None.
 ## @version 6
 ## @req REQ-DDB-SCHEMA-006
 def ingest_requirements_yaml(
@@ -717,10 +694,10 @@ def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
 
 
 ## @brief The catalog path a repo DECLARES, when it declares one.
-## @param guard_cfg Parsed .doxygen-guard.yaml dict, or None.
+## @param guard_cfg Parsed `guard:` section of .clew.yaml, or None.
 ## @param repo_root Repo root the declared path is relative to.
 ## @return Resolved catalog path when declared and present, else None.
-## @version 1
+## @version 2
 ## @req REQ-DDB-SCHEMA-006
 def declared_catalog_path(guard_cfg: dict | None, repo_root: Path) -> Path | None:
     """Honour `impact.requirements.file`, which the GATE already reads.
@@ -742,7 +719,7 @@ def declared_catalog_path(guard_cfg: dict | None, repo_root: Path) -> Path | Non
 
     @brief Resolve the declared requirements-catalog path, if any.
     @return Path when declared and present, else None.
-    @version 1
+    @version 2
     """
     declared = _declared_catalog_field(guard_cfg)
     if not declared:
@@ -750,7 +727,7 @@ def declared_catalog_path(guard_cfg: dict | None, repo_root: Path) -> Path | Non
     path = (repo_root / str(declared)).resolve()
     if not path.exists():
         logger.warning(
-            "requirements: .doxygen-guard.yaml declares impact.requirements.file=%s but %s "
+            "requirements: .clew.yaml guard: declares impact.requirements.file=%s but %s "
             "does not exist — ingesting no catalog; @req edges still populate from tags",
             declared,
             path,
@@ -776,7 +753,7 @@ _CONVENTIONAL_CATALOGS = (
 
 
 ## @brief The catalog path to ingest: declared first, then the conventional filename.
-## @param guard_cfg Parsed .doxygen-guard.yaml dict, or None.
+## @param guard_cfg Parsed `guard:` section of .clew.yaml, or None.
 ## @param repo_root Repo root both candidates are relative to.
 ## @return Resolved catalog path, or None when none exists.
 ## @version 2
@@ -830,7 +807,7 @@ def resolve_catalog_path(guard_cfg: dict | None, repo_root: Path) -> Path | None
 
 
 ## @brief The raw `impact.requirements.file` value a config declares, if any.
-## @param guard_cfg Parsed .doxygen-guard.yaml dict, or None.
+## @param guard_cfg Parsed `guard:` section of .clew.yaml, or None.
 ## @return The declared path string, or '' when nothing is declared.
 ## @version 2
 ## @dg_internal

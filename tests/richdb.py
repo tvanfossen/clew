@@ -1144,12 +1144,8 @@ def run_real_stages(db: Path, repo_root: Path) -> None:
     ## the table is correctly EMPTY here and must still EXIST. Position mirrors the CLI's,
     ## below the shared-key layers.
     import_data_model_keys(db, repo_root, ())
-    # Via the SAME unified discovery the CLI uses (gh#16), not a third copy of the
-    # root literal — a helper that hardcodes what production discovers cannot
-    # exercise the discovery, so a subdir-config regression would pass here.
-    from clew.precommit import discover_guard_config
-
-    guard_cfg = load_guard_config(discover_guard_config(repo_root).path)
+    # Through the SAME loader the CLI uses: the `guard:` section of the repo's `.clew.yaml`.
+    guard_cfg = load_guard_config(repo_root)
     ingest_requirements_yaml(db, repo_root / "requirements.yaml", guard_cfg)
     import_req_edges(db, resolve_req_id_pattern(guard_cfg))
     import_req_test_edges(db)

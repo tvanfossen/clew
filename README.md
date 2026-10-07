@@ -318,10 +318,9 @@ Nothing about a target repo is hardcoded: every section above is a declared over
 a built-in default. The identical mapping is the `options` argument of `build_index()` and
 of the MCP `index(action="refresh")` tool, so an agent with no shell can state any of it.
 
-The repo's `.doxygen-guard.yaml` — which supplies the declared `@req` id pattern and the
-catalog column mapping — is **discovered** from `--repo-root`: its root, then the path the
-`doxygen-guard` pre-commit hook (upstream's or this repo's) names in its own `--config` argument, then
-`conf/ | config/ | .config/`.
+The declared `@req` id pattern and the catalog column mapping come from the `guard:` section
+of the same `.clew.yaml` — the gate's config, read by the index with the gate's schema (see
+[docs/GUARD.md](docs/GUARD.md)).
 
 ### Commit what you stated
 
@@ -400,9 +399,11 @@ catalog lives in `requirements.yaml`.
 ## The doxygen gate (`clew guard`)
 
 doxygen-guard was a separate tool that clew consumed as a pip dependency. It is now part of
-clew (`clew/guard/`, absorbed at its 1.4.2 release), so a target's `.doxygen-guard.yaml` is
-read by the same schema the gate enforces. The config file, the tags and the hook id are
-unchanged. Adopting repos switch the hook's `repo:` and `rev:` to this repository. The gate
+clew (`clew/guard/`, absorbed at its 1.4.2 release). Its config is the `guard:` section of the
+repo's `.clew.yaml`, so the gate and the index read one file with one schema;
+`.doxygen-guard.yaml` is no longer read. The tags and the hook id are unchanged. Adopting repos
+switch the hook's `repo:` and `rev:` to this repository and move their config — see
+[Migrating from doxygen-guard](docs/GUARD.md#migrating-from-doxygen-guard). The gate
 also checks Rust (rustdoc `///` comments) when a repo declares it. Its scope is unchanged:
 validation, traceability and change impact. It is optional, and the index pipeline never runs
 it. Full reference: [docs/GUARD.md](docs/GUARD.md).

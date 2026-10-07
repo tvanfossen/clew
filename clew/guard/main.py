@@ -58,7 +58,7 @@ _RETIRED_SUBCOMMANDS = {
 
 
 ## @brief Create argparse parser with validate/impact/coverage subcommands.
-#  @version 1.4
+#  @version 1.5
 #  @dg_internal
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -69,7 +69,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--config",
         type=Path,
         default=None,
-        help="Path to .doxygen-guard.yaml (default: .doxygen-guard.yaml in cwd)",
+        help="Path to the .clew.yaml whose `guard:` section configures the gate "
+        "(default: .clew.yaml in cwd)",
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output")
 

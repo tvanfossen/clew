@@ -2817,7 +2817,7 @@ class DocsDbServer:
     ## @param options Tier-1 build options keyed by declaration-file section name; None states nothing.
     ## @param skip_if_fresh Skip when another process made the index current while waiting.
     ## @return Result dict (ok / built / doxyfile / output, plus error and traceback on a failure).
-    ## @version 1
+    ## @version 2
     ## @req REQ-DDB-CONFIG-008
     ## @dg_internal
     def _run_build_walked(
@@ -2863,7 +2863,7 @@ class DocsDbServer:
 
         @brief Execute the build pipeline in-process.
         @return Build result dict.
-        @version 11
+        @version 12
         """
         from ..cli import build_index
 
@@ -2982,7 +2982,7 @@ class DocsDbServer:
                     from ..scope import INDEX_SCOPE_SECTION, declared_scope_rejection
 
                     stated_scope = (options or {}).get(INDEX_SCOPE_SECTION)
-                    rejection = declared_scope_rejection(repo, None, stated_scope)
+                    rejection = declared_scope_rejection(repo, stated_scope)
                     if rejection is not None:
                         raise ValueError(
                             f"{rejection} — refusing rather than silently falling back to the "

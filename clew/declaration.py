@@ -54,32 +54,25 @@ from ._common import logger
 ## cycle, and it is the one section owner whose section NAME lives here rather than
 ## with the owner (its vocabulary is a declaration format, not an internal constant).
 from .event_edges import CONSUMER, PRODUCER
-from .precommit import (
-    GUARD_CONFIG_NAME as GUARD_CONFIG_NAME,
-)
-from .precommit import discover_guard_config
+from .guard.config import CONFIG_FILE_NAME, CONFIG_SECTION
 from .vocabulary import DeclarationError
 
-## The conventional filename. clew's OWN interface — not an assumption about
-## any target's layout — in the same spirit as `.doxygen-guard.yaml`.
-DECLARATION_NAME = ".clew.yaml"
+## The conventional filename. clew's OWN interface — not an assumption about any target's
+## layout. One file for the index's declaration AND the gate's config: the gate reads its
+## `guard:` section, and owns the name, so the two can never disagree about it.
+DECLARATION_NAME = CONFIG_FILE_NAME
+
+## The gate's section of the file (clew/guard/config.py). NOT a declaration section, so it is
+## not in KNOWN_SECTIONS (whose every member is a build option too): the loader accepts it and
+## drops it, because nothing on the index side reads it as a declaration. The index reads the
+## gate's values through `guardconfig.read_guard_config`, with the gate's schema.
+SECTION_GUARD = CONFIG_SECTION
 
 ## How `stated_document_meta` joins the section names. A COMMA-SPACE, matching `scope.py`'s
 ## separator rather than `tiers.py`'s newline, and safe here for the reason `tiers` is not:
 ## these are section names drawn from `KNOWN_SECTIONS`, every one of which is a bare
 ## lowercase identifier, so no value can contain the separator.
 SECTION_SEPARATOR = ", "
-
-## The file a target repo already maintains for the GATE. Its `x-` passthrough is the
-## second place a declaration may live, so a repo needs no file that exists only for us.
-##
-## RE-EXPORTED from `precommit`, which owns discovery, rather than declared twice.
-## The duplicate literal was one of gh#16's three independent hardcodings of the repo
-## root, and the passthrough was the consumer that `--guard-config` could not reach.
-
-## The tool name the passthrough key is suffixed with: `x-clew`. Matches the
-## distribution name, so a reader seeing it in someone else's config knows what owns it.
-PASSTHROUGH_TOOL = "clew"
 
 ## Scope a repository states for its OWN named sub-indexes (gh#39). Keyed by the derived
 ## sub-index name, so a parent can trim a vendored tree it does not own — the case a
@@ -264,40 +257,39 @@ KNOWN_SECTIONS = frozenset(
     }
 )
 
+## Every top-level key `.clew.yaml` may carry: the declaration sections plus the gate's.
+ACCEPTED_SECTIONS = KNOWN_SECTIONS | {SECTION_GUARD}
+
 
 ## @brief Load a repo's `.clew.yaml`, or an empty mapping when it has none.
 ## @param repo_root Repo root to look in.
-## @param guard_config Explicit guard-config path overriding discovery, or None.
 ## @return The parsed declaration; empty when absent, unreadable, or not a mapping.
 ##         Raises DeclarationError when the document names an unknown section.
-## @version 6
+## @version 7
 ## @req REQ-DDB-CONFIG-001
-def load_declaration(
-    repo_root: Path | str | None, guard_config: Path | str | None = None
-) -> dict[str, Any]:
+def load_declaration(repo_root: Path | str | None) -> dict[str, Any]:
     """@brief Read the target's declared conventions, discarding their provenance.
     @return Parsed mapping, or {} when there is nothing usable.
-    @version 6
+    @version 7
     """
-    return load_declaration_located(repo_root, guard_config)[0]
+    return load_declaration_located(repo_root)[0]
 
 
 ## @brief A repo's declaration AND the file it was read from.
 ## @param repo_root Repo root to look in.
-## @param guard_config Explicit guard-config path overriding discovery, or None.
 ## @return (declaration, source path) — the path is None when nothing was declared.
 ##         Raises DeclarationError when the document names an unknown section.
-## @version 1
+## @version 2
 ## @req REQ-DDB-CONFIG-001
 def load_declaration_located(
-    repo_root: Path | str | None, guard_config: Path | str | None = None
+    repo_root: Path | str | None,
 ) -> tuple[dict[str, Any], Path | None]:
-    """THE PATH TRAVELS WITH THE DATA (gh#20). A declaration may live in the dedicated
-    `.clew.yaml` or in the guard config's `x-` passthrough, and `scope.py` reports
-    WHERE it read the index scope from — it used to state `<root>/.clew.yaml`
-    unconditionally, naming a file that need not exist. A provenance string that is
-    checkable and wrong is worse than none: it sends an owner to edit nothing, which is
-    `discover_doxyfile`'s lesson about a wrong answer beating no answer.
+    """THE PATH TRAVELS WITH THE DATA (gh#20): `scope.py` reports WHERE it read the
+    index scope from, and None when nothing was declared, rather than naming a file
+    that need not exist.
+
+    The `guard:` section is the gate's and is dropped from the result, so a file that
+    configures only the gate declares nothing to the index.
 
     Absent is the norm, not an error: most repos declare nothing and run
     entirely on built-in defaults. An unreadable or malformed file is reported
@@ -315,37 +307,24 @@ def load_declaration_located(
 
     @brief Read the target's declared conventions and their source file.
     @return (parsed mapping, source path) — ({}, None) when there is nothing usable.
-    @version 1
+    @version 2
     """
     if repo_root is None:
         return {}, None
     root = Path(repo_root).expanduser()
     path = root / DECLARATION_NAME
     data = _read_mapping(path) if path.is_file() else {}
-    if not data:
-        ## THE PASSTHROUGH. doxygen-guard reserves the `x-` prefix for consumers
-        ## (`config --schema` reports `passthrough_prefix: "x-"`, contract_version 2) and
-        ## `load_config` preserves such keys verbatim. So a target repo can declare
-        ## everything in the ONE config file it already maintains for the gate, instead of
-        ## carrying a second file that exists only for this tool.
-        ##
-        ## Read only when there is no `.clew.yaml`, so a repo that has both gets
-        ## the dedicated file — the more specific declaration wins, matching every other
-        ## precedence rule here (CLI flag > declaration > guard > Doxyfile).
-        ## The path travels back with the data because it is what the unknown-section
-        ## refusal below NAMES. It used to be re-derived as `root / GUARD_CONFIG_NAME`,
-        ## which was correct only while discovery could not look anywhere else; with a
-        ## config in `conf/` that literal would have blamed a file that does not exist.
-        data, path = _passthrough_declaration(root, guard_config)
     if data:
-        unknown = sorted(str(key) for key in data if key not in KNOWN_SECTIONS)
+        unknown = sorted(str(key) for key in data if key not in ACCEPTED_SECTIONS)
         if unknown:
             raise DeclarationError(
                 f"{path}: unknown section(s) {', '.join(repr(k) for k in unknown)} "
-                f"— allowed: {', '.join(sorted(KNOWN_SECTIONS))}. Nothing reads an "
+                f"— allowed: {', '.join(sorted(ACCEPTED_SECTIONS))}. Nothing reads an "
                 f"unknown section, so the build would have used built-in defaults "
                 f"while reporting that your declaration was honoured."
             )
+        data = {key: value for key, value in data.items() if key != SECTION_GUARD}
+    if data:
         logger.info("declaration: %s declares %s", path, ", ".join(sorted(data)))
     return data, (path if data else None)
 
@@ -405,7 +384,7 @@ def _parsed_declaration(path: Path) -> tuple[dict[str, Any], str | None]:
 ## @brief One sentence on a repository's `.clew.yaml` and whether a build honours it.
 ## @param repo_root The repository root.
 ## @return The sentence, or "" when the repository has no `.clew.yaml`.
-## @version 1
+## @version 2
 ## @req REQ-DDB-CONFIG-001
 def describe_declaration(repo_root: Path) -> str:
     """gh#48 ASK 4. A reporter's split repository carried a `.clew.yaml` that was comments only, so
@@ -418,7 +397,7 @@ def describe_declaration(repo_root: Path) -> str:
 
     @brief Describe a repository's declaration file for a message.
     @return The sentence, or "".
-    @version 1
+    @version 2
     """
     path = Path(repo_root) / DECLARATION_NAME
     if not path.is_file():
@@ -431,7 +410,12 @@ def describe_declaration(repo_root: Path) -> str:
             f"Its {DECLARATION_NAME} holds only comments, so it states nothing and built-in "
             f"defaults apply — uncomment a section to have builds honour it."
         )
-    sections = ", ".join(sorted(str(k) for k in data))
+    sections = ", ".join(sorted(str(k) for k in data if k != SECTION_GUARD))
+    if not sections:
+        return (
+            f"Its {DECLARATION_NAME} configures only the gate (`{SECTION_GUARD}:`), so builds "
+            f"run on built-in defaults."
+        )
     return f"Its {DECLARATION_NAME} declares {sections}, which every build honours."
 
 
@@ -590,105 +574,3 @@ def declared_path(
         logger.warning("declaration: %s names %s, which does not exist — ignoring", name, path)
         return None
     return path
-
-
-## @brief The `x-clew` section of a repo's .doxygen-guard.yaml, if present.
-## @param repo_root Repo root to look in.
-## @param guard_config Explicit guard-config path overriding discovery, or None.
-## @return (passthrough mapping, the config path it was read from or would have been).
-## @version 4
-## @dg_internal
-def _passthrough_declaration(
-    repo_root: Path, guard_config: Path | str | None = None
-) -> tuple[dict[str, Any], Path]:
-    """Read this tool's config out of the file the repo ALREADY maintains.
-
-    doxygen-guard reserves the `x-` prefix for consumers — `config --schema` reports
-    `passthrough_prefix: "x-"` at `contract_version: 2`, and `load_config` preserves such
-    keys verbatim rather than rejecting them as unknown. Verified live before this was
-    written, not taken from the schema alone.
-
-    WHY THIS EXISTS. The alternative shapes were all rejected on their own merits:
-    args-only cannot work because the MCP server has no argv (that hole is exactly what
-    `.clew.yaml` was created to close); a second checked-in file is maintenance the
-    owner does not want; a file under our state directory is invisible, which is worse than
-    maintained. A repo that runs the gate already maintains `.doxygen-guard.yaml`, so
-    declaring here is the only option that adds no new artifact.
-
-    The prefix is read from `clew.guard.config.PASSTHROUGH_PREFIX` rather than
-    hardcoded, so if upstream changes it this follows — the same no-hardcoding rule applied
-    to the mechanism that exists to carry our declarations.
-
-    Degrades to {} when the guard config is absent or unreadable. Unknown SECTIONS inside
-    the passthrough are still refused by the caller, because a misspelling is as quiet here
-    as it is in the dedicated file.
-
-    THE PATH IS DISCOVERED, not assumed to be at the root (gh#16). While it was
-    `repo_root / GUARD_CONFIG_NAME`, a target that keeps its config in `conf/` and says
-    so in its pre-commit hook's args had NO passthrough at all — so every section this
-    mechanism exists to carry (`index_scope` among them) was unreachable for it, on both
-    entry points, with no way to say otherwise. That is why the fix is discovery rather
-    than a new flag: the MCP server passes no flags.
-
-    THE LOAD IS PERMISSIVE (gh#32): a target pinning a different doxygen-guard release
-    keeps its passthrough instead of losing the whole document to one key we never read.
-
-    @brief Read the `x-<tool>` passthrough section from the discovered guard config.
-    @return (declared mapping or {}, the config path).
-    @version 4
-    """
-    location = discover_guard_config(repo_root, guard_config)
-    path = location.path or (repo_root / GUARD_CONFIG_NAME)
-    if location.path is None or not path.is_file():
-        return {}, path
-    cfg, prefix = _guard_config_and_prefix(path, repo_root)
-    section_key = f"{prefix}{PASSTHROUGH_TOOL}"
-    data = cfg.get(section_key)
-    if not isinstance(data, dict) or not data:
-        return {}, path
-    logger.info(
-        "declaration: reading %r from %s (found via %s)", section_key, path, location.source
-    )
-    return data, path
-
-
-## @brief A parsed guard config and the passthrough prefix it reserves.
-## @param path Path to the repo's .doxygen-guard.yaml.
-## @param repo_root Repo root, so a version skew can name the rev the target pins.
-## @return (config mapping, prefix); ({}, 'x-') when the config is unusable.
-## @version 4
-## @dg_internal
-def _guard_config_and_prefix(
-    path: Path, repo_root: Path | str | None = None
-) -> tuple[dict[str, Any], str]:
-    """Split out to keep `_passthrough_declaration` inside the max-3-returns standard.
-
-    The prefix comes from `clew.guard.config.PASSTHROUGH_PREFIX` rather than a literal,
-    so if upstream moves it this follows — the no-hardcoding rule applied to the very
-    mechanism that carries our declarations. The `'x-'` fallback covers a guard old enough
-    not to export it.
-
-    A broken guard config degrades to `({}, 'x-')` rather than raising: the gate will
-    already have told the owner their config is invalid, and failing the INDEX for it as
-    well would take a doxygen run with it.
-
-    THE LOAD IS PERMISSIVE (gh#32) and shared with `requirements.load_guard_config`. It
-    was `dg_config.load_config` here, so a target pinning an older doxygen-guard than we
-    import lost its ENTIRE passthrough — every section this mechanism exists to carry —
-    over one key we never read. A target's pin and ours are independent decisions, so
-    that is the normal case at scale, not an authoring error.
-
-    @brief Load the guard config and its passthrough prefix, tolerating skew and failure.
-    @return (config, prefix).
-    @version 4
-    """
-    from .guardconfig import read_guard_config
-
-    try:
-        from .guard import config as dg_config
-
-        prefix = str(getattr(dg_config, "PASSTHROUGH_PREFIX", "x-"))
-    except Exception as exc:
-        logger.warning("declaration: %s is unusable (%s) — no passthrough read", path, exc)
-        return {}, "x-"
-    return read_guard_config(path, repo_root).config, prefix

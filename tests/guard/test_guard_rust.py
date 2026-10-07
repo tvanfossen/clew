@@ -25,7 +25,7 @@ from clew.guard.config import (
 )
 from clew.guard.main import main, validate_file
 from clew.guard.parser import parse_functions
-from guard_helpers import FIXTURES_DIR
+from guard_helpers import FIXTURES_DIR, guard_yaml
 
 RUST_FIXTURE = FIXTURES_DIR / "rust_simple.rs"
 
@@ -184,24 +184,26 @@ class TestRustValidation:
 
 
 class TestRustConfig:
-    """Declaring Rust in .doxygen-guard.yaml."""
+    """Declaring Rust in .clew.yaml's guard: section."""
 
     def test_declaring_rust_fills_its_defaults(self, tmp_path):
-        path = tmp_path / ".doxygen-guard.yaml"
-        path.write_text("validate:\n  languages:\n    rust: {}\n")
+        path = tmp_path / ".clew.yaml"
+        path.write_text(guard_yaml("validate:\n  languages:\n    rust: {}\n"))
         rust = load_config(path)["validate"]["languages"]["rust"]
         assert rust == OPT_IN_LANGUAGE_DEFAULTS["rust"]
 
     def test_declared_keys_win(self, tmp_path):
-        path = tmp_path / ".doxygen-guard.yaml"
-        path.write_text("validate:\n  languages:\n    rust:\n      require_return: true\n")
+        path = tmp_path / ".clew.yaml"
+        path.write_text(
+            guard_yaml("validate:\n  languages:\n    rust:\n      require_return: true\n")
+        )
         rust = load_config(path)["validate"]["languages"]["rust"]
         assert rust["require_return"] is True
         assert rust["extensions"] == [".rs"]
 
     def test_undeclared_rust_is_absent(self, tmp_path):
-        path = tmp_path / ".doxygen-guard.yaml"
-        path.write_text("validate: {}\n")
+        path = tmp_path / ".clew.yaml"
+        path.write_text(guard_yaml("validate: {}\n"))
         assert "rust" not in load_config(path)["validate"]["languages"]
 
 
@@ -215,8 +217,8 @@ class TestRustEndToEnd:
         git("init", "-q")
         git("config", "user.email", "t@example.invalid")
         git("config", "user.name", "t")
-        (tmp_path / ".doxygen-guard.yaml").write_text(
-            "validate:\n  languages:\n    rust: {}\n", encoding="utf-8"
+        (tmp_path / ".clew.yaml").write_text(
+            guard_yaml("validate:\n  languages:\n    rust: {}\n"), encoding="utf-8"
         )
         source = tmp_path / "lib.rs"
         source.write_text("/// Summary.\n/// @version 1\nfn f() -> u8 {\n    1\n}\n")

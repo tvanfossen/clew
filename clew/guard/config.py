@@ -1,7 +1,10 @@
-"""Configuration loading, defaults, and merging for doxygen-guard.
+"""Configuration loading, defaults, and merging for the gate.
 
-@brief Load and validate .doxygen-guard.yaml configuration.
-@version 1.0
+The gate's config is the `guard:` section of the repo's `.clew.yaml`, the same file that
+carries the index's declarations, so a repo keeps one config file for both.
+
+@brief Load and validate the `guard:` section of `.clew.yaml`.
+@version 1.1
 """
 
 from __future__ import annotations
@@ -21,9 +24,10 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
-# Consumers of doxygen-guard may declare their own sections in .doxygen-guard.yaml
-# using this prefix. The guard validates that they exist but never interprets them.
-PASSTHROUGH_PREFIX = "x-"
+# The file the gate reads, and the section of it that is the gate's. The rest of the file
+# is the index's declaration (clew/declaration.py), which the gate never interprets.
+CONFIG_FILE_NAME = ".clew.yaml"
+CONFIG_SECTION = "guard"
 
 VALIDATE_DEFAULTS: dict[str, Any] = {
     "languages": {
@@ -222,16 +226,14 @@ def _config_path(parent: str, key: str) -> str:
 
 
 ## @brief Validate dict keys against schema, recursing into sub-nodes.
-#  @version 1.2
+#  @version 1.3
 #  @req REQ-DDB-GUARD-012
 #  @return List of error strings for unknown keys and type mismatches
 def _validate_dict_node(user: dict, schema: dict, path: str) -> list[str]:
     errors: list[str] = []
     for key in user:
         child_path = _config_path(path, key)
-        if isinstance(key, str) and key.startswith(PASSTHROUGH_PREFIX):
-            logger.info("Passthrough config key not interpreted by doxygen-guard: %s", child_path)
-        elif key not in schema:
+        if key not in schema:
             errors.append(f"Unknown config key: {child_path}{_suggest_key(key, schema)}")
         else:
             errors.extend(_validate_node(user[key], schema[key], child_path))
@@ -342,28 +344,23 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
     return result
 
 
-## @brief Load .doxygen-guard.yaml and merge with built-in defaults.
-#  @version 2.2
+## @brief Load the `guard:` section of `.clew.yaml` and merge with built-in defaults.
+#  @details A missing file, or a file with no `guard:` section, runs on the defaults.
+#  @version 3.0
 #  @req REQ-DDB-GUARD-012
 #  @return Merged config dict with defaults applied
 def load_config(config_path: Path | None = None) -> dict[str, Any]:
     if config_path is None:
-        config_path = Path(".doxygen-guard.yaml")
+        config_path = Path(CONFIG_FILE_NAME)
 
     if not config_path.exists():
         logger.info("No config file found at %s, using defaults", config_path)
         return _fresh_defaults()
 
     logger.info("Loading config from %s", config_path)
-    try:
-        with open(config_path) as f:
-            user_config = yaml.safe_load(f) or {}
-    except (OSError, yaml.YAMLError) as e:
-        logger.error("Could not read config file %s: %s", config_path, e)
-        raise ConfigError(f"Could not read config file {config_path}: {e}") from e
-
-    if not isinstance(user_config, dict):
-        logger.warning("Config file %s is not a mapping, using defaults", config_path)
+    user_config = read_guard_section(config_path)
+    if user_config is None:
+        logger.info("No %r section in %s, using defaults", CONFIG_SECTION, config_path)
         return _fresh_defaults()
 
     errors = validate_config_schema(user_config)
@@ -374,6 +371,32 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
 
     _log_declared_sections(user_config)
     return apply_opt_in_languages(deep_merge(_fresh_defaults(), user_config), user_config)
+
+
+## @brief Read the raw `guard:` mapping out of a `.clew.yaml`.
+#  @details Raises rather than defaulting on an unreadable file or a `guard:` that is not a
+#  mapping: the author plainly meant to configure the gate, and running on the defaults
+#  while they believe otherwise is the failure this loader exists to prevent. A document
+#  that is not a mapping at all holds no `guard:` section, and is warned about.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-012
+#  @return The section, or None when the file declares no `guard:` section
+def read_guard_section(config_path: Path) -> dict[str, Any] | None:
+    try:
+        with open(config_path) as f:
+            document = yaml.safe_load(f) or {}
+    except (OSError, yaml.YAMLError) as e:
+        logger.error("Could not read config file %s: %s", config_path, e)
+        raise ConfigError(f"Could not read config file {config_path}: {e}") from e
+    if not isinstance(document, dict):
+        logger.warning("Config file %s is not a mapping, using defaults", config_path)
+        return None
+    section = document.get(CONFIG_SECTION)
+    if section is None:
+        return None
+    if not isinstance(section, dict):
+        raise ConfigError(f"{config_path}: `{CONFIG_SECTION}:` must be a mapping")
+    return section
 
 
 ## @brief Fill a declared opt-in language (e.g. `rust: {}`) from its built-in defaults.
@@ -391,16 +414,13 @@ def apply_opt_in_languages(merged: dict[str, Any], user_config: dict[str, Any]) 
 
 
 ## @brief Log which top-level sections the user declared versus which are defaulted.
-#  @version 1.0
+#  @version 1.1
 #  @req REQ-DDB-GUARD-012
 def _log_declared_sections(user_config: dict[str, Any]) -> None:
-    declared = sorted(k for k in user_config if not str(k).startswith(PASSTHROUGH_PREFIX))
+    declared = sorted(str(k) for k in user_config)
     defaulted = sorted(k for k in CONFIG_SCHEMA if k not in user_config)
-    passthrough = sorted(k for k in user_config if str(k).startswith(PASSTHROUGH_PREFIX))
     logger.info("Config sections declared: %s", ", ".join(declared) or "none")
     logger.info("Config sections using defaults: %s", ", ".join(defaulted) or "none")
-    if passthrough:
-        logger.info("Config passthrough sections (not interpreted): %s", ", ".join(passthrough))
 
 
 ## @brief Access the validate section of config.

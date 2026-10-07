@@ -6,19 +6,22 @@ release. It **enforces** doxygen documentation and reports the **change impact**
 It is optional: nothing in the index pipeline runs it, and a repo that does not declare the
 hook is unaffected.
 
-What did not change: the config file (`.doxygen-guard.yaml`), its schema, the tag vocabulary,
-the pre-commit hook id (`doxygen-guard`), and every subcommand. What changed: the command is
-`clew guard` (console script `clew-guard`), the package is `clew.guard`, and Rust is supported
-on request — see [Rust](#rust).
+What did not change: the config schema, the tag vocabulary, the pre-commit hook id
+(`doxygen-guard`), and every subcommand. What changed: the command is `clew guard` (console
+script `clew-guard`), the package is `clew.guard`, Rust is supported on request — see
+[Rust](#rust) — and **the config is the `guard:` section of the repo's `.clew.yaml`**, the
+same file that carries clew's index declarations. `.doxygen-guard.yaml` is no longer read;
+see [Migrating from doxygen-guard](#migrating-from-doxygen-guard).
 
 ## Why it lives here
 
-clew already read every target's `.doxygen-guard.yaml` — for the `@req` id pattern, the
-requirements catalog, and the `x-clew` passthrough — and it imported doxygen-guard to do it.
-The target's gate and clew's index were therefore parsing one file with two independently
-pinned releases, and `clew/guardconfig.py` exists to survive the version skew that followed.
-With the gate inside clew, a repo whose hook points here is parsed by one schema, from one
-release.
+clew already read every target's guard config — for the `@req` id pattern and the
+requirements catalog — and it imported doxygen-guard to do it. The target's gate and clew's
+index were therefore parsing one file with two independently pinned releases, and clew
+carried a version-skew salvage layer to survive the disagreements. With the gate inside clew
+and its config inside `.clew.yaml`, the gate and the index read one section with one schema,
+from one release. They read it at different severities: the gate refuses an invalid `guard:`
+section, while the index warns and runs on its defaults rather than failing a build.
 
 ## Quick start
 
@@ -34,29 +37,34 @@ repos:
         types_or: [c, c++, python]   # add rust / javascript / ts once declared — see below
 ```
 
-**Migrating from doxygen-guard** is the `repo:` and `rev:` lines only. The hook id stays
-`doxygen-guard`, so `args:` such as `[--config, conf/doxygen-guard.yaml]` keep working, and so
-does clew's discovery of that config. Installing the hook installs clew; there is no lighter
-gate-only distribution.
+Installing the hook installs clew; there is no lighter gate-only distribution.
 
-### 2. Create `.doxygen-guard.yaml`
+### 2. Add a `guard:` section to `.clew.yaml`
 
 ```yaml
-output_dir: docs/generated/
+# .clew.yaml
+guard:
+  output_dir: docs/generated/
 
-validate:
-  exclude:
-    - "^tests/"
-    - "^\\.venv/"
-  tags:
-    req:
-      pattern: "^REQ-[A-Z]+-[0-9]{3}$"
+  validate:
+    exclude:
+      - "^tests/"
+      - "^\\.venv/"
+    tags:
+      req:
+        pattern: "^REQ-[A-Z]+-[0-9]{3}$"
 
-impact:
-  requirements:
-    file: docs/requirements.yaml
-    format: yaml
+  impact:
+    requirements:
+      file: docs/requirements.yaml
+      format: yaml
 ```
+
+The gate reads `.clew.yaml` from the directory it runs in (the repo root, under pre-commit);
+`args: [--config, path/to/file.yaml]` points it at another file of the same shape. A file with
+no `guard:` section, or no file at all, runs the gate on its built-in defaults. Everything
+outside `guard:` is clew's index declaration (`index_scope:`, `locks:`, …), which the gate
+never reads.
 
 ### 3. Document your functions
 
@@ -74,6 +82,16 @@ int Sensor_ReadTemperature(void) {
 
 `pre-commit run --all-files` prints violations to stderr and writes the impact report to
 `<output_dir>/impact/`.
+
+## Migrating from doxygen-guard
+
+1. Change the hook's `repo:` and `rev:` lines to point here. The hook id stays `doxygen-guard`.
+2. Move the contents of `.doxygen-guard.yaml` under a `guard:` key in `.clew.yaml`, indented
+   one level, and delete `.doxygen-guard.yaml`. clew does not read it.
+3. If the old file carried an `x-clew:` section, move its sections to the top level of
+   `.clew.yaml` (beside `guard:`, not inside it). The `x-` passthrough is gone.
+4. If the hook passed `--config conf/doxygen-guard.yaml`, drop the argument (the gate reads
+   `.clew.yaml` at the root) or point it at the moved file.
 
 ## What it checks
 
@@ -213,9 +231,10 @@ impls do not share a revision history.
 Rust is **opt-in**:
 
 ```yaml
-validate:
-  languages:
-    rust: {}            # completed from the built-in defaults
+guard:
+  validate:
+    languages:
+      rust: {}            # completed from the built-in defaults
 ```
 
 and add `rust` to the hook's `types_or`. Undeclared, `.rs` files are skipped. That way a repo
@@ -255,6 +274,8 @@ language).
   `toolchain_ignores`).
 
 ## Configuration reference
+
+Every key below lives under the `guard:` section of `.clew.yaml`.
 
 ### `validate`
 
@@ -307,9 +328,8 @@ with an empty catalog.
 
 ### Validation of the config itself
 
-Unknown keys are rejected, with a suggestion when one is close. Keys prefixed `x-` are a
-passthrough: they must parse, but the gate never interprets them. clew's own declaration
-travels this way, as `x-clew:`.
+Unknown keys inside `guard:` are rejected, with a suggestion when one is close. There is no
+`x-` passthrough: the rest of `.clew.yaml` is where anything that is not the gate's belongs.
 
 ### Escaping `@`
 
@@ -335,8 +355,9 @@ clew guard config --effective    # the merged config in force and what it resolv
 clew guard files src/            # the exact post-exclude file set the gate walks
 ```
 
-All three emit JSON carrying `contract_version`: 3 added `opt_in_language_defaults`, and 4
-added the toolchain fields to `files`. Typed errors are importable from `clew.guard.errors`:
+All three emit JSON carrying `contract_version`: 3 added `opt_in_language_defaults`, 4
+added the toolchain fields to `files`, and 5 moved the config into `.clew.yaml` (`config_file`,
+`config_section`) and dropped the `x-` passthrough fields. Typed errors are importable from `clew.guard.errors`:
 `GuardError`, with `ConfigError` and `RequirementsError`.
 
 ## CLI

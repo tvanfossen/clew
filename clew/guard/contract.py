@@ -17,9 +17,10 @@ from typing import Any
 from .config import (
     _OPEN_DICT,
     CONFIG_DEFAULTS,
+    CONFIG_FILE_NAME,
     CONFIG_SCHEMA,
+    CONFIG_SECTION,
     OPT_IN_LANGUAGE_DEFAULTS,
-    PASSTHROUGH_PREFIX,
     REQUIREMENTS_FORMAT_DEFAULT,
     REQUIREMENTS_FORMATS_USING_ID_COLUMN,
     REQUIREMENTS_ID_COLUMN_DEFAULT,
@@ -48,7 +49,11 @@ logger = logging.getLogger(__name__)
 #    from. Absent from `config_defaults` because they are not in force until declared.
 # 4: `files` carries `toolchain_config` / `toolchain_ignores`, the shared toolchain globs
 #    the file set honours beside `exclude`, and the set drops binary files.
-CONTRACT_VERSION = 4
+# 5: the config is the `guard:` section of `.clew.yaml` (`config_file`, `config_section`)
+#    rather than its own `.doxygen-guard.yaml`. The `x-` passthrough is gone, and with it
+#    `passthrough_prefix` and `passthrough_sections`: the rest of `.clew.yaml` is the
+#    index's declaration, so no consumer needs a section inside the gate's config.
+CONTRACT_VERSION = 5
 
 _OPEN_NODE = "<any>"
 
@@ -66,13 +71,14 @@ def _encode_schema(node: Any) -> Any:
 
 
 ## @brief Build the full config contract: schema, defaults, and catalog constants.
-#  @version 1.1
+#  @version 1.2
 #  @req REQ-DDB-GUARD-015
 #  @return JSON-serializable contract description
 def build_schema_contract() -> dict[str, Any]:
     return {
         "contract_version": CONTRACT_VERSION,
-        "passthrough_prefix": PASSTHROUGH_PREFIX,
+        "config_file": CONFIG_FILE_NAME,
+        "config_section": CONFIG_SECTION,
         "config_schema": _encode_schema(CONFIG_SCHEMA),
         "config_defaults": CONFIG_DEFAULTS,
         "opt_in_language_defaults": OPT_IN_LANGUAGE_DEFAULTS,
@@ -122,7 +128,7 @@ def _strip_private(node: Any) -> Any:
 #  @details `resolved` is generated from CONFIG_SCHEMA rather than hand-picked, so it
 #  cannot silently omit a declaration the gate honours. A hand-written list of five keys
 #  left six honoured keys invisible to a consumer reading the obvious field.
-#  @version 2.0
+#  @version 2.1
 #  @req REQ-DDB-GUARD-015
 #  @return JSON-serializable description of the merged config and what it resolved to
 def build_effective_contract(config: dict[str, Any]) -> dict[str, Any]:
@@ -139,7 +145,6 @@ def build_effective_contract(config: dict[str, Any]) -> dict[str, Any]:
         "contract_version": CONTRACT_VERSION,
         "config": _strip_private(config),
         "resolved": resolved,
-        "passthrough_sections": sorted(k for k in config if str(k).startswith(PASSTHROUGH_PREFIX)),
     }
 
 

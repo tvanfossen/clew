@@ -24,6 +24,7 @@ from clew.guard.contract import (
     build_schema_contract,
     render,
 )
+from guard_helpers import guard_yaml
 
 
 class TestSchemaContract:
@@ -33,8 +34,9 @@ class TestSchemaContract:
     def test_carries_contract_version(self):
         assert build_schema_contract()["contract_version"] == CONTRACT_VERSION
 
-    def test_exposes_passthrough_prefix(self):
-        assert build_schema_contract()["passthrough_prefix"] == "x-"
+    def test_names_the_config_file_and_section(self):
+        contract = build_schema_contract()
+        assert (contract["config_file"], contract["config_section"]) == (".clew.yaml", "guard")
 
     def test_open_nodes_are_marked_not_dropped(self):
         schema = build_schema_contract()["config_schema"]
@@ -64,14 +66,16 @@ class TestSchemaContract:
 
 class TestEffectiveContract:
     def test_reports_declared_requirements(self, tmp_path):
-        config_file = tmp_path / ".doxygen-guard.yaml"
+        config_file = tmp_path / ".clew.yaml"
         config_file.write_text(
-            dedent("""\
+            guard_yaml(
+                dedent("""\
                 impact:
                   requirements:
                     file: docs/requirements.yaml
                     format: yaml
             """)
+            )
         )
         resolved = build_effective_contract(load_config(config_file))["resolved"]
         assert resolved["requirements"]["declared"] is True
@@ -91,12 +95,6 @@ class TestEffectiveContract:
             CONFIG_DEFAULTS, {"validate": {"tags": {"req": {"pattern": "^R-[0-9]+$"}}}}
         )
         assert build_effective_contract(config)["resolved"]["req_pattern"] == "^R-[0-9]+$"
-
-    def test_lists_passthrough_sections(self, tmp_path):
-        config_file = tmp_path / ".doxygen-guard.yaml"
-        config_file.write_text("x-doxyguard-db:\n  index_path: .cache\n")
-        contract = build_effective_contract(load_config(config_file))
-        assert contract["passthrough_sections"] == ["x-doxyguard-db"]
 
     def test_is_json_serializable(self):
         assert json.loads(render(build_effective_contract(CONFIG_DEFAULTS)))
@@ -153,8 +151,8 @@ class TestContractRoundTrips:
 
         monkeypatch.chdir(tmp_path)
         emitted = build_effective_contract(load_config(tmp_path / "nonexistent.yaml"))["config"]
-        (tmp_path / ".doxygen-guard.yaml").write_text(_yaml.safe_dump(emitted))
-        assert load_config(tmp_path / ".doxygen-guard.yaml")
+        (tmp_path / ".clew.yaml").write_text(guard_yaml(_yaml.safe_dump(emitted)))
+        assert load_config(tmp_path / ".clew.yaml")
 
     def test_private_keys_are_stripped(self):
         config = deep_merge(
@@ -213,13 +211,14 @@ class TestContractEnvelopeShape:
 
     SCHEMA_KEYS = {
         "contract_version",
-        "passthrough_prefix",
+        "config_file",
+        "config_section",
         "config_schema",
         "config_defaults",
         "opt_in_language_defaults",
         "requirements_catalog",
     }
-    EFFECTIVE_KEYS = {"contract_version", "config", "resolved", "passthrough_sections"}
+    EFFECTIVE_KEYS = {"contract_version", "config", "resolved"}
     FILES_KEYS = {
         "contract_version",
         "source_dirs",

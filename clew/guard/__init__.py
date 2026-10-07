@@ -2,10 +2,10 @@
 """The doxygen gate: presence, revision staleness, tag syntax and requirement coverage.
 
 This package WAS doxygen-guard, a separate distribution clew depended on. It is absorbed
-here so the index and the gate parse a target's `.doxygen-guard.yaml` with ONE schema,
-from ONE release, instead of two independently pinned ones (the skew `guardconfig.py`
-exists to survive). The config file name, its schema and the pre-commit hook id are
-unchanged, so an adopting repo moves by editing its `repo:` and `rev:` lines only.
+here so the index and the gate parse a target's config with ONE schema, from ONE release,
+instead of two independently pinned ones. The config is the `guard:` section of the repo's
+`.clew.yaml` (it was a separate `.doxygen-guard.yaml`); its schema and the pre-commit hook id
+are doxygen-guard's.
 
 It is OPTIONAL in use, not in install: nothing in the index pipeline runs the gate. A
 repo opts in by declaring the `doxygen-guard` hook from this repository, or by running
