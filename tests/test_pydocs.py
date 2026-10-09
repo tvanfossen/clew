@@ -124,6 +124,30 @@ def test_ast_rows_are_left_alone(tmp_path):
     )
     conn.execute("INSERT INTO memberdef VALUES (1, 'f', 1, 1, 3, '', '', 'ast')")
     conn.execute("INSERT INTO memberdef VALUES (2, 'g', 1, 1, 9, '', '', 'doxygen')")
-    assert _enrich_one(conn, "function", 1, 3, "f", "Sum.", "", True) == 0
-    assert _enrich_one(conn, "function", 1, 9, "g", "Sum.", "", True) == 1
+    assert _enrich_one(conn, "function", 1, 3, "f", "Sum.", "", True, [1]) == 0
+    assert _enrich_one(conn, "function", 1, 9, "g", "Sum.", "", True, [2]) == 1
     assert Path(db).exists()
+
+
+def test_rows_are_located_on_the_lookups_own_file_key():
+    """A member is keyed by its body file, else its declaring file; a class by its file.
+
+    `_enrich_one` only searches the rowids filed under its key, so a key that differs
+    from its WHERE clause would silently drop rows the full scan used to find.
+    """
+    from clew.pydocs import _locate_rows
+
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE memberdef (name TEXT, file_id INT, bodyfile_id INT, line INT)")
+    conn.execute("CREATE TABLE compounddef (name TEXT, file_id INT, line INT)")
+    conn.execute("INSERT INTO memberdef VALUES ('decl_only', 1, 0, 3)")
+    conn.execute("INSERT INTO memberdef VALUES ('decl_only_null', 1, NULL, 4)")
+    conn.execute("INSERT INTO memberdef VALUES ('defined', 1, 2, 5)")
+    conn.execute("INSERT INTO compounddef VALUES ('mod::C', 2, 7)")
+    located = _locate_rows(conn)
+    assert located == {
+        ("memberdef", 1, 3): [1],
+        ("memberdef", 1, 4): [2],
+        ("memberdef", 2, 5): [3],
+        ("compounddef", 2, 7): [1],
+    }

@@ -128,7 +128,7 @@ def summarize(body: str) -> tuple[str, str]:
 ## @param repo_root Repository root.
 ## @param cache The index cache (the shared parse warmed it), or None.
 ## @return How many rows were enriched.
-## @version 2
+## @version 3
 ## @req REQ-DDB-PIPE-013
 def enrich_python_docstrings(db_path: Path, repo_root: Path, cache: Any = None) -> int:
     """@brief Write docstring summaries into the rows doxygen left bare."""
@@ -136,14 +136,18 @@ def enrich_python_docstrings(db_path: Path, repo_root: Path, cache: Any = None) 
     try:
         harvested = run_harvest(conn, repo_root, docstring_harvester(), cache)
         provenance = _has_provenance(conn)
+        located = _locate_rows(conn)
         enriched = 0
         for path_rowid, payload in harvested:
             for kind, line, name, body in payload or ():
+                candidates = located.get((_table_for(kind), path_rowid, line))
+                if not candidates:
+                    continue
                 summary, version = summarize(body)
                 if not summary and not version:
                     continue
                 enriched += _enrich_one(
-                    conn, kind, path_rowid, line, name, summary, version, provenance
+                    conn, kind, path_rowid, line, name, summary, version, provenance, candidates
                 )
         conn.commit()
     finally:
@@ -161,9 +165,42 @@ def _has_provenance(conn: sqlite3.Connection) -> bool:
     return any(r[1] == SYMBOL_SOURCE_COLUMN for r in conn.execute("PRAGMA table_info(memberdef)"))
 
 
+## @brief The table a harvested definition's doxygen row lives in.
+## @return `compounddef` for a class, `memberdef` otherwise.
+## @version 1
+## @dg_internal
+def _table_for(kind: str) -> str:
+    return "compounddef" if kind == "class" else "memberdef"
+
+
+## @brief Every row a docstring could land on, keyed by (table, file, line).
+## @return The rowids under each key.
+## @version 1
+## @dg_internal
+def _locate_rows(conn: sqlite3.Connection) -> dict[tuple[str, int, int], list[int]]:
+    """Doxygen's tables carry no index, so `_enrich_one`'s lookup used to scan all of
+    `memberdef` once per docstring: 15 s of a 42 s mbedtls build, for no row changed. One
+    pass here keys every row on the columns that lookup matches by equality, and
+    `_enrich_one` then runs its full WHERE over just the rowids under its key. The keys
+    are exactly the lookup's (`memberdef` by body file, else declaring file), so no row
+    the full scan would find is missed.
+
+    @brief Index doxygen's rows by file and line.
+    @version 1
+    """
+    located: dict[tuple[str, int, int], list[int]] = {}
+    for table, file_expr in (
+        ("memberdef", "COALESCE(NULLIF(bodyfile_id, 0), file_id)"),
+        ("compounddef", "file_id"),
+    ):
+        for rowid, file_id, line in conn.execute(f"SELECT rowid, {file_expr}, line FROM {table}"):
+            located.setdefault((table, file_id, line), []).append(rowid)
+    return located
+
+
 ## @brief Enrich the rows matching one docstring, when doxygen left them bare.
 ## @return How many rows changed.
-## @version 1
+## @version 2
 ## @dg_internal
 def _enrich_one(
     conn: sqlite3.Connection,
@@ -174,21 +211,24 @@ def _enrich_one(
     summary: str,
     version: str,
     provenance: bool,
+    candidates: list[int],
 ) -> int:
     from .query._common import extract_version, strip_xml
 
+    table = _table_for(kind)
     if kind == "class":
-        table = "compounddef"
         where = "file_id = ? AND line = ? AND (name = ? OR name LIKE ?)"
         args: tuple[Any, ...] = (path_rowid, line, name, f"%::{name}")
     else:
-        table = "memberdef"
         where = "COALESCE(NULLIF(bodyfile_id, 0), file_id) = ? AND line = ? AND name = ?"
         args = (path_rowid, line, name)
         if provenance:
             where += f" AND {SYMBOL_SOURCE_COLUMN} != '{SYMBOL_SOURCE_AST}'"
+    marks = ",".join("?" * len(candidates))
     rows = conn.execute(
-        f"SELECT rowid, briefdescription, detaileddescription FROM {table} WHERE {where}", args
+        f"SELECT rowid, briefdescription, detaileddescription FROM {table}"
+        f" WHERE rowid IN ({marks}) AND {where}",
+        (*candidates, *args),
     ).fetchall()
     changed = 0
     for rowid, brief, detail in rows:
