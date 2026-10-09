@@ -48,8 +48,9 @@ dependencies = [
     # py-tree-sitter nor any per-language grammar package is a dependency. It also
     # supplies the gate's extension -> language table, classifies binaries out of every file walk
     # (classify_file, 0.11.1) and matches toolchain.toml globs (PathIgnore, 0.11.1).
+    # 0.11.2 makes `parse_tree`'s flat-tree copy ~25% cheaper.
     # NOT optional: losing it takes every AST layer to zero rows.
-    "lang-parsing-substrate>=0.11.1,<0.12",
+    "lang-parsing-substrate>=0.11.2,<0.12",
     # Pinned <15: reads Kconfig.unique_defined_syms, unique_choices,
     # Symbol.orig_type, MenuNode.prompt/help/filename/linenr, expr_str.
     "kconfiglib>=14,<15",
