@@ -24,6 +24,7 @@ an assertion about `anyio`. A test naming `anyio` would have passed the whole ti
 from __future__ import annotations
 
 import ast
+import re
 import sys
 from pathlib import Path
 
@@ -244,3 +245,126 @@ def test_console_scripts_point_at_real_callables() -> None:
         assert callable(getattr(module, attr, None)), (
             f"console script {name} -> {target} does not resolve to a callable"
         )
+
+
+# ─── The supply chain, asserted over the files that define it (S1–S7) ─────────
+
+
+## A git object id. Every `uses:` and every pre-commit `rev:` must be one of these rather
+## than a tag or a branch: a tag is mutable by whoever owns the repository it names, and a
+## branch is mutable on every push. The 1.1.0 audit found the publish action — in the ONLY
+## job that holds the PyPI credential — pinned to `release/v1`, a branch.
+_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+
+## Dependencies whose upper bound is expressed by the environment rather than by a specifier,
+## with the reason. An entry here is a claim that has to stay true.
+_UNBOUNDED_BY_DESIGN: dict[str, str] = {}
+
+
+## @brief Every `uses:` reference in the repository's GitHub Actions workflows.
+## @return List of (workflow filename, reference) pairs.
+## @version 1
+def _action_refs() -> list[tuple[str, str]]:
+    """@brief Collect `uses:` refs from every workflow. @return (file, ref) pairs."""
+    found: list[tuple[str, str]] = []
+    for path in sorted((REPO_ROOT / ".github" / "workflows").glob("*.yml")):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if stripped.startswith(("uses:", "- uses:")):
+                found.append((path.name, stripped.split("uses:", 1)[1].strip()))
+    return found
+
+
+def test_every_action_is_pinned_by_commit_sha() -> None:
+    """S2, 1.1.0 AUDIT. A mutable ref means the code that runs in CI is chosen by whoever
+    can move that ref, and `pypa/gh-action-pypi-publish@release/v1` was a BRANCH in the job
+    holding the publishing credential — a force-push to it publishes anything it likes as
+    this project. A local `./.github/workflows/...` call is exempt: it names this repository
+    at this commit.
+
+    @brief No workflow uses a tag or branch ref.
+    @version 1
+    """
+    offenders = [
+        f"{where}: {ref}"
+        for where, ref in _action_refs()
+        if not ref.startswith("./") and not _SHA_RE.match(ref.partition("@")[2].split()[0])
+    ]
+
+    assert not offenders, (
+        "these action references are mutable, so the code CI runs is chosen by whoever can "
+        f"move the ref: {offenders}"
+    )
+
+
+def test_every_pre_commit_hook_is_pinned_by_commit_sha() -> None:
+    """S6, same reasoning one layer out, and the layer adopters actually install. A hook
+    `rev:` is resolved at install time, so a moved tag runs new code inside every adopter's
+    `git commit` — and clew's own release gate runs these hooks.
+
+    @brief No pre-commit repo is pinned by tag.
+    @version 1
+    """
+    config = (REPO_ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    revs = [
+        line.strip().split("rev:", 1)[1].strip().split("#")[0].strip()
+        for line in config.splitlines()
+        if line.strip().startswith("rev:")
+    ]
+
+    assert revs, "no `rev:` found at all — this test is no longer reading the config"
+    offenders = [rev for rev in revs if not _SHA_RE.match(rev)]
+    assert not offenders, f"these pre-commit revs are mutable tags: {offenders}"
+
+
+def test_every_runtime_dependency_carries_an_upper_bound() -> None:
+    """S1. Without an upper bound, a dependency's next MAJOR release installs into every new
+    adopter's environment unreviewed. This is not theoretical for clew: `kconfiglib` is
+    pinned `<15` because the code reads attributes a 15 could remove, and
+    `lang-parsing-substrate` `<0.12` because its parser output IS the index — the
+    build-version-8 note measures what one of its minor upgrades did to an mbedtls index.
+    Every other dependency has the same exposure and merely has not been bitten yet.
+
+    @brief No dependency is unbounded above.
+    @version 1
+    """
+    data = _toml.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    declared = list(data["project"]["dependencies"])
+    for extra in data["project"].get("optional-dependencies", {}).values():
+        declared += list(extra)
+
+    unbounded = [
+        spec
+        for spec in declared
+        if "<" not in spec.partition(";")[0]
+        and "==" not in spec
+        and spec.partition(";")[0].split(">=")[0].strip().lower() not in _UNBOUNDED_BY_DESIGN
+    ]
+
+    assert not unbounded, (
+        "these dependencies accept an unreviewed future major release: "
+        f"{unbounded}. Add an upper bound, or justify it in `_UNBOUNDED_BY_DESIGN`."
+    )
+
+
+def test_dependabot_watches_both_ecosystems() -> None:
+    """S4, the cheapest half of it. SHA pinning above makes every dependency STALE by
+    construction — a pin is only safe if something tells you when it has a known
+    vulnerability. Both ecosystems matter and for different reasons: `pip` is what adopters
+    install, `github-actions` is what holds the publishing credential.
+
+    @brief dependabot.yml covers pip and github-actions.
+    @version 1
+    """
+    import yaml
+
+    path = REPO_ROOT / ".github" / "dependabot.yml"
+    assert path.is_file(), "no dependabot.yml, so every SHA pin above ages silently"
+
+    config = yaml.safe_load(path.read_text(encoding="utf-8"))
+    watched = {entry.get("package-ecosystem") for entry in config.get("updates", [])}
+
+    assert {"pip", "github-actions"} <= watched, (
+        f"dependabot watches {sorted(watched)}; both `pip` and `github-actions` must be "
+        "covered, the second because it is what can publish as this project"
+    )

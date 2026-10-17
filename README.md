@@ -24,6 +24,12 @@ any parser sees it, and the build records how many. **The repo's shared toolchai
 moldy and aurora-lint also read — excludes paths from the index and the gate; see
 [docs/GUARD.md](docs/GUARD.md#files-the-gate-skips).
 
+**Indexing a repository runs that repository's code, by design** — `cargo` compiles it,
+`doxygen` runs with its own Doxyfile as base text. Treat `clew index <tree>` as equivalent in
+trust to `cargo build` on that tree, and read
+[`docs/SECURITY.md`](docs/SECURITY.md) before pointing it at something you did not write: it
+states what clew does and does not promise, and how to report a vulnerability.
+
 **What it is for is aggregation, not capability.** Nothing here is a question `grep` cannot
 answer. The difference is that "who calls this, transitively, across a function-pointer
 boundary, and which of those run on another thread" is one query instead of a dozen searches

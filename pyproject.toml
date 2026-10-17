@@ -33,7 +33,10 @@ classifiers = [
 ]
 dependencies = [
     "pyyaml>=6.0,<8",
-    "rich>=13.0",
+    # Capped at the next major (S1, 1.1.0 audit). Console rendering only — `rich.console`,
+    # `rich.table`, `rich.panel` — so the exposure is cosmetic rather than structural, but an
+    # unbounded major installs unreviewed into every new adopter. Installed: 15.x.
+    "rich>=13.0,<16",
     # DECLARED, NOT LEFT TRANSITIVE VIA fastmcp. `pydantic.Field` carries the tool
     # parameters' descriptions into the JSON Schema, and the schema is the ONE
     # surface a client cannot truncate — measured, a third of every prose tool
@@ -57,10 +60,12 @@ dependencies = [
     # Floored at 2: 1.x had mcp.server.fastmcp, which 2.0.0 deleted. Capped at 3:
     # an unbounded major range already shipped a broken `init` once.
     "mcp>=2,<3",
-    "anyio>=4.0",
+    # `anyio.run(...)` IS the MCP server's main loop, so a major that changes task-group or
+    # cancellation semantics changes how the server shuts down. Capped at the next major.
+    "anyio>=4.0,<5",
     "mcp-types>=2,<3",
     # tomllib is stdlib only from 3.11; below that the backport IS the parser.
-    'tomli>=2; python_version < "3.11"',
+    'tomli>=2,<3; python_version < "3.11"',
 ]
 
 [project.scripts]
@@ -75,10 +80,14 @@ clew-guard = "clew.guard.main:cli_main"
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0",
-    "pre-commit>=3.6",
-    "build>=1.0",
-    "twine>=5.0",
+    # BOUNDED LIKE THE RUNTIME SET, and for a reason that is not merely tidiness: these four
+    # ARE the release gate. A pytest or pre-commit major landing unreviewed changes what
+    # "green" means on the commit that ships, which is the one moment nobody re-reads the
+    # tooling. Installed: pytest 9.1, pre-commit 4.6, build 1.6, twine 7.0.
+    "pytest>=8.0,<10",
+    "pre-commit>=3.6,<5",
+    "build>=1.0,<2",
+    "twine>=5.0,<8",
 ]
 
 [project.urls]
