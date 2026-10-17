@@ -260,6 +260,19 @@ KNOWN_SECTIONS = frozenset(
 ## Every top-level key `.clew.yaml` may carry: the declaration sections plus the gate's.
 ACCEPTED_SECTIONS = KNOWN_SECTIONS | {SECTION_GUARD}
 
+## THE ESCAPE HATCH AN OLDER CLEW NEEDS (B5, 1.1.0 merge review). `guard:` is new in 1.1.0,
+## so a `.clew.yaml` written for it is REFUSED outright by clew <= 1.0.39, which cannot know
+## the name. Nothing shipped now can change what an already-released version does — but a
+## section carrying this prefix is tolerated and ignored from here on, so the NEXT
+## experimental key is a no-op on an older clew instead of a hard refusal that bricks its
+## build. The prefix is the convention HTTP headers, YAML tooling and TOML tables all use for
+## exactly this, so it needs no clew-specific documentation to be recognised.
+##
+## TOLERATED, NOT SILENT: the section is named at WARNING. `x-thread_patterns` is
+## indistinguishable from a typo that happens to carry the prefix, and a quiet default is the
+## failure mode the refusal below exists to prevent.
+EXPERIMENTAL_PREFIX = "x-"
+
 
 ## @brief Load a repo's `.clew.yaml`, or an empty mapping when it has none.
 ## @param repo_root Repo root to look in.
@@ -279,7 +292,7 @@ def load_declaration(repo_root: Path | str | None) -> dict[str, Any]:
 ## @param repo_root Repo root to look in.
 ## @return (declaration, source path) — the path is None when nothing was declared.
 ##         Raises DeclarationError when the document names an unknown section.
-## @version 2
+## @version 3
 ## @req REQ-DDB-CONFIG-001
 def load_declaration_located(
     repo_root: Path | str | None,
@@ -315,15 +328,36 @@ def load_declaration_located(
     path = root / DECLARATION_NAME
     data = _read_mapping(path) if path.is_file() else {}
     if data:
-        unknown = sorted(str(key) for key in data if key not in ACCEPTED_SECTIONS)
+        experimental = sorted(str(key) for key in data if str(key).startswith(EXPERIMENTAL_PREFIX))
+        if experimental:
+            logger.warning(
+                "declaration: %s carries experimental section(s) %s — tolerated and IGNORED, "
+                "so nothing in them reaches this build. A misspelled section that happens to "
+                "carry the `%s` prefix looks exactly like this.",
+                path,
+                ", ".join(experimental),
+                EXPERIMENTAL_PREFIX,
+            )
+        unknown = sorted(
+            str(key)
+            for key in data
+            if key not in ACCEPTED_SECTIONS and not str(key).startswith(EXPERIMENTAL_PREFIX)
+        )
         if unknown:
             raise DeclarationError(
                 f"{path}: unknown section(s) {', '.join(repr(k) for k in unknown)} "
                 f"— allowed: {', '.join(sorted(ACCEPTED_SECTIONS))}. Nothing reads an "
                 f"unknown section, so the build would have used built-in defaults "
-                f"while reporting that your declaration was honoured."
+                f"while reporting that your declaration was honoured. If this file was "
+                f"written for a newer clew than the one reading it — `guard:` is new in "
+                f"1.1.0 — upgrade with `pip install -U clew-trace` and bump the `rev:` in "
+                f"`.pre-commit-config.yaml` to match."
             )
-        data = {key: value for key, value in data.items() if key != SECTION_GUARD}
+        data = {
+            key: value
+            for key, value in data.items()
+            if key != SECTION_GUARD and not str(key).startswith(EXPERIMENTAL_PREFIX)
+        }
     if data:
         logger.info("declaration: %s declares %s", path, ", ".join(sorted(data)))
     return data, (path if data else None)

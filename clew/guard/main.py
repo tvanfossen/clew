@@ -11,6 +11,7 @@ import logging
 import re
 import subprocess
 import sys
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -155,13 +156,18 @@ def _add_files_parser(subparsers: argparse._SubParsersAction) -> None:
 
 ## @brief Orchestrate presence, staleness, and tag checks for one file.
 #  @details Skips files the shared toolchain config ignores and binary files (filters.py).
-#  @version 1.12
+#  @param skipped Optional sink; each shared-config skip appends its reason here so the
+#  caller can report what it did not check. A `validate.exclude` match is NOT recorded:
+#  that pattern is stated in the gate's own config, in front of the owner reading it,
+#  where `toolchain.toml` is a statement made for every tool in the repo.
+#  @version 1.13
 #  @req REQ-DDB-GUARD-001
 def validate_file(
     file_path: str,
     config: dict[str, Any],
     no_git: bool = False,
     req_ids: set[str] | None = None,
+    skipped: list[str] | None = None,
 ) -> list[Violation]:
     validate = get_validate(config)
     for pattern in validate.get("exclude", []):
@@ -171,6 +177,8 @@ def validate_file(
     skip = gate_exclusion(file_path)
     if skip is not None:
         logger.info("Skipping %s — %s", file_path, skip)
+        if skipped is not None:
+            skipped.append(skip)
         return []
 
     functions = parse_source_file(file_path, config)
@@ -211,8 +219,26 @@ def validate_file(
     return violations
 
 
+## @brief Report, on the default surface, the files the gate did not check.
+#  @details A skip is logged at INFO and `_setup_logging` pins WARNING without `-v`, so
+#  before 1.1.0 the gate exited 0 in silence for a tree it had never read. The exit code is
+#  what an owner acts on; anything that narrows what the code covers has to arrive beside it.
+#  Phrased after the index's `_apply_toolchain_exclusions` line, which reports the same
+#  decision for the same reason on the build side.
+#  @version 1.0
+#  @dg_internal
+def _report_skips(skipped: list[str]) -> None:
+    if not skipped:
+        return
+    counts = Counter(skipped)
+    detail = ", ".join(f"{count} {reason}" for reason, count in sorted(counts.items()))
+    print(f"clew guard: {len(skipped)} file(s) not checked ({detail})", file=sys.stderr)
+
+
 ## @brief Validate a list of files and report violations.
-#  @version 1.2
+#  @details The choke point both entry paths use (`validate` and pre-commit mode), which is
+#  why the skip report lives here rather than in either caller.
+#  @version 1.3
 #  @dg_internal
 def _validate_files(
     file_paths: list[str],
@@ -223,11 +249,15 @@ def _validate_files(
 
     req_ids = set(load_requirements_full(config).keys()) or None
     violations: list[Violation] = []
+    skipped: list[str] = []
     for file_path in file_paths:
         if not Path(file_path).exists():
             logger.warning("File not found: %s", file_path)
             continue
-        violations.extend(validate_file(file_path, config, no_git=no_git, req_ids=req_ids))
+        violations.extend(
+            validate_file(file_path, config, no_git=no_git, req_ids=req_ids, skipped=skipped)
+        )
+    _report_skips(skipped)
     return violations
 
 

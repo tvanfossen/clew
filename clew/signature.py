@@ -195,6 +195,7 @@ def write_build_signature(
     diagnostics: dict[str, str] | None = None,
     data_model: dict[str, str] | None = None,
     declaration: dict[str, str] | None = None,
+    tool: dict[str, str] | None = None,
 ) -> None:
     """WHY THE FILE SET IS WHAT IT IS, recorded rather than only logged.
 
@@ -306,8 +307,8 @@ def write_build_signature(
     the build-version-9 bump, one key further out. A sha and a section list identify the
     document exactly without saying where on disk it sat.
 
-    @brief Stamp the build version and optional scope, coverage, preprocessor, kconfig, refresh, options, diagnostics, data_model and declaration sections.
-    @version 13
+    @brief Stamp the build version and optional scope, coverage, preprocessor, kconfig, refresh, options, diagnostics, data_model, declaration and tool sections.
+    @version 14
     """
     conn = sqlite3.connect(str(db_path))
     try:
@@ -340,6 +341,14 @@ def write_build_signature(
             ## reason every other section is: one prefixing pass means a further section is a
             ## one-line change, and a reader learns the whole namespace from this tuple.
             ("declaration", declaration),
+            ## The TENTH leg (B4, 1.1.0 merge review), and the only one that is a fact about
+            ## the BUILDER rather than about the repository, the boundary or this index's own
+            ## rows. `lang-parsing-substrate` reads every byte of every target, and the
+            ## build-version-8 note below is a measured record of one of its upgrades moving
+            ## an index — so without this an index that changed because the PARSER changed
+            ## was indistinguishable from one that changed because the code did, which is the
+            ## ambiguity every other section here exists to remove.
+            ("tool", tool),
         ):
             rows += [(f"{prefix}.{k}", v) for k, v in sorted((section or {}).items()) if v]
         conn.executemany(

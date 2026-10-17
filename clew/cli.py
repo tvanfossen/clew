@@ -69,6 +69,11 @@ import shutil
 import sqlite3
 import sys
 import time
+
+## ALIASED so `_cache_key_extra` has one name to patch in a test, and so the bare name
+## `version` cannot be mistaken for clew's own build version anywhere in this module.
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as metadata_version
 from pathlib import Path
 from typing import Any
 
@@ -1688,7 +1693,7 @@ def _is_rust_only_repo(repo_root: Path) -> bool:
 ## @param preprocessor The resolved preprocessor configuration this index represents.
 ## @param timer Stage timer, marked once the tree scan and its hash are complete.
 ## @return Path to the doxygen SQLite output (cached or freshly generated).
-## @version 11
+## @version 12
 ## @dg_internal
 def _doxygen_stage(
     doxyfile: Path,
@@ -1774,11 +1779,15 @@ def _doxygen_stage(
         replace_input,
         predefined,
     )
-    tree_sha = cache.tree_sha(content, [])
+    ## ONE EXPRESSION, BOTH SITES. `_config_digest` folds `extra` for whichever of the two
+    ## asks, so a second spelling here would let the splice key off a different notion of
+    ## sameness than the skip — the divergence that shared helper exists to prevent.
+    key_extra = _cache_key_extra()
+    tree_sha = cache.tree_sha(content, key_extra)
     ## The CONFIGURATION key, which unlike tree_sha does not move when a file is edited.
     ## Gating the splice on it is what stops a scope change from splicing into output built
     ## under the old scope (#399's aliasing, re-shipped once already).
-    config_sha = cache.config_sha(content, [])
+    config_sha = cache.config_sha(content, key_extra)
     if timer is not None:
         timer.mark("index_cache_scan")
     cached_db = cache.doxygen_get(tree_sha)
@@ -1799,7 +1808,7 @@ def _doxygen_stage(
 
 ## @brief Run every build stage against one (temp) output DB path.
 ## @param timer Stage timer; one `mark` closes each stage below. A fresh one when omitted.
-## @version 57
+## @version 58
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -2265,6 +2274,11 @@ def _build_stages(
         ## falsy-drop rule turns into no row at all — honestly "nothing was stated" rather
         ## than a statement that was made and was blank.
         declaration=getattr(args, "declaration_meta", None),
+        ## The TENTH leg (B4). WHICH PARSER produced these rows — the one section here that
+        ## describes the builder rather than the target. Keyed into the index cache by
+        ## `_cache_key_extra` from the same helper, so the cache and the record cannot name
+        ## different versions.
+        tool=_substrate_meta(),
         ## The SEVENTH leg (gh#351), and it is stamped from the STAGE'S OWN RETURN rather
         ## than re-derived. `diagnostics.py` states when re-deriving is safe — when no column
         ## in the database can disagree with the value — and that does not hold here: every
@@ -2379,23 +2393,107 @@ def _empty_doxygen_database() -> Path:
     return path
 
 
+## @brief Key material that is not in the Doxyfile but changes what a build produces.
+## @details Folded by BOTH `tree_sha` and `config_sha`, which is the only way the
+## configuration prefix invariant `_config_digest` documents can hold.
+## @return Entries of the form `name=value`, never with an empty value.
+## @version 1
+## @req REQ-DDB-INDEX-002
+def _cache_key_extra() -> list[str]:
+    """THE PARSER'S VERSION IS PART OF THE CONFIGURATION (B4, 1.1.0 merge review).
+    `lang-parsing-substrate` reads every byte of every target — the JS/TS front end,
+    `classify_file`, the shared AST pass — and `clew/signature.py`'s build-version-8 note
+    records what one of its upgrades measurably did to an index. Both cache sites passed
+    `extra=[]`, so upgrading the wheel changed what a build WOULD produce and invalidated
+    nothing. `CLEW_BUILD_VERSION` cannot stand in for it: that moves when clew's own
+    pipeline changes, which is not when a dependency's parser does.
+
+    THE RESOLVED SCOPE IS DELIBERATELY NOT HERE, and that is a measurement rather than an
+    omission. The merge review asked for a scope digest on the grounds that the key folds
+    declaration TEXT and not resolved roots — but `_apply_scope` prepends the derived roots
+    to `extra_input` and the resolved excludes to `extra_exclude`, and `doxyfile_content_for`
+    renders both into the exact Doxyfile the key folds (verified: `INPUT += <root>` and
+    `EXCLUDE_PATTERNS += <exclude>/*` lines move the content, and `tree_sha` additionally
+    folds the scanned file set itself). A digest here would be key material that only looks
+    like a fix, and the next reader would trust it.
+
+    `unknown` RATHER THAN `""` for a missing distribution: `_config_digest` folds every item
+    given to it, and `write_build_signature` drops falsy values, so an empty string would
+    both fold a key that says nothing and leave no row at all.
+
+    @brief Non-Doxyfile key material for the index cache.
+    @return The key entries.
+    """
+    return [f"substrate={_substrate_version()}"]
+
+
+## @brief The installed lang-parsing-substrate version, or a named unknown.
+## @return A version string, never empty.
+## @version 1
+## @dg_internal
+def _substrate_version() -> str:
+    """@brief Resolve the substrate's distribution version. @return The version, or "unknown"."""
+    try:
+        return metadata_version("lang-parsing-substrate")
+    except PackageNotFoundError:
+        ## An editable or vendored install has no distribution metadata. Recorded as a
+        ## named unknown so a reader can tell it apart from a version that was read.
+        return "unknown"
+
+
+## @brief The `tool.*` build_meta section: which toolchain produced these rows.
+## @return Mapping for `write_build_signature(tool=...)`.
+## @version 1
+## @req REQ-DDB-PIPE-005
+def _substrate_meta() -> dict[str, str]:
+    """ONE SOURCE WITH THE CACHE KEY, through `_substrate_version`. A stamped row naming a
+    parser the build did not use is worse than no row, because a reader would act on it.
+
+    @brief The recorded build toolchain.
+    @return The section.
+    """
+    return {"substrate_version": _substrate_version()}
+
+
 ## @brief The repo-relative files this build scanned, for the parse-built front end.
 ## @param args Parsed CLI arguments; `scanned_files` when the doxygen stage ran.
 ## @param repo_root Repository root.
 ## @return Repo-relative POSIX paths.
-## @version 1
+## @version 2
 ## @req REQ-DDB-PIPE-012
+## @req REQ-DDB-CONFIG-001
 def _scanned_files(args: argparse.Namespace, repo_root: Path) -> list[str]:
     """A rustdoc build never enumerates the tree, so the repo is walked here under the
-    same exclusions (scope, operator, toolchain, binaries are classified downstream).
+    same exclusions (scope, operator, toolchain; binaries are classified downstream).
+
+    BOUNDED BY THE DECLARED SCOPE (B2, 1.1.0 merge review). This walked `[repo_root]`
+    unconditionally, so a repository declaring `index_scope.roots: [src]` still handed
+    `node_modules/`, a vendored tree and `.git` internals to `register_synth_paths` — and
+    `path` is the file set the index PUBLISHES, so one front end honoured the owner's
+    declaration and the other did not.
+
+    `scope_result` is the EXACT `DerivedScope` the build applied, stashed by `_apply_scope`
+    for this reason, and read here rather than re-derived for the same reason
+    `_scope_provenance` reads it: a second derivation can describe a different boundary
+    than the one that was built. There is no `doxygen_input_roots` call to mirror on this
+    path — a Rust or JS/TS-only target need not have a Doxyfile at all — so the resolved
+    roots are the only statement of scope available, which is also the only one that
+    matters.
+
+    SAYING NOTHING STILL MEANS THE WHOLE REPOSITORY: an undeclared build has no roots and
+    falls back to `[repo_root]`, unchanged.
 
     @brief Files in scope, as the doxygen stage saw them or freshly walked.
     @return The relative paths.
     """
     scanned = getattr(args, "scanned_files", None)
     if scanned is None:
+        derived = getattr(args, "scope_result", None)
+        roots = list(derived.roots) if derived is not None and derived.roots else [repo_root]
         excludes = [Path(e) for e in (getattr(args, "extra_exclude", None) or [])]
-        scanned = sorted(enumerate_tree([repo_root], excludes, repo_root))
+        if derived is not None:
+            excludes += list(derived.excludes)
+        scanned = sorted(enumerate_tree(roots, excludes, repo_root))
     return [Path(rel).as_posix() for rel in scanned]
 
 

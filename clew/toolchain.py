@@ -41,6 +41,7 @@ whole and not walked.
 from __future__ import annotations
 
 import os
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -57,6 +58,9 @@ _ALL_TOOLS = "*"
 ## Directories never walked while expanding globs: version control and caches, which can
 ## be huge and are never source.
 _NEVER_WALK = frozenset({".git", ".hg", ".svn", "__pycache__", "node_modules", ".venv"})
+
+## Above this, an expansion is reported as probably a file-level glob (see `expand_globs`).
+_LARGE_EXPANSION = 1000
 
 
 ## @brief The shared toolchain statements found for one repository.
@@ -249,10 +253,20 @@ def matches(matcher: Any, rel: str, *, is_dir: bool = False) -> bool:
 ## @return Sorted absolute paths: whole directories where a directory matched, else files.
 ## @version 1
 ## @req REQ-DDB-CONFIG-009
-def expand_globs(repo_root: Path, globs: tuple[str, ...], prune: list[str] = ()) -> list[Path]:
+def expand_globs(repo_root: Path, globs: tuple[str, ...], prune: Sequence[str] = ()) -> list[Path]:
     """Doxygen's EXCLUDE and the tree scan take paths, not globs, so the globs are
     resolved against the tree once per build. A matched directory is returned whole and
     not descended into, which keeps `vendor/**` one exclusion rather than thousands.
+
+    MATCH BEFORE PRUNE (B3, 1.1.0 merge review). This tested `_NEVER_WALK` and the caller's
+    prune set FIRST, so a repository stating `node_modules/**` — or `.venv/**`, or
+    `**/__pycache__` — got `[]` back and the index's EXCLUDE never named the tree the owner
+    had just excluded. The gate matches the same globs directly and never walks, so it
+    honoured the statement; one `toolchain.toml` line meant two different things depending
+    on which half of clew read it. A declared never-walk name is now RETURNED as an
+    exclusion and still not descended into; an UNDECLARED one is still pruned silently,
+    because turning every incidental `node_modules` into an exclusion would put it in the
+    Doxyfile and in the cache key for no statement the owner made.
 
     @brief Resolve globs to concrete excluded paths.
     @return The excluded paths.
@@ -269,15 +283,30 @@ def expand_globs(repo_root: Path, globs: tuple[str, ...], prune: list[str] = ())
         keep = []
         for name in sorted(dirnames):
             full = here / name
-            if name in _NEVER_WALK or str(full) in pruned:
-                continue
             if matches(matcher, rel_here + name, is_dir=True):
                 out.append(full)
-            else:
-                keep.append(name)
+                continue  # returned whole; descending would add thousands of children
+            if name in _NEVER_WALK or str(full) in pruned:
+                continue  # not declared, so not an exclusion — just not walked
+            keep.append(name)
         dirnames[:] = keep
         out += [here / f for f in sorted(filenames) if matcher.is_ignored(rel_here + f)]
-    return sorted(out)
+    found = sorted(out)
+    ## AN EXPANSION THIS SIZE IS A GLOB, NOT A TREE. A correct declaration names directories
+    ## and comes back with a handful of paths; thousands means a file-level pattern such as
+    ## `**/*.c` matched individually, and every one of them lands in the Doxyfile's EXCLUDE
+    ## and in the cache key. Reported rather than capped — the declaration is the owner's to
+    ## make — and reported HERE rather than through `ToolchainConfig.problems`, which is built
+    ## in `load_toolchain_config` and frozen long before any tree is walked.
+    if len(found) > _LARGE_EXPANSION:
+        logger.warning(
+            "toolchain config: %s resolved to %d excluded path(s) from %s — a directory glob "
+            "would be one exclusion instead of thousands",
+            _relative(root, root) or str(root),
+            len(found),
+            ", ".join(globs),
+        )
+    return found
 
 
 ## @brief A path relative to the repo when it is inside it, else as given.

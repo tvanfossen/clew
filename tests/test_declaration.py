@@ -12,6 +12,7 @@ mandate exists to prevent.
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import pytest
@@ -413,3 +414,64 @@ def test_a_declared_doxyfile_is_reachable_and_a_missing_one_refuses(tmp_path: Pa
     ## because each loader reports its own absent document with the context to say what it was for.
     ok = SimpleNamespace()
     assert apply_options(ok, {"requirements": "nope.yaml"}, tmp_path) == ["requirements"]
+
+
+class TestForwardCompatibility:
+    """B5, 1.1.0 MERGE REVIEW. `guard:` is new in 1.1.0, so a `.clew.yaml` written for it is
+    REFUSED outright by clew <= 1.0.39 — which does not know the name — and the refusal names
+    the allowed set without ever saying the obvious cause. An owner reads "unknown section
+    'guard'" against a file they just wrote correctly, and the one fact that would resolve it
+    (the clew in this venv is older than the file) is the one fact missing.
+
+    Nothing in 1.1.0 can change what 1.0.39 already does. What it can do is stop the NEXT
+    version of this from happening: an `x-` prefixed section is tolerated and ignored, so a
+    future experimental key is a no-op on an older clew rather than a hard refusal. The
+    convention is the one HTTP headers, YAML tooling and TOML tables all use for the same
+    reason, so it needs no clew-specific documentation to be recognised.
+    """
+
+    def test_the_refusal_names_the_probable_cause(self, tmp_path):
+        """@brief An unknown section points at an upgrade. @version 1"""
+        (tmp_path / ".clew.yaml").write_text("guardd:\n  version_gate: strict\n")
+
+        from clew.vocabulary import DeclarationError
+
+        with pytest.raises(DeclarationError) as excinfo:
+            load_declaration(tmp_path)
+
+        message = str(excinfo.value)
+        assert "clew-trace" in message, (
+            f"the refusal never mentions upgrading, which is the usual cause: {message}"
+        )
+        assert "guardd" in message and "allowed" in message, "the mechanical fix must survive"
+
+    def test_an_experimental_section_is_tolerated_and_ignored(self, tmp_path):
+        """@brief An `x-` section neither refuses nor reaches the build. @version 1"""
+        (tmp_path / ".clew.yaml").write_text(
+            "x-future-thing:\n  whatever: 1\nthread_patterns:\n  - worker\n"
+        )
+
+        data = load_declaration(tmp_path)
+
+        assert "thread_patterns" in data, "the known sections must still be read"
+        assert not [key for key in data if key.startswith("x-")], (
+            f"an experimental section reached the build, which is worse than refusing it: {data}"
+        )
+
+    def test_an_x_prefix_does_not_excuse_a_misspelling(self, tmp_path, caplog):
+        """THE LIMIT. `x-thread_patterns` is not a tolerated experiment, it is a typo with a prefix —
+        but there is no way to tell those apart, and tolerating it silently is exactly the
+        failure mode the refusal exists to prevent. This asserts the rule stays narrow: the
+        prefix buys tolerance, and tolerance means the section is reported as ignored.
+
+        @brief A tolerated section is logged, not silent. @version 1
+        """
+        (tmp_path / ".clew.yaml").write_text("x-thread_patterns:\n  - worker\n")
+
+        with caplog.at_level(logging.WARNING, logger="clew.declaration"):
+            data = load_declaration(tmp_path)
+
+        assert data == {}
+        assert any("x-thread_patterns" in record.getMessage() for record in caplog.records), (
+            "a tolerated section must still be named, or a typo with an `x-` prefix is silent"
+        )

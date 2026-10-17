@@ -358,3 +358,55 @@ class TestVersionGateFailsClosed:
         monkeypatch.chdir(tmp_path)
         # No version_gate declared: nothing to resolve, so no error from resolution.
         assert main(["validate", "--no-git", str(c_file)]) in (0, 1)
+
+
+class TestSkipsAreReported:
+    """B1, 1.1.0 MERGE REVIEW. A file the shared `toolchain.toml` ignores is skipped with a
+    `logger.info`, and `_setup_logging` pins the gate at WARNING unless `-v` is passed. So the
+    gate printed NOTHING and exited 0 for a tree it had not checked — reproduced as `rc=1`
+    becoming `rc=0` the moment a `[clew.ignore]` entry covered the offending file.
+
+    A gate that reports success while checking nothing is worse than no gate: the owner reads
+    the exit code, not the INFO log they cannot see. The skip count therefore belongs on the
+    same surface as `clew guard: N violation(s) found`, at the choke point both entry paths use.
+    """
+
+    @staticmethod
+    def _dirty_tree(tmp_path):
+        (tmp_path / "gen").mkdir()
+        dirty = tmp_path / "gen" / "auto.c"
+        dirty.write_text("void Undoc_Func(void) {\n    do_stuff();\n}\n")
+        return dirty
+
+    def test_an_unchecked_file_is_named_without_the_verbose_flag(
+        self, tmp_path, monkeypatch, capsys
+    ):
+        """@brief A toolchain-ignored file is reported on the default surface. @version 1"""
+        dirty = self._dirty_tree(tmp_path)
+        (tmp_path / "toolchain.toml").write_text('[clew.ignore]\npaths = ["gen/**"]\n')
+        monkeypatch.chdir(tmp_path)
+
+        rc = main(["--config", NO_REQ_CONFIG, "validate", "--no-git", str(dirty)])
+
+        captured = capsys.readouterr()
+        surface = captured.out + captured.err
+        assert rc == 0, "the ignore is honoured, so there is nothing to fail on"
+        assert "1 file(s) not checked" in surface, (
+            f"the gate passed without saying it checked nothing; surface was {surface!r}"
+        )
+        assert "toolchain.toml" in surface, "the report must name what decided the skip"
+
+    def test_a_checked_tree_says_nothing_extra(self, tmp_path, monkeypatch, capsys):
+        """The line is evidence of a skip, not decoration: with nothing skipped it must not
+        appear, or it becomes noise an owner learns to ignore.
+
+        @brief No skip line when every file was checked. @version 1
+        """
+        dirty = self._dirty_tree(tmp_path)
+        monkeypatch.chdir(tmp_path)
+
+        rc = main(["--config", NO_REQ_CONFIG, "validate", "--no-git", str(dirty)])
+
+        captured = capsys.readouterr()
+        assert rc == 1
+        assert "not checked" not in captured.out + captured.err
