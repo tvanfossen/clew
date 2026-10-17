@@ -1,22 +1,29 @@
 # SPDX-License-Identifier: MIT
 """The parse-built front end: doxygen-shaped rows for languages doxygen cannot read.
 
-Doxygen has no JavaScript or TypeScript parser, so a `.js` / `.ts` / `.tsx` file got no
-`path` row, and therefore no harvest, no call edges and no symbols at all. This module
-writes the same tables doxygen and `rustdoc.py` write (`path`, `refid`, `memberdef`,
-`compounddef`, `member`, `compoundref`) from lang-parsing-substrate's parse, so every
-downstream stage runs on them unchanged.
+Doxygen reads no JavaScript, TypeScript, shell or CMake, so those files got no `path` row,
+and therefore no harvest, no call edges and no symbols at all. This module writes the same
+tables doxygen and `rustdoc.py` write (`path`, `refid`, `memberdef`, `compounddef`,
+`member`, `compoundref`) from lang-parsing-substrate's parse, so every downstream stage
+runs on them unchanged.
+
+THREE TREATMENTS, BECAUSE THE FILE TYPES ARE NOT ALIKE (1.1.0). JS/TS and shell and CMake
+have a function concept and get `memberdef` rows, each from its own walker
+(`clew/jsast.py`, `clew/shast.py`, `clew/cmakeast.py`). YAML and JSON have none — their
+grammars offer `block_mapping_pair` and `pair` — so they are REGISTERED AND NEVER
+HARVESTED: present in the file set, findable by name, named by the not-indexed report, and
+contributing nothing to the namespace that answers a question about a function.
 
 IT ADDS; IT NEVER REPLACES. It runs after doxygen (or rustdoc), and allocates ids the way
 `ast_symbols` does (`INSERT INTO refid` and take the rowid), so a mixed repo gets C from
-doxygen and JS/TS from here in one index. Rows are stamped `dg_source='parse'`: written by
-a front end that read the documentation (JSDoc), unlike an `ast` recovery row, which has
-none.
+doxygen and the rest from here in one index. Rows are stamped `dg_source='parse'`: written
+by a front end that read the documentation (JSDoc, or the `#` block above a shell or CMake
+definition), unlike an `ast` recovery row, which has none.
 
-TWO STAGES, because the harvest reads the `path` table. `register_paths` runs before
-the shared parse so the JS/TS files are in the file set; the definitions are harvested
-there (the `js_symbols` stage, cached per file content); `emit_definitions` then writes
-them, before any call layer resolves against `memberdef`.
+TWO STAGES, because the harvest reads the `path` table. `register_paths` runs before the
+shared parse so the claimed files are in the file set; the definitions are harvested there
+(the `js_symbols` and `script_symbols` stages, cached per file content); `emit_definitions`
+then writes them, before any call layer resolves against `memberdef`.
 
 SHAPES FOLLOW DOXYGEN'S PYTHON ROWS, which the query layer already reads: `definition`
 and `scope` are dotted (`src.util.strings.Formatter.trim`), compound names `::`-joined
@@ -24,8 +31,8 @@ and `scope` are dotted (`src.util.strings.Formatter.trim`), compound names `::`-
 `<simplesect kind="version">`, and every other tag (`@req`) kept as literal text, which is
 exactly what doxygen does with a tag it does not define.
 
-@brief Parse-built path/memberdef/compounddef rows for JS and TS.
-@version 1
+@brief Parse-built path/memberdef/compounddef rows for JS/TS, shell, CMake and data files.
+@version 2
 """
 
 from __future__ import annotations
@@ -33,19 +40,62 @@ from __future__ import annotations
 import html
 import re
 import sqlite3
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from ._common import logger
 from .harvest import Harvester, run_harvest
-from .vocabulary import STAGE_JS_SYMBOLS, SYMBOL_SOURCE_COLUMN, SYMBOL_SOURCE_PARSE
+from .vocabulary import (
+    STAGE_JS_SYMBOLS,
+    STAGE_SCRIPT_SYMBOLS,
+    SYMBOL_SOURCE_COLUMN,
+    SYMBOL_SOURCE_PARSE,
+)
 
 ## The extensions this front end claims. `.mts`/`.cts` are TypeScript's ES-module and
 ## CommonJS spellings; `.d.ts` declaration files hold signatures without bodies, which
 ## yield no definitions, so they need no special case.
 SYNTH_EXTS = (".js", ".mjs", ".cjs", ".jsx", ".ts", ".mts", ".cts", ".tsx")
 
+## SHELL AND CMAKE, 1.1.0. Both have a function concept doxygen cannot read, so both get
+## `memberdef` rows.
+SCRIPT_EXTS = (".sh", ".bash", ".cmake")
+
+## Claimed by whole FILE NAME rather than by extension, matched as a path component: a
+## suffix test (`endswith("cmakelists.txt")`) also claims `oldcmakelists.txt`, and claiming
+## `.txt` itself would claim every `notes.txt` in the tree. `clew/harvest.py`'s router
+## applies the same rule to the same name, and `tests/test_gate_index_extension_parity.py`
+## is where a divergence surfaces.
+SCRIPT_NAMES = ("cmakelists.txt",)
+
+## DATA FILES: REGISTERED, NEVER HARVESTED. YAML and JSON have no function concept at all —
+## their grammars offer `block_mapping_pair` and `pair` — so there is nothing here to write
+## as a symbol. What they need is to be VISIBLE: a `path` row makes them part of the file
+## set, findable by name and nameable by the miss report, without putting every `steps:`
+## key of every workflow file into the namespace that answers a question about a function.
+##
+## Markdown is absent on purpose. It is prose, and `clew/prose.py` already chunks it into
+## the FTS index by heading; a `path` row would also count it as an indexed SOURCE file in
+## every coverage figure.
+DATA_EXTS = (".yaml", ".yml", ".json")
+
+## Every file type the front end puts in the file set.
+CLAIMED_EXTS = SYNTH_EXTS + SCRIPT_EXTS + DATA_EXTS
+
 _TYPE_FILE = 1
+
+## A PAYLOAD'S OWN `kind` MAPPED ONTO DOXYGEN'S. The left side is this package's
+## vocabulary, written by the per-language walkers; the right side is doxygen's
+## `memberdef.kind` string, which the query layer reads. A CMake `macro` pastes its body
+## into the caller's scope and its arguments are textual substitutions, which is what
+## doxygen's "macro definition" means too, so it maps there rather than being flattened to
+## a function — a reader chasing a variable that leaks out of a macro gets told it is one.
+##
+## `clew/query/macros.py` owns the doxygen spelling ("spelled once: it is a doxygen
+## vocabulary string, not ours"). `tests/test_member_kind_parity.py` holds the two
+## together, because that module is on the READ side and importing it here would stand the
+## pipeline's layering on its head.
+MEMBER_KIND = {"function": "function", "macro": "macro definition"}
 
 
 ## @brief Per-file harvester for JS/TS definitions.
@@ -83,21 +133,88 @@ def js_symbol_harvester() -> Harvester:
     return _JsSymbolHarvester()
 
 
+## @brief Per-file harvester for shell and CMake definitions.
+## @version 1
+class _ScriptSymbolHarvester(Harvester):
+    """ONE STAGE FOR TWO LANGUAGES. Every harvest stage is offered every indexed file, so a
+    second partition would store an empty payload per file per index — 40,000 rows on a
+    large target recording that a C file defines no shell function. The two walkers share
+    this stage's version as the cost of that.
+
+    Dispatch is by NODE SHAPE, not by the file's extension and not by the tree's root
+    type: a bash tree is rooted at `program`, the same as JavaScript's, and a CMake tree at
+    `source_file`, the same as Rust's. Each walker recognises its own definition nodes and
+    returns nothing for a tree that has none, so the dispatch cannot mistake one language
+    for another even though both roots are shared.
+
+    @brief Shell/CMake definitions harvester.
+    @version 1
+    """
+
+    stage = STAGE_SCRIPT_SYMBOLS
+    stage_version = 1
+    label = "shell/cmake definitions"
+
+    ## @brief Harvest one file's definitions.
+    ## @param tree The parsed tree.
+    ## @param src_bytes The file's bytes.
+    ## @return The definitions payload, or {} for a file of neither language.
+    ## @version 1
+    ## @req REQ-DDB-PIPE-012
+    def harvest(self, tree: Any, src_bytes: bytes) -> Any:
+        from .cmakeast import harvest_definitions as cmake_definitions
+        from .cmakeast import is_cmake_tree
+        from .shast import harvest_definitions as sh_definitions
+        from .shast import is_sh_tree
+
+        if is_sh_tree(tree):
+            return sh_definitions(tree, src_bytes)
+        if is_cmake_tree(tree):
+            return cmake_definitions(tree, src_bytes)
+        return {}
+
+
+## @brief The shell/CMake definitions stage's harvester.
+## @return A Harvester; build it the same way everywhere so the cache key agrees.
+## @version 1
+## @req REQ-DDB-PIPE-012
+def script_symbol_harvester() -> Harvester:
+    """@brief Build this stage's harvester."""
+    return _ScriptSymbolHarvester()
+
+
 ## @brief Whether a repo-relative path is one this front end claims.
 ## @param rel Path, any separator.
 ## @return True for a JS/TS source file.
-## @version 1
+## @version 2
 ## @dg_internal
 def claims(rel: str) -> bool:
-    """@brief JS/TS extension test."""
-    return rel.lower().endswith(SYNTH_EXTS)
+    """Every type this front end registers in `path`, whether or not it will carry
+    symbols: a YAML file is claimed so that it is in the file set, and harvested by
+    nothing.
+
+    @brief Claimed-file-type test.
+    """
+    lower = rel.lower()
+    return lower.endswith(CLAIMED_EXTS) or PurePosixPath(lower).name in SCRIPT_NAMES
+
+
+## @brief Whether a repo-relative path is one of the symbol-bearing script types.
+## @param rel Path, any separator.
+## @return True for a shell or CMake source file.
+## @version 1
+## @dg_internal
+def script_claims(rel: str) -> bool:
+    """@brief Shell/CMake extension-or-name test."""
+    lower = rel.lower()
+    return lower.endswith(SCRIPT_EXTS) or PurePosixPath(lower).name in SCRIPT_NAMES
 
 
 ## @brief Insert `path` rows for the JS/TS files of this build's scanned tree.
 ## @param db_path The database being built.
 ## @param files Repo-relative POSIX paths of every file in scope.
 ## @return How many rows were inserted.
-## @version 1
+## @version 2
 ## @req REQ-DDB-PIPE-012
 def register_paths(db_path: Path, files: list[str]) -> int:
     """Rows already present (a doxygen that somehow saw the file) are left alone, so
@@ -121,7 +238,7 @@ def register_paths(db_path: Path, files: list[str]) -> int:
     finally:
         conn.close()
     if new:
-        logger.info("parse front end: %d JS/TS file(s) registered", len(new))
+        logger.info("parse front end: %d file(s) registered", len(new))
     return len(new)
 
 
@@ -130,7 +247,7 @@ def register_paths(db_path: Path, files: list[str]) -> int:
 ## @param repo_root Repository root.
 ## @param cache The index cache (the shared parse warmed it), or None.
 ## @return (functions written, classes written).
-## @version 2
+## @version 3
 ## @req REQ-DDB-PIPE-012
 def emit_definitions(db_path: Path, repo_root: Path, cache: Any = None) -> tuple[int, int]:
     """@brief Turn the cached js_symbols payloads into rows."""
@@ -141,18 +258,22 @@ def emit_definitions(db_path: Path, repo_root: Path, cache: Any = None) -> tuple
         if not _has_claimed_path(conn):
             return 0, 0
         ensure_symbol_provenance(conn)
-        harvested = run_harvest(conn, repo_root, js_symbol_harvester(), cache)
         writer = _Writer(conn)
-        for path_rowid, payload in harvested:
-            if payload:
-                writer.file(path_rowid, payload)
+        ## TWO STAGES, ONE WRITER. The refid key prefix differs per stage so a shell
+        ## function and a JS function at the same line of two files cannot collide on the
+        ## `refid.refid` UNIQUE constraint; the rows themselves are identical in shape.
+        for harvester, prefix in (
+            (js_symbol_harvester(), "js"),
+            (script_symbol_harvester(), "script"),
+        ):
+            for path_rowid, payload in run_harvest(conn, repo_root, harvester, cache):
+                if payload:
+                    writer.file(path_rowid, payload, prefix)
         writer.inheritance()
         conn.commit()
     finally:
         conn.close()
-    logger.info(
-        "parse front end: %d JS/TS function(s), %d class(es)", writer.functions, writer.classes
-    )
+    logger.info("parse front end: %d function(s), %d class(es)", writer.functions, writer.classes)
     return writer.functions, writer.classes
 
 
@@ -204,23 +325,23 @@ class _Writer:
     ## @brief Write one file's harvested classes and functions.
     ## @version 1
     ## @dg_internal
-    def file(self, path_rowid: int, payload: dict[str, Any]) -> None:
+    def file(self, path_rowid: int, payload: dict[str, Any], prefix: str = "js") -> None:
         rel = self.conn.execute("SELECT name FROM path WHERE rowid = ?", (path_rowid,)).fetchone()[
             0
         ]
         module = module_of(rel)
         local: dict[str, int] = {}
         for cls in payload.get("classes", []):
-            local[cls["name"]] = self._compound(path_rowid, module, cls)
+            local[cls["name"]] = self._compound(path_rowid, module, cls, prefix)
         for fn in payload.get("functions", []):
-            self._function(path_rowid, module, fn, local.get(fn["cls"]))
+            self._function(path_rowid, module, fn, local.get(fn["cls"]), prefix)
 
     ## @brief Insert one class-like compounddef row.
     ## @return Its rowid.
     ## @version 1
     ## @dg_internal
-    def _compound(self, path_rowid: int, module: str, cls: dict[str, Any]) -> int:
-        rowid = self._refid(f"jscls_{path_rowid}_{cls['line']}_{cls['col']}_{cls['name']}")
+    def _compound(self, path_rowid: int, module: str, cls: dict[str, Any], prefix: str) -> int:
+        rowid = self._refid(f"{prefix}cls_{path_rowid}_{cls['line']}_{cls['col']}_{cls['name']}")
         owner = f"{cls['outer']}::" if cls["outer"] else ""
         name = f"{module.replace('.', '::')}::{owner}{cls['name']}"
         brief, detail = render_doc(cls["doc"])
@@ -239,16 +360,21 @@ class _Writer:
     ## @version 1
     ## @dg_internal
     def _function(
-        self, path_rowid: int, module: str, fn: dict[str, Any], owner: int | None
+        self,
+        path_rowid: int,
+        module: str,
+        fn: dict[str, Any],
+        owner: int | None,
+        prefix: str,
     ) -> None:
-        rowid = self._refid(f"jsfn_{path_rowid}_{fn['line']}_{fn['col']}_{fn['name']}")
+        rowid = self._refid(f"{prefix}fn_{path_rowid}_{fn['line']}_{fn['col']}_{fn['name']}")
         scope = f"{module}.{fn['cls']}" if fn["cls"] else module
         brief, detail = render_doc(fn["doc"])
         self.conn.execute(
             "INSERT INTO memberdef (rowid, name, definition, type, argsstring, scope, kind, "
             "prot, static, bodystart, bodyend, bodyfile_id, file_id, line, column, "
             f"briefdescription, detaileddescription, {SYMBOL_SOURCE_COLUMN}) "
-            "VALUES (?, ?, ?, ?, ?, ?, 'function', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 rowid,
                 fn["name"],
@@ -256,6 +382,7 @@ class _Writer:
                 fn["ret"],
                 fn["args"],
                 scope,
+                MEMBER_KIND[fn.get("kind", "function")],
                 1 if fn["name"].startswith("#") else 0,
                 fn["static"],
                 fn["line"],

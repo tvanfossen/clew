@@ -15,7 +15,10 @@ Per-language setup, what each front end populates, and what it cannot:
 [C++](docs/languages/CPP_INTEGRATION.md) ·
 [Rust](docs/languages/RUST_INTEGRATION.md) ·
 [Python](docs/languages/PYTHON_INTEGRATION.md) ·
-[JavaScript / TypeScript](docs/languages/JS_TS_INTEGRATION.md).
+[JavaScript / TypeScript](docs/languages/JS_TS_INTEGRATION.md) ·
+[Shell / CMake / YAML / JSON](docs/languages/SCRIPT_INTEGRATION.md) — which needs a
+lang-parsing-substrate build carrying those grammars, and degrades to a file-set entry
+with no symbols on one that does not.
 
 **Files that are not source are never read**, whatever their extension: a zip or object file
 named `.c` is detected (lang-parsing-substrate's `classify_file`) and skipped before doxygen or

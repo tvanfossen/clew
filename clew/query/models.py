@@ -1189,6 +1189,15 @@ class IndexScope:
     file_count: int
     top_levels: tuple[str, ...]
     extensions: tuple[str, ...]
+    ## THE COMPLEMENT OF `extensions` (sumac's item 4, 1.1.0): file types that were in this
+    ## build's scope and produced no rows, as `ext=count` entries. It is the actionable half
+    ## of an empty answer — "the symbol does not exist" and "its file type is not indexed
+    ## here" are the same reply without it, and only one of them means stop looking.
+    ##
+    ## `()` and `0` on an index built before the build stamped it, which reads as "not
+    ## recorded". A fabricated empty report would read as "nothing was missed".
+    not_indexed: tuple[str, ...] = ()
+    not_indexed_count: int = 0
 
 
 ## @brief One full-text hit in the supplementary prose corpus.

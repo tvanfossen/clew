@@ -51,7 +51,7 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from ._common import logger, make_progress
@@ -93,6 +93,16 @@ _RUST_EXTS = (".rs",)
 # JavaScript and TypeScript have no doxygen front end at all: clew/synth.py writes their
 # rows from this same parse. `.tsx` needs the JSX-aware grammar, which the substrate keeps
 # under its own key; JSX in plain JavaScript is handled by the javascript grammar.
+# Shell holds a repository's deploy, release and CI logic — the only code in an
+# indexed tree that had no rows at all before 1.1.0. clew/shast.py harvests it.
+_SH_EXTS = (".sh", ".bash")
+# CMake is matched by FILE NAME as well as by extension, and the name is matched as a whole
+# PATH COMPONENT. Expressing it in the suffix table as `endswith("cmakelists.txt")` was
+# shorter and wrong: it also claims `oldcmakelists.txt` and `vendor-CMakeLists.txt`.
+# Routing `.txt` itself would be worse again — every `requirements.txt` and `notes.txt` in
+# the tree handed to a build-script grammar.
+_CMAKE_EXTS = (".cmake",)
+_CMAKE_NAMES = ("cmakelists.txt",)
 _JS_EXTS = (".js", ".mjs", ".cjs", ".jsx")
 _TS_EXTS = (".ts", ".mts", ".cts")
 _TSX_EXTS = (".tsx",)
@@ -113,9 +123,26 @@ _TS_GRAMMARS: tuple[tuple[tuple[str, ...], str], ...] = (
     (_JS_EXTS, "substrate:javascript"),
     (_TS_EXTS, "substrate:typescript"),
     (_TSX_EXTS, "substrate:tsx"),
+    (_SH_EXTS, "substrate:bash"),
+    (_CMAKE_EXTS, "substrate:cmake"),
 )
 
+## Grammars selected by a file's whole NAME rather than by a suffix, checked first. Keyed
+## lower-cased, because `CMakeLists.txt` is also written `CMakeLists.TXT` on a
+## case-insensitive filesystem and the router has always lower-cased the path.
+_NAME_GRAMMARS: dict[str, str] = {name: "substrate:cmake" for name in _CMAKE_NAMES}
+
 _SUBSTRATE_PREFIX = "substrate:"
+
+## Grammars that MAY BE ABSENT from the installed substrate, so a route to one is checked
+## before it is taken. `parse_tree` raises `ValueError: unknown language key` for a grammar
+## the wheel was not built with, which on an unchecked route is a build that dies partway
+## through a parse pass instead of simply not covering those files.
+##
+## The other keys are deliberately NOT gated: a substrate without C or Python is a broken
+## install, and a loud failure is the right answer there rather than an index that quietly
+## holds nothing.
+_OPTIONAL_KEYS = frozenset({"bash", "cmake"})
 
 
 ## @brief A grammar served by the substrate, standing in for a grammar module.
@@ -152,7 +179,7 @@ def _try_import_ts_module(modname: str):
 
 ## @brief Select the C, C++, Python or Rust tree-sitter language by extension.
 ## @return The grammar module for the path's extension, or None if unhandled.
-## @version 4
+## @version 5
 ## @dg_internal
 def _ts_language_for(path: str):
     """Select the tree-sitter grammar for one path's extension.
@@ -170,8 +197,32 @@ def _ts_language_for(path: str):
     @version 3
     """
     lower = path.lower()
-    modname = next((m for exts, m in _TS_GRAMMARS if lower.endswith(exts)), None)
-    return _try_import_ts_module(modname) if modname is not None else None
+    modname = _NAME_GRAMMARS.get(PurePosixPath(lower).name)
+    if modname is None:
+        modname = next((m for exts, m in _TS_GRAMMARS if lower.endswith(exts)), None)
+    if modname is None or not _grammar_available(modname):
+        return None
+    return _try_import_ts_module(modname)
+
+
+## @brief Whether a routed grammar is actually compiled into the installed substrate.
+## @param modname A `substrate:<key>` grammar name.
+## @return True unless the key is optional and absent.
+## @version 1
+## @dg_internal
+def _grammar_available(modname: str) -> bool:
+    """Only the optional keys are measured, and only they can be missing — see
+    `_OPTIONAL_KEYS`. `clew/substrate.py` caches the answer, so this costs one set lookup
+    per file after the first.
+
+    @brief Optional-grammar capability check.
+    """
+    key = modname[len(_SUBSTRATE_PREFIX) :]
+    if key not in _OPTIONAL_KEYS:
+        return True
+    from . import substrate
+
+    return substrate.has_language(key)
 
 
 # `.h` says nothing about the language: C uses it, and so does every C++ project

@@ -689,6 +689,14 @@ STAGE_JS_SYMBOLS = "js_symbols"
 ## function and class, used only where doxygen left the row undocumented.
 STAGE_PY_DOCSTRINGS = "py_docstrings"
 
+## SHELL AND CMAKE definitions for the parse-built front end (clew/shast.py,
+## clew/cmakeast.py), 1.1.0. ONE partition for both languages rather than two: every stage
+## in this vocabulary is harvested over every indexed file, so a second partition would add
+## an empty payload row per file per index — on a 40,000-file target that is 40,000 rows
+## recording that a C file defines no shell function. The two walkers are versioned
+## together as the cost of that.
+STAGE_SCRIPT_SYMBOLS = "script_symbols"
+
 STAGE = Vocabulary(
     id="stage",
     values=(
@@ -706,6 +714,7 @@ STAGE = Vocabulary(
         STAGE_BLOCKING,
         STAGE_JS_SYMBOLS,
         STAGE_PY_DOCSTRINGS,
+        STAGE_SCRIPT_SYMBOLS,
     ),
     means="extract_cache partition key — a typo is a permanent silent cache miss, not an error",
     rank={
@@ -723,6 +732,7 @@ STAGE = Vocabulary(
         STAGE_BLOCKING: 0,
         STAGE_JS_SYMBOLS: 0,
         STAGE_PY_DOCSTRINGS: 0,
+        STAGE_SCRIPT_SYMBOLS: 0,
     },
 )
 

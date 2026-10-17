@@ -63,6 +63,7 @@ from __future__ import annotations
 import argparse
 import json
 import contextlib
+from collections import Counter
 import logging
 import os
 import shutil
@@ -1809,7 +1810,7 @@ def _doxygen_stage(
 
 ## @brief Run every build stage against one (temp) output DB path.
 ## @param timer Stage timer; one `mark` closes each stage below. A fresh one when omitted.
-## @version 58
+## @version 59
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -1887,13 +1888,25 @@ def _build_stages(
     timer.mark("fix_paths")
     repair_attribute_named_functions(output, repo_root)
     timer.mark("repair_names")
-    ingest_supplementary_docs(output, repo_root)
+    ## ONE WALK, THREE CONSUMERS. A rustdoc-only build never enumerated the tree, so
+    ## `_scanned_files` walks it on that path; calling it once per consumer walked it
+    ## repeatedly. Stashed back onto `args` because `_not_indexed_scope` needs the same set
+    ## much later, when the `path` table is complete — and a second walk there could not
+    ## even be relied on to describe the same tree.
+    scanned = _scanned_files(args, repo_root)
+    args.scanned_files = scanned
+    ## PROSE COVERAGE FOLLOWS THE SCANNED SET, not a `**/*.md` glob (1.1.0, sumac's ask).
+    ## The ten named globs found `docs/*.md` and `README.md` and nothing else, so a design
+    ## note at `src/notes.md` was invisible to `search_prose` while sitting in the
+    ## repository the index claims to cover. The scanned set is the build's own answer to
+    ## what is in scope, so prose and symbol coverage cannot disagree about this tree.
+    ingest_supplementary_docs(output, repo_root, files=scanned)
     timer.mark("supplementary_docs")
     ## THE PARSE-BUILT FRONT END (clew/synth.py), for the languages doxygen cannot read:
     ## JavaScript and TypeScript. Its files are registered in `path` HERE, before the shared
     ## parse, because the harvest's file set IS the `path` table; their definitions are
     ## written right after the shared parse, below.
-    register_synth_paths(output, _scanned_files(args, repo_root))
+    register_synth_paths(output, scanned)
     timer.mark("synth_paths")
     ## gh#18. IMMEDIATELY AFTER prose ingestion and not before, because
     ## `ingest_supplementary_docs` DROPs and recreates `supplementary_docs` on every
@@ -2244,6 +2257,10 @@ def _build_stages(
     if external:
         scope_meta[EXTERNAL_ROOTS_META_KEY] = SCOPE_LIST_SEPARATOR.join(external)
         scope_meta["external_files"] = str(external_tagged)
+    ## WHAT WAS IN SCOPE AND IS NOT HERE (sumac's item 4, 1.1.0). Stamped last of the scope
+    ## keys because it reads the `path` table, which is only complete once every front end
+    ## has registered: doxygen's rows, rustdoc's, and the parse-built front end's.
+    scope_meta.update(_not_indexed_scope(output, args))
     timer.mark("scope_provenance")
 
     ## Coverage rides along for the same reason scope does: a number that lives only in
@@ -2610,6 +2627,61 @@ def _in_scope_count(args: argparse.Namespace) -> dict[str, str]:
     """
     count = getattr(args, "files_in_scope", None)
     return {"files_in_scope": str(count)} if count else {}
+
+
+## How many extensions `_not_indexed_scope` names; the count is always exact.
+_NOT_INDEXED_NAMED = 12
+
+## What an extensionless file is called in the report. `deploy` with a `#!/bin/sh` line is
+## exactly the file a reader asks about, and a blank key would hide it.
+_NO_EXTENSION = "(no extension)"
+
+
+## @brief Record the file types this build had in scope but holds no rows for.
+## @param output The database being built, with every front end's `path` rows written.
+## @param args Parsed CLI arguments, carrying the scanned file set.
+## @return Mapping with `not_indexed` and `not_indexed_count`, empty when nothing was missed.
+## @version 1
+## @req REQ-DDB-PIPE-012
+def _not_indexed_scope(output: Path, args: argparse.Namespace) -> dict[str, str]:
+    """THE COMPLEMENT OF `scope.extensions`, and the actionable half of an empty answer
+    (sumac's item 4, 1.1.0). `IndexScope` already states which extensions the index HOLDS;
+    without this, these three cases are indistinguishable from the caller's side:
+
+    * the symbol does not exist — trust the negative,
+    * its file type is not indexed by this build — read the file directly,
+    * its file type is outside the declared scope — widen the scope.
+
+    MEASURED HERE RATHER THAN ASKED AT QUERY TIME. The comparison needs the tree this build
+    walked; the working copy at query time is a different tree, and walking it to answer an
+    empty query would be both slow and wrong.
+
+    Empty when nothing was missed AND empty when nothing walked the tree (a rustdoc-only
+    build has no scanned set). Under the falsy-drop rule both become no row at all, which
+    is the house distinction between "nothing was missed" and "nobody measured": a reader
+    gets the claim only when a build was in a position to make it.
+
+    @brief Stamp the unindexed file types.
+    @return Mapping of `not_indexed*` keys, or {}.
+    @version 1
+    """
+    scanned = getattr(args, "scanned_files", None)
+    if not scanned:
+        return {}
+    conn = sqlite3.connect(str(output))
+    try:
+        indexed = {row[0] for row in conn.execute("SELECT name FROM path WHERE type = 1")}
+    finally:
+        conn.close()
+    missing = [rel for rel in scanned if Path(rel).as_posix() not in indexed]
+    if not missing:
+        return {}
+    counts = Counter(Path(rel).suffix.lower() or _NO_EXTENSION for rel in missing)
+    ## Ordered by count and then by name, so the report is stable across builds of the
+    ## same tree and the biggest gap is the one that survives the cap.
+    ranked = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+    named = ", ".join(f"{ext}={count}" for ext, count in ranked[:_NOT_INDEXED_NAMED])
+    return {"not_indexed": named, "not_indexed_count": str(len(missing))}
 
 
 ## @brief Record where the scope walk stopped descending, if anywhere.

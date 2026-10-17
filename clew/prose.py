@@ -1,12 +1,23 @@
 # SPDX-License-Identifier: MIT
-"""Supplementary-doc ingestion: README/CHANGELOG/docs/*.md → FTS5.
+"""Supplementary-doc ingestion: every markdown file the build scanned → FTS5.
 
-Markdown files matching `SUPPLEMENTARY_PATTERNS` are scanned, chunked
-by H1/H2/H3 heading, and inserted into the FTS5 `supplementary_docs`
-virtual table. Used by docs.search_prose at query time.
+Markdown files are chunked by H1/H2/H3 heading and inserted into the FTS5
+`supplementary_docs` virtual table, read by `docs.search_prose` at query time.
+
+WHICH FILES, AND WHY THAT CHANGED (1.1.0). `SUPPLEMENTARY_PATTERNS` held ten root-anchored
+globs, so a design note at `src/notes.md` or an ADR under `architecture/decisions/` was
+invisible to `search_prose` while sitting in the repository the index claims to cover. The
+file set is now the build's OWN scanned set — which honours the declared scope, the
+operator's excludes, the toolchain's ignores and binary classification — plus those globs,
+which still name `README` with no extension, `README.rst` and `README.txt`.
+
+NOT A WIDER GLOB. `**/*.md` from the repo root would read every vendored and build-output
+markdown file on disk: `node_modules`, a cargo registry copy, `.venv/share/doc`. Taking
+markdown from the scanned set means prose coverage and symbol coverage cannot disagree
+about what this repository contains.
 
 @brief Markdown chunking + FTS5 ingest for supplementary docs.
-@version 2
+@version 3
 """
 
 from __future__ import annotations
@@ -29,6 +40,11 @@ SUPPLEMENTARY_PATTERNS: list[str] = [
     "doc/*.md",
     "docs/**/*.md",
 ]
+
+## Markdown by extension, taken from the build's own scanned file set rather than from a
+## `**/*.md` glob — see `_candidate_docs`. `.mdown`/`.mkd` are deliberately absent: neither
+## appears in any target indexed here, and an extension nobody uses is a line nobody tests.
+MARKDOWN_EXTS = (".md", ".markdown")
 
 _HEADING_RE = re.compile(r"^(#{1,3})\s+(.+)")
 
@@ -116,6 +132,48 @@ def _ingest_one_doc_file(
     return len(chunks)
 
 
+## @brief Every file to consider as prose: the named globs, plus the scan's markdown.
+## @param repo_root Repository root.
+## @param patterns Root-anchored globs naming prose that is not markdown by extension.
+## @param files Repo-relative POSIX paths of the build's scanned file set, or None.
+## @return Candidate paths, globs first, each at most once.
+## @version 1
+## @req REQ-DDB-PIPE-001
+def _candidate_docs(
+    repo_root: Path,
+    patterns: list[str],
+    files: list[str] | None,
+) -> list[Path]:
+    """WHY THE SCANNED SET RATHER THAN A WIDER GLOB. `**/*.md` from the repo root reads
+    every vendored and build-output markdown file on disk — `node_modules`, a cargo
+    registry copy, `.venv/share/doc`. The scanned set is the build's own answer to what is
+    in scope: it already honours the declared scope, the operator's excludes, the
+    toolchain's ignores and binary classification. Taking markdown from it means prose
+    coverage and symbol coverage cannot disagree about what this repository contains.
+
+    The globs are still read. They name `README` with no extension, `README.rst` and
+    `README.txt` — prose that no markdown rule would find.
+
+    @brief The ordered candidate set.
+    @return Paths, deduplicated, globs first.
+    """
+    found: list[Path] = []
+    seen: set[Path] = set()
+    for pattern in patterns:
+        for path in sorted(repo_root.glob(pattern)):
+            if path not in seen:
+                seen.add(path)
+                found.append(path)
+    for rel in sorted(files or ()):
+        if not rel.lower().endswith(MARKDOWN_EXTS):
+            continue
+        path = repo_root / rel
+        if path not in seen:
+            seen.add(path)
+            found.append(path)
+    return found
+
+
 ## @brief Scan repo for markdown/text docs, chunk by heading, insert into FTS5.
 ## @version 2
 ## @req REQ-DDB-PIPE-001
@@ -123,6 +181,7 @@ def ingest_supplementary_docs(
     db_path: Path,
     repo_root: Path,
     patterns: list[str] | None = None,
+    files: list[str] | None = None,
 ) -> int:
     """Scan repo for markdown/text docs, chunk by heading, insert into FTS5.
 
@@ -148,22 +207,21 @@ def ingest_supplementary_docs(
 
     total_chunks = 0
     seen_files: set[str] = set()
-    for pattern in patterns:
-        for file_path in sorted(repo_root.glob(pattern)):
-            if not file_path.is_file():
-                continue
-            ## `glob` FOLLOWS SYMLINKS and git tracks them, so a committed
-            ## `README.md -> /proc/self/environ` was read, chunked, and served as this
-            ## repository's prose under an in-repo path (1.1.0 audit, H2). The relative path is
-            ## taken from the UNRESOLVED entry on purpose: it is what the index calls the file,
-            ## and only files that survive the check get that far.
-            if within_repo(file_path, repo_root, setting="supplementary document") is None:
-                continue
-            rel_path = str(file_path.relative_to(repo_root))
-            if rel_path in seen_files:
-                continue
-            seen_files.add(rel_path)
-            total_chunks += _ingest_one_doc_file(conn, file_path, rel_path)
+    for file_path in _candidate_docs(repo_root, patterns, files):
+        if not file_path.is_file():
+            continue
+        ## `glob` FOLLOWS SYMLINKS and git tracks them, so a committed
+        ## `README.md -> /proc/self/environ` was read, chunked, and served as this
+        ## repository's prose under an in-repo path (1.1.0 audit, H2). The relative path is
+        ## taken from the UNRESOLVED entry on purpose: it is what the index calls the file,
+        ## and only files that survive the check get that far.
+        if within_repo(file_path, repo_root, setting="supplementary document") is None:
+            continue
+        rel_path = str(file_path.relative_to(repo_root))
+        if rel_path in seen_files:
+            continue
+        seen_files.add(rel_path)
+        total_chunks += _ingest_one_doc_file(conn, file_path, rel_path)
 
     conn.commit()
     conn.close()

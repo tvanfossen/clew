@@ -283,7 +283,7 @@ def has_file_docs(db: DbSource) -> bool:
 ## @param db Database path or open connection.
 ## @param cap Maximum distinct top-level directories and extensions to report.
 ## @return IndexScope; the provenance fields are "" on an index built before build 17.
-## @version 1
+## @version 2
 ## @req REQ-DDB-QUERY-007
 def index_scope(db: DbSource, cap: int = 12) -> IndexScope:
     """gh#21. An empty answer used to assert a definitive negative without naming
@@ -313,7 +313,31 @@ def index_scope(db: DbSource, cap: int = 12) -> IndexScope:
         file_count=len(paths),
         top_levels=tuple(tops[:cap]),
         extensions=_extensions(paths)[:cap],
+        not_indexed=_not_indexed(meta),
+        not_indexed_count=int(meta.get("not_indexed_count") or 0),
     )
+
+
+## @brief The build's record of file types it had in scope and holds no rows for.
+## @param meta The prefix-stripped `scope.*` provenance.
+## @return `ext=count` entries, or () when the build recorded none.
+## @version 1
+## @req REQ-DDB-QUERY-007
+def _not_indexed(meta: dict[str, str]) -> tuple[str, ...]:
+    """READ, NOT DERIVED. The comparison belongs to the build, which had the tree it
+    walked; the working copy at query time is a different tree. An index built before the
+    row existed reports () — "not recorded" — and never a synthesised empty set, which
+    would read as "nothing was missed".
+
+    Already capped and ordered by the build (`cli._not_indexed_scope`), so this splits and
+    does not re-rank: re-sorting here would quietly change which entries survived the cap.
+
+    @brief Split the stamped not-indexed report.
+    @return The entries.
+    @version 1
+    """
+    recorded = meta.get("not_indexed", "")
+    return tuple(part.strip() for part in recorded.split(",") if part.strip())
 
 
 ## @brief Every file extension present in the indexed set, uncapped.
