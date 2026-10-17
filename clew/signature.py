@@ -182,6 +182,24 @@ from .tiers import OPTIONS_META_PREFIX
 ##       Net on that target the function count BARELY MOVES while the set changes in four
 ##       directions at once, which is why the v7 -> v8 comparison for this release diffs file
 ##       lists and symbol SETS before row counts: a net-zero count would hide a swapped set.
+##
+##       A SECOND TARGET, because mbedtls alone reads as a net LOSS and that is not the rule.
+##       Measured on sassafras-class (C++ with a vendored doctest, 2,530 files) against a
+##       baseline rebuilt by 1.0.39 from the same source minutes earlier, so the only variable
+##       is this code:
+##
+##         - +190 symbols from `.js`, every one `dg_source='parse'` — the front end above.
+##         - +115 from `.h`, +15 `.cpp`, +4 `.c`, of which 102 are `dg_source='ast'`. So the
+##           0.24 recovery GAINED AST symbols here where mbedtls lost them. Error recovery
+##           changed, not weakened: it recovers differently, and which way a given tree moves
+##           is not predictable from the version alone.
+##         - -4 symbols: `ArrayType`, `UT`, `beginPos`, `ret`. The last two are leaked locals
+##           and the first two mis-recovered type names — the fabrication class above, removed.
+##
+##       And two targets where NOTHING moved: RIOT (1,258 files, 33,720 memberdefs) and
+##       entropic (748 files, 13,068) were byte-identical across the bump. A C-heavy tree is
+##       not evidence either way until it is measured; "expect RIOT to move" was predicted for
+##       this release and was wrong.
 CLEW_BUILD_VERSION = 8
 
 

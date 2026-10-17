@@ -28,7 +28,10 @@ from clew.guard.config import CONFIG_DEFAULTS
 _REQUIRE_FILE = {
     "validate": {
         **CONFIG_DEFAULTS["validate"],
-        "presence": {**CONFIG_DEFAULTS["validate"].get("presence", {}), "require_file_doxygen": True},
+        "presence": {
+            **CONFIG_DEFAULTS["validate"].get("presence", {}),
+            "require_file_doxygen": True,
+        },
     },
     "impact": CONFIG_DEFAULTS["impact"],
 }
