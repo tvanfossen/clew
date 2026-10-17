@@ -11,7 +11,7 @@ import re
 import subprocess
 from collections.abc import Callable
 
-from ..gitenv import GIT_TIMEOUT_SECONDS
+from ..gitenv import GIT_TIMEOUT_SECONDS, git_argv, git_env
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +33,19 @@ GIT_ERRORS = (
 
 
 ## @brief Default command runner using subprocess.
-#  @version 1.2
+#  @version 1.3
 #  @dg_internal
 def _default_run_command(cmd: list[str]) -> str:
     result = subprocess.run(
-        cmd, capture_output=True, text=True, check=True, timeout=DEFAULT_GIT_TIMEOUT_SECONDS
+        cmd,
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=DEFAULT_GIT_TIMEOUT_SECONDS,
+        ## The variables a git hook exports, scrubbed — the same rule every git call in the
+        ## pipeline obeys. `git_argv` above covers the config file INSIDE the tree; this
+        ## covers an inherited GIT_DIR/GIT_INDEX_FILE pointing somewhere else entirely.
+        env=git_env(),
     )
     return result.stdout
 
@@ -45,13 +53,25 @@ def _default_run_command(cmd: list[str]) -> str:
 ## @brief Run a git command through the injectable runner, returning None on failure.
 #  @details Centralises the failure contract so callers cannot drift onto a narrower
 #  exception tuple, which is how a hung `git diff` came to crash the gate.
-#  @version 1.1
+#  @version 1.2
 #  @req REQ-DDB-GUARD-023
 #  @return Command stdout, or None if git failed, timed out, or is unavailable
 def run_git(cmd: list[str], run_command: RunCommand | None = None) -> str | None:
     runner = run_command or _default_run_command
+    ## DISARMED HERE, AT THE ONE PLACE EVERY GATE GIT CALL PASSES THROUGH (1.1.0 audit, C1 —
+    ## second half). A repository's own `.git/config` can name a command git then RUNS
+    ## (`core.fsmonitor` on a diff, and its siblings), so a bare `["git", …]` argv is
+    ## execution chosen by the tree being inspected. The gate is the worse context for that
+    ## than the pipeline: it runs as the committing developer, on whatever branch they have
+    ## checked out to review, before any of their own code runs.
+    ##
+    ## The call sites keep their readable literal lists and this rewrites them, rather than
+    ## fourteen call sites each remembering a helper. An injected `run_command` gets the
+    ## disarmed argv too, so a test double cannot observe an argv the real runner would not
+    ## receive.
+    disarmed = git_argv(*cmd[1:]) if cmd and cmd[0] == "git" else cmd
     try:
-        return runner(cmd)
+        return runner(disarmed)
     except GIT_ERRORS as e:
         logger.warning("git %s failed: %s", " ".join(cmd[1:3]), e)
         return None

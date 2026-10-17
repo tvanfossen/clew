@@ -203,3 +203,44 @@ def test_a_targets_own_git_config_cannot_run_commands(tmp_path: Path) -> None:
         "the target repository's own .git/config executed a command during scope "
         "derivation — cloning a repo and indexing it is arbitrary code execution"
     )
+
+
+## @brief The pre-commit gate's own git calls disarm the tree's config too.
+## @param tmp_path Pytest temporary directory.
+## @param monkeypatch Pytest working-directory patcher.
+## @return None.
+## @version 1
+def test_the_gate_git_path_cannot_run_the_trees_commands(tmp_path: Path) -> None:
+    """THE SECOND HALF OF C1, MISSED BY THE FIRST PASS AND FOUND BY A TEST FOR SOMETHING ELSE.
+    `clew.guard` deliberately shares no code with the pipeline, so it has its OWN git runner —
+    `run_git(["git", …])` through an injectable `_default_run_command`. Routing the pipeline's
+    five call sites through `git_argv` left all six of the gate's untouched, and the gate is
+    the WORSE context: it runs on a developer's machine, as that developer, on whatever branch
+    they have checked out to review.
+
+    `tests/test_security_surface.py` did not catch it because the argv reaching
+    `subprocess.run` there is a VARIABLE, and that test only recognised a literal. It now
+    names this module as the one indirection it accepts, and asserts the disarming happens at
+    the choke point — which is the only way a structural test can cover an indirect argv.
+
+    @brief A planted `core.fsmonitor` never executes during a gate git call.
+    @return None.
+    @version 1
+    """
+    from clew.guard.git import get_file_at_revision, get_staged_diff
+
+    sentinel = tmp_path / "gate-fsmonitor-ran"
+    root = _hostile_config_repo(tmp_path / "hostile", sentinel)
+    (root / "src.c").write_text("int main(void) { return 0; }\n", encoding="utf-8")
+
+    original = Path.cwd()
+    try:
+        os.chdir(root)
+        get_staged_diff("src.c")
+        get_file_at_revision("src.c", "HEAD")
+    finally:
+        os.chdir(original)
+
+    assert not sentinel.exists(), (
+        "the pre-commit gate ran a command the inspected repository's own .git/config chose"
+    )

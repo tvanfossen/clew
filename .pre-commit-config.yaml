@@ -13,7 +13,7 @@ exclude: |
 
 repos:
   - repo: https://github.com/brandon-arrendondo/knots
-    rev: v1.15.1
+    rev: ba5800f1a8f49e07021f7019ca2b6b2eafc4c61b # v1.15.1
     hooks:
       - id: knots
 
@@ -32,7 +32,7 @@ repos:
         require_serial: true
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.1
+    rev: 39d9ac5938dadb73df0564a45f163e25ff9fa6e2 # v0.16.1
     hooks:
       - id: ruff
         args: ["--fix", "--select=E4,E7,E9,F", "--target-version=py310", "--cache-dir=.cache/ruff"]
@@ -40,7 +40,7 @@ repos:
         args: ["--line-length=100", "--target-version=py310", "--cache-dir=.cache/ruff"]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer

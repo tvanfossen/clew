@@ -929,3 +929,51 @@ def test_a_test_run_never_inherits_a_moved_source_fingerprint() -> None:
         "fingerprint, so every build-shaped test in it will refuse — see "
         "`_pin_source_fingerprint` in conftest"
     )
+
+
+## @brief A source file dated in the future does not make an index permanently stale.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_future_source_mtime_is_not_evidence_of_an_edit(tmp_path: Path) -> None:
+    """M7, 1.1.0 SECURITY AUDIT. `_source_drift` compares every indexed file's mtime against
+    the database's, so a file stamped in the future — a checkout from a machine with a skewed
+    clock, a tarball carrying bogus timestamps, or a repository that committed one on purpose
+    — is NEWER than every database that will ever be built from it. The index is then
+    permanently stale, and the 15 s `keep_current` loop rebuilds it forever: doxygen, cargo
+    and the Kconfig parse, all repo-controlled stages, on a loop, for as long as the server
+    lives.
+
+    A future mtime is not evidence that a file was edited. It is skipped and reported once;
+    the file is still INDEXED, only its timestamp is refused as a staleness signal.
+
+    @brief A far-future mtime raises no drift.
+    @return None.
+    @version 1
+    """
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    (repo / "src" / "a.c").write_text("int a(void) { return 0; }\n", encoding="utf-8")
+    (repo / "src" / "b.c").write_text("int b(void) { return 0; }\n", encoding="utf-8")
+
+    db = tmp_path / "clew.db"
+    conn = sqlite3.connect(str(db))
+    conn.execute("CREATE TABLE path (name TEXT, type INTEGER)")
+    conn.executemany("INSERT INTO path (name, type) VALUES (?, 1)", [("src/a.c",), ("src/b.c",)])
+    conn.commit()
+    conn.close()
+
+    ## A YEAR AHEAD, so no clock-skew tolerance could plausibly absorb it.
+    future = db.stat().st_mtime + 365 * 24 * 3600
+    os.utime(repo / "src" / "a.c", (future, future))
+
+    changed, newest = st._source_drift(db, repo)
+
+    assert changed == 0, f"a future mtime was counted as an edit ({newest})"
+
+    ## AND THE CONTROL: an ordinary edit after the build still counts, which is the whole
+    ## point of the term. Without this half, returning a constant zero would pass.
+    recent = db.stat().st_mtime + 10
+    os.utime(repo / "src" / "b.c", (recent, recent))
+    changed, newest = st._source_drift(db, repo)
+    assert (changed, newest) == (1, "src/b.c"), "a genuine edit must still raise drift"

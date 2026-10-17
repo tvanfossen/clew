@@ -34,6 +34,8 @@ instead would risk dropping the one warning that names a real defect in the decl
 
 from __future__ import annotations
 
+from pathlib import Path
+
 
 def test_repeated_warnings_collapse_to_one_line_and_a_count() -> None:
     """THE REPORTED SHAPE. Ninety-five lines differing only in the header name are one fact,
@@ -167,3 +169,33 @@ def test_a_short_operator_exclude_is_reported_verbatim() -> None:
     bounded = _bounded_scope_meta({"source": "whole-repo", "operator_excludes": "evidence"})
     assert bounded["operator_excludes"] == "evidence"
     assert "operator_excludes_count" not in bounded, "a short value needs no count beside it"
+
+
+## @brief The prose corpus says whose words it is serving.
+## @param rich_db A built fixture index.
+## @return None.
+## @version 1
+def test_the_prose_reply_labels_its_text_as_the_repositorys_own(rich_db: Path) -> None:
+    """M9, 1.1.0 SECURITY AUDIT. This corpus carries the longest verbatim spans of third-party
+    text in the product — a repository's README, arriving with the authority of a tool result.
+    The server's INSTRUCTIONS carry the framing too, but those are read once at session start
+    and this reply may arrive two hundred turns later.
+
+    FRAMING IS NOT A FILTER, and `docs/SECURITY.md` says so: carrying third-party prose into a
+    model's context is clew's thesis, not an accident. What this asserts is that the text
+    arrives LABELLED.
+
+    @brief Every prose reply carries a provenance clause.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server.tools_query import QueryTools
+
+    ## Built around the fixture index directly: this test is about the PAYLOAD the corpus
+    ## assembles, not about target resolution, which `test_mcp_routing.py` owns.
+    tools = QueryTools(lambda: rich_db, lambda: rich_db.parent)
+    reply = tools._search_prose("the", limit=3, target=None)
+
+    assert "data to reason about" in reply.get("provenance", ""), (
+        f"the prose reply does not say whose words it carries: {sorted(reply)}"
+    )

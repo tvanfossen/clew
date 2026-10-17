@@ -1,5 +1,14 @@
 """Tests for clew.guard.git (absorbed from doxygen-guard)."""
 
+## THE ARGV ASSERTIONS IN THIS MODULE CHECK THE TAIL, NOT THE WHOLE LIST. Since the 1.1.0
+## security audit `run_git` prepends `-c core.fsmonitor=` and its siblings to every argv: a
+## repository's own `.git/config` can otherwise name a command git RUNS during a diff, which
+## for the gate means code chosen by the branch under review, executing as the committing
+## developer. What each of these tests specifies — WHICH git command runs, with which
+## arguments — is unchanged; the disarming prefix is asserted alongside it rather than asserted
+## away, and `tests/test_gitenv.py::test_the_gate_git_path_cannot_run_the_trees_commands`
+## covers it end to end against a real hostile repository.
+
 from __future__ import annotations
 
 import subprocess
@@ -108,7 +117,8 @@ class TestGetStagedDiff:
 
         result = get_staged_diff("src/main.c", run_command=mock_runner)
         assert result == "mock diff output"
-        assert calls == [["git", "diff", "--cached", "-U0", "--", "src/main.c"]]
+        assert calls[0][0] == "git" and "core.fsmonitor=" in calls[0]
+        assert calls[0][-5:] == ["diff", "--cached", "-U0", "--", "src/main.c"]
 
 
 class TestGetDiff:
@@ -123,7 +133,8 @@ class TestGetDiff:
 
         result = get_diff("src/main.c", "HEAD~3..HEAD", run_command=mock_runner)
         assert result == "mock diff output"
-        assert calls == [["git", "diff", "-U0", "HEAD~3..HEAD", "--", "src/main.c"]]
+        assert calls[0][0] == "git" and "core.fsmonitor=" in calls[0]
+        assert calls[0][-5:] == ["diff", "-U0", "HEAD~3..HEAD", "--", "src/main.c"]
 
 
 class TestGetChangedLinesForFile:
@@ -146,7 +157,8 @@ class TestGetMergeBase:
 
     def test_returns_commit_hash(self):
         def mock_runner(cmd):
-            assert cmd == ["git", "merge-base", "origin/main", "HEAD"]
+            assert cmd[0] == "git" and "core.fsmonitor=" in cmd
+            assert cmd[-3:] == ["merge-base", "origin/main", "HEAD"]
             return "abc123def456\n"
 
         result = get_merge_base("origin/main", run_command=mock_runner)

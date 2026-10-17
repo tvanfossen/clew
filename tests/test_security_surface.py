@@ -27,6 +27,19 @@ import pytest
 
 PACKAGE = Path(__file__).resolve().parent.parent / "clew"
 
+## MODULES WHOSE ARGV REACHES `subprocess` THROUGH A VARIABLE, with the choke point that
+## disarms it. This exemption exists because the first version of this test claimed in its
+## docstring to report a variable first element and did not — and `clew/guard/git.py` builds
+## `["git", …]` at six call sites, hands them to an injectable runner, and so passed silently
+## while the gate executed commands chosen by the repository under review. That was C1 again,
+## in the worse context, and a test for an unrelated finding is what surfaced it.
+##
+## An entry here is not a pass: the module must call `git_argv` (asserted below), and a
+## behavioural test must cover it against a real hostile repository
+## (`tests/test_gitenv.py::test_the_gate_git_path_cannot_run_the_trees_commands`).
+_INDIRECT_ARGV = {"guard/git.py": "run_git"}
+
+
 ## `clew/doxygen.py`'s doxygen call is a managed `Popen`, not `subprocess.run`: it owns a process
 ## group, a reaper and a 900 s watchdog of its own (`_reap_process_group`, `_DOXYGEN_TIMEOUT`), and
 ## `communicate(timeout=…)` is applied at the wait rather than at construction. Named here with
@@ -105,6 +118,38 @@ def test_every_git_invocation_disarms_the_inspected_trees_config() -> None:
     assert not offenders, (
         "these git calls bypass gitenv.git_argv, so the inspected repository's own .git/config "
         f"can make git run a command of its choosing: {offenders}"
+    )
+
+
+@pytest.mark.parametrize(("module", "choke_point"), sorted(_INDIRECT_ARGV.items()))
+def test_a_module_with_an_indirect_argv_disarms_at_its_choke_point(
+    module: str, choke_point: str
+) -> None:
+    """THE OTHER HALF OF THE RULE ABOVE, which the argv test structurally cannot see. Where a
+    module builds a git argv and passes it to a RUNNER, the literal list is not the thing that
+    reaches `subprocess` — so the assertion has to move to the function every such call passes
+    through, and that function has to be named rather than inferred.
+
+    Asserted on the AST so the call is `git_argv(...)` and not a mention in a comment.
+
+    @brief Each indirect-argv module's choke point calls git_argv.
+    @version 1
+    """
+    tree = ast.parse((PACKAGE / module).read_text(encoding="utf-8"))
+    functions = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef) and node.name == choke_point
+    ]
+    assert functions, f"{module} no longer defines {choke_point}; this exemption is stale"
+    called = {
+        node.func.id
+        for node in ast.walk(functions[0])
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    }
+    assert "git_argv" in called, (
+        f"{module}:{choke_point} builds the argv that reaches subprocess and does not call "
+        f"git_argv, so the inspected repository's own .git/config chooses a command git runs"
     )
 
 

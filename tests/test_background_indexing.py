@@ -21,6 +21,8 @@ Builds are stubbed throughout: what is asserted is WHICH index gets built and WH
 from __future__ import annotations
 
 import subprocess
+import threading
+import time
 from pathlib import Path
 
 import anyio
@@ -350,3 +352,64 @@ async def test_an_explicit_refresh_still_builds_any_named_directory(
     result = await state.build_or_refresh(_FakeCtx(), target=str(loose))
     assert result.get("ok") is True, result
     assert build.built == [None], f"an explicit refresh must build what it names: {build.built}"
+
+
+@pytest.mark.anyio
+async def test_concurrent_absent_indexes_do_not_run_their_builds_at_once(
+    tmp_path: Path, rich_db: Path
+) -> None:
+    """M8, 1.1.0 SECURITY AUDIT — in code this session shipped. One build per asked index per
+    session bounds RETRIES, not CONCURRENCY: four queries naming four absent git trees started
+    four pipelines, each running doxygen and cargo over a different repository, each holding a
+    worker thread for the full 20 s bound on a limiter the transport shares. An agent sweeping
+    a directory of checkouts does exactly that, and nothing in the product said no.
+
+    The builds are SERIALISED rather than refused, because each one was asked for; what is
+    refused is an unbounded QUEUE of them, through the same return-a-reason contract the
+    consent gate uses.
+
+    @brief Two concurrent first builds never run their pipelines simultaneously.
+    @version 1
+    """
+    repos = []
+    for name in ("one", "two", "three"):
+        repo = tmp_path / name
+        (repo / ".git").mkdir(parents=True)
+        repos.append(repo)
+
+    _mcp, state = build_server(st.TargetRegistry(tmp_path / "state"))
+
+    overlap = {"max": 0, "live": 0}
+    lock = threading.Lock()
+    real_build = _RecordingBuild(rich_db)
+
+    ## @brief Stand-in build that measures how many run at once.
+    ## @param target The Target being built.
+    ## @param args Remaining positional build arguments.
+    ## @return A `_run_build`-shaped result dict.
+    ## @version 1
+    def counting_build(target: st.Target, *args: object) -> dict[str, object]:
+        """@brief Count overlapping builds. @return The result dict. @version 1"""
+        with lock:
+            overlap["live"] += 1
+            overlap["max"] = max(overlap["max"], overlap["live"])
+        try:
+            time.sleep(0.3)
+            return real_build(target, *args)
+        finally:
+            with lock:
+                overlap["live"] -= 1
+
+    state._run_build = counting_build
+
+    async with anyio.create_task_group() as tg:
+        for repo in repos:
+            tg.start_soon(state._auto_refresh, str(repo))
+
+    assert overlap["max"] == 1, (
+        f"{overlap['max']} first-build pipelines ran at once; each one is a doxygen and a "
+        f"cargo invocation over a repository the server was merely asked about"
+    )
+    assert len(real_build.built) == len(repos), (
+        f"every asked build must still happen, serialised: {real_build.built}"
+    )

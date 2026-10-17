@@ -107,6 +107,17 @@ _DOXYFILE_FORCED_FLAGS = (
     ## above, but note what it does NOT achieve: an empty EXAMPLE_PATH still leaves
     ## `@verbinclude secret.txt` resolving against the process cwd, which IS the repo root,
     ## and an absolute argument ignores the option entirely. Measured, doxygen 1.9.8.
+    ## DOXYGEN FOLLOWS SYMLINKS OUT OF ITS INPUT ROOTS, and records the OUTSIDE path while
+    ## doing it — measured (1.9.8): a committed `repo/linked.c -> ../outside/hidden.c`, and a
+    ## symlinked DIRECTORY, both got their functions and bodies indexed under `outside/…`.
+    ## Forcing it off also makes doxygen AGREE with clew's own tree walk, which has always
+    ## passed `followlinks=False`: the two enumerations disagreeing is what lets the index
+    ## cache hash one file set and doxygen read another.
+    ##
+    ## COST: a repository that legitimately symlinks source into its tree loses those files.
+    ## clew's walk already dropped them, so this closes a disagreement rather than narrowing
+    ## the scope clew ever claimed to index.
+    "EXCLUDE_SYMLINKS = YES\n"
     "EXAMPLE_PATH =\n"
     "EXAMPLE_RECURSIVE = NO\n"
     "INCLUDE_PATH =\n"

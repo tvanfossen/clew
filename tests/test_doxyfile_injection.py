@@ -387,3 +387,50 @@ def test_a_file_inlining_comment_leaks_nothing_through_a_real_doxygen_run(tmp_pa
     ## the refusal costs the ordinary case nothing.
     assert any(name == "ordinary" for name, *_ in rows)
     assert "Ordinary brief" in served
+
+
+@pytest.mark.skipif(shutil.which("doxygen") is None, reason="asserted against a real doxygen run")
+##
+# @brief A committed symlink does not carry an outside file into the index.
+# @param tmp_path Pytest scratch directory.
+# @return None.
+# @version 1
+def test_a_symlink_does_not_walk_doxygen_out_of_the_repository(tmp_path: Path) -> None:
+    """M1, 1.1.0 SECURITY AUDIT. doxygen follows a symlinked FILE and a symlinked DIRECTORY
+    out of its INPUT roots and records the resolved outside path, so a committed
+    `src/linked.c -> ../../elsewhere/secret.c` had its functions, docs and BODIES indexed and
+    served. clew's own tree walk has always passed `followlinks=False`, so forcing
+    EXCLUDE_SYMLINKS makes the two enumerations agree as well as closing the leak — a
+    disagreement between them is how the index cache hashes one file set while doxygen reads
+    another.
+
+    @brief No symlinked path reaches the doxygen database.
+    @return None.
+    @version 1
+    """
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "hidden.c").write_text(
+        "/** @brief Hidden. */\nint hidden_fn(void) { return 0; }\n", encoding="utf-8"
+    )
+
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    (repo / "src" / "own.c").write_text(
+        "/** @brief Own. */\nint own_fn(void) { return 0; }\n", encoding="utf-8"
+    )
+    (repo / "src" / "linked.c").symlink_to(outside / "hidden.c")
+    (repo / "linkdir").symlink_to(outside)
+    doxyfile = repo / "Doxyfile"
+    doxyfile.write_text("PROJECT_NAME = probe\nINPUT = .\nQUIET = YES\n", encoding="utf-8")
+
+    db = run_doxygen(doxyfile, repo, output_dir=tmp_path / "out")
+
+    conn = sqlite3.connect(str(db))
+    names = [row[0] for row in conn.execute("SELECT name FROM memberdef")]
+    paths = [row[0] for row in conn.execute("SELECT name FROM path")]
+    conn.close()
+
+    assert "hidden_fn" not in names, f"a symlink carried an outside file into the index: {paths}"
+    assert not any("outside" in path for path in paths), f"an outside path was indexed: {paths}"
+    assert "own_fn" in names, "the repository's own source must still be indexed"

@@ -66,6 +66,7 @@ not read it says so instead of shipping zero rows.
 
 from __future__ import annotations
 
+import re
 import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -390,7 +391,7 @@ def _conventional_kconfig(root: Path) -> KconfigLocation:
 ## @param location A KconfigLocation whose path is repo-relative.
 ## @param repo_root Repo root the location's path is relative to.
 ## @return The parsed model; carries `error` and no rows when the parse failed.
-## @version 3
+## @version 4
 ## @req REQ-DDB-CONFIG-005
 def load_kconfig(location: KconfigLocation, repo_root: Path | str) -> KconfigModel:
     """DEGRADES TO A RECORDED ERROR, never to an exception. A configuration space is
@@ -431,10 +432,77 @@ def load_kconfig(location: KconfigLocation, repo_root: Path | str) -> KconfigMod
         logger.warning("kconfig: %s could not be parsed (%s)", location.path, exc)
         return KconfigModel(
             location=location,
-            error=f"{type(exc).__name__}: {exc}",
+            error=_served_parse_error(exc),
+            shell_refused=tuple(refused),
+        )
+    escaped = _sourced_outside(kconf, root)
+    if escaped:
+        return KconfigModel(
+            location=location,
+            error=(
+                f"refused: this Kconfig sources {len(escaped)} file(s) outside the "
+                f"repository ({', '.join(escaped)}), so no configuration space was indexed"
+            ),
             shell_refused=tuple(refused),
         )
     return _model_from_kconf(kconf, location, tuple(refused))
+
+
+## @brief The parse error as it may be SERVED: its type and location, never a quoted line.
+## @param exc The exception kconfiglib raised.
+## @return A diagnostic string carrying no file content.
+## @version 1
+## @req REQ-DDB-PIPE-014
+def _served_parse_error(exc: Exception) -> str:
+    """`kconfig.error` IS A SERVED `build_meta` VALUE, and kconfiglib's messages QUOTE THE
+    OFFENDING LINE. A repository whose `source` reaches a file it should not read therefore got
+    that file's content back out through the failure text even when the parse failed and every
+    row was discarded (1.1.0 audit, M2).
+
+    The type and the `file:line:` prefix are kept because they are what makes the value
+    diagnostic — an owner can open that line. The remainder is dropped from the SERVED value
+    only: `load_kconfig` has already logged the full message at WARNING, which is the
+    operator's to read and is not published over MCP. This is the same split
+    `_warn_unwalkable` makes in `scope.py` — the gap is reported, the content is not.
+
+    @brief Reduce a parse error to type and location.
+    @return "<Type>: <file>:<line>" where a location is present, else "<Type>".
+    @version 1
+    """
+    located = re.match(r"([^\s:]+:\d+)", str(exc))
+    where = f": {located.group(1)}" if located else ""
+    return (
+        f"{type(exc).__name__}{where} — the full message is in the build log, and is not "
+        f"published here because it quotes the line it failed on"
+    )
+
+
+## @brief Files this parse read that lie outside the repository.
+## @param kconf A parsed kconfiglib.Kconfig.
+## @param root Resolved repo root every sourced file must stay inside.
+## @return Repo-relative-where-possible paths of the escaping files, sorted.
+## @version 1
+## @req REQ-DDB-PIPE-014
+def _sourced_outside(kconf: Any, root: Path) -> list[str]:
+    """kconfiglib resolves `source` against `$srctree` and offers NO HOOK on that resolution,
+    so `source "/abs/path"` parsed a file anywhere on the machine and served its symbols,
+    prompts and help text as this repository's configuration space (1.1.0 audit, M2).
+
+    CHECKED AFTER THE PARSE, from `kconf.kconfig_filenames` — kconfiglib's own record of every
+    file it read. The read has happened by the time this runs; what the check prevents is
+    DISCLOSURE, which is the harm. A pre-parse scan of the text was the alternative and it is
+    the fragile one: `source` takes globs and preprocessor-expanded variables, so a scanner
+    would have to re-implement the parser to be right.
+
+    @brief Report sourced files that escape the repository.
+    @return The escaping paths.
+    @version 1
+    """
+    escaped = set()
+    for name in getattr(kconf, "kconfig_filenames", ()) or ():
+        if within_repo(root / str(name), root, setting=f"kconfig source {name}") is None:
+            escaped.add(str(name))
+    return sorted(escaped)
 
 
 ## @brief Build the stored model from a successfully parsed kconfiglib tree.

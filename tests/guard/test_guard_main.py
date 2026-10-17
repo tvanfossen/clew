@@ -222,6 +222,63 @@ class TestPrecommitPipeline:
         result = main(["--config", str(config_file), str(c_file)])
         assert result == 0
 
+    def test_a_symlinked_impact_directory_is_refused(self, tmp_path, monkeypatch):
+        """M5, 1.1.0 SECURITY AUDIT. `run_precommit` validated `output_dir` and then wrote to
+        `output_dir/impact/impact.md` — a DIFFERENT path. A committed
+        `out/impact -> ../../elsewhere` passes the check on `out/`, `mkdir(exist_ok=True)`
+        follows it, and the gate writes the report outside the repository and `git add`s it,
+        all while running as the committing user on a branch they are only reviewing.
+
+        The full write path is validated, which is what the sibling in `_run_impact_command`
+        already did with its `output.file`.
+        """
+        monkeypatch.chdir(tmp_path)
+        outside = tmp_path.parent / f"escaped-{tmp_path.name}"
+        outside.mkdir(exist_ok=True)
+        src = tmp_path / "src"
+        src.mkdir()
+        c_file = src / "test.c"
+        c_file.write_text(
+            dedent("""\
+                /**
+                 * @brief Process data.
+                 * @version 1.0
+                 * @req REQ-001
+                 */
+                void Process(void) {
+                    event_post(EVENT_DATA_READY);
+                }
+            """)
+        )
+        (tmp_path / "reqs.csv").write_text("Req ID,Name,Subsystem\nREQ-001,Data,DataSvc\n")
+        (tmp_path / "out").mkdir()
+        (tmp_path / "out" / "impact").symlink_to(outside)
+        config_file = tmp_path / ".clew.yaml"
+        config_file.write_text(
+            guard_yaml(
+                dedent("""\
+                output_dir: out/
+                impact:
+                  requirements:
+                    file: reqs.csv
+                    id_column: "Req ID"
+                    name_column: "Name"
+                    format: csv
+            """)
+            )
+        )
+
+        ## `main` IS THE CLI BOUNDARY and turns a GuardError into an exit code rather than a
+        ## traceback — so the refusal is asserted as the gate's own failure, which is what a
+        ## committing developer actually sees.
+        rc = main(["--config", str(config_file), str(c_file)])
+
+        assert rc != 0, "the gate must fail rather than write through the symlink"
+        assert not list(outside.iterdir()), (
+            f"the gate wrote outside the repository through a symlinked impact directory: "
+            f"{list(outside.iterdir())}"
+        )
+
 
 class TestParseSourceFile:
     """Tests for parse_source_file."""

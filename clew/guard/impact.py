@@ -435,8 +435,24 @@ def build_impact_report(
     ]
 
 
+## @brief Make one table cell out of repo-controlled text.
+#  @details Requirement names and function names come from the TARGET'S catalog and source,
+#  and this table is written to `docs/generated/impact/`, `git add`ed, and printed to stderr —
+#  where it lands in the context of whatever agent is watching the commit. A `|` forges a
+#  column and a newline forges a ROW, so unescaped text can write arbitrary content into a
+#  file the developer is about to commit (1.1.0 audit, M6). ESCAPED, NOT FILTERED: the text is
+#  still reported, because a name a gate silently rewrote is a name nobody can grep for.
+#  `clew.guard` shares no code with the pipeline, so `_inlineable` is deliberately not reused.
+#  @version 1.0
+#  @dg_internal
+#  @return The text with CR/LF/tab collapsed and pipes escaped
+def _cell(text: str) -> str:
+    collapsed = text.replace("\r", " ").replace("\n", " ").replace("\t", " ")
+    return collapsed.replace("|", "\\|")
+
+
 ## @brief Render impact entries as a markdown table with summary.
-#  @version 1.2
+#  @version 1.3
 #  @req REQ-DDB-GUARD-010
 #  @return Markdown-formatted impact report string
 def format_markdown(entries: list[ImpactEntry]) -> str:
@@ -449,10 +465,10 @@ def format_markdown(entries: list[ImpactEntry]) -> str:
 
     total_funcs = 0
     for entry in entries:
-        name = entry.req_name or "\u2014"
-        func_names = ", ".join(f.name for f in entry.functions)
+        name = _cell(entry.req_name or "\u2014")
+        func_names = ", ".join(_cell(f.name) for f in entry.functions)
         total_funcs += len(entry.functions)
-        lines.append(f"| {entry.req_id} | {name} | {func_names} |")
+        lines.append(f"| {_cell(entry.req_id)} | {name} | {func_names} |")
 
     lines.append("")
     lines.append(

@@ -1310,3 +1310,79 @@ def test_a_repo_supplied_kconfig_functions_module_is_not_imported(
     assert [s.name for s in model.symbols] == ["PLAIN"], (
         "the ordinary parse must still work with the environment replaced"
     )
+
+
+## @brief A Kconfig that sources a file outside the repository indexes nothing from it.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_kconfig_sourcing_outside_the_repository_is_refused(tmp_path: Path) -> None:
+    """M2, 1.1.0 SECURITY AUDIT — and wider than the finding as written. kconfiglib resolves
+    `source` against `$srctree`, and NOTHING constrained it: `source "/abs/path"` parsed a
+    file anywhere on the machine and served its symbols, prompts and help text as this
+    repository's configuration space. Measured against kconfiglib 14.1.
+
+    THE CHECK IS AFTER THE PARSE, deliberately: kconfiglib offers no hook on `source`
+    resolution, and `kconf.kconfig_filenames` is its own record of every file it read. The
+    read has happened by then; what the check prevents is DISCLOSURE, which is the harm — no
+    row, no help text and no error line from an outside file reaches the index. A pre-parse
+    scan of the text was the alternative and it is the fragile one: `source` takes globs and
+    preprocessor-expanded variables, so a scanner would have to re-implement the parser.
+
+    @brief An escaping `source` yields no symbols and a path-only refusal.
+    @return None.
+    @version 1
+    """
+    outside = tmp_path / "outside.Kconfig"
+    outside.write_text(
+        'config SENTINEL_OUTSIDE\n\tbool "leaked prompt"\n\thelp\n\t  SECRET-SOURCED-HELP\n',
+        encoding="utf-8",
+    )
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / KCONFIG_NAME).write_text(
+        f'source "{outside}"\nconfig OWN\n\tbool "own"\n', encoding="utf-8"
+    )
+
+    model = load_kconfig(discover_kconfig(repo, {}), repo)
+
+    served = " ".join(f"{s.name} {s.prompt} {s.help}" for s in model.symbols) + model.error
+    assert "SECRET-SOURCED-HELP" not in served, f"outside help text was served: {served}"
+    assert "SENTINEL_OUTSIDE" not in served, f"an outside symbol was served: {served}"
+    assert model.error, "the refusal must be recorded, not left as an empty configuration space"
+    ## THE WHOLE SPACE GOES, not just the outside rows. A tree whose `source` reaches out is
+    ## not a configuration space clew can describe: the symbols that remain depend on the file
+    ## that was refused, so serving them would be a partial model reading as a complete one.
+    assert not model.symbols
+
+
+## @brief A parse failure reports where, not the offending line's content.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_parse_failure_records_the_location_and_not_the_line(tmp_path: Path) -> None:
+    """THE EXFILTRATION HALF OF M2. kconfiglib's exception messages QUOTE THE OFFENDING LINE,
+    and `kconfig.error` is a served `build_meta` value — so a repository that `source`s a file
+    it should not reach gets that file's content back out through the error text even when the
+    parse fails. Reporting the type and the `file:line` location keeps the value diagnostic
+    while making it carry no content; the full message still goes to the build log, which is
+    the operator's to read and is not served.
+
+    @brief The served error names a location, never a quoted source line.
+    @return None.
+    @version 1
+    """
+    secret = tmp_path / "secret.Kconfig"
+    secret.write_text("SENTINEL-UNPARSEABLE-CONTENT not a kconfig line\n", encoding="utf-8")
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / KCONFIG_NAME).write_text(f'source "{secret}"\n', encoding="utf-8")
+
+    model = load_kconfig(discover_kconfig(repo, {}), repo)
+
+    assert model.error, "a failed parse must still be recorded"
+    assert "SENTINEL-UNPARSEABLE-CONTENT" not in model.error, (
+        f"the served error carries the content of the file it failed on: {model.error!r}"
+    )

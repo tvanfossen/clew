@@ -551,3 +551,42 @@ class TestVersionFieldMustExist:
         config = self._config(catalog, "min_version")
         active = filter_requirements_by_version(load_requirements_full(config), config)
         assert set(active) == {"REQ-VAL-001"}
+
+
+class TestMarkdownCellEscaping:
+    """M6, 1.1.0 security audit: repo-controlled text reaches a committed table AND an agent."""
+
+    def test_a_requirement_name_cannot_forge_table_rows(self):
+        """The names come from the TARGET'S requirements catalog, and the rendered table is
+        written to `docs/generated/impact/impact.md`, `git add`ed, and printed to stderr —
+        where it lands in the agent's context. A name carrying `|` forges columns; one
+        carrying a newline forges ROWS, so a catalog can write arbitrary content into a file
+        the developer is about to commit and into the transcript of whatever is watching the
+        commit.
+
+        A local `_cell` collapses CR/LF/tab and escapes `|`. `_inlineable` from the pipeline
+        is deliberately not reused: `clew.guard` shares no code with the pipeline, and that
+        separation is load-bearing for the gate's startup cost.
+        """
+        from clew.guard.impact import ChangedFunction, ImpactEntry, format_markdown
+
+        entry = ImpactEntry(
+            req_id="REQ-001",
+            req_name="Name | with pipes\n| FORGED | ROW | here |\nand more",
+            functions=[
+                ChangedFunction(
+                    name="fn\n| SECOND | FORGED | ROW |", file_path="a.c", new_version="1.0"
+                )
+            ],
+        )
+
+        report = format_markdown([entry])
+
+        rows = [line for line in report.splitlines() if line.startswith("|")]
+        ## HEADER, SEPARATOR, AND EXACTLY ONE DATA ROW. Counting rows is the assertion that
+        ## holds whatever escaping scheme is chosen, which is why it is the one asserted.
+        assert len(rows) == 3, f"repo text forged table rows: {rows}"
+        assert "FORGED" in report, (
+            "the text must still be REPORTED — this is escaping, not filtering"
+        )
+        assert "\n| FORGED" not in report

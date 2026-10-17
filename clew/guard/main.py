@@ -339,7 +339,7 @@ def resolve_version_gate(config: dict[str, Any]) -> None:
 
 
 ## @brief Run all configured checks in pre-commit mode (no subcommand).
-#  @version 2.5
+#  @version 2.6
 #  @req REQ-DDB-GUARD-001
 #  @return Exit code: 0 if no violations, 1 if violations found
 def run_precommit(file_paths: list[str], config: dict[str, Any]) -> int:
@@ -361,10 +361,18 @@ def run_precommit(file_paths: list[str], config: dict[str, Any]) -> int:
         else:
             changed = collect_changed_functions(file_paths, config, staged=True)
         entries = build_impact_report(changed, config)
+        ## THE FULL WRITE PATH IS VALIDATED, not just `output_dir` (1.1.0 audit, M5). The
+        ## check above covers `out/`; the writes land in `out/impact/`, so a committed
+        ## `out/impact -> ../../elsewhere` passed it, `mkdir(exist_ok=True)` followed the
+        ## symlink, and the gate wrote the report outside the repository and `git add`ed it —
+        ## as the committing user, configured by the branch under review. Same validation the
+        ## sibling in `_run_impact_command` already applies to its `output.file`.
         impact_dir = Path(base_dir) / "impact"
-        impact_dir.mkdir(parents=True, exist_ok=True)
         md_path = impact_dir / "impact.md"
         json_path = impact_dir / "impact.json"
+        validate_output_path(str(md_path))
+        validate_output_path(str(json_path))
+        impact_dir.mkdir(parents=True, exist_ok=True)
         md_path.write_text(format_markdown(entries))
         json_path.write_text(format_json(entries))
         git_add([str(md_path), str(json_path)])
