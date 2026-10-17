@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from ..gitenv import git_argv, git_env
 from .checks import (
     Violation,
     check_duplicate_tags,
@@ -263,16 +264,20 @@ def run_validate(args: argparse.Namespace, config: dict[str, Any]) -> int:
 
 
 ## @brief Detect version from git describe --tags.
-#  @version 1.2
+#  @version 2.2
 #  @dg_internal
 def _detect_git_version() -> str | None:
     try:
         result = subprocess.run(
-            ["git", "describe", "--tags", "--abbrev=0"],
+            ## `git_argv`, found by `tests/test_security_surface.py` rather than by reading:
+            ## this site was missed when the other four were routed, which is the whole reason
+            ## that test asserts over the source instead of per call site.
+            git_argv("describe", "--tags", "--abbrev=0"),
             capture_output=True,
             text=True,
             check=True,
             timeout=10,
+            env=git_env(),
         )
         return result.stdout.strip()
     except (subprocess.CalledProcessError, FileNotFoundError, OSError):
@@ -281,7 +286,7 @@ def _detect_git_version() -> str | None:
 
 
 ## @brief Detect version from CMakeLists.txt project() directive.
-#  @version 1.1
+#  @version 2.1
 #  @dg_internal
 def _detect_cmake_version() -> str | None:
     try:

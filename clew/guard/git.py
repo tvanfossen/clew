@@ -11,11 +11,15 @@ import re
 import subprocess
 from collections.abc import Callable
 
+from ..gitenv import GIT_TIMEOUT_SECONDS
+
 logger = logging.getLogger(__name__)
 
 RunCommand = Callable[[list[str]], str]
 
-DEFAULT_GIT_TIMEOUT_SECONDS = 30
+## ALIASED, NOT RESTATED: `clew.gitenv` owns the number so the gate and the pipeline cannot drift
+## apart on how long a git call may take. The name is kept because this module's callers use it.
+DEFAULT_GIT_TIMEOUT_SECONDS = GIT_TIMEOUT_SECONDS
 
 # The canonical set of failures a git invocation can raise. TimeoutExpired is NOT an
 # OSError — it derives from SubprocessError — so catching (CalledProcessError, OSError)

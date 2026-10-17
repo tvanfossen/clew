@@ -49,7 +49,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ._common import logger
-from .gitenv import git_env
+from .gitenv import GIT_TIMEOUT_SECONDS, git_argv, git_env
 
 # Directories never worth walking: caches/vendor dirs that no repo declares as
 # in-scope source. Dot-directories are pruned separately. This is a traversal
@@ -814,7 +814,7 @@ def dependency_roots(repo_root: Path) -> list[Path]:
 ## @brief Paths the repo's own git configuration ignores.
 ## @param root Resolved repo root.
 ## @return Absolute paths of ignored files and wholly-ignored directories.
-## @version 2
+## @version 3
 ## @dg_internal
 def _gitignored_paths(root: Path) -> list[Path]:
     """`.gitignore` is the one scope declaration essentially every repo already
@@ -830,10 +830,13 @@ def _gitignored_paths(root: Path) -> list[Path]:
 
     @brief List the paths git ignores under a repo root.
     @return Absolute ignored paths.
-    @version 2
+    @version 3
     """
-    command = [
-        "git",
+    ## `git_argv` RATHER THAN A BARE "git": the tree being inspected can set
+    ## `core.fsmonitor` in its OWN `.git/config`, which git then RUNS on this very query —
+    ## so pointing clew at a cloned repository was arbitrary code execution. `-c` on the
+    ## command line outranks the config file; see `gitenv.GIT_COMMAND_VALUED_KEYS`.
+    command = git_argv(
         "-C",
         str(root),
         "ls-files",
@@ -842,12 +845,19 @@ def _gitignored_paths(root: Path) -> list[Path]:
         "--ignored",
         "--exclude-standard",
         "--directory",
-    ]
+    )
     try:
         ## `env=git_env()` and NOT the inherited environment: `git -C <root>` is OUTRANKED
         ## by an absolute `GIT_DIR`, which git exports to every hook it runs — so without
         ## this the ignore list belongs to whatever repository invoked us. See `gitenv`.
-        proc = subprocess.run(command, capture_output=True, text=True, check=False, env=git_env())
+        proc = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            check=False,
+            env=git_env(),
+            timeout=GIT_TIMEOUT_SECONDS,
+        )
     except OSError as exc:
         logger.warning("index_scope: git is unavailable (%s) — nothing ignored was excluded", exc)
         return []
@@ -1117,7 +1127,7 @@ def _holds_git_tree(directory: Path) -> bool:
 ## @brief Does the enclosing repository record this directory as a gitlink (a submodule)?
 ## @param directory Candidate nested-tree directory.
 ## @return True when the parent tracks it as mode 160000; False when it tracks its files, or on any doubt.
-## @version 2
+## @version 3
 ## @dg_internal
 def _is_dependency_of_parent(directory: Path) -> bool:
     """ASKS THE PARENT, because the parent is the only thing that knows whether this directory
@@ -1151,7 +1161,7 @@ def _is_dependency_of_parent(directory: Path) -> bool:
 
     @brief Test whether the parent records this directory as a submodule gitlink.
     @return True only on a positive gitlink reading.
-    @version 2
+    @version 3
     """
     parent = directory.parent
     try:
@@ -1160,12 +1170,13 @@ def _is_dependency_of_parent(directory: Path) -> bool:
         ## inherited `GIT_DIR` overrides cwd entirely — so the gitlink probe answered about
         ## the hook's repository and returned False for every real submodule.
         proc = subprocess.run(
-            ["git", "ls-files", "-s", "--", directory.name],
+            git_argv("ls-files", "-s", "--", directory.name),
             cwd=str(parent),
             capture_output=True,
             text=True,
             check=False,
             env=git_env(),
+            timeout=GIT_TIMEOUT_SECONDS,
         )
     except OSError:
         return False

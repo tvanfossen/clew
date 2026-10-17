@@ -13,6 +13,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+## THE FIRST IMPORT THIS PACKAGE TAKES FROM ITS PARENT, and it is deliberate. `clew.guard` keeps
+## clear of the pipeline so a gate run never pays for a parser import — `gitenv` imports `os` and
+## nothing else, so that property is untouched. The alternative was a second copy of the
+## command-valued key list, and two copies of a security rule drift; this repo has the scars.
+from ..gitenv import git_argv, git_env
 from .checks import EXEMPTION_TAGS
 from .config import get_validate, parse_source_file_with_content
 
@@ -42,17 +47,22 @@ class TaggedFunction:
 
 
 ## @brief List tracked source files under a directory via git ls-files.
-#  @version 1.0
+#  @version 2.0
 #  @dg_internal
 #  @return Matching paths, or None if the directory is not a usable git tree
 def _git_ls_files(source_dir: str, extensions: set[str]) -> list[Path] | None:
     try:
         result = subprocess.run(
-            ["git", "-C", source_dir, "ls-files", "--cached", "--others", "--exclude-standard"],
+            git_argv("-C", source_dir, "ls-files", "--cached", "--others", "--exclude-standard"),
             capture_output=True,
             text=True,
             check=True,
             timeout=_GIT_LS_TIMEOUT_SECONDS,
+            ## BOTH HALVES, and this site had neither: `git_argv` stops the inspected tree's
+            ## own config from running commands, `git_env` stops a hook's exported `GIT_DIR`
+            ## from repointing the query. The gate runs inside a pre-commit hook, so both
+            ## conditions are its ordinary environment rather than an exotic one.
+            env=git_env(),
         )
     except (subprocess.CalledProcessError, FileNotFoundError, OSError, subprocess.TimeoutExpired):
         logger.info("git ls-files unavailable for %s, falling back to filesystem walk", source_dir)
@@ -66,7 +76,7 @@ def _git_ls_files(source_dir: str, extensions: set[str]) -> list[Path] | None:
 
 
 ## @brief Fallback source discovery via filesystem glob.
-#  @version 1.0
+#  @version 2.0
 #  @dg_internal
 #  @return Matching paths, or None if the directory does not exist
 def _rglob_source_files(source_dir: str, extensions: set[str]) -> list[Path] | None:

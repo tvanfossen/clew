@@ -1339,7 +1339,7 @@ class DocsDbServer:
     ## @brief Why an absent index may not be built automatically, or None when it may.
     ## @param asked The index a query resolved to.
     ## @return A reason, or None.
-    ## @version 1
+    ## @version 2
     ## @req REQ-DDB-MCP-004
     def _first_build_refusal(self, asked: Target) -> str | None:
         """A QUERY NAMING A DIRECTORY IS NOT CONSENT TO INDEX IT. `target=` accepts any directory,
@@ -1352,14 +1352,19 @@ class DocsDbServer:
 
         @brief Decide whether a query may start a first build.
         @return The reason not to, or None.
-        @version 1
+        @version 2
         """
         repo = Path(asked.repo_path)
         registered = any(t.repo_path == asked.repo_path for t in self.registry.targets())
         reason = None
         if not repo.is_dir():
             reason = "the directory does not exist"
-        elif not (repo / ".git").exists() and not registered:
+        ## `.is_dir()`, NOT `.exists()`. The evidence wanted is a work TREE, and a one-byte file
+        ## called `.git` satisfied `exists()` — so any directory a caller could name became
+        ## indexable by planting one. A submodule's `.git` IS a file, but a submodule is reached
+        ## as a sub-index of its parent (which is registered) rather than as a bare target, so the
+        ## registry arm below covers that case without reopening this one.
+        elif not (repo / ".git").is_dir() and not registered:
             reason = "it is neither a git work tree root nor a registered repository"
         elif stale_code_refusal(code_identity()) is not None:
             reason = "this server process predates its own source"
