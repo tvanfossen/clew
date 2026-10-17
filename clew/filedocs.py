@@ -46,7 +46,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import ClassVar
 
-from ._common import logger
+from ._common import logger, within_repo
 
 ## Doxygen's path rows for symbols it harvested from system headers are bracketed
 ## (`[STL]`, `[generated]`); the SHAPE is filtered, not any one literal. Mirrors
@@ -465,7 +465,7 @@ def ingest_file_docs(db_path: Path, repo_root: Path) -> int:
 ## @param conn Open connection to the index.
 ## @param repo_root Working-tree root the indexed paths are relative to.
 ## @return List of (repo-relative path, cleaned documentation) pairs.
-## @version 1
+## @version 2
 ## @dg_internal
 def _collect_file_docs(conn: sqlite3.Connection, repo_root: Path) -> list[tuple[str, str]]:
     """Split out of `ingest_file_docs` so the transaction handling and the
@@ -478,6 +478,11 @@ def _collect_file_docs(conn: sqlite3.Connection, repo_root: Path) -> list[tuple[
     """
     collected: list[tuple[str, str]] = []
     for rel in _indexed_files(conn):
+        ## An indexed path can be a committed symlink out of the tree, which would have its
+        ## target's docblock served as this file's documentation (1.1.0 audit, H2). Skipped the
+        ## way an unreadable file is — `_read_text` already returns None for that.
+        if within_repo(repo_root / rel, repo_root, setting=f"file documentation for {rel}") is None:
+            continue
         text = _read_text(repo_root / rel, rel)
         if text is None:
             continue

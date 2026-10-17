@@ -34,7 +34,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from clew.doxygen import _build_doxyfile_content
+import shutil
+import sqlite3
+
+import pytest
+
+from clew.doxygen import _build_doxyfile_content, run_doxygen
 
 
 ##
@@ -247,3 +252,138 @@ def test_declared_predefined_cannot_inject_a_directive(tmp_path: Path) -> None:
             f"runs as a command over every input file"
         )
     assert "/bin/sh" not in text, "the injected command survived into the configuration"
+
+
+## File-reading doxygen COMMANDS, which are a separate surface from the file-reading
+## OPTIONS above them. An option is a Doxyfile key clew can restate; these are commands
+## written in a SOURCE COMMENT, so no Doxyfile key disarms them — measured against doxygen
+## 1.9.8: with `EXAMPLE_PATH =` forced empty, `@verbinclude secret.txt` still resolves
+## against the process cwd (the repo root) and `@verbinclude /etc/hostname` resolves
+## absolutely, both landing verbatim in `memberdef.detaileddescription`.
+##
+## `ALIASES` is the only lever that closes them, and it does: a BARE redefinition
+## (`verbinclude=…`) overrides the built-in, the LAST assignment wins, and the arity form
+## (`verbinclude{1}=…`) does NOT override — so a target repo cannot take the command back,
+## because clew's block is appended after the repo's own text.
+_FILE_READING_COMMANDS = (
+    "verbinclude",
+    "htmlinclude",
+    "latexinclude",
+    "rtfinclude",
+    "maninclude",
+    "docbookinclude",
+    "xmlinclude",
+    "include",
+    "includelineno",
+    "includedoc",
+    "dontinclude",
+    "snippet",
+    "snippetlineno",
+    "snippetdoc",
+)
+
+
+##
+# @brief Every file-reading doxygen command is neutered by a forced alias.
+# @param tmp_path Pytest scratch directory.
+# @return None.
+# @version 1
+def test_no_file_reading_command_survives_a_hostile_source_comment(tmp_path: Path) -> None:
+    """H1, 1.1.0 SECURITY AUDIT. A doc comment reading `@verbinclude /etc/hostname` made
+    doxygen inline that file into the served description — an arbitrary read whose result is
+    presented to a model as this repository's documentation, which is the provenance an agent
+    has no way to doubt. `EXAMPLE_PATH` is NOT the fix (measured: empty still resolves against
+    cwd, and an absolute argument ignores it entirely) and neither is stripping `<verbatim>`
+    from the served text — doxygen emits the identical element for an owner's legitimate
+    `@verbatim` block, so a content filter cannot tell a leak from documentation.
+
+    TABLE-DRIVEN for the reason the exec-valued test above is: the only way to satisfy it is
+    to actually force each command, so the next one cannot be quietly omitted.
+
+    @brief Each file-reading command's last ALIASES assignment is clew's.
+    @return None.
+    @version 1
+    """
+    doxyfile = tmp_path / "Doxyfile"
+    doxyfile.write_text(
+        "PROJECT_NAME = probe\nINPUT = .\nEXAMPLE_PATH = /\nEXAMPLE_RECURSIVE = YES\n"
+        ## The target taking the command BACK is the half a naive fix misses.
+        + "".join(f'ALIASES += "{c}=ATTACKER-WINS "\n' for c in _FILE_READING_COMMANDS),
+        encoding="utf-8",
+    )
+
+    text = _build_doxyfile_content(doxyfile, None, None, False, tmp_path, "")
+
+    aliases = _assignments(text, "ALIASES")
+    for command in _FILE_READING_COMMANDS:
+        ours = [a for a in aliases if a.strip('"').startswith(f"{command}=")]
+        assert ours, f"@{command} reads a repo-chosen file and is not neutered"
+        assert "ATTACKER-WINS" not in ours[-1], (
+            f"the LAST ALIASES assignment for @{command} is the repository's "
+            f"({ours[-1]!r}); doxygen takes the last one, so the command still reads files"
+        )
+
+    ## AND THE OPTIONS that steer where those commands look, restated for the same reason
+    ## every other read-external option in the forced block is.
+    for key in ("EXAMPLE_PATH", "INCLUDE_PATH", "IMAGE_PATH"):
+        values = _assignments(text, key)
+        assert values and not values[-1], (
+            f"{key} ends as {values[-1:]!r}, so the repository still chooses where "
+            f"doxygen looks for files to inline"
+        )
+    assert _assignments(text, "EXAMPLE_RECURSIVE")[-1].upper() == "NO", (
+        "EXAMPLE_RECURSIVE is a boolean, and an empty value would read as doxygen's own "
+        "default rather than as a refusal"
+    )
+
+
+@pytest.mark.skipif(shutil.which("doxygen") is None, reason="asserted against a real doxygen run")
+##
+# @brief End to end: a hostile source comment inlines nothing into the index.
+# @param tmp_path Pytest scratch directory.
+# @return None.
+# @version 1
+def test_a_file_inlining_comment_leaks_nothing_through_a_real_doxygen_run(tmp_path: Path) -> None:
+    """THE TEXT TEST ABOVE ASSERTS THE DOXYFILE; THIS ONE ASSERTS DOXYGEN. The forced block is
+    only a defence if doxygen honours it the way it was measured to, and a version bump could
+    change that silently — the Doxyfile would still contain the lines and the leak would be
+    back. Both arms of the original PoC run here: a relative argument (which resolves against
+    cwd, the repo root) and an absolute one (which ignores EXAMPLE_PATH entirely).
+
+    @brief No sentinel from an inlined file reaches any description column.
+    @return None.
+    @version 1
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "secret.txt").write_text("SENTINEL-INLINE-LEAK\n", encoding="utf-8")
+    (repo / "a.c").write_text(
+        "/**\n"
+        " * @brief Ordinary brief.\n"
+        " * @details Relative:\n"
+        " * @verbinclude secret.txt\n"
+        " * @details Absolute:\n"
+        " * @verbinclude /etc/hostname\n"
+        " */\n"
+        "int ordinary(void) { return 0; }\n",
+        encoding="utf-8",
+    )
+    doxyfile = repo / "Doxyfile"
+    doxyfile.write_text("PROJECT_NAME = probe\nINPUT = .\nQUIET = YES\n", encoding="utf-8")
+
+    db = run_doxygen(doxyfile, repo, output_dir=tmp_path / "out")
+
+    conn = sqlite3.connect(str(db))
+    rows = conn.execute(
+        "SELECT name, briefdescription, detaileddescription, inbodydescription FROM memberdef"
+    ).fetchall()
+    conn.close()
+
+    served = " ".join(str(cell) for row in rows for cell in row)
+    assert "SENTINEL-INLINE-LEAK" not in served, (
+        f"a repo file was inlined into a served description: {rows}"
+    )
+    ## THE OTHER HALF OF THE ARGUMENT: the function is still indexed and still documented, so
+    ## the refusal costs the ordinary case nothing.
+    assert any(name == "ordinary" for name, *_ in rows)
+    assert "Ordinary brief" in served

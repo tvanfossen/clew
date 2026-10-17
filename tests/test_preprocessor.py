@@ -856,3 +856,37 @@ def test_an_explicit_list_keeps_the_declared_config_header(tmp_path: Path) -> No
         f"SHIPPED_ON is defined in the header, so it must not be listed as operator-only; got "
         f"{both.stated_only}"
     )
+
+
+## @brief A declared config_header outside the repository is refused.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_declared_config_header_outside_the_repository_is_refused(tmp_path: Path) -> None:
+    """H4's second site. `preprocessor.config_header` is repo-relative by contract and was
+    resolved without containment, so a declared — or MCP-STATED — `/etc/hostname` or
+    `../outside.h` was read and its `#define`s became this index's macro set. The macro
+    values then reach the Doxyfile's PREDEFINED, which is how a read turns into content an
+    agent is served as the repository's own configuration.
+
+    Refused as a missing path is: no macros, no recorded header, one warning.
+
+    @brief An escaping config_header contributes no macros.
+    @return None.
+    @version 1
+    """
+    outside = tmp_path / "outside.h"
+    outside.write_text("#define SENTINEL_LEAKED 1\n", encoding="utf-8")
+
+    root = tmp_path / "repo"
+    root.mkdir()
+
+    for declared in (str(outside), "../outside.h"):
+        config = resolve_preprocessor(root, {SECTION_PREPROCESSOR: {"config_header": declared}})
+
+        assert config.macros == (), (
+            f"{declared!r} escapes the repository; got macros {config.macros}"
+        )
+        assert config.config_header is None, (
+            f"a refused header must not be recorded as honoured; got {config.config_header}"
+        )

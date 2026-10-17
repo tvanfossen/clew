@@ -1183,3 +1183,130 @@ def test_the_stated_macro_split_reaches_the_served_reply(tmp_path: Path) -> None
     assert "did not record which came from which" not in served, (
         "the reply fell through to the unrecorded-split wording while the split was present"
     )
+
+
+## @brief A declared Kconfig root outside the repository is refused.
+## @param repo Fixture repository.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_declared_root_outside_the_repository_is_refused(repo: Path, tmp_path: Path) -> None:
+    """H4, 1.1.0 SECURITY AUDIT. `kconfig.root` is repo-relative by contract and nothing
+    enforced it: `(root / declared).resolve()` honours an absolute entry and `../` walks out.
+    Two consequences, both reachable by an MCP caller who STATES the section for a repository
+    it merely names. First, arbitrary read — a Kconfig anywhere on the machine is parsed and
+    its `help` text, prompts and defaults are served as this repository's configuration space.
+    Second, it is a route around every other containment here: kconfiglib resolves `source`
+    against `$srctree`, and the outside file chooses what gets sourced.
+
+    Refused the way a missing path is — `path is None`, one warning, no configuration space —
+    because the build must still produce an index, and a declaration that cannot be honoured
+    must never be reported as honoured.
+
+    @brief An escaping declared kconfig.root indexes nothing.
+    @return None.
+    @version 1
+    """
+    outside = tmp_path / "outside"
+    outside.mkdir(exist_ok=True)
+    (outside / KCONFIG_NAME).write_text("config LEAKED\n\tbool\n", encoding="utf-8")
+
+    for declared in (str(outside / KCONFIG_NAME), "../outside/Kconfig"):
+        location = discover_kconfig(repo, {SECTION_KCONFIG: {KEY_ROOT: declared}})
+
+        assert location.path is None, (
+            f"{declared!r} escapes the repository and must not be parsed; got {location.path}"
+        )
+        assert location.source != SOURCE_DECLARED, (
+            "a refused declaration must not be recorded as the honoured source"
+        )
+
+
+## @brief A hostile Kconfig can neither read the environment nor run a command.
+## @param tmp_path Pytest temporary directory.
+## @param monkeypatch Pytest environment patcher.
+## @return None.
+## @version 1
+def test_a_kconfig_parse_is_given_a_minimal_environment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """H3, 1.1.0 SECURITY AUDIT — and the `$(shell,…)` half is not a read, it is EXECUTION.
+    Measured against kconfiglib 14.1: `$(SENTINEL)` in a prompt expands from the process
+    environment, which for the MCP plugin is the EDITOR's environment (`ANTHROPIC_API_KEY`,
+    `GH_TOKEN`, `AWS_*`), and the expansion is then persisted and served as the repository's
+    own configuration text. `$(shell,touch …)` ran the command. `KCONFIG_FUNCTIONS` imports a
+    module by name, and `kconfigfunctions` is its default — a file a repository can ship.
+
+    THE FIX IS ONE CONCEPT, not three: the parse gets a MINIMAL ENVIRONMENT instead of the
+    process's. `srctree` is what it always was, `KCONFIG_FUNCTIONS` points at clew's own
+    module (which supplies a refusing `shell`, since kconfiglib's `update` lets a named module
+    REPLACE a built-in), and nothing else is inherited.
+
+    @brief Neither an environment variable nor a shell command reaches the parse.
+    @return None.
+    @version 1
+    """
+    monkeypatch.setenv("SENTINEL_SECRET", "SENTINEL-ENV-LEAK")
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    marker = tmp_path / "pwned"
+    (repo / KCONFIG_NAME).write_text(
+        'config LEAKED\n\tbool "env says $(SENTINEL_SECRET)"\n'
+        f'\tdefault "$(shell,touch {marker} && echo RAN)"\n',
+        encoding="utf-8",
+    )
+
+    model = load_kconfig(discover_kconfig(repo, {}), repo)
+
+    served = (
+        " ".join(f"{s.name} {s.prompt} {s.help} {s.default}" for s in model.symbols) + model.error
+    )
+    assert "SENTINEL-ENV-LEAK" not in served, (
+        f"the indexing user's environment reached the served configuration space: {served}"
+    )
+    assert not marker.exists(), "a Kconfig ran a shell command during the parse"
+    assert "RAN" not in served, "a shell command's output reached the served text"
+
+    ## THE REFUSAL IS RECORDED, because a silently empty expansion is the
+    ## accepted-but-unread failure this project keeps finding: an owner whose Zephyr tree
+    ## genuinely uses `$(shell,…)` must be able to see WHY their defaults came out empty.
+    assert model.shell_refused, "a refused shell expansion must be recorded, not swallowed"
+    assert model.as_meta()["shell_refused"] == str(len(model.shell_refused))
+
+
+## @brief A repository cannot supply the Python module kconfiglib imports.
+## @param tmp_path Pytest temporary directory.
+## @param monkeypatch Pytest environment patcher.
+## @return None.
+## @version 1
+def test_a_repo_supplied_kconfig_functions_module_is_not_imported(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The third vector, which is plain code execution: kconfiglib imports
+    `os.getenv("KCONFIG_FUNCTIONS", "kconfigfunctions")` and runs its module body. An
+    operator with that variable set — a Zephyr workspace sets it — pointed at a tree clew
+    then indexed is the reachable case, and `sys.path` carrying the cwd is the other.
+
+    @brief An operator-set or repo-dropped functions module never runs.
+    @return None.
+    @version 1
+    """
+    monkeypatch.setenv("KCONFIG_FUNCTIONS", "clew_test_hostile_kconfig_functions")
+    monkeypatch.syspath_prepend(str(tmp_path))
+    marker = tmp_path / "functions_ran"
+    (tmp_path / "clew_test_hostile_kconfig_functions.py").write_text(
+        f"from pathlib import Path\nPath({str(marker)!r}).write_text('ran')\nfunctions = {{}}\n",
+        encoding="utf-8",
+    )
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / KCONFIG_NAME).write_text('config PLAIN\n\tbool "plain"\n', encoding="utf-8")
+
+    model = load_kconfig(discover_kconfig(repo, {}), repo)
+
+    assert not marker.exists(), "a module named by KCONFIG_FUNCTIONS was imported and ran"
+    assert [s.name for s in model.symbols] == ["PLAIN"], (
+        "the ordinary parse must still work with the environment replaced"
+    )

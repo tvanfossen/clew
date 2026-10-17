@@ -66,15 +66,13 @@ not read it says so instead of shipping zero rows.
 
 from __future__ import annotations
 
-import contextlib
-import os
 import sqlite3
-from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from ._common import logger
+from ._common import logger, within_repo
+from .kconfig_env import parse_environment
 from .vocabulary import KCONFIG_TYPE, KCONFIG_TYPE_UNKNOWN, check
 
 ## The declaration section this module owns. Registered in
@@ -218,6 +216,10 @@ class KconfigModel:
     choices: tuple[KconfigChoice, ...] = ()
     error: str = ""
     warnings: tuple[str, ...] = field(default=())
+    ## The `$(shell,…)` expansions this parse REFUSED, verbatim. Recorded rather than
+    ## swallowed: a Zephyr tree legitimately uses them, and its owner must be able to read why
+    ## a default came out empty instead of filing it as a clew bug (1.1.0 audit, H3).
+    shell_refused: tuple[str, ...] = field(default=())
 
     ## @brief Whether the repo has a top-level Kconfig at all.
     ## @return True when discovery found one, whether or not it parsed.
@@ -250,7 +252,7 @@ class KconfigModel:
 
     ## @brief Flatten to string values for build_meta persistence.
     ## @return Mapping of unprefixed kconfig keys to string values.
-    ## @version 1
+    ## @version 2
     ## @req REQ-DDB-CONFIG-005
     def as_meta(self) -> dict[str, str]:
         """Counts are STRINGS because `write_build_signature` drops falsy values, and a
@@ -276,6 +278,9 @@ class KconfigModel:
             "choice_count": str(len(self.choices)),
             "documented_count": str(self.documented),
             "error": self.error,
+            ## A STRING COUNT for the reason every count here is one: `write_build_signature`
+            ## drops falsy values, so a measured zero has to survive as "0".
+            "shell_refused": str(len(self.shell_refused)),
         }
 
 
@@ -317,7 +322,7 @@ def discover_kconfig(
 ## @param root Resolved repo root.
 ## @param declared The repo-relative path the declaration names.
 ## @return The location; `path` is None when the declared file does not exist.
-## @version 1
+## @version 2
 ## @dg_internal
 def _declared_kconfig(root: Path, declared: str) -> KconfigLocation:
     """A declared-but-missing path WARNS rather than failing the build, matching
@@ -329,7 +334,13 @@ def _declared_kconfig(root: Path, declared: str) -> KconfigLocation:
     @return The located (or unlocated) Kconfig.
     @version 1
     """
-    path = (root / declared).resolve()
+    ## CONTAINMENT BEFORE THE STAT (1.1.0 audit, H4). `root` is repo-relative by contract and
+    ## this is where that contract is enforced; an escaping entry is treated exactly as a
+    ## missing one, since both mean "no configuration space was indexed, and here is why".
+    contained = within_repo(root / declared, root, setting=f"{SECTION_KCONFIG}.{KEY_ROOT}")
+    if contained is None:
+        return KconfigLocation(path=None, searched=(declared,))
+    path = contained
     if not path.is_file():
         logger.warning(
             "kconfig: %s.%s names %s, which does not exist — no configuration space indexed",
@@ -375,41 +386,11 @@ def _conventional_kconfig(root: Path) -> KconfigLocation:
     return KconfigLocation(path=None, searched=searched)
 
 
-## @brief Set `$srctree` for the duration of a kconfiglib parse, then restore it.
-## @param root Absolute repo root kconfiglib should resolve `source` paths against.
-## @return A context manager yielding nothing.
-## @version 1
-## @dg_internal
-@contextlib.contextmanager
-def _srctree(root: Path) -> Iterator[None]:
-    """kconfiglib reads `$srctree` from the ENVIRONMENT — there is no constructor
-    argument for it — so driving a parse rooted anywhere but the process's cwd means
-    mutating `os.environ`. Restored in a `finally` because this runs inside a longer
-    pipeline: leaking `srctree` would silently redirect any later Kconfig parse, and
-    the MCP server is a long-lived process that builds several targets.
-
-    The PREVIOUS value is put back rather than the key deleted, so a caller who set
-    `srctree` deliberately (a Zephyr west environment does) still has it afterwards.
-
-    @brief Temporarily point kconfiglib's `$srctree` at a repo root.
-    @version 1
-    """
-    previous = os.environ.get("srctree")
-    os.environ["srctree"] = str(root)
-    try:
-        yield
-    finally:
-        if previous is None:
-            os.environ.pop("srctree", None)
-        else:
-            os.environ["srctree"] = previous
-
-
 ## @brief Parse a located Kconfig into the configuration space it declares.
 ## @param location A KconfigLocation whose path is repo-relative.
 ## @param repo_root Repo root the location's path is relative to.
 ## @return The parsed model; carries `error` and no rows when the parse failed.
-## @version 2
+## @version 3
 ## @req REQ-DDB-CONFIG-005
 def load_kconfig(location: KconfigLocation, repo_root: Path | str) -> KconfigModel:
     """DEGRADES TO A RECORDED ERROR, never to an exception. A configuration space is
@@ -430,15 +411,30 @@ def load_kconfig(location: KconfigLocation, repo_root: Path | str) -> KconfigMod
     if location.path is None:
         return KconfigModel(location=location)
     root = Path(repo_root).expanduser().resolve()
+    refused: list[str] = []
     try:
-        with _srctree(root):
+        ## `parse_environment` REPLACES the process environment for the parse rather than
+        ## only setting `srctree` (1.1.0 audit, H3): a Kconfig expands `$(VAR)` from the
+        ## environment into text this build then serves, runs `$(shell,…)` as a command, and
+        ## imports whatever `KCONFIG_FUNCTIONS` names. One minimal environment closes all
+        ## three; `clew/kconfig_env.py` carries the measurements.
+        with parse_environment(root) as refusals:
             import kconfiglib
 
             kconf = kconfiglib.Kconfig(str(location.path), warn_to_stderr=False)
+            ## COPIED INSIDE THE BLOCK. The list is cleared when the context exits, and a
+            ## parse that raises must still carry its refusals out — a refused expansion is a
+            ## plausible CAUSE of the failure, so losing it on the error path loses the
+            ## explanation exactly when it is needed.
+            refused = list(refusals)
     except Exception as exc:
         logger.warning("kconfig: %s could not be parsed (%s)", location.path, exc)
-        return KconfigModel(location=location, error=f"{type(exc).__name__}: {exc}")
-    return _model_from_kconf(kconf, location)
+        return KconfigModel(
+            location=location,
+            error=f"{type(exc).__name__}: {exc}",
+            shell_refused=tuple(refused),
+        )
+    return _model_from_kconf(kconf, location, tuple(refused))
 
 
 ## @brief Build the stored model from a successfully parsed kconfiglib tree.
@@ -447,7 +443,9 @@ def load_kconfig(location: KconfigLocation, repo_root: Path | str) -> KconfigMod
 ## @return The populated model.
 ## @version 1
 ## @dg_internal
-def _model_from_kconf(kconf: Any, location: KconfigLocation) -> KconfigModel:
+def _model_from_kconf(
+    kconf: Any, location: KconfigLocation, shell_refused: tuple[str, ...] = ()
+) -> KconfigModel:
     """`unique_defined_syms` and `unique_choices` are kconfiglib's own de-duplicated
     views, so a symbol defined in two files yields ONE row. That matters for the same
     reason `_definition_preferring_name_index` does on the doxygen side: a consumer
@@ -481,7 +479,13 @@ def _model_from_kconf(kconf: Any, location: KconfigLocation) -> KconfigModel:
         len(choices),
         sum(1 for s in symbols if s.help),
     )
-    return KconfigModel(location=location, symbols=symbols, choices=choices, warnings=warnings)
+    return KconfigModel(
+        location=location,
+        symbols=symbols,
+        choices=choices,
+        warnings=warnings,
+        shell_refused=shell_refused,
+    )
 
 
 ## @brief The first of a node list that satisfies a predicate, as text.

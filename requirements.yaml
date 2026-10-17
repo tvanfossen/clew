@@ -737,6 +737,31 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: 'clew/pydocs.py; clew/cli.py stage py_docstrings; tests/test_pydocs.py.'
+  REQ-DDB-PIPE-014:
+    subsystem: pipeline
+    name: Indexing a repository reads only that repository, and runs none of its text
+    acceptance_criteria: 'Every path the pipeline reads from repo-controlled or caller-stated
+      input is RESOLVED and then required to stay inside the repository root — declared or
+      stated `index_scope.roots`/`excludes`, `kconfig.root`, `preprocessor.config_header`, a
+      supplementary-document glob match and an indexed file read for its file-level doc — and
+      an escaping path is dropped with a warning naming it, never read. The Doxyfile doxygen
+      is fed gains no command-valued option, no read-external option and no file-inlining
+      command (`@verbinclude` and its siblings are neutered through ALIASES, which the target
+      cannot take back). A Kconfig parse runs in a minimal environment: it cannot expand a
+      process environment variable into served text, cannot run `$(shell,...)` (refused, and
+      the count recorded as `kconfig.shell_refused`) and cannot name the Python module
+      kconfiglib imports. Every git invocation disarms the inspected tree''s own
+      command-valued config, and every subprocess carries a timeout. What this does NOT
+      promise is in docs/SECURITY.md: indexing still COMPILES the tree through cargo and runs
+      doxygen over it, which is code execution by design.'
+    x-priority: P0
+    x-status: implemented
+    x-evidence: 'clew/_common.py within_repo; clew/scope.py _existing_paths; clew/kconfig.py
+      _declared_kconfig / load_kconfig; clew/kconfig_env.py; clew/preprocessor.py
+      _named_config_header; clew/prose.py; clew/filedocs.py; clew/doxygen.py
+      _DOXYFILE_FORCED_FLAGS; clew/gitenv.py git_argv. tests/test_doxyfile_injection.py,
+      tests/test_gitenv.py, tests/test_security_surface.py, tests/test_scope.py,
+      tests/test_kconfig.py, tests/test_preprocessor.py, tests/test_external_provenance.py.'
   REQ-DDB-PIPE-001:
     subsystem: pipeline
     name: Build a layered SQLite knowledge db from a target repo's Doxyfile

@@ -576,3 +576,80 @@ def test_cli_apply_scope_refuses_a_rejected_declaration(tmp_path: Path) -> None:
 
     with pytest.raises(SystemExit):
         _apply_scope(args, root)
+
+
+## @brief A declared root that escapes the repository is dropped, not indexed.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_declared_root_outside_the_repository_is_refused(tmp_path: Path) -> None:
+    """H5, 1.1.0 SECURITY AUDIT. `roots:` is repo-relative by contract, but the derivation
+    resolved each entry with `(root / entry).resolve()` and asked only whether it EXISTS. An
+    absolute entry discards `root` entirely (`Path('/a') / '/etc'` is `/etc`), and `../` walks
+    out, so a repository — or an MCP caller stating a scope for a repository it merely names —
+    chose any readable directory on the machine as the indexed tree. The index is then served
+    as that repository's content, with the paths of a tree the owner never offered.
+
+    Dropped-and-reported rather than raised: `_existing_paths` already drops a root that does
+    not exist, and an empty `roots` is the rejection the caller above already handles.
+
+    @brief An absolute or parent-escaping declared root never reaches the scope.
+    @return None.
+    @version 1
+    """
+    root = tmp_path / "repo"
+    (root / "src").mkdir(parents=True)
+    outside = tmp_path / "outside"
+    (outside / "secrets").mkdir(parents=True)
+
+    for entry in (str(outside), "../outside", "src/../../outside"):
+        (root / ".clew.yaml").write_text(
+            f"index_scope:\n  roots:\n    - {entry}\n", encoding="utf-8"
+        )
+
+        rejection = sc.declared_scope_rejection(root)
+        derived = sc.derive_scope(root)
+
+        assert rejection is not None, f"{entry!r} escapes the repository and must be rejected"
+        assert all(sc._is_within(got, root.resolve()) for got in derived.roots), (
+            f"{entry!r} put {derived.roots} outside {root} — the index would carry a tree "
+            f"this repository never offered"
+        )
+
+        ## AND THE TIER-1 STATED FORM, which is the reachable half: an MCP caller states a
+        ## scope for a repository it merely NAMES, so this entry never passed an owner's hands
+        ## at all. Both tiers go through one derivation, which is why one fix covers both —
+        ## asserted rather than assumed, since the replay path (`_replay_manifest_statements`)
+        ## re-enters the same function on every later build.
+        stated = {"roots": [entry]}
+        assert sc.declared_scope_rejection(root, stated) is not None, (
+            f"a STATED root of {entry!r} must be rejected exactly as a declared one is"
+        )
+
+
+## @brief An escaping declared exclude is dropped too, rather than silently matching nothing.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_declared_exclude_outside_the_repository_is_dropped(tmp_path: Path) -> None:
+    """The same resolution bug on the quieter half. An exclude cannot leak a tree, but one
+    pointing outside the repo silently excludes NOTHING while reading as honoured — the
+    accepted-but-unread failure this module fixes everywhere else.
+
+    @brief An escaping exclude does not reach the derived scope.
+    @return None.
+    @version 1
+    """
+    root = tmp_path / "repo"
+    (root / "src").mkdir(parents=True)
+    (tmp_path / "outside").mkdir()
+    (root / ".clew.yaml").write_text(
+        "index_scope:\n  roots: [src]\n  excludes:\n    - ../outside\n", encoding="utf-8"
+    )
+
+    derived = sc.derive_scope(root)
+
+    assert derived.source == sc.SOURCE_DECLARED
+    assert derived.excludes == (), (
+        f"an exclude outside the repository must be dropped, not resolved; got {derived.excludes}"
+    )

@@ -512,3 +512,90 @@ def test_directory_rollup_says_what_it_counts_and_lists_external_files(tmp_path:
     ## The cap is reported when it applies, never silently.
     assert "not shown" in rollup_meaning(100, 5, 9)
     assert "not shown" not in rollup_meaning(100, 9, 9)
+
+
+## @brief A committed symlink pointing outside the repo is not ingested as repo prose.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_symlinked_doc_outside_the_repository_is_not_ingested(tmp_path: Path) -> None:
+    """H2, 1.1.0 SECURITY AUDIT. `glob` FOLLOWS SYMLINKS, and git tracks symlinks, so a
+    repository could commit `README.md -> /etc/passwd` (or `/proc/self/environ`, which carries
+    the indexing user's `ANTHROPIC_API_KEY`) and clew would read it, chunk it into
+    `supplementary_docs`, and serve it to a model labelled with an in-repo path — the worst
+    combination: exfiltration plus a false provenance an agent has no way to doubt.
+
+    `clew/query/source.py:_read_body` already resolves-then-refuses on the read side; the
+    INGEST side did not. A missing or escaping file is skipped exactly as an unreadable one is.
+
+    @brief An escaping symlink contributes no prose row.
+    @return None.
+    @version 1
+    """
+    from clew.prose import ingest_supplementary_docs
+
+    secret = tmp_path / "outside" / "secret.md"
+    secret.parent.mkdir(parents=True)
+    secret.write_text("# Secret\n\nSENTINEL-PROSE-LEAK\n", encoding="utf-8")
+
+    repo = tmp_path / "repo"
+    (repo / "docs").mkdir(parents=True)
+    (repo / "README.md").symlink_to(secret)
+    (repo / "docs" / "guide.md").symlink_to(secret)
+    (repo / "docs" / "real.md").write_text("# Real\n\nin-repo content\n", encoding="utf-8")
+
+    db = tmp_path / "clew.db"
+    ingest_supplementary_docs(db, repo)
+
+    conn = sqlite3.connect(str(db))
+    rows = conn.execute("SELECT file_path, content FROM supplementary_docs").fetchall()
+    conn.close()
+
+    assert not any("SENTINEL-PROSE-LEAK" in content for _, content in rows), (
+        f"a file outside the repository was ingested as repo prose: {rows}"
+    )
+    assert any(path == "docs/real.md" for path, _ in rows), (
+        "the containment check must not cost the ordinary in-repo document"
+    )
+
+
+## @brief A symlinked source file does not leak an outside file as its file-level doc.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_symlinked_source_file_contributes_no_file_doc(tmp_path: Path) -> None:
+    """The second half of H2. `filedocs` reads `repo_root / rel` for every INDEXED file, so a
+    symlinked `.c` whose target lives outside the tree has its docblock extracted and served
+    as that path's file documentation. The path list comes from the index, so this one is
+    reachable even where the prose globs are not.
+
+    @brief An escaping path is not read for file-level documentation.
+    @return None.
+    @version 1
+    """
+    from clew.filedocs import ingest_file_docs
+
+    outside = tmp_path / "outside" / "leak.c"
+    outside.parent.mkdir(parents=True)
+    outside.write_text("/** @file\n * SENTINEL-FILEDOC-LEAK\n */\n", encoding="utf-8")
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "leaked.c").symlink_to(outside)
+
+    db = tmp_path / "clew.db"
+    conn = sqlite3.connect(str(db))
+    conn.execute("CREATE TABLE path (name TEXT PRIMARY KEY, type INTEGER NOT NULL)")
+    conn.execute("INSERT INTO path (name, type) VALUES ('leaked.c', 1)")
+    conn.commit()
+    conn.close()
+
+    ingest_file_docs(db, repo)
+
+    conn = sqlite3.connect(str(db))
+    docs = conn.execute("SELECT file_path, doc FROM file_docs").fetchall()
+    conn.close()
+
+    assert not any("SENTINEL-FILEDOC-LEAK" in doc for _, doc in docs), (
+        f"an outside file was read as an in-repo file's documentation: {docs}"
+    )

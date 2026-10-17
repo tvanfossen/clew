@@ -84,7 +84,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ._common import logger
+from ._common import logger, within_repo
 
 ## The declaration section this module owns. Registered in
 ## `declaration.KNOWN_SECTIONS`, so a misspelling is REFUSED rather than parsed into a
@@ -612,7 +612,7 @@ def _resolve_config_header(
 ## @param repo_root Resolved repo root.
 ## @param declared The repo-relative path the declaration names.
 ## @return (path or None, the declared location).
-## @version 1
+## @version 2
 ## @dg_internal
 def _named_config_header(repo_root: Path, declared: str) -> tuple[Path | None, tuple[str, ...]]:
     """Split out of `_resolve_config_header` to keep both inside the max-3-returns
@@ -627,7 +627,12 @@ def _named_config_header(repo_root: Path, declared: str) -> tuple[Path | None, t
     @return (path or None, the declared location).
     @version 1
     """
-    path = (repo_root / declared).resolve()
+    ## CONTAINMENT BEFORE THE STAT (1.1.0 audit, H4) — see `kconfig._declared_kconfig`, which
+    ## carries the same two lines for the same reason. An escaping path reads as a missing one.
+    contained = within_repo(repo_root / declared, repo_root, setting="preprocessor.config_header")
+    if contained is None:
+        return None, (declared,)
+    path = contained
     if not path.is_file():
         logger.warning(
             "preprocessor: config_header names %s, which does not exist — this index "

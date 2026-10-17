@@ -15,7 +15,7 @@ import re
 import sqlite3
 from pathlib import Path
 
-from ._common import logger
+from ._common import logger, within_repo
 
 SUPPLEMENTARY_PATTERNS: list[str] = [
     "README.md",
@@ -117,7 +117,7 @@ def _ingest_one_doc_file(
 
 
 ## @brief Scan repo for markdown/text docs, chunk by heading, insert into FTS5.
-## @version 1
+## @version 2
 ## @req REQ-DDB-PIPE-001
 def ingest_supplementary_docs(
     db_path: Path,
@@ -151,6 +151,13 @@ def ingest_supplementary_docs(
     for pattern in patterns:
         for file_path in sorted(repo_root.glob(pattern)):
             if not file_path.is_file():
+                continue
+            ## `glob` FOLLOWS SYMLINKS and git tracks them, so a committed
+            ## `README.md -> /proc/self/environ` was read, chunked, and served as this
+            ## repository's prose under an in-repo path (1.1.0 audit, H2). The relative path is
+            ## taken from the UNRESOLVED entry on purpose: it is what the index calls the file,
+            ## and only files that survive the check get that far.
+            if within_repo(file_path, repo_root, setting="supplementary document") is None:
                 continue
             rel_path = str(file_path.relative_to(repo_root))
             if rel_path in seen_files:

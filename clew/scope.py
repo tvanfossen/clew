@@ -1211,19 +1211,43 @@ def _is_within(path: Path, ancestor: Path) -> bool:
     return path == ancestor or ancestor in path.parents
 
 
-## @brief Resolve declared repo-relative entries that exist on disk.
+## @brief Resolve declared repo-relative entries that exist INSIDE the repository.
 ## @param root Repo root the entries are relative to.
 ## @param entries Declared relative path strings.
-## @param label Word used in the warning for a missing entry.
-## @return Absolute paths that exist.
-## @version 1
+## @param label Word used in the warning for a rejected entry.
+## @return Absolute paths that exist and lie within `root`.
+## @version 2
 ## @dg_internal
 def _existing_paths(root: Path, entries: list, label: str) -> list[Path]:
-    """@brief Resolve declared paths, warning about (and dropping) missing ones."""
+    """RESOLVE, THEN CONTAIN, THEN STAT — in that order, because the other orders are the
+    bug (1.1.0 security audit, H5). `roots:` is repo-relative BY CONTRACT and nothing here
+    enforced it: `(root / "/etc").resolve()` is `/etc`, since joining an absolute path
+    discards the left operand, and `../` simply walks out. An index built from such a
+    declaration is served as THIS repository's content under paths its owner never offered,
+    and the declaration can be STATED by an MCP caller for a repository it merely names.
+
+    Dropped with a warning rather than raised: this function already drops an entry that does
+    not exist, and dropping every root leaves `roots` empty, which the caller above turns into
+    the rejection an operator sees. One failure mode, one existing message path.
+
+    @brief Resolve declared paths, dropping ones that escape the repo or do not exist.
+    @return Contained, existing absolute paths.
+    @version 2
+    """
     found = []
+    resolved_root = root.resolve()
     for entry in entries:
-        path = (root / str(entry)).resolve()
-        if path.exists():
+        path = (resolved_root / str(entry)).resolve()
+        if not _is_within(path, resolved_root):
+            logger.warning(
+                "index_scope %s %r resolves to %s, OUTSIDE %s — refusing it. Declared paths "
+                "are repository-relative; an absolute or `../` entry is not honoured.",
+                label,
+                entry,
+                path,
+                resolved_root,
+            )
+        elif path.exists():
             found.append(path)
         else:
             logger.warning(

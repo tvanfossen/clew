@@ -103,6 +103,62 @@ _DOXYFILE_FORCED_FLAGS = (
     "TAGFILES =\n"
     "GENERATE_TAGFILE =\n"
     "CLANG_DATABASE_PATH =\n"
+    ## WHERE THE FILE-INLINING COMMANDS LOOK. Restated for the same reason as the options
+    ## above, but note what it does NOT achieve: an empty EXAMPLE_PATH still leaves
+    ## `@verbinclude secret.txt` resolving against the process cwd, which IS the repo root,
+    ## and an absolute argument ignores the option entirely. Measured, doxygen 1.9.8.
+    "EXAMPLE_PATH =\n"
+    "EXAMPLE_RECURSIVE = NO\n"
+    "INCLUDE_PATH =\n"
+    "IMAGE_PATH =\n"
+)
+
+## THE FILE-READING COMMANDS, which are a DIFFERENT SURFACE from every option above: they are
+## written in a SOURCE COMMENT, so there is no Doxyfile key to restate. `@verbinclude
+## /etc/hostname` in a docstring inlined that file into `memberdef.detaileddescription`, and
+## clew then served it to a model as this repository's own documentation — an arbitrary read
+## wearing a provenance the reader cannot doubt (1.1.0 audit, H1).
+##
+## ALIASES IS THE ONLY LEVER, and three measured facts make it a sound one:
+##   * a BARE redefinition (`verbinclude=…`) overrides the built-in command, while the arity
+##     form (`verbinclude{1}=…`) does not override at all — so the target cannot use the
+##     precise form to take the command back;
+##   * the LAST assignment wins, and this block is appended after the target's own Doxyfile
+##     text, so a repository's `ALIASES += "verbinclude=…"` is overridden rather than
+##     overriding — the same mechanism RECURSIVE and FILE_PATTERNS rely on;
+##   * `@verbatim`/`@code`, which an owner writes to document their own code, emit the
+##     IDENTICAL XML elements as these commands. That is why the fix is here and not a filter
+##     over the served text: a content filter cannot tell a leak from documentation, and the
+##     one that tried would silently delete every legitimate example in the corpus.
+##
+## COST, STATED: `@include`/`@snippet` of a file INSIDE the repository was legitimate and is
+## now refused too. Containment is not expressible here — doxygen resolves these arguments
+## itself, with no hook — so the enforceable rule is all-or-nothing, and the replacement text
+## says so in the served description rather than leaving a silent hole in the docs.
+##
+## The graphics-bearing commands (`@image`, `@dotfile`, `@mscfile`, `@diafile`,
+## `@plantumlfile`) read files too, but they contribute to generators that are all forced off
+## above and inline no text into the sqlite3 output, so they are left alone deliberately.
+_DOXYGEN_FILE_READING_COMMANDS = (
+    "verbinclude",
+    "htmlinclude",
+    "latexinclude",
+    "rtfinclude",
+    "maninclude",
+    "docbookinclude",
+    "xmlinclude",
+    "include",
+    "includelineno",
+    "includedoc",
+    "dontinclude",
+    "snippet",
+    "snippetlineno",
+    "snippetdoc",
+)
+
+_DOXYFILE_FORCED_FLAGS += "".join(
+    f'ALIASES += "{command}=[clew refused a file-inlining command here]"\n'
+    for command in _DOXYGEN_FILE_READING_COMMANDS
 )
 
 ## HOW LONG A SINGLE doxygen RUN MAY TAKE BEFORE IT IS KILLED. A BACKSTOP, NOT A BUDGET — the
