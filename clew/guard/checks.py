@@ -41,9 +41,14 @@ def _suggest_skeleton(file_path: str, *, with_return: bool = False) -> str:
 
 
 ## @brief Build a language-appropriate file-level doxygen skeleton suggestion.
-#  @version 1.1
+#  @version 1.2
 #  @dg_internal
 def _suggest_file_skeleton(file_path: str) -> str:
+    if Path(file_path).suffix.lower() in _JS_SUFFIXES:
+        return (
+            "'/** @fileoverview <desc> @brief <desc> @version 1.0 */' "
+            "(JSDoc; @file, @overview and @module are accepted too)"
+        )
     if Path(file_path).suffix.lower() == ".rs":
         return "'//! <summary sentence>' / '//! @version 1' (inner doc, before first item)"
     if Path(file_path).suffix.lower() == ".py":
@@ -797,7 +802,7 @@ def check_file_presence(
 
 
 ## @brief Check required tags in a file-level doxygen block.
-#  @version 1.3
+#  @version 1.4
 #  @req REQ-DDB-GUARD-006
 #  @return List of violations for missing required tags
 def _check_file_block_tags(file_path: str, lines: list[str], block_start: int) -> list[Violation]:
@@ -807,6 +812,14 @@ def _check_file_block_tags(file_path: str, lines: list[str], block_start: int) -
     tags = parse_doxygen_tags(block_text)
     violations: list[Violation] = []
     required = {"file": "@file", "brief": "@brief", "version": "@version"}
+    if Path(file_path).suffix.lower() in _JS_SUFFIXES:
+        ## ANY OF JSDOC'S FOUR, not the C spelling. `@file` stays in the mapping so a file
+        ## naming none of them still reports a missing tag — widening which tags count must
+        ## not make the check vacuous.
+        if any(tag in tags for tag in _JSDOC_FILE_TAGS):
+            del required["file"]
+        else:
+            required["file"] = "@fileoverview (or @file / @overview / @module)"
     if lines[block_start].strip().startswith(_RUST_FILE_DOC_STARTS):
         # A Rust inner doc comment documents its module by construction, so @file would
         # restate the syntax; and its summary paragraph is the brief, as for items.
@@ -845,15 +858,34 @@ def _extract_file_block_text(lines: list[str], start: int) -> str:
 # item's doc as a file block missing @file.
 _RUST_FILE_DOC_STARTS = ("//!", "/*!")
 
+# WHAT DOCUMENTS A JAVASCRIPT FILE, matching `clew/filedocs.py`'s `_JSDOC_FILE_TAG` tag for
+# tag (group A, 1.1.0 merge review). JSDoc's own documentation leads with `@fileoverview`;
+# `@file` is its alias, and `@module` documents a file that is a module. Requiring the literal
+# `@file` made a correctly documented JS file a file doc to the INDEX and a violation to the
+# GATE, with remedy text naming a tag JSDoc does not have.
+#
+# Duplicated rather than imported, deliberately and for the reason stated throughout
+# `clew.guard`: the gate must not import the pipeline. `tests/guard/test_guard_jsdoc_file_level.py`
+# parametrises over all four so the two spellings cannot drift.
+_JSDOC_FILE_TAGS = ("file", "fileoverview", "overview", "module")
+
+# A shebang (`#!/usr/bin/env node`) and a `'use strict'` / `"use strict"` prologue legally
+# precede the file's doc block, and `_find_file_doxygen_start` stops at the first line that is
+# not a doc comment — so a Node executable could not carry a file block at all.
+_JS_PROLOGUE_PREFIXES = ("#!", "'use strict'", '"use strict"')
+
 
 ## @brief Find the line index of the file-level doxygen block start.
-#  @version 1.4
+#  @version 1.5
 #  @req REQ-DDB-GUARD-006
 #  @return 0-indexed line number, or None if no block found
 def _find_file_doxygen_start(
     lines: list[str], doxygen_starts: tuple[str, ...] | None = None
 ) -> int | None:
-    skip_prefixes = ("#include", "#pragma", "#ifndef", "#define")
+    ## `#!` and the `use strict` directives join the C preprocessor lines: all of them
+    ## legally sit ABOVE a file's doc block, and stopping at one reports a documented file as
+    ## undocumented (group A, 1.1.0 merge review).
+    skip_prefixes = ("#include", "#pragma", "#ifndef", "#define") + _JS_PROLOGUE_PREFIXES
     doxygen_starts = doxygen_starts or ("/**", "///", "## @", '"""')
     for i, line in enumerate(lines):
         stripped = line.strip()

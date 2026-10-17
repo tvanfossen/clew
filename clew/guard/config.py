@@ -29,6 +29,12 @@ logger = logging.getLogger(__name__)
 CONFIG_FILE_NAME = ".clew.yaml"
 CONFIG_SECTION = "guard"
 
+# doxygen-guard's own config file, which clew does NOT read. Named here only so a repository
+# that still carries one can be told why its gate went quiet (group B, 1.1.0 merge review):
+# the `@req` gate in particular goes from enforced to absent with no output at all, which is
+# the same silent-success failure as a skipped file reporting nothing.
+LEGACY_CONFIG_NAME = ".doxygen-guard.yaml"
+
 VALIDATE_DEFAULTS: dict[str, Any] = {
     "languages": {
         "c": {
@@ -55,7 +61,12 @@ VALIDATE_DEFAULTS: dict[str, Any] = {
             ],
         },
         "cpp": {
-            "extensions": [".cpp", ".hpp", ".cc", ".cxx"],
+            # WIDENED TO MATCH THE INDEX (group A, 1.1.0 merge review). `harvest._CPP_EXTS`
+            # has read `.hh`, `.hxx`, `.c++` and `.h++` since C++ support landed, so those
+            # files carried symbols, call edges and requirement links while the gate skipped
+            # them with a DEBUG line nobody sees. `tests/test_gate_index_extension_parity.py`
+            # is what keeps the two tables from drifting again, in either direction.
+            "extensions": [".cpp", ".hpp", ".cc", ".cxx", ".hh", ".hxx", ".c++", ".h++"],
             "function_pattern": (
                 r"^\s*(?:(?:static|inline|extern(?:\s+\"C\")?|virtual|explicit|constexpr)\s+)*"
                 r"(?:template\s*<[^>]*>\s*)?"
@@ -79,7 +90,10 @@ VALIDATE_DEFAULTS: dict[str, Any] = {
             ],
         },
         "python": {
-            "extensions": [".py"],
+            # `.pyi` for the reason `harvest._PY_EXTS` gives: a stub carries the signatures
+            # and docstrings a consumer reads, so a stub nobody documents is a documented API
+            # with an undocumented interface.
+            "extensions": [".py", ".pyi"],
             "function_pattern": r"^\s*(?:async\s+)?def\s+(\w+)\s*\(",
             "exclude_names": [],
             "comment_style": {
@@ -140,7 +154,9 @@ OPT_IN_LANGUAGE_DEFAULTS: dict[str, dict[str, Any]] = {
         "require_return": False,
     },
     "typescript": {
-        "extensions": [".ts", ".tsx"],
+        # `.mts`/`.cts` are TypeScript's ES-module and CommonJS spellings, read by both
+        # `harvest._TS_EXTS` and `synth.SYNTH_EXTS` since JS/TS support landed.
+        "extensions": [".ts", ".tsx", ".mts", ".cts"],
         "function_pattern": r"^\s*(?:export\s+)?(?:async\s+)?function\*?\s+(\w+)",
         "exclude_names": [],
         "comment_style": {"start": r"/\*\*(?!\*)", "end": r"\*/"},
@@ -344,9 +360,39 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
     return result
 
 
+## @brief Warn when an inert `.doxygen-guard.yaml` is the likely reason the gate is defaulted.
+#  @param config_path The `.clew.yaml` the gate just failed to find a `guard:` section in.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-012
+#  @dg_internal
+def _warn_about_legacy_config(config_path: Path) -> None:
+    """SIGNPOSTED, NOT SUPPORTED. clew does not read the old file and this does not make it;
+    it names it, because the alternative is a repository whose gate quietly stopped enforcing
+    anything. Fires only when no `guard:` section exists — once one does, an undeleted legacy
+    file is explained, and warning on every commit is how an owner learns to ignore the
+    channel this warning needs.
+
+    @brief Name the legacy config when it is the probable cause of a defaulted gate.
+    """
+    legacy = config_path.parent / LEGACY_CONFIG_NAME
+    if not legacy.is_file():
+        return
+    logger.warning(
+        "%s exists but clew does not read it: the gate's config is now the `guard:` section "
+        "of %s, and this run used BUILT-IN DEFAULTS — so any `@req` enforcement, exclude "
+        "list or version gate it declared is NOT in effect. To migrate, add a `guard:` key to "
+        "%s and indent the old file's contents one level under it, then delete %s.",
+        legacy,
+        config_path.name,
+        config_path.name,
+        legacy.name,
+    )
+
+
 ## @brief Load the `guard:` section of `.clew.yaml` and merge with built-in defaults.
-#  @details A missing file, or a file with no `guard:` section, runs on the defaults.
-#  @version 3.0
+#  @details A missing file, or a file with no `guard:` section, runs on the defaults — and in
+#  either case an inert `.doxygen-guard.yaml` beside it is named as the probable cause.
+#  @version 3.1
 #  @req REQ-DDB-GUARD-012
 #  @return Merged config dict with defaults applied
 def load_config(config_path: Path | None = None) -> dict[str, Any]:
@@ -355,12 +401,14 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
 
     if not config_path.exists():
         logger.info("No config file found at %s, using defaults", config_path)
+        _warn_about_legacy_config(config_path)
         return _fresh_defaults()
 
     logger.info("Loading config from %s", config_path)
     user_config = read_guard_section(config_path)
     if user_config is None:
         logger.info("No %r section in %s, using defaults", CONFIG_SECTION, config_path)
+        _warn_about_legacy_config(config_path)
         return _fresh_defaults()
 
     errors = validate_config_schema(user_config)
@@ -482,6 +530,37 @@ def get_language_config(config: dict[str, Any], file_path: str) -> dict[str, Any
     for _lang_name, lang_config in languages.items():
         if ext in lang_config.get("extensions", []):
             return lang_config
+    return None
+
+
+## @brief Name a language the gate ships but this config did not enable, for one file.
+#  @param config The resolved gate config.
+#  @param file_path The file that matched no active language.
+#  @return The shipped language's name, or None when nothing the gate ships claims it.
+#  @version 1
+#  @req REQ-DDB-GUARD-013
+def unconfigured_language(config: dict[str, Any], file_path: str) -> str | None:
+    """WHY A SKIP IS SOMETIMES WORTH REPORTING AND USUALLY IS NOT (group A, 1.1.0 merge
+    review). `rust`, `javascript` and `typescript` are opt-in: the published hook passes `.rs`
+    files, and a repo that adopted the gate for its C must not start failing on its Rust the
+    first time it bumps `rev:`. That decision is right and it was paid for in silence —
+    `validate_file` logged "no matching language config" at DEBUG and returned clean, so a
+    repository whose every `.rs` file was undocumented got `rc=0` and no output.
+
+    A README or a lock file must stay silent, or the report is noise an owner scrolls past.
+    The question that separates the two is not "is this source" — it is whether THE GATE SHIPS
+    A LANGUAGE for this extension that this configuration did not enable. Nothing else can be
+    something the gate failed to check.
+
+    @brief The shipped-but-unconfigured language for a file, if any.
+    @return The language name, or None.
+    """
+    ext = Path(file_path).suffix.lower()
+    shipped = dict(VALIDATE_DEFAULTS["languages"])
+    shipped.update(OPT_IN_LANGUAGE_DEFAULTS)
+    for name, lang_config in shipped.items():
+        if ext in {e.lower() for e in lang_config.get("extensions", [])}:
+            return name
     return None
 
 

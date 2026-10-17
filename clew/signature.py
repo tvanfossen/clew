@@ -164,6 +164,24 @@ from .tiers import OPTIONS_META_PREFIX
 ##       (clew/synth.py), and their call sites come from jsast — before this they had no
 ##       rows at all, and a JS-only repo still ran doxygen for nothing.
 ##     * binary files and the repo's toolchain.toml / suppress.toml exclusions leave the index.
+##     * C AND C++ ROWS MOVE TOO, which is the half of this bump a reader is most likely to be
+##       surprised by: the languages that did not change front ends still report differently,
+##       because the substrate's tree-sitter-c went to 0.24 and its ERROR RECOVERY changed.
+##       Measured on the mbedtls acceptance target, 1.1.0 audit:
+##
+##         - 7 AST-recovered functions LOST. These were recovered from source doxygen never
+##           emitted, so they are `provenance='ast'` rows, and the 0.24 parser declines to
+##           recover where 0.23 guessed.
+##         - two `ssl_parse_*` functions GAINED, for the same reason read the other way: the
+##           new recovery resolves a construct the old one abandoned.
+##         - three FABRICATED `if` functions removed, and roughly 30 leaked locals with them.
+##           These were never real symbols — a mis-recovered `if (…)` presented as a function
+##           definition — so this is the delta a consumer most wants and the one that looks
+##           like a regression in a raw row count.
+##
+##       Net on that target the function count BARELY MOVES while the set changes in four
+##       directions at once, which is why the v7 -> v8 comparison for this release diffs file
+##       lists and symbol SETS before row counts: a net-zero count would hide a swapped set.
 CLEW_BUILD_VERSION = 8
 
 

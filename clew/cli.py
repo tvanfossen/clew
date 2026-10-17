@@ -181,6 +181,7 @@ from .scope import (
     derive_scope,
     derive_scope_logged,
     nested_tree_cache,
+    normalize_scope,
 )
 from .shared_key_edges import (
     import_mqtt_dispatch_edges,
@@ -3266,7 +3267,7 @@ def build_sub_indexes(
 ## @param requirements Requirements catalog to ingest, or None to discover one.
 ## @param exclude Repo-relative paths to leave out; None inherits the recorded ones, [] withdraws them.
 ## @param options Tier-1 build options keyed by declaration-file section name; None or {} states nothing.
-## @version 4
+## @version 5
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-CLI-001
 ## @req REQ-DDB-CONFIG-001
@@ -3316,7 +3317,10 @@ def build_index(
     args.repo_root = str(repo_root) if repo_root is not None else None
     args.doxyfile = str(doxyfile) if doxyfile is not None else None
     if scope is not None:
-        args.scope = scope
+        ## THE ONE BOUNDARY WHERE A CALLER'S SPELLING ENTERS, so the alias is resolved here
+        ## rather than at each reader. `from-guard` is what gets recorded and replayed;
+        ## `from-declaration` is what it should have been called (group C, 1.1.0).
+        args.scope = normalize_scope(scope)
     args.requirements = str(requirements) if requirements is not None else None
     args.exclude = list(exclude) if exclude is not None else None
     ## `--declare`'s OWN ROUTE, reachable from the typed entry point too. Phase 5 gave the CLI a

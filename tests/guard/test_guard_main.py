@@ -410,3 +410,67 @@ class TestSkipsAreReported:
         captured = capsys.readouterr()
         assert rc == 1
         assert "not checked" not in captured.out + captured.err
+
+
+class TestUnconfiguredLanguagesAreReported:
+    """Group A, 1.1.0 MERGE REVIEW, and the plan's words for it: an owner whose Rust is
+    silently unchecked is the worst failure mode this tool has.
+
+    `rust`, `javascript` and `typescript` live in `OPT_IN_LANGUAGE_DEFAULTS` — opt-in because
+    the published hook started passing `.rs` files and a repo that adopted the gate for its C
+    would otherwise fail on its Rust the first time it bumped `rev:`. The cost of that correct
+    decision was paid in silence: `validate_file` logged "no matching language config" at
+    DEBUG and returned clean. A repo whose every `.rs` file is undocumented got `rc=0` and no
+    output, which reads as "my Rust is documented".
+
+    THE LINE BETWEEN THIS AND A README. A `.md` or `.json` file is not source and must stay
+    silent, or the report becomes noise an owner learns to scroll past. The distinguishing
+    question is whether the gate SHIPS a language for that extension and this config did not
+    enable it — which is exactly the opt-in case and nothing else.
+    """
+
+    @staticmethod
+    def _rust_tree(tmp_path):
+        rust = tmp_path / "lib.rs"
+        rust.write_text("pub fn undocumented_thing() -> u32 {\n    1\n}\n")
+        return rust
+
+    def test_an_opt_in_language_left_unconfigured_is_named(self, tmp_path, monkeypatch, capsys):
+        """@brief An unconfigured shipped language is reported, not skipped silently. @version 1"""
+        rust = self._rust_tree(tmp_path)
+        monkeypatch.chdir(tmp_path)
+
+        rc = main(["--config", NO_REQ_CONFIG, "validate", "--no-git", str(rust)])
+
+        surface = "".join(capsys.readouterr())
+        assert rc == 0, "nothing is configured to check it, so there is no violation to report"
+        assert "not checked" in surface and "rust" in surface, (
+            f"the gate reported success over an unchecked Rust file in silence: {surface!r}"
+        )
+
+    def test_a_non_source_file_stays_silent(self, tmp_path, monkeypatch, capsys):
+        """THE CONTROL that keeps the line where it is. The gate ships no language for
+        Markdown, so Markdown is not something it failed to check.
+
+        @brief A file no shipped language claims produces no report. @version 1
+        """
+        doc = tmp_path / "README.md"
+        doc.write_text("# hello\n")
+        monkeypatch.chdir(tmp_path)
+
+        rc = main(["--config", NO_REQ_CONFIG, "validate", "--no-git", str(doc)])
+
+        assert rc == 0
+        assert "not checked" not in "".join(capsys.readouterr())
+
+    def test_a_configured_language_is_not_reported(self, tmp_path, monkeypatch, capsys):
+        """@brief A language the config enables is checked, not reported as skipped. @version 1"""
+        c_file = tmp_path / "thing.c"
+        c_file.write_text("void Undoc_Func(void) {\n    do_stuff();\n}\n")
+        monkeypatch.chdir(tmp_path)
+
+        rc = main(["--config", NO_REQ_CONFIG, "validate", "--no-git", str(c_file)])
+
+        surface = "".join(capsys.readouterr())
+        assert rc == 1, "C is configured by default, so the undocumented function must fail"
+        assert "not checked" not in surface

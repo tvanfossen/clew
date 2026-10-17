@@ -65,7 +65,10 @@ acceptance cell: 7 of 21 tool calls returned zero rows and cost 25.5% of every b
 the index arm returned, and a single zero-row `search` cost **2,556 bytes** — larger
 than any function body in the run. Two thirds of that one reply was the whole-repo
 tier's `scope.reason`, a ~840-byte paragraph emitted TWICE (once as prose, once in the
-payload) and ending in "Declare `x-clew: index_scope:` …" — operator
+payload) and ending in "Declare `x-clew: index_scope:` …" (the spelling of THAT DAY;
+the advice now names `index_scope:` in `.clew.yaml`, and `.doxygen-guard.yaml` is not
+read at all — quoted as measured rather than silently updated, because the byte count
+above is a measurement of that exact text) — operator
 configuration advice an agent cannot act on mid-session, delivered three times in one
 cell. The derivation is `status.scope.reason`'s job and is unchanged there; an empty
 ANSWER gets the file count, the top levels and the extensions, which are the fields

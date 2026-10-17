@@ -54,7 +54,7 @@ from ._common import logger
 ## cycle, and it is the one section owner whose section NAME lives here rather than
 ## with the owner (its vocabulary is a declaration format, not an internal constant).
 from .event_edges import CONSUMER, PRODUCER
-from .guard.config import CONFIG_FILE_NAME, CONFIG_SECTION
+from .guard.config import CONFIG_FILE_NAME, CONFIG_SECTION, _warn_about_legacy_config
 from .vocabulary import DeclarationError
 
 ## The conventional filename. clew's OWN interface — not an assumption about any target's
@@ -292,7 +292,7 @@ def load_declaration(repo_root: Path | str | None) -> dict[str, Any]:
 ## @param repo_root Repo root to look in.
 ## @return (declaration, source path) — the path is None when nothing was declared.
 ##         Raises DeclarationError when the document names an unknown section.
-## @version 3
+## @version 4
 ## @req REQ-DDB-CONFIG-001
 def load_declaration_located(
     repo_root: Path | str | None,
@@ -327,6 +327,9 @@ def load_declaration_located(
     root = Path(repo_root).expanduser()
     path = root / DECLARATION_NAME
     data = _read_mapping(path) if path.is_file() else {}
+    ## Captured BEFORE the `guard:` key is stripped below, because the question the legacy
+    ## warning asks is whether the file configures the gate at all.
+    configures_gate = SECTION_GUARD in data
     if data:
         experimental = sorted(str(key) for key in data if str(key).startswith(EXPERIMENTAL_PREFIX))
         if experimental:
@@ -358,6 +361,16 @@ def load_declaration_located(
             for key, value in data.items()
             if key != SECTION_GUARD and not str(key).startswith(EXPERIMENTAL_PREFIX)
         }
+    ## BOTH SIDES OF THE DROPPED TOOL (group B, 1.1.0 merge review). The INDEX reads the
+    ## gate's section too — the `@req` id pattern and the requirements catalog come from
+    ## `guard:` — so a repository still carrying an inert `.doxygen-guard.yaml` has its
+    ## requirement links defaulted in the graph for the same reason its gate stopped
+    ## enforcing them. An owner who only runs `clew index` would otherwise never be told.
+    ##
+    ## The GATE'S OWN helper, not a copy: this module already imports the gate's config for
+    ## the section name, and two descriptions of one migration is how they drift.
+    if not configures_gate:
+        _warn_about_legacy_config(path)
     if data:
         logger.info("declaration: %s declares %s", path, ", ".join(sorted(data)))
     return data, (path if data else None)

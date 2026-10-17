@@ -34,6 +34,7 @@ from .config import (
     load_config,
     parse_content_for_file,
     parse_source_file,
+    unconfigured_language,
     validate_output_path,
 )
 from .errors import ConfigError, GuardError
@@ -160,7 +161,7 @@ def _add_files_parser(subparsers: argparse._SubParsersAction) -> None:
 #  caller can report what it did not check. A `validate.exclude` match is NOT recorded:
 #  that pattern is stated in the gate's own config, in front of the owner reading it,
 #  where `toolchain.toml` is a statement made for every tool in the repo.
-#  @version 1.13
+#  @version 1.14
 #  @req REQ-DDB-GUARD-001
 def validate_file(
     file_path: str,
@@ -184,6 +185,14 @@ def validate_file(
     functions = parse_source_file(file_path, config)
     if functions is None:
         logger.debug("Skipping %s — no matching language config", file_path)
+        ## REPORTED ONLY WHEN THE GATE SHIPS A LANGUAGE FOR IT (group A, 1.1.0 merge review).
+        ## `rust`, `javascript` and `typescript` are opt-in, so a repository with `.rs` files
+        ## and no `rust:` in its `guard:` section was checked by nothing and told so by
+        ## nothing. A README is not something the gate failed to check, which is why this asks
+        ## `unconfigured_language` rather than reporting every unmatched extension.
+        unconfigured = unconfigured_language(config, file_path)
+        if unconfigured is not None and skipped is not None:
+            skipped.append(f"no `{unconfigured}` language configured — the gate ships one")
         return []
 
     violations: list[Violation] = []

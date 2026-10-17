@@ -2612,7 +2612,14 @@ class DocsDbServer:
             ),
         ] = None,
         scope: Annotated[
-            str, Field(description="What to index; defaults to the repo's own guard declaration.")
+            str,
+            Field(
+                description=(
+                    "What to index. Default 'from-declaration' (spelled 'from-guard' in "
+                    "recorded builds): the repo's own `index_scope:`. 'doxyfile' uses the "
+                    "Doxyfile's INPUT instead."
+                )
+            ),
         ] = SCOPE_FROM_GUARD,
         exclude: Annotated[
             list[str] | None,

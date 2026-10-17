@@ -42,9 +42,14 @@ PACKAGE = REPO_ROOT / "clew"
 ## Distribution name -> the module name it actually installs, for the cases where
 ## they differ. Only genuinely-renamed packages belong here; an entry that merely
 ## papers over a MISSING dependency would defeat the test.
+## `doxygen-guard` WAS HERE and is gone (group C, 1.1.0). The gate is `clew.guard` now and
+## nothing in the package imports `doxygen_guard`, so the entry mapped a distribution clew no
+## longer depends on. It did not merely sit there: this mapping is how the check below decides
+## a third-party import IS declared, so a stale entry is a standing exemption for an import
+## that would otherwise be reported undeclared — the exact failure the module docstring says
+## the entry list must never become.
 _DIST_TO_MODULE = {
     "pyyaml": "yaml",
-    "doxygen-guard": "doxygen_guard",
 }
 
 ## Imported by the package but deliberately NOT a dependency, each with the reason.
@@ -72,9 +77,11 @@ def _imported_top_level() -> set[str]:
     `sqlite3`, `anyio` and `tree_sitter` constantly.
 
     Walks the whole AST rather than only module-scope statements, because the
-    imports that matter most here are FUNCTION-LOCAL: `doxygen_guard` is imported
-    lazily inside three functions, and a module-scope-only scan would call it
-    undeclared-and-unused and miss the real dependency entirely.
+    imports that matter most here are FUNCTION-LOCAL: `kconfiglib`, `yaml` and the
+    substrate are all imported lazily inside functions, and a module-scope-only scan
+    would call them undeclared-and-unused and miss the real dependency entirely. The
+    example this paragraph used to give was `doxygen_guard`, imported lazily in three
+    functions — which stopped being true when the gate moved into this package.
 
     STATIC IMPORTS ONLY, deliberately. Dynamically-loaded modules are covered by
     `test_dynamically_loaded_grammars_are_declared`, which reads the actual

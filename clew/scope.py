@@ -420,9 +420,35 @@ class _Rejected(str):
     """
 
 
-# `--scope` choices: the Doxyfile's own INPUT, or the repo's own declarations.
+# `scope` choices: the Doxyfile's own INPUT, or the repo's own declarations.
 SCOPE_DOXYFILE = "doxyfile"
+
+# THE SPELLING IS HISTORY AND IS KEPT ON PURPOSE. `from-guard` dates from when the index read
+# doxygen-guard's own `.doxygen-guard.yaml` for its scope — the scope came FROM THE GUARD. It
+# now comes from `index_scope:` in the repo's `.clew.yaml`, which the gate does not read and
+# has no part in. The value is RECORDED in `build_meta` and replayed by every later build of
+# that database, so renaming it would strand every index already built; `from-declaration` is
+# the accurate spelling for anyone passing it today (group C, 1.1.0 merge review).
 SCOPE_FROM_GUARD = "from-guard"
+SCOPE_FROM_DECLARATION = "from-declaration"
+
+
+## @brief Resolve a caller's `scope` spelling to the value this codebase records.
+## @param scope What the caller passed, or None.
+## @return The recorded spelling; anything unrecognised is returned unchanged.
+## @version 1
+## @req REQ-DDB-CONFIG-001
+def normalize_scope(scope: str | None) -> str | None:
+    """NORMALIZING IS NOT VALIDATING, and the distinction is load-bearing. The refusal for an
+    unknown scope lives where the Doxyfile is resolved and already names the two values it
+    accepts with a reason; mapping an unknown value onto a default here would build a boundary
+    the caller never asked for and then report success — the silent-success failure this
+    release spent its blockers on.
+
+    @brief Map the `from-declaration` alias onto the recorded `from-guard`.
+    @return The recorded spelling, or the input unchanged.
+    """
+    return SCOPE_FROM_GUARD if scope == SCOPE_FROM_DECLARATION else scope
 
 
 ## @brief Derived index scope plus the provenance of that decision.
