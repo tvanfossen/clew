@@ -185,7 +185,7 @@ def script_symbol_harvester() -> Harvester:
 
 ## @brief Whether a repo-relative path is one this front end claims.
 ## @param rel Path, any separator.
-## @return True for a JS/TS source file.
+## @return True for any claimed type: JS/TS, shell, CMake, or a YAML/JSON data file.
 ## @version 2
 ## @dg_internal
 def claims(rel: str) -> bool:
