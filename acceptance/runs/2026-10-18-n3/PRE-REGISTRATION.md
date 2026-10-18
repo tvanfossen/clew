@@ -58,8 +58,8 @@ Fixed here so the reporting cannot be selected after the fact:
 - **Turns and tool calls per arm.** The cost half of the hypothesis is about round trips, and
   the two-arm grid found `index_only` taking 13.7% MORE turns than baseline — the half with no
   obvious lever.
-- **Every arm's score, including the blended one.** `index_only` answers "is the index alone
-  sufficient"; `index` answers "is the shipped shape better than no index".
+- **Every arm's score, including the blended one** — but they answer different questions and
+  only one of them is the hypothesis. See the amendment below.
 
 ## Named limitations, fixed in advance
 
@@ -84,3 +84,40 @@ Fixed here so the reporting cannot be selected after the fact:
 Stated here so that it is not negotiable later: if the mean separation across targets is
 **outside the floor and negative**, the retrieval claim is not supported at this model tier, and
 `docs/CORE_HYPOTHESIS.md` is to be amended rather than the instrument.
+
+
+---
+
+## Amendment 1 — which arm is the hypothesis (2026-10-18)
+
+**Logged as an amendment rather than an edit, because the entropic COST figures already
+existed when it was written.** It changes no criterion: the parity threshold, the noise-floor
+method and the falsification condition above are exactly as first committed. What it corrects
+is an attribution error in the reporting plan.
+
+As first written, this file said the blended `index` arm answers *"is the shipped shape better
+than no index"*. That framing treats an agent's tool-use policy as a property of clew, and the
+owner rejected it:
+
+> the retrieval substrate is ALL that is being tested, any given model/service/agent arch might
+> use it differently — how it gets used by the end machine is NOT our decision to make
+
+That restores the scope this project already set and which PREDATES this run, so it is not a
+goalpost moved. `acceptance/runner.py`, owner ruling 2026-08-22: *"The hypothesis puts adoption
+OUT OF SCOPE: the claim under test is whether the index yields better answers more cheaply, not
+whether an agent thinks to use it."*
+
+So, fixed:
+
+- **`index_only` vs `baseline` IS the hypothesis test**, on both quality and cost. It is the only
+  pair whose difference is attributable to the retrieval substrate, because it is the only pair
+  where the substrate is the sole variable.
+- **`index` is an ADOPTION OBSERVATION at one model tier**, reported as operational context and
+  never as a property of the index. Measured on entropic: the blended arm displaced 11.5% of the
+  baseline's shell calls and spent 31% more turns — a statement about haiku 5.5's willingness to
+  stop grepping, which a different model or harness would answer differently.
+- A cost or quality figure from the blended arm may NOT be quoted as a clew result, in this run
+  or in anything citing it.
+
+The occasion for the correction was my own: reporting entropic's blended-arm cost as "the
+shipped shape costs more than no index at all", which attributed a consumer's habit to the tool.
