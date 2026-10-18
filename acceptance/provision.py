@@ -39,6 +39,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from .grader.judge import CAPACITY_PHRASES
 from .grader.rubric import RubricError, Rubric, load
 from .runner import check_declaration_applied, check_revision
 
@@ -314,8 +315,10 @@ def check_index_tools_reachable(config: Path, repo: Path) -> None:
     ##
     ## The two failures need OPPOSITE responses — fix the config, versus wait and re-run the
     ## identical command — so they get different refusals.
-    blocked = ("session limit", "rate limit", "usage limit", "quota", "overloaded")
-    if any(phrase in reply.lower() for phrase in blocked):
+    ## ONE LIST, SHARED WITH THE JUDGE. Both have to tell a capacity refusal from a real
+    ## failure, and two copies of the vocabulary drift into one of them recognising a phrase
+    ## the other does not — which reads as the two phases disagreeing about the machine.
+    if any(phrase in reply.lower() for phrase in CAPACITY_PHRASES):
         raise ProvisionError(
             f"index-tool probe could not run — the model refused before reaching the tools:\n"
             f"{reply[:300]}\n"

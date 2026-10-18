@@ -45,6 +45,55 @@ ASK_ATTEMPTS = 4
 ASK_BACKOFF_SECONDS = 60
 DEFAULT_TIMEOUT = 180
 
+## A FAILURE THAT TOOK NO API TIME NEVER REACHED THE SERVER, so the minute-scale backoff buys
+## nothing — it was written for a server saying "slow down". Measured on the first published
+## grid: 12.2% of one target's decisions failed with `duration_api_ms: 0`, zero tokens and no
+## cost, and each one was slept on for 60 + 120 + 180 seconds. Six minutes per decision,
+## eighteen per k=3 mark, and that waiting — not the judging — was most of a 3.9-hour pass.
+FAST_BACKOFF_SECONDS = 2
+
+## WHAT "CANNOT RUN RIGHT NOW" LOOKS LIKE. Shared with
+## `provision.check_index_tools_reachable`, which needs the broad set: for a probe, every one of
+## these means the same thing — the result says nothing about the config, so re-run later.
+CAPACITY_PHRASES = (
+    "usage limit",
+    "session limit",
+    "rate limit",
+    "quota",
+    "overloaded",
+)
+
+## THE JUDGE NEEDS A NARROWER SET, AND CONFLATING THE TWO IS A REGRESSION. An account limit is
+## not transient: the next call fails identically and the pass writes a hole into every cell it
+## touches, so it must stop. A 529 "overloaded" or a rate limit is the OPPOSITE — a server
+## saying slow down, which clears in seconds and is precisely what the backoff exists for.
+##
+## Aborting on those would have been worse than the behaviour it replaced, and the existing
+## retry test caught it: its fixture fails three times with "overloaded" and then succeeds,
+## which is the measured shape of a transient failure on this transport.
+ACCOUNT_LIMIT_PHRASES = (
+    "usage limit",
+    "session limit",
+    "quota",
+)
+
+
+## @brief The grade pass cannot continue because the account is out of capacity.
+## @version 1
+class JudgeCapacityError(RuntimeError):
+    """NOT AN UNRULED DECISION. An unruled decision means the judge could not decide; a usage
+    limit means nobody asked it. Recording the second as the first puts holes in a measurement
+    and attributes them to the answers, when the remedy is to wait and regrade.
+
+    Raised rather than returned, because every remaining call in the pass will fail the same
+    way: continuing spends the rest of the grid's patience discovering that repeatedly. Grading
+    is additive and re-runnable, so stopping loses nothing but the wait.
+
+    @brief Out of capacity.
+    @version 1
+    """
+
+
 _HEADER = re.compile(r"^#\s+Q\d+\s*[—–-].*$", re.MULTILINE)
 _TOOL = re.compile(r"mcp__[A-Za-z0-9_-]+__([A-Za-z0-9_]+)")
 _GAPS = re.compile(
@@ -122,6 +171,41 @@ def anonymise(answer: str) -> str:
 
 
 ## @brief Invoke the judge CLI once.
+## @brief Whether a failed call's output names an ACCOUNT limit, not a transient one.
+## @param text The call's combined stderr and stdout.
+## @return True when the account, not the server or the call, is the problem.
+## @version 2
+def _is_account_limit(text: str) -> bool:
+    """NARROW BY DESIGN — see `ACCOUNT_LIMIT_PHRASES`. A server saying "slow down" is retried;
+    only an account that has run out stops the pass.
+
+    @brief Account-limit test.
+    @return True for a usage, session or quota block.
+    @version 2
+    """
+    low = text.lower()
+    return any(phrase in low for phrase in ACCOUNT_LIMIT_PHRASES)
+
+
+## @brief Whether a failed call reached the server at all.
+## @param stdout The call's stdout, which may hold a JSON envelope.
+## @return True when the envelope reports zero API time.
+## @version 1
+def _took_no_api_time(stdout: str) -> bool:
+    """UNPARSEABLE MEANS UNKNOWN, AND UNKNOWN KEEPS THE LONG BACKOFF. Guessing "fast" on a
+    reply that could not be read would turn a genuine server-side failure into a tight retry
+    loop, which is the one behaviour the original backoff exists to prevent.
+
+    @brief Zero-API-time test.
+    @return True only when the envelope says so.
+    @version 1
+    """
+    try:
+        return int(json.loads(stdout).get("duration_api_ms", -1)) == 0
+    except (json.JSONDecodeError, AttributeError, TypeError, ValueError):
+        return False
+
+
 ## @param prompt Full prompt text.
 ## @param model Dated model id — never an alias.
 ## @param timeout Seconds before the call is abandoned.
@@ -137,7 +221,7 @@ def ask(prompt: str, model: str, timeout: int = DEFAULT_TIMEOUT) -> Reply:
 
     @brief One judge call.
     @return Reply.
-    @version 2
+    @version 3
     """
     argv = [
         "claude",
@@ -160,9 +244,10 @@ def ask(prompt: str, model: str, timeout: int = DEFAULT_TIMEOUT) -> Reply:
     ## error instead of hanging a run. A missing binary is not retried at all, since it will not
     ## fix itself and would burn the whole budget.
     last = Reply(error="no attempt made")
+    fast = False
     for attempt in range(ASK_ATTEMPTS):
         if attempt:
-            time.sleep(ASK_BACKOFF_SECONDS * attempt)
+            time.sleep((FAST_BACKOFF_SECONDS if fast else ASK_BACKOFF_SECONDS) * attempt)
         try:
             ## STDIN EXPLICITLY CLOSED. The CLI warns "no stdin data received in 3s,
             ## proceeding without it" when it inherits an idle stdin, and the same call
@@ -188,6 +273,18 @@ def ask(prompt: str, model: str, timeout: int = DEFAULT_TIMEOUT) -> Reply:
             ## "rc=1 after 3 attempt(s):" with NOTHING after the colon, because the CLI puts its
             ## explanation on stdout and only the empty stderr was kept. A recorded reason that
             ## says only "it failed" is the tally this field replaced.
+            whole = f"{done.stderr}\n{done.stdout}"
+            if _is_account_limit(whole):
+                raise JudgeCapacityError(
+                    f"the judge is out of capacity, so this pass would record holes rather "
+                    f"than verdicts:\n{whole.strip()[:300]}\n"
+                    f"Nothing is wrong with the rubric or the answers. Wait for capacity and "
+                    f"re-run `grade` — grading is additive, so the passes already written stand "
+                    f"and the rest fill in."
+                )
+            ## A ZERO-DURATION FAILURE NEVER REACHED THE SERVER, so the next attempt comes
+            ## quickly; a call that took real time and failed is worth the long wait.
+            fast = _took_no_api_time(done.stdout)
             detail = (done.stderr.strip() or done.stdout.strip())[:300]
             last = Reply(error=f"rc={done.returncode} after {attempt + 1} attempt(s): {detail}")
             continue

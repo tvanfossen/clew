@@ -32,6 +32,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from .execute import index_cells_that_never_used_the_index, run_cell
+from .grader.judge import JudgeCapacityError
 from .grader.rubric import RubricError, load
 from .identity import tool_identity
 from .grader.score import grader_fingerprint, score_question
@@ -205,7 +206,7 @@ def cmd_grade(args) -> int:
 
     @brief Grade answers.
     @return Exit code.
-    @version 3
+    @version 4
     """
     rubric = _rubric(args.rubric)
     if rubric is None:
@@ -293,13 +294,28 @@ def cmd_grade(args) -> int:
         print(line)
         graded += 1
 
-    if jobs == 1:
-        for path in paths:
-            _emit(_grade_one(path))
-    else:
-        with ThreadPoolExecutor(max_workers=jobs) as pool:
-            for line in as_completed_lines(pool, _grade_one, paths):
-                _emit(line)
+    ## A CAPACITY REFUSAL ENDS THE PASS, AND SAYS SO. Every remaining call would fail the same
+    ## way, so continuing spends the rest of the grid discovering that repeatedly and writes a
+    ## hole into each cell it touches. Grading is additive, so the cells already written stand
+    ## and a later pass fills the rest — which makes stopping cheap and continuing expensive.
+    aborted = ""
+    try:
+        if jobs == 1:
+            for path in paths:
+                _emit(_grade_one(path))
+        else:
+            with ThreadPoolExecutor(max_workers=jobs) as pool:
+                for line in as_completed_lines(pool, _grade_one, paths):
+                    _emit(line)
+    except JudgeCapacityError as exc:
+        aborted = str(exc)
+
+    if aborted:
+        print(
+            f"\nSTOPPED after {graded} cell(s) — {aborted}",
+            file=sys.stderr,
+        )
+        return 2
 
     if not graded:
         print("no answers found — nothing was graded", file=sys.stderr)
