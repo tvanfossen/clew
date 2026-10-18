@@ -149,6 +149,7 @@ from .indexcache import IndexCache
 from .testscope import TEST_PATH_FACTS, mark_test_scope
 from .datamodel import import_data_model_keys
 from .kconfig import import_kconfig
+from .config_defaults import import_config_defaults
 from .kconfig_gates import import_kconfig_gates
 from .locks import extract_locks
 from .preprocessor import PreprocessorConfig, doxyfile_lines, resolve_preprocessor
@@ -1810,7 +1811,9 @@ def _doxygen_stage(
 
 ## @brief Run every build stage against one (temp) output DB path.
 ## @param timer Stage timer; one `mark` closes each stage below. A fresh one when omitted.
-## @version 59
+## 59 -> 60: the configuration-default stage joined, directly beside the gates — the two are
+## one answer, so a reader finds them together.
+## @version 60
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -1983,6 +1986,23 @@ def _build_stages(
     ## that declares nothing still gets every gate, marked `undeclared`.
     import_kconfig_gates(output, repo_root, cache, declared=preprocessor.macros)
     timer.mark("kconfig_gates")
+    ## 1.1.0 — DIRECTLY BESIDE THE GATES, because the two are one answer. `kconfig_gates`
+    ## already says which lines a macro decides; this says whether the header that owns that
+    ## macro leaves it ON. Measured on mbedtls: the gate layer held 11 sites for
+    ## MBEDTLS_PLATFORM_MEMORY including the two in platform.h where the malloc indirection is
+    ## chosen, while the only rows NAMING the macro came from two alternative config profiles
+    ## that define it — so an index asked what a default build does answered "defined, here and
+    ## here", which is true and points the wrong way.
+    ##
+    ## Needs no doxygen output, so its position is free; it sits here so a reader finds the two
+    ## halves of the configuration story together.
+    ## THE ALREADY-RESOLVED DECLARATION, not a second discovery. `preprocessor.config_header`
+    ## is the path the preprocessor layer settled on — declared outright or found by its own
+    ## conventional discovery — and it has already been containment-checked. Rediscovering it
+    ## here would give the two layers separate opinions about which header owns the options.
+    stated = frozenset({preprocessor.config_header} if preprocessor.config_header else ())
+    import_config_defaults(output, repo_root, cache, declared=stated)
+    timer.mark("config_defaults")
     ## gh#11. MUST sit above every call-edge layer: those resolve their endpoints to
     ## memberdef rowids, so a symbol recovered afterwards would get a row and no
     ## edges — the same defect in a subtler form. And below

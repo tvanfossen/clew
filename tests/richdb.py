@@ -1097,6 +1097,7 @@ def run_real_stages(db: Path, repo_root: Path) -> None:
     from clew.callback_edges import import_callback_registration_edges
     from clew.datamodel import import_data_model_keys
     from clew.filedocs import ingest_file_docs
+    from clew.config_defaults import import_config_defaults
     from clew.kconfig_gates import import_kconfig_gates
     from clew.blocking import extract_blocking_calls
     from clew.context import extract_context_conflicts
@@ -1120,6 +1121,12 @@ def run_real_stages(db: Path, repo_root: Path) -> None:
 
     ingest_supplementary_docs(db, repo_root)
     import_kconfig_gates(db, repo_root)
+    ## Beside the gates, exactly where `cli._build_stages` puts it, because the two are one
+    ## answer: the gate layer says which lines a macro decides, this says whether the header
+    ## that owns it leaves it on. A FIXTURE MISSING A SHIPPED TABLE IS A LICENCE TO ASSERT OVER
+    ## A SCHEMA THAT DOES NOT EXIST — the gh#362 lesson this function already records, and
+    ## `test_fixture_fidelity` is what caught this one.
+    import_config_defaults(db, repo_root)
     recover_ast_symbols(db, repo_root)
     ingest_file_docs(db, repo_root)
     build_call_edges(db)

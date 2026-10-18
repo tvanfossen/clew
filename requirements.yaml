@@ -708,6 +708,31 @@ requirements:
     x-status: implemented
     x-evidence: 'clew/filetypes.py; clew/cli.py _drop_binary_files / _skipped_files_scope;
       clew/harvest.py _parseable_file; clew/guard/filters.py; tests/test_toolchain.py.'
+  REQ-DDB-PIPE-015:
+    subsystem: pipeline
+    name: A configuration option's shipped default is recorded, not only its existence
+    acceptance_criteria: 'A `#define` a configuration header COMMENTS OUT gets a `config_defaults`
+      row with state=off, in both the `//#define X` and `/* #define X */` spellings and carrying
+      the value the commented form names; an active `#define` in the same header gets state=on, so
+      one scan decides both and an enabled option is distinguishable from one the header never
+      mentions. Read from parsed COMMENT nodes, never by grepping text, so a `#define` inside a
+      string or inside prose is not a configuration decision. An `#ifndef X` / `#define X` include
+      guard is excluded STRUCTURALLY — the block defines the symbol it just tested — and not by a
+      `_H` suffix rule, which would both miss guards spelled otherwise and drop feature macros
+      ending in _H. Only option-owning headers contribute, and `origin` records whether the header
+      was DECLARED or matched by name, so a guess never reaches a consumer as a fact. Each gate
+      `gates_covering` returns carries the shipped default of the macro it names, with the
+      declared header outvoting an alternative profile and disagreeing guesses leaving the state
+      EMPTY — absence means undecided and never off. The table is created even at zero rows.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'Measured on the first published acceptance grid: three mbedtls Q3 marks scored
+      0/3 for the index-only arm against 2-3/3 for the shell arm, all about what mbedtls_calloc
+      resolves to in a DEFAULT build. The index held the macro twice — both rows from alternative
+      config profiles that define it — while the shipped header comments it out at
+      mbedtls_config.h:208 and so produced nothing, so the honest answer was "defined, here and
+      here" and it pointed the wrong way. clew/config_defaults.py, clew/query/kconfig.py
+      _with_defaults, KconfigGate.default_state. tests/test_config_defaults.py.'
   REQ-DDB-PIPE-012:
     subsystem: pipeline
     name: JavaScript and TypeScript are indexed through a parse-built front end

@@ -1542,6 +1542,26 @@ class KconfigGate:
     origin: str = GATE_ORIGIN_UNDECLARED
     end_line: int = 0
 
+    ## WHETHER THE OPTION IS ON AS THE REPOSITORY SHIPS, which is the half `form` cannot supply.
+    ## `form` says "present when this symbol is set"; this says whether it IS set in a default
+    ## build, and only the two together answer "is this code compiled in".
+    ##
+    ## Measured on mbedtls: asked what `mbedtls_calloc` resolves to by default, the index-only
+    ## arm scored 0/3 on three marks the shell arm got 2-3/3. The gates were all there — eleven
+    ## sites for MBEDTLS_PLATFORM_MEMORY — and the only rows NAMING the macro came from two
+    ## alternative config profiles that define it, so the honest answer was "defined, here and
+    ## here" and it pointed the wrong way.
+    ##
+    ## EMPTY MEANS UNDECIDED, NEVER OFF. No row, or disagreeing headers with none of them the
+    ## declared one, both read as "this index cannot tell you the default" — because reading an
+    ## absent default as off would rebuild the same confident wrong answer one level up.
+    default_state: str = ""
+
+    ## WHERE THAT DEFAULT WAS READ, so a consumer can check it rather than trust it. A state
+    ## without its site is the kind of bare assertion this project keeps finding in its own
+    ## detectors.
+    default_site: str = ""
+
 
 ## @brief A repo's configuration space, with the provenance of the answer.
 ## @version 1

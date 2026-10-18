@@ -56,6 +56,7 @@ from .macro_refs import MacroRefHarvester
 from .py_entrypoints import main_guard_harvester
 from .pydocs import docstring_harvester
 from .shared_key_edges import shared_key_harvester, subscribe_harvester
+from .config_defaults import defaults_harvester
 from .synth import js_symbol_harvester, script_symbol_harvester
 from .threads import spawn_harvester
 
@@ -101,12 +102,16 @@ class HarvestPlan:
     ## clew/cmakeast.py), 1.1.0. Warmed here for the same reason as `js_symbols`:
     ## `emit_definitions` then reads cached payloads instead of re-parsing every script.
     script_symbols: Harvester
+    ## Configuration-option defaults (clew/config_defaults.py), 1.1.0 — which `#define`s a
+    ## configuration header leaves commented out, i.e. off as the repository ships. Warmed with
+    ## the rest so `import_config_defaults` reads cached payloads instead of re-walking.
+    config_defaults: Harvester
     dispatch: Harvester | None = None
     subscribe: Harvester | None = None
 
     ## @brief The stages the shared parse pass should warm.
     ## @return Every non-None harvester in this plan.
-    ## @version 5
+    ## @version 6
     ## @req REQ-DDB-PIPE-003
     def active(self) -> list[Harvester]:
         """Order is irrelevant to the shared pass — it warms cache rows and emits
@@ -135,6 +140,7 @@ class HarvestPlan:
                 self.macro_refs,
                 self.blocking,
                 self.script_symbols,
+                self.config_defaults,
                 self.js_symbols,
                 self.py_docstrings,
                 self.dispatch,
@@ -153,7 +159,7 @@ class HarvestPlan:
 ## @param dispatch_key Manifest-derived cache-key component for the dispatch harvest.
 ## @param mqtt_dispatch The --mqtt-dispatch manifest, or None.
 ## @return The assembled plan.
-## @version 5
+## @version 6
 ## @req REQ-DDB-PIPE-003
 def build_harvest_plan(
     lock_patterns: Path | dict | None = None,
@@ -189,6 +195,7 @@ def build_harvest_plan(
         blocking=blocking_harvester(),
         js_symbols=js_symbol_harvester(),
         script_symbols=script_symbol_harvester(),
+        config_defaults=defaults_harvester(),
         py_docstrings=docstring_harvester(),
         dispatch=(dispatch_harvester(dispatch, dispatch_key) if dispatch is not None else None),
         subscribe=subscribe_harvester(mqtt_dispatch),

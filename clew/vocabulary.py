@@ -697,6 +697,16 @@ STAGE_PY_DOCSTRINGS = "py_docstrings"
 ## together as the cost of that.
 STAGE_SCRIPT_SYMBOLS = "script_symbols"
 
+## COMMENTED-OUT `#define`s IN CONFIGURATION HEADERS, 1.1.0. The one fact an index of what
+## EXISTS structurally cannot hold: what a build deliberately leaves OFF.
+##
+## Measured on mbedtls. `MBEDTLS_PLATFORM_MEMORY` is `//#define` at mbedtls_config.h:208 — the
+## shipped default — so it produces no definition row, while two alternative config profiles
+## DO define it and produce two. An agent asking what a default build does is therefore told
+## "this macro is defined, here and here", which is true and points the wrong way. That is
+## worse than a gap: a gap yields "I do not know", and this yields a confident wrong answer.
+STAGE_CONFIG_DEFAULTS = "config_defaults"
+
 STAGE = Vocabulary(
     id="stage",
     values=(
@@ -715,6 +725,7 @@ STAGE = Vocabulary(
         STAGE_JS_SYMBOLS,
         STAGE_PY_DOCSTRINGS,
         STAGE_SCRIPT_SYMBOLS,
+        STAGE_CONFIG_DEFAULTS,
     ),
     means="extract_cache partition key — a typo is a permanent silent cache miss, not an error",
     rank={
@@ -733,7 +744,25 @@ STAGE = Vocabulary(
         STAGE_JS_SYMBOLS: 0,
         STAGE_PY_DOCSTRINGS: 0,
         STAGE_SCRIPT_SYMBOLS: 0,
+        STAGE_CONFIG_DEFAULTS: 0,
     },
+)
+
+## WHETHER A CONFIGURATION OPTION IS ON OR OFF AS THE REPOSITORY SHIPS IT.
+##
+## TWO VALUES AND NO THIRD. "off" is a `#define` the header comments out, which is how every
+## C project of this shape expresses "available, not enabled by default"; "on" is one it leaves
+## active. A macro the scan never saw gets NO ROW — absence here means "this header does not
+## decide it", never "it is off", because reading an absent row as off would reintroduce the
+## confident wrong answer this layer exists to remove.
+CONFIG_DEFAULT_OFF = "off"
+CONFIG_DEFAULT_ON = "on"
+
+CONFIG_DEFAULT_STATE = Vocabulary(
+    id="config_default_state",
+    values=(CONFIG_DEFAULT_OFF, CONFIG_DEFAULT_ON),
+    means="whether a configuration header leaves an option enabled as shipped",
+    rank={CONFIG_DEFAULT_OFF: 0, CONFIG_DEFAULT_ON: 0},
 )
 
 ## WHERE A `memberdef` ROW CAME FROM (gh#11). `memberdef` is doxygen's OWN table —
@@ -1012,6 +1041,7 @@ GRAPH_LAYERS: tuple[str, ...] = (
     "file_docs",
     "kconfig_symbols",
     "kconfig_gates",
+    "config_defaults",
 )
 
 ## Every vocabulary by id, so a test (or a generated doc) can enumerate them
@@ -1054,6 +1084,7 @@ VOCABULARIES: dict[str, Vocabulary] = {
         SYMBOL_SOURCE,
         KCONFIG_TYPE,
         KCONFIG_GATE_FORM,
+        CONFIG_DEFAULT_STATE,
         GATE_ORIGIN,
         LAYER_STATE,
         DATA_MODEL_DIALECT,
@@ -1101,6 +1132,7 @@ COLUMNS: dict[tuple[str, str], Vocabulary] = {
     ("kconfig_symbols", "type"): KCONFIG_TYPE,
     ("kconfig_gates", "form"): KCONFIG_GATE_FORM,
     ("kconfig_gates", "origin"): GATE_ORIGIN,
+    ("config_defaults", "state"): CONFIG_DEFAULT_STATE,
     ("data_model_keys", "dialect"): DATA_MODEL_DIALECT,
 }
 

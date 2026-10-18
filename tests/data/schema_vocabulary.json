@@ -20,6 +20,10 @@
     "fnptr",
     "macro_hop"
   ],
+  "config_defaults.state": [
+    "off",
+    "on"
+  ],
   "context_conflicts.confidence": [
     "high",
     "low",
