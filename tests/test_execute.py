@@ -185,3 +185,33 @@ def test_index_cell_with_no_index_calls_is_flagged() -> None:
         CellResult("failed", "index", "m", False, tool_calls=0, non_index_tool_calls=0),
     ]
     assert index_cells_that_never_used_the_index(rows) == ["blind"]
+
+
+## @brief The blindness check covers the arm the 1.1.0 grid actually runs.
+## @return None.
+## @version 1
+def test_an_index_only_cell_that_called_nothing_is_reported_as_blind():
+    """THE ARM NAMED LITERALLY WAS THE WRONG ARM. `ARMS` is ("baseline", "index_only"), so a
+    check written against "index" alone watched the arm the grid does not run — the same defect
+    `runner.check_symmetry` already carries a comment about, which named its two arms literally
+    and kept comparing the OLD pair after the compared arms changed.
+
+    IT MATTERS MORE HERE THAN FOR THE BLENDED ARM. `index_only` is granted no Read, Grep, Glob or
+    Bash at all, so a cell with zero index calls made zero tool calls of ANY kind: it answered
+    from nothing. On the blended arm the same number means "preferred the shell", which is
+    adoption. On this arm it means the answer was fabricated, and nothing else in the artifacts
+    says so.
+
+    @brief An index_only cell at zero calls is blind.
+    @return None.
+    @version 1
+    """
+    from acceptance.execute import CellResult, index_cells_that_never_used_the_index
+
+    rows = [
+        CellResult("fabricated", "index_only", "m", True, tool_calls=0, non_index_tool_calls=0),
+        CellResult("worked", "index_only", "m", True, tool_calls=6, non_index_tool_calls=0),
+        ## UNKNOWN IS STILL NOT ZERO, on this arm as on the other.
+        CellResult("unknown", "index_only", "m", True, tool_calls=-1, non_index_tool_calls=-1),
+    ]
+    assert index_cells_that_never_used_the_index(rows) == ["fabricated"]

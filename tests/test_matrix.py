@@ -321,3 +321,40 @@ def test_driver_makes_its_output_line_buffered() -> None:
     assert src.index("reconfigure") < src.index("def drive"), (
         "the reconfigure must precede drive(), or provisioning output is still buffered"
     )
+
+
+## @brief The driver forwards resume and jobs to the phases that accept them, and nowhere else.
+## @return None.
+## @version 1
+def test_resume_and_jobs_reach_only_the_phase_that_takes_them() -> None:
+    """THE DRIVER IS THE ONLY SANCTIONED INVOCATION, so a flag it cannot forward is a flag that
+    does not exist in practice. The grid is what spans a capacity window — not one phase of one
+    target — so resuming has to be expressible here.
+
+    AND IT MUST NOT LEAK. `report` has no `--jobs` and `generate` has no `--jobs`; passing one
+    would make the driver's argv differ from the documented invocation, which is the drift
+    `run_phase` exists to prevent by going through the real entry point.
+
+    @brief Flags are forwarded to the right phase.
+    @return None.
+    @version 1
+    """
+    rubric = TARGETS / "mbedtls" / "questions.yaml"
+    root = Path("/grid/mbedtls")
+    args = _args(resume=True, jobs=6)
+
+    gen = matrix.phase_argv("generate", rubric, root, args)
+    grade = matrix.phase_argv("grade", rubric, root, args)
+    report = matrix.phase_argv("report", rubric, root, args)
+
+    assert "--resume" in gen
+    assert "--jobs" not in gen, "generation stays serial — its wall-clock is a reported axis"
+    assert grade[grade.index("--jobs") + 1] == "6"
+    assert "--resume" not in grade
+    assert "--jobs" not in report and "--resume" not in report
+
+    ## THE DEFAULTS ADD NOTHING. A grid driven without either flag must produce the argv every
+    ## past measurement used, or the artifacts of this run are not comparable with those.
+    plain = _args()
+    assert "--resume" not in matrix.phase_argv("generate", rubric, root, plain)
+    assert "--jobs" not in matrix.phase_argv("grade", rubric, root, plain)

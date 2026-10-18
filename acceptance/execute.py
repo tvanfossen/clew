@@ -39,8 +39,13 @@ DEFAULT_TIMEOUT = 1800
 _ALLOWED = {
     "baseline": "Read,Grep,Glob,Bash",
     "index": "Read,Grep,Glob,Bash,mcp__clew__dossier,mcp__clew__search,mcp__clew__index",
-    ## THE CEILING ARM GETS THE INDEX AND NOTHING ELSE. Not a comparison arm — see
-    ## runner.CEILING_ARM for why it stands beside the grid rather than in it.
+    ## THE INDEX ALONE, NO SHELL. This WAS described here as a ceiling arm standing beside the
+    ## grid; the owner ruling of 2026-08-22 put it IN the grid as the comparison arm, and
+    ## `runner.ARMS` is where that is stated. The comment outlived the ruling by two months.
+    ##
+    ## Stripping the shell is what makes a miss attributable: the arm cannot read a line of
+    ## source, so a component it does not reach is one the index does not carry, rather than one
+    ## the agent chose not to look up.
     "index_only": "mcp__clew__dossier,mcp__clew__search,mcp__clew__index",
 }
 
@@ -271,14 +276,26 @@ def index_cells_that_never_used_the_index(results: list[CellResult]) -> list[str
     A cell whose tool use could not be determined (-1) is not counted here — unknown is not zero,
     and treating it as zero would manufacture the very alarm this exists to raise honestly.
 
+    BOTH INDEX-BEARING ARMS, DERIVED FROM `_ALLOWED` RATHER THAN NAMED. This read `arm == "index"`
+    while `ARMS` is ("baseline", "index_only"), so the one check that catches a fabricating index
+    arm watched the arm the 1.1.0 grid does not run. `runner.check_symmetry` carries a comment
+    about this exact defect — it named its two arms literally and kept comparing the OLD pair
+    after the compared arms changed — which is why the set is derived here.
+
+    AND IT MATTERS MORE ON `index_only` THAN ON THE BLENDED ARM. That arm is granted no Read,
+    Grep, Glob or Bash, so zero index calls means zero tool calls of any kind: the answer came
+    from nothing. On the blended arm the same number means the agent preferred the shell, which
+    is adoption; here it means the prose was fabricated.
+
     @brief Index cells with no index calls.
     @return Suspect cell stems.
-    @version 1
+    @version 2
     """
+    index_bearing = {arm for arm, tools in _ALLOWED.items() if "mcp__clew__" in tools}
     return [
         r.stem
         for r in results
-        if r.arm == "index"
+        if r.arm in index_bearing
         and r.ok
         and r.tool_calls >= 0
         and r.tool_calls == r.non_index_tool_calls

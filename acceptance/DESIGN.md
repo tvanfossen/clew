@@ -1,11 +1,14 @@
 <!-- SPDX-License-Identifier: MIT -->
 # Acceptance — schema and grading routine
 
-**PROPOSAL, not yet built.** `docs/CORE_HYPOTHESIS.md` is the claim; this is the instrument
-proposed to test it. Nothing from the previous generation was preserved — it was deleted rather
-than migrated, because a rubric enumerated bottom-up from what a shell command surfaced is the
-anchor this design exists to escape, and keeping it in the tree to "refer to" is how the anchor
+**BUILT, AND MEASURING.** `docs/CORE_HYPOTHESIS.md` is the claim; this is the instrument that
+tests it. Nothing from the previous generation was preserved — it was deleted rather than
+migrated, because a rubric enumerated bottom-up from what a shell command surfaced is the anchor
+this design exists to escape, and keeping it in the tree to "refer to" is how the anchor
 reattaches.
+
+This said "PROPOSAL, not yet built" through two grids and up to the first published one. A
+status line that is wrong in the safe direction still teaches a reader to discount the document.
 
 ## What the instrument has to measure
 
@@ -295,12 +298,23 @@ unresolved rather than as a result.
 
 ## Repeatability requirements
 
-Four things must be pinned, and only the first currently is:
+Five things must be pinned, and the fifth was missing from this list as well as from the
+artifacts:
 
-1. the target commit — `preflight_target_revision` refuses on mismatch
-2. **the judge model, by dated id** — an alias moves under the rubric silently
-3. the scorer version, recorded in every sidecar
-4. the question-order seed, recorded with the run
+1. the target commit — `check_revision` refuses on mismatch, and on a dirty tree
+2. **the judge model, by dated id** — an alias moves under the rubric silently. Every shipped
+   rubric pins one, and `grader/rubric.py` REFUSES a value that looks like an alias
+3. the scorer version — `grader_fingerprint`, a hash of every file under `grader/`, in every
+   sidecar
+4. the question-order seed, recorded in `run.json`
+5. **the clew under test** — and this list omitted it, which is how a grid came to record every
+   input to the measurement and nothing about its subject. `acceptance/identity.py` now stamps
+   the clew version, commit, dirty flag and build version into `run.json` and `provision.json`.
+
+   The field that matters most there is **`substrate_languages`, not `substrate_version`**. The
+   five configuration grammars 1.1.0 reads live in a fork whose wheel reports the same version
+   string as the published one, so the version cannot say which wheel answered. The compiled-in
+   key set can.
 
 ## Deliberately absent
 

@@ -321,6 +321,47 @@ def check_index_tools_reachable(config: Path, repo: Path) -> None:
         )
 
 
+## @brief Record what built this target's index, in a file that survives the run.
+## @param rubric The rubric naming the target and pin.
+## @param db The built index.
+## @param meta Its `build_meta` rows.
+## @param path Where to write the record.
+## @return None.
+## @version 1
+def write_provision_record(rubric: Rubric, db: Path, meta: dict, path: Path) -> None:
+    """THE ONLY PLACE THE BUILD'S OWN IDENTITY REACHES A COMMITTED FILE. `build_version` was
+    read here and only PRINTED, so it survived a run solely if the operator happened to redirect
+    stdout — and the database that carries it is gitignored, deliberately, because it is
+    reproducible from the pin. The consequence was a published score attributable to a target
+    and a rubric but not to a version of clew.
+
+    WRITTEN AFTER THE INDEX-TOOL PROBE, so a record exists only for a target that an index arm
+    can actually reach. A record beside an unreachable index would describe a build that no cell
+    ever queried.
+
+    EVERY FIELD IS DROPPED WHEN UNREADABLE rather than written blank — see `acceptance.identity`.
+
+    @brief Write provision.json.
+    @return None.
+    @version 1
+    """
+    from .identity import tool_identity
+
+    record = {
+        "target": rubric.target,
+        "commit": rubric.commit,
+        "rubric_version": rubric.version,
+        "db": str(db),
+        **{
+            key: str(meta[key])
+            for key in ("build_version", "tool.substrate_version")
+            if meta.get(key)
+        },
+        **tool_identity(),
+    }
+    path.write_text(json.dumps(record, indent=2), encoding="utf-8")
+
+
 ## @brief Provision one target end to end.
 ## @param rubric The validated rubric.
 ## @param root Directory to hold the checkout, index and config.
@@ -332,7 +373,7 @@ def provision(rubric: Rubric, root: Path) -> Provisioned:
 
     @brief Provision a target.
     @return Provisioned.
-    @version 1
+    @version 2
     """
     root.mkdir(parents=True, exist_ok=True)
     root = root.resolve()
@@ -371,6 +412,7 @@ def provision(rubric: Rubric, root: Path) -> Provisioned:
     config = root / "mcp.json"
     write_mcp_config(db, repo, config, state_home)
     check_index_tools_reachable(config, repo)
+    write_provision_record(rubric, db, meta, root / "provision.json")
     return Provisioned(
         repo=repo,
         db=db,

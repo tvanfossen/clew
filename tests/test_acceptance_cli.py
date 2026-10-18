@@ -983,3 +983,117 @@ def test_separation_hides_scores_the_judge_never_ruled(capsys: pytest.CaptureFix
     ## THE CONTROL: a genuinely graded pair still reports its separation, or this fix would have
     ## blanked the table it exists to protect.
     assert "-20.0pt" in q4, f"a fully ruled pair still separates: {q4}"
+
+
+## @brief Resuming skips the cells that already produced an answer.
+## @return None.
+## @version 1
+def test_resume_does_not_respend_a_cell_that_already_has_an_answer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """GENERATION IS THE PHASE THAT CANNOT BE RE-RUN CHEAPLY, and it had no way to resume: the
+    loop walks the whole plan unconditionally and a failed cell writes no `.md` and is passed
+    over. A capacity window inside a serial grid therefore loses those cells permanently, and
+    re-running spends every completed cell again to reach them.
+
+    OPT-IN, SO THE DEFAULT CONTRACT IS UNCHANGED. Without `--resume` a second `generate` still
+    re-spends everything, which is what every past measurement assumed. With it, the frozen
+    `.md` is treated as the record it already is.
+
+    THE PRESENCE OF `.md` IS THE RIGHT TEST because `run_cell` writes it LAST and only on
+    success — a transport failure leaves `.meta.json` and `.raw.json` but no answer, so a cell
+    that errored is correctly retried rather than skipped.
+
+    @brief --resume skips answered cells.
+    @return None.
+    @version 1
+    """
+    from acceptance.runner import plan as plan_cells
+
+    rubric = _rubric_mod.load(MBEDTLS)
+    cells = plan_cells(rubric, ("m",), 1, 7)
+    done = {cells[0].stem(), cells[3].stem()}
+    answers = tmp_path / "answers"
+    answers.mkdir()
+    for stem in done:
+        (answers / f"{stem}.md").write_text("an answer from an earlier window", "utf-8")
+
+    ran: list[str] = []
+
+    def record(cell, *_a, **_k):
+        ran.append(cell.stem())
+        return execute.CellResult(cell.stem(), cell.arm, cell.model, True, tool_calls=1)
+
+    monkeypatch.setattr(cli, "run_cell", record)
+    monkeypatch.setattr(cli, "check_revision", lambda *_a, **_k: None)
+    args = cli.argparse.Namespace(
+        rubric=MBEDTLS,
+        models=["m"],
+        replicates=1,
+        seed=7,
+        repo=tmp_path / "repo",
+        out=answers,
+        mcp_config=None,
+        timeout=60,
+        resume=True,
+    )
+    assert cli.cmd_generate(args) == 0
+    assert done.isdisjoint(ran), "a cell with a frozen answer was spent again"
+    assert len(ran) == len(cells) - len(done)
+    ## THE RUN RECORD SAYS SO. A grid assembled over several windows must not read as one pass.
+    assert json.loads((answers / "run.json").read_text())["resumed"] == sorted(done)
+
+
+## @brief Grading several answers at once produces exactly what grading them in turn produces.
+## @return None.
+## @version 1
+def test_jobs_grades_concurrently_and_changes_no_sidecar(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """WHY GRADING MAY PARALLELISE WHEN GENERATION MAY NOT: a cell's wall-clock is a reported
+    axis and a judge call's is reported nowhere. A full grid is ~3,400 judge calls per pass and
+    the noise floor needs two passes, so serial grading is most of the run's wall-clock while
+    contributing nothing a reader will ever quote.
+
+    THE BARRIER IS THE ASSERTION. Counting elapsed time would make this a timing test on shared
+    CI; a barrier that all four answers must reach before any proceeds either happens or times
+    out, and it times out on a serial implementation.
+
+    AND THE OUTPUT MUST NOT MOVE. `grader_fingerprint` hashes only `acceptance/grader/`, which
+    this change does not touch, so a parallel pass stays comparable to a serial one — but the
+    sidecars are compared byte for byte rather than assumed.
+
+    @brief --jobs is concurrent and output-identical.
+    @return None.
+    @version 1
+    """
+    import threading
+
+    rubric = _rubric_mod.load(MBEDTLS)
+    qid = rubric.questions[0].id
+    stems = [f"{qid}_m_baseline_r{i}" for i in range(1, 5)]
+
+    def _run(folder: Path, jobs: int, gate: threading.Barrier | None) -> None:
+        folder.mkdir()
+        for stem in stems:
+            (folder / f"{stem}.md").write_text(f"an answer for {stem}", "utf-8")
+
+        def scored(*_a, **_k):
+            if gate is not None:
+                gate.wait()
+            return _StubResult()
+
+        monkeypatch.setattr(cli, "score_question", scored)
+        args = cli.argparse.Namespace(rubric=MBEDTLS, answers=folder, jobs=jobs)
+        assert cli.cmd_grade(args) == 0
+
+    ## FOUR ANSWERS, FOUR SLOTS, ONE BARRIER. On a serial grader the first call blocks forever
+    ## and `Barrier` raises rather than hanging the suite.
+    _run(tmp_path / "parallel", 4, threading.Barrier(4, timeout=10))
+    _run(tmp_path / "serial", 1, None)
+
+    for stem in stems:
+        wide = json.loads((tmp_path / "parallel" / f"{stem}.grade.json").read_text())
+        thin = json.loads((tmp_path / "serial" / f"{stem}.grade.json").read_text())
+        assert wide == thin, f"{stem} graded differently under --jobs"
+        assert wide["grader_fingerprint"] == thin["grader_fingerprint"]

@@ -27,11 +27,13 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from pathlib import Path
 
 from .execute import index_cells_that_never_used_the_index, run_cell
 from .grader.rubric import RubricError, load
+from .identity import tool_identity
 from .grader.score import grader_fingerprint, score_question
 from .runner import ARMS, check_revision, check_symmetry, parse_stem, plan
 
@@ -83,7 +85,7 @@ def cmd_generate(args) -> int:
 
     @brief Generate answers.
     @return Exit code.
-    @version 2
+    @version 3
     """
     rubric = _rubric(args.rubric)
     if rubric is None:
@@ -98,6 +100,25 @@ def cmd_generate(args) -> int:
     prompts = {q.id: q.prompt for q in rubric.questions}
     cells = plan(rubric, tuple(args.models), args.replicates, args.seed)
     args.out.mkdir(parents=True, exist_ok=True)
+
+    ## THE FROZEN ANSWER IS THE RECORD, so resuming reads it rather than buying it again.
+    ##
+    ## OPT-IN. Without `--resume` a second `generate` re-spends every cell, which is what every
+    ## past measurement assumed and what the artifacts of those runs mean. The flag exists
+    ## because generation is serial and ~10 hours long: a capacity window in the middle loses
+    ## its cells permanently, and reaching them again otherwise costs every completed cell a
+    ## second time.
+    ##
+    ## `.md` IS THE RIGHT TEST, not the sidecars. `run_cell` writes it LAST and only when the
+    ## agent produced text, so a cell that failed transport left `.meta.json` and `.raw.json`
+    ## behind but no answer — and is correctly retried rather than skipped.
+    resumed = sorted(c.stem() for c in cells if (args.out / f"{c.stem()}.md").is_file())
+    if getattr(args, "resume", False):
+        pending = [c for c in cells if c.stem() not in set(resumed)]
+        print(f"resuming — {len(resumed)} cell(s) already answered, {len(pending)} to run")
+    else:
+        pending, resumed = cells, []
+
     (args.out / "run.json").write_text(
         json.dumps(
             {
@@ -108,6 +129,16 @@ def cmd_generate(args) -> int:
                 "seed": args.seed,
                 "models": list(args.models),
                 "replicates": args.replicates,
+                ## WHAT ANSWERED, NOT ONLY WHAT WAS ASKED. Every other key here is an input to
+                ## the measurement; these are the measurement's subject. `provision.json`
+                ## carries the same fields beside the index, so a run whose provisioning
+                ## record was lost is still attributable from the answers alone.
+                **tool_identity(),
+                ## WHICH CELLS CAME FROM AN EARLIER WINDOW. A grid assembled over several
+                ## sittings must not read as one pass, and the stems are the only place that
+                ## can be said. Absent rather than empty when nothing was resumed, so
+                ## "assembled in one pass" and "nobody recorded" do not read alike.
+                **({"resumed": resumed} if resumed else {}),
                 "cells": [asdict(c) for c in cells],
             },
             indent=2,
@@ -117,7 +148,7 @@ def cmd_generate(args) -> int:
 
     failed = 0
     results = []
-    for cell in cells:
+    for cell in pending:
         result = run_cell(
             cell, prompts[cell.question_id], args.repo, args.out, args.mcp_config, args.timeout
         )
@@ -133,7 +164,7 @@ def cmd_generate(args) -> int:
         failed += 0 if result.ok else 1
     ## THE FAILED COUNT IS PRINTED EVEN WHEN ZERO. A run that silently omits it cannot be told
     ## from one whose failures were never counted.
-    print(f"\n{len(cells) - failed}/{len(cells)} cells produced an answer")
+    print(f"\n{len(pending) - failed}/{len(pending)} cells produced an answer")
     blind = index_cells_that_never_used_the_index(results)
     if blind:
         print(
@@ -155,17 +186,33 @@ def cmd_grade(args) -> int:
 
     @brief Grade answers.
     @return Exit code.
-    @version 2
+    @version 3
     """
     rubric = _rubric(args.rubric)
     if rubric is None:
         return 1
     questions = {q.id: q for q in rubric.questions}
-    graded = 0
-    for path in sorted(args.answers.glob("*.md")):
+
+    ## @brief Grade one frozen answer and write its two sidecars.
+    ## @param path The answer file.
+    ## @return The line to print, or None when the stem is not a gradeable cell.
+    ## @version 1
+    def _grade_one(path: Path) -> str | None:
+        """ONE ANSWER, ITS OWN TWO FILES, NO SHARED STATE — which is what makes `--jobs` safe
+        rather than merely faster. Each call reads one `.md` and writes only `<stem>.grade.json`
+        and `<stem>.grades.jsonl`, so concurrent workers never touch the same path.
+
+        PRINTING IS THE CALLER'S JOB. A worker printing as it finishes interleaves the log in
+        completion order, and a log whose order depends on scheduling cannot be diffed between
+        passes.
+
+        @brief Grade one answer.
+        @return Its log line, or None.
+        @version 1
+        """
         parsed = parse_stem(path.stem)
         if parsed is None or parsed[0] not in questions:
-            continue
+            return None
         qid, arm = parsed[0], parsed[2]
         result = score_question(questions[qid], path.read_text("utf-8"), rubric, arm)
         got, unmarked = result.score()
@@ -196,7 +243,28 @@ def cmd_grade(args) -> int:
         ## judge noise.
         with (args.answers / f"{path.stem}.grades.jsonl").open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(record) + "\n")
-        print(f"{path.stem:<34} score {got:6.1%}  unmarked {unmarked:5.1%}")
+        return f"{path.stem:<34} score {got:6.1%}  unmarked {unmarked:5.1%}"
+
+    ## CONCURRENT ONLY WHEN ASKED, AND THE ORDER OF THE LOG NEVER MOVES. The answers are graded
+    ## in whatever order slots free up, but `map` yields results in submission order, so the
+    ## printed pass reads identically at any `--jobs` and two passes stay diffable.
+    ##
+    ## A FULL GRID IS ~3,400 JUDGE CALLS PER PASS and the noise floor needs two of them, so
+    ## serial grading is most of a run's wall-clock while contributing to no reported axis.
+    ## Generation stays serial for the opposite reason: a cell's wall-clock IS a reported axis.
+    paths = sorted(args.answers.glob("*.md"))
+    jobs = max(1, int(getattr(args, "jobs", 1) or 1))
+    if jobs == 1:
+        lines = [_grade_one(path) for path in paths]
+    else:
+        with ThreadPoolExecutor(max_workers=jobs) as pool:
+            lines = list(pool.map(_grade_one, paths))
+
+    graded = 0
+    for line in lines:
+        if line is None:
+            continue
+        print(line)
         graded += 1
     if not graded:
         print("no answers found — nothing was graded", file=sys.stderr)
@@ -597,8 +665,19 @@ def main() -> int:
             p.add_argument("--out", type=Path, required=True)
             p.add_argument("--mcp-config", type=Path, default=None)
             p.add_argument("--timeout", type=int, default=1800)
+            p.add_argument(
+                "--resume",
+                action="store_true",
+                help="skip cells whose answer is already frozen on disk",
+            )
         if name in ("grade", "report"):
             p.add_argument("--answers", type=Path, required=True)
+        if name == "grade":
+            ## GRADING MAY PARALLELISE AND GENERATION MAY NOT, and the reason is which axes are
+            ## measured. A cell's wall-clock IS a reported result, so running cells concurrently
+            ## would contaminate it; a judge call's wall-clock is reported nowhere. The judge
+            ## already retries with backoff, which is what absorbs the added rate pressure.
+            p.add_argument("--jobs", type=int, default=1, help="judge this many answers at once")
 
     args = parser.parse_args()
     return {"plan": cmd_plan, "generate": cmd_generate, "grade": cmd_grade, "report": cmd_report}[
