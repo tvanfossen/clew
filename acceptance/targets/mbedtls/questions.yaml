@@ -244,7 +244,11 @@ questions:
         type: conclusion
         weight: 2
         evidence: |
-          875 occurrences of `MBEDTLS_PRIVATE(` across .h and .c at the pinned commit, spread
+          875 LINES containing `MBEDTLS_PRIVATE(` across .h and .c at the pinned commit — 891
+          OCCURRENCES, since some lines carry two. Counted as
+          `git grep -h 'MBEDTLS_PRIVATE(' -- '*.h' '*.c' | wc -l`; the method is recorded because
+          the figure does not reproduce without it, and a verifier who counts occurrences instead
+          reads a correct rubric as a wrong one. Spread
           over 66 files: 59 under include/, 5 under library/, 2 under programs/. An answer
           conveying the right order of magnitude and the right skew earns this; an exact count
           is not required and must not be, since it is an artifact of how one counts.
@@ -671,9 +675,11 @@ questions:
         type: conclusion
         weight: 2
         evidence: |
-          21 files under library/ other than constant_time* reference an mbedtls_ct_ symbol at the
-          pinned commit, spanning bignum, RSA, the TLS message layer, PSA crypto, the AEADs and
-          base64. An answer conveying the right order of magnitude and the right spread earns
+          21 `.c` files under library/ other than constant_time* reference an mbedtls_ct_ symbol at
+          the pinned commit — 26 counting headers as well. Counted as
+          `git grep -l 'mbedtls_ct_' -- 'library/*.c' | grep -v constant_time | wc -l`; the method
+          is recorded because the figure does not reproduce without it. They span bignum, RSA, the
+          TLS message layer, PSA crypto, the AEADs and base64. An answer conveying the right order of magnitude and the right spread earns
           this; an exact count is not required and must not be, since it is an artifact of how one
           counts.
         refs:

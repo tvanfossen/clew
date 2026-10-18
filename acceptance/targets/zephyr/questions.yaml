@@ -23,14 +23,23 @@ ground_truth: |
 
     * RIOT DEFINES its handlers (`isr_uart0`, `AVR8_ISR(...)`, `__attribute__((interrupt))`) and
       the vector table names them.
-    * Zephyr REGISTERS them: `IRQ_CONNECT(irq, prio, isr, arg, flags)`, 1110 sites at this pin,
-      plus a second family whose CALLBACK the driver API documents as running in interrupt
-      context — `k_timer_init`'s expiry function (include/zephyr/kernel.h:1861-1864, dispatched
-      at kernel/timer.c:125) and the GPIO handler fired from the controller's own ISR
+    * Zephyr REGISTERS them: `IRQ_CONNECT(irq, prio, isr, arg, flags)`, 1152 sites over 851 files
+      at this pin, plus a second family whose CALLBACK the driver API documents as running in
+      interrupt context — `k_timer_init`'s expiry function (include/zephyr/kernel.h:1861-1864,
+      dispatched at kernel/timer.c:125) and the GPIO handler fired from the controller's own ISR
       (include/zephyr/drivers/gpio/gpio_utils.h:139). Nothing in those handlers' DEFINITIONS
-      marks them: 963 distinct handler names at this pin are ordinary static functions.
+      marks them: the handler names are ordinary static functions.
 
-  THE HARD PART IS NOT THE SPELLING. 718 of the 1110 `IRQ_CONNECT` sites (64.7%; 69.0% under
+  HOW THE `IRQ_CONNECT` FIGURES WERE COUNTED, because they do not reproduce without the method:
+  `\bIRQ_CONNECT\s*\(` over tracked `*.c` and `*.h`, which is the spelling that excludes
+  `DT_IRQ_CONNECT`. Other methods give other answers — 1369 occurrences over all files, 1354 in
+  `.c`+`.h`, 1167 as a bare word — and this block read `1110 sites / 718 inside a #define /
+  64.7%` until 2026-10-17, which NO method reproduced. Re-measured on the pinned tree rather than
+  left for the next reader to doubt. The "963 distinct handler names" figure that stood here is
+  removed rather than re-derived: it needs the third argument of every site including the ones
+  inside macro bodies, which is the preprocessing problem the paragraph below is about.
+
+  THE HARD PART IS NOT THE SPELLING. 728 of the 1152 `IRQ_CONNECT` sites (63.2%; 68.7% under
   drivers/) sit INSIDE a `#define` body, which tree-sitter exposes only as opaque text — e.g.
   `drivers/i3c/i3c_stm32.c:2174`, three levels of macro nesting under
   `DT_INST_FOREACH_STATUS_OKAY`. Any tool that reads C without preprocessing sees about a third

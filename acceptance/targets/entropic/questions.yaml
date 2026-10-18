@@ -181,7 +181,10 @@ questions:
         type: conclusion
         weight: 2
         evidence: |
-          13 files under src/ name llama_ symbols at the pinned commit. An answer conveying the
+          13 `.cpp` files under src/ name llama_ symbols at the pinned commit — 19 counting the
+          headers and src/inference/CMakeLists.txt as well. Counted as
+          `git grep -l 'llama_' <pin> -- 'src/*.cpp' 'src/**/*.cpp' | wc -l`; the method is recorded
+          because the figure does not reproduce without it. An answer conveying the
           right order of magnitude earns this; an exact count must not be required, since it is
           an artifact of how one counts.
         refs: [["src/inference/llama_cpp_backend.cpp"], ["src/inference/orchestrator.cpp"]]
@@ -192,7 +195,7 @@ questions:
         type: conclusion
         weight: 3
         evidence: |
-          10 of the 13 are under src/inference/. The other three are src/config/loader.cpp,
+          10 of the 13 `.cpp` files are under src/inference/ (16 of 19 on the wider count). The other three are src/config/loader.cpp,
           src/core/response_generator.cpp and src/facade/entropic.cpp. An answer that says the
           dependency is confined to the inference layer is wrong, and wrong in the direction
           that matters to anyone planning to replace the backend.
