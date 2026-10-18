@@ -27,7 +27,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from pathlib import Path
 
@@ -176,6 +176,25 @@ def cmd_generate(args) -> int:
     return 1 if failed else 0
 
 
+## @brief Yield each worker's line as it finishes rather than in submission order.
+## @param pool The executor.
+## @param fn The per-item callable.
+## @param items The items to process.
+## @return An iterator of results, in completion order.
+## @version 1
+def as_completed_lines(pool, fn, items):
+    """SPLIT OUT SO THE PROGRESS RULE IS TESTABLE ON ITS OWN. Inline, the only way to assert
+    that grading reports as it goes was to drive the whole command.
+
+    @brief Results in completion order.
+    @return Iterator of results.
+    @version 1
+    """
+    futures = [pool.submit(fn, item) for item in items]
+    for future in as_completed(futures):
+        yield future.result()
+
+
 ## @brief Grade every frozen answer against the rubric.
 ## @param args Parsed arguments.
 ## @return Exit code.
@@ -254,18 +273,34 @@ def cmd_grade(args) -> int:
     ## Generation stays serial for the opposite reason: a cell's wall-clock IS a reported axis.
     paths = sorted(args.answers.glob("*.md"))
     jobs = max(1, int(getattr(args, "jobs", 1) or 1))
-    if jobs == 1:
-        lines = [_grade_one(path) for path in paths]
-    else:
-        with ThreadPoolExecutor(max_workers=jobs) as pool:
-            lines = list(pool.map(_grade_one, paths))
 
+    ## PRINTED AS EACH CELL LANDS, NEVER COLLECTED AND FLUSHED AT THE END. A pass is thousands
+    ## of judge calls and the noise floor needs two of them, so a log that stays silent until
+    ## the last cell cannot be told from a hang — which is the failure `matrix.py` already
+    ## carries a line-buffering comment about. Collecting the lines first to keep them in
+    ## submission order reintroduced it, on the serial path as well as the parallel one.
+    ##
+    ## SO THE ORDER GIVES WAY INSTEAD OF THE PROGRESS. Under `--jobs` the lines arrive as
+    ## workers finish rather than in filename order, and that is fine: every line NAMES ITS OWN
+    ## CELL, so comparing two passes is a sort away. A missing progress signal is not
+    ## recoverable by sorting.
     graded = 0
-    for line in lines:
+
+    def _emit(line: str | None) -> None:
+        nonlocal graded
         if line is None:
-            continue
+            return
         print(line)
         graded += 1
+
+    if jobs == 1:
+        for path in paths:
+            _emit(_grade_one(path))
+    else:
+        with ThreadPoolExecutor(max_workers=jobs) as pool:
+            for line in as_completed_lines(pool, _grade_one, paths):
+                _emit(line)
+
     if not graded:
         print("no answers found — nothing was graded", file=sys.stderr)
         return 1

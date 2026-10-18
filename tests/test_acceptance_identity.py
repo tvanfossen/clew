@@ -188,3 +188,65 @@ def test_a_build_failure_carries_a_reason_even_when_stderr_is_empty(monkeypatch)
         assert "Doxygen exited with code 2" in str(exc)
     else:
         raise AssertionError("a failed build must refuse")
+
+
+## @brief Grading reports progress as it goes rather than all at the end.
+## @return None.
+## @version 1
+def test_grading_prints_each_cell_before_the_last_one_is_scored(tmp_path, monkeypatch) -> None:
+    """A GRADE PASS IS ~3,400 JUDGE CALLS AND THE NOISE FLOOR NEEDS TWO OF THEM. An operator
+    watching a log that prints nothing until the end cannot tell grading from a hang — the
+    failure `matrix.py` already carries a line-buffering comment about, and collecting every
+    line before printing any reintroduces it.
+
+    THE ASSERTION IS INTERLEAVING, NOT TIMING. Both events go into one ordered list, so the
+    test asks a structural question — did any cell's line reach the operator before the last
+    cell was scored — which a collect-then-print implementation fails deterministically and a
+    streaming one passes on any machine.
+
+    @brief Progress is incremental.
+    @return None.
+    @version 1
+    """
+    import builtins
+
+    import yaml
+
+    from acceptance import __main__ as cli
+
+    events: list[str] = []
+
+    class _Stub:
+        decisions: list = []
+
+        def split_decisions(self) -> int:
+            return 0
+
+        def score(self) -> tuple[float, float]:
+            return 0.5, 0.0
+
+    def scored(*_a, **_k):
+        events.append("scored")
+        return _Stub()
+
+    real_print = builtins.print
+
+    def spy(*a, **k):
+        events.append("printed")
+        real_print(*a, **k)
+
+    rubric = Path(__file__).resolve().parent.parent / "acceptance/targets/mbedtls/questions.yaml"
+    qid = yaml.safe_load(rubric.read_text())["questions"][0]["id"]
+    for i in range(1, 4):
+        (tmp_path / f"{qid}_m_baseline_r{i}.md").write_text("answer", "utf-8")
+
+    monkeypatch.setattr(cli, "score_question", scored)
+    monkeypatch.setattr(builtins, "print", spy)
+    args = cli.argparse.Namespace(rubric=rubric, answers=tmp_path, jobs=1)
+    assert cli.cmd_grade(args) == 0
+    monkeypatch.undo()
+
+    last_scored = len(events) - 1 - events[::-1].index("scored")
+    assert "printed" in events[:last_scored], (
+        f"nothing reached the operator until every cell was graded: {events}"
+    )
