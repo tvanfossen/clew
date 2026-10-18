@@ -152,3 +152,39 @@ def test_run_json_carries_the_tool_identity(tmp_path: Path, monkeypatch) -> None
     got = json.loads((out / "run.json").read_text())
     assert got["clew_build_version"] == str(identity.CLEW_BUILD_VERSION)
     assert "substrate_languages" in got
+
+
+## @brief A build that reported on stdout still refuses with a reason.
+## @return None.
+## @version 1
+def test_a_build_failure_carries_a_reason_even_when_stderr_is_empty(monkeypatch) -> None:
+    """MEASURED ON THE FIRST PUBLISHED GRID'S PRE-FLIGHT. One target refused with exactly
+    "index build failed (rc=1): " — the reason was the empty string, because the pipeline logs
+    its progress and its doxygen failure to STDOUT and the refusal quoted only stderr. The
+    operator is then told a build failed and nothing about why, on the one phase whose whole
+    purpose is to fail cheaply and informatively.
+
+    THE TAIL IS THE RIGHT END. A build prints thousands of progress lines before it fails, so
+    the last characters are the ones carrying the failure; the head would be the file-typing
+    chatter every build emits.
+
+    @brief A refusal names the failure.
+    @return None.
+    @version 1
+    """
+    import subprocess
+
+    from acceptance import provision
+
+    class _Done:
+        returncode = 1
+        stdout = "file typing: skipping\nDoxygen exited with code 2\n"
+        stderr = "   \n"
+
+    monkeypatch.setattr(subprocess, "run", lambda *_a, **_k: _Done())
+    try:
+        provision.build_index(object(), Path("/repo"), Path("/state"), None)
+    except provision.ProvisionError as exc:
+        assert "Doxygen exited with code 2" in str(exc)
+    else:
+        raise AssertionError("a failed build must refuse")

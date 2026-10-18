@@ -194,8 +194,18 @@ def build_index(rubric: Rubric, repo: Path, state_home: Path, declare_file: Path
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise ProvisionError(f"index build could not run: {exc}") from exc
     if done.returncode != 0:
+        ## BOTH STREAMS, STDERR FIRST. Measured on the first published grid's pre-flight: one
+        ## target refused with exactly "index build failed (rc=1): " and nothing after the
+        ## colon, because the pipeline logs its progress AND its doxygen failure to stdout while
+        ## this quoted only stderr. An operator is then told that a build failed and nothing
+        ## about why, on the one phase whose entire purpose is to fail cheaply and informatively.
+        ##
+        ## THE TAIL, because a build prints thousands of file-typing lines before it fails and
+        ## the failure is at the end.
+        detail = "\n".join(part for part in (done.stderr.strip(), done.stdout.strip()) if part)
         raise ProvisionError(
-            f"index build failed (rc={done.returncode}): {done.stderr.strip()[-600:]}"
+            f"index build failed (rc={done.returncode}): "
+            f"{detail[-1200:] if detail else '<the build printed nothing on either stream>'}"
         )
 
 
