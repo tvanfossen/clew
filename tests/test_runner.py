@@ -142,13 +142,16 @@ def test_arms_are_paired_and_counterbalanced() -> None:
     @return None.
     @version 1
     """
-    cells = runner.plan(_rubric("Q1", "Q2"), ("sonnet",), replicates=2, seed=1)
-    pairs = [cells[i : i + 2] for i in range(0, len(cells), 2)]
-    for pair in pairs:
-        assert {c.arm for c in pair} == set(runner.ARMS), "each pair holds both arms"
-        assert len({(c.question_id, c.replicate) for c in pair}) == 1, "same question and rep"
-    firsts = [pair[0].arm for pair in pairs]
-    assert len(set(firsts)) == 2, "arm order must alternate, not be fixed"
+    n = len(runner.ARMS)
+    cells = runner.plan(_rubric("Q1", "Q2"), ("sonnet",), replicates=3, seed=1)
+    groups = [cells[i : i + n] for i in range(0, len(cells), n)]
+    for group in groups:
+        assert {c.arm for c in group} == set(runner.ARMS), "each group holds every arm"
+        assert len({(c.question_id, c.replicate) for c in group}) == 1, "same question and rep"
+    ## ROTATION, NOT ALTERNATION. A parity flip counterbalances two arms and pins the middle one
+    ## with three, so any drift over the run lands on that arm.
+    firsts = [group[0].arm for group in groups]
+    assert set(firsts) == set(runner.ARMS), f"every arm must lead sometimes, saw {set(firsts)}"
 
 
 ## @brief All replicates of a question complete before the next question starts.
@@ -310,7 +313,8 @@ def test_the_shipped_rubric_plans() -> None:
 
     rubric = load(MBEDTLS_RUBRIC)
     cells = runner.plan(rubric, ("sonnet",), replicates=1, seed=3)
-    assert len(cells) == len(rubric.questions) * 2
+    ## DERIVED FROM `ARMS`, never the literal arm count — the number changed once already.
+    assert len(cells) == len(rubric.questions) * len(runner.ARMS)
     assert len({c.stem() for c in cells}) == len(cells), "cell names must be unique"
 
 
@@ -385,7 +389,10 @@ def test_blended_arm_is_out_of_the_comparison_and_index_only_has_no_shell() -> N
     ## 1.1.0 COMPARES baseline vs index_only. The BLENDED arm — a full harness that also has the
     ## index — is confounded with adoption and is deferred to 1.2.0, so it must stay OUT of the
     ## compared pair while remaining runnable.
-    assert runner.BLENDED_ARM not in runner.ARMS, "the blended arm must not join the comparison"
+    ## THE BLENDED ARM IS BACK IN THE GRID (owner ruling, 2026-10-18). The first measured target
+    ## showed the ceiling arm losing by 11.4 points on questions a shell answers with one grep,
+    ## and a published matrix that reports only the ceiling describes something nobody ships.
+    assert runner.BLENDED_ARM in runner.ARMS, "the shipped shape must be measured"
     assert runner.BLENDED_ARM in runner.ALL_ARMS
     assert "index_only" in runner.ARMS
     text = runner.brief("index_only", "/repo", "Q?")
@@ -443,3 +450,97 @@ def test_parse_stem_refuses_a_non_cell() -> None:
     assert runner.parse_stem("notes") is None
     assert runner.parse_stem("Q1_sonnet_baseline_x1") is None, "replicate must be r<N>"
     assert runner.parse_stem("Q1_sonnet_nosucharm_r1") is None, "arm must be a known arm"
+
+
+## @brief No arm is told how to handle uncertainty when the others are not.
+## @return None.
+## @version 1
+def test_no_arm_brief_licenses_stopping_that_another_is_not_told() -> None:
+    """THE CONFOUND `check_symmetry` CANNOT SEE. That check verifies only that the TOOL SENTENCE
+    is the sole line that differs — not that the sentences license the same behaviour. The
+    index_only brief carried "say so plainly rather than guessing — an honest gap is the useful
+    answer here" while the baseline brief carried nothing of the kind.
+
+    The rubric scores COMPLETENESS. Telling one arm that stopping is a good answer plausibly
+    depresses its score for a reason that has nothing to do with retrieval, and the resulting
+    separation would be read as a property of the index.
+
+    An inventory of tools is symmetric. Advice about what to do when you cannot find something
+    is not, and belongs in neither brief.
+
+    @brief Briefs carry no uncertainty guidance.
+    @return None.
+    @version 1
+    """
+    from acceptance.runner import _TOOLS
+
+    hedges = (
+        "honest gap",
+        "rather than guessing",
+        "say so plainly",
+        "admit",
+        "do not guess",
+    )
+    for arm, sentence in _TOOLS.items():
+        low = sentence.lower()
+        found = [h for h in hedges if h in low]
+        assert not found, f"{arm}'s brief tells it how to handle not knowing: {found}"
+
+
+## @brief The grid runs every configured arm, counterbalanced, not just two.
+## @return None.
+## @version 1
+def test_plan_covers_every_arm_and_rotates_their_order() -> None:
+    """ARM IS INNERMOST AND ALWAYS COMPLETE. An unpaired cell is uninterpretable, and with three
+    arms a replicate missing one of them cannot be compared against the others at all.
+
+    COUNTERBALANCING GENERALISES OR IT STOPS WORKING. With two arms, flipping on replicate
+    parity was enough. With three, a flip leaves the middle arm pinned to the middle slot on
+    every replicate, so any drift over a run lands on one arm — the exact confound the
+    counterbalancing exists to remove. The order must ROTATE.
+
+    @brief Every arm, rotating order.
+    @return None.
+    @version 1
+    """
+    from acceptance.grader.rubric import load
+    from acceptance.runner import ARMS, plan
+
+    rubric = load(MBEDTLS_RUBRIC)
+    cells = plan(rubric, ("m",), 3, 7)
+
+    groups: dict[tuple[str, int], list[str]] = {}
+    for cell in cells:
+        groups.setdefault((cell.question_id, cell.replicate), []).append(cell.arm)
+
+    for key, arms in groups.items():
+        assert sorted(arms) == sorted(ARMS), f"{key} ran {arms}, not every arm"
+
+    ## Each arm must take the first slot at least once across the replicates of one question.
+    qid = rubric.questions[0].id
+    firsts = {groups[(qid, rep)][0] for rep in (1, 2, 3)}
+    assert len(firsts) == len(ARMS), f"order did not rotate: first slots were {firsts}"
+
+
+## @brief The rubric's fenceable arms and the grid's arms stay the same set.
+## @return None.
+## @version 1
+def test_rubric_arm_vocabulary_matches_the_arms_the_grid_runs() -> None:
+    """A MARK MUST BE FENCEABLE TO ANY ARM THAT RUNS. `grader.rubric.ARMS` held only
+    ("baseline", "index") while the grid had been running `index_only` since August, so
+    `arm_only: index_only` was REFUSED BY NAME — the one arm whose marks most need fencing was
+    the one arm that could not be named.
+
+    The list is duplicated rather than imported, because `runner` imports `grader.rubric` and
+    the reverse would be circular. This test is what holds the two together, in place of the
+    import that cannot exist.
+
+    @brief Arm vocabularies agree.
+    @return None.
+    @version 1
+    """
+    from acceptance.grader import rubric as rubric_mod
+
+    assert set(rubric_mod.ARMS) == set(runner.ALL_ARMS), (
+        "a rubric can fence a mark only to an arm it knows; these two lists drifted"
+    )

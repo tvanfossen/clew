@@ -594,20 +594,50 @@ def _paired_summary(rows: list, files_cited: dict[str, int] | None = None) -> No
     ## baseline/index_only every cell failed the membership test and the whole block printed
     ## "No arm PAIRS in this run" on a grid where every cell WAS paired. Silent and total: the
     ## per-cell table still prints, so it reads like an unpaired run rather than a blind reporter.
-    left, right = ARMS
-    complete = {k: v for k, v in paired.items() if {left, right} <= set(v)}
+    ##
+    ## IT THEN UNPACKED EXACTLY TWO, so adding the blended arm would have raised ValueError from
+    ## the reporter. The first arm is the REFERENCE every other arm is measured against, and
+    ## each comparison gets its OWN ROW rather than another pair of columns — a table that grows
+    ## sideways with the arm count stops being readable at three.
+    reference, *compared = ARMS
+    complete = {k: v for k, v in paired.items() if set(ARMS) <= set(v)}
     if not complete:
-        print("\nNo arm PAIRS in this run — separation and displacement need both arms of a cell.")
+        print(
+            f"\nNo complete arm SETS in this run — separation needs {reference} and "
+            f"{', '.join(compared)} for the same cell."
+        )
         return
 
     print(
-        f"\n{'question':<22} {'files':>6} {left:>9} {right:>9} {'separation':>11} "
-        f"{'shell displaced':>16}"
+        f"\n{'question':<22} {'files':>6} {'arm':<11} {reference:>9} {'arm':>9} "
+        f"{'separation':>11} {'shell displaced':>16}"
     )
-    print("-" * 77)
+    print("-" * 89)
     for key in sorted(complete):
-        b_meta, b_grade = complete[key][left]
-        i_meta, i_grade = complete[key][right]
+        for arm in compared:
+            _separation_row(key, arm, reference, complete[key], files_cited)
+    _name_incomplete(paired, complete, reference, compared)
+    return
+
+
+## @brief Print one reference-versus-arm comparison row.
+## @param key The (question, model, replicate) this row describes.
+## @param arm The comparison arm.
+## @param reference The arm every other is measured against.
+## @param cells That cell's per-arm (meta, grade) pairs.
+## @param files_cited Files cited per question, or empty when no rubric was given.
+## @return None.
+## @version 1
+def _separation_row(key, arm: str, reference: str, cells: dict, files_cited: dict) -> None:
+    """ONE ROW PER COMPARISON, so the table grows DOWN with the arm count rather than across.
+
+    @brief One separation row.
+    @return None.
+    @version 1
+    """
+    if True:
+        b_meta, b_grade = cells[reference]
+        i_meta, i_grade = cells[arm]
         label = f"{key[0]}_{key[1]}_r{key[2]}"
         ## UNKNOWN PRINTS AS UNKNOWN. Absent when report ran without a rubric; a 0 there would
         ## assert the question cites nothing, which is a claim about a file nobody opened.
@@ -632,10 +662,10 @@ def _paired_summary(rows: list, files_cited: dict[str, int] | None = None) -> No
         )
         if b_grade and i_grade and unruled > 0.5:
             print(
-                f"{label:<22} {spread:>6} {'unruled':>9} {'unruled':>9} "
+                f"{label:<22} {spread:>6} {arm:<11} {'unruled':>9} {'unruled':>9} "
                 f"{f'{unruled:.0%} unruled':>11} {disp:>16}"
             )
-            continue
+            return
         if b_grade and i_grade:
             b, i = b_grade["score"], i_grade["score"]
             sep = f"{(i - b) * 100:+.1f}pt" + ("" if abs(i - b) > 1e-9 else "  TIED")
@@ -646,29 +676,50 @@ def _paired_summary(rows: list, files_cited: dict[str, int] | None = None) -> No
             ## is the difference between a reader drawing the right conclusion and the wrong one.
             idx_used = i_meta["tool_calls"] - i_meta["non_index_tool_calls"]
             flag = "" if i_meta["tool_calls"] < 0 or idx_used > 0 else "   NO INDEX CALLS"
-            print(f"{label:<22} {spread:>6} {b:>8.1%} {i:>8.1%} {sep:>11} {disp:>16}{flag}")
+            print(
+                f"{label:<22} {spread:>6} {arm:<11} {b:>8.1%} {i:>8.1%} {sep:>11} {disp:>16}{flag}"
+            )
         else:
-            print(f"{label:<22} {spread:>6} {'—':>9} {'—':>9} {'—':>11} {disp:>16}")
-    ## A QUESTION MISSING FROM THIS TABLE LEAVES NO TRACE IN IT. Measured: a run held a baseline
-    ## cell and a blended-arm cell for one question and no index_only cell, so that question
-    ## simply did not appear — and a reader comparing five questions sees four rows with nothing
-    ## saying why. Silent truncation reading as complete coverage is the shape this whole file
-    ## exists to avoid, so what was dropped is named.
-    unpaired = sorted({k[0] for k in paired} - {k[0] for k in complete})
-    if unpaired:
+            print(f"{label:<22} {spread:>6} {arm:<11} {'—':>9} {'—':>9} {'—':>11} {disp:>16}")
+
+
+## @brief Name the questions that did not produce a complete arm set, and the ties.
+## @param paired Every cell seen, keyed by (question, model, replicate).
+## @param complete Those holding every arm.
+## @param reference The reference arm.
+## @param compared The arms measured against it.
+## @return None.
+## @version 1
+def _name_incomplete(paired: dict, complete: dict, reference: str, compared: list) -> None:
+    """A QUESTION MISSING FROM THE TABLE LEAVES NO TRACE IN IT. Measured: a run held a baseline
+    cell and a blended-arm cell for one question and no index_only cell, so that question simply
+    did not appear — and a reader comparing five questions sees four rows with nothing saying
+    why. Silent truncation reading as complete coverage is the shape this file exists to avoid.
+
+    @brief Name what the table left out.
+    @return None.
+    @version 1
+    """
+    arms = [reference, *compared]
+    missing = sorted({k[0] for k in paired} - {k[0] for k in complete})
+    if missing:
         print(
-            f"\n{len(unpaired)} question(s) had cells but no complete {left}/{right} pair and are "
-            f"absent from the table above: {', '.join(unpaired)}."
+            f"\n{len(missing)} question(s) had cells but no complete "
+            f"{'/'.join(arms)} set and are absent from the table above: {', '.join(missing)}."
         )
-    tied = sum(
-        1
-        for k, v in complete.items()
-        if v[left][1] and v[right][1] and abs(v[left][1]["score"] - v[right][1]["score"]) < 1e-9
-    )
+    tied = 0
+    for cells in complete.values():
+        ref = cells[reference][1]
+        if not ref:
+            continue
+        for arm in compared:
+            other = cells[arm][1]
+            if other and abs(ref["score"] - other["score"]) < 1e-9:
+                tied += 1
     if tied:
         print(
-            f"\n{tied} of {len(complete)} question(s) TIED. A tie contributes nothing to the "
-            f"comparison — and a tie at the CEILING means the question is saturated and should be "
+            f"\n{tied} of {len(complete) * len(compared)} comparison(s) TIED. A tie contributes "
+            f"nothing — and a tie at the CEILING means the question is saturated and should be "
             f"replaced rather than averaged in."
         )
 

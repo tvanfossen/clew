@@ -35,7 +35,12 @@ SELF = REPO / "acceptance" / "targets" / "self" / "questions.yaml"
 ## private tree (it nests a repo directory under `internal/`) without this file naming it.
 ## THE ARMS UNDER TEST, DERIVED. Naming them literally is how the summary itself went blind:
 ## it kept comparing a pair the run no longer runs, and every test agreed with it.
-_A, _B = runner.ARMS
+##
+## AND THE ARITY IS DERIVED TOO, which the first version was not — `_A, _B = runner.ARMS` broke
+## the whole module at import the moment a third arm joined. `_A` is the REFERENCE arm; `_REST`
+## is every arm measured against it.
+_A, *_REST = runner.ARMS
+_B = _REST[0]
 
 SHIPPED = sorted(
     p
@@ -278,9 +283,9 @@ def test_paired_summary_reports_ties_and_displacement(capsys: pytest.CaptureFixt
     cli._paired_summary(
         [
             cell(f"Q1_sonnet_{_A}_r1", _A, 11, 0.20),
-            cell(f"Q1_sonnet_{_B}_r1", _B, 5, 0.75),
+            *[cell(f"Q1_sonnet_{a}_r1", a, 5, 0.75) for a in _REST],
             cell(f"Q2_sonnet_{_A}_r1", _A, 10, 0.667),
-            cell(f"Q2_sonnet_{_B}_r1", _B, 13, 0.667),
+            *[cell(f"Q2_sonnet_{a}_r1", a, 13, 0.667) for a in _REST],
         ]
     )
     out = capsys.readouterr().out
@@ -313,15 +318,18 @@ def test_unknown_tool_counts_produce_no_displacement(capsys: pytest.CaptureFixtu
                 },
                 {"score": 0.5},
             ),
-            (
-                {
-                    "stem": f"Q1_sonnet_{_B}_r1",
-                    "arm": _B,
-                    "tool_calls": 6,
-                    "non_index_tool_calls": 4,
-                },
-                {"score": 0.5},
-            ),
+            *[
+                (
+                    {
+                        "stem": f"Q1_sonnet_{a}_r1",
+                        "arm": a,
+                        "tool_calls": 6,
+                        "non_index_tool_calls": 4,
+                    },
+                    {"score": 0.5},
+                )
+                for a in _REST
+            ],
         ]
     )
     ## ASSERT ON THE DISPLACEMENT COLUMN, not on the presence of an em-dash anywhere. The first
@@ -359,9 +367,9 @@ def test_zero_index_cell_is_flagged_in_the_separation_table(capsys: pytest.Captu
     cli._paired_summary(
         [
             cell(f"Q1_sonnet_{_A}_r1", _A, 9, 9, 0.833),
-            cell(f"Q1_sonnet_{_B}_r1", _B, 6, 6, 0.667),
+            *[cell(f"Q1_sonnet_{a}_r1", a, 6, 6, 0.667) for a in _REST],
             cell(f"Q2_sonnet_{_A}_r1", _A, 9, 9, 0.50),
-            cell(f"Q2_sonnet_{_B}_r1", _B, 8, 5, 0.90),
+            *[cell(f"Q2_sonnet_{a}_r1", a, 8, 5, 0.90) for a in _REST],
         ]
     )
     lines = {x.split()[0]: x for x in capsys.readouterr().out.splitlines() if x.startswith("Q")}
@@ -427,15 +435,19 @@ def test_paired_summary_uses_the_configured_arms(capsys: pytest.CaptureFixture) 
     @return None.
     @version 1
     """
-    rows = [
-        _cell(f"Q1_sonnet_{runner.ARMS[0]}_r1", runner.ARMS[0], 0.40, shell=9),
-        _cell(f"Q1_sonnet_{runner.ARMS[1]}_r1", runner.ARMS[1], 0.70, shell=1),
-    ]
+    ## EVERY ARM, DERIVED — including the arity. This built exactly two rows, so it would have
+    ## reported "no complete arm set" the moment a third arm joined, which is the same blindness
+    ## it was written to catch.
+    rows = [_cell(f"Q1_sonnet_{runner.ARMS[0]}_r1", runner.ARMS[0], 0.40, shell=9)]
+    rows += [_cell(f"Q1_sonnet_{a}_r1", a, 0.70, shell=1) for a in runner.ARMS[1:]]
     cli._paired_summary(rows)
     out = capsys.readouterr().out
-    assert "No arm PAIRS" not in out, "the configured arms were not recognised as a pair"
-    assert "+30.0pt" in out, "separation must be computed for the pair"
-    assert "+8" in out, "shell displacement must be computed for the pair"
+    assert "No complete arm SETS" not in out, "the configured arms were not recognised"
+    assert "+30.0pt" in out, "separation must be computed against the reference arm"
+    assert "+8" in out, "shell displacement must be computed"
+    ## ONE ROW PER COMPARISON ARM, so a third arm is reported rather than silently folded in.
+    body = [x for x in out.splitlines() if x.startswith("Q1_")]
+    assert len(body) == len(runner.ARMS) - 1, body
 
 
 ## @brief Separation is reported beside the question's citation spread.
@@ -455,9 +467,9 @@ def test_separation_table_carries_files_cited(capsys: pytest.CaptureFixture) -> 
     """
     rows = [
         _cell(f"Q1_sonnet_{_A}_r1", _A, 0.40),
-        _cell(f"Q1_sonnet_{_B}_r1", _B, 0.70),
+        *[_cell(f"Q1_sonnet_{a}_r1", a, 0.70) for a in _REST],
         _cell(f"Q2_sonnet_{_A}_r1", _A, 0.80),
-        _cell(f"Q2_sonnet_{_B}_r1", _B, 0.80),
+        *[_cell(f"Q2_sonnet_{a}_r1", a, 0.80) for a in _REST],
     ]
     cli._paired_summary(rows, files_cited={"Q1": 6, "Q2": 1})
     out = capsys.readouterr().out
@@ -484,7 +496,7 @@ def test_separation_table_without_a_rubric_shows_no_spread(
     """
     rows = [
         _cell(f"Q1_sonnet_{_A}_r1", _A, 0.40),
-        _cell(f"Q1_sonnet_{_B}_r1", _B, 0.70),
+        *[_cell(f"Q1_sonnet_{a}_r1", a, 0.70) for a in _REST],
     ]
     cli._paired_summary(rows)
     line = next(x for x in capsys.readouterr().out.splitlines() if x.startswith("Q1_"))
@@ -509,7 +521,7 @@ def test_unpaired_questions_are_named(capsys: pytest.CaptureFixture) -> None:
     """
     rows = [
         _cell(f"Q1_sonnet_{_A}_r1", _A, 0.40),
-        _cell(f"Q1_sonnet_{_B}_r1", _B, 0.70),
+        *[_cell(f"Q1_sonnet_{a}_r1", a, 0.70) for a in _REST],
         _cell(f"Q2_sonnet_{_A}_r1", _A, 0.80),
     ]
     cli._paired_summary(rows)
@@ -969,9 +981,9 @@ def test_separation_hides_scores_the_judge_never_ruled(capsys: pytest.CaptureFix
 
     rows = [
         cell(f"Q3_sonnet_{_A}_r1", _A, 0.0, 1.0),
-        cell(f"Q3_sonnet_{_B}_r1", _B, 0.0, 1.0),
+        *[cell(f"Q3_sonnet_{a}_r1", a, 0.0, 1.0) for a in _REST],
         cell(f"Q4_sonnet_{_A}_r1", _A, 0.80, 0.0),
-        cell(f"Q4_sonnet_{_B}_r1", _B, 0.60, 0.0),
+        *[cell(f"Q4_sonnet_{a}_r1", a, 0.60, 0.0) for a in _REST],
     ]
     cli._paired_summary(rows)
     out = capsys.readouterr().out
