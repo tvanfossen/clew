@@ -148,3 +148,132 @@ def test_grade_reports_a_capacity_abort_and_keeps_what_it_graded(
     monkeypatch.setattr(cli, "score_question", boom)
     args = cli.argparse.Namespace(rubric=rubric, answers=tmp_path, jobs=1)
     assert cli.cmd_grade(args) != 0, "a pass that stopped early is not a successful pass"
+
+
+## @brief Grading can skip cells that already hold enough passes.
+## @return None.
+## @version 1
+def test_skip_graded_counts_only_passes_from_the_current_grader(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """WITHOUT THIS, A CAPACITY-LIMITED ACCOUNT CANNOT FINISH A GRID. `grade` graded every `.md`
+    every time, so each capacity window spent most of its budget redoing work: measured on the
+    1.1.0 run, window one graded entropic's first 23 cells, window two RE-graded those 23 and
+    reached 30, and mbedtls and self were never touched at all. The frontier advanced about
+    seven cells per window against 144 cells needing two passes each.
+
+    A PASS FROM A DIFFERENT GRADER IS NOT A PASS AT THIS VERSION, which is the same rule
+    `_print_variance` already applies when it refuses to compare across fingerprints. Counting it
+    would skip a cell whose only pass came from code that no longer exists, leaving a hole that
+    looks like coverage.
+
+    THE RUBRIC DIGEST COUNTS TOO: a rubric edit between windows means the earlier verdict
+    answered a different question.
+
+    @brief --skip-graded counts matching passes only.
+    @return None.
+    @version 1
+    """
+    import json as _json
+
+    from acceptance import __main__ as cli
+    from acceptance.grader.score import grader_fingerprint
+    from acceptance.grader.rubric import load
+
+    rubric_path = (
+        Path(__file__).resolve().parent.parent / "acceptance/targets/mbedtls/questions.yaml"
+    )
+    rubric = load(rubric_path)
+    qid = rubric.questions[0].id
+    current = {"rubric_digest": rubric.digest, "grader_fingerprint": grader_fingerprint()}
+
+    def seed(stem: str, passes: list[dict]) -> None:
+        (tmp_path / f"{stem}.md").write_text("an answer", "utf-8")
+        if passes:
+            with (tmp_path / f"{stem}.grades.jsonl").open("w", encoding="utf-8") as fh:
+                for row in passes:
+                    fh.write(_json.dumps(row) + "\n")
+
+    ## One matching pass -> already at pass 1, skip it.
+    seed(f"{qid}_m_baseline_r1", [dict(current, score=0.5)])
+    ## One pass from a DIFFERENT grader version -> does not count, must be graded.
+    seed(f"{qid}_m_baseline_r2", [dict(current, grader_fingerprint="deadbeef", score=0.5)])
+    ## Never graded -> must be graded.
+    seed(f"{qid}_m_baseline_r3", [])
+
+    scored: list[str] = []
+
+    class _Stub:
+        decisions: list = []
+
+        def split_decisions(self) -> int:
+            return 0
+
+        def score(self) -> tuple[float, float]:
+            return 0.5, 0.0
+
+    def record(question, text, rub, arm):
+        scored.append("called")
+        return _Stub()
+
+    monkeypatch.setattr(cli, "score_question", record)
+    args = cli.argparse.Namespace(rubric=rubric_path, answers=tmp_path, jobs=1, skip_graded=1)
+    assert cli.cmd_grade(args) == 0
+    assert len(scored) == 2, (
+        f"expected the foreign-fingerprint cell and the ungraded cell, graded {len(scored)}"
+    )
+
+
+## @brief The default keeps grading everything, as every past measurement assumed.
+## @return None.
+## @version 1
+def test_skip_graded_defaults_to_grading_every_cell(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """OPT-IN, like `--resume`. A second `grade` with no flag must still re-grade every cell,
+    because that is how the noise floor is collected and what every earlier pass did.
+
+    @brief Default is unchanged.
+    @return None.
+    @version 1
+    """
+    import json as _json
+
+    from acceptance import __main__ as cli
+    from acceptance.grader.rubric import load
+    from acceptance.grader.score import grader_fingerprint
+
+    rubric_path = (
+        Path(__file__).resolve().parent.parent / "acceptance/targets/mbedtls/questions.yaml"
+    )
+    rubric = load(rubric_path)
+    qid = rubric.questions[0].id
+    stem = f"{qid}_m_baseline_r1"
+    (tmp_path / f"{stem}.md").write_text("an answer", "utf-8")
+    with (tmp_path / f"{stem}.grades.jsonl").open("w", encoding="utf-8") as fh:
+        fh.write(
+            _json.dumps(
+                {
+                    "rubric_digest": rubric.digest,
+                    "grader_fingerprint": grader_fingerprint(),
+                    "score": 0.5,
+                }
+            )
+            + "\n"
+        )
+
+    scored: list[str] = []
+
+    class _Stub:
+        decisions: list = []
+
+        def split_decisions(self) -> int:
+            return 0
+
+        def score(self) -> tuple[float, float]:
+            return 0.5, 0.0
+
+    monkeypatch.setattr(cli, "score_question", lambda *a, **k: (scored.append("x"), _Stub())[1])
+    args = cli.argparse.Namespace(rubric=rubric_path, answers=tmp_path, jobs=1)
+    assert cli.cmd_grade(args) == 0
+    assert len(scored) == 1, "with no flag, an already-graded cell must still be graded"

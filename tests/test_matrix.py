@@ -358,3 +358,26 @@ def test_resume_and_jobs_reach_only_the_phase_that_takes_them() -> None:
     plain = _args()
     assert "--resume" not in matrix.phase_argv("generate", rubric, root, plain)
     assert "--jobs" not in matrix.phase_argv("grade", rubric, root, plain)
+
+
+## @brief The driver forwards --skip-graded to grading only.
+## @return None.
+## @version 1
+def test_skip_graded_reaches_grade_and_nothing_else() -> None:
+    """THE GRID IS WHAT SPANS A CAPACITY WINDOW, so a flag the driver cannot forward is a flag
+    that does not exist in practice — the same reason `--resume` is forwarded.
+
+    @brief --skip-graded is forwarded to grade.
+    @return None.
+    @version 1
+    """
+    rubric = TARGETS / "mbedtls" / "questions.yaml"
+    root = Path("/grid/mbedtls")
+    args = _args(skip_graded=2)
+    grade = matrix.phase_argv("grade", rubric, root, args)
+    assert grade[grade.index("--skip-graded") + 1] == "2"
+    assert "--skip-graded" not in matrix.phase_argv("generate", rubric, root, args)
+    assert "--skip-graded" not in matrix.phase_argv("report", rubric, root, args)
+    ## The default adds nothing, so a grid driven without it produces the argv every past
+    ## measurement used.
+    assert "--skip-graded" not in matrix.phase_argv("grade", rubric, root, _args())

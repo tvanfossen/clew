@@ -196,6 +196,46 @@ def as_completed_lines(pool, fn, items):
         yield future.result()
 
 
+## @brief How many passes a cell already holds at the CURRENT rubric and grader version.
+## @param answers The answers directory.
+## @param stem The cell's filename stem.
+## @param digest The rubric digest a pass must carry to count.
+## @param fingerprint The grader fingerprint a pass must carry to count.
+## @return The number of matching passes already recorded.
+## @version 1
+def passes_recorded(answers: Path, stem: str, digest: str, fingerprint: str) -> int:
+    """A PASS FROM A DIFFERENT GRADER IS NOT A PASS AT THIS VERSION — the same rule
+    `_print_variance` already applies when it refuses to compare across fingerprints. Counting
+    one would skip a cell whose only verdict came from code that no longer exists, leaving a
+    hole that reads as coverage.
+
+    THE RUBRIC DIGEST COUNTS FOR THE SAME REASON: a rubric edited between windows means the
+    earlier verdict answered a different question.
+
+    An unreadable or absent history is ZERO, never "probably fine". The cost of regrading a cell
+    that was already done is one cell; the cost of skipping one that was not is a hole.
+
+    @brief Matching passes already on disk.
+    @return Pass count.
+    @version 1
+    """
+    history = answers / f"{stem}.grades.jsonl"
+    if not history.is_file():
+        return 0
+    count = 0
+    try:
+        for line in history.read_text(encoding="utf-8").splitlines():
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if row.get("rubric_digest") == digest and row.get("grader_fingerprint") == fingerprint:
+                count += 1
+    except OSError:
+        return 0
+    return count
+
+
 ## @brief Grade every frozen answer against the rubric.
 ## @param args Parsed arguments.
 ## @return Exit code.
@@ -206,7 +246,7 @@ def cmd_grade(args) -> int:
 
     @brief Grade answers.
     @return Exit code.
-    @version 4
+    @version 5
     """
     rubric = _rubric(args.rubric)
     if rubric is None:
@@ -274,6 +314,30 @@ def cmd_grade(args) -> int:
     ## Generation stays serial for the opposite reason: a cell's wall-clock IS a reported axis.
     paths = sorted(args.answers.glob("*.md"))
     jobs = max(1, int(getattr(args, "jobs", 1) or 1))
+
+    ## WITHOUT THIS A CAPACITY-LIMITED ACCOUNT CANNOT FINISH A GRID. Grading every `.md` every
+    ## time means each capacity window spends most of its budget redoing work: measured on the
+    ## 1.1.0 run, one window graded entropic's first 23 cells, the next RE-graded those 23 and
+    ## reached 30, and two targets were never touched. The frontier moved about seven cells per
+    ## window against 144 cells needing two passes each.
+    ##
+    ## OPT-IN, like `--resume`. With no flag a second `grade` still re-grades everything, which
+    ## is how the noise floor is collected and what every earlier pass did. With it, completion
+    ## is two ordered sweeps that only ever move forward: `--skip-graded 1` brings every cell to
+    ## one pass, `--skip-graded 2` to two.
+    want = int(getattr(args, "skip_graded", 0) or 0)
+    if want > 0:
+        fingerprint = grader_fingerprint()
+        before = len(paths)
+        paths = [
+            path
+            for path in paths
+            if passes_recorded(args.answers, path.stem, rubric.digest, fingerprint) < want
+        ]
+        print(
+            f"skipping {before - len(paths)} cell(s) already at {want} pass(es); "
+            f"{len(paths)} to grade"
+        )
 
     ## PRINTED AS EACH CELL LANDS, NEVER COLLECTED AND FLUSHED AT THE END. A pass is thousands
     ## of judge calls and the noise floor needs two of them, so a log that stays silent until
@@ -780,6 +844,13 @@ def main() -> int:
             ## would contaminate it; a judge call's wall-clock is reported nowhere. The judge
             ## already retries with backoff, which is what absorbs the added rate pressure.
             p.add_argument("--jobs", type=int, default=1, help="judge this many answers at once")
+            p.add_argument(
+                "--skip-graded",
+                type=int,
+                default=0,
+                metavar="N",
+                help="skip cells already holding N passes at this rubric and grader version",
+            )
 
     args = parser.parse_args()
     return {"plan": cmd_plan, "generate": cmd_generate, "grade": cmd_grade, "report": cmd_report}[

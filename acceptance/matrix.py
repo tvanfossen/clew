@@ -151,6 +151,10 @@ def phase_argv(phase: str, rubric_path: Path, root: Path, args) -> list[str]:
     ## from the documented invocation, which is the drift `run_phase` exists to prevent.
     if phase == "grade" and getattr(args, "jobs", 1) > 1:
         argv += ["--jobs", str(args.jobs)]
+    ## FORWARDED FOR THE SAME REASON `--resume` IS: the grid is what spans a capacity window,
+    ## so a flag the driver cannot pass is a flag that does not exist in practice.
+    if phase == "grade" and getattr(args, "skip_graded", 0) > 0:
+        argv += ["--skip-graded", str(args.skip_graded)]
     return argv
 
 
@@ -268,6 +272,13 @@ def main() -> int:
     )
     parser.add_argument(
         "--jobs", type=int, default=1, help="grade this many answers at once (grading only)"
+    )
+    parser.add_argument(
+        "--skip-graded",
+        type=int,
+        default=0,
+        metavar="N",
+        help="skip cells already holding N grade passes, so a resumed grid moves forward only",
     )
     parser.add_argument(
         "--provision-only",
