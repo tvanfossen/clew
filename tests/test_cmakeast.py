@@ -31,7 +31,7 @@ from clew.substrate import has_language
 
 pytestmark = pytest.mark.skipif(
     not has_language("cmake"),
-    reason="substrate has no cmake grammar; see .claude/tmp/substrate-fork.md",
+    reason="substrate has no cmake grammar; clew requires lang-parsing-substrate>=0.12.0",
 )
 
 _LISTS = b"""cmake_minimum_required(VERSION 3.20)

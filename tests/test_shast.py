@@ -38,7 +38,7 @@ from clew.substrate import has_language
 
 pytestmark = pytest.mark.skipif(
     not has_language("bash"),
-    reason="substrate has no bash grammar; see .claude/tmp/substrate-fork.md",
+    reason="substrate has no bash grammar; clew requires lang-parsing-substrate>=0.12.0",
 )
 
 _SCRIPT = b"""#!/bin/bash
