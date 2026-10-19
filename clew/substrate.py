@@ -2,17 +2,14 @@
 """What the substrate can parse, asked of the substrate itself.
 
 WHY THIS IS NOT A VERSION CHECK. The five configuration languages — bash, cmake, yaml,
-json, markdown — are registered in a fork of lang-parsing-substrate that is open upstream
-and not yet released. The fork's wheel reports version **0.11.2, the same string as the
-published wheel**, because versions belong to that project's maintainer and the pull
-request carries no bump. `importlib.metadata.version` therefore cannot tell a wheel that
-has these grammars from one that does not, and a pin cannot either: a fresh venv or a
-`pip install -U` silently restores the published wheel.
+json, markdown — are published from lang-parsing-substrate 0.12.0, which clew requires. A
+version still cannot say which grammars a wheel carries: the language set is fixed by the
+cargo features it was built with, and a locally built wheel can report the published
+version string with a different set. `importlib.metadata.version` cannot tell those apart.
 
-So every front end asks what is COMPILED IN. Against the published wheel the keys are
-absent, the front ends register nothing, and the miss report names those file types as
-not indexed — a degrade with an explanation, not a crash and not a silent gap. When the
-grammars are released this module begins answering True and no other clew code changes.
+So every front end asks what is COMPILED IN. Against a wheel that lacks a key, the front
+ends register nothing for it, and the miss report names those file types as not indexed —
+a degrade with an explanation, not a crash and not a silent gap.
 
 ABSENCE IS NOT AN ERROR HERE. The substrate is a hard dependency of clew and an
 unimportable one is a broken install, but this gate is also consulted on the pre-commit
@@ -20,7 +17,7 @@ gate's path, where taking the build down to report a missing optional grammar wo
 the worse failure. An unimportable substrate yields no languages and logs it.
 
 @brief The compiled-in language set, and the questions front ends ask of it.
-@version 1
+@version 2
 """
 
 from __future__ import annotations

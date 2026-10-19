@@ -18,7 +18,7 @@ name, and named by the miss report when a query finds nothing.
 
 THE ROUTER IS CAPABILITY-GATED. `parse_tree` raises `ValueError: unknown language key` for
 a grammar the installed wheel lacks, so a `.sh` file routed to a bash grammar that is not
-compiled in would take the build down mid-parse. With the published substrate the route
+compiled in would take the build down mid-parse. With a substrate that lacks it the route
 resolves to no grammar at all, the file is registered and searchable, and it carries no
 symbols — the same outcome as YAML, and the degrade this release is designed around.
 
@@ -104,7 +104,7 @@ def _members(db: Path) -> dict[str, str]:
 def test_a_shell_script_routes_to_the_bash_grammar() -> None:
     """@brief `.sh` resolves a grammar. @version 1"""
     if not substrate.has_language("bash"):
-        pytest.skip("substrate has no bash grammar; see .claude/tmp/substrate-fork.md")
+        pytest.skip("substrate has no bash grammar; clew requires lang-parsing-substrate>=0.12.0")
     grammar = _ts_language_for("scripts/deploy.sh")
     assert grammar is not None
     assert grammar.key == "bash"
@@ -117,7 +117,7 @@ def test_the_cmake_file_name_routes_even_though_its_extension_is_txt() -> None:
     @brief The CMake file name routes; a plain `.txt` does not. @version 1
     """
     if not substrate.has_language("cmake"):
-        pytest.skip("substrate has no cmake grammar; see .claude/tmp/substrate-fork.md")
+        pytest.skip("substrate has no cmake grammar; clew requires lang-parsing-substrate>=0.12.0")
     named = _ts_language_for("CMakeLists.txt")
     assert named is not None and named.key == "cmake"
     assert _ts_language_for("src/CMakeLists.txt") is not None
@@ -178,7 +178,7 @@ def test_shell_and_cmake_definitions_become_rows(repo: tuple[Path, Path]) -> Non
     db, root = repo
     missing = substrate.missing_languages(("bash", "cmake"))
     if missing:
-        pytest.skip(f"substrate lacks {missing}; see .claude/tmp/substrate-fork.md")
+        pytest.skip(f"substrate lacks {missing}; clew requires lang-parsing-substrate>=0.12.0")
 
     register_paths(db, ["scripts/deploy.sh", "CMakeLists.txt", "config.yaml"])
     emit_definitions(db, root, None)
@@ -195,7 +195,7 @@ def test_the_shell_doc_block_reaches_the_row(repo: tuple[Path, Path]) -> None:
     """@brief The `#` block above a shell function becomes its brief. @version 1"""
     db, root = repo
     if not substrate.has_language("bash"):
-        pytest.skip("substrate has no bash grammar; see .claude/tmp/substrate-fork.md")
+        pytest.skip("substrate has no bash grammar; clew requires lang-parsing-substrate>=0.12.0")
 
     register_paths(db, ["scripts/deploy.sh"])
     emit_definitions(db, root, None)
