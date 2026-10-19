@@ -3,7 +3,7 @@
 
 1.1.0, sumac's item 4 — the half of its request that matters most. The index now reads
 shell and CMake, and registers YAML and JSON, but THAT DEPENDS ON THE INSTALLED SUBSTRATE:
-with the published wheel the grammars are absent, the files carry no symbols, and a query
+with a substrate that lacks the grammars they are absent, the files carry no symbols, and a query
 about a deploy script comes back empty. `clew/mcp_server/emptiness.py` already grades an
 empty answer and states the covered shape — the extensions it DOES hold. The complement
 was missing, and it is the actionable half: *14 `.sh` files were in scope and none of them

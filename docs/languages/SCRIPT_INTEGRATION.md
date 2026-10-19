@@ -71,10 +71,10 @@ addresses the kernel — so a block that reaches one stops there.
 
 ## Availability
 
-These grammars are **not in the published substrate wheel**. They are registered in a fork,
-open upstream as a pull request, and clew asks the installed substrate what it can parse
-rather than comparing versions — the fork's wheel reports the same version string as the
-published one, so a version test would be worthless.
+These grammars are in the published substrate wheel from lang-parsing-substrate 0.12.0,
+which clew requires. clew still asks the installed substrate what it can parse rather than
+comparing versions: a locally built wheel can carry a different language set under the same
+version string, and the answer that matters is which grammars are compiled in.
 
 With a substrate that lacks them:
 
@@ -82,9 +82,6 @@ With a substrate that lacks them:
 * nothing raises, and
 * the not-indexed report on an empty answer names those file types, so a caller is told to
   read the file instead of trusting the negative.
-
-When the grammars are published, clew's dependency range moves and the front ends begin
-producing rows with no code change.
 
 ## Scope note: dot directories
 

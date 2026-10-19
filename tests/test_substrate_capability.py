@@ -1,20 +1,18 @@
 # SPDX-License-Identifier: MIT
 """What the substrate can parse is a measurement, never a version comparison.
 
-1.1.0. The five configuration languages (bash, cmake, yaml, json, markdown) are registered
-in a FORK of lang-parsing-substrate, open upstream as PR #1 and not yet released. The fork's
-wheel reports version **0.11.2 — the same string as the published wheel**, because the
-maintainer owns versions and the PR carries no bump. So `importlib.metadata.version` cannot
-tell the two apart, and neither can a pin: a fresh venv or a `pip install -U` silently swaps
-the fork for the published wheel.
+The five configuration languages (bash, cmake, yaml, json, markdown) are published from
+lang-parsing-substrate 0.12.0, which clew requires. Which grammars a wheel carries is fixed by
+the cargo features it was built with, not by its version string — a locally built wheel can
+report the published version with a different set — so `importlib.metadata.version` cannot
+answer the question.
 
-THEREFORE EVERY FRONT END ASKS WHAT IS COMPILED IN, not what version is installed. With the
-published wheel the new keys are simply absent, the front ends register nothing, and the miss
-report says those file types are not indexed — a degrade, not a crash. When upstream publishes
-the grammars this module starts answering True with no change to clew.
+THEREFORE EVERY FRONT END ASKS WHAT IS COMPILED IN, not what version is installed. With a
+wheel that lacks a key, the front ends register nothing for it, and the miss report says
+those file types are not indexed — a degrade, not a crash.
 
 @brief The capability gate over lang-parsing-substrate's compiled-in languages.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -30,8 +28,8 @@ from clew import substrate
 ## these is broken rather than merely older.
 _ALWAYS = ("c", "cpp", "python", "rust", "javascript", "typescript")
 
-## The fork's five. Present only while the dev wheel is installed.
-_FORKED = ("bash", "cmake", "yaml", "json", "markdown")
+## Published from 0.12.0, the floor clew's dependency range sets.
+_CONFIGURATION = ("bash", "cmake", "yaml", "json", "markdown")
 
 
 @pytest.fixture(autouse=True)
@@ -56,13 +54,13 @@ def test_a_language_the_substrate_does_not_have_is_absent() -> None:
 
 
 def test_the_gate_is_capability_not_version(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A stand-in reporting the PUBLISHED language set while carrying the fork's version
-    string is exactly the state a `pip install -U` leaves behind.
+    """A stand-in carrying a version that publishes bash while reporting a language set
+    without it is the state a wheel built with fewer cargo features leaves behind.
 
-    @brief Version 0.11.2 with no bash means has_language('bash') is False. @version 1
+    @brief Version 0.12.0 with no bash means has_language('bash') is False. @version 2
     """
     fake = types.ModuleType("lang_parsing_substrate")
-    fake.__version__ = "0.11.2"
+    fake.__version__ = "0.12.0"
     fake.languages = lambda: [types.SimpleNamespace(key=k) for k in _ALWAYS]
     monkeypatch.setitem(sys.modules, "lang_parsing_substrate", fake)
     substrate.compiled_languages.cache_clear()
@@ -92,14 +90,12 @@ def test_an_unimportable_substrate_degrades_rather_than_raising(
     assert not substrate.has_language("c")
 
 
-def test_the_fork_is_installed_in_this_venv() -> None:
-    """Not a property of clew — a check that THIS checkout's venv still has the dev wheel,
-    so the front-end tests below are exercising real grammars. Rebuild with
-    `bash .claude/tmp/substrate-fork.sh` if it fails.
+def test_the_required_substrate_has_the_configuration_languages() -> None:
+    """Not a property of clew — a check that THIS venv's wheel meets the dependency floor,
+    so the front-end tests that skip on a missing grammar are exercising real grammars
+    rather than skipping in silence.
 
-    @brief The dev fork wheel is present. @version 1
+    @brief The installed wheel carries all five configuration grammars. @version 2
     """
-    missing = substrate.missing_languages(_FORKED)
-    if missing:
-        pytest.skip(f"published substrate installed; fork keys absent: {missing}")
-    assert substrate.compiled_languages() >= frozenset(_FORKED)
+    missing = substrate.missing_languages(_CONFIGURATION)
+    assert not missing, f"lang-parsing-substrate>=0.12.0 is required; absent: {missing}"
