@@ -62,6 +62,11 @@ class CellResult:
     arm: str
     model: str
     ok: bool
+    ## WHICH USAGE DOCUMENT THIS CELL WAS GIVEN, by path, or "" for none. A run directory holding
+    ## both halves of a documentation A/B is unreadable if a cell cannot say which half it is —
+    ## the stem cannot carry it, being the (question, model, arm, replicate) key both share.
+    ## Recorded as "" rather than omitted, so "no document" and "nobody recorded" differ.
+    skills: str = ""
     seconds: float = 0.0
     ## FOUR TOKEN NUMBERS, NEVER ONE. Blending them hides that cached prefix dominates: measured
     ## at 534,192 cache-read against 7,292 output on a single cell.
@@ -145,6 +150,7 @@ def run_cell(
     out_dir: Path,
     mcp_config: Path | None = None,
     timeout: int = DEFAULT_TIMEOUT,
+    skills: Path | None = None,
 ) -> CellResult:
     """REFUSES rather than silently degrading when the index arm has no MCP config. An index arm
     that quietly ran without its index would produce a full set of plausible answers and a
@@ -152,7 +158,7 @@ def run_cell(
 
     @brief Execute one cell.
     @return CellResult.
-    @version 1
+    @version 2
     """
     import time
 
@@ -185,6 +191,12 @@ def run_cell(
         ## have configured.
         "--strict-mcp-config",
     ]
+    ## A SEPARATE SURFACE FROM THE BRIEF, deliberately. `check_symmetry` guards the brief and
+    ## must keep passing: a usage document that varied the brief would be the coached-versus-
+    ## uncoached asymmetry that invalidated an earlier run. The SYSTEM prompt is also how an
+    ## adopter actually loads a repo-level agent doc, so this measures the real mechanism.
+    if skills is not None:
+        argv += ["--append-system-prompt", skills.read_text(encoding="utf-8")]
     ## ABSOLUTE, because the subprocess runs with cwd set to the TARGET REPO. A relative config
     ## path resolved against that tree, the file was not there, and every index cell failed
     ## while the baseline cells succeeded — a failure mode that silently produces a one-armed
@@ -241,6 +253,7 @@ def run_cell(
         tool_calls=calls,
         non_index_tool_calls=non_index,
         denied_tool_calls=len(envelope.get("permission_denials") or []),
+        skills=str(skills) if skills is not None else "",
         error="" if answer.strip() else "the agent produced no answer text",
     )
 

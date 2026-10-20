@@ -215,3 +215,90 @@ def test_an_index_only_cell_that_called_nothing_is_reported_as_blind():
         CellResult("unknown", "index_only", "m", True, tool_calls=-1, non_index_tool_calls=-1),
     ]
     assert index_cells_that_never_used_the_index(rows) == ["fabricated"]
+
+
+## @brief A usage document reaches the agent as a system prompt, and the cell records that it did.
+## @return None.
+## @version 1
+def test_a_skills_document_is_appended_and_recorded(tmp_path, monkeypatch) -> None:
+    """THE DOCUMENT IS A SEPARATE SURFACE FROM THE BRIEF, deliberately. `check_symmetry` guards
+    the brief and must keep passing: an A/B of a usage document has to vary something the brief
+    does not, or it becomes the coached-versus-uncoached asymmetry that invalidated an earlier
+    run. `--append-system-prompt` is that surface, and it is also how an adopter actually loads
+    a repo-level agent doc.
+
+    AND THE CELL SAYS WHETHER IT HAD ONE. A run directory holding both variants is unreadable if
+    a cell cannot say which it was; the stem alone cannot carry it, because the stem is the
+    (question, model, arm, replicate) key both variants share.
+
+    @brief The skills doc is appended and recorded.
+    @return None.
+    @version 1
+    """
+    import json
+    import subprocess
+
+    from acceptance import execute
+    from acceptance.runner import Cell
+
+    doc = tmp_path / "SKILLS.md"
+    doc.write_text("ASK FOR EVERYTHING IN ONE CALL.", encoding="utf-8")
+    seen = {}
+
+    def fake(argv, **kw):
+        seen["argv"] = argv
+        return subprocess.CompletedProcess(
+            argv, 0, json.dumps({"result": "an answer", "usage": {}, "session_id": "s"}), ""
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake)
+    cell = Cell("t", "Q1", "index_only", "m", 1, 0)
+    out = tmp_path / "out"
+    res = execute.run_cell(
+        cell, "a question?", tmp_path, out, mcp_config=doc, skills=doc, timeout=5
+    )
+    assert res.ok
+
+    argv = seen["argv"]
+    assert "--append-system-prompt" in argv, "the document must reach the agent"
+    assert "ASK FOR EVERYTHING IN ONE CALL." in argv[argv.index("--append-system-prompt") + 1]
+    ## THE BRIEF IS UNTOUCHED — the document is a different surface, which is what keeps the
+    ## comparison free of the brief asymmetry.
+    assert "ASK FOR EVERYTHING" not in argv[argv.index("-p") + 1]
+
+    meta = json.loads((out / f"{cell.stem()}.meta.json").read_text())
+    assert meta["skills"], "a cell must record that it was given a usage document"
+
+
+## @brief Without the document nothing is appended, and the record says so.
+## @return None.
+## @version 1
+def test_without_a_skills_document_nothing_is_appended(tmp_path, monkeypatch) -> None:
+    """The default must produce the argv every earlier measurement used, or the two halves of
+    the A/B are not comparable to the baseline that motivated it.
+
+    @brief No doc, no flag.
+    @return None.
+    @version 1
+    """
+    import json
+    import subprocess
+
+    from acceptance import execute
+    from acceptance.runner import Cell
+
+    seen = {}
+
+    def fake(argv, **kw):
+        seen["argv"] = argv
+        return subprocess.CompletedProcess(
+            argv, 0, json.dumps({"result": "an answer", "usage": {}, "session_id": "s"}), ""
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake)
+    cell = Cell("t", "Q1", "baseline", "m", 1, 0)
+    out = tmp_path / "out2"
+    execute.run_cell(cell, "a question?", tmp_path, out, timeout=5)
+    assert "--append-system-prompt" not in seen["argv"]
+    meta = json.loads((out / f"{cell.stem()}.meta.json").read_text())
+    assert meta["skills"] == "", "absent is recorded as absent, not omitted"

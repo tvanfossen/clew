@@ -86,7 +86,7 @@ def cmd_generate(args) -> int:
 
     @brief Generate answers.
     @return Exit code.
-    @version 3
+    @version 4
     """
     rubric = _rubric(args.rubric)
     if rubric is None:
@@ -151,7 +151,13 @@ def cmd_generate(args) -> int:
     results = []
     for cell in pending:
         result = run_cell(
-            cell, prompts[cell.question_id], args.repo, args.out, args.mcp_config, args.timeout
+            cell,
+            prompts[cell.question_id],
+            args.repo,
+            args.out,
+            args.mcp_config,
+            args.timeout,
+            skills=getattr(args, "skills", None),
         )
         flag = "ok " if result.ok else "ERR"
         print(
@@ -835,6 +841,15 @@ def main() -> int:
                 "--resume",
                 action="store_true",
                 help="skip cells whose answer is already frozen on disk",
+            )
+            ## A USAGE DOCUMENT APPENDED TO THE SYSTEM PROMPT, not to the brief. The brief is
+            ## what `check_symmetry` guards; varying it would rebuild the coached-versus-
+            ## uncoached asymmetry an earlier run was thrown out for.
+            p.add_argument(
+                "--skills",
+                type=Path,
+                default=None,
+                help="usage document to append to the agent's system prompt",
             )
         if name in ("grade", "report"):
             p.add_argument("--answers", type=Path, required=True)

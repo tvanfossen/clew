@@ -145,6 +145,10 @@ def phase_argv(phase: str, rubric_path: Path, root: Path, args) -> list[str]:
         ## invocation is reached through this same driver or through none at all.
         if getattr(args, "resume", False):
             argv.append("--resume")
+        ## FORWARDED LIKE `--resume`: the grid is the unit an experiment runs on, so a flag the
+        ## driver cannot pass is a flag that does not exist in practice.
+        if getattr(args, "skills", None):
+            argv += ["--skills", str(Path(args.skills).resolve())]
         return argv
     argv = common + ["--answers", str(answers)]
     ## GRADE ONLY. `report` has no such flag and passing it would make the driver's argv differ
@@ -272,6 +276,12 @@ def main() -> int:
     )
     parser.add_argument(
         "--jobs", type=int, default=1, help="grade this many answers at once (grading only)"
+    )
+    parser.add_argument(
+        "--skills",
+        type=Path,
+        default=None,
+        help="usage document appended to the agent's system prompt (generation only)",
     )
     parser.add_argument(
         "--skip-graded",
