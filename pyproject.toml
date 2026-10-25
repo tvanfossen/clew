@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "clew-trace"
-version = "1.1.0"
+version = "1.1.1"
 description = "Queryable, layered symbol database for C, C++, Rust and Python codebases: doxygen + tree-sitter call graph, threads, locks and dataflow edges, served to AI agents over MCP — plus the doxygen-guard pre-commit gate."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -111,6 +111,20 @@ Issues = "https://github.com/tvanfossen/clew/issues"
 ## the build backend. `test_wheel_contains_every_console_script_module` is the guard.
 only-include = ["clew", "clew_hook.py"]
 
+## SKILLS.md IS THE ONE DOCUMENT A CONSUMER IS POINTED AT, AND 1.1.0 SHIPPED WITHOUT IT. It stays
+## canonical at the repository root — `AGENTS.md` links it by that path and so does the README —
+## and `force-include` maps it *into* the package for the wheel rather than copying it into
+## `clew/`, so there is one file in the tree and no second copy to drift.
+##
+## INSIDE THE PACKAGE, NOT AT THE ARCHIVE ROOT. A top-level `.md` in a wheel installs loose into
+## `site-packages`, where it belongs to nobody and collides by name with any other distribution
+## that does the same. At `clew/SKILLS.md` it installs to a path `importlib.resources` can reach.
+##
+## AGENTS.md IS DELIBERATELY NOT HERE. It routes someone *changing* clew, and that audience has
+## the tree checked out; shipping it to an installed consumer would be guidance they cannot act on.
+[tool.hatch.build.targets.wheel.force-include]
+"SKILLS.md" = "clew/SKILLS.md"
+
 [tool.hatch.build.targets.sdist]
 include = [
     "/clew",
@@ -118,6 +132,11 @@ include = [
     "/tests",
     "/docs",
     "/README.md",
+    ## BOTH ENTRY-POINT DOCUMENTS. This list is an ALLOWLIST, so a document added to the tree after
+    ## it was written is absent by default — which is exactly how 1.1.0 published an sdist missing
+    ## the two files `AGENTS.md` names as the two places to start.
+    "/SKILLS.md",
+    "/AGENTS.md",
     "/LICENSE",
     "/requirements.yaml",
     "/.clew.yaml",

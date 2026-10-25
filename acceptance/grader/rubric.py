@@ -25,6 +25,8 @@ from typing import Any
 
 import yaml
 
+from acceptance.modelpin import require_pinned
+
 SCHEMA = 1
 
 MARK_TYPES = ("retrieval", "conclusion", "set")
@@ -287,11 +289,16 @@ def load(path: Path) -> Rubric:
     model = str(judge.get("model") or "")
     ## AN ALIAS IS REFUSED. `sonnet` moves under the rubric without the commit pin changing,
     ## which makes "repeatable so long as the pin holds" false in a way nothing reports.
-    if "-" not in model or not any(ch.isdigit() for ch in model):
-        raise RubricError(
-            f"{path}: judge.model {model!r} looks like an alias. Pin a DATED model id — an "
-            f"alias moves under the rubric while the commit pin still reads as held"
-        )
+    ##
+    ## THE RULE USED TO LIVE HERE AND WAS WEAKER THAN IT READ. It asked for a hyphen and any
+    ## digit, which `claude-haiku-5-5` satisfies — so this check would have accepted a family
+    ## alias as a dated id. It now shares `modelpin` with the ANSWERING model, which is the other
+    ## half of the same experiment and had no check at all: 1.1.0 was graded by a pinned judge and
+    ## answered by an alias.
+    try:
+        require_pinned("judge.model", model)
+    except ValueError as exc:
+        raise RubricError(f"{path}: {exc}") from exc
 
     index = doc.get("index") or {}
     declare = index.get("declare") or {}

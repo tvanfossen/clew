@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import tarfile
 import zipfile
 from pathlib import Path
 
@@ -109,4 +110,94 @@ def test_wheel_contains_every_console_script_module(tmp_path: Path) -> None:
         f"{wheel.name} installs console scripts whose modules it does not contain: {missing}. "
         f"Every one of them raises ModuleNotFoundError the first time a consumer runs it. "
         f"Wheel top level: {sorted({name.split('/')[0] for name in members})}"
+    )
+
+
+##
+# @brief Build an sdist from the repository into a temporary directory.
+# @param out_dir Directory to build into.
+# @return Path to the built sdist.
+# @version 1
+# @dg_internal
+def _build_sdist(out_dir: Path) -> Path:
+    """Same `sys.executable` rule and the same reason as `_build_wheel`: the venv interpreter,
+    never whatever `python` resolves to on PATH.
+
+    @brief Build an sdist and return its path.
+    @return The built sdist.
+    @version 1
+    """
+    subprocess.run(
+        [sys.executable, "-m", "build", "--sdist", "--outdir", str(out_dir), str(REPO_ROOT)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    archives = sorted(out_dir.glob("*.tar.gz"))
+    assert len(archives) == 1, f"expected exactly one sdist, built {[a.name for a in archives]}"
+    return archives[0]
+
+
+##
+# @brief The wheel must carry the usage guidance an installed consumer is told to follow.
+# @param tmp_path Pytest temporary directory.
+# @return None.
+# @version 1
+def test_wheel_ships_the_usage_guidance(tmp_path: Path) -> None:
+    """**1.1.0 SHIPPED WITHOUT IT.** `SKILLS.md` is the measured usage guidance — the A/B that
+    justifies it moved batching from 26% to 60% and cut turns 20.5% — and the wheel contained
+    neither it nor `AGENTS.md`. A `pip install clew-trace` consumer therefore had no copy of the
+    document the project points every consuming agent at, because the sdist `include` list is an
+    allowlist and these two files were added to the repository after it was written.
+
+    **THE WHEEL IS THE ONE THAT MATTERS HERE, NOT THE SDIST.** `pip install` resolves to a wheel
+    in every ordinary case, so shipping the guidance only in the sdist would leave the gap exactly
+    where it was while looking fixed. It is placed *inside* the package rather than at the archive
+    root so that it installs to a path `importlib.resources` can reach, instead of landing loose
+    in `site-packages`.
+
+    @brief SKILLS.md installs as package data in the wheel.
+    @return None.
+    @version 1
+    """
+    wheel = _build_wheel(tmp_path)
+    with zipfile.ZipFile(wheel) as archive:
+        members = set(archive.namelist())
+
+    assert "clew/SKILLS.md" in members, (
+        "the wheel does not carry clew/SKILLS.md, so a pip-installed consumer has no copy of the "
+        "usage guidance this project points every consuming agent at. "
+        f"Wheel top level: {sorted({name.split('/')[0] for name in members})}"
+    )
+
+
+##
+# @brief The sdist must carry both documents an adopter or contributor is sent to.
+# @param tmp_path Pytest temporary directory.
+# @return None.
+# @version 1
+def test_sdist_ships_both_entry_point_documents(tmp_path: Path) -> None:
+    """`AGENTS.md` is for someone *changing* clew and `SKILLS.md` is for an agent *using* it, so
+    only the sdist needs both — a contributor has the tree, and that is the audience `AGENTS.md`
+    routes. The sdist is still the artifact that has to be complete, because it is what a
+    distribution packager and a `--no-binary` install build from.
+
+    The paths are matched by suffix rather than by the full `clew_trace-<version>/` prefix, so
+    the check does not have to be edited on every version bump.
+
+    @brief Both documents are in the sdist.
+    @return None.
+    @version 1
+    """
+    sdist = _build_sdist(tmp_path)
+    with tarfile.open(sdist) as archive:
+        names = archive.getnames()
+
+    tops = {name.split("/", 1)[1] for name in names if "/" in name}
+    missing = sorted({"SKILLS.md", "AGENTS.md"} - tops)
+
+    assert not missing, (
+        f"{sdist.name} is missing {missing}. The sdist `include` list is an allowlist, so a "
+        f"document added to the repository after it was written is absent by default rather "
+        f"than present by default. Sdist contents: {sorted(tops)}"
     )

@@ -139,7 +139,10 @@ def test_run_json_carries_the_tool_identity(tmp_path: Path, monkeypatch) -> None
     out = tmp_path / "answers"
     args = cli.argparse.Namespace(
         rubric=rubric,
-        models=["m"],
+        ## FIXTURE, NOT BEHAVIOUR. This said `m` (resp. `sonnet`) until `--models` began
+        ## refusing an alias. What this test guards is unchanged; only the example string
+        ## had to become a real pinned id to reach the code under test.
+        models=["claude-sonnet-4-5-20250929"],
         replicates=1,
         seed=7,
         repo=tmp_path,
@@ -249,4 +252,115 @@ def test_grading_prints_each_cell_before_the_last_one_is_scored(tmp_path, monkey
     last_scored = len(events) - 1 - events[::-1].index("scored")
     assert "printed" in events[:last_scored], (
         f"nothing reached the operator until every cell was graded: {events}"
+    )
+
+
+##
+# @brief `generate` must refuse an answering model that is an alias.
+# @param tmp_path Pytest temporary directory.
+# @param monkeypatch Pytest monkeypatch fixture.
+# @return None.
+# @version 1
+def test_generate_refuses_an_alias_answering_model(tmp_path: Path, monkeypatch) -> None:
+    """**THIS IS THE 1.1.0 GAP.** The judge was refused an alias from the first release and the
+    model being GRADED was never asked, so the published grid was judged by
+    `claude-sonnet-4-5-20250929` and answered by `claude-haiku-5-5`. The rubric digest, the commit
+    pin and the seed all read as held while the model underneath could move.
+
+    It refuses BEFORE any cell runs: `run_cell` is replaced with something that records being
+    called, and the assertion is that it never was. A check that refused after spending the grid
+    would pass a test that only looked at the exit code.
+
+    @brief An alias answering model is refused before spending anything.
+    @return None.
+    @version 1
+    """
+    import json  # noqa: F401
+
+    from acceptance import __main__ as cli
+
+    FREERTOS = Path(__file__).resolve().parent.parent / "acceptance/targets/freertos/questions.yaml"
+    spent: list[str] = []
+    monkeypatch.setattr(cli, "run_cell", lambda cell, *_a, **_k: spent.append(cell.stem()))
+    monkeypatch.setattr(cli, "check_revision", lambda *_a, **_k: None)
+    out = tmp_path / "answers"
+    args = cli.argparse.Namespace(
+        rubric=FREERTOS,
+        models=["claude-haiku-5-5"],
+        replicates=1,
+        seed=7,
+        repo=tmp_path / "repo",
+        out=out,
+        mcp_config=None,
+        timeout=60,
+        resume=False,
+    )
+
+    assert cli.cmd_generate(args) == 1, "an alias answering model was accepted"
+    assert not spent, f"cells were spent before the refusal: {spent}"
+
+
+##
+# @brief Each `generate` must append a window record rather than overwrite the previous one.
+# @param tmp_path Pytest temporary directory.
+# @param monkeypatch Pytest monkeypatch fixture.
+# @return None.
+# @version 1
+def test_each_generate_appends_a_window_rather_than_overwriting(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """**THE 1.1.0 GRID CANNOT SAY HOW MANY SITTINGS BUILT IT.** `resumed` recorded which stems
+    came from before — the right fact — but every `generate` REWROTE `run.json`, so after three
+    capacity windows the record described only the last one. A grid assembled over several windows
+    must not read as one pass.
+
+    TWO WINDOWS ARE RUN AND BOTH ARE ASSERTED PRESENT, in order, with the first one's identity
+    still intact. Asserting only `len(windows) == 2` would pass an implementation that appended a
+    fresh pair each time, and asserting only the last would pass the overwrite this fixes.
+
+    @brief Windows accumulate across generate invocations.
+    @return None.
+    @version 1
+    """
+    import json
+
+    from acceptance import __main__ as cli
+    from acceptance import execute
+
+    FREERTOS = Path(__file__).resolve().parent.parent / "acceptance/targets/freertos/questions.yaml"
+    monkeypatch.setattr(
+        cli,
+        "run_cell",
+        lambda cell, *_a, **_k: execute.CellResult(cell.stem(), cell.arm, cell.model, True),
+    )
+    monkeypatch.setattr(cli, "check_revision", lambda *_a, **_k: None)
+    out = tmp_path / "answers"
+
+    def once(resume: bool) -> None:
+        cli.cmd_generate(
+            cli.argparse.Namespace(
+                rubric=FREERTOS,
+                models=["claude-sonnet-4-5-20250929"],
+                replicates=1,
+                seed=7,
+                repo=tmp_path / "repo",
+                out=out,
+                mcp_config=None,
+                timeout=60,
+                resume=resume,
+            )
+        )
+
+    once(resume=False)
+    first = json.loads((out / "run.json").read_text())["windows"]
+    once(resume=True)
+    windows = json.loads((out / "run.json").read_text())["windows"]
+
+    assert len(first) == 1, f"the first generate recorded {len(first)} window(s)"
+    assert [w["ordinal"] for w in windows] == [1, 2], (
+        f"windows did not accumulate in order; got {[w.get('ordinal') for w in windows]}"
+    )
+    assert windows[0] == first[0], "the first window's record was rewritten by the second"
+    assert "clew_build_version" in windows[1], (
+        f"a window carries no tool identity, so it cannot be attributed: {windows[1]}"
     )
