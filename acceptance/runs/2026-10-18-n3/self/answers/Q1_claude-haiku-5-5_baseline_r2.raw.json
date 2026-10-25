@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 37839,
+  "stop_reason": "end_turn",
+  "session_id": "7d10e622-fc43-4e44-b507-b3458f7f6d04",
+  "total_cost_usd": 0.014471560000000001,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 37377,
+    "cache_read_input_tokens": 417736,
+    "output_tokens": 5634,
+    "output_tokens_details": {
+      "thinking_tokens": 1786
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37377,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2605,
+        "cache_read_input_tokens": 66379,
+        "cache_creation_input_tokens": 1118,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1118
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 5634,
+      "cacheReadInputTokens": 417736,
+      "cacheCreationInputTokens": 37377,
+      "webSearchRequests": 0,
+      "costUSD": 0.014471560000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1786,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Nothing is decided by a Doxyfile anymore. Two things decide what gets indexed: a scope tier (which trees are walked) and doxygen's `FILE_PATTERNS` (which extensions are read). The scope tier is set by the repo's own declaration if it has one, and by the repository itself if it doesn't. I read the code but did not run a build, so the behaviour below is from source, not measured output.\n\n```\n.clew.yaml index_scope?  \u2500\u2500yes\u2500\u2500> roots (repo-relative, must exist) minus excludes\n        \u2502 no\n        \u25bc\nwhole repo \u2500 minus git-ignored paths (per tree, incl. nested git trees)\n           \u2500 minus dot-dirs, __pycache__, node_modules\n        \u2502\n        \u25bc\nenumerate_tree (no extension filter; prunes excluded subtrees)\n        \u2502\n        \u25bc\n_drop_binary_files (lang_parsing_substrate classifies; binaries \u2192 extra_exclude)\n        \u2502\n        \u25bc\ndoxygen: INPUT = scope roots, FILE_PATTERNS forced to the default list\n        \u2502\n        \u25bc\nindex (JS/TS contribute through the parse front end, not doxygen)\n```\n\n**1. Declared scope (tier 1).** `clew/scope.py` `_declared_index_scope` reads `index_scope:` from the repo's `.clew.yaml`. It takes `roots` and `excludes`, both repo-relative. Roots that don't exist are dropped with a warning. `roots` is required, so `excludes` alone does nothing. Unknown keys reject the whole section rather than being ignored. A rejected section falls back to whole-repo, and the log says why.\n\n**2. Nothing declared (tier 2, the default).** `whole_repo_scope` in the same file makes the repository root the single INPUT root. Excludes come from:\n- `git ls-files --others --ignored --exclude-standard --directory`, which is the `.gitignore` set, run for the parent repo and for each nested git tree.\n- Dot-directories (`.git`, `.venv`, and so on), plus `__pycache__` and `node_modules`, via `_pruned_dirs`.\n\nNested git trees (submodules, vendored clones) are indexed, not cut out. `external.py` tags their rows afterwards. If the directory isn't a git repo, the ignore list is empty and a warning is logged, so the scope is wider than the repo asked for. That is the failure mode the code comments say the project keeps guarding against.\n\n**3. Enumeration.** `treescan.enumerate_tree` walks the roots and prunes excluded subtrees during the walk. It deliberately does not filter by extension. Every file under scope is hashed for cache invalidation, so an edit to a non-source file still forces a doxygen re-run. That hashing is for cache keys only; it does not put files in the index.\n\n**4. Binary removal.** `cli._drop_binary_files` classifies each file by content, not extension, and drops binaries. It adds them to `extra_exclude` and logs each skip at INFO. Text files of any size stay.\n\n**5. Doxygen's file-type filter.** `doxygen.py` forces `FILE_PATTERNS` to `DOXYGEN_DEFAULT_FILE_PATTERNS` (C/C++, Java, Python, Fortran, Markdown, VHDL, and so on) and replaces `INPUT` with the resolved scope (`RECURSIVE=YES`). A repo's declared `FILE_PATTERNS` is read only for reporting; it cannot veto a file that scope admitted (gh#340). The repo's Doxyfile still supplies ALIASES and PREDEFINED.\n\n**What happens when nothing is declared:** the whole repository is indexed, less what git ignores, less dot and cache directories, less binaries. Doxygen then keeps only files with the default extensions, and JS/TS files are picked up through the parse front end. `derive_scope` puts an explanation in the build log saying no `index_scope` was declared and naming where one would go.\n\n**Caveats I did not verify by running:**\n- `git ls-files --others --ignored` lists only untracked ignored entries. A file that is tracked and also matches a `.gitignore` pattern should stay in scope. I inferred this from git's semantics.\n- The `index_scope` / `excludes` semantics above are from the docstrings and code, not from a test run. The relevant tests are `tests/test_scope.py`, `tests/test_treescan_pruning.py` and `tests/test_binary_*` if you want to confirm them.",
+  "ttft_ms": 1960,
+  "type": "result",
+  "duration_ms": 38301,
+  "uuid": "caa2da78-856c-4280-9c81-36e925ad2c5c",
+  "ttft_stream_ms": 1836,
+  "time_to_request_ms": 84,
+  "first_content_frame_ms": 1836,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

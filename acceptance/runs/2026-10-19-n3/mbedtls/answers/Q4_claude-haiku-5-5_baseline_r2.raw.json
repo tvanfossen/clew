@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 21825,
+  "stop_reason": "end_turn",
+  "session_id": "d5138c6c-6a7c-4272-b483-05142f8739b8",
+  "total_cost_usd": 0.00608217,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 12360,
+    "cache_read_input_tokens": 168717,
+    "output_tokens": 3844,
+    "output_tokens_details": {
+      "thinking_tokens": 1268
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 12360,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2116,
+        "cache_read_input_tokens": 39991,
+        "cache_creation_input_tokens": 2498,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2498
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3844,
+      "cacheReadInputTokens": 168717,
+      "cacheCreationInputTokens": 12360,
+      "webSearchRequests": 0,
+      "costUSD": 0.00608217,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1268,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How a code becomes a string**\n\n1. **Source of truth is the headers.** Each error is a `#define MBEDTLS_ERR_<MODULE>_<NAME> -0x....` in `include/mbedtls/*.h`, with a Doxygen description either before it (`/** ... */`) or after it (`/*!< ... */`). Examples: `include/mbedtls/error.h:98` (`MBEDTLS_ERR_ERROR_GENERIC_ERROR -0x0001`) and `tests/suites/test_suite_error.data`.\n\n2. **Generation, not hand-written.** `scripts/generate_errors.pl` scans the headers with a regex, rejects duplicate values, and builds two `switch` blocks. It writes them into `library/error.c` using the template `scripts/data_files/error.fmt`. Each case looks like `case -(MBEDTLS_ERR_RSA_BAD_INPUT_DATA): return \"RSA - Bad input parameters to function\";`. The module prefix comes from the macro name, and the text comes from the Doxygen description. The generator also emits the `#include \"mbedtls/<module>.h\"` lines and wraps each case in `#if defined(MBEDTLS_<MODULE>_C)`. The build runs it (`library/Makefile:355`, `library/CMakeLists.txt:139`), and `tests/scripts/check-generated-files.sh:135` fails CI if the checked-in `library/error.c` is stale.\n\n3. **Runtime lookup.** `mbedtls_strerror()` in `library/error.c` (generated) does this:\n   - Takes the absolute value, since codes are negative.\n   - Splits the code by bit mask. Bits `0xFF80` are the high-level module (for example RSA, SSL, X509). Bits `~0xFF80` are the low-level module (for example AES, ASN1, BASE64).\n   - Looks up the high part with `mbedtls_high_level_strerr()`, then the low part with `mbedtls_low_level_strerr()`.\n   - Joins the two with `\" : \"`. Unknown parts become `UNKNOWN ERROR CODE (XXXX)`.\n   - Stops early for `MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE`, since the low bits there are an alert code, not an error.\n   - Writes into the caller's buffer, always NUL-terminated.\n\n```\nret = -0x40A0\n  -> |ret| = 0x40A0\n  -> high = 0x4080 -> \"RSA - Bad input parameters to function\"\n  -> low  = 0x0020 -> \"AES - Invalid key length\"\n  -> \"RSA - Bad input parameters to function : AES - Invalid key length\"\n```\n\nIf `MBEDTLS_ERROR_C` is off, `mbedtls_strerror()` returns an empty string (`library/error.c`, the `#else` branch).\n\n**Adding a new error code**\n\n1. Add the `#define` to the right header in `include/mbedtls/`, as `-0x....`. Pick an unused value in that module's range. The name must start with `MBEDTLS_ERR_<MODULE>_`.\n2. Give it exactly one description: a Doxygen comment before it or `/*!<` after it, not both. Otherwise the generator dies. The text becomes the user-visible string, so write it as the message you want printed.\n3. If the module is new, add its name to `@low_level_modules` or `@high_level_modules` in `scripts/generate_errors.pl`. Otherwise it exits with \"Do not know how to handle\". Also add a mapping there if the header or define name doesn't follow the default pattern.\n4. Regenerate `library/error.c` (`make` in `library/`, or the CMake target), then commit it. CI's generated-file check will reject a stale file.\n5. Add a case to `tests/suites/test_suite_error.data` with `depends_on` for the module, and run the error test suite through the project's test tooling.\n\nI didn't run the generator or the tests. This is from reading the scripts and the code.",
+  "ttft_ms": 2620,
+  "type": "result",
+  "duration_ms": 22085,
+  "uuid": "173db5d1-d551-413e-9ca2-4dfc80585169",
+  "ttft_stream_ms": 2228,
+  "time_to_request_ms": 79,
+  "first_content_frame_ms": 2228,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

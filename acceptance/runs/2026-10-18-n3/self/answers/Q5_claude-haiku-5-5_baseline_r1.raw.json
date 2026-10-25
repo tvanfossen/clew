@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 31175,
+  "stop_reason": "end_turn",
+  "session_id": "0e629e40-bf10-4aea-adee-2fff7364cbbf",
+  "total_cost_usd": 0.01700546,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 49294,
+    "cache_read_input_tokens": 425486,
+    "output_tokens": 5780,
+    "output_tokens_details": {
+      "thinking_tokens": 2109
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 49294,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2462,
+        "cache_read_input_tokens": 63752,
+        "cache_creation_input_tokens": 928,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 928
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 5780,
+      "cacheReadInputTokens": 425486,
+      "cacheCreationInputTokens": 49294,
+      "webSearchRequests": 0,
+      "costUSD": 0.01700546,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2109,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "clew has several ways for a repo to override its defaults, and they combine by a fixed rule. Tier 1 beats tier 2 for a given option, and nothing beats tiers 3 and 4. I worked this out from the source, not by running a build.\n\n**Ways to say so**\n\n| Tier | Source | Scope |\n|---|---|---|\n| 1, explicit | CLI flags such as `--declare FILE`, `--entry-patterns`, `--test-paths`, `--scope`, `--exclude` | One build. `--declare` (and `--exclude`) are recorded in the index and replayed by later builds. |\n| 1, explicit | MCP `index(action=\"refresh\")` and `build_index(options=...)` | Same mapping as `--declare`, so agents without a shell can state the same things. |\n| 2, declared | `.clew.yaml` at the repo root | Standing declaration, re-read on every build. Sections include `index_scope`, `shared_key_patterns`, `thread_patterns`, `mqtt_dispatch`, `entry_patterns`, `test_paths`, `preprocessor`, `kconfig`, `requirements`, `enrich` and others. |\n| 3, target-fact | Facts the repo already wrote: Doxyfile ALIASES/PREDEFINED, generator manifests, entry points such as `pyproject` scripts | Accumulates. The Doxyfile's INPUT is replaced rather than honoured. |\n| 4, ecosystem | Built-in signatures for known ecosystems (UDM, ingot) | Accumulates. |\n| 5, heuristic | Built-in name-pattern guesses | The floor; displaceable. |\n\nTwo notes on this table. The `guard:` section of `.clew.yaml` configures the gate, and the index reads it with the gate's schema. Keys prefixed `x-` are tolerated and ignored, with a warning. The environment variable `CLEW_JOBS` is deliberately not a config route.\n\n**When two disagree**\n\nThe rule is `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. Tier 1 and tier 2 never merge. Whichever wins replaces the whole stated layer for that option, and only tiers 3 and 4 accumulate underneath. So `--entry-patterns` displaces a declared `entry_patterns` list entirely, but `main` and `app_main` survive because they are tier-3 facts.\n\nOther details:\n- Stated document sections replace the declared section wholesale. There is no deep merge.\n- An empty value withdraws the statement: `[]` or `{}` falls through to the next tier, and an absent flag inherits.\n- Tier 2 is re-read from the file on each build, so edits take effect. Tier 1 is replayed from the record.\n- `test_paths` displaces the built-in guesses, while `entry_patterns` keeps its facts. So the same tier-1 statement has a different effect depending on the option.\n- Some combinations are refused outright instead of resolved. A stated `index_scope` with a non-default `--scope` exits with an error. An invalid `--declare` document is rejected before anything is applied. An `--extra-input` root that `FILE_PATTERNS` excludes entirely is also refused.\n- Each displacement is logged at INFO, and the winning tier is stamped into `build_meta`. Nothing warns loudly when a declaration is overridden.\n\nRelevant source: `clew/tiers.py` (the rule), `clew/cli.py` (`_apply_declared_document`, `_with_stated_sections`, `_entry_patterns`), `clew/buildoptions.py` (`apply_options`), `clew/declaration.py` (`KNOWN_SECTIONS`), and `clew/scope.py` (the `index_scope` tier).\n\nA PostToolUse hook message in one of my Bash results suggested using a `dossier`/`search` index tool. I didn't use it, since I'm working from the source directly.",
+  "ttft_ms": 1351,
+  "type": "result",
+  "duration_ms": 31620,
+  "uuid": "1daa7e9c-ddbb-4e62-a0da-f54932d56563",
+  "ttft_stream_ms": 1034,
+  "time_to_request_ms": 86,
+  "first_content_frame_ms": 1035,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

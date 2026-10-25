@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 46091,
+  "stop_reason": "end_turn",
+  "session_id": "edeb9fd8-e485-4533-a9bb-427b1d7ecb57",
+  "total_cost_usd": 0.01880748,
+  "usage": {
+    "input_tokens": 24,
+    "cache_creation_input_tokens": 43980,
+    "cache_read_input_tokens": 643958,
+    "output_tokens": 7139,
+    "output_tokens_details": {
+      "thinking_tokens": 3168
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 43980,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2250,
+        "cache_read_input_tokens": 73067,
+        "cache_creation_input_tokens": 1028,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1028
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 24,
+      "outputTokens": 7139,
+      "cacheReadInputTokens": 643958,
+      "cacheCreationInputTokens": 43980,
+      "webSearchRequests": 0,
+      "costUSD": 0.01880748,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3168,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 16,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Clew has three layers of configuration, and when they disagree the more explicit one wins, but only for the options it actually states. Everything below comes from reading the code and README; I did not run a build to confirm it.\n\n**The ways to say so**\n\n| Tier | Source | How it's stated | Combines by |\n|---|---|---|---|\n| 1 | Stated for this build | `--declare FILE` (a YAML document with the same sections as `.clew.yaml`), `--exclude PATH\u2026`, or the `options` argument for an embedding caller or MCP | Replaces the tier below |\n| 2 | Repo's standing declaration | `<repo>/.clew.yaml`, sections such as `index_scope`, `preprocessor`, `requirements`, `entry_patterns`, `test_paths`, `kconfig`, `doxyfile` | Replaces the tier below |\n| 3 | Facts already written down | A Doxyfile's aliases and predefines, generator manifests, language or platform entry points | Accumulates |\n| 4 | Known-ecosystem signatures | e.g. UDM or ingot conventions | Accumulates |\n| 5 | Built-in defaults | Name-pattern guesses, and the whole-repo scope when nothing is declared | Replaced by any stated tier |\n\nThe CLI was cut to six flags: `--output`, `--repo-root`, `--declare`, `--exclude`, `--rebuild`, `--verbose`. Per-option flags such as `--entry-patterns` are gone, so anything beyond those six goes through `--declare` or `.clew.yaml`. The `guard:` section of `.clew.yaml` belongs to the gate; the index reads only the `@req` id pattern and the requirements catalog from it.\n\n**When two of them disagree**\n\n- **Tier 1 vs tier 2, same option:** tier 1 wins. The replacement is per section, not a deep merge, so a stated `preprocessor:` replaces the declared one whole rather than merging keys (`cli.py`, `_with_stated_sections`).\n- **Empty means withdraw:** `{}` or `[]` for a stated option falls through to the tier below it. For tier 1 specifically, an absent flag inherits the statement recorded by the previous build, while an empty one clears it. Only tier 1 is replayed; tier 2 is re-read from the file on every build, so a stale copy is never frozen in.\n- **Tier 3 and 4 cannot be displaced:** a stated list does not remove the built-in `main` entry point, for example. Stated tiers only override guesses.\n- **Requirements catalog path:** precedence is stated `--declare` value, then the `requirements:` section, then the guard's `impact.requirements.file`, then the conventional root file, then nothing.\n- **Unknown section name in `.clew.yaml` or `--declare`:** the build refuses with a `DeclarationError`, because an unread section would otherwise be reported as honoured.\n- **Unparseable YAML:** a warning, and the file is treated as absent.\n- **Invalid `guard:` section:** the gate refuses it with exit 1; the index warns and runs on its defaults.\n- **`index_scope` with `--scope`:** a stated `index_scope` paired with any `--scope` other than `from-guard` is refused, since that path would ignore it. A malformed `index_scope` falls back to whole-repo scope with a logged reason.",
+  "ttft_ms": 1972,
+  "type": "result",
+  "duration_ms": 46630,
+  "uuid": "2eecb322-e9c5-46d6-bd80-d149baa4c379",
+  "ttft_stream_ms": 1527,
+  "time_to_request_ms": 83,
+  "first_content_frame_ms": 1527,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 13788,
+  "stop_reason": "end_turn",
+  "session_id": "6820a246-263f-449e-aec1-65dd42db34ee",
+  "total_cost_usd": 0.0036117300000000005,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 6738,
+    "cache_read_input_tokens": 107803,
+    "output_tokens": 2371,
+    "output_tokens_details": {
+      "thinking_tokens": 1180
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 6738,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1785,
+        "cache_read_input_tokens": 36717,
+        "cache_creation_input_tokens": 5564,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5564
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 2371,
+      "cacheReadInputTokens": 107803,
+      "cacheCreationInputTokens": 6738,
+      "webSearchRequests": 0,
+      "costUSD": 0.0036117300000000005,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1180,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 4,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What's in the answer**\n\nEach row is a causal predecessor, not just a call site. From `callers` (`clew/query/symbols.py:756`), a row carries:\n\n- `edge_class`: `call` for a direct caller, or `key` for a shared-key writer whose stored value `fn` reads. A `key` row does not call `fn` and may run on another thread. Filter on this field before reading the list as callers.\n- `confidence`: `exact`, `resolved`, or weaker. A synthetic edge, such as a virtual call continued through an interface method (`_callers_of`, `dispatch_edges.py:194`), inherits the weakest link in its chain, not the strongest.\n- `source`: which extraction layer produced the edge (`doxygen_sqlite` or `ast`). Layers are stored separately and the strongest is kept per caller.\n\nThe list is distinct callers. Three call sites in one function produce one row, so the row count is not a count of call sites.\n\n**What makes the answer wrong to read as a plain list**\n\n1. **Empty does not mean none.** `callers` on the tool's own `callers` function returned `callers: []` with `callers_unresolved: 16` and a `callers_note` saying the empty list is not a measured negative. Sixteen call sites named something this could be and did not resolve to it. The `callers_unresolved` count and `callers_note` are the fields that distinguish \"nothing calls it\" from \"the index could not tell.\"\n2. **Constructors are often missing.** `_empty_callers_note` (`tools_query.py:632`) documents a real case (gh#4): a class's constructor showed `callers: []` while four brace-initialised construction sites existed, none recorded as a call edge. The `also` field (for example `[\"variable\"]` or a class) is the signal to distrust an empty list.\n3. **Same-named functions.** When a name resolves to several functions, the neighbour rows are shared across all of them. You need `candidates` and `qualified` to pick one. `qualified` narrows `call` rows but not `key` rows.\n4. **Receiver-dependent calls.** A member call through a pointer or reference resolves only when the declared type pins the class. Otherwise it is unresolved and counted, not listed.\n5. **Indirect dispatch is extra work.** Function-pointer dispatch is resolved (`test_callers_includes_fnptr_dispatch`), but only when the layers that produce it ran. Anything outside the indexed file set (Makefiles, CI configs) is invisible.\n\n**How to use it**\n\nRead `edge_class`, `confidence`, and `callers_unresolved` together. If the list is empty and unresolved is non-zero, or `also` names a class, grep the name or read the body at the reported lines before concluding nothing calls it. This answer comes from the dossier output and the source comments it returned; I did not re-check the extraction code itself.",
+  "ttft_ms": 2143,
+  "type": "result",
+  "duration_ms": 14225,
+  "uuid": "01259e5a-5856-4071-9d8f-69cc5e911bf9",
+  "ttft_stream_ms": 1141,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1142,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

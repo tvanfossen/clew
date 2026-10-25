@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 22796,
+  "stop_reason": "end_turn",
+  "session_id": "34f54d6a-bfd8-4e16-999f-bd1449e82f8d",
+  "total_cost_usd": 0.00854569,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 22533,
+    "cache_read_input_tokens": 216859,
+    "output_tokens": 3739,
+    "output_tokens_details": {
+      "thinking_tokens": 1183
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 22533,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2287,
+        "cache_read_input_tokens": 53415,
+        "cache_creation_input_tokens": 5354,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5354
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3739,
+      "cacheReadInputTokens": 216859,
+      "cacheCreationInputTokens": 22533,
+      "webSearchRequests": 0,
+      "costUSD": 0.00854569,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1183,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How Python reaches the engine**\n\nThe Python package is a ctypes binding over the C ABI. It has no C++ glue and no pybind11. `python/src/entropic/_bindings.py` loads `librentropic.so` and pins each symbol's `restype` and `argtypes` through a `_bind(name, restype, *argtypes)` helper (`_bindings.py:35`). Every `entropic_*` function in `include/entropic/entropic.h` gets one such line, for example `entropic_free = _bind(\"entropic_free\", None, ctypes.c_void_p)` (`_bindings.py:262`). The docs describe the file as regenerated from `entropic.h` by a CMake-driven script. They also describe it as a \"curated\" binding for the most-used symbols, so I could not confirm from the index whether every symbol is covered.\n\n```\nPython (ctypes)                C ABI (librentropic.so)            C++ engine\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500                \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500            \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nentropic_run(h, s, &out) \u2500\u2500\u2500\u25b6  entropic.h, extern \"C\"  \u2500\u2500\u2500\u25b6  Engine::run_turn()\n                                 opaque handles, error codes\nhook callback (CFUNCTYPE) \u25c0\u2500\u2500  function pointer + ctx JSON\n```\n\nThe C++ side is kept off the boundary by design. `entropic.h` contains only pure C types, the header comment says no C++ types cross it, and exceptions are caught inside the facade. `entropic_run` (`src/facade/entropic.cpp:1974`) catches `std::exception`, stores the message in `last_error`, and returns an error code.\n\n**Memory rules that cross the boundary**\n\n1. **Engine-allocated strings are owned by the caller and freed with `entropic_free`.** Functions returning `char*` through an out-parameter, such as `entropic_run(handle, input, char **result_json)`, transfer ownership. The doc on `entropic_run` says the caller must free `*result_json` with `entropic_free()`. Passing NULL to `entropic_free` is a no-op.\n\n2. **Allocator matching.** `entropic_alloc` is `malloc` and `entropic_free` is `free` (`entropic.cpp:1944` and `:1954`). Memory allocated with `entropic_alloc` is the only memory the engine may free. A consumer-provided buffer that the engine will free must come from `entropic_alloc`. Python's `ctypes` buffers or `bytes` objects must not be handed over, and the engine's pointers must not go to Python's allocator.\n\n3. **Inputs are borrowed, outputs are owned.** `i_inference_backend.h` says strings passed in (`messages_json`, `params_json`, `prompt`) are borrowed for the duration of the call. Strings returned by `generate`/`complete` are allocated by the backend, and the caller frees them through the callee's free function (`entropic_inference_free`). `i_inference_callbacks.h` states the same rule.\n\n4. **Hook callbacks return memory the engine frees.** In `python/src/entropic/hooks.py`, `_build_trampoline` (line 140) decodes `context_json` into a dict on entry, so the engine's buffer is only read. When the hook returns a transform, `_alloc_c_string` (line 123) and the trampoline write the JSON into an `entropic_alloc` block and hand it to the engine, which frees it. The Python side must not free that pointer, and no Python reference may outlive the handover.\n\n5. **No Python exception crosses into C.** The trampoline wraps the user callable in a `try`. On exception it prints a traceback and returns 0, which is pass-through.\n\n**Things I noticed in the index that you should verify**\n\n- In `_build_trampoline` the `rc = 1` line sits outside the `if ptr:` check. If `entropic_alloc` returns NULL, the trampoline still reports \"transform/cancel\" to the engine without setting `modified_json`. The index body shows this, but I have not confirmed how the engine treats a return of 1 with a NULL output.\n- `entropic_free_string` appears in `OLD_NOTES.md` and `docs/architecture-cpp.md` but is not in the index as a symbol (`dossier` returned not found). The current name is `entropic_free`.\n- Python-side handling of `result_json` after `entropic_run` (whether the wrapper frees it) is in the Python helpers. I did not read that code, so I cannot say whether the wrapper frees it or leaks it.",
+  "ttft_ms": 2519,
+  "type": "result",
+  "duration_ms": 23371,
+  "uuid": "d170a9d7-ca63-48b1-8524-c294c7188585",
+  "ttft_stream_ms": 1823,
+  "time_to_request_ms": 66,
+  "first_content_frame_ms": 1823,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

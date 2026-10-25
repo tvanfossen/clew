@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 20949,
+  "stop_reason": "end_turn",
+  "session_id": "e929469c-43a6-4ed0-873f-6d494eb5aea5",
+  "total_cost_usd": 0.00824344,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 17456,
+    "cache_read_input_tokens": 303134,
+    "output_tokens": 3439,
+    "output_tokens_details": {
+      "thinking_tokens": 725
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 17456,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1452,
+        "cache_read_input_tokens": 51629,
+        "cache_creation_input_tokens": 2063,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2063
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 3439,
+      "cacheReadInputTokens": 303134,
+      "cacheCreationInputTokens": 17456,
+      "webSearchRequests": 0,
+      "costUSD": 0.00824344,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 725,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 19,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How Python reaches the engine**\n\nThe Python package is a thin `ctypes` binding over the C ABI, not a C++ binding and not an OOP wrapper. The README says so directly: \"a thin >>ctypes<< binding over the C ABI \u2014 no OOP wrapper.\" The stack is:\n\n```\nPython code (entropic package)\n   \u2502  ctypes calls\n   \u25bc\npython/src/entropic/_bindings.py   auto-generated: ctypes function objects, IntEnums,\n   \u2502                               Structures, CFUNCTYPE callback typedefs\n   \u25bc\nlibrentropic.so  \u2500\u2500 entropic.h (pure C facade, opaque handles)\n   \u2502\n   \u25bc\nC++ engine internals (never cross the .so boundary)\n```\n\n- `_bindings.py` is generated from `entropic.h` by `scripts/gen_bindings.py`, run through the `gen_bindings` task in `tasks.py`. A test, `tests/unit/test_bindings_abi.py`, checks the hand-curated enums against the C headers so they can't drift.\n- `hooks.py`, `streams.py`, and `helpers.py` are pure-Python facades over those bindings. They are not part of the C ABI.\n- The native library is fetched on demand via `install-engine`, so the Python package does not bundle it.\n\n**Memory rules across the boundary**\n\nThe C header contract says the public API is pure C with opaque handles, and exceptions never cross the boundary (error codes instead, per the architecture rules). The memory rules I could confirm:\n\n1. **Strings returned by the engine are caller-owned.** `entropic.h` says functions returning `char*` transfer ownership to the caller, and they must be released with `entropic_free()`. That function is documented as freeing memory \"allocated by the engine or `entropic_alloc()`.\"\n2. **Strings passed into the engine from Python are allocated with `entropic_alloc`.** `_alloc_c_string` in `hooks.py` copies a UTF-8 string into engine-allocated memory, because the engine will `free()` it after consuming it. Python must not allocate that memory with its own allocator.\n3. **Backend and plugin strings follow the same pattern.** The inference backend (`i_inference_backend.h`) and MCP plugin (`i_mcp_server.h`) headers each say strings they return are allocated by the callee and freed through a matching free function (`entropic_inference_free`, `entropic_free`). Strings returned by an MCP server's `name` are server-owned and valid for the handle's lifetime. Input strings are owned by the caller.\n4. **Callbacks need their Python objects kept alive.** A Python callable wrapped in a `CFUNCTYPE` trampoline must be referenced for as long as the engine can call it, or the garbage collector frees it. `hooks.py` lists this as the first of two foot-guns, and `helpers.py` holds its trampoline in a module-level `_CB` for the engine's lifetime. `_build_trampoline` in `hooks.py` builds the wrapper for each hook.\n5. **Handles are opaque.** Engine handles come from `entropic_create` and are released with `entropic_destroy`. Hooks are registered with `entropic_register_hook(handle, point, callback, user_data, priority)`. A NULL handle returns `ENTROPIC_ERROR_INVALID_HANDLE`, and a NULL callback returns `ENTROPIC_ERROR_INVALID_ARGUMENT`.\n\n**Gaps in what I could verify**\n\nThe index returns only snippets for the full \"Memory ownership\" sections and the second hooks foot-gun, so I could not read them in full. The rules above come from those snippets plus the function docs. Read `include/entropic/entropic.h`, `i_inference_backend.h`, and `hooks.py` directly to confirm the exact wording. I also did not find a dedicated `entropic_free_string` symbol, so the matching free function for an engine-returned `char*` is `entropic_free`.",
+  "ttft_ms": 1612,
+  "type": "result",
+  "duration_ms": 22044,
+  "uuid": "3c6667b6-dd2a-461e-87b5-3647c046eb9d",
+  "ttft_stream_ms": 1316,
+  "time_to_request_ms": 66,
+  "first_content_frame_ms": 1316,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

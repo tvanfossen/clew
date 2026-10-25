@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 27173,
+  "stop_reason": "end_turn",
+  "session_id": "86cfe5ac-4713-4bdd-b197-2eb28002ac9e",
+  "total_cost_usd": 0.0171406,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 58887,
+    "cache_read_input_tokens": 267950,
+    "output_tokens": 5365,
+    "output_tokens_details": {
+      "thinking_tokens": 2585
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 58887,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3608,
+        "cache_read_input_tokens": 66590,
+        "cache_creation_input_tokens": 10588,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 10588
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5365,
+      "cacheReadInputTokens": 267950,
+      "cacheCreationInputTokens": 58887,
+      "webSearchRequests": 0,
+      "costUSD": 0.0171406,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2585,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 16,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The index answers the lookup half fully. It does not show the generator for the string tables, so the contributor half is only partly confirmed.\n\n**How a negative code becomes a string**\n\n```\nret (e.g. -0x7300)\n  \u2502\n  \u25bc\nmbedtls_strerror(ret, buf, buflen)        library/error.c:792\n  \u2502  buflen==0 \u2192 return; memset(buf, 0)\n  \u2502  ret = -ret                           (work on the positive value)\n  \u2502\n  \u251c\u2500 high = ret & 0xFF80                  module part\n  \u2502    \u2514\u2500 mbedtls_high_level_strerr(ret)  error.c:174  (switch over module codes)\n  \u2502         NULL \u2192 \"UNKNOWN ERROR CODE (%04X)\"\n  \u2502    \u2514\u2500 if high is SSL fatal alert \u2192 return now (skip low part)\n  \u2502\n  \u251c\u2500 low = ret & ~0xFF80                  specific error part\n  \u2502    \u2514\u2500 if buf already has text, append \" : \" (needs \u22655 bytes left)\n  \u2502    \u2514\u2500 mbedtls_low_level_strerr(ret)   error.c:537  (switch over specific codes)\n  \u2502         NULL \u2192 \"UNKNOWN ERROR CODE (%04X)\"\n  \u25bc\nbuf = \"MODULE - description [ : MODULE - description ]\", truncated, NUL-terminated\n```\n\n1. **Caller side.** Mbed TLS functions return a code built at the failure site with `MBEDTLS_ERROR_ADD(high, low)`. That macro calls `mbedtls_error_add`, which returns `high + low`. File and line are only recorded under `MBEDTLS_TEST_HOOKS`. So a returned value is a module-level code plus an optional specific code, OR-ed into one integer.\n2. **Entry point.** `mbedtls_strerror` is declared in `include/mbedtls/error.h:165` and defined in `library/error.c:792`. It only exists when `MBEDTLS_ERROR_C` is enabled. The index also shows a `MBEDTLS_ERROR_STRERROR_DUMMY` gate, and a second `mbedtls_strerror` definition at `error.c:867`. I believe that is the dummy stub, but the index does not label it, so I'm not certain.\n3. **Splitting.** The sign is dropped, then the value is split on the `0xFF80` mask. The high part goes to `mbedtls_high_level_strerr`, and the low part (`~0xFF80`) goes to `mbedtls_low_level_strerr`. The two parts are joined with `\" : \"`.\n4. **Lookup.** Both functions are large `switch` statements in `library/error.c`, under a comment marked \"Begin Auto-Generated Code\". Each case is wrapped in `#if defined(MBEDTLS_<MODULE>_C)` and returns a string like `\"<MODULE> - description\"`. An unknown code yields `UNKNOWN ERROR CODE (XXXX)`.\n5. **Early exit.** If the high part is an SSL fatal alert, the low part is not translated.\n\n**Adding a new one**\n\nThe index confirms the pattern but not every step:\n\n1. **Define the macro** as a negative hex value in the module's public header, following neighbours such as `MBEDTLS_ERR_SSL_INTERNAL_ERROR` = `-0x6C00` in `include/mbedtls/ssl.h:125`. It must fall in that module's range so the high-level mask works.\n2. **Add a `case` to the matching table** in `library/error.c`: `mbedtls_high_level_strerr` for a module-level code, or `mbedtls_low_level_strerr` for a specific one. Put it inside the module's `#if defined(MBEDTLS_<MODULE>_C)` block with a `\"MODULE - text\"` string. The index shows no generator script for these tables: a search for `generate_errors` returned nothing, and `.pl` files are not indexed. The \"Auto-Generated\" marker suggests the tables may be produced by a script, so check for one before hand-editing. I could not confirm which, if any, exists.\n3. **Raise it at the failure site** with `MBEDTLS_ERROR_ADD(high, low)`.\n4. **Compatibility.** `BRANCHES.md` says a new error condition for an existing function is a backwards-compatibility matter. The index does not show the full policy, so read that file before changing what an existing function returns.\n5. **Changelog.** `ChangeLog.d/` exists in the repo. The index does not show the required entry format.\n\n**Gaps.** The index shows no covering tests for `mbedtls_strerror`, so I can't say which test exercises the string path. I also couldn't read the full contents of the two switch tables, which the index truncated.",
+  "ttft_ms": 1496,
+  "type": "result",
+  "duration_ms": 28447,
+  "uuid": "768a6ec1-debc-4fe9-bfc9-f714dcc25e2b",
+  "ttft_stream_ms": 950,
+  "time_to_request_ms": 73,
+  "first_content_frame_ms": 951,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

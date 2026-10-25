@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 24892,
+  "stop_reason": "end_turn",
+  "session_id": "b2754028-ef7e-41ed-9c6b-61aa58b39e90",
+  "total_cost_usd": 0.010538580000000002,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 25426,
+    "cache_read_input_tokens": 355128,
+    "output_tokens": 3801,
+    "output_tokens_details": {
+      "thinking_tokens": 1513
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 25426,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1781,
+        "cache_read_input_tokens": 55804,
+        "cache_creation_input_tokens": 5164,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5164
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 3801,
+      "cacheReadInputTokens": 355128,
+      "cacheCreationInputTokens": 25426,
+      "webSearchRequests": 0,
+      "costUSD": 0.010538580000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1513,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Clew takes configuration from four places, layered by a five-tier rule. When two sources disagree, the higher stated tier wins, and the lower tiers either fill in or get dropped depending on the tier.\n\n**The ways to say so**\n\n| Route | Tier | Notes |\n|---|---|---|\n| CLI flag (e.g. `--shared-key-patterns`, `--scope`) | 1 (explicit) | One build only. An embedding caller can pass the same thing as a structured `options` argument; the MCP `index` tool exposes that as `options`. |\n| `.clew.yaml` at the repo root | 2 (declared) | The repo's standing statement. Sections are checked against a fixed list (`KNOWN_SECTIONS`); an unknown section is refused by name. |\n| Facts already in the repo (language, platform, manifests) | 3 (facts) | Always present. Nothing stated can remove them. |\n| Known-ecosystem signatures | 4 (ecosystem) | Accumulates underneath. Nothing stated can remove it. |\n| Name-pattern guesses | 5 (heuristic) | The floor. The only layer a stated tier is allowed to displace. |\n\nTwo other settings sit outside the tiers:\n- **Scope** (`index_scope:` in `.clew.yaml`) is the only declaration that decides what gets indexed. If none is stated, the whole repo is indexed. The Doxyfile is no longer a fallback (gh#333).\n- **Gate config** lives in a `guard:` section of the same `.clew.yaml`. The index ignores it. The old `.doxygen-guard.yaml` is not read at all.\n\n**When they disagree**\n\n- **Facts and ecosystem signatures always accumulate.** They are unioned with whatever is stated.\n- **Among the stated tiers (1, 2, 5), the highest one present wins outright.** The winning tier's values replace the lower tiers' values, rather than merging with them. So an explicit flag beats the declaration, and a declaration beats the guesses. `test_tier_one_beats_tier_two` pins this.\n- **An empty explicit list is a withdrawal, not a statement.** `[]` falls through to the declaration and then the guesses, so an operator can undo a recorded flag without deleting the database.\n- **Scope conflicts are refused, not resolved.** A stated `index_scope` paired with a non-default `--scope` makes the build exit 1, rather than silently building a different boundary.\n- **A rejected declaration fails the build.** The scope path refuses it instead of quietly falling back to the whole repo.\n- **A malformed `.clew.yaml` is ignored with a message.** It degrades to built-in defaults, and the refusal text says so (`describe_declaration`).\n\nThe index confirmed the tier mechanics through `resolve_layered`, `STATED_TIERS`, `ACCUMULATING_TIERS`, `derive_scope`, and `_apply_scope`. I did not read the full body of `clew/tiers.py` itself, since the file was not directly queryable as a dossier subject.",
+  "ttft_ms": 2608,
+  "type": "result",
+  "duration_ms": 26062,
+  "uuid": "184661fc-dbbf-4b5a-bd16-ddb9c1387e77",
+  "ttft_stream_ms": 1621,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1622,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 16694,
+  "stop_reason": "end_turn",
+  "session_id": "1665113d-2d66-4d22-8379-b05b736323cc",
+  "total_cost_usd": 0.0027989,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 2674,
+    "cache_read_input_tokens": 102650,
+    "output_tokens": 2474,
+    "output_tokens_details": {
+      "thinking_tokens": 1326
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 2674,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2133,
+        "cache_read_input_tokens": 34792,
+        "cache_creation_input_tokens": 1811,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1811
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 2474,
+      "cacheReadInputTokens": 102650,
+      "cacheCreationInputTokens": 2674,
+      "webSearchRequests": 0,
+      "costUSD": 0.0027989,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1326,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer is a list of **caller functions**, not call sites. I checked this against one real reply, `dossier` on `_ast_parse_one_file` (`clew/harvest.py`, depth 1). It returned 12 callers, each with `name`, `source`, `confidence` and `edge_class`. Nothing in a caller row gives a line number, a call count or the expression used at the call.\n\n**What the answer contains**\n\n- **Caller and callee names**, with the file and line span of the target itself.\n- **Provenance per edge.** Some edges came from `ast` (tree-sitter) with `confidence: resolved`. Others came from `doxygen_sqlite` with `confidence: exact`. The two sources are different evidence and don't carry the same weight.\n- **`edge_class`.** Every edge here was `call`, but the tool also describes `shared-key` edges. A caller row is not guaranteed to mean a direct call.\n- **Test functions mixed in with production code.** Two of the 12 callers are tests, so the list does not separate \"what ships\" from \"what checks it\".\n- **Unresolved counts.** `callers_unresolved: 0` is a useful signal that nothing was left dangling. It does not say the list is complete.\n\n**What would make it wrong to read as a list of call sites**\n\n1. **Stale anchor.** The reply had `anchor_mismatch: true`, so the file has changed since the index was built. The body and line span may not match the current source, and the caller set may describe an older version.\n2. **No call-site detail.** You know that `_harvest_file` calls it, not on which line, how many times, or under which condition.\n3. **Indirect calls may be missing.** Calls through function pointers, callback tables or dynamic dispatch only appear if the parser resolves them. An empty or short caller list does not prove there are no indirect callers.\n4. **Cap ambiguity.** `max_neighbors` was 8, but 12 callers came back and the reply carried no `truncated` marker for them. I can't tell from this reply whether the list is complete, so I wouldn't treat it as exhaustive.\n5. **Depth 1 is direct callers only.** Transitive reach needs `depth` 2\u20136, which adds a `chain`.\n6. **Name collisions.** A same-named function elsewhere could be conflated. The `ambiguous` block and `qualified` parameter exist for this, and this reply did not trigger it.\n7. **`live` is not reachability.** `liveness: live` describes the function's status in the index, not whether any entry point reaches it.\n\n**How to use it**\n\nTreat the caller list as a starting set of places to read. Check the anchor and refresh the index if it is stale, confirm each `doxygen_sqlite` versus `ast` disagreement by reading the source, and separate test callers from production callers before drawing conclusions about impact.",
+  "ttft_ms": 3316,
+  "type": "result",
+  "duration_ms": 17105,
+  "uuid": "bc615105-9b7d-4a49-aef0-50ec4640776f",
+  "ttft_stream_ms": 2536,
+  "time_to_request_ms": 70,
+  "first_content_frame_ms": 2537,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

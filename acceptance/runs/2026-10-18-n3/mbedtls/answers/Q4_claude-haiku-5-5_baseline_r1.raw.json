@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 18328,
+  "stop_reason": "end_turn",
+  "session_id": "fd1dbc23-af29-4bca-8d1d-0e2aca06a889",
+  "total_cost_usd": 0.008068160000000001,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 26270,
+    "cache_read_input_tokens": 116236,
+    "output_tokens": 3302,
+    "output_tokens_details": {
+      "thinking_tokens": 604
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 26270,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1922,
+        "cache_read_input_tokens": 39582,
+        "cache_creation_input_tokens": 2078,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2078
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3302,
+      "cacheReadInputTokens": 116236,
+      "cacheCreationInputTokens": 26270,
+      "webSearchRequests": 0,
+      "costUSD": 0.008068160000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 604,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short version:** the strings are generated at build time from the `#define`s in the public headers. At runtime, `mbedtls_strerror()` splits the code into a high-level (module) part and a low-level (specific error) part, and looks each up in a `switch`.\n\n### Runtime path\n\n```\nret (e.g. -0x7100)\n  \u2502\n  \u25bc\nmbedtls_strerror(ret, buf, buflen)            library/error.c\n  \u2502  memset buf to 0, take ret = -ret\n  \u2502\n  \u251c\u2500 ret & 0xFF80 \u2260 0 ?  (high-level/module bits)\n  \u2502     \u2514\u2500 mbedtls_high_level_strerr(ret)    switch on ret & 0xFF80\n  \u2502          \u2192 \"SSL - ...\"  (or \"UNKNOWN ERROR CODE (XXXX)\")\n  \u2502     \u2514\u2500 SSL fatal-alert early return\n  \u2502\n  \u251c\u2500 ret & ~0xFF80 \u2260 0 ?  (low-level bits)\n  \u2502     \u2514\u2500 append \" : \" if buf already has text\n  \u2502     \u2514\u2500 mbedtls_low_level_strerr(ret)     switch on ret & ~0xFF80\n  \u2502          \u2192 \"AES - ...\"  (or \"UNKNOWN ERROR CODE (XXXX)\")\n  \u2502\n  \u2514\u2500 result: one string, e.g. \"SSL - Bad input parameters to function : ...\"\n```\n\nNotes on the walk-through:\n- The sign is stripped first, so callers can pass either `-0x7100` or `0x7100`.\n- Both lookups are generated `switch` statements. `case -(MBEDTLS_ERR_X):` returns `\"MODULE - description\"`.\n- If the library was built without `MBEDTLS_ERROR_C` (and not with `MBEDTLS_ERROR_STRERROR_DUMMY`), the function is a stub that returns an empty string.\n\n### Build-time generation\n\n`library/error.c` is not hand-written. It is produced by `scripts/generate_errors.pl` from `scripts/data_files/error.fmt`, and the Makefile (`library/Makefile:355-360`) and CMake (`library/CMakeLists.txt:136-144`) regenerate it when headers change. The script:\n1. Scans `include/mbedtls/*.h` for lines like `#define MBEDTLS_ERR_FOO -0x1234`.\n2. Takes the description from a Doxygen comment, either `/*!<` after the define or `/**` before it. A define with neither dies. Having both also dies.\n3. Dies on duplicate values.\n4. Maps the name prefix to a module (`MBEDTLS_ERR_<MODULE>_...`). Modules must be listed in `@low_level_modules` or `@high_level_modules` in the script, or it exits with `Do not know how to handle`.\n5. Wraps each module's cases in `#if defined(MBEDTLS_<MODULE>_C)` and adds `#include \"mbedtls/<module>.h\"` for the headers that define codes.\n6. Errors if a header defines codes but is not included.\n\n### What a contributor has to do\n\n1. **Add the define** in the right public header, e.g. `include/mbedtls/<module>.h`:\n   ```c\n   /** Description of the failure, ending without a period. */\n   #define MBEDTLS_ERR_FOO_BAR    -0x1234\n   ```\n   Use a free value in that module's range and make sure it fits the high/low split. The high-level bits are `0xFF80` and the low-level bits are `0x007F`.\n2. **Use the right form for the description.** Put a `/*!< ... */` comment on the same line, or a `/** ... */` comment above. Don't use both.\n3. **If it is a new module,** add its name to the right list in `scripts/generate_errors.pl`. Also add the matching `#if` / include handling only if the module is new, since the script generates it.\n4. **Regenerate** with `make` in `library/`, or let CMake run it. Don't edit `library/error.c` directly. Note that the generated file was not regenerated or diffed here, so this is from reading the scripts.\n5. **Run the tests** through the project's normal workflow. The error test suite is `tests/suites/test_suite_error.function`. I did not inspect it for coverage of new codes.\n\nThe repo also has `programs/util/strerror.c`, a small CLI that calls `mbedtls_strerror` on a code passed on the command line. It's handy for checking a new string by hand.",
+  "ttft_ms": 1608,
+  "type": "result",
+  "duration_ms": 18538,
+  "uuid": "e37688d4-1fca-40b5-874c-2e97f9fe1f11",
+  "ttft_stream_ms": 1166,
+  "time_to_request_ms": 81,
+  "first_content_frame_ms": 1167,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,37 @@
+7 target(s): entropic, freertos, knots, mbedtls, riot, self, zephyr
+
+=== provision entropic
+
+=== provision freertos
+
+=== provision knots
+
+=== provision mbedtls
+
+=== provision riot
+REFUSED — index build failed (rc=1):                  
+index cache: 0 unchanged, 0 modified, 15758 added, 0 removed source file(s)     
+Appending 1 extra INPUT entries (EXCLUDE cleared, 109 re-excluded)              
+scope: 6661 of 15758 candidate file(s) are outside the doxygen run's scope      
+(FILE_PATTERNS or EXCLUDE_PATTERNS) and are not indexed incrementally either    
+Running doxygen:                                                                
+/home/tvanfossen/Projects/clew/acceptance/runs/2026-10-18-n3/riot/state/targets/
+repo-dea580/clew.doxygen/Doxyfile.synth (cwd:                                   
+/home/tvanfossen/Projects/clew/acceptance/runs/2026-10-18-n3/riot/state/targets/
+repo-dea580/clew.doxygen)                                                       
+Appending 1 extra INPUT entries (EXCLUDE cleared, 109 re-excluded)              
+⠋   doxygen        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 14684 items 0:00:28
+  ⚠ warning: No output formats selected! Set at least one of the main GENERATE_…
+  ⚠ Parsing file /home/tvanfossen/Projects/home/tvanfossen/Projects/clew/accept…
+  ⚠ Parsing file /home/tvanfossen/Projects/clew/acceptance/runs/2026-10-18-n3/r…
+  ⚠ (249 more warnings suppressed)
+Doxygen exited with code 2
+
+=== provision self
+
+=== provision zephyr
+
+provisioned 6/7 target(s); no phases run
+  FAILED riot at provision: index build failed (rc=1):                  
+index cache: 0 unchanged, 0 modified, 15758 added, 0 removed source file(s)     
+Appending 1 extra INPUT entries (EXCLUDE cleared, 109 re-excluded)        

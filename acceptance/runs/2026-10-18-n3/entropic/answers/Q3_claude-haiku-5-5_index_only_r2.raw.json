@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 38482,
+  "stop_reason": "end_turn",
+  "session_id": "89f5089f-c415-411f-8c78-28c746f3e0e7",
+  "total_cost_usd": 0.01611116,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 35324,
+    "cache_read_input_tokens": 593066,
+    "output_tokens": 6227,
+    "output_tokens_details": {
+      "thinking_tokens": 2607
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 35324,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3112,
+        "cache_read_input_tokens": 69262,
+        "cache_creation_input_tokens": 2302,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2302
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 6227,
+      "cacheReadInputTokens": 593066,
+      "cacheCreationInputTokens": 35324,
+      "webSearchRequests": 0,
+      "costUSD": 0.01611116,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2607,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 19,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The short answer: the call runs only if it clears a fixed sequence of checks in `ToolExecutor`, and the deny list is re-checked at dispatch, so it can stop a call that was already approved. One thing looks wrong: with a host callback registered, approval is granted without reading the callback's answer. I got all of this from the index's verbatim bodies, not from running anything.\n\n```\nmodel emits tool call\n  \u2514\u2500 ToolExecutor::process_single_call          (tool_executor.cpp:729)\n      1. fire_pre_tool_hook          \u2192 hook can cancel (\"Cancelled by hook\")\n      2. check_call_preconditions    (tool_executor.cpp:667), first failure wins:\n           a. anti-spiral hard block\n           b. check_schema\n           c. check_mcp_authorization  \u2192 MCP key access level (identity = locked_tier or \"lead\")\n           d. check_tier_allowed       \u2192 tier allowed_tools (gh#83)\n           e. check_duplicate          \u2192 duplicate-call handling\n           f. check_approval_pc \u2192 check_approval (tool_executor.cpp:161):\n                auto_approve_tools            \u2192 approved\n                or ServerManager::is_explicitly_allowed (allow list) \u2192 approved\n                or on_tool_call callback present \u2192 approved = true  (return value ignored)\n                else \u2192 \"Permission denied\"\n      3. execute_tool \u2192 ServerManager::execute   (server_manager.cpp:153)\n           a. pattern = tool + \":\" + args_to_pattern(args)\n           b. permissions_.is_denied(...)  \u2192 \"Error: Permission denied\" (deny always wins)\n           c. route_tool_call \u2192 MCP server\n```\n\n**What decides it**\n\n- **Allow list alone** does not run a call. It skips the interactive approval step (2f). Auth, tier, schema and duplicate checks still apply.\n- **`auto_approve_tools`** (`LoopConfig`) also skips approval, but not the deny check in step 3b. It is a separate flag from `PermissionsConfig.auto_approve`, and the index does not show how the two are wired.\n- **Deny list** is checked in `ServerManager::execute` regardless of approval, so a denied pattern blocks even under auto-approve. It is the last gate before the server runs.\n\n**What a pattern means**\n\n- Format is `tool` or `tool:argpattern`, e.g. `bash.execute:pytest *`.\n- `args_to_pattern` takes the value of the first string argument in the JSON. It returns `*` for empty args, a non-object, or a parse failure. The call is matched as `tool:<that value>`.\n- `pattern_matches` (`permission_manager.cpp:101`) uses `fnmatch` on the tool part first. A pattern with no colon matches every call to that tool. A pattern with a colon must also match the full `tool:arg` string.\n- Matching is glob-based and ignores argument structure. `bash.execute:ls*` matches any command beginning with `ls`, including `ls; rm -rf x` if the first argument is that string.\n- The default `MCPServerBase::get_permission_pattern` returns the bare tool name. Its only indexed callers are tests and its own destructor, so it does not feed the matching path. `BashServer` overrides it, but I could not read that body through the index.\n\n**Persistence**\n\n- `ToolApproval` has `ALLOW`, `DENY`, `ALWAYS_ALLOW`, `ALWAYS_DENY`.\n- `PermissionPersister::save_permission` writes a pattern into `permissions.allow` or `permissions.deny` in the project YAML, skipping it if already present.\n- I did not trace how a `ToolApproval` answer reaches `save_permission` or the in-memory lists.\n\n**Concerns**\n\n1. **Callback ignores the answer.** If `on_tool_call` is set, `check_approval` sets `approved = true` without consulting it. A host that uses that callback to ask the user would not block anything through this path. Check the host side before relying on it.\n2. **First-argument matching.** `args_to_pattern` takes the first JSON key. If that is alphabetical rather than call order (which I believe nlohmann does by default, from memory, not the index), the pattern binds to a different argument than the author expects. This needs confirming.",
+  "ttft_ms": 1721,
+  "type": "result",
+  "duration_ms": 40432,
+  "uuid": "f94d7d25-5b07-4b67-9d27-5ad7c47ff166",
+  "ttft_stream_ms": 1391,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1391,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

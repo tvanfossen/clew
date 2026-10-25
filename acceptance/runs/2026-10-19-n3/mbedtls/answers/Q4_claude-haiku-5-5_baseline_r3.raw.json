@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 20233,
+  "stop_reason": "end_turn",
+  "session_id": "d73c9155-6f38-437d-b44e-727517162255",
+  "total_cost_usd": 0.00544315,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 11110,
+    "cache_read_input_tokens": 130435,
+    "output_tokens": 3832,
+    "output_tokens_details": {
+      "thinking_tokens": 1092
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 11110,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2405,
+        "cache_read_input_tokens": 38845,
+        "cache_creation_input_tokens": 2394,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2394
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3832,
+      "cacheReadInputTokens": 130435,
+      "cacheCreationInputTokens": 11110,
+      "webSearchRequests": 0,
+      "costUSD": 0.00544315,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1092,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 5,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short version:** `mbedtls_strerror()` in `library/error.c` turns the integer into text by splitting it into a high-level module part and a low-level part, then looking each part up in a `switch`. That `switch` is generated from the `MBEDTLS_ERR_*` defines in `include/mbedtls/*.h` by `scripts/generate_errors.pl`. You never edit `error.c` by hand.\n\n**Runtime path**\n\n```\nret (e.g. -0x6100 | -0x0020 = -0x6120)\n  \u2502\n  \u25bc\nmbedtls_strerror(ret, buf, buflen)            library/error.c\n  \u2502  ret = -ret           (drop sign)\n  \u2502\n  \u251c\u2500 ret & 0xFF80 ?  \u2500\u2500\u25ba high-level: mbedtls_high_level_strerr(ret)\n  \u2502                       switch on (ret & 0xFF80)  \u2192 \"CIPHER - Bad input data\"\n  \u2502                       (no match \u2192 \"UNKNOWN ERROR CODE (XXXX)\")\n  \u2502     \u2514\u2500 if it's MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE \u2192 return early\n  \u2502\n  \u251c\u2500 ret & ~0xFF80 == 0 ? \u2192 done\n  \u2502\n  \u2514\u2500 append \" : \" then low-level: mbedtls_low_level_strerr(ret)\n                           switch on (ret & ~0xFF80) \u2192 \"AES - Invalid key length\"\n                           (no match \u2192 \"UNKNOWN ERROR CODE (XXXX)\")\n```\n\nSo `-0x6120` becomes `CIPHER - Bad input data : AES - Invalid key length`. The public entry point is declared at `include/mbedtls/error.h:165`. The `MBEDTLS_ERROR_C` and `MBEDTLS_ERROR_STRERROR_DUMMY` config switches decide whether the real table is compiled in or an empty stub is used.\n\n**Generation path**\n\n1. Each header defines codes as `#define MBEDTLS_ERR_<MODULE>_<NAME> -0x....`, with a Doxygen `/**<` or `/**` description. Example: `include/mbedtls/cipher.h:40`.\n2. `scripts/generate_errors.pl` scans every `include/mbedtls/*.h` with a regex. It takes the name, the hex value and the description.\n3. It fills `scripts/data_files/error.fmt` placeholders (`HEADER_INCLUDED`, `LOW_LEVEL_CODE_CHECKS`, `HIGH_LEVEL_CODE_CHECKS`) and writes `library/error.c`.\n4. Build systems regenerate it. The Makefile rule is at `library/Makefile:355`, the CMake rule at `library/CMakeLists.txt:136`, and the Windows path is `scripts/make_generated_files.bat`.\n5. `library/error.c` is tracked in git (the `.gitignore` entry is commented out). `tests/scripts/check-generated-files.sh:135` fails CI if the committed file doesn't match what the script produces.\n\n**What a contributor must do to add a new error code**\n\n1. **Add the define** in the right header under `include/mbedtls/`, with a negative hex value that doesn't collide with an existing one. Follow the module's range comment, e.g. `/* Error codes in range 0x0020-0x0022 */` in `aes.h`.\n2. **Write exactly one description comment**, either before the define (`/**< ... */` or `/** ... */`) or after it (`/**< ... */`). The script dies if there is neither or both. Descriptions containing a `\\name` tag are ignored, so don't use that form for the description.\n3. **Check the module name.** The prefix after `MBEDTLS_ERR_` must be in the `@low_level_modules` or `@high_level_modules` list at the top of `generate_errors.pl`. Otherwise the script exits with `Do not know how to handle`. A brand-new module must be added to one of those lists. Its header must also be in the include table, or the script reports the header as not included.\n4. **Regenerate `library/error.c`** through the normal build (`make` in `library/`, or the CMake GEN_FILES target), or by running `scripts/generate_errors.pl` from the repo root. Commit the regenerated `error.c` together with the header change. Otherwise `check-generated-files.sh` fails.\n5. **Add a test** in the error test suite (`tests/suites/test_suite_error.function`, which uses `error_strerror()`). Assert the exact string the code produces.\n\nTwo caveats from reading the code. I did not run the generator or the test suite, so the steps above are from the source only. I also didn't check whether the high-level/low-level split logic in `mbedtls_strerror` has edge cases for codes that set bits in both ranges. It works for the codes I looked at.",
+  "ttft_ms": 1968,
+  "type": "result",
+  "duration_ms": 20461,
+  "uuid": "bac848b0-5bc3-45ed-bca9-7e87a70ff51d",
+  "ttft_stream_ms": 1063,
+  "time_to_request_ms": 77,
+  "first_content_frame_ms": 1063,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

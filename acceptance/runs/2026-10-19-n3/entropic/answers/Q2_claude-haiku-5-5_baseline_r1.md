@@ -1,0 +1,15 @@
+llama.cpp enters the build as a git submodule at `extern/llama.cpp`, pinned to commit `20a04b2`. `extern/CMakeLists.txt` pulls it in with `add_subdirectory(llama.cpp EXCLUDE_FROM_ALL)`, plus a second `add_subdirectory` for `tools/mtmd` (libmtmd, for multimodal). Upstream's `LLAMA_BUILD_*` options are forced off except `LLAMA_BUILD_COMMON`, which is on so mtmd can reference the `common` target. CUDA is wired through by setting `GGML_CUDA` when `ENTROPIC_HAS_CUDA` is set. The other third-party deps (spdlog, ryml, Catch2, nlohmann/json, httplib) come through `FetchContent`, but llama.cpp is the only one that is a submodule.
+
+It reaches the source tree in three places:
+
+- **Link wiring (build only).** `src/inference/CMakeLists.txt` links the inference library against `llama`, `llama-common`, and `mtmd`. `src/facade/CMakeLists.txt` absorbs all three as `$<LINK_ONLY:...>` privately into `librentropic.so`, so consumers never link llama directly. Include paths for `llama.h` and `ggml.h` are added from `extern/llama.cpp/include` and `ggml/include`. `stb_image` is taken from llama.cpp's `vendor/` directory.
+
+- **Private C++ sources.** Roughly 15 `.cpp`/`.h` files in `src/` include `<llama.h>` directly. The main ones are `src/inference/llama_cpp_backend.h` (which defines `LlamaCppBackend`), `llama_cpp_sampler`, `llama_cpp_tokenizer`, `adapter_manager`, `grammar_registry`, `speculative_compat`, `orchestrator.cpp`, and `inference_c_api.cpp`. The facade `src/facade/entropic.cpp` reaches it through `LlamaCppBackend` as well. Llama types also show up in the adapter and speculative logic, and in `src/inference/prompt_cache.h`, which is internal.
+
+- **Public headers (no direct leak).** Nothing under `include/` includes a llama or ggml header. The public API mentions llama only through forward declarations (`struct llama_model;`, `struct llama_context;`, `struct llama_adapter_lora;`) in `include/entropic/inference/orchestrator.h`, `adapter_manager.h`, and `speculative_compat.h`, and through pointer parameters in those signatures. Those are opaque pointers in headers that are not C-ABI, and the `.so` boundary is `entropic.h`, which has no llama types. The C ABI keeps `llama_model`/`llama_context` opaque to consumers. Config fields such as `llama_log_path` and the "llama.cpp pass-through" section in `include/entropic/types/config.h` are plain settings, not llama types.
+
+So the dependency reaches deep into the engine's own `src/inference/` and into the facade's implementation, but it is kept out of the public headers and the exported symbols. Consumers see only the `entropic.h` surface.
+
+Two things I noticed while reading:
+- The comment in `extern/CMakeLists.txt` says llama.cpp "is NOT built in v1.8.0", which is stale. It is built now, and the comment should be updated.
+- The comment in the same file says the pin is "b8420", while the `speculative_compat` comments refer to a v2.1.11 pin. I did not check which tag the submodule actually points at.

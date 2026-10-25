@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 45630,
+  "stop_reason": "end_turn",
+  "session_id": "df0d0691-06c9-4c57-a680-8b84c3dcab3b",
+  "total_cost_usd": 0.021823360000000003,
+  "usage": {
+    "input_tokens": 24,
+    "cache_creation_input_tokens": 56201,
+    "cache_read_input_tokens": 653926,
+    "output_tokens": 8083,
+    "output_tokens_details": {
+      "thinking_tokens": 2995
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 56201,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2605,
+        "cache_read_input_tokens": 74089,
+        "cache_creation_input_tokens": 1963,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1963
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 24,
+      "outputTokens": 8083,
+      "cacheReadInputTokens": 653926,
+      "cacheCreationInputTokens": 56201,
+      "webSearchRequests": 0,
+      "costUSD": 0.021823360000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2995,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 30,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** a call runs only if it clears every precondition in `ToolExecutor`, the approval step, and then the deny check at dispatch in `ServerManager`. The allow list and `auto_approve` are not the only things that decide it.\n\n## The path a call takes\n\n```\nmodel emits ToolCall\n \u2514\u2500 ToolExecutor::check_call_preconditions          (src/mcp/tool_executor.cpp:667)\n     1. anti-spiral hard block                       (issue #14, runs first)\n     2. check_schema          \u2192 args vs JSON schema\n     3. check_mcp_authorization \u2192 MCP key access level for locked tier\n     4. check_tier_allowed    \u2192 tier's allowed_tools (gh#83)\n     5. check_duplicate       \u2192 repeated identical call\n     6. check_approval_pc \u2192 check_approval             (tool_executor.cpp:161)\n          approved = auto_approve_tools\n                  || allow-list match\n          if !approved and on_tool_call callback set \u2192 approved = true\n          if !approved \u2192 \"Permission denied\"\n \u2514\u2500 execute_tool \u2192 ServerManager::execute            (server_manager.cpp:153)\n     7. is_denied(tool, \"tool:firstArg\") \u2192 deny-list match \u2192 \"Permission denied\", never routed\n     8. route_tool_call \u2192 the server actually runs\n```\n\nTwo things decide it:\n\n- **Approval (step 6)** is the only place allow-lists, `auto_approve`, and the callback matter.\n- **Deny (step 7)** runs after approval, so it overrides everything. A call in both lists, or one allowed by `auto_approve`, is still blocked if it matches a deny pattern.\n\n## What a pattern does\n\nPatterns are `fnmatch` globs, parsed by `PermissionManager::pattern_matches` (`src/mcp/permission_manager.cpp:101`).\n\n| Pattern | Matches |\n|---|---|\n| `filesystem.*` | Any tool whose fully-qualified name matches the glob (no arg check). |\n| `git.commit` | Exactly that tool. |\n| `bash.execute:python*` | `bash.execute` only when its **first argument value** matches `python*`. |\n\n- The text before the first `:` is matched against the tool name.\n- If there's a `:`, the full string `tool:argValue` must also match. `argValue` comes from `args_to_pattern` (`server_manager.cpp:426`): the value of the first JSON key if it's a string, otherwise `*`.\n- So argument patterns only inspect the first argument. A pattern on a later argument never matches.\n- Allow and deny use the same matcher. The allow list is consulted in approval, the deny list at dispatch.\n\n## Configuration and persistence\n\n- `permissions:` in YAML provides `allow`, `deny`, and `auto_approve` (`src/config/loader.cpp:365`).\n- `ServerManager` builds its `PermissionManager` from `allow` and `deny` (`server_manager.cpp:35`). `auto_approve` becomes `auto_approve_tools` (`src/facade/entropic.cpp:1489`).\n- \"Always Allow/Deny\" calls `add_permission` at runtime and persists through `PermissionPersister` (`src/storage/permission_persister.cpp`). That is a read-modify-write of the project YAML.\n\n## Things that look wrong\n\n1. **The callback approves unconditionally.** In `check_approval`, if no allow match and no `auto_approve`, but `on_tool_call` is registered, the code calls the callback and then sets `approved = true` (`tool_executor.cpp:168\u2013172`). The callback returns `void` and cannot veto. So a host that registers `on_tool_call` gets notified of every non-allow-listed call, but nothing is ever blocked by the callback. The header (`permission_manager.h:6`) says \"approved via callback,\" which doesn't match. Please confirm whether this is intended. If the callback is meant to gate, that line needs to return the host's answer instead of `true`.\n2. **The default-deny claim holds only without a callback.** With no callback and no allow match, the call is denied. The header describes default-deny unconditionally.\n3. **`check_approval` runs after `check_duplicate` in `check_call_preconditions`, and `check_dup_or_approval` duplicates that ordering.** I didn't find a live caller for `check_dup_or_approval` in `src/` (grep only shows its definition), so it may be dead code. I didn't verify this beyond grep.",
+  "ttft_ms": 1536,
+  "type": "result",
+  "duration_ms": 46675,
+  "uuid": "52e7a4c7-b8cf-4122-a5d9-d2428e6c09ca",
+  "ttft_stream_ms": 1141,
+  "time_to_request_ms": 67,
+  "first_content_frame_ms": 1141,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

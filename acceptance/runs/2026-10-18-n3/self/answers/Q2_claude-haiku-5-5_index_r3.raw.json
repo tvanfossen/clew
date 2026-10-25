@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 11899,
+  "stop_reason": "end_turn",
+  "session_id": "0361852e-5bdd-4964-a465-18cb4138bf3b",
+  "total_cost_usd": 0.00195042,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 1431,
+    "cache_read_input_tokens": 71132,
+    "output_tokens": 1905,
+    "output_tokens_details": {
+      "thinking_tokens": 839
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 1431,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1395,
+        "cache_read_input_tokens": 35566,
+        "cache_creation_input_tokens": 1431,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1431
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 1905,
+      "cacheReadInputTokens": 71132,
+      "cacheCreationInputTokens": 1431,
+      "webSearchRequests": 0,
+      "costUSD": 0.00195042,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 839,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply doesn't use one \"empty\" signal. It labels the empty result differently depending on which corpus was searched and what it covered, and each label carries a different amount of confidence.\n\n**What I ran:** two searches against this repo with a made-up token. Both came back with zero rows, and the replies were worded differently.\n\n| Probe | Reply's own label | What it licenses |\n|---|---|---|\n| `search` default corpus (symbols), two tokens | \"NOT an error\u2026 and it is NOT a definitive negative either\" | Weak. Only the symbol layer was read. Retry with fewer tokens or try `corpus='prose'`. |\n| `search` corpus `prose`, one token | \"This IS a definitive empty result from the database\" | Strong, but only for markdown prose in the indexed set. |\n\n**How the distinction is made:**\n\n- **Scope is named in every reply.** The symbols reply lists 426 indexed files and their extensions, plus `not_indexed` extensions (`.rs`, `.toml`, `.sql`, `.csv`, extensionless files and others). It also reports `target`, the repository that was actually queried. The \"did not look there\" case is spelled out in `note`: markdown and Kconfig prose are not searched by the symbol corpus.\n- **Conjunction misses name the culprit.** `token_hits` shows per-token counts, and the note says which token alone empties the match. Here both tokens were zero, so the retry advice was to drop them.\n- **Corpora are graded separately.** The symbol corpus is never a definitive negative on its own. The prose corpus is, but only within its own scope.\n- **Split repos add `sub_index` and `not_searched`.** Those fields name any vendored part that was skipped. The MCP guidance says to check them before concluding a symbol does not exist.\n\n**Confidence each answer deserves:**\n\n- **\"Not in the indexed symbols\"**: low. It's a candidate miss. Conjunction and token spelling can cause it, and it says nothing about markdown or unindexed file types.\n- **\"Not in the indexed prose\"**: high, but only for indexed `.md` files. It says nothing about a `Makefile`, a CI config, a `.toml`, or a `.rs` file (the index covers only some languages), which the MCP guidance says the index cannot settle.\n- **\"Not in the repo\"**: the index can't establish this on its own. Once the reply's `target` matches the intended repo and no `not_searched` part was skipped, a miss in the right corpus is good evidence. For anything outside the indexed set, a plain text search such as Grep is what settles it.\n\nIn short, a zero-row reply is a statement about the corpus and scope it names, not about the repository as a whole. Read `target`, `scope` and `not_searched` before reading the zero as absence.",
+  "ttft_ms": 3432,
+  "type": "result",
+  "duration_ms": 12108,
+  "uuid": "4985d6cd-2f85-48bb-87bb-85c0546e5799",
+  "ttft_stream_ms": 1930,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1930,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

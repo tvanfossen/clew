@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 31798,
+  "stop_reason": "end_turn",
+  "session_id": "2a9b6fdb-f566-41e8-b830-93ff3f292290",
+  "total_cost_usd": 0.018363279999999996,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 55852,
+    "cache_read_input_tokens": 490468,
+    "output_tokens": 4572,
+    "output_tokens_details": {
+      "thinking_tokens": 1581
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 55852,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1661,
+        "cache_read_input_tokens": 68056,
+        "cache_creation_input_tokens": 586,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 586
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 4572,
+      "cacheReadInputTokens": 490468,
+      "cacheCreationInputTokens": 55852,
+      "webSearchRequests": 0,
+      "costUSD": 0.018363279999999996,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1581,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply separates the two cases in code, not in one sentence. The grading lives in `clew/mcp_server/emptiness.py`, and the scope it reports comes from `clew/query/models.py` and `clew/cli.py`. I read these files but did not run a live query against an index.\n\n**How the reply tells the cases apart**\n\n- **Scope block on every empty reply.** `search_emptiness` attaches a `scope` payload: file count, the scope source (`declared` or whole-repo), top-level directories and extensions. That lets the caller see what was covered at all, which is what \"I did not look in the place it lives\" depends on. The `reason` paragraph is dropped from this payload to save bytes; `status` still carries it.\n- **Unread-corpus check.** `q.unsearched_corpora` asks the database whether the query's tokens match rows in a corpus `search` does not read. Any hit downgrades the verdict and is published as `unsearched_corpus_hits`, and the reply names the kinds and points to `dossier`. This is a database check, not a filesystem walk.\n- **Conjunction and corpus checks.** Multi-token searches get per-token hit counts and are never called definitive. Prose searches on an index with no markdown corpus say \"NOT definitive\" and ask for a rebuild.\n- **`not_indexed` stamp.** Recorded at build time by `_not_indexed_scope` in `cli.py`: file types the build walked that produced no rows, with counts. It is present only if the build recorded it, and the falsy-drop rule means an unrecorded report is absent rather than shown as empty.\n\n**How much confidence each answer gets**\n\n| Reply shape | What it licenses |\n|---|---|\n| \"definitive\", single token, file docs present, no unread hits | Strong, but only about this index. The token is absent from every corpus `search` reads. It does not prove the repo lacks it, because the index may be stale or the file may sit outside the declared scope. Check `scope` before trusting it. |\n| \"NOT definitive\" (conjunction, prose-only miss, no file-docs corpus, unread hits) | No negative claim. Retry with the named token, use `dossier`, or rebuild. |\n| `not_indexed` lists an extension | The file type was walked and yielded nothing. The counts are a snapshot from build time, so they can drift after edits. |\n| `scope` is absent | Nothing is known about coverage. The index predates the field. |\n\nThe main gap: a \"definitive\" answer covers the index's scope, not the working tree. A file outside the derived scope with an extension the build never walked can only be identified through `scope`, `not_indexed` and `status`, and none of those is re-measured at query time.\n\nThe design intent is pinned in tests: `tests/test_emptiness.py::test_an_absent_symbol_keeps_the_definitive_note` guards the strong wording, and `tests/test_search_type_corpora.py::test_an_unread_corpus_downgrades_the_verdict` guards the downgrade. I did not run either test.",
+  "ttft_ms": 1417,
+  "type": "result",
+  "duration_ms": 32425,
+  "uuid": "01a53b5e-52ee-444c-a91f-9c9e37b97fe7",
+  "ttft_stream_ms": 1064,
+  "time_to_request_ms": 100,
+  "first_content_frame_ms": 1064,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

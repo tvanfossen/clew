@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 26134,
+  "stop_reason": "end_turn",
+  "session_id": "033d6862-581c-4561-8353-fbcfd7b3268b",
+  "total_cost_usd": 0.01068182,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 25072,
+    "cache_read_input_tokens": 340082,
+    "output_tokens": 4530,
+    "output_tokens_details": {
+      "thinking_tokens": 1654
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 25072,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2456,
+        "cache_read_input_tokens": 56155,
+        "cache_creation_input_tokens": 2895,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2895
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 4530,
+      "cacheReadInputTokens": 340082,
+      "cacheCreationInputTokens": 25072,
+      "webSearchRequests": 0,
+      "costUSD": 0.01068182,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1654,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index holds a file-level row for every YAML and JSON file, and symbol rows for shell and CMake files when the parser has their grammars. It holds no symbols or call edges for YAML or JSON. On an installation whose substrate lacks the shell or CMake grammars, those files are silently left without symbols, and the index does not say so per file. I answered from the index's own documentation and symbol bodies, so these are the repository's claims about itself, checked only where I read the code bodies.\n\n**What the index holds**\n\n| Type | Row produced | Symbols | Mechanism |\n|---|---|---|---|\n| Shell (`.sh`, `.bash`, and `scripts/lib.bash`-style names) | `path` row plus function rows | Yes, `deploy() {\u2026}` and `function rollback {\u2026}` become function `memberdef` rows | tree-sitter `bash` grammar via `_TS_GRAMMARS` (`substrate:bash`) |\n| CMake (`CMakeLists.txt`, `.cmake`) | `path` row plus function/macro rows | Yes, `function(add_firmware NAME)` becomes a function row with `argsstring` `(NAME)` | `substrate:cmake` grammar, with the file name matched directly in `SCRIPT_NAMES` |\n| YAML (`.yaml`, `.yml`) | `path` row only | No | `claims()` in `clew/synth.py` registers the type so the file is in the file set |\n| JSON (`.json`) | `path` row only | No | Same as YAML |\n\nThe index also holds the front-end contract: `claims()` puts `.sh`, CMake, YAML and JSON files into the file set, and rejects `src/main.c` and `README.md`. A test asserts that YAML and JSON files produce `path` rows and zero `memberdef` rows. YAML is claimed \"so that it is in the file set, and harvested by nothing.\"\n\n**What it does not hold**\n\n- No symbols from YAML or JSON. Configuration keys, workflow steps and JSON objects are not rows.\n- No call edges or lock or thread facts from any of the four types. The SCRIPT_INTEGRATION doc and `clew/synth.py` describe these files as having no harvest, call edges or symbols.\n- No content search beyond the `path` row. The `search` corpus `files` only lists indexed source files, so YAML and JSON are absent from it by construction.\n- Shell and CMake have no lock or thread layer. Their symbol rows are the only structure they get.\n\n**On an installation whose parser lacks the grammars**\n\n- The repository's test `tests/test_substrate_capability.py` says bash, cmake, yaml, json and markdown are registered in a fork of lang-parsing-substrate, \"open upstream as PR #1 and not yet\" merged. A stock substrate build therefore lacks them.\n- `_OPTIONAL_KEYS` in `clew/harvest.py` is `{\"bash\", \"cmake\"}`. `_grammar_available` returns False for those when the substrate lacks them, and `_ts_language_for` then returns `None`. A test named `test_a_missing_grammar_routes_to_nothing_instead_of_raising` covers this path. So shell and CMake files silently get no symbols and no error.\n- Other grammars (C, C++, Python, Rust, JS, TS) are not optional. `_grammar_available` returns True for them without measuring, so a missing one would not be caught there. The index does not say what happens then.\n- The not-indexed report (`tests/test_not_indexed_report.py`) states that the index \"reads shell and CMake, and registers YAML and JSON, but that depends on the installed substrate.\" So on a stock install the report cannot be relied on to name these files as \"read.\"\n- One documentation string in `tests/test_script_front_end.py` mentions an `unknown language key` error for a grammar the installed wheel lacks, and that a `.sh` file \"routed to a bash grammar\" would fail. That conflicts with the silent-drop behaviour above. I could not resolve which path raises the error and which drops silently from the index alone. Reading the test bodies and `clew/substrate.py` would settle it.",
+  "ttft_ms": 1427,
+  "type": "result",
+  "duration_ms": 29405,
+  "uuid": "dc9c9270-78a3-44a4-ade5-ad2d38f14d6c",
+  "ttft_stream_ms": 1019,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1019,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

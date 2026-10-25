@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 31551,
+  "stop_reason": "end_turn",
+  "session_id": "8451d496-dd60-4c73-b3c0-8066ee321b9b",
+  "total_cost_usd": 0.01974473,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 58890,
+    "cache_read_input_tokens": 516443,
+    "output_tokens": 5601,
+    "output_tokens_details": {
+      "thinking_tokens": 2114
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 58890,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2814,
+        "cache_read_input_tokens": 76764,
+        "cache_creation_input_tokens": 415,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 415
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 5601,
+      "cacheReadInputTokens": 516443,
+      "cacheCreationInputTokens": 58890,
+      "webSearchRequests": 0,
+      "costUSD": 0.01974473,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2114,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Short answer: a call runs only if it clears a fixed chain of checks in `ToolExecutor`, and the allow and deny lists are only consulted in two of those steps. I traced this from the index alone, so the one link I could not read directly is flagged below.\n\n**Decision path for one tool call**\n\n```\nprocess_single_call\n \u2514\u2500 check_call_preconditions            (tool_executor.cpp:667)\n     1. check_anti_spiral_hard_block    \u2192 reject (rejected_anti_spiral)\n     2. check_schema                    \u2192 reject (rejected_schema)\n     3. check_mcp_authorization         \u2192 reject (MCP key/identity)\n     4. check_tier_allowed              \u2192 reject (tier allowed_tools / bash_commands, gh#83)\n     5. check_duplicate                 \u2192 reject (rejected_duplicate)\n     6. check_approval_pc \u2192 check_approval   (tool_executor.cpp:161)\n          auto_ok = loop_config.auto_approve_tools\n                    || server_manager.is_explicitly_allowed(name, args)\n          if !auto_ok and on_tool_call callback set \u2192 approved = true\n          if still not approved                    \u2192 \"Permission denied\"\n \u2514\u2500 ServerManager::execute\n      permissions_.is_denied(name, pattern)  \u2192 error JSON, tool not run\n      else route to in-process or external server\n```\n\nPoints that matter:\n\n- **Allow is checked at step 6, deny at execute.** `check_approval` only looks at the allow list. The deny list is checked later, inside `ServerManager::execute`, which the call graph shows calling `is_denied`. So a deny match stops the call even when `auto_approve` is on or the tool is allow-listed. I could not read `ServerManager::execute`'s body through the index (the qualified lookup failed), so that the deny check happens there rests on the graph edge and the header's \"deny takes precedence\" doc.\n- **The approval callback does not gate.** In `check_approval`, if the callback is registered, `approved` is set to `true` after the callback is invoked, without using its return value. Its only gating effect is that without a callback, an unlisted call is denied. The header calls the callback an approval path, so this is a possible discrepancy worth checking against the header's contract.\n- **Tier and duplicate checks sit before approval.** A call can be refused by the tier `allowed_tools` map or as a duplicate before any allow-list is read.\n\n**What a pattern in each list does**\n\nPatterns are `fnmatch` globs in `PermissionManager` (`src/mcp/permission_manager.cpp`):\n\n- **Form:** `tool` or `tool:args`. The tool part is matched against the fully qualified name, e.g. `bash.execute`.\n- **`tool` alone:** matches that tool with any arguments.\n- **`tool:args`:** the args part is matched against `tool:<first>`, where `<first>` is the first string-valued argument (`ServerManager::args_to_pattern`). Empty or unparseable args become `*`. Example: `bash.execute:pytest *` matches a call whose first argument is `pytest \u2026`.\n- **Globs are not path-aware.** `fnmatch` is called without `FNM_PATHNAME`, so `*` also crosses `/`.\n- **Deny entries** use the same syntax and are checked with the same matcher. A match logs \"Permission DENIED\" and blocks the call.\n- **Allow entries** match the same way and log \"Permission ALLOWED\". They only skip the prompt; they do not run the tool by themselves.\n- **Granularity** is set per server. The default `get_permission_pattern` returns the bare tool name, so an \"Always Allow\" grants the whole tool. `BashServer` overrides it to produce finer patterns.\n\n**Where the lists come from**\n\n- Config `permissions:` has `allow`, `deny` (string lists) and `auto_approve` (bool). The README uses `permissions.auto_approve: true` to skip prompts.\n- At runtime, \"Always Allow/Deny\" writes new patterns into `config.local.yaml` through `PermissionPersister::save_permission`, deduplicated and under a mutex.\n\nI could not confirm how `permissions.auto_approve` is wired to `loop_config.auto_approve_tools`; I'm inferring that it is the same flag.",
+  "ttft_ms": 1238,
+  "type": "result",
+  "duration_ms": 32646,
+  "uuid": "54dd0ae2-31e9-4ebf-9ba7-37375d9a2e9a",
+  "ttft_stream_ms": 840,
+  "time_to_request_ms": 60,
+  "first_content_frame_ms": 840,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

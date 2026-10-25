@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 26068,
+  "stop_reason": "end_turn",
+  "session_id": "a0aab689-c049-49e9-92bc-88ad0a92aec4",
+  "total_cost_usd": 0.00915648,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 18561,
+    "cache_read_input_tokens": 320868,
+    "output_tokens": 4468,
+    "output_tokens_details": {
+      "thinking_tokens": 1690
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 18561,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2107,
+        "cache_read_input_tokens": 49874,
+        "cache_creation_input_tokens": 2615,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2615
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 4468,
+      "cacheReadInputTokens": 320868,
+      "cacheCreationInputTokens": 18561,
+      "webSearchRequests": 0,
+      "costUSD": 0.00915648,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1690,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 19,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The repo has a five-tier precedence model, and a conflict is resolved by tier rank, not by merging.\n\n**The ways to say so, by tier** (from `clew/tiers.py` and related docs):\n\n| Tier | Source | Role |\n|---|---|---|\n| 1 | Explicit, per build: CLI flags, or the structured `options` argument for embedding callers | Operator states a value for this build only |\n| 2 | Standing declaration: `.clew.yaml` in the target repo | The repo's own statement, persists across builds |\n| 3 | Facts: language, platform, or the target's own manifests | Accumulates; nothing stated can remove it |\n| 4 | Known-ecosystem signatures (e.g. `DEFAULT_KEY_ALIAS_PREFIXES`) | Accumulates; a declaration can add but not remove |\n| 5 | Name-pattern guesses (e.g. `ENTRY_PATTERN_HEURISTICS`) | Floor; any stated tier displaces it |\n\nOther inputs that touch scope:\n- **Doxyfile** (`scope='doxyfile'` on `index`): its `INPUT` is replaced by a declared `index_scope`, but it is still read for `ALIASES` and `PREDEFINED`. `INPUT`, `EXCLUDE`/`EXCLUDE_PATTERNS` and `FILE_PATTERNS` each decide scope independently, so changing only one does nothing useful.\n- **`index` tool's `exclude`**: recorded and replayed by later builds. Pass an empty list to withdraw it.\n- **`index` tool's `options`**: keyed by `.clew.yaml` section names; unknown keys are refused by name. I did not confirm from the index which tier it maps to.\n- **`propose_declaration`**: writes a starter `.clew.yaml` entirely as comments. It changes nothing until a human uncomments it.\n\n**When two disagree**\n\n- **Within a layered option, one stated tier wins and the rest are discarded.** The rule is `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. An explicit flag replaces the declaration for that option, and the declaration is not merged in. The test `test_tier_one_beats_tier_two` pins this, and `test_explicit_flag_wins_over_the_declaration` says a flag is a deliberate one-off override.\n- **Facts and ecosystem defaults never lose.** Tiers 3 and 4 always union into the result, so a declaration cannot remove a fact.\n- **An empty explicit list is a withdrawal, not a statement.** `[]` falls through to the declaration, then to the guesses. That lets an operator undo a recorded flag without deleting the database.\n- **Key alias prefixes are the exception.** The declared `path` and `extra` sections are additive, not competing. A flag-supplied manifest only changes the recorded tier label to `explicit`; it does not drop the declared prefixes.\n- **Scope precedence:** a declaration beats the whole-repo default (`C_INTEGRATION.md`).\n- **Visibility:** `_options_meta` records which tier chose each setting in the index, so a surprising result can be traced to the winning tier. The index does not record that a losing tier existed.\n\nCaveats: `dossier` would not resolve file paths, so the tier table comes from the `tiers.py` symbols and docstrings rather than the file-level comment. I did not read `.clew.yaml` section names or the `index` tool's `options` mapping directly.",
+  "ttft_ms": 1868,
+  "type": "result",
+  "duration_ms": 27065,
+  "uuid": "de673e0e-f30b-4502-9b53-fb76b75a05a9",
+  "ttft_stream_ms": 1308,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1308,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

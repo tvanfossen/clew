@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 59031,
+  "stop_reason": "end_turn",
+  "session_id": "d1780183-6350-4284-92ba-109fe2eee736",
+  "total_cost_usd": 0.01876573,
+  "usage": {
+    "input_tokens": 24,
+    "cache_creation_input_tokens": 38799,
+    "cache_read_input_tokens": 530303,
+    "output_tokens": 11401,
+    "output_tokens_details": {
+      "thinking_tokens": 6356
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 38799,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2457,
+        "cache_read_input_tokens": 55339,
+        "cache_creation_input_tokens": 713,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 713
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 24,
+      "outputTokens": 11401,
+      "cacheReadInputTokens": 530303,
+      "cacheCreationInputTokens": 38799,
+      "webSearchRequests": 0,
+      "costUSD": 0.01876573,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 6356,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 19,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does:** `MBEDTLS_PRIVATE(member)` is a rename, not an access check. `include/mbedtls/private_access.h:14-18` expands it to `private_##member` by default, so a struct field is really named `private_flags` (for example, `include/mbedtls/ssl_ciphersuites.h:455`). Code that writes `s.flags` then fails to compile, and code that writes `s.MBEDTLS_PRIVATE(flags)` compiles in both modes. The goal is to stop users depending on struct layout. The library can then add, reorder or retype fields in minor releases without breaking callers. The 3.0 migration guide says this directly (`docs/3.0-migration-guide.md:62-74`), and it calls `bar.MBEDTLS_PRIVATE(foo)` a last resort done \"at your own risk.\"\n\nIt is not real access control. Defining `MBEDTLS_ALLOW_PRIVATE_ACCESS` before the first mbedtls include turns the rename off for that translation unit. `ssl.h:5159-5169` marks that route as deprecated.\n\n**Who gets the opt-out in this tree:**\n\n| Where | Opted out? | Effect |\n|---|---|---|\n| `library/common.h:132` | Yes, unconditionally | Any library `.c` that includes `common.h` sees real field names. That is 107 of 109 files. Example: `library/ecdh.c:150` uses `ctx->MBEDTLS_PRIVATE(grp)`, which becomes `ctx->grp`. |\n| `programs/ssl/ssl_server2.c:8`, `ssl_client2.c:8` | Yes, first line before any include | Sample programs get direct access to private fields across the whole file. |\n| `programs/ssl/ssl_context_info.c:553-568` | No | It spells `MBEDTLS_PRIVATE(flags)` and similar, which compiles either way. I checked with `gcc -fsyntax-only` with and without the define; both exit 0. Without the define, the name expands to `private_flags`, which matches the struct. |\n| Test suites (`test_suite_x509write.function:763`, `test_suite_psa_crypto.function:1329`) | No | Same macro spelling as `ssl_context_info.c`, so they work in both modes. |\n| Application code | No (default) | Direct access fails to compile. Macro-spelled access works, but it is unsupported across minor versions. |\n\nSo the opt-out is for the library and its own sample programs. `ssl_context_info.c` is the one shipped program that reaches into private fields without opting out. It does that through the macro spelling, which is why it compiles either way.\n\n**Caveat on ordering:** the opt-out only works if it is defined before `private_access.h` is first included. `library/ecdh.c` includes `common.h` on line 15, before any public header, so it works. A file that included a public header first would silently keep the renamed names and fail to compile.\n\nI verified the expansions and the opt-out locations by reading the code and running syntax-only compiles. I did not run a full build or the test suite.",
+  "ttft_ms": 1501,
+  "type": "result",
+  "duration_ms": 60049,
+  "uuid": "e41f6dfb-1cbd-4fa9-b68a-7a8d63aa0fa2",
+  "ttft_stream_ms": 1203,
+  "time_to_request_ms": 78,
+  "first_content_frame_ms": 1203,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

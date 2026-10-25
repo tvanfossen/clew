@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 16849,
+  "stop_reason": "end_turn",
+  "session_id": "c5e7f758-903e-41e6-a206-a15172112eaf",
+  "total_cost_usd": 0.00444987,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 7686,
+    "cache_read_input_tokens": 142737,
+    "output_tokens": 2969,
+    "output_tokens_details": {
+      "thinking_tokens": 1207
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 7686,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2101,
+        "cache_read_input_tokens": 39646,
+        "cache_creation_input_tokens": 2050,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2050
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2969,
+      "cacheReadInputTokens": 142737,
+      "cacheCreationInputTokens": 7686,
+      "webSearchRequests": 0,
+      "costUSD": 0.00444987,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1207,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does:** `MBEDTLS_PRIVATE(member)` is a macro in `include/mbedtls/private_access.h` that wraps struct member names. By default it expands to `private_##member` (`private_access.h:15`), so a field such as `nr` in `mbedtls_aes_context` (`aes.h:64`) is renamed to `private_nr`. Code outside the library that writes `ctx->nr` then fails to compile. The header's own documentation says the structs are publicly visible, but their members are private and should not be accessed by the user (`library/common.h`, `MBEDTLS_ALLOW_PRIVATE_ACCESS` member docs). The 3.0 migration guide makes the same point: direct access to a private field is a compile error, and the fix is to use the accessor API.\n\nThe purpose is to keep the layout and field names of public structs out of the API contract. The library can change internals without breaking applications, and applications cannot silently depend on fields that were never promised.\n\n**Who it is for:** the default is application code, the external user of the library. The wrapper is the enforcement.\n\n**Where the opt-out is turned on.** The switch is `MBEDTLS_ALLOW_PRIVATE_ACCESS`. Its gate in `private_access.h` (lines 14\u201318) works like this:\n- If it is **not** defined, `MBEDTLS_PRIVATE(m)` becomes `private_##m` (renamed, hidden).\n- If it **is** defined, `MBEDTLS_PRIVATE(m)` becomes `m` (public name, no rename).\n\nThe index shows three places that define it:\n1. `library/common.h:132`. This is the library's own shared header. Every library source that includes it gets the public field names, so library code reads and writes struct members directly.\n2. `programs/ssl/ssl_client2.c:8`.\n3. `programs/ssl/ssl_server2.c:8`.\n\n**What that means for the code in those places:**\n- Inside the library, the wrapper is a no-op. The protection applies only to outside users, not to the library's own translation units.\n- The two SSL test/demo programs can reach internal SSL state directly. That is a deliberate exception for test and diagnostic tooling, not something an application should copy.\n- The macro is not a user-facing Kconfig option. The index records `MBEDTLS_ALLOW_PRIVATE_ACCESS` with origin \"undeclared,\" so it is a plain macro switch in source, not a documented build setting.\n\n**Gaps the index cannot settle:**\n- Whether `common.h:132` sits under its own guard, and whether `common.h` is always included before `private_access.h`. If it is not, the opt-out would not reach the wrapper. Verifying this needs the include order and the surrounding lines, which the index does not give me.\n- Whether other test or tool sources define the macro. The index reports three definition sites, but unindexed files (Makefiles, CMake, test drivers) are outside its reach.\n- The `MBEDTLS_PRIVATE` dossier lists a sample of usages, including `mbedtls_cipher_get_iv_size` and `mbedtls_pk_get_type`. The index holds 482 candidate identities for that name, so it cannot give a complete usage count.",
+  "ttft_ms": 1371,
+  "type": "result",
+  "duration_ms": 17402,
+  "uuid": "1c9d5651-5be5-4fa6-94a7-8f47d31d3ffa",
+  "ttft_stream_ms": 1124,
+  "time_to_request_ms": 77,
+  "first_content_frame_ms": 1124,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

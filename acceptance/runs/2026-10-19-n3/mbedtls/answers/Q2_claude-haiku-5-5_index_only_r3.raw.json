@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 13044,
+  "stop_reason": "end_turn",
+  "session_id": "af2c1937-3c77-4390-90f0-0afd522895ef",
+  "total_cost_usd": 0.00390477,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 6927,
+    "cache_read_input_tokens": 143507,
+    "output_tokens": 2167,
+    "output_tokens_details": {
+      "thinking_tokens": 849
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 6927,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1031,
+        "cache_read_input_tokens": 38564,
+        "cache_creation_input_tokens": 2336,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2336
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2167,
+      "cacheReadInputTokens": 143507,
+      "cacheCreationInputTokens": 6927,
+      "webSearchRequests": 0,
+      "costUSD": 0.00390477,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 849,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does:** `MBEDTLS_PRIVATE(member)` wraps a public struct member name. In `include/mbedtls/private_access.h`, the default expansion is `private_##member` (line 15), so a field like `mbedtls_aes_context::MBEDTLS_PRIVATE(nr)` is actually named `private_nr`. An application that writes `ctx.nr` gets a compile error, and the library's internal layout is not part of the API. Fields can be renamed or reorganized without breaking callers who stayed on the public names. The header's own doc says the structs are publicly visible but their members \"should not be accessed by the user.\"\n\n**Who it's for:** application developers using the public headers. They are the default audience, and the rename is what keeps them out.\n\n**Where the opt-out is turned on:** the gate is `MBEDTLS_ALLOW_PRIVATE_ACCESS`. When it is defined, the macro expands to plain `member` (line 17), so the real field names are visible. Its definitions in this tree are:\n\n- `library/common.h:132`, the library's own shared header. Library sources that include it get real member names, so the rename never applies inside the library. The index does not record a guard around this line, so I can't confirm from the index alone that it is unconditional.\n- `programs/ssl/ssl_client2.c:8` and `programs/ssl/ssl_server2.c:8`, the sample/test SSL programs. They opt out at the top of the file, which means they can read and write struct internals directly. The index does not show whether the define comes before the includes; that ordering is what makes the opt-out take effect.\n\n**What this means for the code in those places:** the library and these two programs see the real field names, so they can touch internals the public API hides. Any change to those fields can break them without a compile error at the public boundary. Code outside those files, including anything an external application compiles, sees only the `private_` names.\n\n**Caveat:** this comes from the index only. I did not read the source, so I haven't checked the surrounding `#if` guards or the include order.",
+  "ttft_ms": 1539,
+  "type": "result",
+  "duration_ms": 13814,
+  "uuid": "dc97d3fb-db47-4e49-b95c-0e60d5fec7da",
+  "ttft_stream_ms": 1245,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1245,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

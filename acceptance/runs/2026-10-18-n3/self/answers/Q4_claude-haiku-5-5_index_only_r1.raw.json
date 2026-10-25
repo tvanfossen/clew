@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 17285,
+  "stop_reason": "end_turn",
+  "session_id": "1371b3a2-133c-430f-a264-fe971911b3bc",
+  "total_cost_usd": 0.0063300100000000005,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 20184,
+    "cache_read_input_tokens": 87311,
+    "output_tokens": 2839,
+    "output_tokens_details": {
+      "thinking_tokens": 1333
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 20184,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2388,
+        "cache_read_input_tokens": 35095,
+        "cache_creation_input_tokens": 3376,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3376
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 2839,
+      "cacheReadInputTokens": 87311,
+      "cacheCreationInputTokens": 20184,
+      "webSearchRequests": 0,
+      "costUSD": 0.0063300100000000005,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1333,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 5,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The dossier answer for a function is a list of **caller functions**, not call sites. I ran it on two functions to see what comes back.\n\n**What the answer contains**\n\nFor `_build_function_indexes` (`clew/call_edges.py:277`), the reply had:\n\n- **Callers:** 10 entries, each with a name, `source`, `confidence` and `edge_class`. Examples: `_prune`, `extract_locks`, `import_ast_call_edges`, and a test function.\n- **Provenance per edge:** `source` was `ast` (recovered by the parser) for most rows and `doxygen_sqlite` for `import_ast_call_edges`. `confidence` was `resolved` or `exact`.\n- **Counters:** `callers_unresolved: 0`, `context_undecidable: 0`, `gates_unplaceable: 0`. These are the honest \"I could not place this\" counts, and they are the first thing to check when a list looks short.\n- **Callees, separately:** `callees` was empty, with one `external_callees` entry (`_FuncRanges`, line 308) that did not resolve to an indexed function.\n- **Body and requirements:** the verbatim body, the requirements the symbol satisfies, and its covering tests. `_definition_preferring_name_index` showed `REQ-DDB-QUERY-003` and one covering test.\n\n**What makes it wrong to read it as a list of call sites**\n\n1. **No line numbers on the caller side.** Each caller is a function. A caller that invokes the target three times appears once, and the reply does not say which line calls it. Only `external_callees` carries `call_lines`. To see the actual call sites you must open the caller's body.\n\n2. **Mixed provenance.** `ast` edges are parser recoveries, and `doxygen_sqlite` edges are documented by Doxygen. An empty brief on an `ast` row means \"not parsed\", not \"undocumented\". Treat the two sources as different levels of evidence.\n\n3. **Callers are not only direct calls.** The index also stores callback-registration edges (`import_callback_registration_edges`), shared-key edges and dominated edges. `edge_class` is the field that distinguishes them, and in these two replies every row said `call`. A function passed as a pointer and registered elsewhere shows up in the same list as a direct caller.\n\n4. **Name-keyed resolution.** The name\u2192rowids index is keyed on the bare name. Same-named functions in different files can collide, so a caller can be attributed to the wrong target. The code handles declaration/definition duplicates by preferring definitions, but it does not disambiguate by namespace or class. The reply has an `ambiguous` block and a `qualified` parameter for this, and you should use them when the name is common.\n\n5. **Tests are mixed in.** The `_build_function_indexes` caller list includes a test function. Production and test callers are not separated.\n\n6. **The list is capped, but not strictly as far as I saw.** I passed `max_neighbors=8` and got 10 callers back. Do not assume that a list shorter than the true caller count means there are no more callers; check the reply for truncation.\n\n7. **Anchor mismatch.** Both replies carried `anchor_mismatch: true`, and the body's first line began mid-signature. The index reported `stale: false` at the same time, so the stored line numbers and the current source disagree. Verify line references in the source before relying on them.\n\n**Bottom line:** the answer is a graded set of \"functions the index believes call or reference this one, by which edge kind, with what provenance, and what it could not place\". It tells you where to look. It does not give you the call sites, and it does not guarantee completeness.",
+  "ttft_ms": 2511,
+  "type": "result",
+  "duration_ms": 17792,
+  "uuid": "5c640ba4-4e2a-4520-97b9-543fd5756576",
+  "ttft_stream_ms": 1667,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1668,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

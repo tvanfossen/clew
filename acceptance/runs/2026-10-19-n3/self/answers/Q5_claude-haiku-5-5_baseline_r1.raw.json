@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 39377,
+  "stop_reason": "end_turn",
+  "session_id": "bbe4ebcd-27ff-4ea5-acbf-409a96fe6381",
+  "total_cost_usd": 0.020070710000000002,
+  "usage": {
+    "input_tokens": 28,
+    "cache_creation_input_tokens": 50732,
+    "cache_read_input_tokens": 675551,
+    "output_tokens": 6332,
+    "output_tokens_details": {
+      "thinking_tokens": 2558
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 50732,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2552,
+        "cache_read_input_tokens": 63635,
+        "cache_creation_input_tokens": 2483,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2483
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 28,
+      "outputTokens": 6332,
+      "cacheReadInputTokens": 675551,
+      "cacheCreationInputTokens": 50732,
+      "webSearchRequests": 0,
+      "costUSD": 0.020070710000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2558,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "There are three layers, plus a set of individual flags. When two disagree, the higher-precedence one wins outright for that option; it does not merge with the lower one.\n\n**Ways to say so**\n\n| Route | Tier | What it covers | Persistence |\n|---|---|---|---|\n| `<repo>/.clew.yaml` | 2 (declared) | `index_scope: {roots, excludes}` plus sections such as `preprocessor`, `requirements`, `kconfig`, `event_tags`, `entry_patterns`, `locks`, `dispatch`. | Read on every build. This is the only file clew looks for. |\n| `--declare FILE`, or the `options` argument of `build_index` / MCP `index(action=\"refresh\")` | 1 (explicit) | The same YAML mapping, stated for one build. Meant for repos you don't own and must leave byte-identical. | Recorded in the database and replayed by later builds. Only tier-1 statements replay. |\n| CLI flags | 1 | `--exclude`, `--doxyfile`, `--predefined`, and similar. `--scope` and `--rebuild` are per-run mechanics, not declarations. | `--exclude` is recorded and replayed. |\n| Defaults | 5 (heuristic) | Whole repo, minus what git ignores, minus dot-dirs, `__pycache__` and `node_modules`. Doxyfile is found by name in the root, `docs/` or `doc/`. | Nothing to persist. |\n\nThe `guard:` section of `.clew.yaml` belongs to the gate. The index reads only its requirement-id pattern and catalog path from it, and drops the rest.\n\n**When two disagree**\n\n- **Tier 1 beats tier 2 for the same option.** A stated value replaces the file's value for that option. The file is not merged in. The stated layer is what gets recorded.\n- **`index_scope` is replaced whole, never merged.** `roots` replaces the scope. `excludes` on its own does nothing, and a stated `index_scope` also overrides the file's.\n- **Stated `index_scope` with a non-`from-guard` `--scope` is refused.** The build exits with an error. Silently ignoring the statement would produce a different boundary and report success.\n- **Tiers 3 and 4 accumulate and survive any stated value.** Doxyfile aliases and predefined macros, and ecosystem signatures, are not discarded by a declaration. Only tier 5 name-pattern guesses are replaced.\n- **Doxyfile `INPUT` never sets scope.** An `index_scope` replaces it. The Doxyfile is still used for aliases and predefined macros.\n- **Bad declarations degrade differently by kind:**\n  - Malformed YAML: warning, treated as absent, defaults apply.\n  - Unknown key inside `index_scope` (e.g. `exclude:`): rejected, warning logged, falls back to whole repo.\n  - Nonexistent root paths: dropped. If none remain, the section is rejected and falls back to whole repo.\n  - Unknown top-level section name: the build refuses outright.\n- **`--exclude` has three states.** Absent inherits the previous build's recorded excludes, `[]` withdraws them, and a non-empty list replaces them.\n\nI did not trace how `--exclude` combines with `index_scope.excludes` in the same build. Check that before relying on it.\n\nTwo PostToolUse hook messages in this session suggested querying clew's own index tools instead of reading files. They are not part of your request, so I ignored them and answered from the source.",
+  "ttft_ms": 1346,
+  "type": "result",
+  "duration_ms": 40085,
+  "uuid": "d3a49158-29d1-4e15-8691-b837b4f02cad",
+  "ttft_stream_ms": 949,
+  "time_to_request_ms": 78,
+  "first_content_frame_ms": 949,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

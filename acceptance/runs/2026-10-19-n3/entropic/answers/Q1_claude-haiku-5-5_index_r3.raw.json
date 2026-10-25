@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 27139,
+  "stop_reason": "end_turn",
+  "session_id": "b9096ae2-0eeb-4afb-b29c-f1ef21ee5157",
+  "total_cost_usd": 0.0110872,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 28617,
+    "cache_read_input_tokens": 280510,
+    "output_tokens": 5115,
+    "output_tokens_details": {
+      "thinking_tokens": 2741
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 28617,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2600,
+        "cache_read_input_tokens": 62621,
+        "cache_creation_input_tokens": 3889,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3889
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5115,
+      "cacheReadInputTokens": 280510,
+      "cacheCreationInputTokens": 28617,
+      "webSearchRequests": 0,
+      "costUSD": 0.0110872,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2741,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Why it calls twice:** Both calls are in `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:55` and `:61`). The first passes a null buffer with size 0 to ask llama.cpp how many tokens the text needs. llama.cpp returns the count as a negative number, which line 58 flips to positive. The second call passes a vector of that size and does the real encode. So it is a two-pass size query, the usual llama.cpp C API pattern.\n\n**Is it retry logic?** No. Nothing is retried and there is no loop. The first call never fails in the sense of \"try again\"; its only job is to size the buffer. The code's own comment calls it \"the sized retry\" (`llama_cpp_tokenizer.cpp:44-45`), which is misleading.\n\nThe closer case is `detokenize` (`llama_cpp_tokenizer.cpp:93-101`). It tries a 256-byte stack buffer and, when llama.cpp reports the buffer is too small, retries once with the exact size. That one is a real retry, though still a single retry with no loop and no error recovery.\n\n**What the caller receives on failure:** If the second call returns a negative value, the code logs an error (with the text length only) and returns an empty `std::vector<int32_t>`. There is no error code, exception, or status. An empty vector is also what a legitimately empty input produces, and `LlamaCppBackend::tokenize` returns the same empty vector when no tokenizer is wired (`llama_cpp_backend.cpp:796`). So the caller cannot distinguish \"no tokenizer,\" \"tokenize failed,\" and \"empty input.\"\n\n**What callers do with it:**\n\n| Caller | What happens on empty |\n|---|---|\n| `do_count_tokens` (`llama_cpp_backend.cpp:825`) | Returns 0 |\n| `entropic_inference_count_tokens` (`inference_c_api.cpp:548`) | Returns 0 to the C consumer. The `len/4` fallback in its `catch` never runs because nothing throws. |\n| `tokenize_text` (`llama_cpp_backend.cpp:837`) | Returns empty |\n| `do_complete` (`:3947`) | Logs \"0 input tokens\", then goes straight into `decode_loop` |\n| `do_generate_text_only` (`:2561`) | Goes into `run_prefill_cached` with no check |\n| `compute_prefix_token_count` (`:2051`) | Returns 0 prefix tokens, which then feeds the prompt cache |\n| Batch path (`:1911`) | Stores the empty vector per request without a check |\n\nFor the generate and complete paths, nothing checks for emptiness before prefill. `run_prefill` with zero tokens clears the KV memory, loops zero times, and returns true (`llama_cpp_backend.cpp:1484-1503`). The sampler then runs on whatever state the context holds. I did not trace what that produces. It may yield garbage output or a decode error later, and it is the most important thing to verify with a real run. The other rows I checked by reading the code, and I did not read the remaining `tokenize` call sites (lines 2643, 2728, 3593, 3921) in full.\n\nIn short, a tokenizer failure is silent at the seam. It gets converted into \"zero tokens,\" which callers treat as valid input. The only trace is one error log line. A status return or an error code on `tokenize` would fix this, and it would need an interface change if `Tokenizer` is part of the immutable `i_*.h` contract.",
+  "ttft_ms": 1369,
+  "type": "result",
+  "duration_ms": 28291,
+  "uuid": "688a5208-bee2-411b-bc89-dc58159114ea",
+  "ttft_stream_ms": 1165,
+  "time_to_request_ms": 61,
+  "first_content_frame_ms": 1165,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

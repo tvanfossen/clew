@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 15836,
+  "stop_reason": "end_turn",
+  "session_id": "f0103b0b-aac8-453e-9461-7d3e60949c87",
+  "total_cost_usd": 0.00229734,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 1027,
+    "cache_read_input_tokens": 67904,
+    "output_tokens": 2825,
+    "output_tokens_details": {
+      "thinking_tokens": 1757
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 1027,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2427,
+        "cache_read_input_tokens": 33952,
+        "cache_creation_input_tokens": 1027,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1027
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2825,
+      "cacheReadInputTokens": 67904,
+      "cacheCreationInputTokens": 1027,
+      "webSearchRequests": 0,
+      "costUSD": 0.00229734,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1757,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 2,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "An empty reply doesn't say \"absent\" or \"unsearched\" in a single flag. It reports what was searched and leaves the verdict to you. I ran a search for a nonsense term to see the shape. It returned `count: 0`, `results: []`, and a `note` that says the result is \"NOT an error and NOT a malformed call, and it is NOT a definitive negative either.\"\n\n**What the reply shows, and what each field tells you**\n\n| Field | What it tells you |\n|---|---|\n| `token_hits` | Per-token counts. A search is a conjunction, so these show which token emptied it. The note says to retry without the zero tokens. |\n| `note` \"Searched:\" list | The corpora actually read: names and `@brief` of functions, variables, macros, typedefs, enums, enum values, macro expansions, classes/structs/unions, config symbols, and file docs. |\n| `note` \"NOT searched\" | Markdown and Kconfig prose, which is `search(corpus='prose')`. Function bodies and inline comments are not in the searched list, so a word that appears only in code is not matched by `search`. |\n| `scope` | File count (426 here), top-level directories, the extensions that were indexed, and `not_indexed` with per-extension counts (here `.rs=2`, `.toml=2`, `.sql=1`, `.lock=1`, and extensionless files). |\n| `target` | The repository that answered. Check this first. |\n| `not_searched` | Per the server instructions, names any sub-index that was not read. It was absent here, which fits a single whole-repo index, though the description only says what the key means and does not spell out its absence. |\n| `staleness` | Present only if the index is older than the source. Absent here, so the index is current. |\n\n**How much confidence each answer gets**\n\n- **\"Not a named symbol in the indexed set\" (strong):** `target` is the repo you meant, there is no `staleness` block, every token is zero in `token_hits`, and the term is a name or a documented identifier. That supports \"no indexed C/C++/Python symbol with that name,\" across the 426 files in the listed extensions.\n- **\"Not in the repo\" (weak):** The same empty reply cannot support this. It does not cover prose, function bodies, inline comments, file types outside `scope`, or anything outside the indexed file set (the server says Makefiles and CI configs are out of reach). Before concluding a concept is absent, run `search(corpus='prose')`, and for `.rs`/`.toml`/`.sql` or build files, read the source directly.\n- **Multi-token misses (weak):** A miss can come from one token alone. Retry with the single most distinctive token, since the conjunction makes a two-word query fail on either word.\n- **Naming mismatch (unknown):** The index can't tell you whether the code spells the name differently for a different consumer, so a zero can also mean a different spelling exists.\n\nIn short, a zero from `search` is evidence about the indexed names, not about the repository. The reply gives you enough fields to judge which of those two you're entitled to claim, but it does not make that judgement for you.",
+  "ttft_ms": 2378,
+  "type": "result",
+  "duration_ms": 16073,
+  "uuid": "a153f0b3-5c93-4479-bc7d-9b17871ae40d",
+  "ttft_stream_ms": 939,
+  "time_to_request_ms": 73,
+  "first_content_frame_ms": 939,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

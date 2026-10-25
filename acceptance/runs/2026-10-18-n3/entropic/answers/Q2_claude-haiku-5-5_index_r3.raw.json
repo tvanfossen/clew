@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 20888,
+  "stop_reason": "end_turn",
+  "session_id": "56c4b858-61c0-4886-bddc-59871401cbde",
+  "total_cost_usd": 0.011218170000000001,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 34474,
+    "cache_read_input_tokens": 236987,
+    "output_tokens": 3905,
+    "output_tokens_details": {
+      "thinking_tokens": 1066
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 34474,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1755,
+        "cache_read_input_tokens": 71012,
+        "cache_creation_input_tokens": 1306,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1306
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3905,
+      "cacheReadInputTokens": 236987,
+      "cacheCreationInputTokens": 34474,
+      "webSearchRequests": 0,
+      "costUSD": 0.011218170000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1066,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How it's brought in:** llama.cpp is a git submodule, not a FetchContent dependency. `.gitmodules` maps `extern/llama.cpp` to `ggml-org/llama.cpp`, and `extern/CMakeLists.txt:55-104` pulls it in with `add_subdirectory(llama.cpp EXCLUDE_FROM_ALL)`. It also adds `llama.cpp/tools/mtmd` for multimodal support, and sets `LLAMA_BUILD_COMMON=ON` so the `llama-common` target exists. `LLAMA_BUILD_TESTS`, `EXAMPLES`, `SERVER` and `TOOLS` are forced off. The other deps (spdlog, ryml, Catch2, nlohmann/json, cpp-httplib) come through FetchContent in the same file. llama.cpp is the only one built from a local submodule.\n\nBuild wiring:\n\n- `src/inference/CMakeLists.txt` builds the `entropic-inference-{cpu,cuda,vulkan}` OBJECT library. The three `llama_cpp_*` sources are compiled there. `llama-common` is PUBLIC and `llama` and `mtmd` are PRIVATE.\n- `src/facade/CMakeLists.txt:37-50` links `llama`, `mtmd` and `llama-common` as `LINK_ONLY` into `entropic-facade`, which produces `librentropic.so`. The comments say these are absorbed as static code, so consumers never link llama directly.\n\n**How far it reaches into entropic's source:**\n\n| Layer | Reach |\n|---|---|\n| `src/inference/` | Deep. Six files include `<llama.h>` directly: `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler`, `llama_cpp_tokenizer`, `orchestrator`, `adapter_manager`, `grammar_registry`, `speculative_compat`. `llama_cpp_backend.cpp` also includes llama.cpp `common/` headers (chat, sampling, speculative). `llama_cpp_backend.h` exposes `llama_model*`, `llama_context*` and `common_chat` types in its class interface. |\n| `src/facade/` | Shallow but present. `entropic.cpp` includes llama headers, and the facade's private include paths point at `extern/llama.cpp/include` and `ggml/include`. |\n| `src/core`, `cli`, `mcp`, `config`, `storage`, `prompts`, `python` | None. The only `llama_` hit is the config key `llama_log_path` in `src/config/loader.cpp:657`. |\n| `include/entropic/` (public) | No `#include <llama.h>`, but several public headers leak llama types as opaque forward declarations. These are `struct llama_model/llama_context/llama_adapter_lora` in `orchestrator.h`, `adapter_manager.h` and `speculative_compat.h` (`speculative_compat.h:94` takes `const llama_model*` in a public signature), and `sampler.h` and `grammar_registry.h` mention llama types in comments and signatures. `entropic.h` only mentions llama.cpp in doc comments about state blobs. |\n| `tests/` | Several unit and model tests include `<llama.h>` and link `llama` directly. |\n\nSo llama.cpp is compiled into and linked by the inference layer, and its types appear in internal and some public inference headers. The C ABI in `entropic.h` stays clean.\n\n**Things to check:**\n\n- The submodule is uninitialized in this checkout. `git submodule status` shows `-20a04b22\u2026` (leading dash), and `extern/llama.cpp/` is empty. A build will fail until `git submodule update --init extern/llama.cpp` runs.\n- The pin is described inconsistently. `extern/CMakeLists.txt` says \"pinned at b8420\", and `speculative_compat.h` says `253ba110b`. The checked-out commit is `20a04b22`. Those comments are stale or the pin has moved.\n- The header comment in `extern/CMakeLists.txt:3` says llama.cpp \"is NOT built in v1.8.0\". That is outdated, since it is built now.",
+  "ttft_ms": 1379,
+  "type": "result",
+  "duration_ms": 21223,
+  "uuid": "e3a2e797-b883-4ca2-90ea-b4c0a941b814",
+  "ttft_stream_ms": 1222,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1223,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 25882,
+  "stop_reason": "end_turn",
+  "session_id": "e3123baa-7a82-4160-95f3-ec0ad3af0ada",
+  "total_cost_usd": 0.008447050000000001,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 18778,
+    "cache_read_input_tokens": 250225,
+    "output_tokens": 4376,
+    "output_tokens_details": {
+      "thinking_tokens": 1501
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 18778,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1835,
+        "cache_read_input_tokens": 52243,
+        "cache_creation_input_tokens": 2079,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2079
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4376,
+      "cacheReadInputTokens": 250225,
+      "cacheCreationInputTokens": 18778,
+      "webSearchRequests": 0,
+      "costUSD": 0.008447050000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1501,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** with the default configuration, mbedtls runs no concurrent code of its own, and it protects nothing. Its mutex layer is compiled out. Concurrency only exists if the application creates threads and calls into the library from them.\n\n**Why the default build has no mutexes**\n\n- `include/mbedtls/mbedtls_config.h:3787` has `//#define MBEDTLS_THREADING_C`, and `MBEDTLS_THREADING_PTHREAD` (line 2196) is also commented out.\n- Every mutex use in `library/` sits behind `#if defined(MBEDTLS_THREADING_C)`, and `library/threading.c` is empty of mutex code unless that macro is set.\n- The index's `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` values came from an operator flag, not the repo's default. The index's lock and thread results therefore describe a threaded build, not the default one.\n\n**What runs concurrently in the library by default:** nothing. The library creates no threads, installs no signal handlers, and has no timers.\n\n**What runs concurrently in the repository by default:**\n\n| Source | Concurrency | Built by default? |\n|---|---|---|\n| `programs/ssl/ssl_pthread_server.c:277` (`pthread_create`) | One thread per accepted connection | No. Lines 24\u201328 print \"not defined\" and exit unless `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` are both set |\n| `programs/test/benchmark.c:444` (`SIGALRM` handler) | Async signal context | Only if built |\n| `programs/ssl/ssl_server2.c:1698` (`SIGTERM`/`SIGINT` handler) | Async signal context | Only if built |\n| Windows `TimerProc` in `benchmark.c:430` | Timer callback thread | Only on Windows, if built |\n\nThe index found these four spawn sites. The two signal handlers run in signal context, not on a thread, and they belong to example and test programs, not the library.\n\n**What the mutexes protect when enabled** (`THREADING_C` plus a backend)\n\n- **Per-context locks** in `ctr_drbg.c`, `hmac_drbg.c`, `entropy.c`, `rsa.c`, `ssl_cache.c`, `ssl_cookie.c` and `ssl_ticket.c`. Each `ctx->mutex` serializes access to one shared context object, such as an RNG state, a session cache, or a ticket key set.\n- **Global locks** (defined in `threading.c:182\u2013190`):\n  - `mbedtls_threading_gmtime_mutex` in `platform_util.c:189` guards the non-reentrant `gmtime()` call.\n  - `mbedtls_threading_readdir_mutex` in `x509_crt.c:1611` guards `readdir`.\n  - `mbedtls_threading_psa_globaldata_mutex` and `..._psa_rngdata_mutex` guard the PSA global key store and RNG state.\n  - `mbedtls_threading_key_slot_mutex` in `psa_crypto.c:2022` guards key-slot allocation.\n- **`memory_buffer_alloc.c:63`** has a `heap.mutex` that guards the heap allocator.\n\n**What is not protected, even with threading enabled**\n\n- A single context object used by two threads without the library's lock is still unsafe. The library locks only its internal contexts, not the caller's data.\n- The `debug_mutex` in `ssl_pthread_server.c:65` is a program-level lock around the debug callback. It is not part of the library.\n- The threading config documentation (`mbedtls_config.h:3740\u20133780`) says you must enable `MBEDTLS_THREADING_C` before any thread calls a PSA function, and before multi-threaded TLS 1.3 use. This means that without the flag, a default build is only safe if one thread at a time uses the library.\n\n**Limitation on the index's lock result:** it returns one lock identity, `mutex->mutex` in `threading.c`. That is the pthread wrapper's member, not a real protected object, so it does not show what the locks protect. The per-context locks above come from reading the source.",
+  "ttft_ms": 1095,
+  "type": "result",
+  "duration_ms": 26321,
+  "uuid": "2fc67c22-b58a-489a-beb1-676b8d82d520",
+  "ttft_stream_ms": 843,
+  "time_to_request_ms": 73,
+  "first_content_frame_ms": 844,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

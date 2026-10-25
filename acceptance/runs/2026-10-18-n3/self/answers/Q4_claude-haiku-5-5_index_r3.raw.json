@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 17391,
+  "stop_reason": "end_turn",
+  "session_id": "791ce63d-80bd-4e78-9879-a64411ec0f8c",
+  "total_cost_usd": 0.00371519,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 4775,
+    "cache_read_input_tokens": 146189,
+    "output_tokens": 2595,
+    "output_tokens_details": {
+      "thinking_tokens": 1312
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 4775,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1960,
+        "cache_read_input_tokens": 38389,
+        "cache_creation_input_tokens": 1929,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1929
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2595,
+      "cacheReadInputTokens": 146189,
+      "cacheCreationInputTokens": 4775,
+      "webSearchRequests": 0,
+      "costUSD": 0.00371519,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1312,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 5,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What the answer contains.** For a function, `dossier` returns its callers and callees as neighbour edges, not as call sites. Each edge carries:\n\n- **`name`**: the other function, not a line number or the position of the call.\n- **`source`**: `ast` (parser-recovered from source) or `doxygen_sqlite` (from doxygen's own call graph).\n- **`confidence`**: `resolved` or `exact`, saying how sure the edge is.\n- **`edge_class`**: here always `call`. Other classes exist, such as the dataflow edges in the `chain` walk.\n\nThe same reply also gives the body, requirements, covering tests, threads, locks, liveness, and overrides. For a real example, `_identity_index` (`clew/dominated_edges.py:106`) has one caller, `prune_dominated_fuzzy_edges` (doxygen, exact), and one callee, `qualified_name_of` (ast, resolved). `qualified_name_of` has seven callers, mixing `ast` and `doxygen_sqlite` sources.\n\n**What makes it wrong to read it as a list of call sites:**\n\n1. **No call-site positions.** You learn that A relates to B, not where or how often. Two calls from one function arrive as one neighbour, so you can't count them or see the surrounding code from this reply alone.\n2. **Neighbour lists are capped.** `max_neighbors` defaults to 8. Past that the list is cut, so a short list may be a partial one. Raise the cap to be sure.\n3. **Edges are not equally trustworthy.** An `ast`/`resolved` edge was inferred by the parser. A `doxygen_sqlite`/`exact` edge came from doxygen. Read them differently.\n4. **Missing callers or callees doesn't mean none.** Calls the index can't map to an indexed function are counted in `callers_unresolved` and are left out of the lists. Calls through function pointers and virtual dispatch are the usual gap; `overrides` and `overridden_by` are separate fields, not calls. I haven't tested how this index handles pointer calls, so treat that as a general static-analysis caveat.\n5. **Identity is qualified, and namesakes can merge.** Edges key on the qualified identity from `qualified_name_of`. When `memberdef` lacks a `definition` column, `_identity_index` falls back to bare names, so every namesake collapses into one identity. The reply can then attach a caller from one function to another with the same bare name. Overloads show up as an `ambiguous` block whose neighbour rows are shared across all candidates.\n6. **Callers are not liveness.** A function with no callers may still be live (entry point, test, callback). Read the separate `liveness` field instead.\n\nThis index was current when I queried it (build version 8, no changed source files, no `staleness` block), so the answers above are not from a stale database.",
+  "ttft_ms": 2242,
+  "type": "result",
+  "duration_ms": 18058,
+  "uuid": "4af2381e-258a-4cbe-a7ff-6211c19b24ba",
+  "ttft_stream_ms": 1343,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1343,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

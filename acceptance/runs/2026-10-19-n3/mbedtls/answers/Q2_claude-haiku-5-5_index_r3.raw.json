@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 23717,
+  "stop_reason": "end_turn",
+  "session_id": "9bafbec4-2fbb-47b5-9797-7852d33237bc",
+  "total_cost_usd": 0.006021800000000001,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 6711,
+    "cache_read_input_tokens": 277020,
+    "output_tokens": 3816,
+    "output_tokens_details": {
+      "thinking_tokens": 973
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 6711,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1063,
+        "cache_read_input_tokens": 43921,
+        "cache_creation_input_tokens": 453,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 453
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 3816,
+      "cacheReadInputTokens": 277020,
+      "cacheCreationInputTokens": 6711,
+      "webSearchRequests": 0,
+      "costUSD": 0.006021800000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 973,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does.** `MBEDTLS_PRIVATE(member)` is a preprocessor macro in `include/mbedtls/private_access.h:14-18`. By default it expands to `private_##member`, so `ctx->MBEDTLS_PRIVATE(state)` becomes `ctx->private_state`. The member is renamed, not hidden, so code that names the field directly no longer compiles. That is the whole mechanism. Every public header that has struct members wraps them this way, and the header itself is pulled in by about 45 of them (for example `ssl.h:13`, `rsa.h:18`, `aes.h:30`).\n\n**Who it is for.** It is aimed at application code. Its purpose is to keep users off the internal layout of structs so the library can change them without breaking callers. The `ssl.h` documentation says so directly. Near line 5162, the `mbedtls_ssl_handshake_step` warning says direct access to `ssl->state` is deprecated and \"could be broken in any future release\", and it points users to an API request instead.\n\n**Where the opt-out is turned on.** Defining `MBEDTLS_ALLOW_PRIVATE_ACCESS` before the header is included makes the macro expand to the plain member name (`private_access.h:16-17`). In this tree that define appears in only three places:\n\n1. **`library/common.h:132`**, an unconditional `#define`. Library sources that include `common.h` get the plain names. Test suites that include `common.h` do too (for example `test_suite_common.function`, `test_suite_pkcs12.function`, `tests/src/certs.c`). `library/ssl_misc.h:14` also includes it, so the internal SSL code gets the access as well.\n2. **`programs/ssl/ssl_server2.c:8`** and **`programs/ssl/ssl_client2.c:8`**, defined before any include. These sample programs read and write SSL internals directly.\n\n**What that means in practice.**\n- Library internals are not restricted. They can touch any field, and renaming a field there is a plain code change with no wrapper involved.\n- The two SSL demo programs are the only application-level code in the tree that opts out. They depend on internal layout and would need updating if fields move. The `ssl.h` warning applies to them.\n- Anyone who defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` in their own code gets the same access. Nothing enforces it except the rename, so an out-of-tree build that opts out is on its own when the layout changes.\n- `test_suite_x509write.function:763` uses `ctx.MBEDTLS_PRIVATE(extensions)` and does not include `common.h` itself. I did not confirm how that file gets the define. It probably comes through the generated test harness, but I did not verify this.",
+  "ttft_ms": 1659,
+  "type": "result",
+  "duration_ms": 24152,
+  "uuid": "688addc2-5d86-4417-8ad5-1221525d1de5",
+  "ttft_stream_ms": 1361,
+  "time_to_request_ms": 74,
+  "first_content_frame_ms": 1361,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

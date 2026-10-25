@@ -1,0 +1,107 @@
+{
+  "duration_api_ms": 17641,
+  "stop_reason": "end_turn",
+  "session_id": "fb1b6c02-956e-4c44-a365-9844cee6e161",
+  "total_cost_usd": 0.011932739999999999,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 39588,
+    "cache_read_input_tokens": 250864,
+    "output_tokens": 3011,
+    "output_tokens_details": {
+      "thinking_tokens": 800
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 39588,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1523,
+        "cache_read_input_tokens": 73075,
+        "cache_creation_input_tokens": 2060,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2060
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3011,
+      "cacheReadInputTokens": 250864,
+      "cacheCreationInputTokens": 39588,
+      "webSearchRequests": 0,
+      "costUSD": 0.011932739999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 800,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "mcp__clew__propose_declaration",
+      "tool_use_id": "toolu_01YRo9Ja8z4RZCRpPH1kL1RG",
+      "tool_input": {
+        "ignore_declaration": true
+      }
+    }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "In clew, the index's file set is decided by a **scope** resolved before doxygen runs. Two inputs matter: a declared `index_scope:` in the repo's `.clew.yaml`, and an extension filter that every build forces. With nothing declared, the whole repository is the scope, minus what git ignores.\n\n**1. Scope resolution (`clew/scope.py`)**\n\n`derive_scope()` is the single entry point. It has two tiers:\n\n- **Declared.** `_declared_index_scope()` reads an `index_scope:` section with `roots:` and `excludes:` keys. Roots are repo-relative. Any other key is rejected, and so is a section with no usable roots. Entries that resolve outside the repo are refused, and entries that don't exist are dropped with a warning. A declared root is taken at its word and never walked.\n- **Whole repo.** `whole_repo_scope()` is the fallback and the default since gh#333. Its single root is the repository. Its excludes are:\n  - every path `git ls-files --ignored --exclude-standard --directory` reports, including each nested tree's own ignores;\n  - dot-directories and `__pycache__`/`node_modules` anywhere in the tree, via `_pruned_dirs()`.\n\nIf the declaration is present but rejected, `derive_scope` logs a WARNING and falls back to the whole repo, with the rejection reason carried into the scope's `reason`.\n\n**2. What the Doxyfile does and doesn't do**\n\nA Doxyfile's `INPUT` is no longer a tier. Scope's own docstring says a Doxyfile is \"a documentation target, not a reasoning boundary.\" Its `ALIASES` and `PREDEFINED` are still used. Its `INPUT` is replaced, and the repo's `EXCLUDE` lists are cleared.\n\n**3. Nested git trees**\n\nNested trees are indexed, not cut out. A directory counts as a separate tree if it holds a `.git` entry (directory or submodule pointer file). Those trees are tagged by `external.py` so the two codebases can be told apart in answers. Separately, `derive_sub_indexes()` splits the repo into a `first-party` index plus one index per nested tree. It does this only when nested trees exist. Otherwise it returns `[]` and the repo keeps its single slug.\n\n**4. The file-type filter**\n\nWhich file types get read is a separate decision from scope. `clew/doxygen.py` forces `FILE_PATTERNS` to doxygen's own default list (`DOXYGEN_DEFAULT_FILE_PATTERNS`, lines 203\u2013253) on every build. That includes C/C++, Python, Java, Fortran, VHDL, Markdown and others. A target's declared `FILE_PATTERNS` is read only for reporting. Declaring it does not narrow the index. This was gh#340: a declaration had been vetoing trees that scope had already admitted.\n\n**5. With nothing declared**\n\nFor this repo, `.clew.yaml` declares only `guard:` and no `index_scope:`. The build therefore:\n- takes the whole repository as one root;\n- drops git-ignored paths on both sides of every submodule boundary;\n- drops dot and cache directories;\n- keeps every nested clone and submodule, tagged as external;\n- applies doxygen's default extension list.\n\nIt logs a WARNING saying the whole repository is being indexed and why, and says where it looked for a declaration. The reason text also includes the advice to declare `index_scope:`.\n\n**Caveats**\n\n- I read the scope and doxygen-pattern code. I did not run a build to confirm the resulting file list.\n- I tried `propose_declaration` to see what clew would suggest for this repo. The call was denied for lack of permission, so I did not use its output.",
+  "ttft_ms": 1932,
+  "type": "result",
+  "duration_ms": 17991,
+  "uuid": "deff8cb2-836e-44ea-8e03-de65fefebf56",
+  "ttft_stream_ms": 1086,
+  "time_to_request_ms": 75,
+  "first_content_frame_ms": 1086,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

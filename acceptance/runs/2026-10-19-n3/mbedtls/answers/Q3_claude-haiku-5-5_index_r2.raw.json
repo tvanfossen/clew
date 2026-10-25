@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 25055,
+  "stop_reason": "end_turn",
+  "session_id": "26259be9-291d-4d25-9f2a-9157ffbf4b0a",
+  "total_cost_usd": 0.008500530000000001,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 20292,
+    "cache_read_input_tokens": 224713,
+    "output_tokens": 4388,
+    "output_tokens_details": {
+      "thinking_tokens": 1215
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 20292,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2437,
+        "cache_read_input_tokens": 54618,
+        "cache_creation_input_tokens": 1225,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1225
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4388,
+      "cacheReadInputTokens": 224713,
+      "cacheCreationInputTokens": 20292,
+      "webSearchRequests": 0,
+      "costUSD": 0.008500530000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1215,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** library code never calls the C library's `calloc`/`free` directly. Every allocation goes through `mbedtls_calloc()` and `mbedtls_free()`, which forward to function pointers that a project can replace at build time or at runtime.\n\n## The call chain\n\n```\nlibrary code  ->  mbedtls_calloc(n, sz)  ->  mbedtls_calloc_func(n, sz)  ->  calloc / your allocator\n                  (library/platform.c:47)    (static fn pointer,           \n                                              platform.c:44)\n```\n\n- `mbedtls_calloc` and `mbedtls_free` (`library/platform.c:47-55`) are thin wrappers that dereference `mbedtls_calloc_func` and `mbedtls_free_func`.\n- The pointers are initialized to `MBEDTLS_PLATFORM_STD_CALLOC` and `MBEDTLS_PLATFORM_STD_FREE` (`platform.c:44-45`).\n- Those two macros default to `platform_calloc_uninit` (always returns NULL) and `platform_free_uninit` (no-op) when the project doesn't define them (`platform.c:24-42`). So an unconfigured build fails allocations cleanly rather than calling libc.\n- In `include/mbedtls/platform.h:138-168`, the public names are either macros or real functions:\n  - If `MBEDTLS_PLATFORM_MEMORY` is on and both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` are defined, `mbedtls_calloc`/`mbedtls_free` become those macros. There is no indirection and no runtime hook.\n  - If `MBEDTLS_PLATFORM_MEMORY` is on but the macros aren't, they are real functions plus the setter.\n  - If `MBEDTLS_PLATFORM_MEMORY` is off, they are `#define`d straight to libc `calloc` and `free` (`platform.h:163-168`).\n\n## How a project substitutes its allocator\n\nTwo routes, both documented in `include/mbedtls/mbedtls_config.h:155-215` and `:4113-4151`:\n\n1. **Compile time (no indirection).** Set in the project's config:\n   ```c\n   #define MBEDTLS_PLATFORM_MEMORY\n   #define MBEDTLS_PLATFORM_CALLOC_MACRO  my_calloc\n   #define MBEDTLS_PLATFORM_FREE_MACRO    my_free\n   ```\n   Both macros must be defined together; defining only one is not valid. `platform.c` drops its runtime code entirely in this case (`platform.c:20-22`).\n\n2. **Runtime (function pointers).** Enable `MBEDTLS_PLATFORM_MEMORY` and leave the macros undefined. Then either:\n   - define `MBEDTLS_PLATFORM_STD_CALLOC`/`MBEDTLS_PLATFORM_STD_FREE` as the default allocator (e.g. `calloc`/`free`), or\n   - call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` before using the library (`platform.c:57-63`, declared in `platform.h:160-161`). This simply stores both pointers in the globals.\n\n   The setter does no locking and no validation. It has to run before any other thread touches the library.\n\n## What the library does with the facility\n\n- **Everything routes through it.** A grep of `library/` for raw `calloc(`/`free(` turns up no allocation calls outside the platform layer. Only `memory_buffer_alloc.c:404` calls libc `free` directly (on the debug backtrace array, `hdr->trace`). That is worth checking if you want a pure custom heap, since it bypasses the hook.\n- **The library ships its own substitute.** `mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566-600`) takes a caller-supplied buffer and turns it into a heap. It zeros the buffer and sets up one header, then calls `mbedtls_platform_set_calloc_free(buffer_alloc_calloc_mutexed, buffer_alloc_free_mutexed)` (or the unmutexed pair if `MBEDTLS_THREADING_C` is off). From then on, every library allocation is served from that buffer and never touches `malloc`. This is a runtime substitution done by the library itself, and it is the reference example for a custom allocator.\n- **The library's own tests use the hook too.** `memory_buffer_alloc.c:660-728` calls `mbedtls_calloc` directly to test exhaustion and fragmentation.\n- **Fallback behavior.** With no allocator configured, `mbedtls_calloc` returns NULL and `mbedtls_free` does nothing. Library code that allocates must therefore handle NULL, and a missing allocator shows up as an allocation failure rather than a crash or a silent libc call.\n\n## Things to watch when substituting\n\n- A custom allocator must be installed before the first library call, since there is no synchronization on the function pointers.\n- Only `calloc`-style semantics are expected (zeroed memory, `nmemb * size` overflow checking is the allocator's job). Use `MBEDTLS_PLATFORM_STD_*` only for allocators with that signature.\n- The debug trace in `memory_buffer_alloc.c` bypasses the hook, so a fully custom heap should not rely on that option.\n\nI did not build or run anything for this; the answer comes from reading the source and the index.",
+  "ttft_ms": 2144,
+  "type": "result",
+  "duration_ms": 25517,
+  "uuid": "0c0d0265-0fc6-4ab2-b83a-57d1bf98a600",
+  "ttft_stream_ms": 1601,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1601,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

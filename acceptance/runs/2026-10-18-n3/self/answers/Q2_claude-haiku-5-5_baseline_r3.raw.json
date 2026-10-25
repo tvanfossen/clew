@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 22557,
+  "stop_reason": "end_turn",
+  "session_id": "4c611b53-1eab-44b9-a13c-b52ce6f58f15",
+  "total_cost_usd": 0.0075422200000000005,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 18512,
+    "cache_read_input_tokens": 182932,
+    "output_tokens": 4019,
+    "output_tokens_details": {
+      "thinking_tokens": 1809
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 18512,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2830,
+        "cache_read_input_tokens": 46041,
+        "cache_creation_input_tokens": 2610,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2610
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4019,
+      "cacheReadInputTokens": 182932,
+      "cacheCreationInputTokens": 18512,
+      "webSearchRequests": 0,
+      "costUSD": 0.0075422200000000005,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1809,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply separates the two cases by grading each empty result, not by a single fixed sentence. The grading lives in `clew/mcp_server/emptiness.py`: `search_emptiness` for symbol search and `prose_emptiness` for `corpus='prose'`. The grader only checks what the index holds. It never checks whether the file was in scope.\n\n**How the reply tells the cases apart**\n\n| Situation | Wording returned | What it claims |\n|---|---|---|\n| One token, no match in any searched corpus, no unread-corpus hits, file docs present | \"This IS a definitive empty result\u2026 Do not retry\" | The token is absent from the corpora `search` reads |\n| Multi-token query, some token has zero hits | \"NOT definitive\". Names the dead token and says \"RETRY WITHOUT THEM\" | The conjunction emptied it, not the repo |\n| Multi-token query, every token matches alone | \"NOT definitive\". Says to retry with fewer tokens or use `corpus='prose'` | No single unit carries all the tokens |\n| Matching rows exist in a kind `search` doesn't read (typedef, enum, etc.) | \"NOT DEFINITIVE\u2026 this index HOLDS matching rows\u2026\", with the kinds and counts named | The name exists; ask `dossier` for it |\n| Prose query, token present in the symbol corpora | \"NOT DEFINITIVE\u2026 this repository DOES use these terms\" | The term is written somewhere else |\n| No file-docs or no markdown corpus in the index | \"NOT definitive. Rebuild with `index(action='refresh')`\" | Nothing; the index can't look |\n\nEvery empty reply also carries a `Searched:` line, built from the search's own kind list, and a `scope` payload with the file count, top-level directories, extensions, and, when the build recorded it, `not_indexed`. That is how the reply answers \"where did you look.\" The `not_indexed` field is only present when the build recorded it. Older indexes report it as absent, not as empty, so \"nothing was missed\" is never inferred.\n\n**How much confidence each answer deserves**\n\n- **The strong \"definitive\" reply** earns high confidence only that no searched corpus holds the token. The \"unread corpus\" check is a subtraction from the kinds actually in the database, so it adapts to new kinds. It does not earn confidence that the *repository* lacks the term. A file outside the index's scope, such as a `.c` file in an index that never ingested `.c`, still gets the strong wording. The only signal is the `scope` key, and the verdict itself never consults it. That is the gap this module was written to close (gh#21), and the `list_files` tool that exposed it is gone. I'd treat \"definitive\" as \"absent from the indexed scope\" and check `scope` before acting on it.\n- **The \"NOT definitive, rows exist elsewhere\" replies** are high confidence. They come from counts over the database, so the match is real even though `search` didn't return it. The useful next step is `dossier` by name.\n- **The \"retry without these tokens\" replies** are high confidence about the cause, since they're per-token counts, but say nothing about whether the repo contains the full phrase.\n- **The \"rebuild the index\" replies** carry no confidence in a negative at all.\n\n**Two limits worth knowing**\n\n- Only the first 8 tokens are diagnosed (`MAX_DIAGNOSED_TOKENS`). Later tokens go unexamined in both the per-token counts and the unread-corpus check.\n- An index lacking the preprocessor-gate layer is deliberately not downgraded (gh#393 tried and was reverted). That absence shows up in `graph_stats.layer_states` as `absent`, not in each search reply.",
+  "ttft_ms": 1434,
+  "type": "result",
+  "duration_ms": 22877,
+  "uuid": "1edc7ee8-fc56-4aeb-b2d8-5c80fa50b3fc",
+  "ttft_stream_ms": 946,
+  "time_to_request_ms": 97,
+  "first_content_frame_ms": 946,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

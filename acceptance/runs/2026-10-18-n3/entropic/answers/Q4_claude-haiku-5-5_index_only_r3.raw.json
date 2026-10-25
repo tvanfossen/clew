@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 17919,
+  "stop_reason": "end_turn",
+  "session_id": "8ffb9a16-1370-448e-bd0a-892fb15cdb04",
+  "total_cost_usd": 0.0076977700000000005,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 19787,
+    "cache_read_input_tokens": 216537,
+    "output_tokens": 3148,
+    "output_tokens_details": {
+      "thinking_tokens": 1065
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 19787,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1814,
+        "cache_read_input_tokens": 51041,
+        "cache_creation_input_tokens": 4966,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4966
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3148,
+      "cacheReadInputTokens": 216537,
+      "cacheCreationInputTokens": 19787,
+      "webSearchRequests": 0,
+      "costUSD": 0.0076977700000000005,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1065,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The index shows five thread spawn sites in entropic's own code, four of them in production. Each one is guarded by a mutex or an atomic flag, and the shutdown path joins or closes what it started. The index doesn't fully settle the stdio and SSE transports, so I've marked those below.\n\n**Threads other than the caller's** (spawn sites from `search corpus=threads`)\n\n| Thread | Spawned in | What it does |\n|---|---|---|\n| `ExternalBridge::accept_loop` | `ExternalBridge::start` (`src/facade/external_bridge.cpp:796`) | Polls the listen socket, accepts MCP clients, and starts one serve thread per client |\n| per-client serve thread | inside `accept_loop` | Runs `serve_client` for one connection |\n| `HealthMonitor::monitor_loop` | `HealthMonitor::start` (`src/mcp/health_monitor.cpp:92`) | Checks watched MCP servers every 500 ms |\n| `StdioTransport::stderr_reader_loop` | `StdioTransport::open` (`src/mcp/transport_stdio.cpp:164`) | Forwards child-process stderr to the log |\n| `SSETransport::sse_reader_loop` | `SSETransport::open` (`src/mcp/transport_sse.cpp:107`) | Reads the SSE event stream |\n\nThe fifth spawn site, `listen_after_bind`, is in `tests/unit/mcp/transport_sse_test.cpp` and is test scaffolding.\n\n**What keeps it safe**\n\n1. **Shared state sits behind named mutexes.** The index lists 45 lock identities in the first-party code. The ones on these paths are:\n   - `ExternalBridge`: `client_threads_mutex_` guards the client list, `tasks_mutex_` and `subscribers_mutex_` guard task and subscriber state, and `s_bound_sockets_mu` guards a process-wide set of socket paths.\n   - `HealthMonitor`: `watched_mutex_` guards the watch map, `event_mutex_` guards the event queue, and `wake_mutex_` with a condition variable provides an interruptible sleep.\n   - `StdioTransport`: `io_mutex_`.\n   - `MCPAuthorizationManager`: `auth_mutex_`, held across `check_access`.\n\n2. **Callbacks are not run on the background thread.** `HealthMonitor::process_events` (documented as \"call on engine thread\") swaps the event queue out under `event_mutex_`, releases the lock, and then invokes the status callback. The callback therefore runs on the engine thread, not while the lock is held.\n\n3. **Lifecycle flags are atomic.** `ExternalBridge` uses `running_` (`store`/`load`), and `SSETransport` uses `running_` and `connected_` (`load`). The index does not show their declared types, so this is the usage pattern I can see, not a verified declaration.\n\n4. **Shutdown is ordered and joins everything.** `ExternalBridge::stop` does the following, in order:\n   - Sets `running_` to false.\n   - Closes the listen fd and joins the accept thread, so no new clients can spawn after the join.\n   - Moves the client list out under its mutex.\n   - Calls `shutdown(SHUT_RDWR)` on each client fd to wake blocked reads.\n   - Joins each client thread.\n   - Removes the socket file and releases the path claim.\n\n5. **Thread-local log routing.** Each thread body installs a `HandleLogScope`, so its log lines go to the owning handle's session log (gh#59).\n\n6. **Access control and peer checks on the accept path.** Each accepted fd is checked with `peer_uid_matches` (SO_PEERCRED) before a serve thread is created (gh#34). `check_access` runs under `auth_mutex_`.\n\n**Caveats**\n\n- The lock-nesting data has three ordered pairs, and none shows the same two locks taken in opposite orders. That is the deadlock pattern the index would flag, so none is reported. The index makes no deadlock claim itself.\n- One pair, `event_mutex_` \u2192 `adapter_mutex_` via `process_events`, has zero resolved sites. The `swap` inside it is marked `receiver_unverified`, so I wouldn't rely on that pair.\n- I did not dossier `StdioTransport::open` as a qualified name, so I haven't verified its join or teardown path. The SSE `open` path is confirmed. Its reader thread is not joined in `open` itself. The index's `close()` callee is the place to check that.",
+  "ttft_ms": 1655,
+  "type": "result",
+  "duration_ms": 18814,
+  "uuid": "24c6bc23-9646-40c6-9998-c4a144f77719",
+  "ttft_stream_ms": 1163,
+  "time_to_request_ms": 65,
+  "first_content_frame_ms": 1164,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

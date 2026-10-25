@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 27806,
+  "stop_reason": "end_turn",
+  "session_id": "d17bcd35-8860-4ac7-b76f-f59a8e166185",
+  "total_cost_usd": 0.0086877,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 17995,
+    "cache_read_input_tokens": 243450,
+    "output_tokens": 5306,
+    "output_tokens_details": {
+      "thinking_tokens": 1683
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 17995,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2492,
+        "cache_read_input_tokens": 49573,
+        "cache_creation_input_tokens": 829,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 829
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5306,
+      "cacheReadInputTokens": 243450,
+      "cacheCreationInputTokens": 17995,
+      "webSearchRequests": 0,
+      "costUSD": 0.0086877,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1683,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Entropic has about a dozen background threads in the C++ engine. Most are created and joined by their owner, and shared state is guarded by mutexes or atomics. One path is detached and is not covered by that discipline.\n\n**Threads that run off the caller's thread**\n\n| Where | Thread | Lifetime | Synchronization |\n|---|---|---|---|\n| `src/facade/external_bridge.cpp:796` | Accept loop for the external MCP Unix socket | Joined in `stop()` | `running_` atomic; listen fd closed to unblock accept |\n| `external_bridge.cpp:945` | One serve thread per connected client | Tracked in `client_threads_`; reaped when finished, and `stop()` does `shutdown(fd)` then join | `client_threads_mutex_`; `finished` atomic |\n| `external_bridge.cpp:1158` | Async `entropic.ask` worker | **Detached** | `tasks_mutex_` for `tasks_`, observer generation, and the sentinel write |\n| `src/mcp/transport_stdio.cpp:164` | Child-process stderr forwarder | Joined in `close()` | `connected_` atomic; `io_mutex_` for pipe I/O |\n| `src/mcp/transport_sse.cpp:107` | SSE event reader | Joined in `close()` | `connected_`/`running_` atomics; `pending_mutex_` |\n| `src/mcp/health_monitor.cpp:92` | Health monitor loop | Joined in `stop()` | `watched_mutex_`, `event_mutex_`, `wake_mutex_`; events are drained on the engine thread via `process_events()` |\n| `src/inference/inference_c_api.cpp:385` | Cancel poller that bridges `int*` to `atomic<bool>` | Joined in `CancelFlagBridge` destructor | Atomics only |\n| `src/inference/interface_factory.cpp:246` | Same cancel bridge for batch generate | Joined before the function returns | Atomics; `done` flag |\n| `src/core/response_generator.cpp:413` | Interrupt observer | Joined before the function returns | Atomics; the `&cancel_int` capture is safe because of the join |\n\n**What keeps it safe**\n\n- **Ownership and join discipline.** Every joinable thread has a single owner that joins it in `stop()`, `close()`, or the destructor. The short-lived pollers join before their stack-captured references go out of scope.\n- **Cross-thread flags are atomics.** `running_`, `connected_`, `done`, and the cancel flags use acquire/release atomics, which matches the design rule \"`std::atomic` for state queries, mutex for transitions only.\"\n- **Shared registries have named mutexes.** Each guarded member has a comment naming its mutex, for example `tasks_mutex_` and `subscribers_mutex_`.\n- **Blocked reads are woken before joining.** `stop()` calls `shutdown(SHUT_RDWR)` on client fds, closes the listen fd, and joins the accept thread, so no thread can hang the join.\n- **The C ABI stays pointer-only.** Cancel crosses the `.so` boundary as `int*`, and the atomic is kept inside the library, per design rule 1 and rule 6 (no exceptions across the boundary).\n- **Stale callbacks are discarded.** The phase observer compares `observer_gen_` with `attached_gen_` under `tasks_mutex_`, so a callback from a detached worker cannot update a later task.\n\n**The gap: the detached async-ask worker**\n\n- `run_async_ask` launches `std::thread([this, ...]{...}).detach()` (`external_bridge.cpp:1158\u20131222`). The thread captures `this`, then touches `tasks_`, `write_sentinel`, `broadcast_notification`, and `cleanup_expired_tasks` after `entropic_run` returns.\n- `ExternalBridge::stop()` (`external_bridge.cpp:826`) does not wait for these workers. It only joins the accept thread and the client threads. The destructor just calls `stop()`. So if the bridge is destroyed while an ask is running, the worker can use a dead `this`.\n- `cancel_inflight_async_tasks` only waits about 1 s, and only on `context_clear`, so it does not cover teardown either.\n- The file `.claude/proposals/BACKLOG/P2-20260429-001-async-bridge-io-architecture.md` already records this as unbounded, with a proposed bounded task pool. I did not find a cap on accepted clients in the part of the accept loop I read.\n\nI did not check whether engine teardown waits for `entropic_run` to return, which would make the `handle_` side safe even though the bridge side is not. A fix would track in-flight workers and join them in `stop()`, or move them onto a bridge-owned pool, as the backlog proposal describes.\n\nNote: a hook suggested a `dossier` tool for this lookup. I don't have that tool in this session, so I used grep and sed.",
+  "ttft_ms": 1638,
+  "type": "result",
+  "duration_ms": 28127,
+  "uuid": "c0f57920-a759-4c03-9ac9-ed3d1c566928",
+  "ttft_stream_ms": 1092,
+  "time_to_request_ms": 66,
+  "first_content_frame_ms": 1092,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

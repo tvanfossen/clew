@@ -1,0 +1,433 @@
+=== attempt 1  2026-10-19T13:11:26-04:00
+--- attempt 1 driver rc=3
+    entropic: 26 answer(s), 0 at >=1 pass(es)
+    mbedtls: 0 answer(s), 0 at >=1 pass(es)
+    self: 0 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 2  2026-10-19T13:32:03-04:00
+--- attempt 2 driver rc=3
+    entropic: 26 answer(s), 0 at >=1 pass(es)
+    mbedtls: 0 answer(s), 0 at >=1 pass(es)
+    self: 0 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 3  2026-10-19T13:52:38-04:00
+--- attempt 3 driver rc=3
+    entropic: 26 answer(s), 0 at >=1 pass(es)
+    mbedtls: 0 answer(s), 0 at >=1 pass(es)
+    self: 0 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 4  2026-10-19T14:13:14-04:00
+--- attempt 4 driver rc=3
+    entropic: 26 answer(s), 0 at >=1 pass(es)
+    mbedtls: 0 answer(s), 0 at >=1 pass(es)
+    self: 0 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 5  2026-10-19T14:33:50-04:00
+--- attempt 5 driver rc=3
+    entropic: 26 answer(s), 0 at >=1 pass(es)
+    mbedtls: 0 answer(s), 0 at >=1 pass(es)
+    self: 0 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 6  2026-10-19T14:54:26-04:00
+--- attempt 6 driver rc=3
+    entropic: 26 answer(s), 0 at >=1 pass(es)
+    mbedtls: 0 answer(s), 0 at >=1 pass(es)
+    self: 0 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 7  2026-10-19T15:15:04-04:00
+--- attempt 7 driver rc=3
+    entropic: 26 answer(s), 0 at >=1 pass(es)
+    mbedtls: 0 answer(s), 0 at >=1 pass(es)
+    self: 0 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 8  2026-10-19T15:35:40-04:00
+--- attempt 8 driver rc=3
+    entropic: 26 answer(s), 0 at >=1 pass(es)
+    mbedtls: 0 answer(s), 0 at >=1 pass(es)
+    self: 0 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 9  2026-10-19T15:56:17-04:00
+--- attempt 9 driver rc=3
+    entropic: 26 answer(s), 0 at >=1 pass(es)
+    mbedtls: 0 answer(s), 0 at >=1 pass(es)
+    self: 0 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 10  2026-10-19T16:16:54-04:00
+--- attempt 10 driver rc=3
+    entropic: 26 answer(s), 0 at >=1 pass(es)
+    mbedtls: 0 answer(s), 0 at >=1 pass(es)
+    self: 0 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 11  2026-10-19T16:37:29-04:00
+--- attempt 11 driver rc=3
+    entropic: 26 answer(s), 0 at >=1 pass(es)
+    mbedtls: 0 answer(s), 0 at >=1 pass(es)
+    self: 0 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 12  2026-10-19T16:58:06-04:00
+--- attempt 12 driver rc=3
+    entropic: 26 answer(s), 0 at >=1 pass(es)
+    mbedtls: 0 answer(s), 0 at >=1 pass(es)
+    self: 0 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 13  2026-10-19T17:18:42-04:00
+--- attempt 13 driver rc=3
+    entropic: 26 answer(s), 0 at >=1 pass(es)
+    mbedtls: 0 answer(s), 0 at >=1 pass(es)
+    self: 0 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 14  2026-10-19T17:39:18-04:00
+--- attempt 14 driver rc=3
+    entropic: 45 answer(s), 34 at >=1 pass(es)
+    mbedtls: 45 answer(s), 0 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 15  2026-10-19T19:54:22-04:00
+--- attempt 15 driver rc=3
+    entropic: 45 answer(s), 34 at >=1 pass(es)
+    mbedtls: 45 answer(s), 0 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 16  2026-10-19T20:14:58-04:00
+--- attempt 16 driver rc=3
+    entropic: 45 answer(s), 34 at >=1 pass(es)
+    mbedtls: 45 answer(s), 0 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 17  2026-10-19T20:35:34-04:00
+--- attempt 17 driver rc=3
+    entropic: 45 answer(s), 34 at >=1 pass(es)
+    mbedtls: 45 answer(s), 0 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 18  2026-10-19T20:56:09-04:00
+--- attempt 18 driver rc=3
+    entropic: 45 answer(s), 34 at >=1 pass(es)
+    mbedtls: 45 answer(s), 0 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 19  2026-10-19T21:16:45-04:00
+--- attempt 19 driver rc=3
+    entropic: 45 answer(s), 34 at >=1 pass(es)
+    mbedtls: 45 answer(s), 0 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 20  2026-10-19T21:37:21-04:00
+--- attempt 20 driver rc=3
+    entropic: 45 answer(s), 34 at >=1 pass(es)
+    mbedtls: 45 answer(s), 0 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 21  2026-10-19T21:58:04-04:00
+--- attempt 21 driver rc=3
+    entropic: 45 answer(s), 34 at >=1 pass(es)
+    mbedtls: 45 answer(s), 0 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 22  2026-10-19T22:18:51-04:00
+--- attempt 22 driver rc=3
+    entropic: 45 answer(s), 34 at >=1 pass(es)
+    mbedtls: 45 answer(s), 0 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 23  2026-10-19T22:39:30-04:00
+--- attempt 23 driver rc=2
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 19 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 24  2026-10-20T00:05:36-04:00
+--- attempt 24 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 19 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 25  2026-10-20T00:26:12-04:00
+--- attempt 25 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 19 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 26  2026-10-20T00:46:48-04:00
+--- attempt 26 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 19 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 27  2026-10-20T01:07:24-04:00
+--- attempt 27 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 19 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 28  2026-10-20T01:28:00-04:00
+--- attempt 28 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 19 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 29  2026-10-20T01:48:35-04:00
+--- attempt 29 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 19 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 30  2026-10-20T02:09:12-04:00
+--- attempt 30 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 19 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 31  2026-10-20T02:29:48-04:00
+--- attempt 31 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 19 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 32  2026-10-20T02:50:24-04:00
+--- attempt 32 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 19 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 33  2026-10-20T03:11:00-04:00
+--- attempt 33 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 19 at >=1 pass(es)
+    self: 54 answer(s), 0 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 34  2026-10-20T03:31:36-04:00
+--- attempt 34 driver rc=2
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 9 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 35  2026-10-20T05:01:31-04:00
+--- attempt 35 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 9 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 36  2026-10-20T05:22:07-04:00
+--- attempt 36 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 9 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 37  2026-10-20T05:42:43-04:00
+--- attempt 37 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 9 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 38  2026-10-20T06:03:19-04:00
+--- attempt 38 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 9 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 39  2026-10-20T06:23:56-04:00
+--- attempt 39 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 9 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 40  2026-10-20T06:44:32-04:00
+--- attempt 40 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 9 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 41  2026-10-20T07:05:08-04:00
+--- attempt 41 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 9 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 42  2026-10-20T07:25:44-04:00
+--- attempt 42 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 9 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 43  2026-10-20T07:46:21-04:00
+--- attempt 43 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 9 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 44  2026-10-20T08:06:57-04:00
+--- attempt 44 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 9 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 45  2026-10-20T08:27:33-04:00
+--- attempt 45 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 9 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 46  2026-10-20T08:48:09-04:00
+--- attempt 46 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 24 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 47  2026-10-20T09:46:29-04:00
+--- attempt 47 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 24 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 48  2026-10-20T10:07:06-04:00
+--- attempt 48 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 24 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 49  2026-10-20T10:27:42-04:00
+--- attempt 49 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 24 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 50  2026-10-20T10:48:19-04:00
+--- attempt 50 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 24 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 51  2026-10-20T11:08:55-04:00
+--- attempt 51 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 24 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 52  2026-10-20T11:29:32-04:00
+--- attempt 52 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 24 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 53  2026-10-20T11:50:08-04:00
+--- attempt 53 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 24 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 54  2026-10-20T12:10:44-04:00
+--- attempt 54 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 24 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 55  2026-10-20T12:31:21-04:00
+--- attempt 55 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 24 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 56  2026-10-20T12:51:57-04:00
+--- attempt 56 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 24 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 57  2026-10-20T13:12:33-04:00
+--- attempt 57 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 24 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 58  2026-10-20T13:33:09-04:00
+--- attempt 58 driver rc=2
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 54 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 59  2026-10-20T14:41:39-04:00
+--- attempt 59 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 54 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 60  2026-10-20T15:02:15-04:00
+--- attempt 60 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 54 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 61  2026-10-20T15:22:51-04:00
+--- attempt 61 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 54 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 62  2026-10-20T15:43:27-04:00
+--- attempt 62 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 54 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 63  2026-10-20T16:04:04-04:00
+--- attempt 63 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 54 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 64  2026-10-20T16:24:40-04:00
+--- attempt 64 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 54 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 65  2026-10-20T16:45:16-04:00
+--- attempt 65 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 54 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 66  2026-10-20T17:05:53-04:00
+--- attempt 66 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 54 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 67  2026-10-20T17:26:29-04:00
+--- attempt 67 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 54 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 68  2026-10-20T17:47:06-04:00
+--- attempt 68 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 54 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 69  2026-10-20T18:07:42-04:00
+--- attempt 69 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 54 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 70  2026-10-20T18:28:19-04:00
+--- attempt 70 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 54 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 71  2026-10-20T18:48:55-04:00
+--- attempt 71 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 54 at >=1 pass(es)
+=== sleeping 1200s
+=== attempt 72  2026-10-20T19:09:31-04:00
+--- attempt 72 driver rc=3
+    entropic: 45 answer(s), 45 at >=1 pass(es)
+    mbedtls: 45 answer(s), 45 at >=1 pass(es)
+    self: 54 answer(s), 54 at >=1 pass(es)
+=== sleeping 1200s
+=== GAVE UP after 72 attempts

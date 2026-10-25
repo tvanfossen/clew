@@ -1,0 +1,178 @@
+{
+  "target": "tvanfossen/entropic",
+  "commit": "6dcb4c814639fd58ead85aea06809637010f34f1",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "9c6dc8800d760d1e",
+  "seed": 7,
+  "models": [
+    "claude-haiku-5-5"
+  ],
+  "replicates": 1,
+  "clew_build_version": "8",
+  "clew_version": "1.1.0",
+  "clew_commit": "56888146424330a1cde63d69be32c00e63b26dfa",
+  "clew_dirty": true,
+  "substrate_version": "0.12.0",
+  "substrate_languages": [
+    "ada",
+    "bash",
+    "c",
+    "cmake",
+    "cpp",
+    "csharp",
+    "fortran",
+    "go",
+    "java",
+    "javascript",
+    "json",
+    "kotlin",
+    "lua",
+    "markdown",
+    "php",
+    "python",
+    "rust",
+    "scala",
+    "swift",
+    "typescript",
+    "yaml"
+  ],
+  "resumed": [
+    "Q1_claude-haiku-5-5_baseline_r1",
+    "Q1_claude-haiku-5-5_index_only_r1",
+    "Q1_claude-haiku-5-5_index_r1",
+    "Q2_claude-haiku-5-5_baseline_r1",
+    "Q2_claude-haiku-5-5_index_only_r1",
+    "Q2_claude-haiku-5-5_index_r1",
+    "Q3_claude-haiku-5-5_baseline_r1",
+    "Q3_claude-haiku-5-5_index_only_r1",
+    "Q3_claude-haiku-5-5_index_r1",
+    "Q4_claude-haiku-5-5_baseline_r1",
+    "Q4_claude-haiku-5-5_index_only_r1",
+    "Q4_claude-haiku-5-5_index_r1",
+    "Q5_claude-haiku-5-5_baseline_r1",
+    "Q5_claude-haiku-5-5_index_only_r1",
+    "Q5_claude-haiku-5-5_index_r1"
+  ],
+  "cells": [
+    {
+      "target": "tvanfossen/entropic",
+      "question_id": "Q4",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 0
+    },
+    {
+      "target": "tvanfossen/entropic",
+      "question_id": "Q4",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 1
+    },
+    {
+      "target": "tvanfossen/entropic",
+      "question_id": "Q4",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 2
+    },
+    {
+      "target": "tvanfossen/entropic",
+      "question_id": "Q1",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 3
+    },
+    {
+      "target": "tvanfossen/entropic",
+      "question_id": "Q1",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 4
+    },
+    {
+      "target": "tvanfossen/entropic",
+      "question_id": "Q1",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 5
+    },
+    {
+      "target": "tvanfossen/entropic",
+      "question_id": "Q2",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 6
+    },
+    {
+      "target": "tvanfossen/entropic",
+      "question_id": "Q2",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 7
+    },
+    {
+      "target": "tvanfossen/entropic",
+      "question_id": "Q2",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 8
+    },
+    {
+      "target": "tvanfossen/entropic",
+      "question_id": "Q3",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 9
+    },
+    {
+      "target": "tvanfossen/entropic",
+      "question_id": "Q3",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 10
+    },
+    {
+      "target": "tvanfossen/entropic",
+      "question_id": "Q3",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 11
+    },
+    {
+      "target": "tvanfossen/entropic",
+      "question_id": "Q5",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 12
+    },
+    {
+      "target": "tvanfossen/entropic",
+      "question_id": "Q5",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 13
+    },
+    {
+      "target": "tvanfossen/entropic",
+      "question_id": "Q5",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 14
+    }
+  ]
+}

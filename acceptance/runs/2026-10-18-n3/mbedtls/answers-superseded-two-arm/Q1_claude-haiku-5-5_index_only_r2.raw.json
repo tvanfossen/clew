@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 33720,
+  "stop_reason": "end_turn",
+  "session_id": "ac4bff10-4f68-42e5-940b-fdd5a852a223",
+  "total_cost_usd": 0.012307700000000001,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 30736,
+    "cache_read_input_tokens": 259880,
+    "output_tokens": 7121,
+    "output_tokens_details": {
+      "thinking_tokens": 4323
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 30736,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3439,
+        "cache_read_input_tokens": 59871,
+        "cache_creation_input_tokens": 4832,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4832
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 7121,
+      "cacheReadInputTokens": 259880,
+      "cacheCreationInputTokens": 30736,
+      "webSearchRequests": 0,
+      "costUSD": 0.012307700000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4323,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** Under the default configuration the library runs no internal concurrency and protects nothing. The index can't confirm that default, though. The index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` set by the operator, and it has no config header for the repo, so the shipped default is unknown from here. What it does show is that no indexed header has a definition site for `MBEDTLS_THREADING_C`, which usually means it's commented out. The index says nothing about the default for `MBEDTLS_THREADING_PTHREAD` either. From general knowledge, mbedtls ships with threading off, but that is outside the index.\n\n**With threading enabled (the build the index used):**\n\n*What runs concurrently*\n\n- **The library starts no threads.** Its concurrency is whatever the caller creates. The index's thread layer found 4 spawn sites, all in `programs/`, none in `library/`.\n- **`programs/ssl/ssl_pthread_server.c`**: `handle_ssl_connection` runs one pthread per accepted connection (spawned via `thread_create`, gated on both threading macros). Each thread has its own `mbedtls_ssl_context` and client fd, but they all read the same `thread_info->config`. Whether concurrent use of a shared `ssl_config` is safe is not something the index shows.\n- **Signal handlers (kind `isr`)**: `term_handler` in `ssl_server2.c` sets `received_sigterm` and calls `mbedtls_net_free` on `listen_fd` and `client_fd` from signal context, racing the main loop (my reading, not an index claim). `sighandler` in `benchmark.c` sets `mbedtls_timing_alarmed`. `TimerProc` (Win32 only) sets the same flag from a timer thread.\n\n*What the mutexes protect*\n\n| Object | Where used | What the index shows |\n|---|---|---|\n| `mbedtls_threading_key_slot_mutex` | `psa_get_and_lock_key_slot` | Held across the whole lookup, including loading a persistent key, so another thread can't load and destroy the same key in between. Unlocked on every return path. Gated on `MBEDTLS_THREADING_C` inside `MBEDTLS_PSA_CRYPTO_C`. |\n| `heap.mutex` | `buffer_alloc_calloc_mutexed` / `_free_mutexed` (`memory_buffer_alloc.c`) | Serializes the stack allocator's calloc/free. |\n| `readdir_mutex` | Initialized in `mbedtls_threading_set_alt`, gated on `MBEDTLS_FS_IO` | Presumably guards `readdir`. No acquisition site found. |\n| `gmtime_mutex` | Initialized in `set_alt`, gated on `THREADING_USE_GMTIME` | `mbedtls_platform_gmtime_r` calls lock/unlock, but the index doesn't show which mutex. |\n| `psa_globaldata_mutex`, `psa_rngdata_mutex` | Initialized in `set_alt` under `MBEDTLS_PSA_CRYPTO_C` | Names suggest PSA global and RNG state. No acquisition sites found in the index. |\n| Per-context locks (entropy, DRBGs, SSL cache/cookie/ticket, RSA, X.509 path parsing) | Entropy gather/poll and CTR/HMAC-DRBG random call lock/unlock through the function pointers | The index shows the call edges but not which context field is locked. |\n\n*How the locking works*\n\n- `mbedtls_mutex_init/lock/unlock/free` are function pointers defaulting to `threading_mutex_*_pthread`, which wrap `pthread_mutex_*`.\n- `mbedtls_threading_set_alt` swaps in a custom implementation and initializes the four global mutexes. It is gated on `MBEDTLS_THREADING_ALT`, whose origin is undeclared.\n- The init function notes that locking an uninitialized pthread mutex is undefined behaviour and is only checked in tests.\n\n**Gaps in what I can tell you**\n\n- The shipped default config is not in the index. Declaring `preprocessor.config_header` would settle it.\n- The lock layer has one identity, `mutex->mutex`, scope unknown, confidence low. It can't map locks to objects. Its \"no two-lock holdings\" result means none were detected, not that deadlock is impossible.\n- Thread detection is pattern-based. A project's own spawn helper or an RTOS wrapper would be invisible unless `thread_patterns` is declared.",
+  "ttft_ms": 943,
+  "type": "result",
+  "duration_ms": 34993,
+  "uuid": "5e1e5c61-db9a-4482-be72-c12b0e0a1ad3",
+  "ttft_stream_ms": 585,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 585,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

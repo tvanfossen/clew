@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 17415,
+  "stop_reason": "end_turn",
+  "session_id": "7f6a7cb3-7610-4621-95a9-ff73a3e63dda",
+  "total_cost_usd": 0.00982677,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 31627,
+    "cache_read_input_tokens": 223987,
+    "output_tokens": 2521,
+    "output_tokens_details": {
+      "thinking_tokens": 782
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 31627,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1499,
+        "cache_read_input_tokens": 62899,
+        "cache_creation_input_tokens": 4267,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4267
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 2521,
+      "cacheReadInputTokens": 223987,
+      "cacheCreationInputTokens": 31627,
+      "webSearchRequests": 0,
+      "costUSD": 0.00982677,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 782,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A clew index can be out of date on three independent axes. The tool detects each one, attaches a notice to every query reply, and only acts itself on one of them. The caller's job depends on which axis fired.\n\n**How it knows**\n\n`db_status` (`clew/mcp_server/state.py`) computes the data and schema axes. `code_identity` (`clew/mcp_server/freshness.py:221`) computes the code axis.\n\n| Axis | Detected when | Meaning |\n|---|---|---|\n| `data` | Any indexed `.py`/source file's fingerprint has changed since the build (`source_changed_files > 0`) | The index describes old source. The query tools open the database per call, so the data is current once a rebuild lands. |\n| `schema` | `build_version != CLEW_BUILD_VERSION` | The index was stamped by a different pipeline version. If the index is newer than the server, a rebuild cannot clear it. |\n| `code` | The running process's fingerprint differs from the on-disk source fingerprint | The server process loaded old logic at launch. Only a client restart replaces it. |\n\n`code_identity` sets `matches_source` to false only when both fingerprints are non-empty and differ. An unreadable tree counts as \"cannot tell\", not as stale, so it does not produce a false warning.\n\n**What it tells the caller**\n\n`staleness_notices` (`server.py:1548`) returns a list of `{axis, message}` and is empty when the index is current. Each reply is stamped with that list under a `staleness` key, and `_staleness_within_budget` (`tools_query.py:160`) shrinks the prose to fit the response size. The notice is non-raising: a failure to measure just drops the annotation rather than failing the query. Each message says what to do:\n\n- **data:** \"N indexed source file(s) have changed\u2026 call `index(action='refresh')`\", with the measured cost.\n- **schema:** the direction decides the advice. If the server is older than the index, it says to restart the client, because rebuilding cannot clear it. If the index is older, it says to call `index(action='refresh', force=True)`.\n- **code:** restart the MCP client. It says a rebuild cannot fix this, and that the data itself is not stale.\n\n**What the caller does**\n\n- **data:** The tool acts on this one itself. `_auto_refresh` (`server.py:1242`) runs before each query. If the index is data-stale and the process matches its source, it rebuilds under a per-repo build lock with a bounded wait. A re-check inside the lock deduplicates concurrent refreshes. A failed build is logged and the query answers from the stale index, with the notice still attached.\n- **schema:** The tool does not auto-fix an older index. The notice tells the caller to run `index(action='refresh', force=True)`.\n- **code:** The caller restarts the MCP client. `stale_code_refusal` (`freshness.py:531`) then refuses every write from the stale process, and `force` does not bypass it. Reads still work.\n\nSo the caller's real obligations are: read the `staleness` block on any reply it intends to act on, let the data axis self-heal, and for schema or code, follow the one remedy the notice names. A rebuild is not a fix for the code axis.\n\n**Caveat:** Some of the dossier results I read (`_staleness`, `notices`, `check_version_staleness`, `_staleness_within_budget`) came back with `anchor_mismatch: true`. That means the file changed since the index was built, so the line ranges and bodies I quoted may not match the current source. The behaviour described above is from the index's view, and I did not read the live files to confirm it.",
+  "ttft_ms": 1436,
+  "type": "result",
+  "duration_ms": 18775,
+  "uuid": "fa2d3dba-38d5-4a9e-a842-f805ac68a1fa",
+  "ttft_stream_ms": 895,
+  "time_to_request_ms": 85,
+  "first_content_frame_ms": 895,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,201 @@
+=== attempt 1: mbedtls has 39 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"03b9be13-6375-4934-ae87-85a3e19c0bd5","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 6 cell(s) already at 1 pass(es); 39 to grade
+--- attempt 1: mbedtls grade rc=2
+=== attempt 1: self has 54 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"fe5fefdc-cf4a-4e5d-860d-ce5d3f89f2f2","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 0 cell(s) already at 1 pass(es); 54 to grade
+--- attempt 1: self grade rc=2
+=== attempt 1 done, 93 cell(s) still below 1; sleeping 1200s
+=== attempt 2: mbedtls has 39 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"55d4e2d4-0ee2-494a-afa1-6886e0979a3d","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 6 cell(s) already at 1 pass(es); 39 to grade
+--- attempt 2: mbedtls grade rc=2
+=== attempt 2: self has 54 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"e81bbd3e-df88-4bbc-b471-3bb4053dd81e","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 0 cell(s) already at 1 pass(es); 54 to grade
+--- attempt 2: self grade rc=2
+=== attempt 2 done, 93 cell(s) still below 1; sleeping 1200s
+=== attempt 3: mbedtls has 39 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"7b28fe06-5096-48fa-bb1d-dec18595e08f","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 6 cell(s) already at 1 pass(es); 39 to grade
+--- attempt 3: mbedtls grade rc=2
+=== attempt 3: self has 54 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"39d5bf5c-e624-4ee3-aa96-e62a81d6faa6","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 0 cell(s) already at 1 pass(es); 54 to grade
+--- attempt 3: self grade rc=2
+=== attempt 3 done, 93 cell(s) still below 1; sleeping 1200s
+=== attempt 4: mbedtls has 39 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"4708db2d-5e7e-44b4-9ed5-4bf0375ff9ee","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 6 cell(s) already at 1 pass(es); 39 to grade
+--- attempt 4: mbedtls grade rc=2
+=== attempt 4: self has 54 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"88fe0778-7828-40cc-9387-f45ba14ec9b7","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 0 cell(s) already at 1 pass(es); 54 to grade
+--- attempt 4: self grade rc=2
+=== attempt 4 done, 93 cell(s) still below 1; sleeping 1200s
+=== attempt 5: mbedtls has 39 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"563e1397-cd6d-4c8a-a4a8-f8f1f36a0f0a","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 6 cell(s) already at 1 pass(es); 39 to grade
+--- attempt 5: mbedtls grade rc=2
+=== attempt 5: self has 54 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"a54ca91c-5632-4125-83f7-64c56a4e9e41","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 0 cell(s) already at 1 pass(es); 54 to grade
+--- attempt 5: self grade rc=2
+=== attempt 5 done, 93 cell(s) still below 1; sleeping 1200s
+=== attempt 6: mbedtls has 39 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"970e3aa6-1911-447e-afa4-7fea76a03efe","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 6 cell(s) already at 1 pass(es); 39 to grade
+--- attempt 6: mbedtls grade rc=2
+=== attempt 6: self has 54 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"a2702038-c171-42c8-873a-04cf26af72bf","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 0 cell(s) already at 1 pass(es); 54 to grade
+--- attempt 6: self grade rc=2
+=== attempt 6 done, 93 cell(s) still below 1; sleeping 1200s
+=== attempt 7: mbedtls has 39 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"526bd06e-97e0-4cbf-895d-b92393c617fa","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 6 cell(s) already at 1 pass(es); 39 to grade
+--- attempt 7: mbedtls grade rc=2
+=== attempt 7: self has 54 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"ae6589d8-3c1e-449b-9c1b-ba49a84f975a","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 0 cell(s) already at 1 pass(es); 54 to grade
+--- attempt 7: self grade rc=2
+=== attempt 7 done, 93 cell(s) still below 1; sleeping 1200s
+=== attempt 8: mbedtls has 39 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"37db9ae9-53a5-4c1e-bc86-fb5a761ee0c6","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 6 cell(s) already at 1 pass(es); 39 to grade
+--- attempt 8: mbedtls grade rc=2
+=== attempt 8: self has 54 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"ae79b721-fdf3-4e59-bd9b-dfa32361eb65","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 0 cell(s) already at 1 pass(es); 54 to grade
+--- attempt 8: self grade rc=2
+=== attempt 8 done, 93 cell(s) still below 1; sleeping 1200s
+=== attempt 9: mbedtls has 39 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"beab21c7-4091-4419-b0ba-364084e832d2","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 6 cell(s) already at 1 pass(es); 39 to grade
+--- attempt 9: mbedtls grade rc=2
+=== attempt 9: self has 54 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"1312edd6-1e18-4772-abcd-745da4ed89bb","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 0 cell(s) already at 1 pass(es); 54 to grade
+--- attempt 9: self grade rc=2
+=== attempt 9 done, 93 cell(s) still below 1; sleeping 1200s
+=== attempt 10: mbedtls has 39 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"90d5bdc6-7d19-4d9e-b3a5-a861e46c2bb9","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 6 cell(s) already at 1 pass(es); 39 to grade
+--- attempt 10: mbedtls grade rc=2
+=== attempt 10: self has 54 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"1ad109af-7609-42f1-93f1-645dcabdc844","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 0 cell(s) already at 1 pass(es); 54 to grade
+--- attempt 10: self grade rc=2
+=== attempt 10 done, 93 cell(s) still below 1; sleeping 1200s
+=== attempt 11: mbedtls has 39 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"752965eb-73d8-43c7-83cf-da66d99c9518","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 6 cell(s) already at 1 pass(es); 39 to grade
+--- attempt 11: mbedtls grade rc=2
+=== attempt 11: self has 54 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"66c530cc-3810-47a8-a698-abde8cb36aa0","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 0 cell(s) already at 1 pass(es); 54 to grade
+--- attempt 11: self grade rc=2
+=== attempt 11 done, 93 cell(s) still below 1; sleeping 1200s
+=== attempt 12: mbedtls has 39 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"06fd1682-2f67-4c77-9058-f0443ad2b4e0","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 6 cell(s) already at 1 pass(es); 39 to grade
+--- attempt 12: mbedtls grade rc=2
+=== attempt 12: self has 54 cell(s) below 1 pass(es)
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"3a85dead-eb80-49b0-aae2-f6a7c17a4f47","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 0 cell(s) already at 1 pass(es); 54 to grade
+--- attempt 12: self grade rc=2
+=== attempt 12 done, 93 cell(s) still below 1; sleeping 1200s
+=== attempt 13: mbedtls has 39 cell(s) below 1 pass(es)
+
+STOPPED after 15 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"1bf0725f-08df-41f2-a0ab-bcffce4a1776","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+skipping 6 cell(s) already at 1 pass(es); 39 to grade
+Q2_claude-haiku-5-5_baseline_r3    score  90.9%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_only_r1  score  87.9%  unmarked  0.0%
+Q2_claude-haiku-5-5_baseline_r1    score  84.8%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_only_r2  score  69.7%  unmarked  0.0%
+Q2_claude-haiku-5-5_baseline_r2    score  69.7%  unmarked  0.0%
+Q1_claude-haiku-5-5_index_r3       score  75.0%  unmarked  0.0%
+Q1_claude-haiku-5-5_index_only_r3  score  50.0%  unmarked  0.0%
+Q1_claude-haiku-5-5_index_only_r2  score  50.0%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_only_r3  score  69.7%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_r2       score  81.8%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_r3       score  87.9%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_r1       score  87.9%  unmarked  0.0%
+Q3_claude-haiku-5-5_baseline_r3    score  72.4%  unmarked  0.0%
+Q3_claude-haiku-5-5_baseline_r1    score  75.9%  unmarked  0.0%
+Q3_claude-haiku-5-5_baseline_r2    score  41.4%  unmarked  0.0%

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 33570,
+  "stop_reason": "end_turn",
+  "session_id": "8b1fd2a1-8c35-4d4f-a5d0-beb47f24443a",
+  "total_cost_usd": 0.015009419999999999,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 34231,
+    "cache_read_input_tokens": 528722,
+    "output_tokens": 5748,
+    "output_tokens_details": {
+      "thinking_tokens": 2004
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 34231,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1784,
+        "cache_read_input_tokens": 69015,
+        "cache_creation_input_tokens": 808,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 808
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 20,
+      "outputTokens": 5748,
+      "cacheReadInputTokens": 528722,
+      "cacheCreationInputTokens": 34231,
+      "webSearchRequests": 0,
+      "costUSD": 0.015009419999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2004,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** for shell and CMake, the index holds function and macro definitions with their `#` doc blocks. For YAML and JSON it holds only a `path` row, so the files are findable by name but contribute no symbols. On an installation whose substrate lacks the grammars, nothing raises: the shell and CMake files stay registered with no symbols, and the not-indexed report is meant to say so. I did not confirm that last step at runtime because this repo has no `.venv`.\n\n**What the index holds, by file type**\n\n| File type | Routing | What the index gets |\n|---|---|---|\n| `.sh`, `.bash` | `_SH_EXTS` \u2192 `substrate:bash` (`clew/harvest.py:98,126`) | `memberdef` rows for `f() {}` and `function f {}`, documented by the `#` block above |\n| `CMakeLists.txt`, `.cmake` | `_NAME_GRAMMARS` for the whole name, then `_CMAKE_EXTS` \u2192 `substrate:cmake` (`harvest.py:104\u2013133`) | `function()` as a function, `macro()` as `macro definition`, with named arguments |\n| `.yaml`, `.yml`, `.json` | `register_paths` claims them (`clew/synth.py:80,226`) | A `path` row only, so they are in the file set and named by the miss report. Never harvested, no symbols |\n| `.md` | Not a symbol source | Chunked into the prose full-text corpus (`clew/prose.py`) |\n\n**What it does not hold**\n\n- YAML and JSON carry no symbols by design. Their grammars offer `block_mapping_pair` and `pair`, and writing those as symbols would flood `dossier` with every `steps:` key. (`synth.py:71\u201375`, `docs/languages/SCRIPT_INTEGRATION.md`)\n- Any file in a dot directory is pruned by the scope walk, so `.github/workflows/*.yml` is not in scope on any tier (SCRIPT_INTEGRATION.md, \"Scope note\").\n- Shell has no parameter list, so shell functions get empty `argsstring`. That is a language fact, not a harvest gap.\n- Calls made from shell or CMake into C are not resolved as call edges. I did not verify this in code, so treat it as unconfirmed.\n\n**What happens without the grammars**\n\n- `_OPTIONAL_KEYS` is `{\"bash\", \"cmake\"}` (`harvest.py:145`). `_grammar_available` checks `substrate.has_language`, and when it is false `_ts_language_for` returns `None` (`harvest.py:184\u2013207`). The file is then skipped, with no exception.\n- `register_paths` is not gated on the substrate. Shell, CMake, YAML and JSON files still get `path` rows, so they appear in the file set with zero symbols.\n- `compiled_languages()` logs an ERROR and returns an empty set if the substrate cannot be imported. Every optional route then fails closed, and that failure shows in the logs.\n- The docs say a miss on such an install should name the file types it did not read, not return a bare negative (`tests/test_not_indexed_report.py`, `docs/languages/SCRIPT_INTEGRATION.md`). That is the designed behaviour. I did not confirm the report text in code.\n\n**Inconsistencies I noticed**\n\n- `_ts_language_for`'s brief still says it selects \"C, C++, Python or Rust\" and omits the newer languages, so its docs are stale.\n- `docs/languages/SCRIPT_INTEGRATION.md` says YAML and JSON are \"a `path` row: in the file set\", which matches the code. `tests/test_substrate_capability.py` says the fork registers YAML and JSON grammars, but `harvest.py` never routes to them. Nothing parses YAML or JSON, so this is harmless in practice, but the two statements do not line up.",
+  "ttft_ms": 1650,
+  "type": "result",
+  "duration_ms": 34571,
+  "uuid": "9c188f33-fb68-41a6-bf83-e04eb0ec6a51",
+  "ttft_stream_ms": 1155,
+  "time_to_request_ms": 77,
+  "first_content_frame_ms": 1156,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

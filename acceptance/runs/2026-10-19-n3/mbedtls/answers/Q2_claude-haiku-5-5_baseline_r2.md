@@ -1,0 +1,15 @@
+**What it accomplishes:** Mbed TLS puts struct definitions in public headers, so `mbedtls_ssl_context` and similar types are visible to applications and their layouts are effectively part of the ABI. `MBEDTLS_PRIVATE(member)` is a rename hook. In `include/mbedtls/private_access.h:14-18`, when `MBEDTLS_ALLOW_PRIVATE_ACCESS` is not defined, `MBEDTLS_PRIVATE(foo)` expands to `private_foo`. Application code that writes `ssl->state` therefore fails to compile, because the member is named `private_state`. Code that writes `ssl->MBEDTLS_PRIVATE(state)` still compiles, but that is visibly a reach into internals. The macro does not change layout. It makes the boundary explicit and greppable, and it lets the library reorganize internals without it being a silent API break. `ssl.h:5163` marks direct access as deprecated, and `docs/3.0-migration-guide.md:74` calls `bar.MBEDTLS_PRIVATE(foo)` a last resort used "at your own risk," with LTS releases such as 3.6 expected to be more stable.
+
+**Who the opt-out is for, and where it is turned on:**
+
+| Location | What it does | Effect |
+|---|---|---|
+| `library/common.h:132` | Defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` unconditionally | Every library translation unit that includes `common.h` (about 130 files, e.g. `ssl_tls.c` at line 12, which includes it before `mbedtls/ssl.h`) sees the real member names. Inside the library the macro is a no-op, so the library is the primary beneficiary. |
+| `programs/ssl/ssl_server2.c:8` | Defines it before `ssl_test_lib.h` | The test server can read internal fields directly. |
+| `programs/ssl/ssl_client2.c:8` | Same, before its includes | Same for the test client. |
+
+Application code and the other programs (for example `programs/ssl/ssl_context_info.c` and `programs/fuzz/fuzz_dtlsserver.c`) only use `MBEDTLS_PRIVATE(...)` in their source and never define the opt-out, so they get the renamed members. The rename is a compile-time guard only, so any code can opt in by defining the macro before including the Mbed TLS headers. The ordering matters because the macro is expanded when the struct is parsed. The two test programs define it before their first Mbed TLS include, so it takes effect.
+
+**What this means in practice:** Inside the library and in the two SSL test clients, the names are the real ones, and changing an internal field breaks them at compile time, which is what you want. Any external code that defines the opt-out is outside the stability promise, and the docs say so. The opt-out in `common.h` is also an internal convention, not a user-facing switch, because `common.h` is not part of the public include path.
+
+I did not check whether any library file includes a public header before `common.h`. That would leave the struct declarations parsed without the opt-out, so it is worth confirming if you are going to rely on this.

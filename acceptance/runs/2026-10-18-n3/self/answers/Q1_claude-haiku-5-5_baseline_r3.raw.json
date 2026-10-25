@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 29707,
+  "stop_reason": "end_turn",
+  "session_id": "52220a43-5f63-4b3f-829e-4cfe50b9bbfb",
+  "total_cost_usd": 0.014224710000000002,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 36376,
+    "cache_read_input_tokens": 427971,
+    "output_tokens": 5336,
+    "output_tokens_details": {
+      "thinking_tokens": 1563
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 36376,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2280,
+        "cache_read_input_tokens": 64333,
+        "cache_creation_input_tokens": 2163,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2163
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 5336,
+      "cacheReadInputTokens": 427971,
+      "cacheCreationInputTokens": 36376,
+      "webSearchRequests": 0,
+      "costUSD": 0.014224710000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1563,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** two independent gates decide what gets indexed. The first decides which *trees* are walked. The second decides which *files* are read. Nothing in the first gate filters by extension. With no declaration, the walk starts at the whole repository and only subtracts what git ignores plus a few directory rules.\n\n```\nrepo\n \u2502\n \u251c\u2500 1. SCOPE  (clew/scope.py: derive_scope)\n \u2502     index_scope in .clew.yaml?  \u2500\u2500 yes \u2500\u2500\u25ba declared roots, minus excludes\n \u2502            \u2502 no (or unusable)\n \u2502            \u25bc\n \u2502     whole-repo: root = repo, minus git-ignored paths, dot-dirs,\n \u2502                  __pycache__, node_modules; nested git trees kept\n \u2502\n \u251c\u2500 2. ENUMERATE + BINARY DROP  (treescan.enumerate_tree, filetypes.binary_file)\n \u2502     every regular file under the roots, no extension filter\n \u2502     files that classify as binary \u2192 removed, added to doxygen EXCLUDE\n \u2502\n \u251c\u2500 3. DOXYGEN  (doxygen.py: forced FILE_PATTERNS)\n \u2502     reads only files matching doxygen's default extension list\n \u2502\n \u2514\u2500 4. FRONT END  (synth.claims)\n       JS/TS/shell/CMake/YAML etc. that doxygen cannot read, registered from the scanned tree\n```\n\n**Step 1: scope.** `derive_scope` reads `index_scope:` (`roots`, `excludes`) from the repo's `.clew.yaml`. Declared roots are taken as written and never walked. A declaration is rejected, with a logged reason, if it has unknown keys, has no usable `roots:`, or names roots that don't exist. A rejected declaration falls through to the whole-repo tier.\n\n**What \"nothing declared\" produces.** `whole_repo_scope` in `clew/scope.py` returns one root, the repository itself, with these excludes:\n\n- Everything `git ls-files --others --ignored --exclude-standard` reports. Nested submodules get their own `.gitignore` queried too.\n- Dot-directories (`.git`, `.venv`, `.github`, \u2026) and `__pycache__` / `node_modules`.\n- Nothing else. Nested git trees are not excluded. They are indexed and tagged later by `external.py`.\n\nTwo details matter here:\n- The walk stops descending at depth 16. Those directories are logged and recorded, not pruned, so files below them stay in scope.\n- A `Doxyfile` is no longer a scope source. Since gh#333 its `INPUT` is ignored, so a repo that ships one gets the same scope as one that doesn't. Its `ALIASES` and `PREDEFINED` still apply.\n\nIf git is absent or the tree is not a repo, the warning says so and nothing is ignored. The result is a wider scope, not a failure.\n\n**Step 2: enumeration and binaries.** `enumerate_tree` deliberately has no extension filter. The content hash for the incremental cache covers every file in scope. `_drop_binary_files` then runs `lang_parsing_substrate.classify_file` on each file. Anything classified as binary is skipped and logged at INFO. Empty files and very large text files are kept.\n\n**Step 3: doxygen.** This is where extension matters. `FILE_PATTERNS` is forced to doxygen's own default list (`DOXYGEN_DEFAULT_FILE_PATTERNS` in `clew/doxygen.py`, covering C/C++, Python, Java, C#, Fortran, Markdown, and others). The target's `FILE_PATTERNS` is no longer honoured. That was gh#340: a declared pattern list could drop a tree that scope had already admitted.\n\n**Step 4: the front end.** Languages doxygen can't read (JS/TS, shell, CMake, YAML and others in `synth.CLAIMED_EXTS`) are registered from the scanned tree after doxygen runs. Claimed files are in the file set even when they produce no symbols.\n\n**Consequences of the default, from reading the code:**\n- A file under a dot-directory, such as `.github/workflows/*.yml`, is not in the whole-repo scope at all. Dot-directories are excluded by rule, not by git.\n- Declaring `index_scope:` replaces the whole-repo tier entirely. A declared root is taken at its word, so a clone under it is indexed with no check.\n- The gh#3 guard flags an `--extra-input` root only when it holds files and none match the patterns. Under the forced default list this almost never fires.\n\nI read the code paths but did not run an index build against this repo, so the behaviour above is from source, not from observed output.",
+  "ttft_ms": 1263,
+  "type": "result",
+  "duration_ms": 30141,
+  "uuid": "8acf7687-c082-4e3b-8302-51f1dc50693a",
+  "ttft_stream_ms": 1012,
+  "time_to_request_ms": 89,
+  "first_content_frame_ms": 1012,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

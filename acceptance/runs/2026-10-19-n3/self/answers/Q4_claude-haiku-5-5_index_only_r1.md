@@ -1,0 +1,15 @@
+The answer is a set of neighbour names with provenance tags. It is not a list of verified call sites, and reading it that way would be wrong in several specific ways.
+
+**What the reply contains.** I dossiered `_build_function_indexes` (`clew/call_edges.py:277`) and `_index_action` (`clew/mcp_server/server.py:2739`). Each caller or callee row carries a name, a `source` (`ast` or `doxygen_sqlite`), a `confidence` (`resolved` or `exact`) and an `edge_class` (`call`). Indexed callers carry no line numbers. Only `external_callees` carries `call_lines`, and it lists `_FuncRanges` at line 308, a name the index does not resolve to a function. The reply also includes the verbatim body, the signature, liveness, threads, locks, requirements, covering tests and overrides.
+
+**What would make it wrong to read as call sites:**
+
+1. **Empty `callees` does not mean no calls.** `_build_function_indexes` calls `_FuncRanges`, but `callees` is `[]`. Calls into things outside the index go to `external_callees`, so you must check both.
+2. **Callers include tests and registrations.** The caller list for `_build_function_indexes` includes `test_the_guard_does_not_reparse_a_file_whose_sites_are_cached`, and `import_callback_registration_edges` is listed as a `call` edge. A registration site is not a direct invocation.
+3. **Two sources with different strength.** `ast` edges are recovered by the parser and `doxygen_sqlite` edges come from Doxygen's export. The `resolved` and `exact` labels are not the same grade, so the reply does not put these on one scale.
+4. **The list may be capped.** The default `max_neighbors` is 8, but this reply returned 10 callers. I can't tell from the reply whether the list is complete, so I'd re-ask with a higher cap before claiming completeness.
+5. **Bodies and line numbers may be stale.** Both replies carry `anchor_mismatch: true`, meaning the file changed since the index was built and those line ranges may no longer belong to that function. The body text shown is evidence, not a reliable current copy. The reply also gave no `staleness` block, so I did not check index freshness.
+6. **Name-keyed lookup.** `_build_function_indexes` itself keys by bare name (`name_to_rowids`), and the index generally resolves by name. Same-named functions in different classes or files can be conflated. An `ambiguous` block appears when this happens, and neither reply had one, but that absence only covers the names I asked about.
+7. **Depth 1 only.** The reply shows direct neighbours. Transitive callers need `depth` 2 or more with `direction: back`.
+
+In short, the answer is a best-effort, provenance-tagged set of neighbours at one hop. Each entry is a claim with a source and a grade. Indirect dispatch, callbacks, tests, names that collide and stale anchors all need checking against the source before you treat any entry as a call site.

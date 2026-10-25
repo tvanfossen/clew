@@ -1,0 +1,11 @@
+index_scope:
+  roots:
+  - kernel
+  - drivers/gpio
+  - drivers/mfd
+  - drivers/mipi_dbi
+  - drivers/i3c
+  - subsys/pm
+  - samples/bluetooth/encrypted_advertising
+  - samples/drivers/uart/echo_bot
+  - include/zephyr

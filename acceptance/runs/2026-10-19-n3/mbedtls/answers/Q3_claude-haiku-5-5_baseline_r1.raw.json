@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 28975,
+  "stop_reason": "end_turn",
+  "session_id": "a891bf9f-3e3f-44d1-aef1-8b23326bee8f",
+  "total_cost_usd": 0.015112480000000001,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 46144,
+    "cache_read_input_tokens": 253998,
+    "output_tokens": 6685,
+    "output_tokens_details": {
+      "thinking_tokens": 2401
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 46144,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2950,
+        "cache_read_input_tokens": 58030,
+        "cache_creation_input_tokens": 3504,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3504
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 6685,
+      "cacheReadInputTokens": 253998,
+      "cacheCreationInputTokens": 46144,
+      "webSearchRequests": 0,
+      "costUSD": 0.015112480000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2401,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## What gets called\n\nEvery library allocation goes through one of two names, `mbedtls_calloc` and `mbedtls_free`. What they resolve to depends on the config:\n\n```\nlibrary code \u2500\u2500 mbedtls_calloc(n, sz) \u2500\u2500\u252c\u2500 !MBEDTLS_PLATFORM_MEMORY \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba libc calloc (macro in platform.h:167)\n                                        \u251c\u2500 MEMORY + CALLOC/FREE_MACRO \u2500\u2500\u2500\u2500\u2500\u2500\u25ba your macro, bound at compile time (platform.h:143)\n                                        \u2514\u2500 MEMORY, no macros \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba platform.c:49 \u2500\u2500\u25ba mbedtls_calloc_func (runtime pointer)\n```\n\n- **Default:** `include/mbedtls/platform.h:166-167` defines `mbedtls_free` and `mbedtls_calloc` as plain `free` and `calloc`. Nothing is indirected.\n- **Compile-time:** `MBEDTLS_PLATFORM_MEMORY` plus both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` make the names expand straight to your functions. The two macros must be set together (`check_config.h:558-573`).\n- **Runtime:** `MBEDTLS_PLATFORM_MEMORY` alone gives you real functions in `library/platform.c:47-63`. They forward through two file-scope function pointers, `mbedtls_calloc_func` and `mbedtls_free_func`. Their defaults are `MBEDTLS_PLATFORM_STD_CALLOC` and `MBEDTLS_PLATFORM_STD_FREE`. If you don't define those, they're stubs: calloc returns NULL and free does nothing (`platform.c:24-42`).\n\n## How a project substitutes its allocator\n\nTwo routes:\n\n1. **Compile time.** In your `mbedtls_config.h` or user config file:\n   ```c\n   #define MBEDTLS_PLATFORM_MEMORY\n   #define MBEDTLS_PLATFORM_CALLOC_MACRO  my_calloc\n   #define MBEDTLS_PLATFORM_FREE_MACRO    my_free\n   ```\n   `tests/configs/user-config-malloc-0-null.h` takes this route. It defines `MBEDTLS_PLATFORM_STD_CALLOC` as a wrapper that returns NULL for zero-size requests.\n\n2. **Runtime.** Enable `MBEDTLS_PLATFORM_MEMORY` without the macros, then call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` before any other Mbed TLS call. The header describes this in `mbedtls_config.h:160-202`.\n\nThe `*_ALT` pattern is the same idea for other platform functions: a config symbol plus assigning the matching `mbedtls_xxx` global (`docs/architecture/alternative-implementations.md`).\n\n## What the library does with the facility\n\n- **It never calls `malloc`, `calloc`, or `free` directly.** A grep of `library/` finds only comments outside the bundled allocator. About 358 call sites across 50 files use `mbedtls_calloc`/`mbedtls_free`, so substituting that pair covers the whole library.\n- **It ships an allocator that uses the same hook.** `library/memory_buffer_alloc.c` manages a caller-supplied buffer. Its `mbedtls_memory_buffer_alloc_init()` calls `mbedtls_platform_set_calloc_free()` (lines 571-575). With `MBEDTLS_THREADING_C` it wraps the heap ops in a mutex (lines 540-563). The buffer allocator's `mbedtls_free` aborts with a message on a pointer it does not own (lines 373, 390).\n\nThings to watch, from reading the code (I did not build these):\n\n- **The runtime setter is an unsynchronised global write.** Calling it while another thread is allocating is a race. Install your allocator once, at startup.\n- **`mbedtls_memory_buffer_alloc_init()` overrides any allocator you installed earlier.** It calls `set_calloc_free` unconditionally, so a custom allocator set before it is silently replaced.\n- **With both macros defined, the runtime setter is not declared.** `platform.h:139-162` only declares it in the non-macro branch, so `memory_buffer_alloc.c` would presumably fail to compile in that combination. I didn't build it to confirm.",
+  "ttft_ms": 1018,
+  "type": "result",
+  "duration_ms": 29191,
+  "uuid": "6c3a40b2-ec69-4d61-b635-fbcc6d803c94",
+  "ttft_stream_ms": 687,
+  "time_to_request_ms": 80,
+  "first_content_frame_ms": 687,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

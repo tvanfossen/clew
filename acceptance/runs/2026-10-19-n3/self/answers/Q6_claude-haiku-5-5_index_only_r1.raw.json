@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 23040,
+  "stop_reason": "end_turn",
+  "session_id": "86c1ff7b-bf77-4d3b-ada0-477e23c8db7b",
+  "total_cost_usd": 0.01113754,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 31526,
+    "cache_read_input_tokens": 265644,
+    "output_tokens": 4349,
+    "output_tokens_details": {
+      "thinking_tokens": 1683
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 31526,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2042,
+        "cache_read_input_tokens": 48356,
+        "cache_creation_input_tokens": 1457,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1457
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 4349,
+      "cacheReadInputTokens": 265644,
+      "cacheCreationInputTokens": 31526,
+      "webSearchRequests": 0,
+      "costUSD": 0.01113754,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1683,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index holds shell and CMake files as symbol-bearing files, but it holds YAML and JSON only as registered file types with no content. On an installation whose parser lacks the shell and CMake grammars, those files contribute nothing, and the index says so instead of returning an empty answer that looks like absence.\n\nI answered from the index alone: search results, the repo's own docs and test docstrings, and dossiers of the relevant constants. These are the repository's claims about itself, not behavior I verified by running it.\n\n**What the index holds**\n\n| File type | Extensions / names | Treatment | Holds |\n|---|---|---|---|\n| Shell | `.sh`, `.bash` | Parsed by clew's own front end (`clew/synth.py`) from the substrate's bash grammar | Functions as `memberdef`-style symbols, so call edges and dossiers work |\n| CMake | `.cmake`, plus `CMakeLists.txt` matched by file name | Same as shell, from the substrate's cmake grammar | Functions, same as shell |\n| YAML | `.yaml`, `.yml` | Registered in the file set, never harvested | Nothing beyond the file's presence in the claimed set |\n| JSON | `.json` | Registered in the file set, never harvested | Nothing beyond the file's presence in the claimed set |\n\nThe stated reason for not harvesting YAML and JSON is that their grammars offer only `block_mapping_pair` and `pair` nodes. Writing those as symbols would put every `steps:` key of every config into the symbol table. So the index holds no keys, values, or structure from these files.\n\n**What it does not hold**\n\n- Any YAML or JSON content, including CI workflows, config values, or the structure of configuration.\n- Call edges or symbols from YAML or JSON.\n- Anything from files that are not in the claimed set. Markdown is prose, and a Doxyfile or other build scripts are outside the file-set corpus.\n- Dot-directory YAML by default: the scope note says YAML in `conf/`, `deploy/` or the root is indexed, but CI workflows under `.github/` are not, even though the claim test lists `.github/workflows/ci.yml` as claimed.\n\n**The installation without the grammars**\n\n- The shell and CMake grammars are not in the published `lang-parsing-substrate` wheel. They sit in a fork that is open upstream as a pull request. On the published wheel, shell and CMake files carry no symbols.\n- The capability gate `_OPTIONAL_KEYS` (`clew/harvest.py`) is `{\"bash\", \"cmake\"}`. A route to one of those grammars is checked before it is taken, so a missing grammar does not raise.\n- Nothing raises, and the files are simply symbol-less.\n- The not-indexed report (`clew/propose/notindexed.py`, `report_not_indexed`) names the file types that were not read, so an empty answer is not read as proof that a shell function does not exist.\n- The index records `substrate_languages` in its identity output so a bug report can show which grammars were present.\n\n**Caveats**\n\n- My search for `cmake` in the files corpus returned nothing. The corpus is documented to hold only what the parser indexed, so that miss does not settle whether this repo's own `CMakeLists.txt` is indexed. I could not confirm it from here.\n- I could not read the full text of `docs/languages/SCRIPT_INTEGRATION.md`; I worked from its section headings and search snippets.",
+  "ttft_ms": 1340,
+  "type": "result",
+  "duration_ms": 23926,
+  "uuid": "06050c11-7bf4-4bac-85eb-2f0ea396455a",
+  "ttft_stream_ms": 998,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 999,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 11407,
+  "stop_reason": "end_turn",
+  "session_id": "a538860b-61b0-49c3-995f-9ceaea26df77",
+  "total_cost_usd": 0.00554049,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 20132,
+    "cache_read_input_tokens": 52819,
+    "output_tokens": 1971,
+    "output_tokens_details": {
+      "thinking_tokens": 959
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 20132,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1721,
+        "cache_read_input_tokens": 35566,
+        "cache_creation_input_tokens": 1819,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1819
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 1971,
+      "cacheReadInputTokens": 52819,
+      "cacheCreationInputTokens": 20132,
+      "webSearchRequests": 0,
+      "costUSD": 0.00554049,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 959,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply separates the two cases through its fields, not through a yes/no flag. An empty search returns `count: 0` and `results: []`, and the `note` says outright that this is \"NOT an error and NOT a definitive negative.\" Several other fields carry the rest of the answer:\n\n| Field | What it tells you |\n|---|---|\n| `token_hits` | Per-token counts. A multi-token query is a conjunction, so a zero for one token explains the empty result. |\n| `scope` | What was indexed: 426 files, whole-repo, the extensions covered, and `not_indexed` (e.g. `.rs=2`, `.toml=2`, `.sql=1`, no-extension files). |\n| `target` | The repository the query answered from. Check this before concluding anything. |\n| `staleness` | Present only if the index is stale. Absent here, so the index is current. |\n| `note` | Lists what was searched (names, `@brief`, macros, typedefs, enums, classes, config symbols, file docs) and what was not (markdown and Kconfig prose, which is `corpus='prose'`). |\n\nFor the `files` corpus the reply is blunter: it says this corpus holds indexed source files only, so build scripts, Doxyfiles and data files are absent \"by construction.\" It points to `doc_scope` and `inventory` and suggests a broader glob.\n\n**Confidence each answer deserves**\n\n- **\"Not a symbol in the indexed source.\"** Fairly strong, if all of these hold: `target` is the repo you meant, there is no `staleness` block, the query is a single distinctive token (the tool itself says to retry without the non-matching tokens), and the name is the kind of thing the symbol corpus covers. It is still a claim about the index's coverage, not about the tree.\n- **\"Not in the repository.\"** Not established by an empty search alone. The name could live in:\n  - prose or Kconfig (search `corpus='prose'`)\n  - an extension the index does not parse (`.rs`, `.toml`, `.sql`, Makefiles, CI configs)\n  - a vendored tree held in a separate `sub_index`\n  - a spelling that differs for different consumers\n\n  Closing that gap takes a prose search and a shell grep over the full tree.\n- **Empty `files` corpus.** Weakest evidence. It says nothing about whether a file exists on disk, only that the index does not hold it as a parsed source file.\n\nI ran two probes: a nonsense two-token symbol query and a nonsense file query. Both came back empty with the notes above. I did not run the prose search or a shell grep, so the claim that the name is absent from the repository is unverified.",
+  "ttft_ms": 1646,
+  "type": "result",
+  "duration_ms": 11608,
+  "uuid": "15e3e4de-d46a-4f91-8061-3537411b188c",
+  "ttft_stream_ms": 1086,
+  "time_to_request_ms": 78,
+  "first_content_frame_ms": 1086,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

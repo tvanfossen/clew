@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 26794,
+  "stop_reason": "end_turn",
+  "session_id": "92f1a5a3-7ce5-4225-8079-83a865d6d643",
+  "total_cost_usd": 0.013862739999999998,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 48717,
+    "cache_read_input_tokens": 117024,
+    "output_tokens": 5897,
+    "output_tokens_details": {
+      "thinking_tokens": 3632
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 48717,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 5188,
+        "cache_read_input_tokens": 59035,
+        "cache_creation_input_tokens": 9933,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 9933
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 5897,
+      "cacheReadInputTokens": 117024,
+      "cacheCreationInputTokens": 48717,
+      "webSearchRequests": 0,
+      "costUSD": 0.013862739999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3632,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 4,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nEvery allocation in the library goes through `mbedtls_calloc()` and `mbedtls_free()`. Those two functions do not call libc directly. They call through two file-static function pointers, and the embedding project can replace those pointers at runtime or at build time.\n\n## What gets called\n\n```\nlibrary code (e.g. aes_ctx_alloc, ecp_mul_comb, ssl_*)\n   \u2514\u2500 mbedtls_calloc(n, size)            library/platform.c:47\n        \u2514\u2500 (*mbedtls_calloc_func)(n, size)   platform.c:44 (static pointer)\n             \u2514\u2500 default: calloc (or a stub that returns NULL)\n\nlibrary code\n   \u2514\u2500 mbedtls_free(ptr)                  library/platform.c:52\n        \u2514\u2500 (*mbedtls_free_func)(ptr)         platform.c:45 (static pointer)\n```\n\n- `mbedtls_calloc_func` is initialised to `MBEDTLS_PLATFORM_STD_CALLOC`, and `mbedtls_free_func` to `MBEDTLS_PLATFORM_STD_FREE` (`platform.c:44-45`).\n- `MBEDTLS_PLATFORM_STD_CALLOC` is defined as `calloc` in `include/mbedtls/platform.h:84`, unless `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS` is set. In `library/platform.c:24-33` there is a branch that maps it to `platform_calloc_uninit`, which returns NULL. I read that as the no-std-functions case, but the index does not show the exact polarity of that gate, so check it in the source.\n- Call sites never name `mbedtls_calloc` directly in the header. `platform.h` maps the name at compile time. The index lists two `mbedtls_calloc` macro rows: one at `platform.h:144` expands to `MBEDTLS_PLATFORM_CALLOC_MACRO`, and one at `platform.h:167` expands to plain `calloc`. The rows are gated on `MBEDTLS_PLATFORM_MEMORY`, and the index does not confirm which branch is `#if` and which is `#else`.\n\n## How a project substitutes its own allocator\n\nThere are three routes. The index confirms all three.\n\n| Route | Mechanism | Evidence in the index |\n|---|---|---|\n| **Compile-time macros** | Enable `MBEDTLS_PLATFORM_MEMORY` and define `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`. `mbedtls_calloc` then expands to your function. | `platform.h:138-145`. The test config `tests/configs/user-config-malloc-0-null.h` uses a `custom_calloc` symbol. |\n| **Runtime pointer swap** | Call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` at startup. This overwrites the two static pointers and returns 0. | `library/platform.c:57-63`. |\n| **Build with no std functions** | Set `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS`, which removes the `calloc`/`free` defaults. The library then needs an explicit substitute, or it gets the NULL-returning stub. | `platform.h:57-115`, `platform.c:24-33`. |\n\nThe macro route is the only one that resolves at compile time. The runtime route changes global state, so it must happen before any library object is created.\n\nThe index also contains a `component_test_platform_calloc_macro` in `tests/scripts/components-configuration-platform.sh`, which exercises the macro route in CI.\n\n## What the library itself does with the facility\n\nThe library ships a stack-based allocator, `mbedtls_memory_buffer_alloc_init(buf, len)` in `library/memory_buffer_alloc.c:566-600`. A project calls it once with a static buffer. It then:\n\n1. Zeroes its private heap context and, when `MBEDTLS_THREADING_C` is defined, initialises a mutex.\n2. Calls `mbedtls_platform_set_calloc_free(buffer_alloc_calloc_mutexed, buffer_alloc_free_mutexed)`, or the non-mutex pair if threading is off. The library's own allocator is now the function behind `mbedtls_calloc`.\n3. Aligns the buffer, zeroes it, and writes the first block header with two magic values.\n\nIts doc comment says it \"does not call calloc() and free()\". Callers of `mbedtls_calloc` are spread across the whole library: about 150 AST-resolved call sites, including the cipher context allocators, ECP, ASN.1, PSA key slots, and the SSL and X.509 parsers. `mbedtls_free` has a similar count.\n\n## Points to verify\n\n- The `#if`/`#else` polarity of `platform.h:163-168` and `platform.c:24-33` is not settled by the index. Read those blocks before relying on them.\n- The shipped default of `MBEDTLS_PLATFORM_MEMORY` is not in the index. The index has no config header for this target.\n- `MBEDTLS_PLATFORM_CALLOC_MACRO` and `FREE_MACRO` have no definition site in the index. The index reads that as \"commented out in `mbedtls_config.h`, default off\", which fits how the macro route is opt-in.",
+  "ttft_ms": 1775,
+  "type": "result",
+  "duration_ms": 27791,
+  "uuid": "c8cff22f-b81a-471f-9775-7cc5ef0907df",
+  "ttft_stream_ms": 1341,
+  "time_to_request_ms": 89,
+  "first_content_frame_ms": 1341,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

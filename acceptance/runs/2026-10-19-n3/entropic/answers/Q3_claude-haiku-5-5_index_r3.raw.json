@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 42994,
+  "stop_reason": "end_turn",
+  "session_id": "8912cb47-8276-4fbf-a990-217e82361f50",
+  "total_cost_usd": 0.016184089999999998,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 32696,
+    "cache_read_input_tokens": 539739,
+    "output_tokens": 8491,
+    "output_tokens_details": {
+      "thinking_tokens": 3893
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 32696,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3451,
+        "cache_read_input_tokens": 68983,
+        "cache_creation_input_tokens": 1567,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1567
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 20,
+      "outputTokens": 8491,
+      "cacheReadInputTokens": 539739,
+      "cacheCreationInputTokens": 32696,
+      "webSearchRequests": 0,
+      "costUSD": 0.016184089999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3893,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 22,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The call is decided in three places, in this order. The deny list is enforced at dispatch, not at approval, and the approval callback does not actually gate anything.\n\n```\ntool call\n \u2502\n \u251c\u2500 1. PRE_TOOL_CALL hook          tool_executor.cpp:733   can cancel (\"Cancelled by hook\")\n \u251c\u2500 2. check_call_preconditions    tool_executor.cpp:667\n \u2502      anti-spiral block \u2192 schema \u2192 MCP authorization \u2192 tier allowed_tools \u2192 duplicate\n \u251c\u2500 3. check_approval              tool_executor.cpp:161   (approval gate)\n \u2502      approved = auto_approve_tools || allow-list match\n \u2502      else if on_tool_call set  \u2192 approved = true (callback only notifies)\n \u2502      else (headless)           \u2192 denied\n \u2514\u2500 4. ServerManager::execute      server_manager.cpp:153  (deny gate)\n        deny-list match \u2192 \"Error: Permission denied for <tool>\"\n        else route to in-process server or external MCP client\n```\n\n**What decides it**\n\n- **Approval (step 3)** is `auto_approve_tools` (from `permissions.auto_approve`, wired at `src/facade/entropic.cpp:1489`), or an allow-list match via `ServerManager::is_explicitly_allowed`. Anything else goes to `on_tool_call`, which returns `void`. The code sets `approved = true` immediately after calling it, so a host that shows a prompt there cannot reject the call through this path. Only a missing callback denies. The existing test \"Headless mode denies without callback\" covers that case.\n- **Deny (step 4)** is checked only in `ServerManager::execute`, and it runs even when step 3 approved the call. So `auto_approve` plus a deny pattern still blocks the call, but the operator may see a prompt for a call that is then silently refused.\n\n**What a pattern means**\n\nPatterns come from `permissions.allow` and `permissions.deny` (`parse_permissions_config`, `src/config/loader.cpp:365`). `PermissionManager::pattern_matches` (`src/mcp/permission_manager.cpp:101`) works like this:\n\n| Pattern | Split at first `:` | Matches |\n|---|---|---|\n| `filesystem.*` | no colon | any tool whose full name fnmatches it (all filesystem tools) |\n| `bash.execute` | no colon | that one tool, any arguments |\n| `bash.execute:python*` | tool=`bash.execute`, arg=`python*` | calls where the tool matches and `bash.execute:<first arg>` fnmatches the pattern |\n\nThe argument side is built by `args_to_pattern` (`server_manager.h:426`). It takes the first value of the JSON object, and uses `*` when the args are empty, unparseable, or the first value is not a string.\n\nThree caveats follow from that code:\n\n- **Arg patterns are prefixes, not sandboxes.** fnmatch without `FNM_PATHNAME` lets `*` match spaces and `;`, so `bash.execute:python*` also matches `python -c \"\u2026\"; rm -rf ~`.\n- **\"First\" means the first key in the object's iteration order.** I did not verify nlohmann's ordering here. If the default map is sorted, the arg being matched is the alphabetically first key, not the one the model wrote first.\n- **A deny pattern with an arg suffix fails open when the first arg is not a string.** The arg then becomes `*`, which does not match `tool:rm*`.\n\nAllow and deny both use this matcher. Allow only affects step 3. Deny is what stops a call at step 4.\n\n**Dead or unwired pieces**\n\n- `set_permission_persist` stores a `PermissionPersistInterface`, but nothing in `src/` calls `permission_persist_` or `PermissionPersister::save_permission`. \"Always allow\" does not persist yet.\n- `get_permission_pattern` (per-server, e.g. the bash override) is not used by either match site. Both use `args_to_pattern`, so a server's own pattern granularity does not affect enforcement.\n\nI did not run the test suite. These conclusions come from reading the code and the index.",
+  "ttft_ms": 1197,
+  "type": "result",
+  "duration_ms": 43581,
+  "uuid": "bae9b0bd-bc2c-4518-8bba-86c21d753c8c",
+  "ttft_stream_ms": 950,
+  "time_to_request_ms": 65,
+  "first_content_frame_ms": 950,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

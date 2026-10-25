@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 26378,
+  "stop_reason": "end_turn",
+  "session_id": "0b35818a-ae1d-4bdc-827c-75a71821f76d",
+  "total_cost_usd": 0.01358552,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 47082,
+    "cache_read_input_tokens": 148782,
+    "output_tokens": 5361,
+    "output_tokens_details": {
+      "thinking_tokens": 2954
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 47082,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4177,
+        "cache_read_input_tokens": 60895,
+        "cache_creation_input_tokens": 4478,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4478
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 5361,
+      "cacheReadInputTokens": 148782,
+      "cacheCreationInputTokens": 47082,
+      "webSearchRequests": 0,
+      "costUSD": 0.01358552,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2954,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** an mbedtls allocation is a call to `mbedtls_calloc()` (or the `mbedtls_calloc` macro), which normally dispatches through a process-wide function pointer. The default pointer is the C library's `calloc`. A project can replace it either at compile time with macros or at run time with `mbedtls_platform_set_calloc_free()`.\n\n**What gets called, by configuration**\n\n```\nlibrary code: mbedtls_calloc(n, sz)\n        \u2502\n        \u251c\u2500 MBEDTLS_PLATFORM_MEMORY off (default)\n        \u2502     \u2514\u2500 macro \u2192 calloc directly                 (platform.h ~167)\n        \u2502\n        \u251c\u2500 MBEDTLS_PLATFORM_MEMORY on, plus CALLOC/FREE_MACRO\n        \u2502     \u2514\u2500 macro \u2192 user's MBEDTLS_PLATFORM_CALLOC_MACRO (platform.h:139-144)\n        \u2502\n        \u2514\u2500 MBEDTLS_PLATFORM_MEMORY on, no macros\n              \u2514\u2500 mbedtls_calloc() in platform.c:47\n                    \u2514\u2500 (*mbedtls_calloc_func)(n, sz)\n```\n\n- `mbedtls_calloc()` (`library/platform.c:47`) and `mbedtls_free()` (`platform.c:52`) are one-line trampolines through the static pointers `mbedtls_calloc_func` and `mbedtls_free_func` (`platform.c:44-45`).\n- Those pointers are initialised to `MBEDTLS_PLATFORM_STD_CALLOC` and `MBEDTLS_PLATFORM_STD_FREE`. `platform.h:84` defines the standard one as `calloc`. The index does not show the `MBEDTLS_PLATFORM_STD_FREE` definition, so I can't confirm the free side from it.\n- If `MBEDTLS_PLATFORM_STD_CALLOC` is undefined, the fallback is `platform_calloc_uninit` (`platform.c:25-30`), which always returns NULL. So a build with `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS` and no substitute fails every allocation until a function is installed.\n\n**How a project substitutes its allocator**\n\n1. **Compile-time, function-level (`MBEDTLS_PLATFORM_MEMORY` plus macros).** Enable `MBEDTLS_PLATFORM_MEMORY`, then define `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` to your own symbols. The index has an example in `tests/configs/user-config-malloc-0-null.h`, which defines a `custom_calloc`. This binds at compile time with no pointer indirection. `mbedtls_platform_set_calloc_free` is not the mechanism in this mode.\n2. **Run-time, function-pointer.** Enable `MBEDTLS_PLATFORM_MEMORY` without the macros and call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` (`platform.c:57-63`) before the library allocates. It assigns the two static pointers and returns 0. It does no NULL check, so passing NULL fails later, not at the call.\n\nEither way, the library's allocation path (`mbedtls_calloc`/`mbedtls_free`) is the single seam.\n\n**What the library does with the facility**\n\n- Almost every context constructor and destructor goes through the seam. Examples include `aes_ctx_alloc`/`aes_ctx_free`, `gcm_ctx_alloc`, `rsa_alloc_wrap`, `ssl_setup`/`mbedtls_ssl_free`, `x509_crt_parse_der_internal`, the PSA key-slot and buffer helpers, and the PKCS#7 and PEM code.\n- `mbedtls_zeroize_and_free()` (`library/platform_util.c:139-146`) zeroes the buffer with `mbedtls_platform_zeroize` and then calls `mbedtls_free`. Secret-holding objects use it to clear memory before release.\n- The library ships its own allocator, `mbedtls_memory_buffer_alloc_init()` (`library/memory_buffer_alloc.c:566-600`). You give it a static buffer, and it manages that buffer without calling `calloc`/`free`. It works by calling `mbedtls_platform_set_calloc_free` to install its own functions. With `MBEDTLS_THREADING_C` it installs mutex-wrapped variants (`buffer_alloc_calloc_mutexed`, `:541`) that lock a heap mutex around each call.\n\n**Caveats**\n\n- Installing an allocator is process-wide. It replaces the globals for everything in the process, not one context. That includes `mbedtls_memory_buffer_alloc_init`, which has the same global effect. The index does not show whether the setter is synchronised, so I'd install before any threads start.\n- I did not dossier the `platform.h` lines 145-161 gate or the exact `#else` branch in `platform.c`. The description above follows the line ranges the index reports, not a read of the preprocessor logic.",
+  "ttft_ms": 1677,
+  "type": "result",
+  "duration_ms": 27216,
+  "uuid": "85c58761-0fb1-432f-82f8-d5a678f5b621",
+  "ttft_stream_ms": 1179,
+  "time_to_request_ms": 87,
+  "first_content_frame_ms": 1179,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

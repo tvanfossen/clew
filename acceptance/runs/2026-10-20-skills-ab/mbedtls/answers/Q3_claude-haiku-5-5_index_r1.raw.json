@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 18598,
+  "stop_reason": "end_turn",
+  "session_id": "e1fcd859-4525-464b-9e33-d3bd5ce7ef0e",
+  "total_cost_usd": 0.01330637,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 48275,
+    "cache_read_input_tokens": 189157,
+    "output_tokens": 3518,
+    "output_tokens_details": {
+      "thinking_tokens": 1153
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 48275,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2268,
+        "cache_read_input_tokens": 67552,
+        "cache_creation_input_tokens": 2536,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2536
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3518,
+      "cacheReadInputTokens": 189157,
+      "cacheCreationInputTokens": 48275,
+      "webSearchRequests": 0,
+      "costUSD": 0.01330637,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1153,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** every allocation inside the library goes through `mbedtls_calloc()` and `mbedtls_free()`. Those two functions are thin trampolines to function pointers that a project can replace at runtime, or replace at compile time with macros.\n\n**What gets called**\n\n1. Library code calls `mbedtls_calloc(n, size)` and `mbedtls_free(p)`. The index shows callers across ASN.1, X.509, SSL, PSA, bignum, the cipher context constructors and more.\n2. In the default runtime-substitution build, `library/platform.c:47-55` forwards each call through a static pointer:\n   ```c\n   static void * (*mbedtls_calloc_func)(size_t, size_t) = MBEDTLS_PLATFORM_STD_CALLOC;\n   static void (*mbedtls_free_func)(void *)            = MBEDTLS_PLATFORM_STD_FREE;\n   void *mbedtls_calloc(size_t nmemb, size_t size) { return (*mbedtls_calloc_func)(nmemb, size); }\n   ```\n3. The pointers start at `MBEDTLS_PLATFORM_STD_CALLOC` / `MBEDTLS_PLATFORM_STD_FREE`. If those are not defined, `platform.c:24-42` substitutes `platform_calloc_uninit` (returns NULL) and `platform_free_uninit` (no-op). So a build with no allocator fails every allocation cleanly instead of linking to `calloc`.\n\n**How a project substitutes its allocator**\n\nThere are two routes, and the header makes the compile-time one win when both are present.\n\n- **Runtime (the normal route):** keep `MBEDTLS_PLATFORM_MEMORY` on, leave the `*_MACRO` options undefined, and call\n  ```c\n  mbedtls_platform_set_calloc_free(my_calloc, my_free);\n  ```\n  before the library allocates anything. This is `library/platform.c:57-63`, which just assigns the two globals. It has no locking, so call it before any threads start.\n- **Compile time:** define both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` in your user config. `include/mbedtls/platform.h:139-144` then `#define`s `mbedtls_calloc` and `mbedtls_free` directly to your functions. `platform.c` drops its runtime code entirely (guard at `platform.c:20-22`), and `mbedtls_platform_set_calloc_free` no longer exists to call. Use this when you want no indirection, or when the allocator must be fixed at link time.\n- Without `MBEDTLS_PLATFORM_MEMORY` at all, `platform.h:163-167` maps the names straight to libc `calloc`/`free`.\n\n`mbedtls_config.h:4113-4151` states the contract: the allocator must zero the buffer, `free(NULL)` must be a no-op, and a non-null pointer passed to free must be one the allocator returned and that has not already been freed.\n\n**What the library does with the facility itself**\n\n- **Built-in heap:** `mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566-600`) is a self-substitution. It carves allocations out of a caller-supplied buffer, and it calls `mbedtls_platform_set_calloc_free(...)` to install its own `buffer_alloc_calloc` or, when `MBEDTLS_THREADING_C` is on, `buffer_alloc_calloc_mutexed`. The header comment says it never calls libc `calloc`/`free`. This gives a static-memory system without touching the rest of the library.\n- **Self-test:** `calloc_self_test` in `programs/test/selftest.c` exercises the hook.\n- **Zeroize-then-free:** `mbedtls_zeroize_and_free` (`library/platform_util.c:139-146`) wipes the buffer and then calls `mbedtls_free`, so secrets released through it also go through the substituted free.\n\n**Caveats**\n\n- I did not verify the shipped default of `MBEDTLS_PLATFORM_MEMORY` or whether `MBEDTLS_MEMORY_BUFFER_ALLOC_C` is enabled in the default config. Check `mbedtls_config.h` before relying on either.\n- The index reports `mbedtls_zeroize_and_free` as orphaned in the AST, but its doxygen-sourced callers number 73. Trust the doxygen figure for who calls it.",
+  "ttft_ms": 1616,
+  "type": "result",
+  "duration_ms": 19443,
+  "uuid": "ea9374f7-2dfe-4503-b812-75dac340411e",
+  "ttft_stream_ms": 1119,
+  "time_to_request_ms": 84,
+  "first_content_frame_ms": 1119,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

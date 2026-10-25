@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 35259,
+  "stop_reason": "end_turn",
+  "session_id": "18bd64c6-ebec-407d-842d-9acd307e79f2",
+  "total_cost_usd": 0.016317400000000003,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 41465,
+    "cache_read_input_tokens": 491270,
+    "output_tokens": 6219,
+    "output_tokens_details": {
+      "thinking_tokens": 2949
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 41465,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1819,
+        "cache_read_input_tokens": 56435,
+        "cache_creation_input_tokens": 3319,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3319
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 6219,
+      "cacheReadInputTokens": 491270,
+      "cacheCreationInputTokens": 41465,
+      "webSearchRequests": 0,
+      "costUSD": 0.016317400000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2949,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 20,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the double call is a size probe, not retry logic. The second call is deterministic and only happens because the first call reported that its buffer was too small. Tokenization failure isn't retried. It comes back as an empty result, and callers can't distinguish that from a genuinely empty input.\n\n**Why it calls twice**\n\nI couldn't read the body of `LlamaCppTokenizer::tokenize` directly; the index didn't resolve that qualified name. The doxygen for it says the method returns empty \"if `llama_tokenize` returned a negative actual-count on the sized retry.\" The file doc says the adapter \"forwards to `llama_tokenize` / `llama_token_to_piece`.\" Together with llama.cpp's convention (a negative return means \"buffer too small, here's the required size\"), the pattern is:\n\n1. Call `llama_tokenize` with a buffer to learn the token count.\n2. If the count is negative, allocate that size and call again.\n\nI believe `detokenize` has the same shape with `llama_token_to_piece` (its doc mentions a \"retry decode\"). That's the likely \"two different places,\" but I haven't confirmed it from the body.\n\nWould I call it retry? No. Nothing transient is being retried, and the second call's result isn't a fallback for a failed first attempt. It's a two-phase sizing protocol.\n\n**What the failure produces**\n\n| Layer | On failure, returns | Source |\n|---|---|---|\n| `LlamaCppTokenizer::tokenize` | empty `vector` (null vocab, or bad sized retry) | doxygen |\n| `LlamaCppBackend::tokenize` | empty if `tokenizer_` is null, otherwise passes through | `llama_cpp_backend.cpp:788` |\n| `do_count_tokens` | `0` (size of the empty vector) | `llama_cpp_backend.cpp:825` |\n| `compute_prefix_token_count` | `0` | `llama_cpp_backend.cpp:2051` |\n| `Tokenizer::count_tokens` default | `0` | `tokenizer.h:74` |\n| `InferenceBackend::tokenize_text` base | `{}` | `backend.h:273` |\n\n**What the callers do with it**\n\n- **`do_complete`** (`llama_cpp_backend.cpp:3941`): calls `tokenize(prompt, false)`, logs \"0 input tokens\", then goes straight into `decode_loop`. It never checks for empty.\n- **`decode_loop`** calls `run_prefill`. `run_prefill` with zero tokens doesn't enter its loop, so it returns `true`. The empty prompt is accepted as success and generation proceeds. Its error path (`ENTROPIC_ERROR_GENERATE_FAILED`, \"Prefill decode failed\") is never reached for this case. I haven't read `generate_after_prefill` and can't confirm what it does with an empty KV state, but nothing in the index shows an error there.\n- **`prefill_dispatch`**: a `0` from `compute_prefix_token_count` means the prefix boundary is zero, so the prompt cache stores a zero-length prefix.\n- **Token-count consumers** (`do_count_tokens`, `count_tokens`): they report 0 tokens for a prompt that failed to tokenize, and the caller can't tell it apart from a real empty string.\n\nSo the failure is silent. The only thing that signals it is a log line (if any), and the empty prompt continues through the generation path as though it were valid. The one error code that exists on this path is set only when prefill itself fails, not when tokenization fails.\n\n**Caveats**\n\n- The tokenizer-body and `generate_after_prefill` claims rest on doxygen and the callee graph, not the source. Reading `llama_cpp_tokenizer.cpp` would confirm the double call and whether the failure path logs anything.\n- I didn't check whether `LlamaCppBackend::tokenize_text` (the override at `llama_cpp_backend.h:837`) handles empty results differently from the base.",
+  "ttft_ms": 1892,
+  "type": "result",
+  "duration_ms": 38168,
+  "uuid": "cd86b903-f200-45b7-82d2-b479ef636955",
+  "ttft_stream_ms": 1658,
+  "time_to_request_ms": 64,
+  "first_content_frame_ms": 1658,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

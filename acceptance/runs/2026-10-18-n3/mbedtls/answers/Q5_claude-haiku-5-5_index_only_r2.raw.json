@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 33296,
+  "stop_reason": "end_turn",
+  "session_id": "f661fa2c-4f09-487a-80ae-05b6019cc87a",
+  "total_cost_usd": 0.015425329999999998,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 44808,
+    "cache_read_input_tokens": 310703,
+    "output_tokens": 6711,
+    "output_tokens_details": {
+      "thinking_tokens": 2709
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 44808,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3887,
+        "cache_read_input_tokens": 73275,
+        "cache_creation_input_tokens": 5488,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5488
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 6711,
+      "cacheReadInputTokens": 310703,
+      "cacheCreationInputTokens": 44808,
+      "webSearchRequests": 0,
+      "costUSD": 0.015425329999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2709,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nMbed TLS does not enforce constant time with a compiler flag or a verifier. It uses a set of branch-free primitives built on a \"hide the value from the compiler\" trick, plus per-architecture inline assembly where the C fallback is not trusted. The library admits that the compiler can still break this, and nothing in the index shows a build-time check that the result is constant time.\n\n## How it works at the instruction level\n\nThe core primitive is `mbedtls_ct_compiler_opaque()` in `library/constant_time_impl.h:85`. It returns its argument unchanged, but the compiler is told not to know the value:\n\n- **With `MBEDTLS_CT_ASM`:** `asm volatile(\"\" : [x] \"+r\" (x) :)`, an empty asm that forces the value into a register and makes it opaque.\n- **Without it:** `return x ^ mbedtls_ct_zero;`, where `mbedtls_ct_zero` is a `volatile` global (`library/constant_time.c:29`) set to 0. The compiler cannot fold the XOR away.\n\nConditions are kept as full-width masks, `mbedtls_ct_condition_t`, where `MBEDTLS_CT_TRUE` is all ones and `MBEDTLS_CT_FALSE` is zero (`library/constant_time_internal.h:70`). Every operation on secrets is then bit arithmetic. `mbedtls_ct_bool()` (`constant_time_impl.h:120`) turns a value into a mask. It has a hand-written asm version per target:\n\n| Target | Asm path |\n|---|---|\n| AArch64 | `neg` / `orr` / `asr` |\n| 32-bit ARM (Thumb) | `negs` / `orrs` / `asrs` |\n| x86-64 | `mov` / `neg` / `or` / `sar` |\n| 32-bit x86 | the same sequence on 32-bit registers |\n\nIts plain-C fallback uses `(-xo) | -(xo >> 1)` and a sign-bit extraction. The source comment says that as of May 2023 trunk clang, gcc and MSVC do not turn it into branches. That is an observation about specific compiler versions, not a guarantee.\n\nHigher-level operations are built from these, for example:\n\n- `mbedtls_ct_memcmp()` (`library/constant_time.c:67`) reads both buffers through `volatile` pointers, XORs them into an accumulator, and returns a value that is zero only when the buffers match. It is constant-time with respect to the data but not with respect to `n`.\n- `mbedtls_ct_memcpy_if()` (`constant_time.c:169`) does a masked copy that always reads both sources.\n\n## What happens on a compiler that cannot support it\n\nNothing fails at build time. The asm paths are gated on `MBEDTLS_HAVE_ASM` and on `__GNUC__` or `__ARMCC_VERSION` (`constant_time_impl.h:40-52`, which defines `MBEDTLS_CT_ASM`). On a compiler that does not match, such as MSVC or IAR, `MBEDTLS_CT_ASM` is not defined, and the code falls back to:\n\n- the `volatile` XOR trick for `compiler_opaque`, and\n- the plain-C arithmetic in `mbedtls_ct_bool`.\n\nThe fallback is weaker. Nothing forces the compiler to keep the arithmetic branch-free. `SECURITY.md` (\"Caveats\") says that compilers can introduce timing side channels in code meant to be constant time, and that the project treats exploitable ones as vulnerabilities when they appear with a common compiler. The fallback is therefore best-effort, and the index holds no evidence that it is verified on every toolchain.\n\n## How far it reaches\n\nThe facility is used in a limited set of places:\n\n- **Public API:** `mbedtls_ct_memcmp()` in `include/mbedtls/constant_time.h`. Its `mbedtls_ct_*` family is documented in `docs/psa-transition.md`.\n- **Bignum:** `mbedtls_mpi_core_lt_ct()` (`library/bignum_core.c:133`), `mbedtls_mpi_core_check_zero_ct()`, `mbedtls_mpi_lt_mpi_ct()`, and the `mbedtls_mpi_gcd_modinv_odd` wrapper.\n- **RSA:** `mbedtls_ct_rsaes_pkcs1_v15_unpadding()` (`library/rsa.c:420`) processes the whole padded block, with the padding check kept in masks to guard against Bleichenbacher-style oracles. OAEP decryption also uses the masks.\n- **TLS record layer:** `mbedtls_ssl_decrypt_buf()` (`library/ssl_msg.c:1482`) uses `MBEDTLS_CT_TRUE` and a masked padding check for CBC. `mbedtls_ct_hmac()` (`ssl_msg.c:65`) computes the MAC over a fixed amount of data, cloning the hash context so the work does not depend on the true length.\n- **Base64:** `mbedtls_ct_base64_dec_value()` (`library/base64.c:40`) decodes without table lookups that depend on the input.\n\nOutside this set, the index does not show the facility in use. It also does not show any coverage of AES, ECP or the PSA layer. `docs/psa-transition.md` says PSA has no equivalent of these utilities, and the PSA `psa_aead_verify` documentation asks implementations to make the tag comparison constant-time on a best-effort basis. Separately, `3rdparty/p256-m` is described as constant-time throughout, with its own `MUL64_IS_CONSTANT_TIME` switch.\n\nTesting is partial. `tests/scripts/components-configuration-crypto.sh` has `test_with_valgrind_constant_time`, which runs a small set of dedicated constant-time suites under Valgrind and excludes slow suites. The index also lists `CT_VALGRIND` and `CT_MEMSAN` as gate symbols. I did not confirm the test suites themselves.\n\n`SECURITY.md` (\"Local attacks\") says Mbed TLS makes no security guarantees against local non-timing side channels. Remote timing of packets is a separate matter that it also does not address.\n\n## Limits of this answer\n\n- The index does not show which asm path is active in the shipped default build. The only configured macros recorded are `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD`, and no config header is recorded for this target. So I cannot say which `MBEDTLS_CT_*` path a default build takes.\n- Liveness for `mbedtls_ct_memcmp` is reported as `orphan`, while `callers_unresolved` is 26. That is probably a resolution gap, not evidence that nothing calls it, but I could not settle it from the index.\n- I have not read the generated machine code, so whether the compiler keeps these sequences branch-free is not something the index can show.",
+  "ttft_ms": 1931,
+  "type": "result",
+  "duration_ms": 39232,
+  "uuid": "425ad101-0055-4d39-a232-c307033876a3",
+  "ttft_stream_ms": 1387,
+  "time_to_request_ms": 181,
+  "first_content_frame_ms": 1388,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

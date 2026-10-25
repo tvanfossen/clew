@@ -1,0 +1,123 @@
+{
+  "cell": "Q4_claude-haiku-5-5_index_only_r2",
+  "arm": "index_only",
+  "rubric_version": "3.1.0",
+  "rubric_digest": "43aae606077ca386",
+  "judge_model": "claude-sonnet-4-5-20250929",
+  "score": 0.16,
+  "unmarked_pct": 0.52,
+  "split_decisions": 1,
+  "grader_fingerprint": "29f092be5031",
+  "decisions": [
+    {
+      "mark": "names mbedtls_strerror as the entry point and locates it in library/error.c",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "",
+      "agreement": 1.0,
+      "samples": 1,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a code carries TWO layers \u2014 a high-level module part and a low-level part \u2014 and that mbedtls_strerror renders both, joined, when both are present",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that library/error.c is GENERATED from the public headers by scripts/generate_errors.pl using scripts/data_files/error.fmt as its template",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that adding a new error string means adding the /** */-documented #define to the module's public header and re-running the generator, NOT editing library/error.c",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that MBEDTLS_ERROR_C is ENABLED in the shipped mbedtls_config.h, so the string table is present in a default build",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 1
+    },
+    {
+      "mark": "identifies MBEDTLS_ERROR_STRERROR_DUMMY as a separate switch that keeps mbedtls_strerror LINKABLE while the string table is compiled out, and states that it too is enabled by default",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": null,
+      "detail": "3/3 calls failed: rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"6dc7b9d4-b495-4db6-b00b-bfa25b15a7cf\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"3e640407-8f09-43be-8786-c848d61745cf\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"ab1aa292-a357-4161-a672-de0582af109c\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear",
+      "agreement": 0.0,
+      "samples": 3,
+      "errors": 3
+    },
+    {
+      "mark": "identifies MBEDTLS_ERROR_ADD / mbedtls_error_add as the way a high-level and a low-level code are combined, and notes that it captures __FILE__ and __LINE__",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": null,
+      "detail": "3/3 calls failed: rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"75a8050b-f2cb-4847-a3b6-8b37e3356f83\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"0dec8841-5c69-4373-8fa7-343b73d6b6ef\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"c7c3e1bb-0753-4729-a87d-a3adc6540f46\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear",
+      "agreement": 0.0,
+      "samples": 3,
+      "errors": 3
+    },
+    {
+      "mark": "the inputs the generated error.c is built from",
+      "kind": "set",
+      "weight": 2,
+      "hit": null,
+      "detail": "extraction unavailable",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the inputs the generated error.c is built from",
+      "kind": "set",
+      "weight": 2,
+      "hit": null,
+      "detail": "extraction unavailable",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the inputs the generated error.c is built from",
+      "kind": "set",
+      "weight": 2,
+      "hit": null,
+      "detail": "extraction unavailable",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the inputs the generated error.c is built from",
+      "kind": "set",
+      "weight": 2,
+      "hit": null,
+      "detail": "extraction unavailable",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

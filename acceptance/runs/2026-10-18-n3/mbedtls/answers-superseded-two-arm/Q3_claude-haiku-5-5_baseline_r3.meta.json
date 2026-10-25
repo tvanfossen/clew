@@ -1,0 +1,38 @@
+{
+  "stem": "Q3_claude-haiku-5-5_baseline_r3",
+  "arm": "baseline",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "seconds": 22.90181074012071,
+  "input_tokens": 10,
+  "output_tokens": 4572,
+  "cache_read_tokens": 194931,
+  "cache_creation_tokens": 22366,
+  "cost_usd": 0.00870951,
+  "result_bytes": 4153,
+  "turns": 7,
+  "tool_calls": 12,
+  "non_index_tool_calls": 12,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/2026-10-18-n3/mbedtls/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nWhen mbedtls allocates memory, what actually gets called? Explain how a project would\nsubstitute its own allocator, and what the library itself does with that facility.\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "Mbed-TLS/mbedtls",
+    "question_id": "Q3",
+    "arm": "baseline",
+    "model": "claude-haiku-5-5",
+    "replicate": 3,
+    "order": 22
+  }
+}

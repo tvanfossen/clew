@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 15083,
+  "stop_reason": "end_turn",
+  "session_id": "7284012d-8ad8-49cb-b4d0-b2a4894c7068",
+  "total_cost_usd": 0.00373571,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 7505,
+    "cache_read_input_tokens": 103961,
+    "output_tokens": 2389,
+    "output_tokens_details": {
+      "thinking_tokens": 1250
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 7505,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1854,
+        "cache_read_input_tokens": 36103,
+        "cache_creation_input_tokens": 5331,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5331
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 2389,
+      "cacheReadInputTokens": 103961,
+      "cacheCreationInputTokens": 7505,
+      "webSearchRequests": 0,
+      "costUSD": 0.00373571,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1250,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 4,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer is a causal-neighbour list, not a list of call sites. Several things in it change what a row means.\n\n**What a row contains.** Each entry carries a `name`, a `source` (`doxygen_sqlite` or `ast`), a `confidence` (for example `exact` or `resolved`), and an `edge_class`. The `edge_class` matters most:\n\n- `call` means the neighbour calls the function.\n- `key` means a shared-key writer whose values the function reads. It does not call the function and may run on another thread. `callers` mixes both, so filter on `edge_class` before treating a row as a caller.\n\n**Why a row is not a call site.**\n\n- **One row per caller function, not per site.** `_callers_of` selects `DISTINCT callee, caller, confidence` and keeps one entry per (callee, caller) pair. A function that calls `fn` five times appears once. Stored edges are per extraction layer, and the strongest confidence is kept.\n- **Tests are callers.** The `_empty_callers_note` callers include `test_*` functions. A count of callers includes test code.\n- **Dispatch is a synthetic edge.** A virtual call lands on the interface method, and `_callers_of` carries the premise's confidence forward. Function-pointer dispatch appears as a resolved edge (`test_callers_includes_fnptr_dispatch`).\n- **Constructors are not calls.** Brace-initialised construction produces no call edge, so `callers: []` on a class constructor can be wrong. This was the gh#4 case, where a class was reported as having two callers when it had one. The `also` field flags this.\n\n**Why an empty list is not a negative.** The live example is `callers`, which returned `callers: []` with `callers_unresolved: 16`. The index recorded 16 call sites that named a function it could not pin to a specific one. The reply says so in `callers_note`. The index also says a member call through a pointer or reference resolves only when the receiver's declared type pins the class. Empty means \"not recorded,\" which is not the same as \"nothing calls this.\"\n\n**Same-named functions.** When a name matches several functions, the neighbour rows are shared across the candidates. Use `candidates` and `qualified` to pick one before attributing rows to it.\n\n**Practical rule.** Treat the list as \"what the index can establish causally precedes this function.\" Check `edge_class`, `confidence`, `callers_unresolved`, and `callers_note` before concluding anything. For a shared primitive or a change-impact question, read the body at the reported lines or `search` the name as well.\n\nI did not check the boundary cases the MCP instructions mention, such as files outside the indexed set (Makefiles, CI configs). Those would also be invisible to this list.",
+  "ttft_ms": 2520,
+  "type": "result",
+  "duration_ms": 15564,
+  "uuid": "6365620f-9cbf-49d2-bbc3-9242acc68526",
+  "ttft_stream_ms": 1614,
+  "time_to_request_ms": 67,
+  "first_content_frame_ms": 1614,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

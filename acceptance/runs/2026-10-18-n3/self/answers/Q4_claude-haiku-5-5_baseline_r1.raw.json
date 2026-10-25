@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 24358,
+  "stop_reason": "end_turn",
+  "session_id": "757f3856-74e5-4ac5-aa56-317961a03fbf",
+  "total_cost_usd": 0.010421910000000001,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 32249,
+    "cache_read_input_tokens": 203191,
+    "output_tokens": 3878,
+    "output_tokens_details": {
+      "thinking_tokens": 1414
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 32249,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2481,
+        "cache_read_input_tokens": 45436,
+        "cache_creation_input_tokens": 2199,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2199
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3878,
+      "cacheReadInputTokens": 203191,
+      "cacheCreationInputTokens": 32249,
+      "webSearchRequests": 0,
+      "costUSD": 0.010421910000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1414,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** clew's answer is a graded, provenance-tagged set of name-resolved neighbours, with some adjacent facts attached. It is not a verified list of call sites, and reading it that way gives false confidence in both directions.\n\nI answered from the source and docs (`clew/query/models.py`, `clew/call_edges.py`, `clew/query/externcalls.py`, `clew/dispatch_edges.py`, `docs/CORE_HYPOTHESIS.md`). I did not run clew against this repo.\n\n**What a `dossier` reply contains.** The tool is `dossier(subject=NAME)`. Per the README and `CallEdge`, one reply carries:\n\n- The symbol's body excerpt and brief.\n- Both edge directions. Each entry is a `CallEdge` with `name`, `rowid`, `source` (which layer found it), `confidence`, and `edge_class`.\n- Dataflow neighbours, which are `edge_class='key'` rows (see below).\n- Locks held, the thread it runs on, requirements, and liveness.\n- A list of callees the index holds no function for, recovered from the body (`ExternalCallee`).\n\n**What makes it wrong to read as a list of call sites:**\n\n1. **Not every neighbour is a call.** `edge_class='key'` means \"writes a key that the neighbour reads, with no call between them.\" Those rows may be asynchronous and may land on another thread. Only `'call'` rows are synchronous calls on the caller's thread.\n\n2. **`confidence` is about the name match, not the call.**\n   - `exact` and `resolved` mean the call site was verified (for example, a unique bare identifier or a receiver type that checks out).\n   - `fuzzy` means a function of that name exists and the specific one was never confirmed.\n   - `ast_member` edges are mostly fuzzy. In one measured case, 1,762 such edges were stamped `resolved` and only 1 of 34 callers of `store` was real. They were demoted to `fuzzy` (`call_edges.py`, `_ast_record_call_edge`).\n   - Reachability and thread BFS traverse only non-fuzzy edges, so a fuzzy caller can appear in `callers` without feeding liveness.\n\n3. **One row per endpoint, strongest evidence only.** Each call is found by two doxygen layers, and the rows are collapsed. `source` and `confidence` describe the strongest evidence, so the reply does not show every way the edge was found.\n\n4. **An empty or short list does not mean there are no calls.**\n   - A call to an unindexed function (libc, pthread, a Python builtin) cannot be stored as an edge, because `callee_rowid` is `NOT NULL`. `callees` silently omits it. The separate `ExternalCallee` list recovers bare-identifier names only, capped at 24 names and 6 lines each, and excludes member calls.\n   - Inbound calls that could not be resolved are counted, not named.\n   - On Python and Rust, a newly added cross-file call is not picked up by incremental refresh and waits for a full rebuild.\n\n5. **Virtual and function-pointer dispatch are partial.**\n   - A callback caller appears only when registration-to-dispatch resolution succeeded.\n   - `implementors` names the possible overrides of a virtual endpoint. It is an annotation, not an edge, and it does not say which one runs.\n\n6. **Macro-written calls.** A call written as a macro invocation appears as an edge with no matching text in the caller's body. The `via_macro` field names the macro and its expansion. The expansion is doxygen's text, not an interpretation.\n\n7. **Caps.** Neighbour lists are depth-capped, and the external-callee list is capped as above.\n\n**How to read it:** treat `exact` and `resolved` non-fuzzy call edges as the reliable core. Treat `fuzzy` edges as candidate names to verify with a read of the caller. Treat `key` rows as a separate question about shared state. Treat an empty result as \"not established,\" not \"none.\" The README's own framing (`dossier` gives one reply, not a proof) supports this reading.",
+  "ttft_ms": 2050,
+  "type": "result",
+  "duration_ms": 24657,
+  "uuid": "b86899d7-f06a-473e-8ea7-7018c42d21e4",
+  "ttft_stream_ms": 1694,
+  "time_to_request_ms": 82,
+  "first_content_frame_ms": 1695,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

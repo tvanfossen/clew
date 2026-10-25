@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 19925,
+  "stop_reason": "end_turn",
+  "session_id": "47f0bdf3-66c2-49e4-8b7b-73c026e94f94",
+  "total_cost_usd": 0.00730182,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 23819,
+    "cache_read_input_tokens": 92392,
+    "output_tokens": 3227,
+    "output_tokens_details": {
+      "thinking_tokens": 1805
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 23819,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2669,
+        "cache_read_input_tokens": 37000,
+        "cache_creation_input_tokens": 6668,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6668
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 3227,
+      "cacheReadInputTokens": 92392,
+      "cacheCreationInputTokens": 23819,
+      "webSearchRequests": 0,
+      "costUSD": 0.00730182,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1805,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 5,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The `callers` field is a list of **caller functions with an edge classification**, not a list of call sites. Reading it as the second is the main mistake.\n\n**What's in the answer.** For `function_dossier` I got 17 callers. Each entry has a `name`, a `source` (`ast` or `doxygen_sqlite`), a `confidence` (`resolved` or `exact`), and an `edge_class` (`call`). There are no line numbers or call-site context on caller entries. Line numbers appear only in `external_callees` (for example, `Dossier` at line 543 of `_dossier_conn`'s body). To see how a caller invokes the function, you have to read its body. The same reply also carries callees, `writes`/`reads`, `overrides`/`overridden_by`, threads, locks, requirements, covering tests, liveness, and a body excerpt. Those are separate facts about the symbol, not caller information.\n\n**What makes it wrong to read as a call-site list:**\n\n1. **Incomplete by design.** `callers_unresolved: 38` on `function_dossier` means 38 inbound references were counted but not listed. Absence from the list does not mean absence of callers.\n2. **Mixed provenance.** `ast/resolved` and `doxygen_sqlite/exact` rows come from different extractors with different confidence labels. I haven't verified what each extractor covers, so treat the two as different evidence.\n3. **Tests dominate.** Of the 17 `function_dossier` callers, 16 are test functions and one (`_gated_by`) is production code. A reader scanning for \"who uses this\" gets a skewed picture unless they filter by file.\n4. **Static resolution misses real dispatch.** Function pointers, callbacks, virtual calls (which surface in `overridden_by`, not as callers), macro-expanded calls, and dynamic Python dispatch are not reliably captured. External clients are invisible. `dossier` is itself an MCP tool, so its real users are outside the indexed repo and cannot appear in its caller list.\n5. **Bare names collide.** Without `qualified`, the pick is the definition-preferring first row, which is arbitrary among namesakes. Even with `qualified`, the docstring says `writes`/`reads` and `requirements`/`covering_tests` still match on the bare name. A caller list scoped by identity is not the same as a fully disambiguated answer.\n6. **The cap is unclear.** I passed `max_neighbors: 8` and got 17 callers. Either the cap doesn't apply to this list or it counts something else. I didn't resolve this, so I wouldn't assume the list is either complete or capped at a known size.\n7. **The body may not match.** Both replies set `anchor_mismatch: true`, meaning the stored line range may no longer be that function's text. The index reports itself as not stale, so this is a discrepancy to check against source before quoting the body.\n\n**How to use it.** Treat `callers` as a starting set of likely inbound edges, split it by file and `edge_class`, and check `callers_unresolved` before concluding anything about absence. Confirm specific call sites by reading the source. For a question like \"is this function ever called from production code?\", the answer needs the unresolved count, the test/production split, and a grep for indirect references, not just the list.",
+  "ttft_ms": 3207,
+  "type": "result",
+  "duration_ms": 20277,
+  "uuid": "49cfd55a-2b18-4611-bcd8-1c43b0a80592",
+  "ttft_stream_ms": 1992,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1992,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

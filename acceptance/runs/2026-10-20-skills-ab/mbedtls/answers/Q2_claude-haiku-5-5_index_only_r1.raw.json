@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 19063,
+  "stop_reason": "end_turn",
+  "session_id": "5b0fb459-f02d-43a1-a6bc-71f9f6bcb00a",
+  "total_cost_usd": 0.008350429999999999,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 27272,
+    "cache_read_input_tokens": 134073,
+    "output_tokens": 3109,
+    "output_tokens_details": {
+      "thinking_tokens": 1832
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 27272,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2280,
+        "cache_read_input_tokens": 41749,
+        "cache_creation_input_tokens": 1223,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1223
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3109,
+      "cacheReadInputTokens": 134073,
+      "cacheCreationInputTokens": 27272,
+      "webSearchRequests": 0,
+      "costUSD": 0.008350429999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1832,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 5,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does.** `MBEDTLS_PRIVATE(member)` is a rename, not an access check. In `include/mbedtls/private_access.h`, when `MBEDTLS_ALLOW_PRIVATE_ACCESS` is not defined (lines 14\u201316), it expands to `private_##member`. So `mbedtls_aes_context`'s `nr` field is really `private_nr`, and code that writes `ctx->nr` fails to compile. When the opt-out is defined (lines 16\u201318), it expands to the bare `member`, and the same spelling compiles. The wrapper is applied to fields in public headers, for example `mbedtls_aes_context` in `aes.h`, `mbedtls_aria_context` in `aria.h`, `mbedtls_asn1_named_data` in `asn1.h`, and the PSA key-ID accessors in `psa/crypto_values.h`.\n\n**For whom.** The default protects application developers who include the public headers. Their code can't reach into library internals, so the library can change field layout or meaning without breaking them. Library code gets the same protection plus a way out: it writes `ctx->MBEDTLS_PRIVATE(nr)` and gets whichever form the build selects. The index shows `mbedtls_cipher_get_iv_size` and `mbedtls_pk_get_type` referencing the macro this way.\n\n**Where the opt-out is turned on.** The index shows `MBEDTLS_ALLOW_PRIVATE_ACCESS` defined in three places:\n\n| Site | Who it is for |\n|---|---|\n| `library/common.h:132` | Library translation units that include it. Their direct field access compiles, so they are coupled to struct layout. |\n| `programs/ssl/ssl_client2.c:8` | The SSL test client, which reaches into TLS internals. |\n| `programs/ssl/ssl_server2.c:8` | The SSL test server, same reason. |\n\nFor those files, field renames in the structs are silent to the compiler and only fail at link or runtime. Any change to those fields has to be checked against these sites, not only the public API.\n\n**Limits of what I could confirm.**\n- The index has the define lines but not the surrounding `#if` context in `common.h`, so I can't say whether it is unconditional there.\n- Whether the define in the two programs precedes the include of `private_access.h` is not shown. For it to take effect it must, and line 8 suggests it does.\n- The index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` and does not record the repository's own config header. The default state of the opt-out in a normal build is therefore not established here.",
+  "ttft_ms": 2284,
+  "type": "result",
+  "duration_ms": 19739,
+  "uuid": "65b6a27b-99fa-4edf-8a86-522cf86cdb3c",
+  "ttft_stream_ms": 2069,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 2069,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

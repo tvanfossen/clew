@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 21519,
+  "stop_reason": "end_turn",
+  "session_id": "7c811a7f-01db-4e1c-923c-02c58b817d02",
+  "total_cost_usd": 0.0095584,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 31151,
+    "cache_read_input_tokens": 181220,
+    "output_tokens": 3030,
+    "output_tokens_details": {
+      "thinking_tokens": 1389
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 31151,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1711,
+        "cache_read_input_tokens": 48442,
+        "cache_creation_input_tokens": 996,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 996
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3030,
+      "cacheReadInputTokens": 181220,
+      "cacheCreationInputTokens": 31151,
+      "webSearchRequests": 0,
+      "costUSD": 0.0095584,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1389,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "There are three ways to tell clew how to index a repository, ordered from strongest to weakest:\n\n| Tier | Source | Who uses it |\n|---|---|---|\n| 1 | Explicit value stated at call time: a CLI flag, or the structured `options` argument for embedding callers | An operator, one-off |\n| 2 | The repo's checked-in `.clew.yaml` declaration | The repo owner, standing config |\n| 5 | Built-in guesses, such as name-shape heuristics and default entry patterns | clew itself |\n\nTiers 3 and 4 are different in kind. Tier 3 is language and platform entry points, and they accumulate underneath whatever is stated. Tier 4 is a generated data model's own manifest. I didn't get the full tier table verbatim from the index, so treat those two as a summary.\n\nThe `.clew.yaml` route is the one that works everywhere. The MCP server passes no CLI flags, so a declaration is the only way a repo can configure it through MCP. The old `.doxygen-guard.yaml` is no longer read, and a repo that hasn't moved its config gets the defaults.\n\n**When they disagree**\n\n- **Stated beats guessed.** A declaration or flag displaces tier-5 guesses. Entry patterns are the example: a declared pattern replaces the guesses instead of extending them.\n- **Flag beats file.** For one option, a CLI flag wins over `.clew.yaml`. The file is the standing statement and the flag is a deliberate one-off override.\n- **Declaration beats convention.** A declared catalog path (`impact.requirements.file`) wins over a conventional `requirements.yaml`. Convention applies only when nothing is declared. The tests show the CLI and MCP entry points once disagreed on this, and they now share one rule.\n- **Declared patterns beat defaults.** A declared shared-key pattern takes precedence over a built-in default with a colliding prefix. Matching is first-match, so declared patterns must be checked before the defaults.\n- **Lists differ by option.** Some options replace the default list and others extend it. `key_alias_prefixes` replaces, and tier 3 accumulates.\n- **Resolution is recorded.** The tier that won is written into build metadata. The stated value is recorded only when tier 1 won, so a replayed build doesn't mistake a declaration or a guess for something an operator typed.\n\n**Failure cases, which are not disagreements**\n\n- An unknown section name in `.clew.yaml` is refused by name and the build stops. The error lists the allowed sections.\n- A malformed declaration is ignored with a message, and built-in defaults apply. The message says the file was ignored, so the owner can see it.\n- A comments-only file is reported as stating nothing.\n\nI did not verify the scope-specific order from the index directly. The docs say a declaration beats the `guard:` section, which beats the Doxyfile, but the scope rule is only in a test name and a doc sentence.",
+  "ttft_ms": 3486,
+  "type": "result",
+  "duration_ms": 22264,
+  "uuid": "56b96432-0757-4acb-a4b7-90e17975f41f",
+  "ttft_stream_ms": 2724,
+  "time_to_request_ms": 70,
+  "first_content_frame_ms": 2724,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

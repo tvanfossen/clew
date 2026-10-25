@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 26147,
+  "stop_reason": "end_turn",
+  "session_id": "ab62be95-85fd-4f3e-871e-202cf451b1a5",
+  "total_cost_usd": 0.015890140000000004,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 56950,
+    "cache_read_input_tokens": 208314,
+    "output_tokens": 4832,
+    "output_tokens_details": {
+      "thinking_tokens": 1513
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 56950,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2384,
+        "cache_read_input_tokens": 58026,
+        "cache_creation_input_tokens": 18775,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 18775
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4832,
+      "cacheReadInputTokens": 208314,
+      "cacheCreationInputTokens": 56950,
+      "webSearchRequests": 0,
+      "costUSD": 0.015890140000000004,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1513,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** llama.cpp is a git submodule at `extern/llama.cpp`, pulled into the build by `add_subdirectory`. It reaches deep into `src/inference/` and the facade, and its types leak through a few public headers as opaque pointers. The C ABI in `entropic.h` and the backend interface are clean.\n\n**How it's brought in**\n\n- `.gitmodules` registers `extern/llama.cpp` pinned to commit `20a04b22`. The index shows it as a gitlink.\n- `extern/CMakeLists.txt` sets llama.cpp's options (`LLAMA_BUILD_TESTS/EXAMPLES/SERVER/TOOLS` OFF, `LLAMA_BUILD_COMMON` ON), then calls `add_subdirectory(llama.cpp EXCLUDE_FROM_ALL)`. It also adds `llama.cpp/tools/mtmd` for multimodal. Everything else in that file (spdlog, ryml, Catch2, json, httplib) comes from `FetchContent`.\n- The comment there (\"llama.cpp is a submodule but NOT built in v1.8.0\") is stale. The subdirectory is built now.\n- Linking: `src/inference/CMakeLists.txt` links `llama`, `mtmd` (PRIVATE) and `llama-common` (PUBLIC) into the inference object library. `src/facade/CMakeLists.txt` absorbs `llama`, `mtmd` and `llama-common` into `librentropic.so` as `LINK_ONLY`, so consumers never link llama directly.\n- In this checkout `extern/llama.cpp/` is empty (the submodule is not initialised). A build needs `git submodule update --init extern/llama.cpp` first. I did not build anything.\n\n**How far it reaches into entropic's source**\n\n1. **Wrapper layer (`src/inference/`)**, the bulk of it:\n   - `llama_cpp_backend.{h,cpp}`: `LlamaCppBackend` is the concrete llama.cpp backend. It includes `llama.h`, `common.h`, `chat.h`, `sampling.h`, `speculative.h` and `mtmd*.h`, and owns `llama_model*`, `llama_context*`, the vocab and the mtmd context.\n   - `llama_cpp_sampler.*`, `llama_cpp_tokenizer.*`: adapters over `llama_sampler` and `llama_vocab`.\n   - `orchestrator.cpp`, `adapter_manager.cpp`, `speculative_compat.cpp`, `grammar_registry.cpp`, `inference_c_api.cpp`, `interface_factory.cpp`, `secondary_model_loader.cpp`: each includes llama headers or calls the backend directly.\n   - `tool_call_markers.h` includes `chat.h` for `common_chat_format`.\n   - `adapters/*` (Qwen, nemotron3) build on the chat parsing that comes from `common`.\n\n2. **Facade**: `src/facade/entropic.cpp` includes `llama_cpp_backend.h`. The facade is where the `.so` boundary is, so the llama code is absorbed there.\n\n3. **Public headers** (`include/entropic/`): these forward-declare `struct llama_model; struct llama_context; struct llama_adapter_lora; struct llama_vocab` and take or return those pointers:\n   - `inference/adapter_manager.h`: `load`/`activate`/`swap` take `llama_context*` and `llama_model*`.\n   - `inference/orchestrator.h`: `deactivate_if_active(llama_context*)`, `resolve_speculative_pair(llama_model*&, llama_model*&)`.\n   - `inference/speculative_compat.h`: takes `const llama_model*`.\n   - `inference/sampler.h` and `grammar_registry.h`: mention `llama_context`/`llama_sampler` in their contracts.\n\n   These are opaque forward declarations, so no llama header is needed by consumers. Still, they are the one place llama types cross into the public surface, which conflicts with the \"no third-party headers in interface contracts\" rule in the architecture doc.\n\n4. **Not reached**:\n   - `include/entropic/entropic.h`: llama.cpp appears only in comments.\n   - `interfaces/i_inference_backend.h`: only doc comments.\n   - `core/response_generator.cpp`: no llama includes.\n   - Config types: `llama_log_path` is just a path string.\n\n5. **Tests**: many unit and model tests include `<llama.h>` or mock `llama_*` symbols at link time (e.g. `speculative_compat_test.cpp`, `adapter_manager_test.cpp`).\n\nSo the dependency is compiled and linked into the engine, has a thick wrapper in `src/inference/`, and has a few opaque-pointer leaks into `include/entropic/inference/`. It does not reach the C API or the interface contracts.",
+  "ttft_ms": 1818,
+  "type": "result",
+  "duration_ms": 26514,
+  "uuid": "715e0c8d-2af6-4a20-ad0f-7284fcb75b37",
+  "ttft_stream_ms": 1426,
+  "time_to_request_ms": 64,
+  "first_content_frame_ms": 1427,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 41023,
+  "stop_reason": "end_turn",
+  "session_id": "9455eb8e-1e3d-4aab-8203-b4fe7b76e470",
+  "total_cost_usd": 0.020824770000000003,
+  "usage": {
+    "input_tokens": 24,
+    "cache_creation_input_tokens": 56295,
+    "cache_read_input_tokens": 677437,
+    "output_tokens": 5578,
+    "output_tokens_details": {
+      "thinking_tokens": 2335
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 56295,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1914,
+        "cache_read_input_tokens": 73880,
+        "cache_creation_input_tokens": 2664,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2664
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 24,
+      "outputTokens": 5578,
+      "cacheReadInputTokens": 677437,
+      "cacheCreationInputTokens": 56295,
+      "webSearchRequests": 0,
+      "costUSD": 0.020824770000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2335,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Short answer: the permission check is a chain of gates, and the allow/deny patterns only matter at one of them. I could trace most of the chain from the index, but not the exact call site that enforces the deny list, so that part is an inference.\n\n**Order a call passes through** (`ToolExecutor::process_single_call` \u2192 `check_call_preconditions`):\n\n```\nPRE_TOOL_CALL hook \u2500\u2500cancel\u2500\u2500\u25b6 \"Cancelled by hook\"\n  \u2502\n  \u251c\u2500 anti-spiral hard block\n  \u251c\u2500 schema check\n  \u251c\u2500 MCP key authorization (identity's access level)  \u2500\u2500\u25b6 denied\n  \u251c\u2500 tier allowed_tools (only if a tier is locked)     \u2500\u2500\u25b6 denied\n  \u251c\u2500 duplicate call check                              \u2500\u2500\u25b6 handle_duplicate\n  \u2514\u2500 check_approval_pc \u2192 check_approval\n        \u2502\n        \u251c\u2500 loop_config.auto_approve_tools?  \u2500\u2500yes\u2500\u2500\u25b6 approved\n        \u251c\u2500 ServerManager::is_explicitly_allowed(name, args)\n        \u2502     \u2514\u2500 PermissionManager::is_allowed(...)   \u2500\u2500yes\u2500\u2500\u25b6 approved\n        \u251c\u2500 on_tool_call callback set?       \u2500\u2500yes\u2500\u2500\u25b6 approved (see caveat)\n        \u2514\u2500 otherwise                        \u2500\u2500\u25b6 \"Permission denied\"\n  \u2502\n  \u25bc\nServerManager::execute \u2192 route_tool_call \u2192 server\n```\n\n**What a pattern does** (`PermissionManager::pattern_matches`, `src/mcp/permission_manager.cpp:101`):\n\n- The pattern is split at the first `:`. The part before it is fnmatch-matched against the fully-qualified tool name (for example `filesystem.read_file`).\n- With no `:`, a tool-name match is enough, so `bash.execute` allows every call to that tool.\n- With a `:`, the whole pattern is fnmatch-matched against `tool:arg`. The arg is what `args_to_pattern` extracts: the value of the first string argument, or `*` if there are no args or it does not parse. So `bash.execute:pytest *` allows bash calls whose first argument starts with `pytest `.\n- Lists are scanned in order and the first match wins. `is_allowed` scans `allow_list_` and `is_denied` scans `deny_list_`, each logging at INFO when it matches.\n- The header documents deny as taking precedence over allow. The `is_denied` function is never called from `check_approval`, which only consults the allow list. Its only recorded caller is an ambiguous `execute` (`ast_member`), which is probably `ServerManager::execute`. I could not read that body through the index, so I cannot confirm where the deny list is enforced or whether it runs before the allow list.\n\n**Where the lists come from:**\n- `permissions.allow`, `permissions.deny` and `permissions.auto_approve` are parsed by `parse_permissions_config` (`src/config/loader.cpp:365`).\n- \"Always Allow/Deny\" writes new patterns back to the YAML via `PermissionPersister::save_permission` (`permission_persister.cpp:227`), as `permissions.allow` or `permissions.deny` items.\n- The default pattern is tool-level (`MCPServerBase::get_permission_pattern` returns the tool name). `BashServer` overrides it to finer granularity.\n\n**Caveat to check:** in `check_approval`, if the `on_tool_call` callback is set, `approved` is forced to `true` after calling it. As written, the callback is notification only and does not decide the outcome. Without a callback, anything not explicitly allowed is denied. Confirm this is intended, since the header describes the callback as an approval step.",
+  "ttft_ms": 1907,
+  "type": "result",
+  "duration_ms": 43204,
+  "uuid": "2d9a4777-bc62-4bf5-ad09-ae18c9caa220",
+  "ttft_stream_ms": 1633,
+  "time_to_request_ms": 63,
+  "first_content_frame_ms": 1634,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

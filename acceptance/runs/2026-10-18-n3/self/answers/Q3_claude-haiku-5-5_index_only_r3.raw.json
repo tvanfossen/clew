@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 12481,
+  "stop_reason": "end_turn",
+  "session_id": "0b3d460b-bdee-4bd2-b78c-df4c7b70f4cd",
+  "total_cost_usd": 0.0064816000000000006,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 22025,
+    "cache_read_input_tokens": 108550,
+    "output_tokens": 1981,
+    "output_tokens_details": {
+      "thinking_tokens": 462
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 22025,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1217,
+        "cache_read_input_tokens": 40700,
+        "cache_creation_input_tokens": 15250,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 15250
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 1981,
+      "cacheReadInputTokens": 108550,
+      "cacheCreationInputTokens": 22025,
+      "webSearchRequests": 0,
+      "costUSD": 0.0064816000000000006,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 462,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A clew index can be stale on three separate axes, and the tool tells the caller and, for queries, refreshes the index itself. I answered from the index only, so the details below come from docstrings and symbol bodies, not from running anything.\n\n**How it knows**\n\n`db_status` in `clew/mcp_server/state.py:1140` measures freshness for one target. It sets `stale` true when any of these holds:\n\n- **Schema:** the database's build stamp differs from the server's `CLEW_BUILD_VERSION`. A stamp newer than the server expects is flagged as unclearable, since a rebuild would re-stamp the same newer version.\n- **Data (source drift):** `_source_drift` finds source files changed since the build. The docstring notes that a version check alone missed edits, and mtimes are what catch them.\n- **Code:** a server process older than its source is refused from building. `test_build_or_refresh_refuses_when_the_process_predates_its_source` cites a case where an old process rebuilt a newer index at the old version and dropped a layer.\n\n`status` also reports coverage, refresh cost, and `stated_options`. The `staleness` block is present only when something is wrong, so it stays a signal rather than a permanent banner.\n\n**What it tells the caller**\n\n`staleness_notices` (`clew/mcp_server/server.py:1548`) stamps a list of `{axis, message}` entries onto every query reply. It never raises, so a failed measurement just means no annotation. The tool also changes its own claims. `_withdraw_definitive` (`clew/mcp_server/tools_query.py:257`) strips \"this is a definitive empty result\" from a reply when the schema axis is stale, because a missing layer makes an empty result unearned. On the data axis it does the same for a subject miss, since the symbol may postdate the build.\n\n**What the caller does**\n\nTwo paths:\n\n1. **Queries refresh first.** `_answering_with_refresh` (`server.py:519`) wraps each sync query tool. It calls `_auto_refresh` (`server.py:1242`) before answering, which rebuilds a data-stale index or starts building an absent one. `_refresh_stale` (`server.py:1294`) takes the per-repo build lock with a bounded wait. It re-checks staleness inside the lock, so concurrent sessions produce one build. If the build fails or the lock wait times out, the query answers from the existing index with its staleness notice attached. The caller gets a stale answer plus a warning rather than an error.\n2. **Explicit refresh.** The `index` tool's `refresh` action rebuilds on request. Per the README, the refresh is incremental.\n\nFor the caller, the practical rule is: read `staleness` on every reply. If it names the schema axis, don't treat an empty result as definitive. If it names data drift on a miss, a refresh is needed, though normally the query has already tried one. If the code axis or a schema mismatch is reported, a rebuild won't clear it. A client restart, or a newer server, is the remedy.\n\nI did not open `clew/mcp_server/freshness.py` directly. Its module brief describes the three axes, and I took the third axis's exact name from the test docs.",
+  "ttft_ms": 2700,
+  "type": "result",
+  "duration_ms": 13077,
+  "uuid": "747ee47d-a26a-4fb7-871e-c35498ed31e4",
+  "ttft_stream_ms": 1955,
+  "time_to_request_ms": 74,
+  "first_content_frame_ms": 1955,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

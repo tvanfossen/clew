@@ -1,0 +1,7 @@
+index_scope:
+  roots:
+  - FreeRTOS/Demo/CORTEX_A9_Zynq_ZC702
+  - FreeRTOS/Demo/Common/Minimal
+  - FreeRTOS/Demo/Common/include
+  - FreeRTOS/Demo/Common/ethernet/lwip-1.4.0/src
+  - FreeRTOS/Demo/WIN32-MSVC

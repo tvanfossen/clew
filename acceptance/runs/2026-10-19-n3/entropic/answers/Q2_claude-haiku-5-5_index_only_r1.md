@@ -1,0 +1,13 @@
+**How it's brought in:** llama.cpp is a git submodule at `extern/llama.cpp`, linked directly (no wrapper). The architecture doc lists it as a "Submodule" dependency, and `docs/roadmap.md` (v1.8.0) records the decision to link it directly. The `librentropic-inference-{cuda,vulkan,cpu}.so` targets link against `llama.cpp` and implement the `IInferenceBackend` contract. The index doesn't cover `CMakeLists.txt` or `.gitmodules`, so I can't confirm the exact CMake wiring from here. The submodule and link relationship come from the docs, not the build files.
+
+**Pin:** the code is pinned to a specific commit. `llama_cpp_backend.cpp` says "Pinned against llama.cpp submodule b8420". `RELEASE_NOTES.md` records later bumps, most recently to `b9886` in v2.9.3. Several features depend on the pin, such as the speculative-decode compatibility gate and the MTP envelope.
+
+**How far it reaches into entropic's source:** it's contained in the inference layer.
+
+- **Direct C API use** is confined to `src/inference/`. The main files are `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler.{h,cpp}`, `llama_cpp_tokenizer.{h,cpp}`, `speculative_compat.cpp`, `prompt_cache.h`, `tool_call_markers.h`, and `mtp_envelope.h`. The backend calls `llama_model_load_from_file`, `llama_init_from_model`, `llama_decode`, the sampler chain, the vocab API, and the state save/restore API. It also uses the upstream `common_chat` and `common_speculative` helpers.
+- **`LlamaCppBackend`** (`src/inference/llama_cpp_backend.h:65`) is the main consumer. It is a concrete subclass of `InferenceBackend` and owns `model_`, `ctx_`, and `vocab_` as raw llama.cpp pointers. Its destructor frees them.
+- **The public surface stays clean.** A search for `llama` across the symbol index returns nothing in `include/entropic/` apart from `llama_log_path`, which is a config field name, and a prose mention in `tokenizer.h`. The architecture rule "no third-party headers in interface contracts" appears to hold: llama.cpp types don't leak into the `.so` interfaces or the C API.
+- **Tests** mock the llama.cpp functions by link-time substitution (for example `adapter_manager_test.cpp` and `speculative_compat_test.cpp` define stubs such as `llama_adapter_lora_init`). Those tests don't need the real library.
+- **Above the inference layer**, the dependency doesn't reach. The rules say core, MCP, storage, and config have zero dependency on inference internals, and they talk to the backend only through the interface.
+
+**Caveat:** the index sees entropic's source and docs, not the vendored `extern/llama.cpp` tree, which has no indexed symbols. Anything about llama.cpp's own internals is only known through how entropic calls it.

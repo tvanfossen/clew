@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 18539,
+  "stop_reason": "end_turn",
+  "session_id": "a3c4bfe4-0c5d-4d52-9bc5-87354fd88476",
+  "total_cost_usd": 0.01263741,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 43014,
+    "cache_read_input_tokens": 244491,
+    "output_tokens": 3177,
+    "output_tokens_details": {
+      "thinking_tokens": 1052
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 43014,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1771,
+        "cache_read_input_tokens": 57945,
+        "cache_creation_input_tokens": 3356,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3356
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3177,
+      "cacheReadInputTokens": 244491,
+      "cacheCreationInputTokens": 43014,
+      "webSearchRequests": 0,
+      "costUSD": 0.01263741,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1052,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index scope is chosen by a three-tier cascade. A scope passed by a caller wins, then an `index_scope:` block in the repo's `.clew.yaml`, then the whole repository. Within the chosen scope, files are kept only if a grammar handles their extension. With nothing declared, clew indexes the whole repository minus git-ignored paths and dot/cache directories.\n\n**1. Which scope applies (`clew/scope.py`)**\n\n`derive_scope(repo_root, stated)` is the single entry point (`scope.py:639`):\n\n| Tier | Source | What it yields |\n|---|---|---|\n| 1 | Caller-stated `index_scope` (for example an MCP tool call) | Roots from the stated dict |\n| 2 | `index_scope:` in `.clew.yaml` | Roots from `_declared_index_scope` (`scope.py:991`) |\n| 3 | Nothing usable | `whole_repo_scope` |\n\n- **Declared roots are taken at their word and never walked.** A root that does not exist on disk is dropped with a warning.\n- **Only `roots` and `excludes` are accepted keys** (`_INDEX_SCOPE_KEYS`, `scope.py:406`). An unknown key refuses by name instead of being silently ignored.\n- **`roots` is required.** An `excludes`-only block does nothing and counts as rejected.\n- **A rejected declaration falls through to tier 3 with a warning.** The build-time guard `declared_scope_rejection` (`scope.py:612`) lets the CLI and MCP refresh refuse instead of silently building the widest scope.\n- **The Doxyfile's `INPUT` no longer decides the scope** (gh#333). A Doxyfile still supplies aliases and predefined macros, and `_doxyfile_scope` (`cli.py:2783`) records its `INPUT`, `EXCLUDE_PATTERNS` and `FILE_PATTERNS` only as the repo's own documentation scope, for the provenance record.\n- **The doxygen-guard gate does not set index roots.** A test asserts that a gate `files:` pattern alone derives no scope.\n\n**2. What \"nothing declared\" produces**\n\n`whole_repo_scope` (`scope.py:683`) builds a single root at the repository, with these excludes:\n- Paths git ignores, including the ignore rules inside each nested git tree.\n- Dot directories and cache directories.\n\nNested git trees (vendored clones, submodules) are **included**, not cut out. `external.py` tags their rows afterwards so answers can say which codebase a symbol came from. The reason string records that no declaration was found and where clew looked, and it is stored in the build's provenance metadata.\n\n**3. Extension filter within the scope**\n\nBeing in scope does not mean being indexed. A file's extension decides which front end parses it:\n- Doxygen handles C/C++ and Python, with grammar tables `harvest._CPP_EXTS`, `_PY_EXTS` and `_TS_EXTS`.\n- `synth.SYNTH_EXTS` covers JS/TS.\n- `SCRIPT_EXTS` covers shell and CMake.\n\nAfter the build, `_not_indexed_scope` (`cli.py:2646`) compares the files the walk saw with the `path` rows actually written. It stamps `not_indexed` (counts by extension) and `not_indexed_count`. A query miss can therefore be read as \"symbol absent\", \"file type not indexed by this build\", or \"outside the declared scope\".\n\n**Caveat:** I read the scope resolution and provenance code from the index, but I did not read the walker that applies the extension filter. The extension behaviour above comes from the tables and the not-indexed reporter, not from the walk code itself.",
+  "ttft_ms": 1491,
+  "type": "result",
+  "duration_ms": 19744,
+  "uuid": "da5006e4-05fe-45ab-bcb8-445c1c3f322d",
+  "ttft_stream_ms": 899,
+  "time_to_request_ms": 70,
+  "first_content_frame_ms": 899,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 33847,
+  "stop_reason": "end_turn",
+  "session_id": "a20c626c-cd4d-4987-8017-eac2b8583aac",
+  "total_cost_usd": 0.01017673,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 21325,
+    "cache_read_input_tokens": 260203,
+    "output_tokens": 6617,
+    "output_tokens_details": {
+      "thinking_tokens": 3309
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 21325,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3829,
+        "cache_read_input_tokens": 54905,
+        "cache_creation_input_tokens": 1964,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1964
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 6617,
+      "cacheReadInputTokens": 260203,
+      "cacheCreationInputTokens": 21325,
+      "webSearchRequests": 0,
+      "costUSD": 0.01017673,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3309,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** in the default configuration, the library has no mutexes and creates no threads. The only concurrency is whatever threads the application starts and calls into the library from. The mutex code only exists when you turn on `MBEDTLS_THREADING_C`.\n\n**Why the default build has no locks**\n\n- `MBEDTLS_THREADING_C` is commented out in `include/mbedtls/mbedtls_config.h:3787` (`//#define MBEDTLS_THREADING_C`). `MBEDTLS_THREADING_PTHREAD` (line 2196) and `MBEDTLS_THREADING_ALT` (line 2185) are also commented out, and nothing in `include/`, `configs/` or `scripts/` defines them on by default.\n- Every `mbedtls_mutex_*` call in `library/` sits inside `#if defined(MBEDTLS_THREADING_C)`, so with the default config those sections compile away.\n- `library/` spawns no threads. The four spawn sites the index finds are all in `programs/`, and those are also gated off by default.\n\n**What runs concurrently by default**\n\nOnly the application's threads. The library's own code is not synchronized, so a single context (an SSL session, a DRBG, an entropy context, the PSA key store) must not be used from two threads at once unless the application serializes access. I read this from the code and the gating; I did not check the project's thread-safety documentation.\n\nThe four spawn sites in the repo, all application or test code:\n\n| Site | Kind | Gated by |\n|---|---|---|\n| `programs/ssl/ssl_pthread_server.c:277` | per-connection pthread running `handle_ssl_connection` | `MBEDTLS_THREADING_C` and `_PTHREAD`, both off by default |\n| `programs/test/benchmark.c:430` | Win32 `TimerProc` via `mbedtls_set_alarm` | platform |\n| `programs/test/benchmark.c:444` | `sighandler` (alarm signal) | platform |\n| `programs/ssl/ssl_server2.c:1699` | `term_handler` signal handler | platform |\n\nThe two signal handlers are asynchronous with respect to the main thread. Nothing in the library's logic protects them.\n\n**What the mutexes protect when threading is enabled**\n\nPer-object locks, each guarding its own context's state:\n- `ssl_cache.c` (`cache->mutex`): session cache\n- `ssl_ticket.c` (`ctx->mutex`): session ticket keys\n- `ssl_cookie.c` (`ctx->mutex`): DTLS cookie state\n- `entropy.c` (`ctx->mutex`): entropy pool\n- `ctr_drbg.c` and `hmac_drbg.c` (`ctx->mutex`): DRBG state\n- `rsa.c` (`ctx->mutex`): RSA context\n\nGlobal locks, each guarding process-wide state:\n- `memory_buffer_alloc.c` (`heap.mutex`): the single buffer-allocator heap. This also needs `MBEDTLS_MEMORY_BUFFER_ALLOC_C`, which is off by default.\n- `mbedtls_threading_key_slot_mutex`: PSA key slots, used in `psa_crypto.c` and `psa_crypto_slot_management.c`.\n- `mbedtls_threading_psa_globaldata_mutex`: PSA global data, used in `psa_crypto.c` and `psa_crypto_slot_management.c`.\n- `mbedtls_threading_psa_rngdata_mutex`: the PSA RNG state, used in `psa_crypto.c` and `psa_crypto_random.c`.\n- `mbedtls_threading_gmtime_mutex`: `gmtime` in `platform_util.c`, because `gmtime` returns a shared static buffer.\n- `mbedtls_threading_readdir_mutex`: `readdir` in `x509_crt.c`.\n\nThe mutex type is `mbedtls_threading_mutex_t`, and the global ones are defined in `library/threading.c:188-189` with `MUTEX_INIT`, which expands to `{ PTHREAD_MUTEX_INITIALIZER, 1 }`.\n\n**Caveats**\n\n- The index's lock layer shows only one identity, `mutex->mutex` in `threading.c`, because it does not model struct-member locks. The call-site list above comes from a grep. That grep was capped at 250 lines, so it is representative, not exhaustive.\n- The index found no nested lock holdings. That is a statement about this index's view, not a proof of deadlock freedom.\n- Some lock calls ignore their return value. For example, `psa_crypto.c:130-131` and `psa_crypto.c:2022` call `mbedtls_mutex_lock` without checking it, while most other PSA sites use `PSA_THREADING_CHK_RET`. A failed lock there would go unnoticed.",
+  "ttft_ms": 1253,
+  "type": "result",
+  "duration_ms": 35205,
+  "uuid": "8752977d-1ef1-4da5-9369-fcfbd5647696",
+  "ttft_stream_ms": 997,
+  "time_to_request_ms": 91,
+  "first_content_frame_ms": 998,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

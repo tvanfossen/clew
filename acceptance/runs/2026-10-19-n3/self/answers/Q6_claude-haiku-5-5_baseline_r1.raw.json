@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 57510,
+  "stop_reason": "end_turn",
+  "session_id": "dc788345-a882-498e-b36c-b49a44604043",
+  "total_cost_usd": 0.02599173,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 70920,
+    "cache_read_input_tokens": 675353,
+    "output_tokens": 10104,
+    "output_tokens_details": {
+      "thinking_tokens": 6105
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 70920,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4826,
+        "cache_read_input_tokens": 83728,
+        "cache_creation_input_tokens": 2578,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2578
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 10104,
+      "cacheReadInputTokens": 675353,
+      "cacheCreationInputTokens": 70920,
+      "webSearchRequests": 0,
+      "costUSD": 0.02599173,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 6105,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** for shell, CMake, YAML and JSON, the index holds a `path` row for every file, on any install. Shell and CMake also get `memberdef` rows for their functions and macros, but only when the bash or cmake grammar is compiled in. YAML and JSON never get symbols. Without the grammars, the build degrades rather than crashes. The miss report does not say so, though, which contradicts what the code comments claim.\n\n**What the index holds** (`clew/synth.py`, `clew/harvest.py`, `clew/filedocs.py`)\n\n| | `.sh` / `.bash`, `.cmake`, `CMakeLists.txt` | `.yaml` / `.yml` / `.json` |\n|---|---|---|\n| `path` row (in file set, findable by name) | Yes, always. `register_paths` calls `claims()` and never checks the grammar. | Yes, always. |\n| `memberdef` rows for functions and macros, with docs from the `#` block | Only if the grammar is compiled in. `_OPTIONAL_KEYS` gates `bash` and `cmake`. | Never. There is no route in `_TS_GRAMMARS` and no harvester. |\n| Call edges, threads, locks | Only from those `memberdef` rows | None |\n| `file_docs` / prose | No. `filedocs` has no extractor for these suffixes. | No |\n| Keys, values, script bodies | No | No |\n\nFiles classified as binary by `clew/filetypes.py` are skipped before any of this runs.\n\nTwo more points:\n- The YAML/JSON grammars in the fork are unused by clew. Even with the fork installed, YAML and JSON still get no symbols, because nothing routes to them.\n- `.clew.yaml`, `requirements.yaml` and the data-model YAML are read with PyYAML (`declaration.py`, `requirements.py`, `datamodel.py`), not through the substrate. Their effects land in scope and requirements data, not in rows about the YAML file.\n\n**An install without the grammars** (the published `lang-parsing-substrate` 0.11.2 wheel, per `clew/substrate.py`)\n- `_ts_language_for` returns None for `.sh` and `.cmake`. The harvest skips them, so they get `path` rows but no `memberdef` rows, and nothing raises.\n- Always-present grammars (C, C++, Python, Rust, JS, TS) are deliberately not gated, so a broken install still fails loudly.\n- **Discrepancy:** `substrate.py` (lines 8\u201310) and `tests/test_substrate_capability.py` say the front ends register nothing and the miss report names these types as not indexed. The code does not match. `register_paths` never calls `has_language`, so `.sh` and `.cmake` files do get `path` rows. `_not_indexed_scope` (`cli.py:2646`) compares scanned files against `path`, so it will not name them. A query for a shell function on the published wheel therefore returns empty with no \"read the file directly\" hint, for exactly the files that need one. I read this from source and did not run a build to confirm it.\n- **Test concern:** `tests/test_script_front_end.py` skips the shell and CMake definition tests at lines 179\u2013181, 197 and 226 when the grammar is absent. Under your rules, a capability-conditional skip still hides the feature, so the suite passes on the published wheel without exercising it.\n\nOptions for the discrepancy: have `register_paths` skip script types whose grammar is absent, so the miss report names them, or have `_not_indexed_scope` treat a `path` row with no symbols as missing for those suffixes. I'd take the first, since it matches the docstring. I haven't changed anything.",
+  "ttft_ms": 1512,
+  "type": "result",
+  "duration_ms": 58049,
+  "uuid": "781259b1-f45c-460c-81ac-c7bba5a7b4e1",
+  "ttft_stream_ms": 1223,
+  "time_to_request_ms": 79,
+  "first_content_frame_ms": 1223,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

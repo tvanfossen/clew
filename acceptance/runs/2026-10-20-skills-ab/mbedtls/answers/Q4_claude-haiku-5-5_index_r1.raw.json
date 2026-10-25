@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 22710,
+  "stop_reason": "end_turn",
+  "session_id": "0573135d-05bf-4827-9f09-b617f8e7af50",
+  "total_cost_usd": 0.01624298,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 60605,
+    "cache_read_input_tokens": 194248,
+    "output_tokens": 4357,
+    "output_tokens_details": {
+      "thinking_tokens": 1740
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 60605,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2603,
+        "cache_read_input_tokens": 59596,
+        "cache_creation_input_tokens": 1009,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1009
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4357,
+      "cacheReadInputTokens": 194248,
+      "cacheCreationInputTokens": 60605,
+      "webSearchRequests": 0,
+      "costUSD": 0.01624298,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1740,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the caller passes the negative code to `mbedtls_strerror()`. It negates the value, splits it into a high-level part and a low-level part, and looks each part up in a switch table that is generated from the `MBEDTLS_ERR_*` defines in the headers. A contributor adds a string by adding a `#define` with a doc comment to the right header, then regenerating `library/error.c`. Don't edit `error.c` by hand.\n\n**The lookup path**\n\n```\ncaller: mbedtls_strerror(-0x7280, buf, len)\n          \u2502\n          \u251c\u2500 ret = -ret                          (error.c:792, mbedtls_strerror)\n          \u251c\u2500 high = ret & 0xFF80 \u2500\u2500\u25ba mbedtls_high_level_strerr(ret)   (error.c:174)\n          \u2502                           switch over MODULE_CODE; \"CIPHER - Bad input\u2026\"\n          \u2502                           NULL \u2500\u25ba \"UNKNOWN ERROR CODE (%04X)\"\n          \u251c\u2500 if high is MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE: return early\n          \u251c\u2500 low = ret & ~0xFF80 \u2500\u2500\u25ba mbedtls_low_level_strerr(ret)    (error.c:537)\n          \u2502                           switch over low-level codes; \"AES - Invalid key length\"\n          \u2514\u2500 join as \"HIGH : LOW\" in buf, truncated to buflen, always NUL-terminated\n```\n\n- The mask `0xFF80` picks the module bits, and the low 7 bits hold the low-level code. This matches the layout comment in `include/mbedtls/error.h:17-37`.\n- A code can have both parts. For example, an SSL error can come back as `\"SSL - \u2026 : <low-level text>\"`. The one exception is a fatal-alert SSL error, which returns after the high-level part and skips the low-level lookup.\n- If `MBEDTLS_ERROR_C` is off, the dummy `mbedtls_strerror` at `error.c:144` just writes an empty string.\n\n**The generated part**\n\n`library/error.c` is generated, and the switch bodies between the \"Begin/End Auto-Generated Code\" markers come from `scripts/generate_errors.pl` using `scripts/data_files/error.fmt`. The script:\n\n1. Reads every `include/mbedtls/*.h`, matching `#define MBEDTLS_ERR_<X> -0x....` with its doc comment.\n2. Splits the codes by module name into the low-level list or the high-level list (lines 36-43).\n3. Emits one `case -(MBEDTLS_ERR_X):` per code, wrapped in `#if defined(MBEDTLS_<MODULE>_C)`.\n\nThe build regenerates the file automatically: CMake in `library/CMakeLists.txt:133-150` and make in `library/Makefile:355-360`. A CI check, `tests/scripts/check-generated-files.sh:135`, compares the committed `error.c` with the generator's output.\n\n**What a contributor does to add a new code**\n\n1. Add the define in the module's header under `include/mbedtls/`, with a doc comment placed either before it (`/** \u2026 */`) or after it (`/*!< \u2026 */`), not both. The script aborts if a code has no description or has two.\n2. Pick a value that is not already used. The script aborts with \"Duplicated error code\" otherwise.\n3. If the module is new, add its name to `@low_level_modules` or `@high_level_modules` in `generate_errors.pl:36-43`. Otherwise it aborts with \"Do not know how to handle\".\n4. Regenerate: run `make error.c` in `library/`, or run `perl scripts/generate_errors.pl` from the repo root. A normal build does this too.\n5. Commit the header change and the regenerated `library/error.c` together, or the generated-files check will fail.\n\n**Things that are easy to miss**\n\n- A description is the text after `MODULE -`, so keep it to one line. Backslashes are escaped by the script.\n- The string only exists when the module's `MBEDTLS_*_C` option is enabled, because of the `#if` wrapper.\n- The index does not contain the Perl script or `error.fmt`, so I read those files directly. The index does cover `error.c`, `error.h`, and the two lookup functions, which is where the answer above came from.",
+  "ttft_ms": 1793,
+  "type": "result",
+  "duration_ms": 23127,
+  "uuid": "4d6123e6-0021-47a3-bb5f-6b75d7222ade",
+  "ttft_stream_ms": 1213,
+  "time_to_request_ms": 77,
+  "first_content_frame_ms": 1214,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

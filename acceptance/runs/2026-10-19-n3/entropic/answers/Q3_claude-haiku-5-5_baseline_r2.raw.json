@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 44189,
+  "stop_reason": "end_turn",
+  "session_id": "95c43c9f-feee-42a4-9837-cf9a760184a8",
+  "total_cost_usd": 0.01680245,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 41732,
+    "cache_read_input_tokens": 501525,
+    "output_tokens": 6878,
+    "output_tokens_details": {
+      "thinking_tokens": 2640
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 41732,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1894,
+        "cache_read_input_tokens": 72494,
+        "cache_creation_input_tokens": 1665,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1665
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 6878,
+      "cacheReadInputTokens": 501525,
+      "cacheCreationInputTokens": 41732,
+      "webSearchRequests": 0,
+      "costUSD": 0.01680245,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2640,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 16,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the call runs unless it fails one of several gates in `ToolExecutor`, and the deny list is checked last, inside `ServerManager::execute`. The allow list only skips the approval prompt. It never overrides a later gate.\n\n## The path a call takes\n\n```\nmodel emits ToolCall\n  \u2502\n  \u25bc  ToolExecutor::process_single_call          src/mcp/tool_executor.cpp:729\n  1. PRE_TOOL_CALL hook    \u2192 non-zero return cancels (\"Cancelled by hook\")\n  2. check_call_preconditions                    :667\n     a. anti-spiral hard block   (consecutive same-tool count)\n     b. schema validation        (required / enum / type vs. tool input_schema)\n     c. MCP key check            check_mcp_authorization :575\n        identity = locked_tier or \"lead\"; no key set for identity \u2192 allow\n     d. tier allowed_tools       check_tier_allowed :198 (gh#83)\n     e. duplicate call           (cached result, circuit breaker at 3)\n     f. approval                 check_approval :161   \u2190 permission lists live here\n  3. execute_tool \u2192 server_manager_.execute      tool_executor.cpp:398\n       \u2502\n       \u25bc  ServerManager::execute                 src/mcp/server_manager.cpp:153\n       4. is_denied(tool, pattern)  \u2192 \"Error: Permission denied\" result, no dispatch\n       5. route_tool_call \u2192 in-process server or external MCP client\n```\n\nStep 4 is the only dispatch path. `route_tool_call` is reached only from `execute`, and `execute` is reached only from `ToolExecutor`. So the deny check cannot be skipped.\n\n## Approval (step 2f)\n\n```\nauto_ok = config permissions.auto_approve  ||  is_explicitly_allowed(tool, pattern)\nif !auto_ok and on_tool_call callback set:\n    callback(json)  \u2192  approved = true       (unconditional)\nif still not approved (headless, no callback): deny \"Permission denied\"\n```\n\n- `permissions.auto_approve` is a global bypass. It is read from `permissions` in config (`src/config/loader.cpp:371`).\n- `allow` is matched by `PermissionManager::is_allowed`. Allow entries mean \"no prompt\", nothing more.\n- **Surprise:** `on_tool_call` is `void (*)(const char*, void*)`, so the callback cannot return a decision. Any non-null callback approves every call that isn't already allowed. The header comment (\"Default-deny\u2026 approved via callback\") suggests a callback can gate calls, and the code does not do that. Only a headless engine, with no callback, actually denies. `tests/unit/mcp/tool_executor_test.cpp:285` depends on this.\n\n## Pattern syntax\n\nPatterns are used in both `allow` and `deny` and are handled by `PermissionManager::pattern_matches` (`src/mcp/permission_manager.cpp:101`).\n\nFormat: `tool` or `tool:argpattern`. The text is split at the first `:`.\n\n| Pattern | Matches | Effect in allow list | Effect in deny list |\n|---|---|---|---|\n| `bash.execute_command` | that tool, any args | skip prompt for that tool | block that tool entirely |\n| `filesystem.*` | every tool on that server (fnmatch) | skip prompt for all of them | block all of them |\n| `bash.execute_command:git *` | the tool, only when the arg pattern matches | skip prompt for matching args only | block matching args only |\n| `*:*` | everything | skip prompt for everything | block everything |\n\nHow the arg pattern is matched:\n\n- `args_to_pattern` (`server_manager.cpp:426`) builds the string that is matched. It takes the first entry of the args object, in nlohmann's iteration order (sorted by key by default). If that entry is a string, its value is used. Otherwise, or if args are empty or unparseable, the value is `*`.\n- The full string `tool:<value>` is then fnmatch'd against the pattern. Flags are `0`, so `*` also matches `/` and `.`.\n\nGotchas:\n\n- **Only the first string argument is checked.** `bash.execute_command:rm *` says nothing about a second argument such as `cwd`. Put the dangerous value first, or deny on the whole tool.\n- **If the first key is non-string, the value is `*`.** A pattern like `bash:rm*` will not match that call. A `*` pattern will still match it.\n- **Tool name matching is fnmatch on the fully-qualified name.** It is `server.tool`, for example `filesystem.write_file`.\n- `add_permission` ignores exact duplicates. Runtime adds are persisted by `permission_persister.cpp`, which appends to `permissions.allow` / `permissions.deny`.\n\n## Precedence\n\n1. The PRE_TOOL_CALL hook can cancel before anything else.\n2. Schema, MCP key, tier, and duplicate checks run next. Each can reject the call regardless of permissions.\n3. `auto_approve` or an allow match skips the prompt. A callback approves anything else. With neither, the call is denied.\n4. Deny is checked last, unconditionally. An allow match does not bypass it.\n\nI read the code paths and the one test that exercises the headless case. I did not build or run the tests.",
+  "ttft_ms": 3250,
+  "type": "result",
+  "duration_ms": 44637,
+  "uuid": "49245c04-0b70-42b3-9a7e-44dc38906095",
+  "ttft_stream_ms": 2812,
+  "time_to_request_ms": 64,
+  "first_content_frame_ms": 2812,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

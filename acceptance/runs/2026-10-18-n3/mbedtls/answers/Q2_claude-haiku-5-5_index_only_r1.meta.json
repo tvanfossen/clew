@@ -1,0 +1,43 @@
+{
+  "stem": "Q2_claude-haiku-5-5_index_only_r1",
+  "arm": "index_only",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "seconds": 21.902498243000082,
+  "input_tokens": 8,
+  "output_tokens": 3709,
+  "cache_read_tokens": 123014,
+  "cache_creation_tokens": 26109,
+  "cost_usd": 0.00830724,
+  "result_bytes": 2556,
+  "turns": 10,
+  "tool_calls": 9,
+  "non_index_tool_calls": 0,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/2026-10-18-n3/mbedtls/repo.\n\nYou have ONLY a queryable index of this repository \u2014 no shell, no file reading, no search over the source. The tools are mcp__clew__dossier for everything known about a named symbol, mcp__clew__search to find a name or enumerate a layer, and mcp__clew__index for status. Answer from the index alone.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nmbedtls wraps struct members in MBEDTLS_PRIVATE. What does that accomplish, and for whom?\n\nBe concrete about the \"for whom\": find where the opt-out is actually turned on in this\ntree, and say what that means for the code in those places.\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "mcp__clew__dossier,mcp__clew__search,mcp__clew__index",
+    "--strict-mcp-config",
+    "--mcp-config",
+    "/home/tvanfossen/Projects/clew/acceptance/runs/2026-10-18-n3/mbedtls/mcp.json"
+  ],
+  "cell": {
+    "target": "Mbed-TLS/mbedtls",
+    "question_id": "Q2",
+    "arm": "index_only",
+    "model": "claude-haiku-5-5",
+    "replicate": 1,
+    "order": 1
+  },
+  "tool_calls_as_recorded": 16,
+  "non_index_tool_calls_as_recorded": 0,
+  "tool_counts_corrected": "recounted by tool_use id; blocks were double-counted (see acceptance/execute.py count_tools v3)"
+}

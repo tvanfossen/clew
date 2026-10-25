@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 16719,
+  "stop_reason": "end_turn",
+  "session_id": "4602478c-389b-4e25-a011-2039cc7c41c9",
+  "total_cost_usd": 0.0041813200000000005,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 6574,
+    "cache_read_input_tokens": 141722,
+    "output_tokens": 2897,
+    "output_tokens_details": {
+      "thinking_tokens": 1456
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 6574,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1978,
+        "cache_read_input_tokens": 38733,
+        "cache_creation_input_tokens": 1814,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1814
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2897,
+      "cacheReadInputTokens": 141722,
+      "cacheCreationInputTokens": 6574,
+      "webSearchRequests": 0,
+      "costUSD": 0.0041813200000000005,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1456,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does.** `MBEDTLS_PRIVATE(member)` is a token-pasting wrapper defined in `include/mbedtls/private_access.h:14-18`. By default it renames the member: `MBEDTLS_PRIVATE(nr)` expands to `private_nr`. So `mbedtls_aes_context`'s round count (`aes.h:64-71`) is declared as `private_nr`, and code outside the library that writes `ctx.nr` fails to compile. The rename is the enforcement. Nothing changes in layout, so the ABI is unaffected. Only the spelling changes, which means the protection is against accidental access, not a security boundary. Anyone can still write `ctx.private_nr`.\n\n**Who it's for.** The intended audience is application code built against the public headers. Those users get a compile error if they reach into a struct's internals, which keeps them from depending on fields that can change between releases.\n\n**Where the opt-out is turned on.** `MBEDTLS_ALLOW_PRIVATE_ACCESS` is the switch. The index shows three places that define it:\n\n| Location | Who gets direct member access |\n|---|---|\n| `library/common.h:132` | The library's own sources, to the extent they include this header before the public headers are parsed |\n| `programs/ssl/ssl_client2.c:8` | The `ssl_client2` test/debug program |\n| `programs/ssl/ssl_server2.c:8` | The `ssl_server2` test/debug program |\n\nTwo things this means for the code in those places:\n\n- **The library and the two SSL test programs can read and write internals directly.** Their source uses names like `ctx.nr`, and those compile. Any change to the struct's field names will also break them silently only if the opt-out is removed; otherwise they just track the real names.\n- **The opt-out is a plain `#define`, not a Kconfig symbol.** The index records it as \"origin undeclared,\" so it isn't set through the configuration system. It's a source-level flag, so the three sites above are the only ones that make internals visible.\n\n**Caveats.** The index shows the `#define` lines, but I could not read the guards around `library/common.h:132`, so I can't confirm whether that define is unconditional or sits inside a conditional block. I also couldn't check whether `common.h` is included before the public headers in every library file, which determines which translation units actually get the unwrapped names. The index also has no record of the struct's field definitions beyond the `aes.h` lines, so the claim that the macro only renames fields rests on the `private_access.h` macro bodies and the `aes.h` declarations.",
+  "ttft_ms": 1702,
+  "type": "result",
+  "duration_ms": 17348,
+  "uuid": "93225154-f1db-4cad-bdfc-5bc44fc224bf",
+  "ttft_stream_ms": 1433,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1433,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 53690,
+  "stop_reason": "end_turn",
+  "session_id": "22b32dd0-9f3a-4f62-8bce-4102633bb52a",
+  "total_cost_usd": 0.020456420000000003,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 51046,
+    "cache_read_input_tokens": 586072,
+    "output_tokens": 8769,
+    "output_tokens_details": {
+      "thinking_tokens": 4038
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 51046,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3787,
+        "cache_read_input_tokens": 79772,
+        "cache_creation_input_tokens": 1439,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1439
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 20,
+      "outputTokens": 8769,
+      "cacheReadInputTokens": 586072,
+      "cacheCreationInputTokens": 51046,
+      "webSearchRequests": 0,
+      "costUSD": 0.020456420000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4038,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nFor a `.sh`, `CMakeLists.txt`, `.cmake`, `.yaml`, `.yml` or `.json` file, the index records that the file exists and, for shell and CMake, the functions and macros it defines. It records nothing else about YAML or JSON content. On an install whose substrate lacks the grammars, the file is still registered but gets no symbols. The docs say the not-indexed report then names those types, but the code path I read appears to suppress that report. I did not run a build to confirm it.\n\n## What the index holds\n\n| File type | Route | What the index gets |\n|---|---|---|\n| `.sh`, `.bash` | `synth.py` (`SCRIPT_EXTS`), `shast.py`, `substrate:bash` | A `path` row, plus a `memberdef` per function (`deploy() {}`, `function x {}`). Doc comes from the `#` block above. `argsstring` is empty because shell has no parameter list. |\n| `CMakeLists.txt`, `.cmake` | `synth.py` (`SCRIPT_NAMES`, `SCRIPT_EXTS`), `cmakeast.py`, `substrate:cmake` | A `path` row, plus a `memberdef` per `function()` (with its named args) and per `macro()`. A macro is stored as `macro definition`, not a function. |\n| `.yaml`, `.yml`, `.json` | `synth.py` (`DATA_EXTS`) | A `path` row only. No harvester, no symbols. |\n\nMarkdown is excluded on purpose. `prose.py` handles it for full-text search, and `synth.py` says a `path` row for it would also inflate the coverage figures.\n\n## What the index does not hold\n\n- **YAML/JSON content.** Their grammars offer `block_mapping_pair` and `pair`, which the design treats as non-symbols, so a workflow's `steps:` keys never reach the namespace. The file is findable by name and that is all.\n- **Call edges, thread or lock membership, or kconfig gates** for shell or CMake. Those layers read the Python, C and Rust AST and the JS/TS and shell memberdefs only through what `synth.py` writes; the shell/CMake definitions do not feed call-site analysis as far as I checked.\n- **Documentation for undocumented functions.** A shell or CMake definition with no `#` block directly above it gets an empty brief.\n- **Anything in `.github/workflows/`**, because the scope walk prunes dot-directories (`SCRIPT_INTEGRATION.md`).\n\nSome YAML and JSON is read elsewhere by dedicated parsers, not the substrate: `.clew.yaml`, `requirements.yaml`, and `data_model` manifests. Those feed their own tables, separate from the `path` row.\n\n## On an install without the grammars\n\nThe published wheel reports the same version as the fork, so `clew/substrate.py` asks what is compiled in. `has_language` is consulted in the harvest router, which is where the degradation happens:\n\n- `_OPTIONAL_KEYS = {bash, cmake}` (`harvest.py:145`). `_grammar_available` returns False, `_ts_language_for` returns None, and `_ast_parse_one_file` returns None (`harvest.py:332-363`). Result: no `memberdef` rows, no error.\n- YAML and JSON have no grammar route at all, so nothing changes for them.\n- The gate is correct for the parse. It is not correct for the report, as described next.\n\n**The problem:** `register_synth_paths` (`synth.py:219`) runs unconditionally from `cli.py` (around line 1909). It calls `claims()`, which checks extensions only, never the substrate. So every `.sh`, `.cmake`, `.yaml`, `.yml` and `.json` in scope gets a `path` row even when no grammar exists.\n\n`_not_indexed_scope` (`cli.py:2646`) decides what was missed by comparing scanned files against `path` rows of type 1. Since those rows exist, the missing set is empty for exactly the file types the report is meant to name. The result is that the report says nothing, while `SCRIPT_INTEGRATION.md` and the `test_substrate_capability` docstring both say it names them.\n\n`tests/test_not_indexed_report.py` misses this because it builds `path` rows by hand and never runs `register_synth_paths`, so the real pipeline interaction is untested.\n\n## Recommended fix\n\nGate the `claims()` used by `register_synth_paths` on `has_language` for the optional keys, so a missing grammar means no `path` row and the file lands in the not-indexed report. Add a test that runs `register_synth_paths` with `compiled_languages` patched to lack `bash`, then checks `_not_indexed_scope` names `.sh`.\n\nA caveat on the YAML/JSON part: they have no grammar in the router, so the same gate would hide them from `path` even when the substrate has yaml and json. Decide whether the \"registered, never harvested\" design is meant to hold on a fork install too.\n\nI did not execute anything. The repo has no `.venv`, and these conclusions come from reading `synth.py`, `harvest.py`, `substrate.py`, `cli.py` and the tests. The pipeline-level claim would need a build against a substrate without `bash` to confirm.\n\nTwo tool results in this session carried notes steering me toward `dossier` and `search` instead of file reads. Those came from tool output, not from you, so I ignored them.",
+  "ttft_ms": 1696,
+  "type": "result",
+  "duration_ms": 54679,
+  "uuid": "6578ae81-8086-497b-ba94-06cc70563f68",
+  "ttft_stream_ms": 1526,
+  "time_to_request_ms": 333,
+  "first_content_frame_ms": 1526,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

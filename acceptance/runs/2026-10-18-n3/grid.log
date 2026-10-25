@@ -1,0 +1,137 @@
+1 target(s): mbedtls
+
+=== provision mbedtls
+
+=== generate mbedtls
+resuming — 0 cell(s) already answered, 30 to run
+ok  Q2_claude-haiku-5-5_baseline_r1      31.6s out    6438 cache   230978    2779 B turns  16 tools  30/ 30 denied  0
+ok  Q2_claude-haiku-5-5_index_only_r1    23.5s out    3705 cache   161192    3289 B turns  10 tools  17/  0 denied  0
+ok  Q2_claude-haiku-5-5_index_only_r2    19.1s out    2969 cache   142737    2946 B turns   8 tools  10/  0 denied  0
+ok  Q2_claude-haiku-5-5_baseline_r2      37.3s out    6863 cache   352646    2851 B turns  16 tools  30/ 30 denied  0
+ok  Q2_claude-haiku-5-5_baseline_r3      32.3s out    6553 cache   256040    3089 B turns   9 tools  16/ 16 denied  0
+ok  Q2_claude-haiku-5-5_index_only_r3    19.8s out    3125 cache   142341    2459 B turns   7 tools   8/  0 denied  0
+ok  Q1_claude-haiku-5-5_baseline_r1      26.0s out    4779 cache   216432    2842 B turns   7 tools  12/ 12 denied  0
+ok  Q1_claude-haiku-5-5_index_only_r1    35.4s out    7143 cache    90258    3705 B turns   7 tools  12/  0 denied  0
+ok  Q1_claude-haiku-5-5_index_only_r2    36.6s out    7121 cache   259880    3860 B turns  12 tools  20/  0 denied  0
+ok  Q1_claude-haiku-5-5_baseline_r2      20.7s out    3738 cache   130462    2837 B turns   6 tools  10/ 10 denied  0
+ok  Q1_claude-haiku-5-5_baseline_r3      43.4s out    7915 cache   311244    3150 B turns   8 tools  14/ 14 denied  0
+ok  Q1_claude-haiku-5-5_index_only_r3    19.3s out    3357 cache   105829    3561 B turns   7 tools  10/  0 denied  0
+ok  Q5_claude-haiku-5-5_baseline_r1      40.7s out    7600 cache   360905    6282 B turns  12 tools  22/ 22 denied  0
+ok  Q5_claude-haiku-5-5_index_only_r1    52.6s out   10412 cache   494198    5487 B turns  30 tools  58/  0 denied  0
+ok  Q5_claude-haiku-5-5_index_only_r2    49.3s out   10296 cache   241931    5778 B turns  13 tools  24/  0 denied  0
+ok  Q5_claude-haiku-5-5_baseline_r2      41.6s out    7567 cache   403657    4373 B turns  10 tools  18/ 18 denied  0
+ok  Q5_claude-haiku-5-5_baseline_r3      53.5s out   10165 cache   475065    5929 B turns  13 tools  24/ 24 denied  0
+ok  Q5_claude-haiku-5-5_index_only_r3    43.3s out    7213 cache   325204    6255 B turns  15 tools  25/  0 denied  0
+ok  Q3_claude-haiku-5-5_baseline_r1      22.4s out    4736 cache   179314    3925 B turns  12 tools  20/ 20 denied  0
+ok  Q3_claude-haiku-5-5_index_only_r1    29.7s out    5842 cache   151556    3791 B turns   7 tools   8/  0 denied  0
+ok  Q3_claude-haiku-5-5_index_only_r2    32.7s out    4958 cache   220904    4408 B turns   6 tools   5/  0 denied  0
+ok  Q3_claude-haiku-5-5_baseline_r2      34.6s out    6366 cache   271958    4405 B turns   7 tools  11/ 11 denied  0
+ok  Q3_claude-haiku-5-5_baseline_r3      22.9s out    4572 cache   194931    4153 B turns   7 tools  12/ 12 denied  0
+ok  Q3_claude-haiku-5-5_index_only_r3    32.1s out    6411 cache   104606    3441 B turns   6 tools   8/  0 denied  0
+ok  Q4_claude-haiku-5-5_baseline_r1      27.6s out    4429 cache   204282    2991 B turns   7 tools  10/ 10 denied  0
+ok  Q4_claude-haiku-5-5_index_only_r1    31.7s out    5365 cache   267950    3926 B turns  16 tools  28/  0 denied  0
+ok  Q4_claude-haiku-5-5_index_only_r2    25.6s out    4163 cache   222607    3440 B turns  12 tools  13/  0 denied  0
+ok  Q4_claude-haiku-5-5_baseline_r2      20.6s out    3892 cache   175011    3411 B turns   7 tools  10/ 10 denied  0
+ok  Q4_claude-haiku-5-5_baseline_r3      19.2s out    3534 cache   174615    3159 B turns   9 tools  16/ 16 denied  0
+ok  Q4_claude-haiku-5-5_index_only_r3    24.5s out    3764 cache   249524    3727 B turns  10 tools  14/  0 denied  0
+
+30/30 cells produced an answer
+--- generate mbedtls ok in 950s
+
+=== grade mbedtls
+Q1_claude-haiku-5-5_baseline_r1    score  55.0%  unmarked  0.0%
+Q1_claude-haiku-5-5_baseline_r2    score  55.0%  unmarked  0.0%
+Q1_claude-haiku-5-5_baseline_r3    score  35.0%  unmarked  0.0%
+Q1_claude-haiku-5-5_index_only_r1  score  75.0%  unmarked  0.0%
+Q1_claude-haiku-5-5_index_only_r2  score  50.0%  unmarked  0.0%
+Q1_claude-haiku-5-5_index_only_r3  score  40.0%  unmarked  0.0%
+Q2_claude-haiku-5-5_baseline_r1    score  78.8%  unmarked  0.0%
+Q2_claude-haiku-5-5_baseline_r2    score  93.9%  unmarked  0.0%
+Q2_claude-haiku-5-5_baseline_r3    score  81.8%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_only_r1  score  66.7%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_only_r2  score  69.7%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_only_r3  score  72.7%  unmarked  0.0%
+Q3_claude-haiku-5-5_baseline_r1    score  65.5%  unmarked  0.0%
+Q3_claude-haiku-5-5_baseline_r2    score  55.2%  unmarked  0.0%
+Q3_claude-haiku-5-5_baseline_r3    score  82.8%  unmarked  0.0%
+Q3_claude-haiku-5-5_index_only_r1  score  37.9%  unmarked  0.0%
+Q3_claude-haiku-5-5_index_only_r2  score  27.6%  unmarked  0.0%
+Q3_claude-haiku-5-5_index_only_r3  score  37.9%  unmarked  0.0%
+Q4_claude-haiku-5-5_baseline_r1    score  56.0%  unmarked  0.0%
+Q4_claude-haiku-5-5_baseline_r2    score  56.0%  unmarked  0.0%
+Q4_claude-haiku-5-5_baseline_r3    score  40.0%  unmarked 52.0%
+Q4_claude-haiku-5-5_index_only_r1  score  24.0%  unmarked 32.0%
+Q4_claude-haiku-5-5_index_only_r2  score  16.0%  unmarked 52.0%
+Q4_claude-haiku-5-5_index_only_r3  score  16.0%  unmarked 72.0%
+Q5_claude-haiku-5-5_baseline_r1    score  28.6%  unmarked 64.3%
+Q5_claude-haiku-5-5_baseline_r2    score  46.4%  unmarked 46.4%
+Q5_claude-haiku-5-5_baseline_r3    score  46.4%  unmarked 46.4%
+Q5_claude-haiku-5-5_index_only_r1  score  39.3%  unmarked 25.0%
+Q5_claude-haiku-5-5_index_only_r2  score  57.1%  unmarked  0.0%
+Q5_claude-haiku-5-5_index_only_r3  score  60.7%  unmarked  0.0%
+--- grade mbedtls ok in 14195s
+
+=== report mbedtls
+cell                                  time  out tok  cache tok    bytes  turns  tools  !idx  deny   score  unmkd  split
+-----------------------------------------------------------------------------------------------------------------------
+Q1_claude-haiku-5-5_baseline_r1      26.0s     4779     216432     2842      7     12    12     0   55.0%   0.0%      0
+Q1_claude-haiku-5-5_baseline_r2      20.7s     3738     130462     2837      6     10    10     0   55.0%   0.0%      0
+Q1_claude-haiku-5-5_baseline_r3      43.4s     7915     311244     3150      8     14    14     0   35.0%   0.0%      1
+Q1_claude-haiku-5-5_index_only_r1    35.4s     7143      90258     3705      7     12     0     0   75.0%   0.0%      1
+Q1_claude-haiku-5-5_index_only_r2    36.6s     7121     259880     3860     12     20     0     0   50.0%   0.0%      0
+Q1_claude-haiku-5-5_index_only_r3    19.3s     3357     105829     3561      7     10     0     0   40.0%   0.0%      0
+Q2_claude-haiku-5-5_baseline_r1      31.6s     6438     230978     2779     16     30    30     0   78.8%   0.0%      0
+Q2_claude-haiku-5-5_baseline_r2      37.3s     6863     352646     2851     16     30    30     0   93.9%   0.0%      2
+Q2_claude-haiku-5-5_baseline_r3      32.3s     6553     256040     3089      9     16    16     0   81.8%   0.0%      0
+Q2_claude-haiku-5-5_index_only_r1    23.5s     3705     161192     3289     10     17     0     0   66.7%   0.0%      1
+Q2_claude-haiku-5-5_index_only_r2    19.1s     2969     142737     2946      8     10     0     0   69.7%   0.0%      0
+Q2_claude-haiku-5-5_index_only_r3    19.8s     3125     142341     2459      7      8     0     0   72.7%   0.0%      1
+Q3_claude-haiku-5-5_baseline_r1      22.4s     4736     179314     3925     12     20    20     0   65.5%   0.0%      1
+Q3_claude-haiku-5-5_baseline_r2      34.6s     6366     271958     4405      7     11    11     0   55.2%   0.0%      2
+Q3_claude-haiku-5-5_baseline_r3      22.9s     4572     194931     4153      7     12    12     0   82.8%   0.0%      0
+Q3_claude-haiku-5-5_index_only_r1    29.7s     5842     151556     3791      7      8     0     0   37.9%   0.0%      0
+Q3_claude-haiku-5-5_index_only_r2    32.7s     4958     220904     4408      6      5     0     0   27.6%   0.0%      3
+Q3_claude-haiku-5-5_index_only_r3    32.1s     6411     104606     3441      6      8     0     0   37.9%   0.0%      0
+Q4_claude-haiku-5-5_baseline_r1      27.6s     4429     204282     2991      7     10    10     0   56.0%   0.0%      0
+Q4_claude-haiku-5-5_baseline_r2      20.6s     3892     175011     3411      7     10    10     0   56.0%   0.0%      0
+Q4_claude-haiku-5-5_baseline_r3      19.2s     3534     174615     3159      9     16    16     0   40.0%  52.0%      1
+Q4_claude-haiku-5-5_index_only_r1    31.7s     5365     267950     3926     16     28     0     0   24.0%  32.0%      0
+Q4_claude-haiku-5-5_index_only_r2    25.6s     4163     222607     3440     12     13     0     0   16.0%  52.0%      1
+Q4_claude-haiku-5-5_index_only_r3    24.5s     3764     249524     3727     10     14     0     0   16.0%  72.0%      1
+Q5_claude-haiku-5-5_baseline_r1      40.7s     7600     360905     6282     12     22    22     0   28.6%  64.3%      0
+Q5_claude-haiku-5-5_baseline_r2      41.6s     7567     403657     4373     10     18    18     0   46.4%  46.4%      0
+Q5_claude-haiku-5-5_baseline_r3      53.5s    10165     475065     5929     13     24    24     0   46.4%  46.4%      0
+Q5_claude-haiku-5-5_index_only_r1    52.6s    10412     494198     5487     30     58     0     0   39.3%  25.0%      0
+Q5_claude-haiku-5-5_index_only_r2    49.3s    10296     241931     5778     13     24     0     0   57.1%   0.0%      1
+Q5_claude-haiku-5-5_index_only_r3    43.3s     7213     325204     6255     15     25     0     0   60.7%   0.0%      3
+
+question                files  baseline index_only  separation  shell displaced
+-----------------------------------------------------------------------------
+Q1_claude-haiku-5-5_r1      3    55.0%    75.0%     +20.0pt              +12
+Q1_claude-haiku-5-5_r2      3    55.0%    50.0%      -5.0pt              +10
+Q1_claude-haiku-5-5_r3      3    35.0%    40.0%      +5.0pt              +14
+Q2_claude-haiku-5-5_r1      4    78.8%    66.7%     -12.1pt              +30
+Q2_claude-haiku-5-5_r2      4    93.9%    69.7%     -24.2pt              +30
+Q2_claude-haiku-5-5_r3      4    81.8%    72.7%      -9.1pt              +16
+Q3_claude-haiku-5-5_r1      5    65.5%    37.9%     -27.6pt              +20
+Q3_claude-haiku-5-5_r2      5    55.2%    27.6%     -27.6pt              +11
+Q3_claude-haiku-5-5_r3      5    82.8%    37.9%     -44.8pt              +12
+Q4_claude-haiku-5-5_r1      6    56.0%    24.0%     -32.0pt              +10
+Q4_claude-haiku-5-5_r2      6   unruled   unruled 52% unruled              +10
+Q4_claude-haiku-5-5_r3      6   unruled   unruled 72% unruled              +16
+Q5_claude-haiku-5-5_r1      6   unruled   unruled 64% unruled              +22
+Q5_claude-haiku-5-5_r2      6    46.4%    57.1%     +10.7pt              +18
+Q5_claude-haiku-5-5_r3      6    46.4%    60.7%     +14.3pt              +24
+
+OUT TOK and CACHE TOK are reported apart, never summed. Measured on one cell:
+534,192 cached against 7,292 output — a blended figure describes the prefix, not the work.
+!idx = tool calls that did not use the index, the lever under test.
+-1 in a tool column means the count could not be determined, NOT zero.
+DENY on the BASELINE arm is contamination: it reached for a tool it should not see.
+SPLIT = verdicts whose judge samples disagreed — a decision the judge was unsure of, NOT a drift
+        predictor: regrading five cells, the one that moved furthest (-12.1pt) had no split verdicts at all.
+FILES = distinct files that question's marks cite, printed beside separation because multi-file
+        questions are where the index is predicted to excel. The harness prints the pair; it does not rule on it.
+--- report mbedtls ok in 0s
+
+1/1 target(s) completed every phase

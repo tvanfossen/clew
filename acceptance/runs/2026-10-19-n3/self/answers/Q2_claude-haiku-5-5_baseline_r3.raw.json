@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 24594,
+  "stop_reason": "end_turn",
+  "session_id": "5391c5b2-0bb7-4be4-af0d-1de8fda30be6",
+  "total_cost_usd": 0.009066310000000001,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 23558,
+    "cache_read_input_tokens": 229201,
+    "output_tokens": 4123,
+    "output_tokens_details": {
+      "thinking_tokens": 1556
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 23558,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2365,
+        "cache_read_input_tokens": 49957,
+        "cache_creation_input_tokens": 3740,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3740
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4123,
+      "cacheReadInputTokens": 229201,
+      "cacheCreationInputTokens": 23558,
+      "webSearchRequests": 0,
+      "costUSD": 0.009066310000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1556,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the reply separates the cases by what it can check, not by how it words the miss. A single-token miss gets the strong \"definitive\" wording only after the server confirms the index holds no matching rows elsewhere. Almost all of the confidence comes from the index's coverage, not the repository's contents. One gap: the not-indexed file-type report is attached to the reply but does not change the verdict wording.\n\nI read the code (`clew/mcp_server/emptiness.py`, `clew/query/symbols.py`, `clew/query/corpus.py`, `clew/cli.py`, `tests/test_not_indexed_report.py`). I did not run a query or the tests.\n\n**What the reply checks before it speaks**\n\n| Check | Source | What it changes |\n|---|---|---|\n| Does any unread corpus hold this name? | `q.unsearched_corpora` (`symbols.py:1806`) | Any hit makes the reply \"NOT DEFINITIVE\" and names the rows, e.g. \"2 typedef\". This outranks everything else. |\n| Is it a multi-token conjunction? | `_conjunction_note` | Never definitive. It names the tokens with zero hits and says to retry without them. |\n| Does the index have a file-docs corpus? | `has_file_docs` | If not: \"NOT definitive, rebuild\". |\n| Does the index have a markdown corpus? (prose search) | `has_prose_corpus` | If not: \"NOT definitive, rebuild\". |\n| Did the build record files it could not index? | `scope.not_indexed*`, stamped at build time | Shown in the `scope` payload only. The build has to stamp it; older indexes omit the key rather than report \"nothing missed\". |\n| What area does the index cover? | `scope` payload (`source`, file count, top dirs, extensions) | Lets the caller tell \"outside the scope\" from \"not in the repo\". |\n\n**Confidence each answer gets**\n\n| Reply | Claim it makes | Entitled confidence |\n|---|---|---|\n| Single token, no unread hits, docs corpus present | \"Definitive\u2026 do not retry\" | High that the indexed symbol corpora lack the name. Scope-limited, not repo-wide. |\n| Single token, unread corpus holds it | \"NOT definitive; the name exists\" | The name exists in the repo. Use `dossier`. |\n| Multi-token, zero-hit token named | \"Not definitive; retry without X\" | Low on the whole query. High on the named token alone. |\n| Multi-token, every token matches alone | \"Retry with fewer tokens\" | None on the query. The tokens exist, but no single unit holds all of them. |\n| Prose miss, token present in symbols | \"NOT definitive; it is in symbol corpora\" | Moderate. The term exists in code, not in the prose the search read. |\n| Prose miss, token absent everywhere | \"Definitive\" | Same as the symbol case. |\n| No docs or prose corpus | \"NOT definitive; rebuild\" | None. The index cannot look. |\n| `not_indexed` present | Scope payload only | Build-time snapshot of file types with no rows. Stale if files changed after the build. |\n\n**The gap**\n\n`_verdict` (`emptiness.py:361`) takes only the database and the unread-corpus hits. It does not look at `not_indexed_count`. So a single-token miss in an index that skipped `.sh` files still returns the strong \"definitive\u2026 do not retry\" note. The `not_indexed` entries appear only in the `scope` payload, where a caller may not read them. The module's own docstring says the case \"read the file directly\" exists precisely for this. I found no test that covers this combination; the not-indexed tests cover the stamping and the payload only.\n\nThe fix is small: have `_verdict` downgrade when `scope.not_indexed_count > 0`, and name the file types in the note. Before making that change I'd want a RED test that builds an index with a `.sh` file missing and asserts the note is not definitive.",
+  "ttft_ms": 1504,
+  "type": "result",
+  "duration_ms": 24983,
+  "uuid": "ea8b848c-58b2-49b2-939d-b54487af5a8c",
+  "ttft_stream_ms": 1061,
+  "time_to_request_ms": 79,
+  "first_content_frame_ms": 1061,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 27554,
+  "stop_reason": "end_turn",
+  "session_id": "7d1b8ca8-35f3-45ee-8df5-65dad7d1cd35",
+  "total_cost_usd": 0.012643400000000003,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 38967,
+    "cache_read_input_tokens": 201350,
+    "output_tokens": 5671,
+    "output_tokens_details": {
+      "thinking_tokens": 1788
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 38967,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2873,
+        "cache_read_input_tokens": 54298,
+        "cache_creation_input_tokens": 2019,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2019
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 5671,
+      "cacheReadInputTokens": 201350,
+      "cacheCreationInputTokens": 38967,
+      "webSearchRequests": 0,
+      "costUSD": 0.012643400000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1788,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** library code never calls `calloc` or `free` directly. Every allocation goes through `mbedtls_calloc()` and `mbedtls_free()`, which are macros that resolve to either the system functions or a function-pointer dispatcher. The dispatcher is `library/platform.c`, and the library itself uses the same facility to install its own heap, `memory_buffer_alloc.c`.\n\n**What gets called, by configuration**\n\n| Build | `mbedtls_calloc` resolves to | Source |\n|---|---|---|\n| `MBEDTLS_PLATFORM_MEMORY` off (default) | `calloc` directly, via macro | `include/mbedtls/platform.h:166-167` |\n| `MBEDTLS_PLATFORM_MEMORY` on, both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `FREE_MACRO` defined | Your macro, at compile time | `platform.h:143-144` |\n| `MBEDTLS_PLATFORM_MEMORY` on, no macros | `mbedtls_calloc()` in `platform.c`, which calls through a static function pointer | `platform.c:44-55` |\n\nThe third row is the runtime case. The pointers start as `MBEDTLS_PLATFORM_STD_CALLOC` and `MBEDTLS_PLATFORM_STD_FREE`. Those default to `calloc` and `free`, unless `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS` is set. Under that flag they become `platform_calloc_uninit`, which returns NULL, and `platform_free_uninit`, which does nothing (`platform.c:24-42`). Note that `MBEDTLS_PLATFORM_STD_CALLOC` is a config define, so the library's own variable declarations are also fixed by the time `platform.c` compiles.\n\n**How a project substitutes its allocator**\n\nTwo routes, chosen at build time:\n\n1. **Compile-time.** Define `MBEDTLS_PLATFORM_MEMORY` and both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` (in `mbedtls_config.h` or via the compiler). `check_config.h:558-573` requires that the two macros be defined together. The macros are then used everywhere, and `platform.c` is left out of the build of that dispatcher.\n2. **Runtime.** Define `MBEDTLS_PLATFORM_MEMORY` without the macros, then call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` before any other library call. The function (`platform.c:57-63`) just stores the two pointers and returns 0. It does no validation, and it does not lock. The header says the call is not thread-safe, so do it at startup.\n\nThe config documentation (`mbedtls_config.h:154-208`) lists the same rules. `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_STD_CALLOC` cannot both be set.\n\n**What the library does with the facility**\n\n- **Its allocation sites.** Across `library/`, roughly 170 call sites use `mbedtls_calloc(`, spread over about 48 files, mainly `ssl_tls.c`, `psa_crypto.c`, `x509.c` and `pk_wrap.c`. A search for raw `calloc`/`malloc`/`free` outside `platform.c` and `memory_buffer_alloc.c` finds only comments.\n- **Its own heap.** `mbedtls_memory_buffer_alloc_init(buf, len)` (`memory_buffer_alloc.c:566`) carves a caller-supplied buffer into a managed heap. It then installs its own functions through `mbedtls_platform_set_calloc_free()`: `buffer_alloc_calloc_mutexed`/`buffer_alloc_free_mutexed` when `MBEDTLS_THREADING_C` is on, and the unlocked pair otherwise (`memory_buffer_alloc.c:570-576`). So the buffer allocator is itself one of the substitutes that the runtime hook can install.\n- **Consequence to watch for.** That install is global and unconditional. If an application sets its own allocator and then calls `mbedtls_memory_buffer_alloc_init`, the application's allocator is silently replaced. The call order matters.\n- **Misuse checks.** The buffer allocator reports a free of a pointer it does not manage, or a free of an unallocated block, with a `FATAL` message to stderr (`memory_buffer_alloc.c:373, 390`).\n\n**What I did not check:** the body of the mutex wrappers beyond their call sites, and whether `mbedtls_memory_buffer_alloc_free` restores the previous allocator. If that matters, read `memory_buffer_alloc.c` around its free function before relying on it.",
+  "ttft_ms": 1791,
+  "type": "result",
+  "duration_ms": 27789,
+  "uuid": "7523e5ff-3227-4461-b839-0ce24f7ee24c",
+  "ttft_stream_ms": 1210,
+  "time_to_request_ms": 106,
+  "first_content_frame_ms": 1211,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

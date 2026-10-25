@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 34594,
+  "stop_reason": "end_turn",
+  "session_id": "3df2a6ff-ab6f-4439-ad7b-c5360ecbed16",
+  "total_cost_usd": 0.0116001,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 27301,
+    "cache_read_input_tokens": 310000,
+    "output_tokens": 6077,
+    "output_tokens_details": {
+      "thinking_tokens": 1651
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 27301,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2378,
+        "cache_read_input_tokens": 57788,
+        "cache_creation_input_tokens": 1920,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1920
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 6077,
+      "cacheReadInputTokens": 310000,
+      "cacheCreationInputTokens": 27301,
+      "webSearchRequests": 0,
+      "costUSD": 0.0116001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1651,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Several parts of entropic run on their own threads. Most follow one pattern: a dedicated thread owns a loop, shared state sits behind a mutex or an atomic, and the owner joins the thread on stop or destruction. One place breaks that pattern: the async `entropic.ask` worker is detached, and I found nothing that waits for it on handle teardown.\n\n**Long-lived worker threads**\n\n| Thread | Where | What it does | How it stays safe |\n|---|---|---|---|\n| External bridge accept loop | `src/facade/external_bridge.cpp:796` | Accepts MCP socket clients | `running_` atomic; `stop()` closes the listen fd, joins the thread, then joins client threads |\n| Per-client serve thread | `external_bridge.cpp:945` | Serves one connected client | `client_threads_mutex_`; `stop()` calls `shutdown(SHUT_RDWR)` to unblock reads, then joins |\n| Health monitor | `src/mcp/health_monitor.cpp:92` | Polls MCP servers, reconnects with backoff | `watched_mutex_` around the watch table; `wake_cv_` for prompt stop; `stop()` joins. Status events go through `event_mutex_` and are delivered via `process_events()` on the engine thread |\n| Stdio stderr reader | `src/mcp/transport_stdio.cpp:164` | Forwards child stderr | `close()` terminates the child, closes fds, then joins; `io_mutex_` guards the pipe I/O |\n| SSE reader | `src/mcp/transport_sse.cpp:107` | Reads server-sent events | `pending_mutex_` + `pending_cv_` hand responses back; `close()` stops the client and joins |\n| Inference cancel poller | `src/inference/inference_c_api.cpp:385` | Bridges an `int*` cancel flag to an atomic | Atomic `done_`; destructor joins |\n\n**Short-lived helper threads**\n\nThese are created per call and joined before the call returns. They capture locals by reference, which is only safe because of that join:\n\n- `src/inference/interface_factory.cpp:246`: cancel poller for `iface_generate_with_cancel`.\n- `src/core/response_generator.cpp:413`: interrupt observer for the streaming path.\n\n**The async `entropic.ask` worker (the exception)**\n\n- `run_async_ask` (`external_bridge.cpp:1158`) starts `std::thread(...).detach()`. The worker captures `this` and calls `entropic_run(handle_, ...)`.\n- `ExternalBridge::stop()` (`external_bridge.cpp:820`) does not touch `tasks_` and does not wait for these workers.\n- `entropic_destroy` (`src/facade/entropic.cpp:1883`) calls `stop()`, then `delete handle`.\n- The only wait is `cancel_inflight_async_tasks` (`external_bridge.cpp:434`), which is called from `context_clear`. It polls for about 1 s and then gives up.\n\nSo if a handle is destroyed while an async ask is still inside `entropic_run`, the worker keeps running against a freed bridge and a freed handle. I read the code but did not reproduce this. The backlog proposal `.claude/proposals/BACKLOG/P2-20260429-001-async-bridge-io-architecture.md` already calls out the detached-thread pattern as a known concurrency hazard. The fix is to track the workers and join them in `stop()`, or to hold a shared-ownership reference in the worker.\n\n**What keeps the rest safe**\n\n- **Mutexes on shared registries:** `tasks_mutex_`, `subscribers_mutex_`, `client_threads_mutex_`, `watched_mutex_`, `event_mutex_`, `io_mutex_`, `pending_mutex_`. `CLAUDE.md` says mutexes are for transitions only and atomics are for state queries.\n- **Atomics for flags:** `running_`, `connected_`, `done_`, cancel flags. These are read on each loop iteration.\n- **Ordered teardown:** `stop()` and `close()` flip the flag, wake or unblock the thread, then join. Client threads are drained by moving them out under the lock and joining outside it.\n- **Observer generation:** `observer_gen_` lets callbacks from a detached observer be discarded after detach (E5+E6 in `external_bridge.cpp`).\n- **Terminal sentinel under lock:** `write_sentinel` runs under `tasks_mutex_` before the completion notification fires.\n- **Log routing:** every spawned thread installs a `HandleLogScope` so its logs reach the owning handle's session log.\n- **No API mutex on `entropic_run`:** gh#109 removed the per-handle `api_mutex` from run paths so `entropic_interrupt()` can be called from another thread during a long turn. This means the engine's own internal guarding is what keeps concurrent calls safe. I did not audit that path.\n\n**Not verified**\n\n- `HealthMonitor::set_status_callback` writes `status_callback_` without a lock. That is only safe if it is always called before `start()`. I did not check the call sites.",
+  "ttft_ms": 1291,
+  "type": "result",
+  "duration_ms": 35391,
+  "uuid": "ec4a4792-78c4-4d05-a95d-8de89af64f2f",
+  "ttft_stream_ms": 1147,
+  "time_to_request_ms": 63,
+  "first_content_frame_ms": 1148,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

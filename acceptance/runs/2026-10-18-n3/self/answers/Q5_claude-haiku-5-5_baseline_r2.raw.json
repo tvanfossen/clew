@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 35309,
+  "stop_reason": "end_turn",
+  "session_id": "0532db7c-306f-4e02-9b96-17e79fc5cc01",
+  "total_cost_usd": 0.01789981,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 49192,
+    "cache_read_input_tokens": 468311,
+    "output_tokens": 6753,
+    "output_tokens_details": {
+      "thinking_tokens": 2843
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 49192,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3015,
+        "cache_read_input_tokens": 77645,
+        "cache_creation_input_tokens": 1662,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1662
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 6753,
+      "cacheReadInputTokens": 468311,
+      "cacheCreationInputTokens": 49192,
+      "webSearchRequests": 0,
+      "costUSD": 0.01789981,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2843,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Clew has five ways to change how it indexes a repo, and they are not all equal. The rule for conflicts is in `clew/tiers.py`: a stated value (a CLI flag or the `options` argument over MCP) beats the `.clew.yaml` declaration, and the declaration beats clew's built-in guesses. Target-supplied facts are never removed by anything stated.\n\n**The ways to say so**\n\n| Layer | Where it comes from | Effect |\n|---|---|---|\n| Built-in heuristics (tier 5) | clew's name-pattern defaults | Floor. Any stated value replaces it. |\n| Ecosystem (tier 4) | Known-ecosystem signatures, e.g. UDM, ingot | Accumulates. Survives every stated tier. |\n| Target facts (tier 3) | Things the repo already wrote: Doxyfile ALIASES/PREDEFINED, generator manifests, language/platform entry points | Accumulates. Survives every stated tier. |\n| Declared (tier 2) | `<repo>/.clew.yaml`, discovered from the repo root | Replaces the heuristics. Replaced by a flag. |\n| Stated (tier 1) | CLI flags (`--scope`, `--extra-input`, `--shared-key-patterns`, `--doxyfile`, \u2026), or the `options` argument for embedding callers and MCP | Replaces the declaration. |\n\nInside `.clew.yaml`, `index_scope:` sets the file scope (`clew/scope.py:397-402`), `sub_indexes:` trims vendored trees (`clew/declaration.py:77-81`), and the other sections mirror the standalone manifests (`shared_key_patterns`, `thread_patterns`, `mqtt_dispatch`, `locks`, `dispatch`, `event_tags`, `preprocessor`, `kconfig`, and so on; `clew/declaration.py:238-258`). The `guard:` section belongs to the gate, not the index. Keys starting with `x-` are tolerated with a warning rather than refused (`clew/declaration.py:274`).\n\n**What happens when two disagree**\n\n- **Flag vs declaration, list-valued option:** the flag wins. The declared list is dropped, but facts and ecosystem entries still apply (`clew/tiers.py:300-335`, `clew/cli.py:1619-1642`).\n- **Flag vs declaration, manifest document:** the flag replaces the whole document. There is no merge.\n- **Empty value** (`[]` or `{}`) is a withdrawal. It falls through to the declaration, then to the heuristics.\n- **Stated `index_scope` with `--scope` other than `from-guard`:** refused with exit 1 (`clew/cli.py:779-799`). Clew does not guess which one you meant.\n- **Declared `index_scope` that is unusable** (a root outside the repo, or a malformed block): logged as a warning, and the scope falls back to the whole repository (`clew/scope.py:668-675`).\n- **Declared `index_scope` with `--scope doxyfile`:** the declaration is not read on that path, and the refusal only checks the stated one. So the declared scope is silently ignored. I read this from the code and did not run it.\n- **`--extra-input`:** appends rather than replaces. It is refused if the Doxyfile's FILE_PATTERNS would exclude every file under it (`clew/cli.py:688-728`).\n\n**One thing to know:** a stated value is recorded in `build_meta` and replayed on later builds of that database. A one-off flag therefore stays in effect for that index until it is withdrawn. Two operators on the same commit can end up with different indexes, but only where the stated value is recorded (`clew/tiers.py:426-465`).\n\nI read the code paths directly and did not run clew or its tests. I did not check the user-facing docs for drift against this behavior.",
+  "ttft_ms": 1303,
+  "type": "result",
+  "duration_ms": 35655,
+  "uuid": "51bd801f-0327-431f-bd4d-87a4e66883ba",
+  "ttft_stream_ms": 961,
+  "time_to_request_ms": 78,
+  "first_content_frame_ms": 961,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

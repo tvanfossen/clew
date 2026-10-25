@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 44106,
+  "stop_reason": "end_turn",
+  "session_id": "ab7427a3-a9ab-4267-a1be-0fbbf699d01c",
+  "total_cost_usd": 0.02271624,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 70635,
+    "cache_read_input_tokens": 446594,
+    "output_tokens": 8243,
+    "output_tokens_details": {
+      "thinking_tokens": 4004
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 70635,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3481,
+        "cache_read_input_tokens": 69369,
+        "cache_creation_input_tokens": 1266,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1266
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 8243,
+      "cacheReadInputTokens": 446594,
+      "cacheCreationInputTokens": 70635,
+      "webSearchRequests": 0,
+      "costUSD": 0.02271624,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4004,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Several parts of entropic run off the caller's thread. The index's thread layer finds five spawn sites, but a grep for `std::thread` found more it misses. Safety comes from a few repeated patterns: handing work to the engine thread through a queue, guarding shared state with mutexes or atomics, and joining threads on shutdown. I found two real gaps and one likely data race.\n\n**Background threads**\n\n| Thread | Spawn site | What it does | Joined by |\n|---|---|---|---|\n| `ExternalBridge::accept_loop` | `external_bridge.cpp:796` | Polls the listen socket (500 ms) and gates each fd on `SO_PEERCRED` before spawning a client thread | `ExternalBridge::stop()` (`:826`) |\n| Per-client `serve_client` threads | `external_bridge.cpp:945` (lambda, not indexed) | Serves one MCP client each | `stop()` and `reap_finished_clients_locked()` |\n| Detached async-ask worker | `external_bridge.cpp:1158`, `.detach()` at `:1222` (lambda, not indexed) | Runs `entropic_run` for `entropic.ask` with `async`, then writes the task registry and sentinel | **Nothing** (see gap 1) |\n| `HealthMonitor::monitor_loop` | `health_monitor.cpp:92` | Checks server health and reconnects every 500 ms | `HealthMonitor::stop()` |\n| `StdioTransport::stderr_reader_loop` | `transport_stdio.cpp:164` | Forwards child stderr to the log | `StdioTransport::close()` |\n| `SSETransport::sse_reader_loop` | `transport_sse.cpp:107` | Reads the SSE event stream | `SSETransport::close()` |\n| Cancel pollers | `inference_c_api.cpp:385`, `interface_factory.cpp:246`, `response_generator.cpp:413` (lambdas, not indexed) | Turn an `int*` cancel flag into an atomic for the backend | Joined in the same scope or the destructor |\n\n`MockSSEServer::listen_after_bind` is test-only.\n\n**What keeps it safe**\n\n- **Hand-off to the engine thread.** `HealthMonitor::process_events()` (`health_monitor.cpp:118`) swaps the event queue under `event_mutex_` and calls the status callback on the engine thread. The monitor thread only posts events, so user callbacks never run on it.\n- **Mutexes around shared state.** `watched_mutex_` covers each health pass. `client_threads_mutex_` guards the client vector. `tasks_mutex_` guards the async task map, and the sentinel is written under it, so external watchers see the same state the registry holds. `io_mutex_` serialises stdio request and response I/O.\n- **Atomics for flags.** `running_` (`health_monitor.h:137`, `transport_sse.h:92`, `external_bridge.h:386`), `connected_`, and `cancel_flag_` are `std::atomic<bool>`, so the threads can read them without locks.\n- **Ordered shutdown.** `ExternalBridge::stop()` clears `running_`, closes the listen socket, joins the accept thread, `shutdown(SHUT_RDWR)`s each client fd to wake blocked reads, then joins the client threads. Health and SSE shutdown set the flag, notify or stop the client, and join.\n- **Bounded blocking.** Socket and pipe waits use short poll slices (500 ms, or 100 ms for `read_line`) so the threads notice shutdown and cancel promptly.\n- **Log routing.** `HandleLogScope` is copied into each spawned thread, so their logs go to the owning handle's session.\n\n**Gaps and risks**\n\n1. **Detached async worker outlives its owner.** The lambda at `external_bridge.cpp:1158` captures `this` and uses `handle_`, and `stop()` never waits for it. If the bridge or handle is destroyed while an async ask is still running, the worker touches freed state. I did not check whether the destructor or handle teardown waits for `tasks_`. Treat this as a likely use-after-free until someone confirms it.\n2. **Stdio stderr close race.** `StdioTransport::close()` (`transport_stdio.cpp:210`) sets `connected_ = false`, then closes `stderr_fd_` and sets it to -1 before joining the reader. The reader reads `stderr_fd_` without synchronisation, and `stderr_fd_` is a plain `int`. Join the thread before closing the fd, or make the fd atomic.\n3. **Plain `int*` cancel flag.** `response_generator.cpp:405\u2013416` writes `cancel_int`, a plain `int`, from the observer thread while the calling thread's backend reads it. That is a data race under the C++ memory model, even if it is benign on current hardware. The fix is an atomic, which the C ABI forbids; the other pollers avoid this by bridging through an internal atomic.\n\nThe thread index undercounts: it finds spawn sites only where a named entry function resolves, so lambda spawns such as gaps 1 and 3 do not appear. The lock layer also has three nested lock pairs with no resolved call sites, so none of them is confirmed as a deadlock risk.",
+  "ttft_ms": 1504,
+  "type": "result",
+  "duration_ms": 44673,
+  "uuid": "0ac04772-060b-49aa-bb48-2284c4b130eb",
+  "ttft_stream_ms": 1205,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1205,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

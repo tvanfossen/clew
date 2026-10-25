@@ -1,0 +1,105 @@
+{
+  "duration_api_ms": 24707,
+  "stop_reason": "end_turn",
+  "session_id": "68553737-a9a8-45c9-9cde-8f51993bbbd5",
+  "total_cost_usd": 0.01235654,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 37374,
+    "cache_read_input_tokens": 275134,
+    "output_tokens": 4258,
+    "output_tokens_details": {
+      "thinking_tokens": 2242
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37374,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2196,
+        "cache_read_input_tokens": 52806,
+        "cache_creation_input_tokens": 2855,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2855
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 4258,
+      "cacheReadInputTokens": 275134,
+      "cacheCreationInputTokens": 37374,
+      "webSearchRequests": 0,
+      "costUSD": 0.01235654,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2242,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "mcp__clew__propose_declaration",
+      "tool_use_id": "toolu_01WeWWvhaeXQuALRvVYWQdaq",
+      "tool_input": {}
+    }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Clew has five ways to take a repository's indexing choices, ranked in tiers. Stated choices (tiers 1, 2 and 5) compete and the highest one wins whole. Facts (tiers 3 and 4) are added on top and no stated choice can remove them. I answered from the index alone. The rules come from the docstrings and test names, not from reading the code, and I didn't run `propose_declaration` because it needed a permission I wasn't given.\n\n**The ways to say so**\n\n| Tier | Name | Where it comes from | Behaviour |\n|---|---|---|---|\n| 1 | Explicit | CLI flag, or the structured `options` argument for embedding callers and MCP | Applies to one build. Stated `index_scope` is recorded and replayed on later plain rebuilds. |\n| 2 | Declared | `.clew.yaml` at the repo root | The standing statement. Sections include `index_scope`, `dispatch`, `preprocessor`, `kconfig`, and the requirements catalog path. |\n| 3 | Target fact | Language, platform, the target's own manifests | Accumulates. |\n| 4 | Ecosystem | Known-ecosystem signatures | Accumulates. |\n| 5 | Heuristic | Name-pattern guesses | The floor. Any stated tier displaces it. |\n\nOther things that affect this:\n- `guard:` inside `.clew.yaml` belongs to the doxygen-guard gate. The index drops it.\n- Keys prefixed with the experimental prefix are tolerated and ignored, so an older clew doesn't refuse the file.\n- Old `.doxygen-guard.yaml` is no longer read. Repos that haven't moved their declaration get the built-in defaults.\n- `propose_declaration` drafts a commented `.clew.yaml` for a repo. It doesn't apply anything.\n\n**When two of them disagree**\n\n- **Flag vs declaration, same key:** the flag wins outright. Tests cover `preprocessor`, and the index treats the file as the standing statement and the flag as a deliberate one-off override.\n- **Declaration vs guessed default:** the declaration replaces the guess. For some options, such as entry patterns, a stated tier displaces only the tier-5 guesses and tier-3 language entry points still accumulate underneath.\n- **Facts vs anything:** `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. Stated tiers can correct guesses but can't un-discover a fact.\n- **Index scope:** `declared > guard > Doxyfile INPUT > whole repo`. A declared scope is the only tier that yields index roots. The gate's `files:` pattern never supplies roots. An empty `index_scope` falls through to the whole repo.\n- **Which tier won** is stamped into the build metadata and reported by `status`, so the winner is checkable after the fact.\n\n**Errors in the declaration itself**\n\n- An unknown top-level section name refuses the build and names the offender. Silently falling back would report a declaration as honoured when it wasn't.\n- Unparseable YAML is logged at WARNING and treated as absent.\n- An unknown key inside `index_scope` refuses by name.\n- A rejected declaration refuses the build rather than silently widening the index.",
+  "ttft_ms": 2282,
+  "type": "result",
+  "duration_ms": 25676,
+  "uuid": "54884934-fa53-49a5-a854-929d0ca9d91e",
+  "ttft_stream_ms": 1377,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1377,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

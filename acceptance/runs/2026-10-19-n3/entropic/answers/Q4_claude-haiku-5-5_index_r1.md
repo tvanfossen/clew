@@ -1,0 +1,17 @@
+Five background threads run in the repo, all spawned by `pthread_create` / `std::thread`. Each one is kept safe by one of three things: an atomic flag for lifecycle, a mutex around shared state, or a handoff that runs callbacks on the engine thread.
+
+| Thread | Spawned at | What it does | What keeps it safe |
+|---|---|---|---|
+| `ExternalBridge::accept_loop` | `external_bridge.cpp:796` (in `start`) | Polls the listen socket every 500 ms, checks peer UID, and starts a serve thread per client | `running_` is `std::atomic<bool>`. The per-client list is guarded by `client_threads_mutex_`. Each client thread sets an atomic `finished` flag before exit, and `reap_finished_clients_locked()` joins those threads under the lock. |
+| Per-client `serve_client` threads | `std::thread` lambda inside `accept_loop` (`external_bridge.cpp` ~line 950) | Reads JSON-RPC lines from one client and writes responses | Each thread gets a `HandleLogScope` so its logs route to the owning handle. `subscribe`/`unsubscribe` are RAII-guarded, and `stop()` shuts down the fd to wake blocking reads. |
+| `HealthMonitor::monitor_loop` | `health_monitor.cpp:92` (in `start`) | Every 500 ms, checks watched MCP servers under `watched_mutex_` | `running_` is atomic. The loop waits on `wake_cv_` under `wake_mutex_`, so shutdown can wake it early. |
+| `HealthMonitor::process_events` | Not a thread. It runs on the engine thread. | Drains the event queue and fires `status_callback_` | This is the handoff. The monitor thread pushes events under `event_mutex_`, and `process_events` swaps the queue out under that lock and then invokes callbacks outside it. The docstring says callbacks run on the engine thread. |
+| `StdioTransport::stderr_reader_loop` | `transport_stdio.cpp:164` (in `open`) | Forwards child-process stderr to the logger | `connected_` is atomic. `io_mutex_` covers the stdio transport's I/O. |
+| `SSETransport::sse_reader_loop` | `transport_sse.cpp:107` (in `open`) | Runs the blocking SSE GET and parses events | `connected_` and `running_` are atomic. `pending_mutex_` guards pending requests. The loop returns `running_` from the content receiver to stop the stream. |
+
+**Lock discipline.** The index reports 45 distinct mutex identities in the repo. Most are simple leaf locks taken and released without nesting. The notable nested pair is `auth_mutex_` → `key_mutex_` in `check_access` (`mcp_authorization.cpp:105`). I found no pair taken in opposite orders. The index also reports `event_mutex_` → `adapter_mutex_` from `process_events` at `health_monitor.cpp:122`, but that row has `resolved_sites=0` and comes from a `swap` on an unverified receiver. The swap only touches `event_mutex_`, so I believe that row is a false positive. I did not confirm that by reading the code.
+
+**Gaps in this answer:**
+- The index found only five spawn sites. The per-client threads in `accept_loop` are spawned with a `std::thread` lambda, and the index attributes them to `accept_loop`, not as separate entries.
+- I did not read `ExternalBridge::stop`, `HealthMonitor::stop`, or the transport close paths. The index did not resolve those names, so the join ordering on shutdown is unverified.
+- The `tests/unit/mcp/transport_sse_test.cpp` thread is a test mock and is not part of the runtime.

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 40573,
+  "stop_reason": "end_turn",
+  "session_id": "9adeb46b-465f-455c-9a71-839599e4f628",
+  "total_cost_usd": 0.01581886,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 43678,
+    "cache_read_input_tokens": 363616,
+    "output_tokens": 6891,
+    "output_tokens_details": {
+      "thinking_tokens": 3097
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 43678,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3495,
+        "cache_read_input_tokens": 59594,
+        "cache_creation_input_tokens": 3935,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3935
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 6891,
+      "cacheReadInputTokens": 363616,
+      "cacheCreationInputTokens": 43678,
+      "webSearchRequests": 0,
+      "costUSD": 0.01581886,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3097,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 22,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the two calls are not in two places. Both are in `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:55` and `:61`). It is a size-then-fill pair, not retry logic.\n\n**Why it calls twice**\n\nllama.cpp's `llama_tokenize` needs a buffer sized in advance. The first call passes a null buffer and length 0. It returns the negative of the token count it would need. The code negates that to get `n`, allocates `n` slots, and makes the second call to fill them. The second call's return value is the real token count, and the vector is resized to it.\n\nThere is no loop, no backoff, and no second attempt after a failure. The comments at `llama_cpp_tokenizer.h:45` and `llama_cpp_tokenizer.cpp:45` say \"sized retry\", which is misleading. I'd reword that comment to \"two-pass sizing\".\n\nThe other llama.cpp tokenize call is `mtmd_tokenize` at `llama_cpp_backend.cpp:2407`, on the multimodal prefill path. It is a single call. If it fails, it returns `ENTROPIC_ERROR_GENERATE_FAILED` with an error message. It is not retried either.\n\n**What the caller receives on failure**\n\n`LlamaCppTokenizer::tokenize` returns an empty vector and logs at error level with the input length. `LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788`) forwards that empty vector. It also returns an empty vector when `tokenizer_` is null. The error is never propagated as a code or exception. An empty vector is the only signal.\n\nTwo gaps in the first call:\n- If the first call returns a real error rather than a size, `n = -n` treats it as a size and allocates from it. I did not verify the pinned llama.cpp return contract for error cases, so I can't say how likely this is.\n- The `actual < 0` branch is only reached if the second call disagrees with the first. I did not check whether that can happen in practice.\n\n**What the callers do with the empty vector**\n\n| Caller | Behaviour on empty tokens | Result |\n|---|---|---|\n| `do_generate_text_only` (`:2561`) | No check. Logs \"0 input tokens\", then prefills. `run_prefill` (`:1484`) loops over zero tokens and returns true. | Generation runs on an unprimed context. I did not trace `generate_after_prefill` to see what it samples from. |\n| `do_complete` (`:3947`) | No check. Passes the empty vector to `decode_loop`. | Same as above. |\n| `do_generate_batch` (`:1911`) | No check. `batch_shared_prefix_len` returns 0 for an empty sequence (`batch_util.h:43`). | Batch proceeds with an empty prompt. |\n| Speculative (`:3593`) and MTP (`:3921`) | Checks `tokens.size() < 2`. | Returns an error, but the message says \"must have at least 2 tokens\", not \"tokenization failed\". The real cause is only in the tokenizer's log. |\n| `compute_prefix_token_count` (`:2066`) | No check. | Prefix length reported as 0. |\n| `do_count_tokens` (`:825`) and `count_tokens` | No check. | Returns 0. |\n| `entropic_inference_count_tokens` (`inference_c_api.cpp:548`) | Only exceptions fall back to `len/4`. | Returns 0, indistinguishable from an empty string. |\n\nThe main problem is the count path. A failed exact count returns 0 with no signal, so a caller cannot tell a tokenizer failure from empty input. The generate paths have the same ambiguity, and only the speculative and MTP paths catch it, with a misleading message.\n\nI didn't change any code. If you want, the next step is to make `LlamaCppTokenizer::tokenize` report failure explicitly (an error code or `std::optional`), have the generate paths reject empty prompts, and fix the \"sized retry\" comments. That would touch the public seam signature, so it needs your sign-off first.",
+  "ttft_ms": 1657,
+  "type": "result",
+  "duration_ms": 41565,
+  "uuid": "8e5969b4-8b7e-408c-aa6c-cf2a1b011931",
+  "ttft_stream_ms": 1425,
+  "time_to_request_ms": 61,
+  "first_content_frame_ms": 1425,
+  "queued_turn_count": 0,
+  "result_index": 0
+}
