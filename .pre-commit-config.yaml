@@ -54,6 +54,20 @@ repos:
       - id: check-symlinks
       - id: mixed-line-ending
 
+  ## FIRST, BEFORE ANYTHING EXPENSIVE. If the gate cannot see the whole tree, the result of every
+  ## hook after this one is a claim about a subset — and `843764f` shipped a red release exactly
+  ## that way: green `--all-files`, then 1,637 untracked artifacts staged and committed, which
+  ## `end-of-file-fixer` had never been shown. Learning that after a 3-minute pytest run wastes
+  ## the run; learning it after the release workflow does, wastes the release.
+  - repo: local
+    hooks:
+      - id: gate-hygiene
+        name: gate-hygiene (can this gate see the tree?)
+        entry: .venv/bin/python scripts/gate_hygiene.py
+        language: system
+        pass_filenames: false
+        always_run: true
+
   - repo: local
     hooks:
       - id: pytest

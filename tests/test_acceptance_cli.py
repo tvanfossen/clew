@@ -243,7 +243,9 @@ def test_cli_module_runs() -> None:
             "--rubric",
             str(MBEDTLS),
             "--models",
-            "sonnet",
+            ## FIXTURE, NOT BEHAVIOUR: `plan` now refuses an alias, so the example
+            ## is a real pinned id. What the test asserts is unchanged.
+            "claude-sonnet-4-5-20250929",
         ],
         capture_output=True,
         text=True,
@@ -1023,7 +1025,9 @@ def test_resume_does_not_respend_a_cell_that_already_has_an_answer(
     from acceptance.runner import plan as plan_cells
 
     rubric = _rubric_mod.load(MBEDTLS)
-    cells = plan_cells(rubric, ("m",), 1, 7)
+    ## FIXTURE, NOT BEHAVIOUR: the stems the frozen answers are written under must use the
+    ## same model id `cmd_generate` is given, and `--models` now refuses an alias.
+    cells = plan_cells(rubric, ("claude-sonnet-4-5-20250929",), 1, 7)
     done = {cells[0].stem(), cells[3].stem()}
     answers = tmp_path / "answers"
     answers.mkdir()
@@ -1040,7 +1044,10 @@ def test_resume_does_not_respend_a_cell_that_already_has_an_answer(
     monkeypatch.setattr(cli, "check_revision", lambda *_a, **_k: None)
     args = cli.argparse.Namespace(
         rubric=MBEDTLS,
-        models=["m"],
+        ## FIXTURE, NOT BEHAVIOUR. This said `m` (resp. `sonnet`) until `--models` began
+        ## refusing an alias. What this test guards is unchanged; only the example string
+        ## had to become a real pinned id to reach the code under test.
+        models=["claude-sonnet-4-5-20250929"],
         replicates=1,
         seed=7,
         repo=tmp_path / "repo",

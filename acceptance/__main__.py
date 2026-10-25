@@ -15,9 +15,9 @@ execution order was never looked at is one whose ordering defects are found afte
 numbers.
 
 Usage:
-    .venv/bin/python -m acceptance plan     --rubric <path> --models sonnet [--replicates 1]
+    .venv/bin/python -m acceptance plan     --rubric <path> --models <DATED-ID> [--replicates 1]
     .venv/bin/python -m acceptance generate --rubric <path> --repo <tree> --out <dir> \\
-                                            --models sonnet [--mcp-config <path>]
+                                            --models <DATED-ID> [--mcp-config <path>]
     .venv/bin/python -m acceptance grade    --rubric <path> --answers <dir>
     .venv/bin/python -m acceptance report   --answers <dir>
 """
@@ -29,12 +29,14 @@ import json
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .execute import index_cells_that_never_used_the_index, run_cell
 from .grader.judge import JudgeCapacityError
 from .grader.rubric import RubricError, load
 from .identity import tool_identity
+from .modelpin import require_pinned
 from .grader.score import grader_fingerprint, score_question
 from .runner import ARMS, check_revision, check_symmetry, parse_stem, plan
 
@@ -55,10 +57,64 @@ def _rubric(path: Path):
         return None
 
 
+## @brief Read the window records an earlier `generate` left in a run record.
+## @param path Path to `run.json`.
+## @return The recorded windows, oldest first; empty when there is no readable record.
+## @version 1
+def _prior_windows(path: Path) -> list:
+    """A MISSING FILE AND AN UNREADABLE ONE ARE BOTH "NO PRIOR WINDOWS", and that is the only
+    honest reading here — the alternative is refusing to generate because a record from a
+    previous run is corrupt, which would strand the exact mid-run recovery `--resume` exists for.
+    The new window is still appended and still numbered from what was found, so a damaged record
+    loses history rather than silently renumbering as window 1 forever.
+
+    A record written before this key existed has no `windows` — the 1.1.0 artifacts are in that
+    shape — so it reads as no prior windows rather than raising on a frozen run.
+
+    @brief Prior window records.
+    @param path The run record path.
+    @return The windows.
+    @version 1
+    """
+    try:
+        doc = json.loads(path.read_text("utf-8"))
+    except (OSError, ValueError):
+        return []
+    windows = doc.get("windows")
+    return list(windows) if isinstance(windows, list) else []
+
+
+## @brief Refuse a run whose answering model is an alias rather than a dated id.
+## @param models The model ids as given on the command line.
+## @return True when every id is pinned; False after printing the refusal.
+## @version 1
+def _models_pinned(models) -> bool:
+    """THE OTHER HALF OF THE EXPERIMENT. `grader/rubric.py` has refused an alias for the JUDGE
+    since the first release, and nothing asked the same of the model being graded — so 1.1.0 was
+    judged by `claude-sonnet-4-5-20250929` and answered by `claude-haiku-5-5`, and its artifacts
+    claim a repeatability they do not have. One shared rule, one message, both halves.
+
+    CHECKED ON `plan` AS WELL AS `generate`, because `plan` is what a human reads to decide
+    whether to spend ten hours. Refusing at the point of spend would be correct and too late.
+
+    @brief Are all answering models pinned.
+    @param models The model ids.
+    @return True when pinned.
+    @version 1
+    """
+    try:
+        for model in models:
+            require_pinned("--models", str(model))
+    except ValueError as exc:
+        print(f"REFUSED — {exc}", file=sys.stderr)
+        return False
+    return True
+
+
 ## @brief Print the ordered cell plan without running anything.
 ## @param args Parsed arguments.
 ## @return Exit code.
-## @version 2
+## @version 3
 def cmd_plan(args) -> int:
     """@brief Show what a run would do.
     @return Exit code.
@@ -66,6 +122,8 @@ def cmd_plan(args) -> int:
     """
     rubric = _rubric(args.rubric)
     if rubric is None:
+        return 1
+    if not _models_pinned(args.models):
         return 1
     check_symmetry()
     cells = plan(rubric, tuple(args.models), args.replicates, args.seed)
@@ -90,6 +148,8 @@ def cmd_generate(args) -> int:
     """
     rubric = _rubric(args.rubric)
     if rubric is None:
+        return 1
+    if not _models_pinned(args.models):
         return 1
     try:
         check_symmetry()
@@ -120,6 +180,29 @@ def cmd_generate(args) -> int:
     else:
         pending, resumed = cells, []
 
+    ## ONE WINDOW PER `generate`, APPENDED — NEVER OVERWRITTEN. `resumed` recorded which stems
+    ## were already answered, which is the right fact, but each resume REWROTE this file: after
+    ## three capacity windows the record said "these cells came from before" and nothing at all
+    ## about how many sittings there had been, when, or against which build. The 1.1.0 grid was
+    ## assembled over several windows and its run.json can no longer say so.
+    ##
+    ## `tool_identity()` GOES IN THE WINDOW, not only at the top. It is the one thing that can
+    ## legitimately DIFFER between windows — a dirty tree, a different commit, a rebuilt
+    ## substrate — so a single top-level copy describes the last window and silently attributes
+    ## it to all of them.
+    ##
+    ## ABSENT RATHER THAN EMPTY, as everywhere: a window that resumed nothing has no `resumed`
+    ## key, so "started clean" and "nobody recorded" do not read alike.
+    prior = _prior_windows(args.out / "run.json")
+    window = {
+        "ordinal": len(prior) + 1,
+        "started": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "models": list(args.models),
+        "cells_pending": len(pending),
+        **({"resumed": resumed} if resumed else {}),
+        **tool_identity(),
+    }
+
     (args.out / "run.json").write_text(
         json.dumps(
             {
@@ -140,6 +223,9 @@ def cmd_generate(args) -> int:
                 ## can be said. Absent rather than empty when nothing was resumed, so
                 ## "assembled in one pass" and "nobody recorded" do not read alike.
                 **({"resumed": resumed} if resumed else {}),
+                ## THE HISTORY, not the latest view. Every key above describes this window; this
+                ## one is the only place a grid assembled over several sittings can say so.
+                "windows": [*prior, window],
                 "cells": [asdict(c) for c in cells],
             },
             indent=2,

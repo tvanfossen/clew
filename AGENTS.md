@@ -15,18 +15,32 @@ so pick first.
 
 ## The gate is the contract
 
+**First, in a fresh checkout:**
+
+```bash
+.venv/bin/pre-commit install
+```
+
+This repository reached 1.1.0 without it. `.git/hooks/pre-commit` did not exist, so nothing gated
+a commit and every green in its history was a human remembering to run one. The `gate-hygiene`
+hook now refuses to report success in a checkout where it is missing.
+
 ```bash
 .venv/bin/pre-commit run --all-files
 ```
 
 Always through pre-commit, never the hook tools directly — it owns the versions, flags and
-ordering. Two failure modes this project has actually shipped:
+ordering. Three failure modes this project has actually shipped:
 
 - **Run the formatter BEFORE the gate, not after.** A formatter pass after a green gate is how
   1.0.33 shipped red.
 - **A gate that reports success while checking nothing is worse than a red one.** Files skipped
   by `toolchain.toml` were logged at INFO while logging was pinned to WARNING, so `rc=0` came
   back with zero output. If you add a skip, print the count.
+- **`--all-files` means all TRACKED files.** pre-commit asks git for the index, so an untracked
+  file is invisible to it. 1.1.0 shipped red this way: green `--all-files`, then 1,637 untracked
+  artifacts staged and committed, which `end-of-file-fixer` had never been shown. `gate-hygiene`
+  runs first and names any untracked file inside the hooks' scope.
 
 Never `--no-verify`. Never `@pytest.mark.skip` or `xfail` to move on.
 
@@ -89,6 +103,14 @@ A number in a comment, a commit message or a requirement carries the target it w
 and how. "875 occurrences" and "875 lines" are different claims about the same grep, and a figure
 whose method cannot be reproduced gets **removed rather than re-derived** — inventing a method to
 justify a number is how the number stops being evidence.
+
+**Both halves of a measurement are pinned, not just the one you remembered.** `grader/rubric.py`
+refused an alias for the judge from the first release, and nothing asked the same of the model
+being graded — so the 1.1.0 grid was judged by `claude-sonnet-4-5-20250929` and answered by
+`claude-haiku-5-5`, with the rubric digest, commit pin and seed all reading as held while the
+model underneath could move. `acceptance/modelpin.py` is now the one rule for both. The old
+check was also weaker than it read: it asked for a hyphen and any digit, which an alias like
+`claude-haiku-5-5` satisfies.
 
 ## Security posture
 
