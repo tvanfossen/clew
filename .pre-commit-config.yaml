@@ -6,6 +6,7 @@ exclude: |
     workspace/.*|
     docs/generated/.*|
     acceptance/targets/.*|
+    acceptance/runs/.*|
     tests/data/.*|
     tests/guard/fixtures/.*|
     .*\.egg-info/.*
