@@ -198,9 +198,21 @@ to the thing that knows the arm, and a scorer fix never costs a regeneration.
 ### The judge sees almost nothing
 
 For a `retrieval` or `conclusion` mark, one judge call gets **one mark's text and the anonymised
-answer**. Not the arm, not the model, not the transcript, not the other marks, not the evidence,
-not the target. It has no codebase access: its question is *"does the answer demonstrate this
-item"*, never *"is this item true"*.
+answer**. The PROMPT carries no arm, model, transcript, other marks, evidence or target, and the
+judge has no codebase access: its question is *"does the answer demonstrate this item"*, never
+*"is this item true"*.
+
+**THE ANSWER TEXT IDENTIFIES THE ARM ANYWAY, AND AN EARLIER VERSION OF THIS SECTION CLAIMED
+OTHERWISE.** Measured on the 1.1.0 grid after `anonymise` had run: the word "index" survives in
+30 of 30 `index_only` answers against 3 of 30 baseline answers, so a judge could name the arm at
+roughly 95% accuracy. Two of `anonymise`'s three substitutions are inert — the `mcp__` rewrite
+fired on none of 144 answers, and the header strip matches a header the answers do not carry.
+
+This is NOT fixed by scrubbing harder: deleting "index" from an answer edits the evidence the
+judge is grading. It is reported instead, with its direction. The index arm's characteristic
+prose — "no shell", "cannot read", "the index does not hold" — appears in 20 of 48 of its answers
+against 2 of 48 baseline, and that hedging is what a completeness rubric reads as a miss, so the
+leak plausibly costs the index arm points rather than winning it any.
 
 Two verdicts, HIT and MISS. No middle: under atomic marks a half point is a refusal to decide
 averaged into a headline.
@@ -224,9 +236,16 @@ nothing, which is the failure this whole design forbids. Precision requires at l
 item. Found by the discrimination check rather than by review: a deliberately shallow answer
 named zero directories, missed every member, and still won the decision.
 
-A set mark scores its weight only when recall is 1.0 and precision is 1.0. Partial recall is
-reported per-member and carried in the sidecar, because *which* members an arm reached is the most
-informative thing the whole instrument produces.
+**THIS DOCUMENT DESCRIBED A SCORER THAT WAS NEVER BUILT, over a quarter of the run's weight.** It
+said a set mark scores its weight only when recall and precision are both 1.0. `score_set` emits
+**one decision per member plus one for precision, each at the mark's full weight** — partial
+credit, so a weight-2 mark with three members contributes eight weight units, and set decisions
+carry **24% of all weight** in a grid. `score.py`'s own module docstring has always documented the
+real behaviour; this section did not, which is why the contradiction survived two runs.
+
+The code is left alone and the description corrected: per-member credit is what the instrument
+measures, and *which* members an arm reached is the most informative thing it produces. Open
+ruling 1 below is therefore already decided in practice, by the scorer rather than by a ruling.
 
 ### Voting
 
@@ -238,9 +257,17 @@ So: **k=3 with majority for marks of weight ≥ 2, k=1 below.** A flip on a weig
 costs three points and those are the marks that carry the question. Cheap, targeted, and it makes
 the residual tail visible rather than assumed away.
 
-A judge error is **never** a MISS. It is recorded as its own state and `unmarked_pct` is reported
-beside every score. Weighing an error 0.0 makes it arithmetically identical to a genuine miss, and
-that once converted 102 unruled marks into failures against both arms.
+A judge error is recorded as its own state and `unmarked_pct` is reported beside every score.
+
+**BUT IT IS ARITHMETICALLY A MISS, AND THIS SECTION CLAIMED IT WAS NOT.** `QuestionResult.score`
+puts unruled weight in the DENOMINATOR and leaves it out of the numerator, so an unruled decision
+costs exactly what a miss costs. Measured on the 1.1.0 grid: four cells published
+`score = 0.000` with `unmarked_pct = 1.000`, every decision reading `rc=1 after 4 attempt(s)`
+with `duration_api_ms: 0` — a judge that never reached the server, published as answer quality.
+
+`unmarked_pct` is therefore a WARNING a reader must act on, not a correction the arithmetic has
+already applied. Any cell above a few percent unruled is unusable, and a reporting surface that
+quotes a score without it is quoting half.
 
 ### Prompt symmetry is checked structurally
 
