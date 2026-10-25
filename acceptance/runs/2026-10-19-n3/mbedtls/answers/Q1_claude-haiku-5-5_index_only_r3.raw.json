@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 23859,
+  "stop_reason": "end_turn",
+  "session_id": "56cee82b-7b7c-4fb3-893e-38bff0599b7a",
+  "total_cost_usd": 0.009472099999999999,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 28228,
+    "cache_read_input_tokens": 160170,
+    "output_tokens": 4448,
+    "output_tokens_details": {
+      "thinking_tokens": 2586
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 28228,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3015,
+        "cache_read_input_tokens": 55823,
+        "cache_creation_input_tokens": 6335,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6335
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 4448,
+      "cacheReadInputTokens": 160170,
+      "cacheCreationInputTokens": 28228,
+      "webSearchRequests": 0,
+      "costUSD": 0.009472099999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2586,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** in a default build, mbedtls runs nothing concurrently and has no internal locks. The mutex and thread code is compiled out. Any concurrency is the application's own threads calling into the library, and the library provides no protection for that.\n\n**Caveat on the index:** it was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` set as flags, so the threads and lock below come from that non-default build. The index has no config header for this target, so the repo's own default is not recorded. The default-off evidence is indirect:\n\n- `MBEDTLS_THREADING_PTHREAD` has default state off at `include/mbedtls/mbedtls_config.h:2196`.\n- `MBEDTLS_THREADING_C` has no definition site in `mbedtls_config.h`, which fits a commented-out `//#define`.\n\n**What runs concurrently when threading is enabled (not the default)**\n\nThe index finds 4 spawn sites, all in `programs/`, not `library/`:\n\n| Thread | Kind | Where | What it is |\n|---|---|---|---|\n| `handle_ssl_connection` | pthread | `programs/ssl/ssl_pthread_server.c:277` | One thread per client TLS session, created by `thread_create` |\n| `sighandler` | signal handler | `programs/test/benchmark.c:444` | Sets `mbedtls_timing_alarmed` |\n| `TimerProc` | Win32 thread | `programs/test/benchmark.c:430` | Sleeps, then sets the same alarm flag |\n| `term_handler` | signal handler | `programs/ssl/ssl_server2.c:1699` | Sets `received_sigterm`, frees the listen and client sockets |\n\nThe library itself spawns nothing.\n\n**What protects what (when enabled)**\n\n- The only lock identity is `mutex->mutex`, taken in `threading_mutex_lock_pthread` (`library/threading.c:81`). The index gives it scope \"unknown\" and low confidence, so it cannot say which object each instance guards.\n- The mutex calls are reached through function pointers (`mbedtls_mutex_lock`, `mbedtls_mutex_init`, `mbedtls_mutex_unlock`, defaulting to the pthread implementations at `threading.c:101\u2013104`). The index resolves these callers:\n  - **Allocator:** `buffer_alloc_calloc_mutexed` and `buffer_alloc_free_mutexed`, guarding the heap.\n  - **Entropy and DRBG:** `mbedtls_entropy_*` and `mbedtls_ctr_drbg_random` / `mbedtls_hmac_drbg_random`.\n  - **PSA key slots:** `psa_get_and_lock_key_slot`, `psa_start/finish/fail_key_creation`, `psa_purge_key`, `psa_destroy_key`, `psa_close_key`, and the `psa_get_*_initialized` checks.\n  - **PSA random:** `psa_random_reseed`, `psa_random_internal_generate`, `psa_random_deplete`, and related functions.\n  - **SSL state:** `mbedtls_ssl_cache_get/set/remove`, `mbedtls_ssl_cookie_write/check`, `mbedtls_ssl_ticket_write/parse`.\n  - **Other:** `mbedtls_rsa_public/private`, `mbedtls_x509_crt_parse_path`, `mbedtls_platform_gmtime_r`.\n- The index found no nested lock holdings, so it records no lock-ordering dependency. It does not prove deadlock-freedom.\n- Every one of these call sites is gated by `MBEDTLS_THREADING_C`, so none of them is compiled into a default build.\n\n**Net for a default build:** no internal threads, no internal mutexes, and no state guarded by the library. A caller that shares an mbedtls context, PSA key slot, or DRBG across threads has to add its own synchronisation. The signal handlers in the test programs touch only plain flags, and the index shows no protection for them.",
+  "ttft_ms": 1837,
+  "type": "result",
+  "duration_ms": 24794,
+  "uuid": "2c200797-2aa6-4783-b324-b3cec2a2c14a",
+  "ttft_stream_ms": 1493,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1493,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

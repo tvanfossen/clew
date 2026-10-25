@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 23117,
+  "stop_reason": "end_turn",
+  "session_id": "531c9454-5c9b-4eb7-b25d-85e77c2b2438",
+  "total_cost_usd": 0.01195951,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 34795,
+    "cache_read_input_tokens": 298831,
+    "output_tokens": 4022,
+    "output_tokens_details": {
+      "thinking_tokens": 1315
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 34795,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2253,
+        "cache_read_input_tokens": 67007,
+        "cache_creation_input_tokens": 4028,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4028
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4022,
+      "cacheReadInputTokens": 298831,
+      "cacheCreationInputTokens": 34795,
+      "webSearchRequests": 0,
+      "costUSD": 0.01195951,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1315,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The short answer: a call runs only if it clears a fixed sequence of gates in `ToolExecutor`, and the permission lists are consulted at one of those gates. Two things I could not confirm from the index are called out at the end.\n\n**Gate order** (`ToolExecutor::process_single_call`, `src/mcp/tool_executor.cpp:729`)\n\n```\nPRE_TOOL_CALL hook \u2500\u2500cancel?\u2500\u2500\u25ba \"Cancelled by hook\"\n  \u2514\u2500 check_call_preconditions (line 667)\n       1. anti-spiral hard block   \u2192 rejected_anti_spiral\n       2. schema check             \u2192 rejected_schema\n       3. MCP authorization        \u2192 rejected_precondition\n       4. tier allowed_tools       \u2192 rejected_unauthorized\n       5. duplicate-call check     \u2192 rejected_duplicate\n       6. check_approval_pc        \u2192 \"Permission denied\"\n  \u2514\u2500 execute_tool \u2192 finalize \u2192 POST_TOOL_CALL hook\n```\n\nThe pre-hook fires before any of these and can cancel the call outright. The permission lists are only read in step 6.\n\n**How step 6 decides** (`check_approval`, `src/mcp/tool_executor.cpp:161`)\n\n1. `auto_ok` is true if `loop_config_.auto_approve_tools` is set, or if `ServerManager::is_explicitly_allowed` matches.\n2. If not `auto_ok` and an `on_tool_call` callback is registered, the call is approved anyway. The callback is only a notification, so it is not a gate.\n3. `ON_PERMISSION_CHECK` fires as informational.\n4. With no callback and no allow match, the call is denied.\n\n`is_explicitly_allowed` (`src/mcp/server_manager.cpp:286`) builds the pattern `tool_name + \":\" + args_to_pattern(args)` and calls `PermissionManager::is_allowed`. It only checks the allow list.\n\n**What a pattern means** (`PermissionManager::pattern_matches`, `src/mcp/permission_manager.cpp:101`)\n\n- The text before the first `:` is an fnmatch glob matched against the fully qualified tool name, e.g. `filesystem.*`.\n- If there is no `:`, a tool-name match is enough, so the pattern covers every call to that tool.\n- If there is a `:`, the full `tool:argpattern` string must also match, again via fnmatch.\n- `args_to_pattern` uses the first string-valued argument of the call. Empty or `{}` args become `*`.\n- The default `MCPServerBase::get_permission_pattern` returns the bare tool name, so it is tool-level. `BashServer` overrides it for finer grain (for example `bash.execute:pytest *`). I did not read the override body.\n\n**Where the lists come from**\n\n- Config: `permissions:` with `allow`, `deny` and `auto_approve` (`PermissionsConfig`, `include/entropic/types/config.h:589`; parsed in `parse_permissions_config`, `src/config/loader.cpp:365`).\n- Runtime: `PermissionManager::add_permission` (`include/entropic/mcp/permission_manager.h:71`).\n- \"Always Allow/Deny\" from the UI: `PermissionPersister::save_permission` (`src/storage/permission_persister.cpp:227`) writes the pattern into `config.local.yaml` under `permissions.allow` or `permissions.deny`, deduplicating first.\n\n**Deny semantics**\n\n- The header says the deny list takes precedence over the allow list, and `is_denied` returns true on any deny match.\n- Per the index, `is_denied` is called from a function named `execute` in `ServerManager`. That is the dispatch-side check, not from `check_approval`.\n\n**What I could not settle from the index**\n\n- The body of the `ServerManager` caller of `is_denied` is not resolvable by name, so I cannot confirm the exact order of deny versus `auto_approve` or whether a deny hit can be bypassed when `auto_approve` is true.\n- `check_approval` as written approves any call when a callback is registered, regardless of the lists. Whether a deny match still blocks such a call depends on that unread dispatch-side check. If that check is absent, a registered callback would bypass deny entirely. Reading `ServerManager`'s execute path would settle it.",
+  "ttft_ms": 1870,
+  "type": "result",
+  "duration_ms": 24188,
+  "uuid": "f5f9323d-ec66-4415-ab71-0fa95c592539",
+  "ttft_stream_ms": 1524,
+  "time_to_request_ms": 77,
+  "first_content_frame_ms": 1524,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

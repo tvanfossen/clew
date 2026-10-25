@@ -146,3 +146,101 @@ def test_the_tracked_file_listing_answers_about_its_own_repo_inside_a_hook(
     tracked = tracked_files(repo)
     assert tracked is not None, "a real repository must not read as 'git unavailable'"
     assert "kept.c" in tracked
+
+
+## @brief A repository whose own config makes git run a command on every query.
+## @param root Directory to initialise.
+## @param sentinel File the planted command creates when git runs it.
+## @return The initialised root.
+## @version 1
+def _hostile_config_repo(root: Path, sentinel: Path) -> Path:
+    """`core.fsmonitor` IS A COMMAND GIT RUNS ITSELF, and it is set in the tree's own
+    `.git/config` — so it needs no hook, no doxygen, no cargo and no declaration. Cloning a
+    repository and pointing clew at it is the whole exploit.
+
+    Built with `git_run`, which scrubs the hook variables, so the fixture cannot pass by
+    accident the way an inherited `GIT_DIR` would.
+
+    @brief Plant a command in a repository's own git config.
+    @return The repo root.
+    @version 1
+    """
+    from gitfixture import git_run
+
+    _repo(root)
+    probe = root / "fsmonitor-probe.sh"
+    probe.write_text(f'#!/bin/sh\ntouch "{sentinel}"\nexit 1\n', encoding="utf-8")
+    probe.chmod(0o755)
+    git_run(root, "config", "core.fsmonitor", str(probe))
+    return root
+
+
+## @brief A target repository's own git config must not run commands on clew's git calls.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_targets_own_git_config_cannot_run_commands(tmp_path: Path) -> None:
+    """THE SHORTEST EXECUTION PATH IN THE PRODUCT, found by an adversarial audit of the
+    1.1.0 branch and reproduced twice under git 2.34.1. `core.fsmonitor` is executed by git
+    on `ls-files`, so every one of this package's git queries runs code chosen by the tree
+    it was pointed at — during an index build AND during the pre-commit gate. `gitenv`
+    already strips the variables a hook exports; this is the orthogonal channel, config
+    INSIDE the tree, which no environment scrub can reach.
+
+    THE DEFENCE IS ARGV, NOT ENV: `-c core.fsmonitor=` on the command line outranks the
+    tree's config file. Asserted through `whole_repo_scope`, the first git call any build
+    makes, rather than against the helper, so a call site that forgets the helper fails here.
+
+    @brief A planted `core.fsmonitor` never executes during scope derivation.
+    @version 1
+    """
+    sentinel = tmp_path / "pwned"
+    root = _hostile_config_repo(tmp_path / "hostile", sentinel)
+
+    scope.whole_repo_scope(root)
+
+    assert not sentinel.exists(), (
+        "the target repository's own .git/config executed a command during scope "
+        "derivation — cloning a repo and indexing it is arbitrary code execution"
+    )
+
+
+## @brief The pre-commit gate's own git calls disarm the tree's config too.
+## @param tmp_path Pytest temporary directory.
+## @param monkeypatch Pytest working-directory patcher.
+## @return None.
+## @version 1
+def test_the_gate_git_path_cannot_run_the_trees_commands(tmp_path: Path) -> None:
+    """THE SECOND HALF OF C1, MISSED BY THE FIRST PASS AND FOUND BY A TEST FOR SOMETHING ELSE.
+    `clew.guard` deliberately shares no code with the pipeline, so it has its OWN git runner —
+    `run_git(["git", …])` through an injectable `_default_run_command`. Routing the pipeline's
+    five call sites through `git_argv` left all six of the gate's untouched, and the gate is
+    the WORSE context: it runs on a developer's machine, as that developer, on whatever branch
+    they have checked out to review.
+
+    `tests/test_security_surface.py` did not catch it because the argv reaching
+    `subprocess.run` there is a VARIABLE, and that test only recognised a literal. It now
+    names this module as the one indirection it accepts, and asserts the disarming happens at
+    the choke point — which is the only way a structural test can cover an indirect argv.
+
+    @brief A planted `core.fsmonitor` never executes during a gate git call.
+    @return None.
+    @version 1
+    """
+    from clew.guard.git import get_file_at_revision, get_staged_diff
+
+    sentinel = tmp_path / "gate-fsmonitor-ran"
+    root = _hostile_config_repo(tmp_path / "hostile", sentinel)
+    (root / "src.c").write_text("int main(void) { return 0; }\n", encoding="utf-8")
+
+    original = Path.cwd()
+    try:
+        os.chdir(root)
+        get_staged_diff("src.c")
+        get_file_at_revision("src.c", "HEAD")
+    finally:
+        os.chdir(original)
+
+    assert not sentinel.exists(), (
+        "the pre-commit gate ran a command the inspected repository's own .git/config chose"
+    )

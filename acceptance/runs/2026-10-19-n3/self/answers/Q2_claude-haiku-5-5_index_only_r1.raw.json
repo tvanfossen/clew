@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 10767,
+  "stop_reason": "end_turn",
+  "session_id": "baa683ad-3e19-4da3-8f76-a85a5dce0056",
+  "total_cost_usd": 0.00534743,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 19548,
+    "cache_read_input_tokens": 49643,
+    "output_tokens": 1882,
+    "output_tokens_details": {
+      "thinking_tokens": 748
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 19548,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1373,
+        "cache_read_input_tokens": 33952,
+        "cache_creation_input_tokens": 1287,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1287
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 1882,
+      "cacheReadInputTokens": 49643,
+      "cacheCreationInputTokens": 19548,
+      "webSearchRequests": 0,
+      "costUSD": 0.00534743,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 748,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** an empty reply is never just \"zero rows.\" It carries a scope block, a list of what was not searched, and a note that says whether the emptiness is definitive. Confidence depends on whether the miss falls inside that scope.\n\nI checked this against the live index with a nonsense token. Both empty replies said \"This IS a definitive empty result from the database, NOT an error,\" and both named the `target` they searched.\n\n**What the reply tells you**\n\n| Field | What it tells you |\n|---|---|\n| `target` | Which repository answered. Check this first, since the wrong repo gives a false \"not here.\" |\n| `scope` (symbols) | The coverage: `file_count` (426 here), `top_levels`, `extensions` searched, and `not_indexed` with counts. |\n| `note` (symbols) | Lists what was searched (names, `@brief`, macros, typedefs, enums, classes, config symbols, file docs) and what was not (markdown and Kconfig prose, which belong to `corpus='prose'`). |\n| `token_hits` (prose) | Per-token counts for multi-word queries, so you can see which token emptied the match. |\n| `not_searched` / `sub_index` | On split repositories, names any sub-index that was not read. |\n| `staleness` | Present only if the index is older than the source. |\n\n**How confident each answer is**\n\n- **\"Not in this repository\" (high confidence):** the search covered the index's scope, the target is correct, the index is not stale, and the `note` says the result is definitive. That is a claim about the indexed file set, not the whole tree.\n- **\"I did not look where it lives\" (the reply names it):**\n  - The corpus. Symbols does not search prose, and prose does not search symbols. A conceptual phrase often lands only in prose.\n  - The file types. Extensions listed under `not_indexed` (for example `.rs`, `.toml`, `.sql`, `.lock`, and extensionless files in this repo) were never read.\n  - Things outside the indexed file set. The server's instructions say it cannot settle anything in a Makefile or a CI config.\n  - Other parts of a split repository, which show up in `not_searched`.\n- **Multi-token queries:** every token must appear in one searchable unit. A miss can mean the tokens sit in different places, not that the concept is absent. `token_hits` shows which token failed.\n- **Spelling (low confidence):** a miss can also mean the name is spelled differently for another consumer, which the index cannot settle.\n- **Stale index (lower confidence):** if `staleness` is present, the empty result reflects older source, so re-check after `index(action='refresh')`.\n\n**Practical rule:** treat an empty result as \"absent from the indexed symbols/prose of this target.\" Before concluding a thing does not exist, re-run against the other corpus (`prose`), check the scope's `not_indexed` extensions, and read the source directly for any path the index names as out of reach.",
+  "ttft_ms": 2649,
+  "type": "result",
+  "duration_ms": 10968,
+  "uuid": "859cd288-ffd3-40ea-8385-be9c9343c95b",
+  "ttft_stream_ms": 1127,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1127,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

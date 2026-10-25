@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 15631,
+  "stop_reason": "end_turn",
+  "session_id": "5fe90f52-93bf-431b-8011-9d15239c2398",
+  "total_cost_usd": 0.006365849999999999,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 20566,
+    "cache_read_input_tokens": 87055,
+    "output_tokens": 2763,
+    "output_tokens_details": {
+      "thinking_tokens": 1584
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 20566,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2345,
+        "cache_read_input_tokens": 34839,
+        "cache_creation_input_tokens": 4014,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4014
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 2763,
+      "cacheReadInputTokens": 87055,
+      "cacheCreationInputTokens": 20566,
+      "webSearchRequests": 0,
+      "costUSD": 0.006365849999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1584,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer is a set of neighbour names with provenance tags. It is not a list of verified call sites, and reading it that way would be wrong in several specific ways.\n\n**What the reply contains.** I dossiered `_build_function_indexes` (`clew/call_edges.py:277`) and `_index_action` (`clew/mcp_server/server.py:2739`). Each caller or callee row carries a name, a `source` (`ast` or `doxygen_sqlite`), a `confidence` (`resolved` or `exact`) and an `edge_class` (`call`). Indexed callers carry no line numbers. Only `external_callees` carries `call_lines`, and it lists `_FuncRanges` at line 308, a name the index does not resolve to a function. The reply also includes the verbatim body, the signature, liveness, threads, locks, requirements, covering tests and overrides.\n\n**What would make it wrong to read as call sites:**\n\n1. **Empty `callees` does not mean no calls.** `_build_function_indexes` calls `_FuncRanges`, but `callees` is `[]`. Calls into things outside the index go to `external_callees`, so you must check both.\n2. **Callers include tests and registrations.** The caller list for `_build_function_indexes` includes `test_the_guard_does_not_reparse_a_file_whose_sites_are_cached`, and `import_callback_registration_edges` is listed as a `call` edge. A registration site is not a direct invocation.\n3. **Two sources with different strength.** `ast` edges are recovered by the parser and `doxygen_sqlite` edges come from Doxygen's export. The `resolved` and `exact` labels are not the same grade, so the reply does not put these on one scale.\n4. **The list may be capped.** The default `max_neighbors` is 8, but this reply returned 10 callers. I can't tell from the reply whether the list is complete, so I'd re-ask with a higher cap before claiming completeness.\n5. **Bodies and line numbers may be stale.** Both replies carry `anchor_mismatch: true`, meaning the file changed since the index was built and those line ranges may no longer belong to that function. The body text shown is evidence, not a reliable current copy. The reply also gave no `staleness` block, so I did not check index freshness.\n6. **Name-keyed lookup.** `_build_function_indexes` itself keys by bare name (`name_to_rowids`), and the index generally resolves by name. Same-named functions in different classes or files can be conflated. An `ambiguous` block appears when this happens, and neither reply had one, but that absence only covers the names I asked about.\n7. **Depth 1 only.** The reply shows direct neighbours. Transitive callers need `depth` 2 or more with `direction: back`.\n\nIn short, the answer is a best-effort, provenance-tagged set of neighbours at one hop. Each entry is a claim with a source and a grade. Indirect dispatch, callbacks, tests, names that collide and stale anchors all need checking against the source before you treat any entry as a call site.",
+  "ttft_ms": 2128,
+  "type": "result",
+  "duration_ms": 16161,
+  "uuid": "52931971-625c-41c1-ad14-01da5acda6d0",
+  "ttft_stream_ms": 1260,
+  "time_to_request_ms": 76,
+  "first_content_frame_ms": 1260,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

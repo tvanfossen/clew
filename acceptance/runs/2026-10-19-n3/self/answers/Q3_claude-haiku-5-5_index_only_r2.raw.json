@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 16229,
+  "stop_reason": "end_turn",
+  "session_id": "051ac6b9-2aba-4a46-8606-f58a0a69426d",
+  "total_cost_usd": 0.008155200000000001,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 26546,
+    "cache_read_input_tokens": 157420,
+    "output_tokens": 2542,
+    "output_tokens_details": {
+      "thinking_tokens": 724
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 26546,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1592,
+        "cache_read_input_tokens": 48795,
+        "cache_creation_input_tokens": 11676,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 11676
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2542,
+      "cacheReadInputTokens": 157420,
+      "cacheCreationInputTokens": 26546,
+      "webSearchRequests": 0,
+      "costUSD": 0.008155200000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 724,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A clew index knows it is out of date by comparing three separate measurements, and each one has a different remedy. The tool does not treat \"stale\" as one flag.\n\n**How it knows.** Staleness is measured on three axes:\n\n| Axis | Meaning | Detected by | Can a rebuild fix it? |\n|---|---|---|---|\n| `data` | The source changed after the build (files edited, added or removed) | Mtimes. The test `test_db_status_detects_source_drift` records that a version check alone can't see this, so `db_status` compares against the source | Yes |\n| `schema` | The index was stamped by a build version different from the one this server expects | `read_build_signature` reads the `build_version` row from `build_meta` | Only if the server is the newer one. An index stamped newer than the server stays stale because a rebuild re-stamps the same newer version |\n| `code` | This server process is older than the working tree | `code_identity()` and its `matches_source` flag | No, not from this process. A build through an old process runs old pipeline logic and can drop whole layers while reporting healthy (gh#348) |\n\n**What it tells the caller.** Every query reply carries a `staleness` block, and only when the index is actually stale. A current index adds nothing, so the block works as a signal rather than a permanent banner. Each notice names its axis. Two side effects follow:\n\n- **Empty results.** If the schema axis is stale, `_withdraw_definitive` rewrites the reply's note so it no longer claims the empty result is definitive. The schema axis means a layer may be missing. The data axis only withdraws a subject miss, because the symbol may postdate the build.\n- **Routed replies.** A reply is annotated only for the repository it actually read, never for the default target. Reporting another repo's staleness would be a warning about a database this reply never opened.\n\nThe `status` tool always reports `stale` as a field. It adds the interpretation only when there is something to interpret.\n\n**What the caller does.** The design moved the fix into the server, so the caller mostly does not have to act:\n\n1. **Data-stale index: the query refreshes it first.** `_answering_with_refresh` runs `_auto_refresh` before the query. It calls `_data_stale`, which only passes when the code axis is clean (`matches_source`) and the data axis is stale. Then `_refresh_stale` rebuilds under the per-target build lock, and the lock is bounded by `_LOCK_WAIT_SECONDS`. Concurrent queries produce one build: the others re-check inside the lock and skip.\n2. **Failed or stalled refresh: answer anyway, with the notice.** A refresh failure is logged and the query answers from the index as it stands. The staleness notice still rides along, so the caller sees the warning.\n3. **Schema or code stale: the caller must act, and no rebuild is safe through this process.** `build_or_refresh` refuses before the build decision, and `force` cannot override that. The fix is to restart the client so the server matches the source, or to rebuild with a matching build.\n4. **Absent index: built in the background** (gh#48). A query against a missing index starts a first build rather than refusing.\n5. **Explicit refresh.** `index(action='refresh')` is the manual path. It reports `duration_ms` measured for that call, and the skip path also reports a duration. The README advises against opening a session with `index(action='status')` because each reply already names its target and flags staleness.\n\n**Caveats.** I read the design from the dossiers on `_auto_refresh`, `_data_stale`, `_refresh_stale`, `_answering_with_refresh`, `_withdraw_definitive`, `read_build_signature` and `build_or_refresh`, plus search hits in the README and `freshness.py` documentation. The index does not contain `clew/mcp_server/freshness.py` itself, so I could not confirm its contents directly. The README's \"Refreshing an index\" section appeared only as a search snippet, and I did not read it in full.",
+  "ttft_ms": 2113,
+  "type": "result",
+  "duration_ms": 17134,
+  "uuid": "8c035034-95f6-431e-8f85-3a7e77437a62",
+  "ttft_stream_ms": 1308,
+  "time_to_request_ms": 83,
+  "first_content_frame_ms": 1308,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

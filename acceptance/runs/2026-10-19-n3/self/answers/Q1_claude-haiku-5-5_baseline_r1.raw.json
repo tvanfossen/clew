@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 20998,
+  "stop_reason": "end_turn",
+  "session_id": "31e1d187-644a-45fd-959a-c197c714bb35",
+  "total_cost_usd": 0.01060203,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 33496,
+    "cache_read_input_tokens": 207063,
+    "output_tokens": 3662,
+    "output_tokens_details": {
+      "thinking_tokens": 1354
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 33496,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1913,
+        "cache_read_input_tokens": 47244,
+        "cache_creation_input_tokens": 1638,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1638
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3662,
+      "cacheReadInputTokens": 207063,
+      "cacheCreationInputTokens": 33496,
+      "webSearchRequests": 0,
+      "costUSD": 0.01060203,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1354,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** nothing is \"declared\" by default, so clew indexes the whole repository, minus what git ignores and a few directory classes. The only thing that narrows that is an `index_scope:` section in the repo's `.clew.yaml`.\n\n**1. Declared scope (the one tier that states a boundary)**\n\n`derive_scope` in `clew/scope.py` (~line 639) checks for an `index_scope:` block with `roots` and `excludes`:\n\n- **Usable declaration:** the listed roots are taken at their word and never walked. Roots that don't exist are dropped with a warning. `excludes` are applied as given.\n- **Present but unusable** (bad keys, or no roots left after dropping missing ones): this is not treated as absent. It logs a WARNING with the reason and falls back to the whole-repo tier, with the rejection carried in the reason. The CLI and MCP refresh paths can refuse instead, using `declared_scope_rejection`.\n- **Stated by a caller:** a tool-supplied `index_scope` (the `stated` argument) goes through the same construction. Passing a non-default `--scope` alongside a stated `index_scope` is refused with exit 1, because that scope would otherwise be silently ignored (`clew/cli.py` ~line 758).\n\n**2. No declaration: the whole-repo tier (the default since gh#333)**\n\n`whole_repo_scope` (~line 683) returns one root, the repo itself, and an exclude list built from:\n\n- **Git-ignored paths**, from `git ls-files --others --ignored` on the parent. Each nested git tree (submodule or vendored clone) is checked against its own `.gitignore`, because the parent's `ls-files` stops at the submodule boundary.\n- **Dot-directories and known cache/vendor names**, pruned by `_skip_dir` during the walk. The walk stops at nested git trees, and at depth 16 (`_MAX_DEPTH`). Directories cut off by the depth limit are recorded for reporting.\n- **Nested git trees are indexed, not excluded.** `external.py` tags their rows afterward so they can be told apart in answers.\n\nThings that do not decide the set in this tier:\n\n- **The Doxyfile's INPUT list.** The old fallback was removed in gh#333. A Doxyfile still supplies ALIASES and PREDEFINED, but not the indexed files.\n- **doxygen-guard config** (`guard:` in `.clew.yaml`). It answers what must be documented, which the code says is a different question from what should be indexed.\n\n**3. After scope resolution**\n\nScope only decides which files are read. Binary files are removed by `_drop_binary_files` (and added to the extra-exclude list), and `--extra-input` paths are appended on top. I did not trace the full ordering of every later filter.\n\n**4. This repo**\n\n`.clew.yaml` declares only `guard:` (output dir, `impact.requirements`, validate excludes and tag pattern). It has no `index_scope:`, so a build of this repo uses the whole-repo tier. Under that tier, `acceptance/`, `tests/` and `scripts/` are indexed, because those excludes only apply to the gate.\n\nOne note: a PostToolUse hook suggested a `dossier` call for `scope.py`. I don't have that tool in this session, and reading the source was enough for this answer.",
+  "ttft_ms": 1558,
+  "type": "result",
+  "duration_ms": 21339,
+  "uuid": "6cb77145-93d8-4a5e-840f-6e74e35f12f6",
+  "ttft_stream_ms": 966,
+  "time_to_request_ms": 98,
+  "first_content_frame_ms": 967,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

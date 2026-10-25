@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 33487,
+  "stop_reason": "end_turn",
+  "session_id": "6b73f77d-cabe-479b-9499-2296a76b899d",
+  "total_cost_usd": 0.01329666,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 33081,
+    "cache_read_input_tokens": 331556,
+    "output_tokens": 6727,
+    "output_tokens_details": {
+      "thinking_tokens": 3391
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 33081,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2901,
+        "cache_read_input_tokens": 67172,
+        "cache_creation_input_tokens": 1453,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1453
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 6727,
+      "cacheReadInputTokens": 331556,
+      "cacheCreationInputTokens": 33081,
+      "webSearchRequests": 0,
+      "costUSD": 0.01329666,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3391,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** in the default configuration, mbedtls runs no concurrency of its own and its mutexes are compiled out. The library is single-threaded by contract. Any concurrency comes from the application, and the library gives no protection against it.\n\n**Why the mutexes are absent by default**\n\n- The whole layer is gated on `MBEDTLS_THREADING_C`, and it is commented out in the default `include/mbedtls/mbedtls_config.h:3787`. `MBEDTLS_THREADING_PTHREAD` is also commented out (`:2196`), so no pthread backend is selected either.\n- `library/threading.c` wraps everything in `#if defined(MBEDTLS_THREADING_C)` (line 18), so with the default config it contributes nothing.\n- The index reports `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` as configured macros, but that is because this index was built with those flags set. It is not the repository default, so I did not rely on it.\n\n**What runs concurrently**\n\n- The library spawns no threads. The only thread-spawn sites the index finds are in `programs/`: `ssl_pthread_server.c:277` (`handle_ssl_connection`), `benchmark.c:430` (a Windows timer thread used for alarms), and two signal handlers (`benchmark.c:444` and `ssl_server2.c:1699`).\n- `ssl_pthread_server.c:24` refuses to build unless both threading macros are set, so the one real multithreaded example is off in the default build.\n- Signal handlers are asynchronous contexts, not threads. They are only a concern if they touch library state.\n\nSo by default, concurrency exists only if the application makes it: multiple threads calling into the library on shared contexts or on the PSA subsystem.\n\n**What the mutexes protect when enabled** (from source reads, since the index's lock layer does not model these)\n\n| Guard | Protects | Where |\n|---|---|---|\n| Per-context `ctx->mutex` | RNG state (CTR_DRBG, HMAC_DRBG), entropy sources, RSA context, SSL session cache, SSL ticket keys, SSL cookie secrets | `ctr_drbg.c`, `hmac_drbg.c`, `entropy.c`, `rsa.c`, `ssl_cache.c`, `ssl_ticket.c`, `ssl_cookie.c` |\n| `heap.mutex` | The static heap allocator | `memory_buffer_alloc.c:544-562` |\n| `mbedtls_threading_key_slot_mutex` | The PSA key slot table | `psa_crypto.c:2022`, `psa_crypto_slot_management.c:199-1090` |\n| `mbedtls_threading_psa_globaldata_mutex` | PSA global init flags and state | `psa_crypto.c:141-165` |\n| `mbedtls_threading_psa_rngdata_mutex` | The PSA RNG state | `psa_crypto.c:8030-8083`, `psa_crypto_random.c:147` |\n| `mbedtls_threading_readdir_mutex` | `readdir` in X.509 directory loading | `x509_crt.c:1611` |\n| `mbedtls_threading_gmtime_mutex` | Non-reentrant `gmtime`, only when the platform lacks `gmtime_r` | `platform_util.c:189` |\n\nThe per-context mutexes guard one object each. The PSA mutexes are global. Keys in the slot table are only safe to use while their slot's state is held, as `psa_crypto.c:1305-1320` shows.\n\n**Caveats**\n\n- The index's lock layer records one identity, `mutex->mutex` (library/threading.c:51-104), with low confidence, and no nested acquisitions. That is a flat view of the lock layer and does not prove deadlock freedom. The table above comes from source reads.\n- `mbedtls_config.h` (around line 3740) says that any multithreaded use of PSA, or of TLS/X.509/PK functions with `MBEDTLS_USE_PSA_CRYPTO`, requires `MBEDTLS_THREADING_C`. Without it, a multithreaded application is on its own.\n\n**To make a build thread-safe**, enable `MBEDTLS_THREADING_C` plus one backend (`MBEDTLS_THREADING_PTHREAD` or `MBEDTLS_THREADING_ALT`), and call `psa_crypto_init()` once before spawning threads.",
+  "ttft_ms": 1334,
+  "type": "result",
+  "duration_ms": 34132,
+  "uuid": "25715739-3744-48c3-ac70-b10f9e5a974f",
+  "ttft_stream_ms": 1079,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1079,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

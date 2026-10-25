@@ -25,14 +25,25 @@ This repository's own index (Python, whole-repo scope, no Doxyfile):
 
 Reproduce it with `clew --repo-root .` from a checkout of this repository.
 
-## Docstrings and `##` blocks
+## Docstrings (PEP 257) and `##` blocks
 
-doxygen reads both a `##` comment block above a definition and the definition's own docstring.
-This repository writes both and bumps `@version` in both when a body changes, because which one a
-consumer reads is not reliably predictable and bumping both is monotonic.
+Both work, and a codebase may use either.
+
+- **A `##` block** above a definition is doxygen's own convention, and doxygen parses it fully:
+  `@brief`, `@version`, `@req`, aliases. Nothing about it changes.
+- **A PEP 257 docstring** is, to doxygen, preformatted text: it lands in the detail as
+  `<verbatim>`, the brief stays empty and a `@version` inside it is never parsed. So clew
+  reads it itself (`clew/pydocs.py`): where doxygen left a function or class without a brief,
+  the docstring's summary line becomes the brief and its `@version` the version. `@req` in a
+  docstring already works, because the requirements pass reads the literal tag out of the
+  detail.
+
+Where both exist, the `##` block wins, in the index and in the gate. This repository writes
+both and bumps `@version` in both when a body changes.
 
 Neither is required for indexing. A module with no prose at all still yields symbols, call edges
-and liveness; docs fill in `brief` and `detail`.
+and liveness; docs fill in `brief` and `detail`. To gate them, see
+[`clew guard`](../GUARD.md#python), where the docstring is the primary form.
 
 ## File-level docs
 
@@ -48,8 +59,10 @@ library whose callers are all external would read as entirely orphaned.
 
 ## Both edge layers run, and tree-sitter is the larger one
 
-`tree-sitter-python` is a declared dependency and is registered alongside the C, C++ and Rust
-grammars, so Python is **not** a doxygen-only language. On this repository's own index:
+Python's tree-sitter layer parses through
+[lang-parsing-substrate](https://github.com/brandon-arrendondo/lang_parsing_substrate) (its
+Python grammar, via `clew/tsnode.py`), so Python is **not** a doxygen-only language. On this
+repository's own index:
 
 | layer | edges |
 |---|---|
@@ -58,9 +71,9 @@ grammars, so Python is **not** a doxygen-only language. On this repository's own
 | `binding` | 40 |
 | `fnptr` | 2 |
 
-`tree-sitter-python` is pinned explicitly rather than left transitive: the grammar importer
-swallows `ImportError`, so losing it takes the whole Python AST layer to zero rows **with no
-error**.
+`lang-parsing-substrate` is a declared, required dependency. Losing it would take the whole
+Python AST layer to zero rows, so the packaging tests check that every grammar the harvest
+routes to has a declared provider.
 
 ## Limitations
 

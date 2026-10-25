@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 18119,
+  "stop_reason": "end_turn",
+  "session_id": "b7c76358-65c8-4b39-8b92-f28a08e30212",
+  "total_cost_usd": 0.006311549999999999,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 13987,
+    "cache_read_input_tokens": 174615,
+    "output_tokens": 3534,
+    "output_tokens_details": {
+      "thinking_tokens": 773
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 13987,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1829,
+        "cache_read_input_tokens": 42504,
+        "cache_creation_input_tokens": 1612,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1612
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3534,
+      "cacheReadInputTokens": 174615,
+      "cacheCreationInputTokens": 13987,
+      "webSearchRequests": 0,
+      "costUSD": 0.006311549999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 773,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Negative return to string**\n\n1. **Caller invokes `mbedtls_strerror(ret, buf, buflen)`**, defined in `library/error.c`. That file is generated; the source is `scripts/data_files/error.fmt`, with placeholders filled in by `scripts/generate_errors.pl`.\n2. **Sign is dropped.** `ret` is negated, so `-0x0001` becomes `0x0001`.\n3. **The code is split by bitmask.** Error codes are a high-level module part (`ret & 0xFF80`) plus a low-level part (`ret & ~0xFF80`), per the comment in `error.h` (\"Module dependent error code, 5 bits\").\n4. **High-level lookup.** `mbedtls_high_level_strerr()` switches on the high part (e.g. `MBEDTLS_ERR_SSL_*`, `X509_*`, `PK_*`). If it finds nothing, the buffer gets `UNKNOWN ERROR CODE (XXXX)`.\n5. **Fatal-alert short circuit.** When the high part is `MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE` and TLS is enabled, the function returns without decoding the low part.\n6. **Low-level lookup.** The low part is decoded via `mbedtls_low_level_strerr()`. If both parts exist, they are joined as `\"HIGH : LOW\"`, e.g. `\"SSL - ... : X509 - ...\"`. Unknown low codes give `UNKNOWN ERROR CODE`.\n7. **Zero low part** means the high-level string stands alone; a zero code produces an empty buffer.\n\nEach generated `case` has the form `case -(MBEDTLS_ERR_FOO): return \"MODULE - description\";`. The `MODULE` prefix comes from the macro name, e.g. `MBEDTLS_ERR_X509_...` \u2192 `X509`.\n\n**Adding a new error code**\n\n1. **Define it in a public header** under `include/mbedtls/` as `#define MBEDTLS_ERR_<MODULE>_<NAME> -0x....`. The value must be negative and unique across all headers.\n2. **Add a Doxygen description** in exactly one place: either a `/** ... */` comment before the define, or a `/**< ... */` after it. The generator dies if both or neither are present. A `\\name` block directly before a define is ignored, per `generate_errors.pl:76`.\n3. **Make sure the module is known to the generator.** `scripts/generate_errors.pl` (lines 36\u201343) hard-codes `@low_level_modules` and `@high_level_modules`. A new module name must be added there, or the generator exits with `Do not know how to handle`. The `$define_name` and `$include_name` special cases (lines 118\u2013133) also need updating if the module's config macro or header name doesn't follow the default pattern.\n4. **Include the header.** The generator emits `#include \"mbedtls/<module>.h\"` guarded by the module's `MBEDTLS_<X>_C` macros. If a header defines codes but isn't in the include list, the generator errors out.\n5. **Regenerate `library/error.c`.** It's a Makefile target (`library/Makefile:355\u2013360`), or run `perl scripts/generate_errors.pl` from the repo root. `library/error.c` is tracked in git, so commit the regenerated file along with the header change.\n6. **Add a test.** `tests/suites/test_suite_error.data` drives `test_suite_error.function`, which calls `mbedtls_strerror` and checks the string.\n\n**Caveat:** I read the generator and the runtime decoder but did not run `generate_errors.pl` or the error test suite here, so I haven't confirmed that the committed `library/error.c` matches current generator output. Running the generator and diffing would settle that.",
+  "ttft_ms": 1341,
+  "type": "result",
+  "duration_ms": 18433,
+  "uuid": "ad4ccd86-a045-4cdb-b7f9-a21124f18939",
+  "ttft_stream_ms": 945,
+  "time_to_request_ms": 104,
+  "first_content_frame_ms": 946,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

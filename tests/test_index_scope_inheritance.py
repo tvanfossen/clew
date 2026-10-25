@@ -101,8 +101,8 @@ def test_a_declared_index_scope_is_the_decision(tmp_path: Path) -> None:
     @version 2
     """
     root = _repo_with_exempt_fixture(tmp_path / "repo")
-    (root / ".doxygen-guard.yaml").write_text(
-        "x-clew:\n  index_scope:\n    roots: ['src', 'fixtures']\n", encoding="utf-8"
+    (root / ".clew.yaml").write_text(
+        "index_scope:\n  roots: ['src', 'fixtures']\n", encoding="utf-8"
     )
 
     derived = sc.derive_scope(root)
@@ -118,25 +118,20 @@ def test_a_declared_index_scope_is_the_decision(tmp_path: Path) -> None:
 ## @brief The declared reason must name the file the declaration was read from.
 ## @version 1
 def test_the_declared_reason_names_the_file_it_was_read_from(tmp_path: Path) -> None:
-    """A declaration carried by the guard config's `x-` passthrough used to be
-    reported as `index_scope declared in <root>/.clew.yaml` — a file that
-    need not exist. A provenance string naming the wrong file is worse than none,
-    because it is checkable and wrong (`discover_doxyfile`'s lesson).
+    """A provenance string naming the wrong file is worse than none, because it is
+    checkable and wrong (`discover_doxyfile`'s lesson). A stated scope names the caller;
+    a declared one names the file.
 
     @brief The provenance names the real declaration file.
-    @version 1
+    @version 2
     """
     root = _repo_with_exempt_fixture(tmp_path / "repo")
-    (root / ".doxygen-guard.yaml").write_text(
-        "x-clew:\n  index_scope:\n    roots: ['src']\n", encoding="utf-8"
-    )
+    (root / ".clew.yaml").write_text("index_scope:\n  roots: ['src']\n", encoding="utf-8")
 
     reason = sc.derive_scope(root).reason
 
-    assert ".doxygen-guard.yaml" in reason, "the passthrough's own file is where it was read"
-    assert ".clew.yaml" not in reason, (
-        "naming a file that does not exist sends the owner to edit nothing"
-    )
+    assert str(root / ".clew.yaml") in reason, "the declaration's own file is where it was read"
+    assert "stated by the caller" not in reason
 
 
 ## @brief A declared root INDEXES a nested foreign repository rather than cutting it out.
@@ -167,8 +162,8 @@ def test_a_declared_root_indexes_a_nested_repository(tmp_path: Path) -> None:
     (nested / "src").mkdir(parents=True)
     (nested / "src" / "theirs.c").write_text("int theirs(void) { return 1; }\n", encoding="utf-8")
     (root / "evidence" / "notes.md").write_text("# ours\n", encoding="utf-8")
-    (root / ".doxygen-guard.yaml").write_text(
-        "x-clew:\n  index_scope:\n    roots: ['src', 'evidence']\n", encoding="utf-8"
+    (root / ".clew.yaml").write_text(
+        "index_scope:\n  roots: ['src', 'evidence']\n", encoding="utf-8"
     )
 
     derived = sc.derive_scope(root)
@@ -194,10 +189,8 @@ def test_an_already_excluded_nested_repository_is_not_re_reported(tmp_path: Path
     root = _repo_with_exempt_fixture(tmp_path / "repo")
     nested = root / "evidence" / "other_project"
     (nested / ".git").mkdir(parents=True)
-    (root / ".doxygen-guard.yaml").write_text(
-        "x-clew:\n  index_scope:\n"
-        "    roots: ['src', 'evidence']\n"
-        "    excludes: ['evidence/other_project']\n",
+    (root / ".clew.yaml").write_text(
+        "index_scope:\n  roots: ['src', 'evidence']\n  excludes: ['evidence/other_project']\n",
         encoding="utf-8",
     )
 
@@ -377,9 +370,7 @@ def test_the_winning_tier_reaches_the_stamped_provenance(tmp_path: Path) -> None
 
     root = _repo_with_exempt_fixture(tmp_path / "undeclared")
     declared_root = _repo_with_exempt_fixture(tmp_path / "declared")
-    (declared_root / ".doxygen-guard.yaml").write_text(
-        "x-clew:\n  index_scope:\n    roots: ['src']\n", encoding="utf-8"
-    )
+    (declared_root / ".clew.yaml").write_text("index_scope:\n  roots: ['src']\n", encoding="utf-8")
     resolved = argparse.Namespace(scope=sc.SCOPE_FROM_GUARD, guard_config=None)
     narrowed = argparse.Namespace(scope=sc.SCOPE_DOXYFILE, guard_config=None)
 

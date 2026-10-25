@@ -21,6 +21,8 @@ Builds are stubbed throughout: what is asserted is WHICH index gets built and WH
 from __future__ import annotations
 
 import subprocess
+import threading
+import time
 from pathlib import Path
 
 import anyio
@@ -32,6 +34,7 @@ from clew.mcp_server import server as server_module
 from clew.mcp_server import state as st
 from clew.mcp_server.server import build_server, refresh_interval, serve
 from clew.scope import FIRST_PARTY_INDEX
+from test_mcp_server import _FakeCtx
 
 
 ## @brief A stand-in `_run_build` that records what it was asked to build.
@@ -291,4 +294,122 @@ def test_the_refresh_interval_reads_the_environment() -> None:
     assert (
         refresh_interval({server_module.REFRESH_INTERVAL_ENV: "soon"})
         == server_module.DEFAULT_REFRESH_INTERVAL_SECONDS
+    )
+
+
+@pytest.mark.anyio
+async def test_a_plain_file_named_dot_git_is_not_consent(tmp_path: Path, rich_db: Path) -> None:
+    """THE GATE I WROTE CHECKED `.exists()`, AND A FILE PASSES IT. Found by an adversarial audit
+    of the 1.1.0 branch: a caller — including an agent acting on text it read in some repository —
+    could name any directory, drop a one-byte file called `.git` in it, and have a query start a
+    full pipeline build over it. The evidence the gate wants is a work TREE, which is a directory.
+
+    @brief A directory whose `.git` is a plain file is refused, not built.
+    @version 1
+    """
+    loose = tmp_path / "pretend"
+    loose.mkdir()
+    (loose / ".git").write_text("not a work tree\n", encoding="utf-8")
+    _mcp, state = build_server(st.TargetRegistry(tmp_path / "state"))
+    build = _RecordingBuild(rich_db)
+    state._run_build = build
+
+    await state._auto_refresh(str(loose))
+
+    assert build.built == [], f"a file named .git was taken as consent to index: {build.built}"
+
+
+@pytest.mark.anyio
+async def test_an_explicit_refresh_still_builds_any_named_directory(
+    tmp_path: Path, rich_db: Path
+) -> None:
+    """THE BOUNDARY, PINNED FROM THE OTHER SIDE. A 1.1.0 audit finding asked for the consent gate
+    to cover `index(action='refresh', target=…)` as well. It must not: a ROUTED BUILD OF A NAMED
+    REPOSITORY IS THE CONTRACT (gh#1, gh#22) — `test_a_routed_build_registers_the_target_without_adopting_it`
+    and three sibling tests encode it, and a project that indexes vendored source drops and
+    non-git trees needs it. Tightening it here broke all four.
+
+    So the asymmetry is deliberate and this test is what keeps it deliberate: an AUTOMATIC build,
+    started by a query the caller did not aim at a build, demands evidence of intent; an EXPLICIT
+    refresh is the evidence. `docs/SECURITY.md` states the consequence — `target` is not a
+    security boundary, and the MCP server holds the privileges of whoever launched it.
+
+    @brief An explicit refresh of a plain directory builds it; only the automatic path refuses.
+    @version 1
+    """
+    loose = tmp_path / "loose"
+    loose.mkdir()
+    (loose / "a.c").write_text("int a(void){return 0;}\n", encoding="utf-8")
+    _mcp, state = build_server(st.TargetRegistry(tmp_path / "state"))
+    build = _RecordingBuild(rich_db)
+    state._run_build = build
+
+    ## The automatic path refuses it — no git tree, no registration.
+    await state._auto_refresh(str(loose))
+    assert build.built == [], f"the automatic path built an unvouched directory: {build.built}"
+
+    ## The explicit one builds it, because asking IS the consent.
+    result = await state.build_or_refresh(_FakeCtx(), target=str(loose))
+    assert result.get("ok") is True, result
+    assert build.built == [None], f"an explicit refresh must build what it names: {build.built}"
+
+
+@pytest.mark.anyio
+async def test_concurrent_absent_indexes_do_not_run_their_builds_at_once(
+    tmp_path: Path, rich_db: Path
+) -> None:
+    """M8, 1.1.0 SECURITY AUDIT — in code this session shipped. One build per asked index per
+    session bounds RETRIES, not CONCURRENCY: four queries naming four absent git trees started
+    four pipelines, each running doxygen and cargo over a different repository, each holding a
+    worker thread for the full 20 s bound on a limiter the transport shares. An agent sweeping
+    a directory of checkouts does exactly that, and nothing in the product said no.
+
+    The builds are SERIALISED rather than refused, because each one was asked for; what is
+    refused is an unbounded QUEUE of them, through the same return-a-reason contract the
+    consent gate uses.
+
+    @brief Two concurrent first builds never run their pipelines simultaneously.
+    @version 1
+    """
+    repos = []
+    for name in ("one", "two", "three"):
+        repo = tmp_path / name
+        (repo / ".git").mkdir(parents=True)
+        repos.append(repo)
+
+    _mcp, state = build_server(st.TargetRegistry(tmp_path / "state"))
+
+    overlap = {"max": 0, "live": 0}
+    lock = threading.Lock()
+    real_build = _RecordingBuild(rich_db)
+
+    ## @brief Stand-in build that measures how many run at once.
+    ## @param target The Target being built.
+    ## @param args Remaining positional build arguments.
+    ## @return A `_run_build`-shaped result dict.
+    ## @version 1
+    def counting_build(target: st.Target, *args: object) -> dict[str, object]:
+        """@brief Count overlapping builds. @return The result dict. @version 1"""
+        with lock:
+            overlap["live"] += 1
+            overlap["max"] = max(overlap["max"], overlap["live"])
+        try:
+            time.sleep(0.3)
+            return real_build(target, *args)
+        finally:
+            with lock:
+                overlap["live"] -= 1
+
+    state._run_build = counting_build
+
+    async with anyio.create_task_group() as tg:
+        for repo in repos:
+            tg.start_soon(state._auto_refresh, str(repo))
+
+    assert overlap["max"] == 1, (
+        f"{overlap['max']} first-build pipelines ran at once; each one is a doxygen and a "
+        f"cargo invocation over a repository the server was merely asked about"
+    )
+    assert len(real_build.built) == len(repos), (
+        f"every asked build must still happen, serialised: {real_build.built}"
     )

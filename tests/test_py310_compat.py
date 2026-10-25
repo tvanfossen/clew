@@ -391,18 +391,31 @@ def test_declared_floor_is_310() -> None:
 
 
 ## @brief `tomli` must be declared as a conditional dependency for 3.10.
-## @version 1
+## @version 2
 def test_tomli_is_a_conditional_dependency() -> None:
     """Without the marker, `tomli` would install on 3.11+ too — where it is dead
     weight — and without the dependency at all, every 3.10 install would hit
     `TomlParserUnavailableError` on its first build. The metadata and the code
     have to agree, and this is the assertion that they do.
 
-    @brief pyproject pins tomli behind `python_version < "3.11"`.
-    @version 1
+    ASSERTED ON THE MARKER AND THE FLOOR, NOT ON THE WHOLE SPECIFIER. The first version
+    matched the literal `tomli>=2; python_version < "3.11"`, which made it fail when the
+    1.1.0 audit added the upper bound every other dependency now carries (S1) — a correct
+    change to a line this test was not about. The two claims it exists to make are that the
+    dependency is DECLARED and that it is CONDITIONAL; the version window is
+    `tests/test_packaging.py`'s business.
+
+    @brief pyproject declares tomli behind `python_version < "3.11"`.
+    @version 2
     """
     text = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
-    assert 'tomli>=2; python_version < "3.11"' in text
+    declaration = [line for line in text.splitlines() if line.strip().startswith("'tomli>=")]
+
+    assert len(declaration) == 1, f"expected exactly one tomli declaration, found {declaration}"
+    assert 'python_version < "3.11"' in declaration[0], (
+        f"tomli is declared unconditionally, so it installs as dead weight on 3.11+: "
+        f"{declaration[0]}"
+    )
 
 
 ## @brief CI must actually RUN the suite on every version the metadata claims.

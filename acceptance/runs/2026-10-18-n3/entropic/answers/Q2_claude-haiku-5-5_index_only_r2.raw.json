@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 28122,
+  "stop_reason": "end_turn",
+  "session_id": "a32a70f4-e273-496a-9456-ba9519bf918c",
+  "total_cost_usd": 0.01137643,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 31490,
+    "cache_read_input_tokens": 241843,
+    "output_tokens": 5318,
+    "output_tokens_details": {
+      "thinking_tokens": 2683
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 31490,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3007,
+        "cache_read_input_tokens": 66494,
+        "cache_creation_input_tokens": 1226,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1226
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 5318,
+      "cacheReadInputTokens": 241843,
+      "cacheCreationInputTokens": 31490,
+      "webSearchRequests": 0,
+      "costUSD": 0.01137643,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2683,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** llama.cpp enters through a git submodule pinned at `extern/`, and it reaches well into entropic's `src/inference/` layer. Above that layer it is mostly hidden behind abstract interfaces, with a few leaks.\n\n**How it's brought in (partly inferred)**\n- The index has no CMake or git-submodule parsing, so I can't read the wiring directly. The only evidence is `src/inference/llama_cpp_backend.cpp`'s file doc, which says it is \"Pinned against llama.cpp submodule b8420\", and `extern/CMakeLists.txt`, which exists but has zero indexed symbols.\n- Treat \"submodule plus `extern/CMakeLists.txt`\" as the likely mechanism, and confirm it in the build files.\n- Two pins are mentioned: b8420 in the file doc, and `253ba110b` in the speculative-decoding doc (`generate_speculative_with_draft`). They may be different references, but they could also be a stale comment. Worth checking.\n\n**How far it reaches into entropic's source**\n\n```\ninclude/entropic/  (C ABI, interfaces)      no llama.cpp types found\n        \u2502\nsrc/inference/inference_c_api.cpp           entropic_create_inference_backend \u2192 new LlamaCppBackend\n        \u2502                                   entropic_inference_log_silence \u2192 ggml log silencing\n        \u25bc\nLlamaCppBackend : entropic::InferenceBackend   (llama_cpp_backend.{h,cpp}, 15% layer)\n   owns llama_model*, llama_context*, llama_vocab*, mtmd ctx\n   uses llama_model_load_from_file, llama_init_from_model, llama_decode,\n        llama_state_seq_get/set_data, llama_set_adapters_lora,\n        common_chat render/parse, common_speculative_*\n   \u251c\u2500 LlamaCppSampler / LlamaCppSamplerFactory   (llama_sampler chain)\n   \u251c\u2500 LlamaCppTokenizer                          (llama_tokenize, llama_token_to_piece)\n   \u251c\u2500 adapter_manager.cpp                        (apply_adapter \u2192 llama_set_adapters_lora)\n   \u2514\u2500 speculative_compat.cpp                     (llama_vocab_type comparison)\n```\n\n- **Deepest layer:** the backend uses llama.cpp's C API and also its `common/` helpers (chat-template render/parse, speculative decoding). The gh#87 notes say the PEG chat parser is vendored.\n- **Leaks upward:**\n  - The orchestrator `dynamic_cast`s to `LlamaCppBackend` to call `generate_speculative_with_draft`, so it knows the concrete type.\n  - `llama_model_ptr()` is public and has a caller, `resolve_target_model`, which I did not open. That hands a raw llama.cpp pointer to engine code.\n- **Test layer:** unit tests define link-time mocks of llama.cpp symbols (`llama_adapter_lora_init`, `llama_vocab_*`, and others), so the test build substitutes for the real library.\n\n**Gaps:** the index cannot see the CMake/submodule wiring, and I did not check whether any header under `include/` includes llama.cpp headers. My evidence there is name-only: no llama.cpp types surfaced in `include/`.",
+  "ttft_ms": 1869,
+  "type": "result",
+  "duration_ms": 29054,
+  "uuid": "263d8303-92f5-40fe-80d8-d4f21d0210e4",
+  "ttft_stream_ms": 1471,
+  "time_to_request_ms": 66,
+  "first_content_frame_ms": 1471,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

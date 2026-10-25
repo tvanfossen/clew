@@ -1,0 +1,476 @@
+"""Tests for clew.guard.main (absorbed from doxygen-guard)."""
+
+from __future__ import annotations
+
+from textwrap import dedent
+
+from clew.guard.config import CONFIG_DEFAULTS, parse_source_file
+from clew.guard.main import main, validate_file
+from guard_helpers import FIXTURES_DIR, guard_yaml
+
+NO_REQ_CONFIG = str(FIXTURES_DIR / "no_requirements_config.yaml")
+
+
+class TestValidateFile:
+    """Tests for validate_file."""
+
+    def test_documented_file_no_violations(self):
+        # Create a minimal fully-documented C file
+        config = CONFIG_DEFAULTS.copy()
+        # Use simple.c but only the documented functions will pass
+        violations = validate_file(
+            str(FIXTURES_DIR / "simple.c"),
+            config,
+            no_git=True,
+        )
+        # simple.c has one undocumented function
+        assert len(violations) == 1
+        assert "Undocumented_Function" in violations[0].message
+
+    def test_unknown_extension_skipped(self, tmp_path):
+        py_file = tmp_path / "script.rs"
+        py_file.write_text("fn foo() {}")
+        violations = validate_file(str(py_file), CONFIG_DEFAULTS, no_git=True)
+        assert violations == []
+
+    def test_excluded_file(self, tmp_path):
+        c_file = tmp_path / "gen" / "auto.c"
+        c_file.parent.mkdir()
+        c_file.write_text("void Func(void) { }")
+        config = {
+            "validate": {
+                **CONFIG_DEFAULTS["validate"],
+                "exclude": ["gen/"],
+            },
+            "impact": CONFIG_DEFAULTS["impact"],
+        }
+        violations = validate_file(str(c_file), config, no_git=True)
+        assert violations == []
+
+    def test_all_checks_run(self, tmp_path):
+        c_file = tmp_path / "test.c"
+        c_file.write_text(
+            dedent("""\
+                /**
+                 * @brief Good function.
+                 * @version 1.0
+                 */
+                void Good_Func(void) {
+                    x();
+                }
+
+                void Bad_Func(void) {
+                    y();
+                }
+            """)
+        )
+        violations = validate_file(str(c_file), CONFIG_DEFAULTS, no_git=True)
+        assert len(violations) == 1
+        assert "Bad_Func" in violations[0].message
+
+
+class TestMain:
+    """Tests for main CLI entry point."""
+
+    def test_no_files_returns_zero(self):
+        result = main(["validate"])
+        assert result == 0
+
+    def test_validate_clean_file(self, tmp_path):
+        c_file = tmp_path / "clean.c"
+        c_file.write_text(
+            dedent("""\
+                /**
+                 * @brief Clean function.
+                 * @version 1.0
+                 */
+                void Clean_Func(void) {
+                    do_stuff();
+                }
+            """)
+        )
+        result = main(["--config", NO_REQ_CONFIG, "validate", "--no-git", str(c_file)])
+        assert result == 0
+
+    def test_validate_dirty_file(self, tmp_path):
+        c_file = tmp_path / "dirty.c"
+        c_file.write_text(
+            dedent("""\
+                void Undoc_Func(void) {
+                    do_stuff();
+                }
+            """)
+        )
+        result = main(["validate", "--no-git", str(c_file)])
+        assert result == 1
+
+    def test_validate_nonexistent_file(self):
+        result = main(["validate", "--no-git", "/nonexistent/path.c"])
+        assert result == 0  # Warning logged, no violations
+
+    def test_default_subcommand_with_files(self, tmp_path):
+        """When no subcommand is given, treat args as files (pre-commit mode)."""
+        c_file = tmp_path / "test.c"
+        c_file.write_text(
+            dedent("""\
+                /**
+                 * @brief Func.
+                 * @version 1.0
+                 */
+                void Func(void) {
+                    x();
+                }
+            """)
+        )
+        result = main(["--config", NO_REQ_CONFIG, str(c_file)])
+        assert result == 0
+
+    def test_verbose_flag(self, tmp_path):
+        c_file = tmp_path / "test.c"
+        c_file.write_text(
+            dedent("""\
+                /**
+                 * @brief Func.
+                 * @version 1.0
+                 */
+                void Func(void) {
+                    x();
+                }
+            """)
+        )
+        result = main(["--config", NO_REQ_CONFIG, "-v", "validate", "--no-git", str(c_file)])
+        assert result == 0
+
+    def test_custom_config(self, tmp_path):
+        config_file = tmp_path / "custom.yaml"
+        config_file.write_text(
+            guard_yaml(
+                dedent("""\
+                validate:
+                  presence:
+                    require_doxygen: false
+            """)
+            )
+        )
+        c_file = tmp_path / "test.c"
+        c_file.write_text("void Undoc(void) { x(); }")
+
+        result = main(["--config", str(config_file), "validate", "--no-git", str(c_file)])
+        assert result == 0  # Presence check disabled
+
+    def test_retired_trace_subcommand_fails_loudly(self, capsys):
+        result = main(["trace", "--req", "REQ-NONEXISTENT-9999"])
+        assert result == 1
+        assert "was removed" in capsys.readouterr().err
+
+    def test_retired_subcommand_not_treated_as_file_path(self, capsys):
+        """A retired subcommand must not silently degrade to pre-commit mode and exit 0."""
+        result = main(["trace", "--all", "src/"])
+        assert result == 1
+        assert "trace" in capsys.readouterr().err
+
+    def test_impact_no_files_returns_0(self):
+        result = main(["impact", "--staged"])
+        assert result == 0
+
+
+class TestPrecommitPipeline:
+    """Integration tests for run_precommit with impact reporting."""
+
+    def test_precommit_with_impact(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        src = tmp_path / "src"
+        src.mkdir()
+        c_file = src / "test.c"
+        c_file.write_text(
+            dedent("""\
+                /**
+                 * @brief Process data.
+                 * @version 1.0
+                 * @req REQ-001
+                 */
+                void Process(void) {
+                    event_post(EVENT_DATA_READY);
+                }
+
+                /**
+                 * @brief Handle data event.
+                 * @version 1.0
+                 * @req REQ-001
+                 */
+                void OnDataReady(void) {
+                    consume();
+                }
+            """)
+        )
+        req_file = tmp_path / "reqs.csv"
+        req_file.write_text("Req ID,Name,Subsystem\nREQ-001,Data Processing,DataSvc\n")
+        config_file = tmp_path / ".clew.yaml"
+        config_file.write_text(
+            guard_yaml(
+                dedent("""\
+                output_dir: out/
+                impact:
+                  requirements:
+                    file: reqs.csv
+                    id_column: "Req ID"
+                    name_column: "Name"
+                    format: csv
+            """)
+            )
+        )
+        result = main(["--config", str(config_file), str(c_file)])
+        assert result == 0
+
+    def test_a_symlinked_impact_directory_is_refused(self, tmp_path, monkeypatch):
+        """M5, 1.1.0 SECURITY AUDIT. `run_precommit` validated `output_dir` and then wrote to
+        `output_dir/impact/impact.md` — a DIFFERENT path. A committed
+        `out/impact -> ../../elsewhere` passes the check on `out/`, `mkdir(exist_ok=True)`
+        follows it, and the gate writes the report outside the repository and `git add`s it,
+        all while running as the committing user on a branch they are only reviewing.
+
+        The full write path is validated, which is what the sibling in `_run_impact_command`
+        already did with its `output.file`.
+        """
+        monkeypatch.chdir(tmp_path)
+        outside = tmp_path.parent / f"escaped-{tmp_path.name}"
+        outside.mkdir(exist_ok=True)
+        src = tmp_path / "src"
+        src.mkdir()
+        c_file = src / "test.c"
+        c_file.write_text(
+            dedent("""\
+                /**
+                 * @brief Process data.
+                 * @version 1.0
+                 * @req REQ-001
+                 */
+                void Process(void) {
+                    event_post(EVENT_DATA_READY);
+                }
+            """)
+        )
+        (tmp_path / "reqs.csv").write_text("Req ID,Name,Subsystem\nREQ-001,Data,DataSvc\n")
+        (tmp_path / "out").mkdir()
+        (tmp_path / "out" / "impact").symlink_to(outside)
+        config_file = tmp_path / ".clew.yaml"
+        config_file.write_text(
+            guard_yaml(
+                dedent("""\
+                output_dir: out/
+                impact:
+                  requirements:
+                    file: reqs.csv
+                    id_column: "Req ID"
+                    name_column: "Name"
+                    format: csv
+            """)
+            )
+        )
+
+        ## `main` IS THE CLI BOUNDARY and turns a GuardError into an exit code rather than a
+        ## traceback — so the refusal is asserted as the gate's own failure, which is what a
+        ## committing developer actually sees.
+        rc = main(["--config", str(config_file), str(c_file)])
+
+        assert rc != 0, "the gate must fail rather than write through the symlink"
+        assert not list(outside.iterdir()), (
+            f"the gate wrote outside the repository through a symlinked impact directory: "
+            f"{list(outside.iterdir())}"
+        )
+
+
+class TestParseSourceFile:
+    """Tests for parse_source_file."""
+
+    def test_unsupported_extension_returns_none(self, tmp_path):
+        rs_file = tmp_path / "lib.rs"
+        rs_file.write_text("fn main() {}")
+        result = parse_source_file(str(rs_file), CONFIG_DEFAULTS)
+        assert result is None
+
+
+class TestVersionGateFailsClosed:
+    """An unresolvable version gate must fail, never silently disable the @req gate.
+
+    Regression: _detect_current_version was called only from run_precommit, so the
+    documented `doxygen-guard validate` invocation left current_version as the literal
+    "auto:git". parse_version then failed and returned (0,), every catalogued
+    requirement filtered out as not-yet-active, _has_active_requirements returned
+    False, and check_req_coverage returned [] — exit 0 with the gate off. The same
+    collapse hit pre-commit mode on a shallow or tagless clone.
+    """
+
+    def _project(self, tmp_path):
+        (tmp_path / "reqs.yaml").write_text(
+            dedent("""\
+                requirements:
+                  REQ-VAL-001:
+                    name: A requirement
+                    min_version: v0.1.0
+            """)
+        )
+        (tmp_path / ".clew.yaml").write_text(
+            guard_yaml(
+                dedent("""\
+                validate:
+                  version_gate:
+                    current_version: "auto:git"
+                    version_field: "min_version"
+                impact:
+                  requirements:
+                    file: reqs.yaml
+                    format: yaml
+            """)
+            )
+        )
+        c_file = tmp_path / "a.c"
+        c_file.write_text("/**\n * @brief No req tag.\n * @version 1.0\n */\nvoid F(void) { }\n")
+        return c_file
+
+    def test_validate_fails_when_gate_unresolvable(self, tmp_path, monkeypatch, capsys):
+        c_file = self._project(tmp_path)
+        monkeypatch.chdir(tmp_path)
+        result = main(["validate", "--no-git", str(c_file)])
+        assert result == 1
+        assert "no version could be resolved" in capsys.readouterr().err
+
+    def test_precommit_fails_when_gate_unresolvable(self, tmp_path, monkeypatch, capsys):
+        c_file = self._project(tmp_path)
+        monkeypatch.chdir(tmp_path)
+        result = main([str(c_file)])
+        assert result == 1
+        assert "no version could be resolved" in capsys.readouterr().err
+
+    def test_literal_version_resolves(self, tmp_path, monkeypatch):
+        c_file = self._project(tmp_path)
+        cfg = tmp_path / ".clew.yaml"
+        cfg.write_text(cfg.read_text().replace('"auto:git"', '"v1.0.0"'))
+        monkeypatch.chdir(tmp_path)
+        # Gate resolves, so the requirement is active and the missing @req is caught.
+        assert main(["validate", "--no-git", str(c_file)]) == 1
+
+    def test_no_gate_declared_is_not_an_error(self, tmp_path, monkeypatch):
+        c_file = self._project(tmp_path)
+        (tmp_path / ".clew.yaml").write_text(
+            guard_yaml("impact:\n  requirements:\n    file: reqs.yaml\n    format: yaml\n")
+        )
+        monkeypatch.chdir(tmp_path)
+        # No version_gate declared: nothing to resolve, so no error from resolution.
+        assert main(["validate", "--no-git", str(c_file)]) in (0, 1)
+
+
+class TestSkipsAreReported:
+    """B1, 1.1.0 MERGE REVIEW. A file the shared `toolchain.toml` ignores is skipped with a
+    `logger.info`, and `_setup_logging` pins the gate at WARNING unless `-v` is passed. So the
+    gate printed NOTHING and exited 0 for a tree it had not checked — reproduced as `rc=1`
+    becoming `rc=0` the moment a `[clew.ignore]` entry covered the offending file.
+
+    A gate that reports success while checking nothing is worse than no gate: the owner reads
+    the exit code, not the INFO log they cannot see. The skip count therefore belongs on the
+    same surface as `clew guard: N violation(s) found`, at the choke point both entry paths use.
+    """
+
+    @staticmethod
+    def _dirty_tree(tmp_path):
+        (tmp_path / "gen").mkdir()
+        dirty = tmp_path / "gen" / "auto.c"
+        dirty.write_text("void Undoc_Func(void) {\n    do_stuff();\n}\n")
+        return dirty
+
+    def test_an_unchecked_file_is_named_without_the_verbose_flag(
+        self, tmp_path, monkeypatch, capsys
+    ):
+        """@brief A toolchain-ignored file is reported on the default surface. @version 1"""
+        dirty = self._dirty_tree(tmp_path)
+        (tmp_path / "toolchain.toml").write_text('[clew.ignore]\npaths = ["gen/**"]\n')
+        monkeypatch.chdir(tmp_path)
+
+        rc = main(["--config", NO_REQ_CONFIG, "validate", "--no-git", str(dirty)])
+
+        captured = capsys.readouterr()
+        surface = captured.out + captured.err
+        assert rc == 0, "the ignore is honoured, so there is nothing to fail on"
+        assert "1 file(s) not checked" in surface, (
+            f"the gate passed without saying it checked nothing; surface was {surface!r}"
+        )
+        assert "toolchain.toml" in surface, "the report must name what decided the skip"
+
+    def test_a_checked_tree_says_nothing_extra(self, tmp_path, monkeypatch, capsys):
+        """The line is evidence of a skip, not decoration: with nothing skipped it must not
+        appear, or it becomes noise an owner learns to ignore.
+
+        @brief No skip line when every file was checked. @version 1
+        """
+        dirty = self._dirty_tree(tmp_path)
+        monkeypatch.chdir(tmp_path)
+
+        rc = main(["--config", NO_REQ_CONFIG, "validate", "--no-git", str(dirty)])
+
+        captured = capsys.readouterr()
+        assert rc == 1
+        assert "not checked" not in captured.out + captured.err
+
+
+class TestUnconfiguredLanguagesAreReported:
+    """Group A, 1.1.0 MERGE REVIEW, and the plan's words for it: an owner whose Rust is
+    silently unchecked is the worst failure mode this tool has.
+
+    `rust`, `javascript` and `typescript` live in `OPT_IN_LANGUAGE_DEFAULTS` — opt-in because
+    the published hook started passing `.rs` files and a repo that adopted the gate for its C
+    would otherwise fail on its Rust the first time it bumped `rev:`. The cost of that correct
+    decision was paid in silence: `validate_file` logged "no matching language config" at
+    DEBUG and returned clean. A repo whose every `.rs` file is undocumented got `rc=0` and no
+    output, which reads as "my Rust is documented".
+
+    THE LINE BETWEEN THIS AND A README. A `.md` or `.json` file is not source and must stay
+    silent, or the report becomes noise an owner learns to scroll past. The distinguishing
+    question is whether the gate SHIPS a language for that extension and this config did not
+    enable it — which is exactly the opt-in case and nothing else.
+    """
+
+    @staticmethod
+    def _rust_tree(tmp_path):
+        rust = tmp_path / "lib.rs"
+        rust.write_text("pub fn undocumented_thing() -> u32 {\n    1\n}\n")
+        return rust
+
+    def test_an_opt_in_language_left_unconfigured_is_named(self, tmp_path, monkeypatch, capsys):
+        """@brief An unconfigured shipped language is reported, not skipped silently. @version 1"""
+        rust = self._rust_tree(tmp_path)
+        monkeypatch.chdir(tmp_path)
+
+        rc = main(["--config", NO_REQ_CONFIG, "validate", "--no-git", str(rust)])
+
+        surface = "".join(capsys.readouterr())
+        assert rc == 0, "nothing is configured to check it, so there is no violation to report"
+        assert "not checked" in surface and "rust" in surface, (
+            f"the gate reported success over an unchecked Rust file in silence: {surface!r}"
+        )
+
+    def test_a_non_source_file_stays_silent(self, tmp_path, monkeypatch, capsys):
+        """THE CONTROL that keeps the line where it is. The gate ships no language for
+        Markdown, so Markdown is not something it failed to check.
+
+        @brief A file no shipped language claims produces no report. @version 1
+        """
+        doc = tmp_path / "README.md"
+        doc.write_text("# hello\n")
+        monkeypatch.chdir(tmp_path)
+
+        rc = main(["--config", NO_REQ_CONFIG, "validate", "--no-git", str(doc)])
+
+        assert rc == 0
+        assert "not checked" not in "".join(capsys.readouterr())
+
+    def test_a_configured_language_is_not_reported(self, tmp_path, monkeypatch, capsys):
+        """@brief A language the config enables is checked, not reported as skipped. @version 1"""
+        c_file = tmp_path / "thing.c"
+        c_file.write_text("void Undoc_Func(void) {\n    do_stuff();\n}\n")
+        monkeypatch.chdir(tmp_path)
+
+        rc = main(["--config", NO_REQ_CONFIG, "validate", "--no-git", str(c_file)])
+
+        surface = "".join(capsys.readouterr())
+        assert rc == 1, "C is configured by default, so the undocumented function must fail"
+        assert "not checked" not in surface

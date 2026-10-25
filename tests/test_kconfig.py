@@ -1183,3 +1183,206 @@ def test_the_stated_macro_split_reaches_the_served_reply(tmp_path: Path) -> None
     assert "did not record which came from which" not in served, (
         "the reply fell through to the unrecorded-split wording while the split was present"
     )
+
+
+## @brief A declared Kconfig root outside the repository is refused.
+## @param repo Fixture repository.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_declared_root_outside_the_repository_is_refused(repo: Path, tmp_path: Path) -> None:
+    """H4, 1.1.0 SECURITY AUDIT. `kconfig.root` is repo-relative by contract and nothing
+    enforced it: `(root / declared).resolve()` honours an absolute entry and `../` walks out.
+    Two consequences, both reachable by an MCP caller who STATES the section for a repository
+    it merely names. First, arbitrary read — a Kconfig anywhere on the machine is parsed and
+    its `help` text, prompts and defaults are served as this repository's configuration space.
+    Second, it is a route around every other containment here: kconfiglib resolves `source`
+    against `$srctree`, and the outside file chooses what gets sourced.
+
+    Refused the way a missing path is — `path is None`, one warning, no configuration space —
+    because the build must still produce an index, and a declaration that cannot be honoured
+    must never be reported as honoured.
+
+    @brief An escaping declared kconfig.root indexes nothing.
+    @return None.
+    @version 1
+    """
+    outside = tmp_path / "outside"
+    outside.mkdir(exist_ok=True)
+    (outside / KCONFIG_NAME).write_text("config LEAKED\n\tbool\n", encoding="utf-8")
+
+    for declared in (str(outside / KCONFIG_NAME), "../outside/Kconfig"):
+        location = discover_kconfig(repo, {SECTION_KCONFIG: {KEY_ROOT: declared}})
+
+        assert location.path is None, (
+            f"{declared!r} escapes the repository and must not be parsed; got {location.path}"
+        )
+        assert location.source != SOURCE_DECLARED, (
+            "a refused declaration must not be recorded as the honoured source"
+        )
+
+
+## @brief A hostile Kconfig can neither read the environment nor run a command.
+## @param tmp_path Pytest temporary directory.
+## @param monkeypatch Pytest environment patcher.
+## @return None.
+## @version 1
+def test_a_kconfig_parse_is_given_a_minimal_environment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """H3, 1.1.0 SECURITY AUDIT — and the `$(shell,…)` half is not a read, it is EXECUTION.
+    Measured against kconfiglib 14.1: `$(SENTINEL)` in a prompt expands from the process
+    environment, which for the MCP plugin is the EDITOR's environment (`ANTHROPIC_API_KEY`,
+    `GH_TOKEN`, `AWS_*`), and the expansion is then persisted and served as the repository's
+    own configuration text. `$(shell,touch …)` ran the command. `KCONFIG_FUNCTIONS` imports a
+    module by name, and `kconfigfunctions` is its default — a file a repository can ship.
+
+    THE FIX IS ONE CONCEPT, not three: the parse gets a MINIMAL ENVIRONMENT instead of the
+    process's. `srctree` is what it always was, `KCONFIG_FUNCTIONS` points at clew's own
+    module (which supplies a refusing `shell`, since kconfiglib's `update` lets a named module
+    REPLACE a built-in), and nothing else is inherited.
+
+    @brief Neither an environment variable nor a shell command reaches the parse.
+    @return None.
+    @version 1
+    """
+    monkeypatch.setenv("SENTINEL_SECRET", "SENTINEL-ENV-LEAK")
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    marker = tmp_path / "pwned"
+    (repo / KCONFIG_NAME).write_text(
+        'config LEAKED\n\tbool "env says $(SENTINEL_SECRET)"\n'
+        f'\tdefault "$(shell,touch {marker} && echo RAN)"\n',
+        encoding="utf-8",
+    )
+
+    model = load_kconfig(discover_kconfig(repo, {}), repo)
+
+    served = (
+        " ".join(f"{s.name} {s.prompt} {s.help} {s.default}" for s in model.symbols) + model.error
+    )
+    assert "SENTINEL-ENV-LEAK" not in served, (
+        f"the indexing user's environment reached the served configuration space: {served}"
+    )
+    assert not marker.exists(), "a Kconfig ran a shell command during the parse"
+    assert "RAN" not in served, "a shell command's output reached the served text"
+
+    ## THE REFUSAL IS RECORDED, because a silently empty expansion is the
+    ## accepted-but-unread failure this project keeps finding: an owner whose Zephyr tree
+    ## genuinely uses `$(shell,…)` must be able to see WHY their defaults came out empty.
+    assert model.shell_refused, "a refused shell expansion must be recorded, not swallowed"
+    assert model.as_meta()["shell_refused"] == str(len(model.shell_refused))
+
+
+## @brief A repository cannot supply the Python module kconfiglib imports.
+## @param tmp_path Pytest temporary directory.
+## @param monkeypatch Pytest environment patcher.
+## @return None.
+## @version 1
+def test_a_repo_supplied_kconfig_functions_module_is_not_imported(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The third vector, which is plain code execution: kconfiglib imports
+    `os.getenv("KCONFIG_FUNCTIONS", "kconfigfunctions")` and runs its module body. An
+    operator with that variable set — a Zephyr workspace sets it — pointed at a tree clew
+    then indexed is the reachable case, and `sys.path` carrying the cwd is the other.
+
+    @brief An operator-set or repo-dropped functions module never runs.
+    @return None.
+    @version 1
+    """
+    monkeypatch.setenv("KCONFIG_FUNCTIONS", "clew_test_hostile_kconfig_functions")
+    monkeypatch.syspath_prepend(str(tmp_path))
+    marker = tmp_path / "functions_ran"
+    (tmp_path / "clew_test_hostile_kconfig_functions.py").write_text(
+        f"from pathlib import Path\nPath({str(marker)!r}).write_text('ran')\nfunctions = {{}}\n",
+        encoding="utf-8",
+    )
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / KCONFIG_NAME).write_text('config PLAIN\n\tbool "plain"\n', encoding="utf-8")
+
+    model = load_kconfig(discover_kconfig(repo, {}), repo)
+
+    assert not marker.exists(), "a module named by KCONFIG_FUNCTIONS was imported and ran"
+    assert [s.name for s in model.symbols] == ["PLAIN"], (
+        "the ordinary parse must still work with the environment replaced"
+    )
+
+
+## @brief A Kconfig that sources a file outside the repository indexes nothing from it.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_kconfig_sourcing_outside_the_repository_is_refused(tmp_path: Path) -> None:
+    """M2, 1.1.0 SECURITY AUDIT — and wider than the finding as written. kconfiglib resolves
+    `source` against `$srctree`, and NOTHING constrained it: `source "/abs/path"` parsed a
+    file anywhere on the machine and served its symbols, prompts and help text as this
+    repository's configuration space. Measured against kconfiglib 14.1.
+
+    THE CHECK IS AFTER THE PARSE, deliberately: kconfiglib offers no hook on `source`
+    resolution, and `kconf.kconfig_filenames` is its own record of every file it read. The
+    read has happened by then; what the check prevents is DISCLOSURE, which is the harm — no
+    row, no help text and no error line from an outside file reaches the index. A pre-parse
+    scan of the text was the alternative and it is the fragile one: `source` takes globs and
+    preprocessor-expanded variables, so a scanner would have to re-implement the parser.
+
+    @brief An escaping `source` yields no symbols and a path-only refusal.
+    @return None.
+    @version 1
+    """
+    outside = tmp_path / "outside.Kconfig"
+    outside.write_text(
+        'config SENTINEL_OUTSIDE\n\tbool "leaked prompt"\n\thelp\n\t  SECRET-SOURCED-HELP\n',
+        encoding="utf-8",
+    )
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / KCONFIG_NAME).write_text(
+        f'source "{outside}"\nconfig OWN\n\tbool "own"\n', encoding="utf-8"
+    )
+
+    model = load_kconfig(discover_kconfig(repo, {}), repo)
+
+    served = " ".join(f"{s.name} {s.prompt} {s.help}" for s in model.symbols) + model.error
+    assert "SECRET-SOURCED-HELP" not in served, f"outside help text was served: {served}"
+    assert "SENTINEL_OUTSIDE" not in served, f"an outside symbol was served: {served}"
+    assert model.error, "the refusal must be recorded, not left as an empty configuration space"
+    ## THE WHOLE SPACE GOES, not just the outside rows. A tree whose `source` reaches out is
+    ## not a configuration space clew can describe: the symbols that remain depend on the file
+    ## that was refused, so serving them would be a partial model reading as a complete one.
+    assert not model.symbols
+
+
+## @brief A parse failure reports where, not the offending line's content.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_parse_failure_records_the_location_and_not_the_line(tmp_path: Path) -> None:
+    """THE EXFILTRATION HALF OF M2. kconfiglib's exception messages QUOTE THE OFFENDING LINE,
+    and `kconfig.error` is a served `build_meta` value — so a repository that `source`s a file
+    it should not reach gets that file's content back out through the error text even when the
+    parse fails. Reporting the type and the `file:line` location keeps the value diagnostic
+    while making it carry no content; the full message still goes to the build log, which is
+    the operator's to read and is not served.
+
+    @brief The served error names a location, never a quoted source line.
+    @return None.
+    @version 1
+    """
+    secret = tmp_path / "secret.Kconfig"
+    secret.write_text("SENTINEL-UNPARSEABLE-CONTENT not a kconfig line\n", encoding="utf-8")
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / KCONFIG_NAME).write_text(f'source "{secret}"\n', encoding="utf-8")
+
+    model = load_kconfig(discover_kconfig(repo, {}), repo)
+
+    assert model.error, "a failed parse must still be recorded"
+    assert "SENTINEL-UNPARSEABLE-CONTENT" not in model.error, (
+        f"the served error carries the content of the file it failed on: {model.error!r}"
+    )

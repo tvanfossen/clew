@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 30178,
+  "stop_reason": "end_turn",
+  "session_id": "35edede6-d541-46fb-87ce-d0c483c1e16c",
+  "total_cost_usd": 0.014830529999999998,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 49589,
+    "cache_read_input_tokens": 224653,
+    "output_tokens": 5330,
+    "output_tokens_details": {
+      "thinking_tokens": 2444
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 49589,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3019,
+        "cache_read_input_tokens": 59980,
+        "cache_creation_input_tokens": 2399,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2399
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5330,
+      "cacheReadInputTokens": 224653,
+      "cacheCreationInputTokens": 49589,
+      "webSearchRequests": 0,
+      "costUSD": 0.014830529999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2444,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the reply separates the two cases mainly by grading the wording of the empty note, not by a structured field. The strong \"definitive\" claim is only made when the database has been checked for rows the query would have matched in corpora `search` does not read. The file-type report that says \"I did not look there\" has a gap: when a file type is absent, the reply can't distinguish \"measured, nothing missed\" from \"build predates the measurement.\"\n\nI read this from source, not a live index query. The `dossier` hint from the shell hook isn't applicable here; I don't have the clew tools loaded.\n\n**How an empty `search` is graded** (`clew/mcp_server/emptiness.py`, `search_emptiness` and `_verdict`)\n\n| Situation | Wording | Confidence it earns |\n|---|---|---|\n| One token, no hits in `search`'s corpora, no hits in unread kinds, `file_docs` present | \"This IS a definitive empty result\u2026 Do not retry\" | Strong, but only about this index, its build scope and its preprocessor variant. |\n| One token, hits exist in an unread kind (typedef, macro, class, etc.) | \"NOT DEFINITIVE \u2014 this index HOLDS matching rows\u2026\" with the kinds and counts named | Explicitly withdrawn. The reply names the rows and says to use `dossier`. |\n| Multi-token conjunction | \"NOT DEFINITIVE\" plus per-token counts and the dead token | Low. The reply says which token to drop. |\n| `search(corpus='prose')`, token exists in symbols | \"NOT DEFINITIVE\u2026 these terms are just not in prose\" | Low for prose, and it points at the symbol corpus. |\n| No `file_docs` table or no markdown corpus | \"NOT DEFINITIVE\u2026 rebuild with index(action='refresh')\" | None. The index could not have looked. |\n| Index schema older than the server | `_withdraw_definitive` replaces the claim with \"NOT DEFINITIVE\" | Withdrawn. A layer may be missing rather than empty. |\n\nThe `scope` key on the reply gives the covered shape: file count, top-level directories, extensions and `source` (`declared` or `whole-repo`). That is what lets a caller tell \"outside the scope\" from \"not in the repo.\"\n\n**The file-type report** (`clew/cli.py:_not_indexed_scope`, stamped at build time)\n\n- At build time, it compares the scanned file set to the `path` table and stamps `not_indexed` (e.g. `.sh=3, .yml=1`) and `not_indexed_count`. The count is exact; the list is capped at 12.\n- It answers \"I did not look in the place it lives\" only at the file level. A file that is registered in `path` but yields no symbols, for example because its grammar is absent, is not flagged. I did not confirm whether the shell/YAML front ends register those files, so treat that as unverified.\n- It is measured at build time, deliberately, because a query-time walk would describe a different tree.\n\n**The gap: the reply cannot tell two cases apart.** `_not_indexed_scope` returns `{}` both when nothing was missed and when the build never walked the tree. `_scope_payload` then drops the `not_indexed` keys in that empty case. Both an index built before this release and a fully covered index therefore produce the same reply with no `not_indexed` key. The tests `test_an_index_that_holds_everything_in_scope_stamps_nothing` and `test_an_index_built_before_this_release_claims_nothing` assert exactly this sameness, while the module docstring says the two must not read the same. The only available proxy is the `scope.source` field, which tells you the scope rows exist, not that the file-type comparison ran. That is a real defect against the stated design, and it is a one-line fix to stamp an explicit zero (for example `not_indexed_count = \"0\"`) when the comparison ran and found nothing missing.\n\n**How much confidence each answer deserves**\n\n- **\"The symbol is not in this repository\"**: only the strong-wording case, and only for the indexed scope and build time. The code's own rule is \"trust the negative\" for a single absent symbol, and it withdraws that rule for conjunctions, unread kinds, stale schemas and split repositories.\n- **\"This file type is not indexed\"**: a real, measured, count-exact fact at file granularity, but it does not say the file's symbols were extracted.\n- **\"Nothing was missed\"**: the reply cannot currently support this claim. A missing `not_indexed` key does not establish it.",
+  "ttft_ms": 1510,
+  "type": "result",
+  "duration_ms": 30488,
+  "uuid": "ff89108d-8f43-4c31-b88b-97e60c4072f7",
+  "ttft_stream_ms": 1093,
+  "time_to_request_ms": 77,
+  "first_content_frame_ms": 1093,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

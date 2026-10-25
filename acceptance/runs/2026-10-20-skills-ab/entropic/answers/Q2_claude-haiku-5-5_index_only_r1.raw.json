@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 17639,
+  "stop_reason": "end_turn",
+  "session_id": "a5e69a8a-acbf-4054-a893-78c566857f70",
+  "total_cost_usd": 0.009731209999999999,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 33677,
+    "cache_read_input_tokens": 153751,
+    "output_tokens": 2915,
+    "output_tokens_details": {
+      "thinking_tokens": 1092
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 33677,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1897,
+        "cache_read_input_tokens": 52127,
+        "cache_creation_input_tokens": 1799,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1799
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2915,
+      "cacheReadInputTokens": 153751,
+      "cacheCreationInputTokens": 33677,
+      "webSearchRequests": 0,
+      "costUSD": 0.009731209999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1092,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How it's brought in:** The index can't show this. Build wiring (CMake, the submodule declaration, build flags) isn't indexed, and the only build-related signal is prose. `src/inference/llama_cpp_backend.cpp` says it is \"Pinned against llama.cpp submodule b8420\", and `speculative_compat.cpp` refers to `extern/llama.cpp/common/speculative.cpp`. So the dependency is a git submodule at `extern/llama.cpp`, pinned to commit b8420. The `extern/` directory has one indexed file, and that file isn't llama.cpp itself. To confirm how it is wired, read the top-level CMake files and `.gitmodules` directly.\n\n**How far it reaches into entropic's source:** Mostly the inference layer, and it is contained there.\n\n- **Direct C API users:** `LlamaCppBackend` (`src/inference/llama_cpp_backend.h/.cpp`) is the \"15% layer\" that calls llama.cpp directly. It loads models, creates contexts, runs the decode loop, and handles mtmd and unload. `LlamaCppSampler` and `LlamaCppSamplerFactory` build llama.cpp's `llama_sampler` chain. `LlamaCppTokenizer` forwards to the vocab API. `AdapterManager` uses the LoRA API. `to_llama_chat` converts messages to `llama_chat_message`.\n- **Chat and tool parsing:** `adapters/adapter_registry.cpp` lets llama.cpp's `common_chat` own tool-call parsing for families it has a grammar for. `tool_call_markers.h` derives its markers from the resolved `common_chat` format. `LlamaCppBackend::CommonChatResult` carries the results.\n- **Abstraction seams:** `include/entropic/inference/sampler.h` and `tokenizer.h` define abstract seams so the engine can be tested without llama.cpp. Their headers mention llama.cpp only in comments.\n- **Public surface:** llama.cpp-specific names show up in `include/entropic/types/config.h` (`llama_log_path`, `ggml_logging`, `frequency_penalty`, `presence_penalty`) and in the backend name `\"llama.cpp\"` in `backend_capability.h`. `adapter_manager.h` has a `handle` documented as a \"llama.cpp adapter handle\", which I did not confirm is a raw llama.cpp type. I did not find llama.cpp types in other public declarations, but this index only shows declarations and briefs, so check that before relying on it.\n- **Tests:** Many unit and model tests mock llama.cpp symbols at link time (`adapter_manager_test.cpp`, `speculative_compat_test.cpp`, `vocab_only_smoke_test.cpp`).\n\n**Gaps:** The index can't tell you whether the dependency is a build-time link or a dlopen, or how the vendored `stb_image` (mentioned in `image_preprocessor.cpp`) is pulled in. Those need the build files.",
+  "ttft_ms": 1521,
+  "type": "result",
+  "duration_ms": 18169,
+  "uuid": "7227bb3a-3f0c-40f5-adee-d6524949e1c6",
+  "ttft_stream_ms": 1329,
+  "time_to_request_ms": 87,
+  "first_content_frame_ms": 1329,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

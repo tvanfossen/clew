@@ -1,0 +1,105 @@
+{
+  "duration_api_ms": 18909,
+  "stop_reason": "end_turn",
+  "session_id": "25e7171c-7558-4a90-b437-9fa49f237d62",
+  "total_cost_usd": 0.00812527,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 19035,
+    "cache_read_input_tokens": 280487,
+    "output_tokens": 3024,
+    "output_tokens_details": {
+      "thinking_tokens": 1001
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 19035,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1302,
+        "cache_read_input_tokens": 49636,
+        "cache_creation_input_tokens": 3327,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3327
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 3024,
+      "cacheReadInputTokens": 280487,
+      "cacheCreationInputTokens": 19035,
+      "webSearchRequests": 0,
+      "costUSD": 0.00812527,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1001,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "mcp__clew__propose_declaration",
+      "tool_use_id": "toolu_01A8Sy5LXLNFEmtYY7SLwzEH",
+      "tool_input": {}
+    }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "There are four ways to tell clew how to index a repository, and when two of them disagree the higher tier wins, with the rule depending on the option.\n\n**The ways to say so**\n\n| Tier | Source | Notes |\n|---|---|---|\n| 1 (explicit) | CLI flags such as `--declare FILE`, `--exclude PATH`, `--shared-key-patterns`, or the structured `options` argument for embedding callers | Applies to one build. Recorded, and replayed on later rebuilds. |\n| 2 (declared) | The repo's own `.clew.yaml`, with sections like `index_scope`, `preprocessor`, `requirements`, `guard` | The standing declaration, discovered from `--repo-root`. |\n| 3 (target-fact) | Facts someone already wrote down: language, platform, the target's own manifests | Accumulates. No stated tier can remove it. |\n| 4 (ecosystem) | Known-ecosystem signatures, such as default key-alias prefixes | Accumulates. A declaration can add to it but not remove it. |\n| 5 (heuristic) | Name-pattern guesses | The layer a stated tier displaces. |\n\nA `--declare` document uses the same schema as `.clew.yaml`. `export` writes the stated options back out as a declaration, and `propose_declaration` drafts a `.clew.yaml` entirely as comments, so nothing changes until someone uncomments it. I did not run that proposal: the tool call was denied permission, so I have not seen what it would draft for this repo.\n\n**When two disagree**\n\n- For a layered option, the combination rule is `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. A stated value from tier 1 or tier 2 replaces the guesses but never the facts or ecosystem defaults.\n- If a CLI flag and the `.clew.yaml` both state the same option, the flag wins and the declaration is ignored for that build. The index records which tier won.\n- An empty explicit value is a withdrawal, not a statement. `[]` falls through to the declaration and then to the guesses, which lets an operator undo a recorded flag without deleting the database.\n- Some options are deliberately not competing. For shared-key alias prefixes, a manifest passed by flag and the declared dispatch section are unioned, so passing `--shared-key-patterns` does not silently drop the repo's declared wrapper prefixes. The flag only changes the label recorded for the winning tier.\n- `--scope` is no longer a flag. Scope is set through the declared `index_scope` section or the typed build surface.\n\n**Limits of this answer**\n\nI could not read the full `tiers.py` file doc or `buildoptions.py` verbatim. The index does not hold them as named symbols, so the table above is assembled from search snippets and the `resolve_layered` docstring. The tier-1 and tier-2 rows and the tier-5 displacement are confirmed; the exact wording of the other rows is not.",
+  "ttft_ms": 1879,
+  "type": "result",
+  "duration_ms": 19846,
+  "uuid": "d9279a91-dbc2-4bfa-be7c-0ffa82f7d017",
+  "ttft_stream_ms": 1136,
+  "time_to_request_ms": 88,
+  "first_content_frame_ms": 1136,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -46,7 +46,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import ClassVar
 
-from ._common import logger
+from ._common import logger, within_repo
 
 ## Doxygen's path rows for symbols it harvested from system headers are bracketed
 ## (`[STL]`, `[generated]`); the SHAPE is filtered, not any one literal. Mirrors
@@ -271,7 +271,52 @@ class CFamilyFileDoc(FileDocExtractor):
 ## Concrete extractors, resolved by suffix. A suffix no extractor claims yields no
 ## row — silently, and correctly: a `.json` fixture has no file-level documentation
 ## to find, and inventing one would put noise on a search surface.
-_EXTRACTORS: tuple[FileDocExtractor, ...] = (PythonFileDoc(), CFamilyFileDoc())
+## A JSDoc block that declares itself file-level. Only these count: in JS/TS a leading
+## `/** */` is far more often the first function's JSDoc than a file doc, and attributing it
+## to the file would publish one function's summary as the whole module's.
+_JSDOC_FILE_TAG = re.compile(r"@(?:file|fileoverview|overview|module)\b")
+## Lines JavaScript puts above a file doc: a shebang and a `'use strict';` directive.
+_JS_PREAMBLE = re.compile(r"^[ \t]*(#!.*|['\"]use strict['\"];?[ \t]*)\n")
+
+
+## @brief File-level documentation for JavaScript / TypeScript (JSDoc).
+## @version 1
+class JsFileDoc(CFamilyFileDoc):
+    """The C-family block reader, with a shebang / `'use strict'` line skipped and the
+    block accepted only when it carries a JSDoc file tag.
+
+    @brief JS/TS file-level JSDoc extractor.
+    @version 1
+    """
+
+    EXTENSIONS: ClassVar[tuple[str, ...]] = (
+        ".js",
+        ".mjs",
+        ".cjs",
+        ".jsx",
+        ".ts",
+        ".mts",
+        ".cts",
+        ".tsx",
+    )
+
+    ## @brief The leading JSDoc block, when it declares itself file-level.
+    ## @param text Full decoded file contents.
+    ## @return Raw comment body or "".
+    ## @version 1
+    ## @req REQ-DDB-PIPE-012
+    def _raw(self, text: str) -> str:
+        """@brief Read a file-level JSDoc block."""
+        while True:
+            match = _JS_PREAMBLE.match(text)
+            if not match:
+                break
+            text = text[match.end() :]
+        raw = super()._raw(text)
+        return raw if _JSDOC_FILE_TAG.search(raw) else ""
+
+
+_EXTRACTORS: tuple[FileDocExtractor, ...] = (PythonFileDoc(), CFamilyFileDoc(), JsFileDoc())
 
 
 ## @brief The file-level documentation for one repo-relative source file.
@@ -420,7 +465,7 @@ def ingest_file_docs(db_path: Path, repo_root: Path) -> int:
 ## @param conn Open connection to the index.
 ## @param repo_root Working-tree root the indexed paths are relative to.
 ## @return List of (repo-relative path, cleaned documentation) pairs.
-## @version 1
+## @version 2
 ## @dg_internal
 def _collect_file_docs(conn: sqlite3.Connection, repo_root: Path) -> list[tuple[str, str]]:
     """Split out of `ingest_file_docs` so the transaction handling and the
@@ -433,6 +478,11 @@ def _collect_file_docs(conn: sqlite3.Connection, repo_root: Path) -> list[tuple[
     """
     collected: list[tuple[str, str]] = []
     for rel in _indexed_files(conn):
+        ## An indexed path can be a committed symlink out of the tree, which would have its
+        ## target's docblock served as this file's documentation (1.1.0 audit, H2). Skipped the
+        ## way an unreadable file is — `_read_text` already returns None for that.
+        if within_repo(repo_root / rel, repo_root, setting=f"file documentation for {rel}") is None:
+            continue
         text = _read_text(repo_root / rel, rel)
         if text is None:
             continue

@@ -39,8 +39,13 @@ DEFAULT_TIMEOUT = 1800
 _ALLOWED = {
     "baseline": "Read,Grep,Glob,Bash",
     "index": "Read,Grep,Glob,Bash,mcp__clew__dossier,mcp__clew__search,mcp__clew__index",
-    ## THE CEILING ARM GETS THE INDEX AND NOTHING ELSE. Not a comparison arm — see
-    ## runner.CEILING_ARM for why it stands beside the grid rather than in it.
+    ## THE INDEX ALONE, NO SHELL. This WAS described here as a ceiling arm standing beside the
+    ## grid; the owner ruling of 2026-08-22 put it IN the grid as the comparison arm, and
+    ## `runner.ARMS` is where that is stated. The comment outlived the ruling by two months.
+    ##
+    ## Stripping the shell is what makes a miss attributable: the arm cannot read a line of
+    ## source, so a component it does not reach is one the index does not carry, rather than one
+    ## the agent chose not to look up.
     "index_only": "mcp__clew__dossier,mcp__clew__search,mcp__clew__index",
 }
 
@@ -57,6 +62,11 @@ class CellResult:
     arm: str
     model: str
     ok: bool
+    ## WHICH USAGE DOCUMENT THIS CELL WAS GIVEN, by path, or "" for none. A run directory holding
+    ## both halves of a documentation A/B is unreadable if a cell cannot say which half it is —
+    ## the stem cannot carry it, being the (question, model, arm, replicate) key both share.
+    ## Recorded as "" rather than omitted, so "no document" and "nobody recorded" differ.
+    skills: str = ""
     seconds: float = 0.0
     ## FOUR TOKEN NUMBERS, NEVER ONE. Blending them hides that cached prefix dominates: measured
     ## at 534,192 cache-read against 7,292 output on a single cell.
@@ -93,7 +103,7 @@ def count_tools(envelope: dict, session_id: str | None, repo_root: Path) -> tupl
 
     @brief Tool-call counts from the session transcript.
     @return (total, non-index).
-    @version 2
+    @version 3
     """
     if not session_id:
         return -1, -1
@@ -104,8 +114,18 @@ def count_tools(envelope: dict, session_id: str | None, repo_root: Path) -> tupl
         if not found:
             return -1, -1
         path = found[0]
-    total = 0
-    non_index = 0
+    ## COUNTED BY tool_use ID, NOT BY BLOCK, because a transcript repeats rows. Measured on the
+    ## 1.1.0 grid: one cell's JSONL held 118 rows against 64 distinct uuids and 30 `tool_use`
+    ## blocks against SIXTEEN distinct ids, so this reported 30 calls for an agent that made 16.
+    ##
+    ## IT HID BECAUSE IT WAS UNIFORM — 1.92x to 1.94x on all three arms — so every cross-arm
+    ## ratio looked right while every absolute count was nearly double. A figure that is wrong
+    ## by the same factor everywhere is the hardest kind to notice and the easiest to publish.
+    ##
+    ## The id is the call's identity: the model assigns it, and the same id twice is one call
+    ## written down twice, whatever made the file repeat a row. Counting blocks trusts the
+    ## file's shape; counting ids trusts its content.
+    seen: dict[str, str] = {}
     try:
         for line in path.read_text(encoding="utf-8").splitlines():
             try:
@@ -116,11 +136,14 @@ def count_tools(envelope: dict, session_id: str | None, repo_root: Path) -> tupl
             for block in content if isinstance(content, list) else []:
                 if not isinstance(block, dict) or block.get("type") != "tool_use":
                     continue
-                total += 1
-                if "clew" not in str(block.get("name") or ""):
-                    non_index += 1
+                ## A block with no id cannot be de-duplicated, so it is kept under a key of its
+                ## own rather than silently collapsing every such block into one.
+                key = str(block.get("id") or f"anon:{len(seen)}")
+                seen.setdefault(key, str(block.get("name") or ""))
     except OSError:
         return -1, -1
+    total = len(seen)
+    non_index = sum(1 for name in seen.values() if "clew" not in name)
     return total, non_index
 
 
@@ -140,6 +163,7 @@ def run_cell(
     out_dir: Path,
     mcp_config: Path | None = None,
     timeout: int = DEFAULT_TIMEOUT,
+    skills: Path | None = None,
 ) -> CellResult:
     """REFUSES rather than silently degrading when the index arm has no MCP config. An index arm
     that quietly ran without its index would produce a full set of plausible answers and a
@@ -147,7 +171,7 @@ def run_cell(
 
     @brief Execute one cell.
     @return CellResult.
-    @version 1
+    @version 2
     """
     import time
 
@@ -180,6 +204,12 @@ def run_cell(
         ## have configured.
         "--strict-mcp-config",
     ]
+    ## A SEPARATE SURFACE FROM THE BRIEF, deliberately. `check_symmetry` guards the brief and
+    ## must keep passing: a usage document that varied the brief would be the coached-versus-
+    ## uncoached asymmetry that invalidated an earlier run. The SYSTEM prompt is also how an
+    ## adopter actually loads a repo-level agent doc, so this measures the real mechanism.
+    if skills is not None:
+        argv += ["--append-system-prompt", skills.read_text(encoding="utf-8")]
     ## ABSOLUTE, because the subprocess runs with cwd set to the TARGET REPO. A relative config
     ## path resolved against that tree, the file was not there, and every index cell failed
     ## while the baseline cells succeeded — a failure mode that silently produces a one-armed
@@ -236,6 +266,7 @@ def run_cell(
         tool_calls=calls,
         non_index_tool_calls=non_index,
         denied_tool_calls=len(envelope.get("permission_denials") or []),
+        skills=str(skills) if skills is not None else "",
         error="" if answer.strip() else "the agent produced no answer text",
     )
 
@@ -271,14 +302,26 @@ def index_cells_that_never_used_the_index(results: list[CellResult]) -> list[str
     A cell whose tool use could not be determined (-1) is not counted here — unknown is not zero,
     and treating it as zero would manufacture the very alarm this exists to raise honestly.
 
+    BOTH INDEX-BEARING ARMS, DERIVED FROM `_ALLOWED` RATHER THAN NAMED. This read `arm == "index"`
+    while `ARMS` is ("baseline", "index_only"), so the one check that catches a fabricating index
+    arm watched the arm the 1.1.0 grid does not run. `runner.check_symmetry` carries a comment
+    about this exact defect — it named its two arms literally and kept comparing the OLD pair
+    after the compared arms changed — which is why the set is derived here.
+
+    AND IT MATTERS MORE ON `index_only` THAN ON THE BLENDED ARM. That arm is granted no Read,
+    Grep, Glob or Bash, so zero index calls means zero tool calls of any kind: the answer came
+    from nothing. On the blended arm the same number means the agent preferred the shell, which
+    is adoption; here it means the prose was fabricated.
+
     @brief Index cells with no index calls.
     @return Suspect cell stems.
-    @version 1
+    @version 2
     """
+    index_bearing = {arm for arm, tools in _ALLOWED.items() if "mcp__clew__" in tools}
     return [
         r.stem
         for r in results
-        if r.arm == "index"
+        if r.arm in index_bearing
         and r.ok
         and r.tool_calls >= 0
         and r.tool_calls == r.non_index_tool_calls

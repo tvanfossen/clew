@@ -35,7 +35,12 @@ SELF = REPO / "acceptance" / "targets" / "self" / "questions.yaml"
 ## private tree (it nests a repo directory under `internal/`) without this file naming it.
 ## THE ARMS UNDER TEST, DERIVED. Naming them literally is how the summary itself went blind:
 ## it kept comparing a pair the run no longer runs, and every test agreed with it.
-_A, _B = runner.ARMS
+##
+## AND THE ARITY IS DERIVED TOO, which the first version was not — `_A, _B = runner.ARMS` broke
+## the whole module at import the moment a third arm joined. `_A` is the REFERENCE arm; `_REST`
+## is every arm measured against it.
+_A, *_REST = runner.ARMS
+_B = _REST[0]
 
 SHIPPED = sorted(
     p
@@ -278,9 +283,9 @@ def test_paired_summary_reports_ties_and_displacement(capsys: pytest.CaptureFixt
     cli._paired_summary(
         [
             cell(f"Q1_sonnet_{_A}_r1", _A, 11, 0.20),
-            cell(f"Q1_sonnet_{_B}_r1", _B, 5, 0.75),
+            *[cell(f"Q1_sonnet_{a}_r1", a, 5, 0.75) for a in _REST],
             cell(f"Q2_sonnet_{_A}_r1", _A, 10, 0.667),
-            cell(f"Q2_sonnet_{_B}_r1", _B, 13, 0.667),
+            *[cell(f"Q2_sonnet_{a}_r1", a, 13, 0.667) for a in _REST],
         ]
     )
     out = capsys.readouterr().out
@@ -313,15 +318,18 @@ def test_unknown_tool_counts_produce_no_displacement(capsys: pytest.CaptureFixtu
                 },
                 {"score": 0.5},
             ),
-            (
-                {
-                    "stem": f"Q1_sonnet_{_B}_r1",
-                    "arm": _B,
-                    "tool_calls": 6,
-                    "non_index_tool_calls": 4,
-                },
-                {"score": 0.5},
-            ),
+            *[
+                (
+                    {
+                        "stem": f"Q1_sonnet_{a}_r1",
+                        "arm": a,
+                        "tool_calls": 6,
+                        "non_index_tool_calls": 4,
+                    },
+                    {"score": 0.5},
+                )
+                for a in _REST
+            ],
         ]
     )
     ## ASSERT ON THE DISPLACEMENT COLUMN, not on the presence of an em-dash anywhere. The first
@@ -359,9 +367,9 @@ def test_zero_index_cell_is_flagged_in_the_separation_table(capsys: pytest.Captu
     cli._paired_summary(
         [
             cell(f"Q1_sonnet_{_A}_r1", _A, 9, 9, 0.833),
-            cell(f"Q1_sonnet_{_B}_r1", _B, 6, 6, 0.667),
+            *[cell(f"Q1_sonnet_{a}_r1", a, 6, 6, 0.667) for a in _REST],
             cell(f"Q2_sonnet_{_A}_r1", _A, 9, 9, 0.50),
-            cell(f"Q2_sonnet_{_B}_r1", _B, 8, 5, 0.90),
+            *[cell(f"Q2_sonnet_{a}_r1", a, 8, 5, 0.90) for a in _REST],
         ]
     )
     lines = {x.split()[0]: x for x in capsys.readouterr().out.splitlines() if x.startswith("Q")}
@@ -427,15 +435,19 @@ def test_paired_summary_uses_the_configured_arms(capsys: pytest.CaptureFixture) 
     @return None.
     @version 1
     """
-    rows = [
-        _cell(f"Q1_sonnet_{runner.ARMS[0]}_r1", runner.ARMS[0], 0.40, shell=9),
-        _cell(f"Q1_sonnet_{runner.ARMS[1]}_r1", runner.ARMS[1], 0.70, shell=1),
-    ]
+    ## EVERY ARM, DERIVED — including the arity. This built exactly two rows, so it would have
+    ## reported "no complete arm set" the moment a third arm joined, which is the same blindness
+    ## it was written to catch.
+    rows = [_cell(f"Q1_sonnet_{runner.ARMS[0]}_r1", runner.ARMS[0], 0.40, shell=9)]
+    rows += [_cell(f"Q1_sonnet_{a}_r1", a, 0.70, shell=1) for a in runner.ARMS[1:]]
     cli._paired_summary(rows)
     out = capsys.readouterr().out
-    assert "No arm PAIRS" not in out, "the configured arms were not recognised as a pair"
-    assert "+30.0pt" in out, "separation must be computed for the pair"
-    assert "+8" in out, "shell displacement must be computed for the pair"
+    assert "No complete arm SETS" not in out, "the configured arms were not recognised"
+    assert "+30.0pt" in out, "separation must be computed against the reference arm"
+    assert "+8" in out, "shell displacement must be computed"
+    ## ONE ROW PER COMPARISON ARM, so a third arm is reported rather than silently folded in.
+    body = [x for x in out.splitlines() if x.startswith("Q1_")]
+    assert len(body) == len(runner.ARMS) - 1, body
 
 
 ## @brief Separation is reported beside the question's citation spread.
@@ -455,9 +467,9 @@ def test_separation_table_carries_files_cited(capsys: pytest.CaptureFixture) -> 
     """
     rows = [
         _cell(f"Q1_sonnet_{_A}_r1", _A, 0.40),
-        _cell(f"Q1_sonnet_{_B}_r1", _B, 0.70),
+        *[_cell(f"Q1_sonnet_{a}_r1", a, 0.70) for a in _REST],
         _cell(f"Q2_sonnet_{_A}_r1", _A, 0.80),
-        _cell(f"Q2_sonnet_{_B}_r1", _B, 0.80),
+        *[_cell(f"Q2_sonnet_{a}_r1", a, 0.80) for a in _REST],
     ]
     cli._paired_summary(rows, files_cited={"Q1": 6, "Q2": 1})
     out = capsys.readouterr().out
@@ -484,7 +496,7 @@ def test_separation_table_without_a_rubric_shows_no_spread(
     """
     rows = [
         _cell(f"Q1_sonnet_{_A}_r1", _A, 0.40),
-        _cell(f"Q1_sonnet_{_B}_r1", _B, 0.70),
+        *[_cell(f"Q1_sonnet_{a}_r1", a, 0.70) for a in _REST],
     ]
     cli._paired_summary(rows)
     line = next(x for x in capsys.readouterr().out.splitlines() if x.startswith("Q1_"))
@@ -509,7 +521,7 @@ def test_unpaired_questions_are_named(capsys: pytest.CaptureFixture) -> None:
     """
     rows = [
         _cell(f"Q1_sonnet_{_A}_r1", _A, 0.40),
-        _cell(f"Q1_sonnet_{_B}_r1", _B, 0.70),
+        *[_cell(f"Q1_sonnet_{a}_r1", a, 0.70) for a in _REST],
         _cell(f"Q2_sonnet_{_A}_r1", _A, 0.80),
     ]
     cli._paired_summary(rows)
@@ -969,9 +981,9 @@ def test_separation_hides_scores_the_judge_never_ruled(capsys: pytest.CaptureFix
 
     rows = [
         cell(f"Q3_sonnet_{_A}_r1", _A, 0.0, 1.0),
-        cell(f"Q3_sonnet_{_B}_r1", _B, 0.0, 1.0),
+        *[cell(f"Q3_sonnet_{a}_r1", a, 0.0, 1.0) for a in _REST],
         cell(f"Q4_sonnet_{_A}_r1", _A, 0.80, 0.0),
-        cell(f"Q4_sonnet_{_B}_r1", _B, 0.60, 0.0),
+        *[cell(f"Q4_sonnet_{a}_r1", a, 0.60, 0.0) for a in _REST],
     ]
     cli._paired_summary(rows)
     out = capsys.readouterr().out
@@ -983,3 +995,117 @@ def test_separation_hides_scores_the_judge_never_ruled(capsys: pytest.CaptureFix
     ## THE CONTROL: a genuinely graded pair still reports its separation, or this fix would have
     ## blanked the table it exists to protect.
     assert "-20.0pt" in q4, f"a fully ruled pair still separates: {q4}"
+
+
+## @brief Resuming skips the cells that already produced an answer.
+## @return None.
+## @version 1
+def test_resume_does_not_respend_a_cell_that_already_has_an_answer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """GENERATION IS THE PHASE THAT CANNOT BE RE-RUN CHEAPLY, and it had no way to resume: the
+    loop walks the whole plan unconditionally and a failed cell writes no `.md` and is passed
+    over. A capacity window inside a serial grid therefore loses those cells permanently, and
+    re-running spends every completed cell again to reach them.
+
+    OPT-IN, SO THE DEFAULT CONTRACT IS UNCHANGED. Without `--resume` a second `generate` still
+    re-spends everything, which is what every past measurement assumed. With it, the frozen
+    `.md` is treated as the record it already is.
+
+    THE PRESENCE OF `.md` IS THE RIGHT TEST because `run_cell` writes it LAST and only on
+    success — a transport failure leaves `.meta.json` and `.raw.json` but no answer, so a cell
+    that errored is correctly retried rather than skipped.
+
+    @brief --resume skips answered cells.
+    @return None.
+    @version 1
+    """
+    from acceptance.runner import plan as plan_cells
+
+    rubric = _rubric_mod.load(MBEDTLS)
+    cells = plan_cells(rubric, ("m",), 1, 7)
+    done = {cells[0].stem(), cells[3].stem()}
+    answers = tmp_path / "answers"
+    answers.mkdir()
+    for stem in done:
+        (answers / f"{stem}.md").write_text("an answer from an earlier window", "utf-8")
+
+    ran: list[str] = []
+
+    def record(cell, *_a, **_k):
+        ran.append(cell.stem())
+        return execute.CellResult(cell.stem(), cell.arm, cell.model, True, tool_calls=1)
+
+    monkeypatch.setattr(cli, "run_cell", record)
+    monkeypatch.setattr(cli, "check_revision", lambda *_a, **_k: None)
+    args = cli.argparse.Namespace(
+        rubric=MBEDTLS,
+        models=["m"],
+        replicates=1,
+        seed=7,
+        repo=tmp_path / "repo",
+        out=answers,
+        mcp_config=None,
+        timeout=60,
+        resume=True,
+    )
+    assert cli.cmd_generate(args) == 0
+    assert done.isdisjoint(ran), "a cell with a frozen answer was spent again"
+    assert len(ran) == len(cells) - len(done)
+    ## THE RUN RECORD SAYS SO. A grid assembled over several windows must not read as one pass.
+    assert json.loads((answers / "run.json").read_text())["resumed"] == sorted(done)
+
+
+## @brief Grading several answers at once produces exactly what grading them in turn produces.
+## @return None.
+## @version 1
+def test_jobs_grades_concurrently_and_changes_no_sidecar(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """WHY GRADING MAY PARALLELISE WHEN GENERATION MAY NOT: a cell's wall-clock is a reported
+    axis and a judge call's is reported nowhere. A full grid is ~3,400 judge calls per pass and
+    the noise floor needs two passes, so serial grading is most of the run's wall-clock while
+    contributing nothing a reader will ever quote.
+
+    THE BARRIER IS THE ASSERTION. Counting elapsed time would make this a timing test on shared
+    CI; a barrier that all four answers must reach before any proceeds either happens or times
+    out, and it times out on a serial implementation.
+
+    AND THE OUTPUT MUST NOT MOVE. `grader_fingerprint` hashes only `acceptance/grader/`, which
+    this change does not touch, so a parallel pass stays comparable to a serial one — but the
+    sidecars are compared byte for byte rather than assumed.
+
+    @brief --jobs is concurrent and output-identical.
+    @return None.
+    @version 1
+    """
+    import threading
+
+    rubric = _rubric_mod.load(MBEDTLS)
+    qid = rubric.questions[0].id
+    stems = [f"{qid}_m_baseline_r{i}" for i in range(1, 5)]
+
+    def _run(folder: Path, jobs: int, gate: threading.Barrier | None) -> None:
+        folder.mkdir()
+        for stem in stems:
+            (folder / f"{stem}.md").write_text(f"an answer for {stem}", "utf-8")
+
+        def scored(*_a, **_k):
+            if gate is not None:
+                gate.wait()
+            return _StubResult()
+
+        monkeypatch.setattr(cli, "score_question", scored)
+        args = cli.argparse.Namespace(rubric=MBEDTLS, answers=folder, jobs=jobs)
+        assert cli.cmd_grade(args) == 0
+
+    ## FOUR ANSWERS, FOUR SLOTS, ONE BARRIER. On a serial grader the first call blocks forever
+    ## and `Barrier` raises rather than hanging the suite.
+    _run(tmp_path / "parallel", 4, threading.Barrier(4, timeout=10))
+    _run(tmp_path / "serial", 1, None)
+
+    for stem in stems:
+        wide = json.loads((tmp_path / "parallel" / f"{stem}.grade.json").read_text())
+        thin = json.loads((tmp_path / "serial" / f"{stem}.grade.json").read_text())
+        assert wide == thin, f"{stem} graded differently under --jobs"
+        assert wide["grader_fingerprint"] == thin["grader_fingerprint"]

@@ -12,7 +12,6 @@ member, qualified and template call — 66.7% of a C++ codebase's call sites.
 
 from __future__ import annotations
 
-import pytest
 
 from clew.ast_symbols import harvest_enumerators
 from clew.call_edges import (
@@ -21,12 +20,7 @@ from clew.call_edges import (
     _ast_harvest_calls,
     _ast_record_call_edge,
 )
-from clew.harvest import _ast_parse_one_file, try_import_tree_sitter
-
-pytestmark = pytest.mark.skipif(
-    try_import_tree_sitter() is None,
-    reason="the AST recovery tests need tree_sitter + its C/C++ grammars",
-)
+from clew.harvest import _ast_parse_one_file
 
 _CPP_HEADER = """\
 #pragma once
@@ -73,10 +67,9 @@ void Widget::tick() {
 ## @version 1
 def _parse(tmp_path, name: str, text: str):
     """@brief Write a source file and parse it exactly as the pipeline does."""
-    Language, Parser = try_import_tree_sitter()
     path = tmp_path / name
     path.write_text(text, encoding="utf-8")
-    return _ast_parse_one_file(name, path, {}, Parser, Language)
+    return _ast_parse_one_file(name, path, {})
 
 
 ## @brief Count ERROR/MISSING nodes in a tree.

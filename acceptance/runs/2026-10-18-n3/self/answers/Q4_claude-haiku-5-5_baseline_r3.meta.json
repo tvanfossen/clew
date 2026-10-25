@@ -1,0 +1,41 @@
+{
+  "stem": "Q4_claude-haiku-5-5_baseline_r3",
+  "arm": "baseline",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "seconds": 25.743393627999467,
+  "input_tokens": 14,
+  "output_tokens": 4948,
+  "cache_read_tokens": 283716,
+  "cache_creation_tokens": 22230,
+  "cost_usd": 0.00975856,
+  "result_bytes": 3676,
+  "turns": 10,
+  "tool_calls": 9,
+  "non_index_tool_calls": 9,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/2026-10-18-n3/self/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nclew can tell you what calls a function. What is actually in that answer, and what would\nmake it wrong to read it as a list of call sites?\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "tvanfossen/clew",
+    "question_id": "Q4",
+    "arm": "baseline",
+    "model": "claude-haiku-5-5",
+    "replicate": 3,
+    "order": 16
+  },
+  "tool_calls_as_recorded": 18,
+  "non_index_tool_calls_as_recorded": 18,
+  "tool_counts_corrected": "recounted by tool_use id; blocks were double-counted (see acceptance/execute.py count_tools v3)"
+}

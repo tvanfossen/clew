@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 43863,
+  "stop_reason": "end_turn",
+  "session_id": "cef1a41f-9f03-4b72-94d8-2c63eca2d76b",
+  "total_cost_usd": 0.017162740000000003,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 39595,
+    "cache_read_input_tokens": 554174,
+    "output_tokens": 7400,
+    "output_tokens_details": {
+      "thinking_tokens": 3213
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 39595,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2077,
+        "cache_read_input_tokens": 72172,
+        "cache_creation_input_tokens": 3015,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3015
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 20,
+      "outputTokens": 7400,
+      "cacheReadInputTokens": 554174,
+      "cacheCreationInputTokens": 39595,
+      "webSearchRequests": 0,
+      "costUSD": 0.017162740000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3213,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index holds *registrations* for YAML and JSON files, plus no symbols, call edges or bodies. Shell and CMake files get real function rows when their grammar is present. On an install without those grammars, shell and CMake fall back to registration only, but I found one gap in that fallback.\n\n**What the index holds, by file type**\n\n| Type | Path row (file set) | Symbols / bodies | Call edges | Source |\n|---|---|---|---|---|\n| `.sh`, `.bash`, `.cmake`, `CMakeLists.txt` | yes | yes, when the grammar is available | yes | `clew/synth.py:60-69`, `clew/shast.py`, `clew/cmakeast.py` |\n| `.yaml`, `.yml`, `.json` | yes | never | never | `clew/synth.py:71-80` |\n\n- **Shell and CMake:** the parse-built front end (`clew/synth.py`) writes `memberdef` rows for shell functions and CMake functions and macros. CMake macros map to doxygen's \"macro definition\" kind (`synth.py:98`).\n- **YAML and JSON:** the front end registers them as `path` rows so they are in the file set and can be found by name. The comment at `synth.py:71-75` says the grammars offer only `block_mapping_pair` and `pair`, so no function concept exists. They are deliberately never harvested, which keeps every `steps:` key out of the function namespace.\n- **Markdown** is excluded on purpose. `clew/prose.py` chunks it into the full-text index instead.\n\nThe index's own corpus confirms the boundary. A search for `yaml`, `cmake` and `.github` in the indexed-files corpus returned nothing (`search corpus=files`). That corpus only lists source files that have symbols or bodies, so the empty result is expected for data files and does not prove they are absent from the file set. The `.clew.yaml` and `requirements.yaml` that this repo declares are not visible in that corpus either.\n\n**What it does not hold**\n\n- Nothing from YAML or JSON content: no keys, no values, no schema meaning. `requirements.yaml` feeds the requirement layer through the guard's catalog reader, not through the parse-built front end.\n- No call edges for any script. A shell script that calls another shell function, or a CMake `target_link_libraries`, is not linked.\n- Anything outside the declared scope. The `scope` in `.clew.yaml` decides what is walked at all.\n\n**Installation without the grammars**\n\n- **YAML and JSON:** no change. Their registration never asks for a grammar, and they were never harvested, so a published-wheel install loses nothing it had.\n- **Shell and CMake:** `clew/harvest.py:137-145` lists `bash` and `cmake` as optional keys. `_grammar_available` returns False, so `_ts_language_for` returns None and the file is never parsed. The result is no symbols and no call edges for those files. `clew/substrate.py:4-20` says the front ends \"register nothing\" and the miss report names the types as not indexed.\n- **The gap:** I read `claims()` and `register_paths()` (`synth.py:191-226`) and found no capability check. `register_paths` is called unconditionally from `clew/cli.py:1911`. So on a grammarless install, `.sh` and `.cmake` files still get `path` rows. `_not_indexed_scope` (`cli.py:2646`) decides \"missing\" by checking the `path` table, so those files would not appear in the not-indexed report. The docstring and `tests/test_substrate_capability.py` describe the opposite. The existing not-indexed tests seed the `path` table by hand, so they never exercise this path.\n\nI did not run this. The repo has no `.venv`, so I could not probe a real grammarless substrate. The gap comes from reading the code. The test to settle it would be a run of `register_paths` and `_not_indexed_scope` against a `compiled_languages()` that omits `bash` and `cmake`. If that confirms it, the fix is to gate the script claim in `register_paths` on `substrate.has_language` for `bash` and `cmake`, so the miss report names the files.",
+  "ttft_ms": 1809,
+  "type": "result",
+  "duration_ms": 46005,
+  "uuid": "813891c9-87a4-417d-9656-802eb540d723",
+  "ttft_stream_ms": 1518,
+  "time_to_request_ms": 207,
+  "first_content_frame_ms": 1519,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

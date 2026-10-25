@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 11488,
+  "stop_reason": "end_turn",
+  "session_id": "1349ee5b-9b91-415d-a369-435981531117",
+  "total_cost_usd": 0.0053359900000000005,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 19582,
+    "cache_read_input_tokens": 52819,
+    "output_tokens": 1782,
+    "output_tokens_details": {
+      "thinking_tokens": 806
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 19582,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1276,
+        "cache_read_input_tokens": 35566,
+        "cache_creation_input_tokens": 1269,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1269
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 1782,
+      "cacheReadInputTokens": 52819,
+      "cacheCreationInputTokens": 19582,
+      "webSearchRequests": 0,
+      "costUSD": 0.0053359900000000005,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 806,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply separates the two cases by naming what it read, not by a yes/no flag. I ran two empty queries to confirm the shape.\n\n**What a symbol-corpus miss says.** The `note` states that the result is \"a definitive empty result from the database\", and then lists what was searched: names and `@brief` of functions, variables, macros, typedefs, enums, classes, and structs, plus macro expansions, the config symbols the repo gates on, and file docs. It also lists what was not: \"markdown or Kconfig prose\". The `scope` block gives the file count (426), the extensions covered, and `not_indexed` (`.rs`, `.toml`, `.sql`, `.lock`, extensionless files, and others, 14 in total). The `target` names the repo that answered.\n\n**What a prose-corpus miss says.** The reply is thinner. It says \"definitive\" and gives `token_hits` per token, but it has no `scope` or `not_searched` block. You have to know that prose means markdown only.\n\n**Confidence in each answer:**\n\n| Reply | What it licenses |\n|---|---|\n| Empty, `target` is the repo you meant, no `staleness` block | Strong: the name is not a symbol of those kinds in the indexed files. |\n| Empty, but the name lives in an unindexed extension or in prose | Nothing. Check `not_searched`/`scope` and read the files directly (e.g. Makefile, CI config, `.toml`, `.rs`). |\n| Empty, `staleness` block present | Weak until refreshed. A `data` axis means the index is older than source. |\n| Empty from the wrong `target`, or a split repo with `sub_index` not searched | Nothing about this repo. |\n\nTwo limits remain even on a clean empty result. The tool cannot see how a name is spelled differently for another consumer, such as a Python binding or a generated header. It also cannot see anything outside the indexed file set.\n\n**What I did not check.** The tool description says a multi-token miss names the token that emptied the query, and that matching is a conjunction across one searchable unit. I did not test that with a multi-token query, so treat it as documented, not verified here.\n\n**Practical rule:** an empty symbol search means \"not a symbol in these 426 files\". Before saying \"this repo does not have X\", check the `scope`, run the prose corpus if the name might appear in docs, and grep the unindexed file types. Only then state absence.",
+  "ttft_ms": 3060,
+  "type": "result",
+  "duration_ms": 11689,
+  "uuid": "3885b483-d0cf-4c24-b3b8-989ae60aa1b9",
+  "ttft_stream_ms": 1461,
+  "time_to_request_ms": 67,
+  "first_content_frame_ms": 1461,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

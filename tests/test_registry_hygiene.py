@@ -23,8 +23,10 @@ had built up. Three shapes, all checkable:
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -176,3 +178,131 @@ def test_a_build_written_somewhere_else_registers_nothing(tmp_path: Path) -> Non
     _register_built_target(str(repo), elsewhere)
 
     assert TargetRegistry().targets() == []
+
+
+## @brief A registry row naming a path outside the state root never gets rmtree'd.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_traversing_db_path_is_not_followed_into_an_rmtree(tmp_path: Path) -> None:
+    """M3, 1.1.0 SECURITY AUDIT — in code this session shipped, so the record is straight.
+    `_discard` tested containment with `is_relative_to` on the UNRESOLVED path, which is a
+    LEXICAL check: `<home>/targets/../../victim` is textually under `home` and resolves
+    outside it. The registry is a JSON file on disk, so a row is editable by anything running
+    as the user, and `drop`/`cull` then delete a directory of that row's choosing.
+
+    Resolve-then-contain, and `ignore_errors=True` goes with it: it was swallowing exactly the
+    refusals that would have made this visible.
+
+    @brief A `..` traversal in db_path leaves the outside directory intact.
+    @return None.
+    @version 1
+    """
+    home = tmp_path / "state"
+    (home / "targets").mkdir(parents=True)
+    victim = tmp_path / "victim"
+    victim.mkdir()
+    (victim / "keep.txt").write_text("precious", encoding="utf-8")
+
+    (home / REGISTRY_NAME).write_text(
+        json.dumps(
+            {
+                "traversing": {
+                    "slug": "traversing",
+                    "db_path": str(home / "targets" / ".." / ".." / "victim" / "clew.db"),
+                    "repo_path": str(tmp_path / "repo"),
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert TargetRegistry(home).drop(str(tmp_path / "repo")) is True
+
+    assert victim.is_dir() and (victim / "keep.txt").exists(), (
+        "a registry row walked `drop` out of the state root and deleted a directory outside it"
+    )
+
+
+## @brief A symlinked database directory is not followed out of the state root.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_symlinked_db_directory_is_not_followed_out_of_the_state_root(tmp_path: Path) -> None:
+    """The other half of M3, and the one a lexical check cannot see at all: every component of
+    `<home>/targets/<slug>` is textually inside `home` while `<slug>` is a symlink pointing
+    anywhere. `shutil.rmtree` refuses to recurse through a symlinked directory itself, so what
+    is at stake is the containment ORDER — resolving first is what makes the refusal explicit
+    rather than incidental to rmtree's own behaviour.
+
+    @brief A symlinked target directory leaves its destination intact.
+    @return None.
+    @version 1
+    """
+    home = tmp_path / "state"
+    (home / "targets").mkdir(parents=True)
+    victim = tmp_path / "victim"
+    victim.mkdir()
+    (victim / "keep.txt").write_text("precious", encoding="utf-8")
+    (home / "targets" / "linked").symlink_to(victim)
+
+    (home / REGISTRY_NAME).write_text(
+        json.dumps(
+            {
+                "linked": {
+                    "slug": "linked",
+                    "db_path": str(home / "targets" / "linked" / "clew.db"),
+                    "repo_path": str(tmp_path / "repo"),
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert TargetRegistry(home).drop(str(tmp_path / "repo")) is True
+
+    assert (victim / "keep.txt").exists(), (
+        "a symlinked target directory was followed out of the state root"
+    )
+
+
+## @brief A non-positive cull age threshold does not destroy every index on the machine.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_non_positive_cull_age_leaves_every_current_index_alone(tmp_path: Path) -> None:
+    """M4, 1.1.0 SECURITY AUDIT. `age > max_age_days` with `max_age_days=0` is true for every
+    database that exists, so one call — from an agent reading "age threshold in days" and
+    passing 0 to mean "no age limit", which is what 0 means in most such knobs — deleted every
+    index on the machine, including repositories this session had never heard of. The blast
+    radius is the whole state root because ONE server answers about every target.
+
+    `None` is the spelling that disables the rule, and it already works. A non-positive number
+    now means the same thing rather than the opposite, and the MCP boundary refuses it outright
+    so a caller gets a validation error instead of a silent sweep.
+
+    @brief Two fresh indexes survive `max_age_days=0`.
+    @return None.
+    @version 1
+    """
+    home = tmp_path / "state"
+    kept = []
+    for name in ("alpha", "beta"):
+        repo = tmp_path / name
+        repo.mkdir()
+        target = target_for(repo, home)
+        Path(target.db_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(target.db_path).write_text("", encoding="utf-8")
+        write_build_signature(Path(target.db_path))
+        TargetRegistry(home).register(repo)
+        ## AGED BY AN HOUR, because `db_status` rounds `age_days` and a database written this
+        ## instant rounds to 0.0 — which is not `> 0` and would make this test pass against the
+        ## defect. An hour-old index is the ordinary case the sweep must not touch.
+        os.utime(target.db_path, (time.time() - 3600, time.time() - 3600))
+        kept.append(Path(target.db_path))
+
+    culled = cull(TargetRegistry(home), max_age_days=0, include_stale=False)
+
+    assert culled == [], f"a zero age threshold culled current indexes: {culled}"
+    for db in kept:
+        assert db.exists(), f"{db} was deleted by a zero age threshold"

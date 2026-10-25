@@ -18,6 +18,7 @@ import threading
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
+from pathlib import Path
 
 from rich.console import Console
 from rich.progress import (
@@ -41,6 +42,50 @@ console = Console()
 ## carries its own context, so a value set inside the worker is invisible there.
 ## None means "the process console", which is what a plain CLI build wants.
 _render_target: ContextVar[Console | None] = ContextVar("clew_render_target", default=None)
+
+
+## @brief Resolve a path and require it to stay inside the repository.
+## @param candidate The path to check — joined or absolute, resolved here.
+## @param root The repository root it must stay inside.
+## @param setting What named the path, for the warning ("kconfig.root", "config_header").
+## @return The resolved path, or None when it escapes the repository.
+## @version 1
+## @req REQ-DDB-PIPE-014
+def within_repo(candidate: Path, root: Path, *, setting: str) -> Path | None:
+    """RESOLVE FIRST, THEN CONTAIN. The other order does not hold: git tracks symlinks, so a
+    repository can ship `README.md -> /proc/self/environ` whose every string looks
+    repo-relative, and joining an ABSOLUTE declared entry discards `root` entirely
+    (`Path("/repo") / "/etc"` is `/etc`). The 1.1.0 audit found four pipeline stages reading a
+    path that had been joined to the root and then only stat'ed — prose ingest, file-level
+    docs, `kconfig.root`, `preprocessor.config_header` — each one an arbitrary read whose
+    content is then served to a model LABELLED WITH THE IN-REPO PATH, which is the part an
+    agent has no way to doubt.
+
+    NON-RAISING, because all four call sites already have a skip-and-warn branch for a path
+    that does not exist, and an escaping path is the same kind of event: this declaration or
+    this file contributes nothing, and the log says which and why. A raise would turn a
+    hostile README into a failed build at those sites, and the guard's own
+    `resolve_contained_path` already covers the places where refusing outright IS the answer.
+
+    `clew.guard` deliberately shares no code with the pipeline, so it keeps its own copy of
+    this rule; that duplication is a layering decision, recorded in both docstrings.
+
+    @brief Resolve-then-contain a repo-relative path, warning when it escapes.
+    @return The resolved path, or None.
+    @version 1
+    """
+    resolved_root = Path(root).resolve()
+    resolved = Path(candidate).resolve()
+    if resolved == resolved_root or resolved_root in resolved.parents:
+        return resolved
+    logger.warning(
+        "%s resolves to %s, OUTSIDE the repository %s — refusing to read it. Paths here are "
+        "repository-relative, and a symlink pointing out of the tree is not followed.",
+        setting,
+        resolved,
+        resolved_root,
+    )
+    return None
 
 
 ## @brief os.environ + NO_COLOR/TERM=dumb so pipeline subprocesses emit no ANSI.

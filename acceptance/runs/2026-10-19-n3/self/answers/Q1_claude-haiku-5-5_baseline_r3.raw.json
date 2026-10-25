@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 27040,
+  "stop_reason": "end_turn",
+  "session_id": "5c0f1208-3dc1-4b72-8b0e-f8ccf5356a9c",
+  "total_cost_usd": 0.01965214,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 67657,
+    "cache_read_input_tokens": 370404,
+    "output_tokens": 4831,
+    "output_tokens_details": {
+      "thinking_tokens": 1754
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 67657,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2329,
+        "cache_read_input_tokens": 95455,
+        "cache_creation_input_tokens": 2322,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2322
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4831,
+      "cacheReadInputTokens": 370404,
+      "cacheCreationInputTokens": 67657,
+      "webSearchRequests": 0,
+      "costUSD": 0.01965214,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1754,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The short answer: a declaration in `.clew.yaml` decides the scope if it is usable. If not, the whole repository is the scope, minus what git ignores and a few directory names. Two later filters then decide which of those files doxygen actually reads.\n\n**1. Scope resolution (`clew/scope.py`)**\n\n```\nderive_scope(repo_root)\n \u251c\u2500 .clew.yaml has index_scope: with usable roots?  \u2192 DerivedScope(source=declared, roots, excludes)\n \u251c\u2500 index_scope present but unusable?               \u2192 log WARNING, fall to whole-repo, with the reason\n \u2514\u2500 no index_scope                                  \u2192 whole_repo_scope(root)\n```\n\n- **Declared scope.** `roots` is required. `excludes` alone is rejected, because the code says it \"does nothing\". Unknown keys in `index_scope` are rejected. Each path is resolved and must stay inside the repo, so absolute or `../` entries are dropped with a warning. Entries that do not exist are dropped too (`_existing_paths`). A declared root is taken at its word and never walked.\n- **Whole-repo scope (the default since gh#333).** The root is the repository itself. Excludes are:\n  - Git-ignored paths, from `git ls-files --others --ignored --exclude-standard --directory`. Each nested git tree's own ignores are collected separately, because the parent's listing stops at a submodule boundary.\n  - Dot-directories (`.git`, `.venv`, `.claude`, \u2026) and `__pycache__` / `node_modules`.\n  - Nested git trees are *not* excluded. They are indexed and tagged external later (`external.py`).\n  - The walk stops at depth 16 and records the directories it refused to descend into.\n- **The Doxyfile is not a scope tier.** Its `INPUT`, `EXCLUDE` and `FILE_PATTERNS` are replaced. It still supplies `ALIASES` and `PREDEFINED`.\n- **The `guard:` section is not read by the index.** The gate's `validate.exclude` list does not shrink the index. For this repo, `tests/`, `scripts/` and `acceptance/` are all indexed.\n\n**2. From scope to a file list (`clew/treescan.py`, `clew/cli.py`)**\n\n- `enumerate_tree` walks each root and prunes excluded subtrees during the walk. It does not filter by extension, so the content hash covers every surviving file.\n- `_drop_binary_files` runs `lang_parsing_substrate.classify_file` on each file. Binaries are removed from the tree and added to the doxygen exclude list. Text files of any size are kept.\n- Doxygen then runs with a forced `FILE_PATTERNS` set (gh#340). It is Doxygen's own default list, covering C/C++, Java, Python, Fortran, VHDL, Markdown and similar. A file whose extension is not in that list is not read by doxygen.\n- JS and TS files are not read by doxygen. A parse-built front end registers them from the scanned file list instead (`treescan.py` around line 333).\n\n**3. What happens when nothing is declared**\n\nNothing is narrowed. The whole repository is the root, less git-ignored paths and dot/cache directories. Nested clones and submodules are indexed and tagged. The build logs `scope: indexing the WHOLE repository \u2014 no index_scope is declared for this repo \u2014 \u2026` at WARNING, so the broad boundary is visible in the log rather than mistaken for a chosen one.\n\nThis repository is in that state. Its `.clew.yaml` declares only `guard:`, so `clew index` takes the whole-repo path.\n\n**Caveat I did not verify.** The code says that without a git repository, `_gitignored_paths` returns nothing and logs a warning. The scope then falls back to the dot and cache exclusions alone. I read the code path but did not run it.",
+  "ttft_ms": 1592,
+  "type": "result",
+  "duration_ms": 27290,
+  "uuid": "8df0d791-f6f3-45f5-8c6e-3852e6e6414c",
+  "ttft_stream_ms": 1289,
+  "time_to_request_ms": 79,
+  "first_content_frame_ms": 1289,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

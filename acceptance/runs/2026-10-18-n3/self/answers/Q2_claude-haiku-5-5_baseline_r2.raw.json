@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 20181,
+  "stop_reason": "end_turn",
+  "session_id": "2bb969ba-2988-433e-9991-cb9a985537d9",
+  "total_cost_usd": 0.0080041,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 22018,
+    "cache_read_input_tokens": 181250,
+    "output_tokens": 3574,
+    "output_tokens_details": {
+      "thinking_tokens": 1364
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 22018,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2459,
+        "cache_read_input_tokens": 48078,
+        "cache_creation_input_tokens": 4079,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4079
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3574,
+      "cacheReadInputTokens": 181250,
+      "cacheCreationInputTokens": 22018,
+      "webSearchRequests": 0,
+      "costUSD": 0.0080041,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1364,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the reply separates the two cases by grading the empty result, not by using one fixed sentence. A \"definitive\" negative is only issued after the index has been checked for rows the search did not read. Confidence is high for \"not in the searched corpora of this index\" and lower for \"not in the repository,\" which the code itself does not claim.\n\nI read `clew/mcp_server/emptiness.py`, `clew/cli.py` (`_not_indexed_scope`), `clew/query/corpus.py`, `clew/query/models.py`, and the tests `test_emptiness.py` and `test_not_indexed_report.py`. I did not run a query against a live index.\n\n**How an empty `search` is graded**\n\n| Case | Reply wording | Confidence it earns |\n|---|---|---|\n| One token, no hits in any searched corpus, no hits in unread corpora, file docs present | \"This IS a definitive empty result\u2026 Do not retry\" | High, but only for the searched corpora: names and `@brief`, macros, class/struct/union, gated config symbols, file docs |\n| One token, but unread corpora hold matches (for example markdown or Kconfig prose) | \"NOT DEFINITIVE \u2014 this index HOLDS matching rows that search does not read: N kind\", with `unsearched_corpus_hits` in the payload | None for absence. The name exists; the reply points to `dossier` or `search(corpus='prose')` |\n| One token, index built without file docs | \"NOT definitive\"; advises a rebuild | None for absence |\n| Several tokens (conjunction) | \"NOT definitive\"; per-token counts in `token_hits`. If a token has zero hits alone, it says to retry without it. Otherwise it says to retry with fewer tokens | Only the diagnosis is solid. Absence is not claimed |\n\nThe grading runs in a fixed order, most specific first. A row in an unread corpus outranks the index-level advice, so a caller is not sent to rebuild when the real answer is \"use dossier.\"\n\n**Where \"I did not look there\" is answered**\n\nThe `scope` block in the payload says what the index covers: `source`, `file_count`, `top_levels`, and `extensions`. The derivation paragraph is removed from per-query replies and kept in `status`.\n\n`not_indexed` and `not_indexed_count` come from the build, not from a query-time walk. The build compares the files it scanned against the `path` rows it wrote, and stamps the file types with no rows, for example `.sh=3, .yml=1`. The name list is capped at 12 entries; the count is exact.\n\nAbsence of the key means \"not recorded,\" not \"nothing missed.\" An index built before this stamp, or a build that never walked a tree (a rustdoc-only build), shows no `not_indexed` at all. A zero-count stamp is also omitted. The code is deliberate about this: an empty list would read as a claim the build never made.\n\n**Caveats I found**\n\n- The not-indexed check is stamped at build time. If files change after the build, the report describes the old tree.\n- The comparison is at file level: a file is \"indexed\" if it has a `path` row. The test suite describes a case where a shell grammar is missing and files \"carry no symbols.\" If those files still get `path` rows, the report would not flag them. I did not verify whether that happens, and it is the first thing to check if an empty answer about a script looks wrong.\n- The \"definitive\" wording does not mean the symbol is absent from the repository. It means absent from the searched corpora, given the file-type scope recorded at build time. A caller who sees \"definitive\" with a `not_indexed` entry for the relevant extension should read the file directly, not trust the negative.",
+  "ttft_ms": 1465,
+  "type": "result",
+  "duration_ms": 20453,
+  "uuid": "b48a6893-b12e-423d-8f3a-7481e240b3aa",
+  "ttft_stream_ms": 1017,
+  "time_to_request_ms": 88,
+  "first_content_frame_ms": 1017,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 20771,
+  "stop_reason": "end_turn",
+  "session_id": "dc26968d-4124-4343-aff9-b7891d7cb93e",
+  "total_cost_usd": 0.008678420000000001,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 24102,
+    "cache_read_input_tokens": 152672,
+    "output_tokens": 4661,
+    "output_tokens_details": {
+      "thinking_tokens": 1594
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24102,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3291,
+        "cache_read_input_tokens": 47206,
+        "cache_creation_input_tokens": 10851,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 10851
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 4661,
+      "cacheReadInputTokens": 152672,
+      "cacheCreationInputTokens": 24102,
+      "webSearchRequests": 0,
+      "costUSD": 0.008678420000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1594,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** Constant-time behaviour in mbedtls is a source-level discipline, backed by a small wrapper layer. The wrappers use inline assembly where the compiler allows it, and a `volatile` trick where it doesn't. Nothing in the build proves the emitted machine code is constant-time. The main dynamic check is a Valgrind test script. I could only see part of the code through the index, so the caveats below matter.\n\n**1. How it is enforced at the instruction level**\n\n- Secret-dependent values are wrapped in `mbedtls_ct_condition_t` (`library/constant_time_internal.h`). Comparisons and selects are written as bit operations (`mbedtls_ct_uint_lt`, `mbedtls_ct_bool_or/and/not`, `mbedtls_ct_uint_if`, and so on), not `if`s.\n- `mbedtls_ct_compiler_opaque()` (`library/constant_time_impl.h:85`) is the optimizer barrier. With `MBEDTLS_CT_ASM` defined, it is an empty `asm volatile(\"\" : [x] \"+r\"(x))`, so the compiler must treat `x` as unknown and cannot fold a branch back in. Its callers include `mbedtls_ct_bool`, `mbedtls_ct_if`, `mbedtls_ct_uint_lt/ne`, and `mbedtls_ct_memcpy_if`.\n- `MBEDTLS_CT_TRUE` and `MBEDTLS_CT_FALSE` are built on that barrier (`SIZE_MAX`, `UINT64_MAX`, `UINT32_MAX` depending on width).\n- `mbedtls_ct_uint_lt` has hand-written AArch64, Thumb/ARM and x86-64 assembly. Each computes the borrow-based comparison with `sub`/`sbc`-style sequences and sign-extends the result to a mask (`asr 63` / `asr #31` / `sar $63`), so no conditional jump is emitted.\n- `mbedtls_ct_memcmp` (`library/constant_time.c:67`) reads both buffers through `volatile` pointers, XORs them into an accumulator and never exits early, so the loop always touches every byte. Its doc comment states that it is constant-time with respect to the data but not with respect to `n`.\n\n**2. What happens on a compiler that cannot support it**\n\n`MBEDTLS_CT_ASM` is only defined when `MBEDTLS_HAVE_ASM` is set and the compiler is GCC/Clang-style (`__GNUC__`) or ARMCC (`library/constant_time_impl.h:40-52`). Otherwise:\n\n- `mbedtls_ct_compiler_opaque(x)` returns `x ^ mbedtls_ct_zero`. `mbedtls_ct_zero` is a global `volatile` zero (`library/constant_time.c:29`), so the compiler cannot prove the value. This is a weaker barrier than an empty `asm volatile`, because the compiler still sees a real XOR and a real memory read.\n- `mbedtls_ct_uint_lt` and the other comparisons fall back to portable C arithmetic when the architecture-specific assembly does not match. I did not read that fallback body; the index truncated it.\n\nSo on a non-GNU compiler, the code is still written branch-free at the source level, but the guarantee that the optimizer keeps it that way is weaker. The index does not record a compile-time error or warning for this case. The only `#error` I saw is the `int`-width check in `mbedtls_ct_memcmp`, which is unrelated.\n\n**3. How far it reaches**\n\nCallers the index resolves:\n\n| Area | Constant-time users |\n|---|---|\n| `library/constant_time*.{c,h}` | Core helpers: `memcpy_if`, `memcpy_offset`, `memmove_left`, `zeroize_if`, `memcmp` |\n| `library/bignum_core.c`, `bignum.c`, `bignum_internal.h` | `mbedtls_mpi_core_lt_ct`, `mbedtls_mpi_core_check_zero_ct`, `mbedtls_mpi_lt_mpi_ct`, `mbedtls_mpi_gcd_modinv_odd`, `mbedtls_ct_mpi_sign_if` |\n| `library/rsa.c` | `mbedtls_ct_rsaes_pkcs1_v15_unpadding` (Bleichenbacher-oracle hardening; the comment spells out the threat model), OAEP decrypt |\n| `library/ssl_msg.c` | `mbedtls_ct_hmac`: constant-flow HMAC for CBC record MAC verification, using `psa_hash_clone` |\n| `library/base64.c` | `mbedtls_ct_base64_enc_char` / `dec_value` |\n\nThird-party code is separate: `3rdparty/everest` (HACL/Curve25519 extracted code) and `3rdparty/p256-m` have their own constant-time design. p256-m also has a `MUL64_IS_CONSTANT_TIME` config symbol for hardware where 32\u00d732\u219264 multiply is constant-time.\n\n**Verification:** `test_with_valgrind_constant_time` (`tests/scripts/components-configuration-crypto.sh`) runs a dedicated set of constant-time tests under Valgrind. `docs/architecture/psa-shared-memory.md` notes that Valgrind memory poisoning is used for constant-flow testing, and MSan is mentioned as an alternative.\n\n**Caveats I could not settle from the index**\n\n- I did not verify whether the ECP, AES, or other crypto core code uses these wrappers. The name searches only surfaced the ones above. Coverage beyond them is unproven.\n- `mbedtls_ct_memcmp` shows liveness `orphan`, with 26 callers unresolved. Treat its live-caller status as unknown rather than confirmed.\n- The index has no config header recorded for this target, so I could not confirm which default configuration enables `MBEDTLS_CT_ASM` in a shipped build.\n- Nothing I read proves the compiled output is branch-free. The opaque barrier reduces the risk; the Valgrind test is the check that exists.",
+  "ttft_ms": 1135,
+  "type": "result",
+  "duration_ms": 21500,
+  "uuid": "c609e7ce-0472-462b-a860-2feabb1a6083",
+  "ttft_stream_ms": 874,
+  "time_to_request_ms": 85,
+  "first_content_frame_ms": 874,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

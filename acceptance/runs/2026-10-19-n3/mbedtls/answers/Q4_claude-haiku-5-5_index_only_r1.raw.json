@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 23367,
+  "stop_reason": "end_turn",
+  "session_id": "4d5022b1-6557-4b7d-8441-eaff58c821cf",
+  "total_cost_usd": 0.011295350000000003,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 36581,
+    "cache_read_input_tokens": 179715,
+    "output_tokens": 4362,
+    "output_tokens_details": {
+      "thinking_tokens": 2043
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 36581,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2849,
+        "cache_read_input_tokens": 48812,
+        "cache_creation_input_tokens": 6060,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6060
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4362,
+      "cacheReadInputTokens": 179715,
+      "cacheCreationInputTokens": 36581,
+      "webSearchRequests": 0,
+      "costUSD": 0.011295350000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2043,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How a negative code becomes a string**\n\nThe entry point is `mbedtls_strerror(int ret, char *buf, size_t buflen)` in `library/error.c:792`, declared in `include/mbedtls/error.h:165`. It:\n\n1. Returns immediately if `buflen == 0`, then zeroes `buf`.\n2. Negates `ret` so the rest of the logic works on positive values.\n3. Masks out the high part with `0xFF80`. If it is nonzero, it calls `mbedtls_high_level_strerr()` (`error.c:174`), which switches on that masked value and returns a string such as `\"CIPHER - Authentication failed (for AEAD modes)\"`. If the module has no entry, it writes `UNKNOWN ERROR CODE (XXXX)`. For SSL fatal alerts it returns early and skips the low-level part.\n4. Masks the low part with `~0xFF80` and returns if that is zero. Otherwise it appends `\" : \"` to the buffer when the high part was written, provided at least 5 bytes remain. It then calls `mbedtls_low_level_strerr()` (`error.c:537`), which switches on the low bits and returns strings such as `\"AES - Invalid key length\"`, with the same `UNKNOWN ERROR CODE` fallback.\n\n```\nret (-0x6300)\n  \u2502 negate, zero buf\n  \u251c\u2500 high = ret & 0xFF80 \u2500\u2500\u25ba mbedtls_high_level_strerr \u2500\u2500\u25ba \"CIPHER - ...\"\n  \u2502                                                         \u2502\n  \u2514\u2500 low  = ret & ~0xFF80 \u2500\u25ba mbedtls_low_level_strerr \u2500\u2500\u25ba \" : \" + \"AES - ...\"\n                                                            \u25bc\n                                             buf (truncated, NUL-terminated)\n```\n\nBoth lookup functions are large `switch` blocks that open with `/* Begin Auto-Generated Code. */` and group cases under `#if defined(MBEDTLS_<MODULE>_C)`. Each case is `case -(MBEDTLS_ERR_...)` returning a `\"MODULE - description\"` string.\n\nWhen `MBEDTLS_ERROR_C` is off, `error.c` is gated (around lines 12\u201314 and 862\u2013878) on `MBEDTLS_ERROR_STRERROR_DUMMY`, which is defined in `configs/config-symmetric-only.h:26` and `include/mbedtls/mbedtls_config.h:1170`. A second `mbedtls_strerror` candidate at `error.c:867` is probably the dummy variant. I did not read its body.\n\n**Adding a new error string**\n\n1. **Define the code** in the module's public header, using the `MBEDTLS_ERR_<MODULE>_<NAME>` pattern. For example, `MBEDTLS_ERR_CIPHER_AUTH_FAILED` is `-0x6300` in `include/mbedtls/cipher.h:48`. Choose an unused value in the module's range. I could not confirm how those ranges are allocated.\n2. **Add the description string.** The `switch` blocks in `error.c` are marked auto-generated, so the string should come from the generator, not a hand edit. The index does not show the generator script: `scripts/` `.pl` files are not indexed, and a prose search for `generate_errors` returned nothing. Find that script in the repo before editing.\n3. **Regenerate and build** through the project's normal path (pre-commit and the test tasks), not by running tools directly.\n4. **Add a changelog entry** under `ChangeLog.d/` if the change is user-visible. `ChangeLog.d/00README.md` says to write one for user-visible changes. A new error string probably qualifies, but that is your call.\n\nI could not verify step 2's generator or the value-range rule, because I only had the index and no shell or file reads.",
+  "ttft_ms": 1682,
+  "type": "result",
+  "duration_ms": 24019,
+  "uuid": "dbdb41a5-72d9-46be-9683-851ef213ecc6",
+  "ttft_stream_ms": 1279,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1279,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

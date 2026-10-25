@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 33383,
+  "stop_reason": "end_turn",
+  "session_id": "53e66157-20e9-4907-ae9c-472a8a61e505",
+  "total_cost_usd": 0.01159052,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 27989,
+    "cache_read_input_tokens": 263102,
+    "output_tokens": 6721,
+    "output_tokens_details": {
+      "thinking_tokens": 2855
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 27989,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3787,
+        "cache_read_input_tokens": 56914,
+        "cache_creation_input_tokens": 1199,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1199
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 6721,
+      "cacheReadInputTokens": 263102,
+      "cacheCreationInputTokens": 27989,
+      "webSearchRequests": 0,
+      "costUSD": 0.01159052,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2855,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## What gets called\n\nMbed TLS never calls `malloc` directly. Every allocation goes through `mbedtls_calloc(n, size)` and every release through `mbedtls_free(ptr)`. About 364 call sites across 50 files in `library/` use these two names. What they resolve to depends on build configuration, and there are three cases:\n\n```\nMBEDTLS_PLATFORM_MEMORY undefined (default)\n    mbedtls_calloc  ->  #define  ->  calloc        (libc, resolved at compile time)\n    mbedtls_free    ->  #define  ->  free\n\nMBEDTLS_PLATFORM_MEMORY + CALLOC_MACRO + FREE_MACRO   (compile-time substitution)\n    mbedtls_calloc  ->  #define  ->  MBEDTLS_PLATFORM_CALLOC_MACRO   (your function)\n    mbedtls_free    ->  #define  ->  MBEDTLS_PLATFORM_FREE_MACRO\n\nMBEDTLS_PLATFORM_MEMORY, no macros   (runtime substitution)\n    mbedtls_calloc  ->  library/platform.c function  ->  function pointer\n    mbedtls_free    ->  library/platform.c function  ->  function pointer\n```\n\n- **Default:** `include/mbedtls/platform.h:163-168` maps the names straight to libc, so there is no indirection at all.\n- **Runtime hook:** `platform.c:44-54` defines the two wrappers, which call through static function pointers. Those pointers start at `MBEDTLS_PLATFORM_STD_CALLOC` / `STD_FREE`. If the project has not defined those, `platform.c:24-42` substitutes stubs: calloc returns NULL and free does nothing. The header comment at `mbedtls_config.h:172-197` describes this chain.\n\n## How a project substitutes its own allocator\n\n**Option A: compile time (no runtime cost, no setter).** In the config, or in a `MBEDTLS_USER_CONFIG_FILE`:\n\n```c\n#define MBEDTLS_PLATFORM_C                 /* required */\n#define MBEDTLS_PLATFORM_MEMORY\n#define MBEDTLS_PLATFORM_CALLOC_MACRO  my_calloc   /* void *(size_t, size_t) */\n#define MBEDTLS_PLATFORM_FREE_MACRO    my_free     /* void (void *) */\n```\n\nBoth macros must be set together. `check_config.h:558-573` enforces that, and `platform.c:20-22` drops the runtime setter entirely.\n\n**Option B: runtime.** Define only `MBEDTLS_PLATFORM_MEMORY` (optionally with `MBEDTLS_PLATFORM_STD_CALLOC/FREE` for a non-libc default), then call this before any Mbed TLS allocation:\n\n```c\nmbedtls_platform_set_calloc_free(my_calloc, my_free);   /* always returns 0 */\n```\n\nThe setter in `platform.c:57-63` overwrites both pointers without validation. It does not check that you passed a pair, and it does not guard against being called mid-operation.\n\nRules the project must follow:\n- Set the allocator before the first Mbed TLS call.\n- Use the same allocator for `calloc` and `free`. Freeing with a different pool is undefined behaviour.\n- `free` must accept NULL. The config docs say a non-null argument is always one that was previously returned by the calloc function (`mbedtls_config.h:4129-4131`).\n- If Mbed TLS runs across threads, the allocator must be thread-safe. `memory_buffer_alloc.h:44-47` says this explicitly.\n\n## What the library does with the facility\n\n- **Every allocation is checked.** Callers test the result for NULL and return an error, which the ChangeLog records as a bug-fix pattern (`ChangeLog:173`). The library treats `mbedtls_calloc` as fallible.\n- **It has no direct allocator calls of its own.** A grep of `library/` for raw `malloc`/`calloc`/`free` finds only comments, plus one `free(hdr->trace)` inside the built-in allocator (`memory_buffer_alloc.c:404`).\n- **Built-in pool allocator.** `MBEDTLS_MEMORY_BUFFER_ALLOC_C` is one consumer of the facility. `memory_buffer_alloc.h:44-47` says its `mbedtls_memory_buffer_alloc_init()` points the global `mbedtls_calloc` / `mbedtls_free` at its own functions. Those serve memory from a caller-supplied buffer and never call libc. `check_config.h:426-428` requires `MBEDTLS_PLATFORM_MEMORY` for it. In this repo it is used by the test programs (`ssl_server2`, `ssl_client2`, `benchmark`, `selftest`), not by the core library itself.\n\n## Not verified\n\n- I did not confirm the exact file where `MBEDTLS_PLATFORM_STD_CALLOC = calloc` is defined when `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS` is off. The config comment describes it, but I did not trace the define.\n- I did not build or run anything, so the substitution options are checked against the source and docs, not a compile.",
+  "ttft_ms": 1519,
+  "type": "result",
+  "duration_ms": 33639,
+  "uuid": "23f21177-cb77-4e1f-a2e7-ae2723f86fb7",
+  "ttft_stream_ms": 1174,
+  "time_to_request_ms": 89,
+  "first_content_frame_ms": 1175,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

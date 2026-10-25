@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 23224,
+  "stop_reason": "end_turn",
+  "session_id": "b97b453c-76af-4298-99cc-c53409a1d731",
+  "total_cost_usd": 0.011224549999999998,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 30281,
+    "cache_read_input_tokens": 332445,
+    "output_tokens": 3685,
+    "output_tokens_details": {
+      "thinking_tokens": 1467
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 30281,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1641,
+        "cache_read_input_tokens": 64579,
+        "cache_creation_input_tokens": 1241,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1241
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 3685,
+      "cacheReadInputTokens": 332445,
+      "cacheCreationInputTokens": 30281,
+      "webSearchRequests": 0,
+      "costUSD": 0.011224549999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1467,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How it knows.** Staleness has three independent axes, computed on every reply.\n\n| Axis | Measured in | Signal | Cleared by |\n|---|---|---|---|\n| `data` | `_source_drift` (`clew/mcp_server/state.py:823`) | Indexed source files whose mtime is newer than the database's. Future-dated mtimes are ignored so a skewed clock can't force permanent staleness. | `index(action='refresh')` |\n| `schema` | `_schema_notice` (`freshness.py:412`) | The build version stamped in the index differs from `CLEW_BUILD_VERSION`. | Index older than server: `refresh(force=True)`. Server older than index: restart the client. |\n| `code` | `code_identity` (`freshness.py:221`) | The source fingerprint captured when this process started differs from the fingerprint of the tree on disk now. `matches_source` is False only on positive disagreement. | Restart the MCP client. A rebuild does not help. |\n\n`db_status` (`state.py:1140`) combines these into a `stale` boolean and an absent-when-current `staleness` block.\n\n**What it tells the caller.** `notices()` (`freshness.py:575`) returns a list of `{axis, message}` ordered data \u2192 schema \u2192 code, and empty when the index is current. The server attaches that list to every query reply as `staleness` (`tools_query.py:1886`). The annotation is sized to the remaining payload budget, so it is compacted rather than dropped when a reply is large. A routed reply is annotated for the repository it actually read. The measurement never raises, so it cannot turn a good answer into an error. A current index adds no key at all.\n\n**What the caller does.** It reads the axis and acts on the matching remedy:\n\n- **`data`:** call `index(action='refresh')`. The reply quotes the expected cost from the last measured refresh. The freshness check runs inside the per-target lock, so concurrent refreshes produce one build, and a current index is skipped.\n- **`schema`, index older than server:** call `index(action='refresh', force=True)`.\n- **`schema`, server older than index:** do not rebuild. A rebuild re-stamps the same newer version and never clears the flag. Restart the client.\n- **`code`:** restart the MCP client. The query tools open the database per call, so the data itself is current and only the server's logic is old.\n\nWrites are guarded. `build_or_refresh` (`server.py:2199`) calls `stale_code_refusal` (`freshness.py:531`) before the build decision and the lock. If the process predates its source, it returns `REFUSED: \u2026 Nothing was written`. `force` cannot override this, so the caller's only path is to restart the client and then refresh.\n\nI read the source and the notice wording directly; I did not run `status` or `refresh` against this index.",
+  "ttft_ms": 2503,
+  "type": "result",
+  "duration_ms": 23671,
+  "uuid": "0ce82efb-2256-4d27-959c-ce2f7cceddc4",
+  "ttft_stream_ms": 1248,
+  "time_to_request_ms": 75,
+  "first_content_frame_ms": 1248,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

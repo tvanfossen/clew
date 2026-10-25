@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 12644,
+  "stop_reason": "end_turn",
+  "session_id": "ca78f250-2cd5-4c8e-a07b-502c3894214d",
+  "total_cost_usd": 0.00884264,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 30291,
+    "cache_read_input_tokens": 165514,
+    "output_tokens": 2257,
+    "output_tokens_details": {
+      "thinking_tokens": 472
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 30291,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1339,
+        "cache_read_input_tokens": 57051,
+        "cache_creation_input_tokens": 7165,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7165
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2257,
+      "cacheReadInputTokens": 165514,
+      "cacheCreationInputTokens": 30291,
+      "webSearchRequests": 0,
+      "costUSD": 0.00884264,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 472,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The index knows it is out of date by comparing its own stamps against the running code and the source tree. It reports that on every reply, and the query path refreshes it automatically when it can. The caller only has to act when the reply says a fix is needed and no automatic one applies.\n\n**How it knows (three axes)**\n\n| Axis | Stale when | Cleared by |\n|---|---|---|\n| `data` | The source has drifted since the index was built, or the pipeline stamp is older | A rebuild (refresh) |\n| `schema` | The index was stamped by a newer build than this process expects | Nothing this process can do; the server needs updating |\n| `code` | The running server process loaded clew code that no longer matches the source tree | Restarting the MCP client, then a forced refresh |\n\n`db_status` in `clew/mcp_server/state.py` computes these, and `notices()` in `clew/mcp_server/freshness.py` turns them into `{axis, message}` entries, ordered data \u2192 schema \u2192 code. `code_identity()` only reports `matches_source: false` on positive evidence, meaning two non-empty fingerprints that differ. An unreadable tree counts as a match, so the tool doesn't tell you to restart for no reason.\n\n**What it tells the caller**\n\n- Every query reply carries a `staleness` block, and only when something is stale. A current index adds nothing, so the warning stays meaningful. `staleness_notices()` in `clew/mcp_server/server.py` supplies it.\n- The block is sized to the reply. `_staleness_within_budget` in `clew/mcp_server/tools_query.py` uses full prose when it fits, then a compact form, then a minimal one. A large answer keeps its warning, shortened.\n- `status` reports `stale` plus the interpreted remedy. Its `staleness` field appears only when there is something to act on.\n- The notice for a stale index says to call `status` for the diagnosis, and the code-axis refusal names the restart step.\n\n**What the tool does itself**\n\n- Before answering, `_answering_with_refresh` (`server.py:519`) wraps each query tool and calls `_auto_refresh`. If the data axis is stale and the process matches its source, it rebuilds the index and then answers. The refresh is deduplicated under a per-repository build lock with a bounded wait, so a stalled build can't hang the session. If the refresh fails, the query still answers from the old index, and the staleness notice goes with it.\n- `_data_stale` refuses to refresh when the schema or code axis is the problem. Rebuilding through a stale process could re-stamp the index with old pipeline logic and silently drop layers.\n- A background pass, `refresh_touched`, keeps the indexes this session has used current between queries.\n\n**What the caller does**\n\n1. Read the `staleness` block on the reply. Each entry names an axis.\n2. For `data`, do nothing. The query path already rebuilds when it can. If the notice persists, call `index(action='refresh')`.\n3. For `schema`, a rebuild won't help. The index is newer than the server, so update clew.\n4. For `code`, restart the MCP client so it loads the current code, then run `index(action='refresh', force=True)`. A write through a stale process is refused, and `force` does not override that refusal.\n5. Call `status` only when the reply's notice says the full diagnosis is needed. Don't open a session with it.\n\n**Caveat:** I answered from the index alone. `_staleness` and `code_identity` came back with `anchor_mismatch: true`, so the recorded line numbers may not match the current file. I did not call `status` to check this repository's own index, since the design says to wait for the first query reply to flag staleness.",
+  "ttft_ms": 1899,
+  "type": "result",
+  "duration_ms": 13616,
+  "uuid": "8f1b7f7a-1c91-4f6e-8172-3546e54de0e9",
+  "ttft_stream_ms": 789,
+  "time_to_request_ms": 74,
+  "first_content_frame_ms": 790,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

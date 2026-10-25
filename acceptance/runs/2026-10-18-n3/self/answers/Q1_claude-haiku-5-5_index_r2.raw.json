@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 27420,
+  "stop_reason": "end_turn",
+  "session_id": "a9c12d1f-821b-451c-a432-f4c33164e406",
+  "total_cost_usd": 0.01101291,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 26291,
+    "cache_read_input_tokens": 379711,
+    "output_tokens": 3912,
+    "output_tokens_details": {
+      "thinking_tokens": 1045
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 26291,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2010,
+        "cache_read_input_tokens": 61025,
+        "cache_creation_input_tokens": 813,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 813
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 3912,
+      "cacheReadInputTokens": 379711,
+      "cacheCreationInputTokens": 26291,
+      "webSearchRequests": 0,
+      "costUSD": 0.01101291,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1045,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The short answer: a repository's own `index_scope:` declaration is the only thing that narrows the index. With no declaration, clew indexes the whole repository minus what git ignores and a few cache and dot directories. The Doxyfile does not decide scope anymore. I read `clew/scope.py` directly for this, because the index's copy of it is flagged as anchor-mismatched.\n\n**Decision path**\n\n```\nbuild starts\n  \u2514\u2500 derive_scope(repo_root)                          clew/scope.py:639\n       \u251c\u2500 _declared_index_scope(root)                 clew/scope.py:991\n       \u2502    \u251c\u2500 no index_scope: section      \u2192 None \u2192 whole-repo tier\n       \u2502    \u251c\u2500 section not a mapping        \u2192 _Rejected \u2192 whole-repo tier (reason kept)\n       \u2502    \u251c\u2500 unknown key inside section   \u2192 _Rejected \u2192 whole-repo tier (reason kept)\n       \u2502    \u251c\u2500 no existing roots:           \u2192 _Rejected \u2192 whole-repo tier (reason kept)\n       \u2502    \u2514\u2500 roots exist                  \u2192 DerivedScope(SOURCE_DECLARED, roots, excludes)\n       \u2514\u2500 whole_repo_scope(root)                      clew/scope.py:683\n            roots    = (repo_root,)\n            excludes = git ignored paths\n                     + paths ignored inside each nested git tree\n                     + dot dirs and __pycache__/node_modules   (_pruned_dirs, :908)\n                     + walk stops at 16 levels               (_MAX_DEPTH)\n```\n\nThen `derive_scope_logged` (`clew/scope.py:1313`) logs the outcome. A declared scope logs its roots at INFO. The whole-repo default logs a WARNING saying why the boundary was not chosen.\n\n**What a declaration does**\n\n- The shape is `index_scope: {roots: [...], excludes: [...]}`. Roots are repo-relative and taken at face value. They are never walked, so a clone nested under a declared root is indexed too.\n- `roots` is required. `excludes` alone does nothing, and the code rejects it with an explanation rather than silently widening the scope.\n- Unknown keys are rejected, which closes a gh#5 case where `exclude:` parsed fine and was never read.\n- A root that does not exist on disk is dropped with a warning.\n- A rejected declaration still produces a whole-repo index. The reason is logged so the WARNING does not claim nothing was declared. A test says the CLI apply path refuses a rejected declaration outright (`tests/test_scope.py`). I did not trace that path.\n\n**What happens when nothing is declared**\n\n- `_declared_index_scope` returns None, so `derive_scope` falls to `whole_repo_scope`. The single root is the whole repo, nested submodules included.\n- What gets subtracted is what git already says is ignored, on both sides of every submodule boundary. `git ls-files --ignored --others --exclude-standard --directory` runs in the root and in each nested tree. Git's `core.fsmonitor` is blocked by using `git_argv`, so a cloned repo cannot run code through its own config.\n- Dot-directories and `__pycache__`/`node_modules` are pruned as a traversal guard, not as a scope decision.\n- The whole-repo reason string names the paths it looked for a declaration in, and says a Doxyfile does not supply the INPUT.\n- If git is missing or the tree is not a repo, nothing is excluded and a warning is logged. The index is wider, not narrower.\n\n**Doxygen's part**\n\nDoxygen only parses what the scope hands it. Its INPUT is replaced with the derived roots, and the repo's own EXCLUDE and FILE_PATTERNS are cleared. `DOXYGEN_DEFAULT_FILE_PATTERNS` (`clew/doxygen.py:203`) is forced, so the default C/C++/Java/header extension list applies. The repo's own Doxyfile is still read for ALIASES and PREDEFINED. I did not check how the Python side gets its file set. It is parsed by the Python router, not doxygen.\n\n**Stale comment to fix**\n\nThe docstring of `_declared_index_scope` (`clew/scope.py:1005`) still says a missing declaration \"drops the resolution to the Doxyfile's own INPUT.\" That contradicts the gh#333 code, which falls back to the whole repository. The code is right and the docstring is wrong. Other index entries for `treescan.py` also show anchor mismatches, so their line numbers may be stale.",
+  "ttft_ms": 1614,
+  "type": "result",
+  "duration_ms": 28422,
+  "uuid": "b5b9b4e7-3b2a-41d0-92c3-bf6a2f59c0da",
+  "ttft_stream_ms": 1155,
+  "time_to_request_ms": 79,
+  "first_content_frame_ms": 1156,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

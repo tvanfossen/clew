@@ -1,0 +1,16 @@
+Five background threads are indexed, all `pthread` spawns with medium confidence. The index also shows per-client threads that the thread list doesn't include. Four of the five have a clear safety mechanism. The fifth is a test helper.
+
+| Thread | Spawned in | What it does | What keeps it safe |
+|---|---|---|---|
+| `HealthMonitor::monitor_loop` | `HealthMonitor::start`, `src/mcp/health_monitor.cpp:92` | Polls every 500 ms and calls `check_server` on each watched MCP server. | Walks `watched_` under `watched_mutex_`. It sleeps on `wake_cv_` with `wake_mutex_`, and wakes when `running_` clears. Results go through `post_event`, and `process_events` drains them on the engine thread, so status callbacks never run on the monitor thread. |
+| `ExternalBridge::accept_loop` | `ExternalBridge::start`, `src/facade/external_bridge.cpp:796` | Polls the listen fd with a 500 ms timeout and accepts connections. Each accepted client gets its own `std::thread` running `serve_client`. | Rejects any fd whose peer uid doesn't match (`SO_PEERCRED`, gh#34) before spawning. Pushes the `ClientThread` into `client_threads_` under `client_threads_mutex_`, then reaps finished threads. A finished thread sets an atomic `finished` flag, and `stop()` calls `shutdown(fd)` to unblock reads. The handle's log scope is propagated into the new thread. |
+| `StdioTransport::stderr_reader_loop` | `StdioTransport::open`, `src/mcp/transport_stdio.cpp:164` | Reads the child process's stderr and logs it as warnings. | Touches only its own `stderr_fd_` and the logger. It exits on `connected_` going false or on EOF. |
+| `SSETransport::sse_reader_loop` | `SSETransport::open`, `src/mcp/transport_sse.cpp:107` | Holds the HTTP GET for the event stream and feeds each line through `process_sse_line` and `handle_sse_data`. | The content receiver returns `running_`, which stops the stream on shutdown. It clears `connected_` on exit. `SSETransport` has a `pending_mutex_` for shared request state. I did not dossier `handle_sse_data`, so I can't confirm it covers every shared field. |
+| `listen_after_bind` | `MockSSEServer`, `tests/unit/mcp/transport_sse_test.cpp:98` | Test-only mock server. | Not production. |
+
+**Cross-thread handoffs.** The only lock-ordering evidence the index reports has three ordered pairs, and every one rests on an unverified receiver (`resolved_sites=0`). Two of them touch the health-monitor path: `event_mutex_` → `adapter_mutex_` in `process_events`, and the `MCPAuthorizationManager` `auth_mutex_` → `MCPKeySet` `key_mutex_` in `check_access`. No pair is reported in opposite orders, so the index flags no deadlock risk. It also doesn't prove none exists.
+
+**Gaps in the index.**
+- The thread list only comes from recognised spawn patterns. The per-client `std::thread` lambda in `accept_loop` is not listed as its own thread.
+- Qualified-name lookups such as `HealthMonitor::start` and `ExternalBridge::serve_client` returned "not indexed". Bare names worked.
+- The mutex and thread data are per-spawn-site and per-acquisition, so I can't confirm full coverage of shared state beyond the sites above.

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 23537,
+  "stop_reason": "end_turn",
+  "session_id": "2e5ed29f-7069-4a2f-9ca2-65faa5b527b3",
+  "total_cost_usd": 0.012006000000000001,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 35264,
+    "cache_read_input_tokens": 297480,
+    "output_tokens": 3954,
+    "output_tokens_details": {
+      "thinking_tokens": 1075
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 35264,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1943,
+        "cache_read_input_tokens": 53598,
+        "cache_creation_input_tokens": 1515,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1515
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 3954,
+      "cacheReadInputTokens": 297480,
+      "cacheCreationInputTokens": 35264,
+      "webSearchRequests": 0,
+      "costUSD": 0.012006000000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1075,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "There are three ways to tell clew how to index a repo, and when they disagree the rule is set by the kind of option, not by which route was used.\n\n**The ways to say so**\n\n1. **`.clew.yaml` at the repo root (the standing declaration).** Each top-level section holds the same content as the matching standalone manifest, so a file can be moved in verbatim. The sections include `shared_key_patterns`, `thread_patterns`, `mqtt_dispatch`, `dispatch`, `locks`, `preprocessor`, `kconfig`, and `entry_patterns`, among others. `guard:` is also allowed, but it belongs to the doxygen gate and the index never reads it. Unknown top-level keys are refused by name, with one exception: a key with an `x-` prefix is tolerated and ignored, so older clew versions don't refuse a newer experimental key. The old `.doxygen-guard.yaml` is no longer read at all, which is a hard break. A repo that hasn't moved its declaration gets the built-in defaults silently.\n2. **CLI flags (`--shared-key-patterns`, `--thread-patterns`, `--entry-patterns`, `--scope`, etc.) for one build.** These are the explicit, per-invocation route.\n3. **Arguments on the MCP `index` tool** (`scope`, `doxyfile`, `exclude`, `options`). The MCP server has no CLI flags, so these are its equivalent of tier 1. `exclude` is recorded and replayed by later builds. `scope` defaults to `from-declaration`, which reads the repo's own `index_scope:`, and `doxyfile` makes it use the Doxyfile's INPUT instead.\n\nTwo more inputs feed in without being \"ways to say so\": a Doxyfile (its ALIASES and PREDEFINED are facts), and the built-in defaults.\n\n**When they disagree**\n\nThe rule is in `clew/tiers.py`, summarised as \"you can correct our guesses; you cannot un-discover a fact.\" Each layered option resolves as `(explicit or declared or heuristic) \u222a target-fact \u222a ecosystem`.\n\n| Tier | Source | Combines by |\n|---|---|---|\n| 1 | CLI flag / MCP argument | Replaces the stated layer |\n| 2 | `.clew.yaml` | Replaces the stated layer |\n| 3 | Target facts (Doxyfile ALIASES/PREDEFINED, generator manifests, language entry points) | Accumulates; no stated tier removes it |\n| 4 | Known-ecosystem signatures | Accumulates, same as tier 3 |\n| 5 | Name-pattern heuristics | Replaced by any stated tier |\n\nSo:\n\n- **Flag vs. declaration:** the flag wins for that build. It replaces the whole declared value, not just the overlapping entries. Passing `--entry-patterns` used to drop `main`; that was fixed so `main` now survives.\n- **Replacement is per section, not a deep merge.** Stating `preprocessor:` replaces the entire declared section. Stating `{}` withdraws your statement and the target's own declaration answers again.\n- **Declared beats built-in defaults.** Declared shared-key patterns are matched before the defaults, because the matcher is first-match. An earlier bug let a default shadow a declared pattern silently.\n- **Scope source:** the declaration beats the doxygen-guard config, which beats the Doxyfile (`scope.py`, per the comments in `shared_key_edges.py`). I didn't read `scope.py` directly, so treat that ordering as taken from comments.\n- **Accumulating facts survive everything.** A flag can't remove a Doxyfile-declared alias or a `main` entry point.\n- **Auditing the result:** the winning tier is recorded in `build_meta` as `<option>.tier`. Only a tier-1 statement is replayed onto a later build. The `explicit` row is only trusted when the recorded tier agrees.\n\nIf you want clew to propose a starter `.clew.yaml` from what it finds, `propose_declaration` renders a commented draft. It never overwrites an existing file without `force`.",
+  "ttft_ms": 2237,
+  "type": "result",
+  "duration_ms": 24101,
+  "uuid": "a45a24a8-4308-4bc4-bd28-d3e80c6ed0c0",
+  "ttft_stream_ms": 1356,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1357,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

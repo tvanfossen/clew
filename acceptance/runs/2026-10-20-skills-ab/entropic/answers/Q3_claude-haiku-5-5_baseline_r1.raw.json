@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 38330,
+  "stop_reason": "end_turn",
+  "session_id": "001a32c8-aaa2-4b3b-af64-44b7c4481553",
+  "total_cost_usd": 0.018618720000000002,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 55673,
+    "cache_read_input_tokens": 422552,
+    "output_tokens": 6514,
+    "output_tokens_details": {
+      "thinking_tokens": 3076
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 55673,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3883,
+        "cache_read_input_tokens": 70793,
+        "cache_creation_input_tokens": 2228,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2228
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 6514,
+      "cacheReadInputTokens": 422552,
+      "cacheCreationInputTokens": 55673,
+      "webSearchRequests": 0,
+      "costUSD": 0.018618720000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3076,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The short answer: the allow and deny lists don't decide whether a call runs on their own. They are two checks at different points in a fixed pipeline, and the host callback is notify-only. Here is the path, from `ToolExecutor::process_single_call` (`src/mcp/tool_executor.cpp:729`) down to `ServerManager::execute`:\n\n```\ntool call\n \u2502\n \u251c\u2500 1. PRE_TOOL_CALL hook          rc != 0 \u2192 denied \"Cancelled by hook\"\n \u251c\u2500 2. anti-spiral hard block      consecutive same-tool count \u2265 threshold \u2192 denied\n \u251c\u2500 3. schema validation           missing/mistyped args \u2192 denied\n \u251c\u2500 4. MCP key authorization       identity lacks access level \u2192 denied\n \u251c\u2500 5. tier allowed_tools          locked tier's allowlist excludes tool \u2192 denied\n \u251c\u2500 6. duplicate detection         same call + args \u2192 cached result / circuit breaker\n \u251c\u2500 7. approval (check_approval)\n \u2502      auto_approve  OR  matches allow list  \u2192 approved\n \u2502      else, on_tool_call set                \u2192 callback fires, approved = true anyway\n \u2502      else                                  \u2192 \"Permission denied\"\n \u251c\u2500 8. ServerManager::execute\n \u2502      matches deny list \u2192 \"Error: Permission denied for <tool>\"\n \u2502      else              \u2192 route to in-process or external server\n \u2514\u2500 9. result, post-hook, directives\n```\n\n**Allow and deny patterns.** Both lists come from the `permissions:` section (`allow`, `deny`, `auto_approve`; `src/config/loader.cpp:365`), and can also be added at runtime with `ServerManager::add_permission`. Each pattern has the form `tool-glob` or `tool-glob:arg-glob`:\n\n- **`tool-glob`** is matched with `fnmatch` against the fully qualified tool name, so `filesystem.*` covers every filesystem tool. A pattern with no colon matches the tool on any arguments.\n- **`:arg-glob`** is matched against `tool:<first argument>`. The \"first argument\" is the first JSON value in the args object, and only if it is a string. Otherwise the argument part is `*`. So `bash.execute:python*` matches a bash call whose first string argument starts with `python`. Only that first argument is ever inspected.\n- Matching uses `fnmatch` flags of 0, so `*` also crosses `/` and `:`.\n\n**What each list does:**\n\n- **Allow** (`PermissionManager::is_allowed`, reached via `check_approval`): a match skips the approval step. It is the only per-pattern way to pass step 7 without `auto_approve` or a callback. It does not bypass steps 1\u20136, so an allowed tool still fails schema validation, MCP key checks, or the tier allowlist.\n- **Deny** (`PermissionManager::is_denied`, checked only in `ServerManager::execute`): a match returns an error tool result. The call never reaches a server. Deny runs after approval, so it wins over allow. The approval callback has already fired for a denied tool by that point.\n\n**Things that surprised me in the code:**\n\n1. **The approval callback cannot veto.** `on_tool_call` is declared `void (*)(const char*, void*)` (`engine_types.h:370`). After invoking it, `check_approval` sets `approved = true` (`tool_executor.cpp:168\u2013172`). With a callback registered, every call that clears steps 1\u20136 runs, and the ON_PERMISSION_CHECK hook reports \"allowed\". The only host-side vetoes are the PRE_TOOL_CALL hook return code and the deny list.\n2. **Denied calls still prompt.** Because deny is enforced later in `execute`, a deny-listed call still triggers `on_tool_call` before it is rejected.\n3. **`get_permission_pattern` is dead code.** `ServerManager::get_permission_pattern` and the `BashServer` override exist, but nothing in `src/` calls them. Both the approval and deny paths build their pattern with `args_to_pattern`, so a server cannot customise the pattern it is matched against.\n4. **Default is deny only when there is no callback.** With no callback and no allow match, the call is rejected. With a callback, the default flips to allow.\n\nI read the code only and did not run the tests, so the trace above is from reading, not from an observed run.",
+  "ttft_ms": 1620,
+  "type": "result",
+  "duration_ms": 38734,
+  "uuid": "911440a3-5bfe-456d-9395-3cf15e821d20",
+  "ttft_stream_ms": 1231,
+  "time_to_request_ms": 79,
+  "first_content_frame_ms": 1231,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

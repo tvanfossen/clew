@@ -49,8 +49,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ._common import logger
-from .gitenv import git_env
-from .precommit import discover_guard_config
+from .gitenv import GIT_TIMEOUT_SECONDS, git_argv, git_env
 
 # Directories never worth walking: caches/vendor dirs that no repo declares as
 # in-scope source. Dot-directories are pruned separately. This is a traversal
@@ -395,8 +394,7 @@ SOURCE_DOXYFILE = "doxyfile"
 ## is also the one certain to contain any nested git tree; those are indexed and
 ## tagged external rather than cut out.
 SOURCE_WHOLE_REPO = "whole-repo"
-## An `index_scope:` section in the repo's own `.clew.yaml`, or in the
-## `x-clew` passthrough of its doxygen-guard config. The only tier that states
+## An `index_scope:` section in the repo's own `.clew.yaml`. The only tier that states
 ## a knowledge boundary rather than borrowing one stated for another purpose.
 SOURCE_DECLARED = "clew-declaration"
 
@@ -422,9 +420,35 @@ class _Rejected(str):
     """
 
 
-# `--scope` choices: the Doxyfile's own INPUT, or the repo's own declarations.
+# `scope` choices: the Doxyfile's own INPUT, or the repo's own declarations.
 SCOPE_DOXYFILE = "doxyfile"
+
+# THE SPELLING IS HISTORY AND IS KEPT ON PURPOSE. `from-guard` dates from when the index read
+# doxygen-guard's own `.doxygen-guard.yaml` for its scope — the scope came FROM THE GUARD. It
+# now comes from `index_scope:` in the repo's `.clew.yaml`, which the gate does not read and
+# has no part in. The value is RECORDED in `build_meta` and replayed by every later build of
+# that database, so renaming it would strand every index already built; `from-declaration` is
+# the accurate spelling for anyone passing it today (group C, 1.1.0 merge review).
 SCOPE_FROM_GUARD = "from-guard"
+SCOPE_FROM_DECLARATION = "from-declaration"
+
+
+## @brief Resolve a caller's `scope` spelling to the value this codebase records.
+## @param scope What the caller passed, or None.
+## @return The recorded spelling; anything unrecognised is returned unchanged.
+## @version 1
+## @req REQ-DDB-CONFIG-001
+def normalize_scope(scope: str | None) -> str | None:
+    """NORMALIZING IS NOT VALIDATING, and the distinction is load-bearing. The refusal for an
+    unknown scope lives where the Doxyfile is resolved and already names the two values it
+    accepts with a reason; mapping an unknown value onto a default here would build a boundary
+    the caller never asked for and then report success — the silent-success failure this
+    release spent its blockers on.
+
+    @brief Map the `from-declaration` alias onto the recorded `from-guard`.
+    @return The recorded spelling, or the input unchanged.
+    """
+    return SCOPE_FROM_GUARD if scope == SCOPE_FROM_DECLARATION else scope
 
 
 ## @brief Derived index scope plus the provenance of that decision.
@@ -470,7 +494,7 @@ def _skip_dir(name: str) -> bool:
 
 ## @brief How to declare an index scope, in this build's own spelling.
 ## @return A sentence naming both places a declaration may live.
-## @version 3
+## @version 4
 ## @req REQ-DDB-CONFIG-001
 def _declaration_advice() -> str:
     """A fallback scope reports that the boundary was not chosen; without this it does
@@ -485,18 +509,11 @@ def _declaration_advice() -> str:
 
     @brief Name the declarations that would narrow a fallback scope.
     @return The advice sentence.
-    @version 3
+    @version 4
     """
-    from .declaration import (
-        DECLARATION_NAME,
-        GUARD_CONFIG_NAME,
-        PASSTHROUGH_TOOL,
-    )
+    from .declaration import DECLARATION_NAME
 
-    return (
-        f"Declare `x-{PASSTHROUGH_TOOL}: {INDEX_SCOPE_SECTION}:` in {GUARD_CONFIG_NAME}, "
-        f"or an `{INDEX_SCOPE_SECTION}:` in {DECLARATION_NAME}, to let the two differ."
-    )
+    return f"Declare an `{INDEX_SCOPE_SECTION}:` in {DECLARATION_NAME} to let the two differ."
 
 
 ## The keys a `sub_indexes:` entry may carry. `roots` is DELIBERATELY ABSENT: a sub-index's
@@ -588,14 +605,11 @@ def declared_sub_index_excludes(
 
 ## @brief Whether the repo's own index_scope would be REJECTED, without the fallback.
 ## @param repo_root Repo root to check.
-## @param guard_config Explicit guard-config path overriding discovery, or None.
 ## @param stated A tier-1 caller's own stated index_scope, or None to read the declared one.
 ## @return The rejection reason, or None when the declaration is usable or absent entirely.
 ## @version 1
 ## @req REQ-DDB-CONFIG-001
-def declared_scope_rejection(
-    repo_root: Path, guard_config: Path | str | None = None, stated: dict | None = None
-) -> str | None:
+def declared_scope_rejection(repo_root: Path, stated: dict | None = None) -> str | None:
     """`derive_scope` ABSORBS a rejected declaration into the whole-repo tier — a
     deliberate choice for every INTERNAL pipeline caller, which must always get back a
     usable scope rather than an exception. That absorption is exactly what let an
@@ -613,19 +627,16 @@ def declared_scope_rejection(
     @return The rejection reason, or None.
     @version 1
     """
-    declared = _declared_index_scope(Path(repo_root).expanduser().resolve(), guard_config, stated)
+    declared = _declared_index_scope(Path(repo_root).expanduser().resolve(), stated)
     return str(declared) if isinstance(declared, _Rejected) else None
 
 
 ## @brief Resolve the index scope: a declared index_scope, else the whole repository.
 ## @param repo_root Repo root to resolve scope for.
-## @param guard_config Explicit guard-config path overriding discovery, or None.
 ## @return DerivedScope; the whole-repo tier when no usable declaration exists.
 ## @version 9
 ## @req REQ-DDB-CONFIG-001
-def derive_scope(
-    repo_root: Path, guard_config: Path | str | None = None, stated: dict | None = None
-) -> DerivedScope:
+def derive_scope(repo_root: Path, stated: dict | None = None) -> DerivedScope:
     """Read the declaration and hand back its roots. Every failure mode — no config,
     no `index_scope:` section, no declared root that exists — falls through to
     `whole_repo_scope`, which carries the REASON, so the caller can log which scope
@@ -654,25 +665,22 @@ def derive_scope(
     ## as a wider problem than exists.
     _DEPTH_LIMITED.clear()
     root = Path(repo_root).expanduser().resolve()
-    declared = _declared_index_scope(root, guard_config, stated)
+    declared = _declared_index_scope(root, stated)
     if isinstance(declared, _Rejected):
         ## SAID OUT LOUD, not only returned. The contradiction gh#5 reports is between two LOG
         ## lines, so the correction has to reach the log too — a reason carried only in the
         ## payload leaves the WARNING still claiming absence.
         logger.warning("index_scope: %s", declared)
-        return whole_repo_scope(root, guard_config, rejected=str(declared))
-    return declared or whole_repo_scope(root, guard_config)
+        return whole_repo_scope(root, rejected=str(declared))
+    return declared or whole_repo_scope(root)
 
 
 ## @brief The whole repository as one INPUT root, less only what git ignores.
 ## @param repo_root Repo root to index in full.
-## @param guard_config Explicit guard-config path overriding discovery, or None.
 ## @return A DerivedScope rooted at the repo, nested git trees INCLUDED.
 ## @version 3
 ## @req REQ-DDB-CONFIG-001
-def whole_repo_scope(
-    repo_root: Path, guard_config: Path | str | None = None, rejected: str = ""
-) -> DerivedScope:
+def whole_repo_scope(repo_root: Path, rejected: str = "") -> DerivedScope:
     """THE DEFAULT TIER since gh#333, not the last resort: reached whenever a repo
     declares no `index_scope:`, whether or not it ships a Doxyfile.
 
@@ -719,7 +727,7 @@ def whole_repo_scope(
         ## reports success. `rejected` REPLACES the absence clause, never appends to it.
         reason=(
             (rejected if rejected else f"no {INDEX_SCOPE_SECTION} is declared for this repo")
-            + f" — {_guard_config_note(root, guard_config)} — so the whole repository is the "
+            + f" — {_declaration_note(root)} — so the whole repository is the "
             f"index scope, INCLUDING any nested git trees, less the paths git ignores "
             f"and the dot/cache directories. A Doxyfile, if the repo ships one, still "
             f"supplies ALIASES and PREDEFINED but no longer supplies the INPUT: that is "
@@ -832,7 +840,7 @@ def dependency_roots(repo_root: Path) -> list[Path]:
 ## @brief Paths the repo's own git configuration ignores.
 ## @param root Resolved repo root.
 ## @return Absolute paths of ignored files and wholly-ignored directories.
-## @version 2
+## @version 3
 ## @dg_internal
 def _gitignored_paths(root: Path) -> list[Path]:
     """`.gitignore` is the one scope declaration essentially every repo already
@@ -848,10 +856,13 @@ def _gitignored_paths(root: Path) -> list[Path]:
 
     @brief List the paths git ignores under a repo root.
     @return Absolute ignored paths.
-    @version 2
+    @version 3
     """
-    command = [
-        "git",
+    ## `git_argv` RATHER THAN A BARE "git": the tree being inspected can set
+    ## `core.fsmonitor` in its OWN `.git/config`, which git then RUNS on this very query —
+    ## so pointing clew at a cloned repository was arbitrary code execution. `-c` on the
+    ## command line outranks the config file; see `gitenv.GIT_COMMAND_VALUED_KEYS`.
+    command = git_argv(
         "-C",
         str(root),
         "ls-files",
@@ -860,12 +871,19 @@ def _gitignored_paths(root: Path) -> list[Path]:
         "--ignored",
         "--exclude-standard",
         "--directory",
-    ]
+    )
     try:
         ## `env=git_env()` and NOT the inherited environment: `git -C <root>` is OUTRANKED
         ## by an absolute `GIT_DIR`, which git exports to every hook it runs — so without
         ## this the ignore list belongs to whatever repository invoked us. See `gitenv`.
-        proc = subprocess.run(command, capture_output=True, text=True, check=False, env=git_env())
+        proc = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            check=False,
+            env=git_env(),
+            timeout=GIT_TIMEOUT_SECONDS,
+        )
     except OSError as exc:
         logger.warning("index_scope: git is unavailable (%s) — nothing ignored was excluded", exc)
         return []
@@ -967,13 +985,10 @@ def _descendable(
 
 ## @brief Index scope declared directly in the repo's `.clew.yaml`.
 ## @param root Resolved repo root.
-## @param guard_config Explicit guard-config path overriding discovery, or None.
 ## @return A DerivedScope when `index_scope:` is declared and usable, else None.
 ## @version 9
 ## @dg_internal
-def _declared_index_scope(
-    root: Path, guard_config: Path | str | None = None, stated: dict | None = None
-) -> DerivedScope | None:
+def _declared_index_scope(root: Path, stated: dict | None = None) -> DerivedScope | None:
     """Read an explicit `index_scope:` declaration::
 
         index_scope:
@@ -987,11 +1002,6 @@ def _declared_index_scope(
     Returns None when nothing usable is declared, which drops the resolution to the
     Doxyfile's own INPUT and then to the whole repository — the zero-config default
     for every repo that says nothing.
-
-    An `index_scope:` may also arrive through the guard config's `x-clew`
-    passthrough, which is why the override is threaded this far down: before gh#16 that
-    passthrough was read from the repo root only, so a repo declaring its index scope
-    inside a `conf/` guard config got a whole-repo scope with nothing said.
 
     A declared root is TAKEN AT ITS WORD AND NEVER WALKED, which is the whole point —
     and which means a clone of another repository beneath it is indexed with no walk
@@ -1014,10 +1024,10 @@ def _declared_index_scope(
         ## itself. Only `reason` differs, and it has to: an owner reading "declared in
         ## <file>" for a scope that came from a tool call would go and edit a file that says
         ## nothing, which is the checkable-and-wrong attribution this function already fixed
-        ## once for the `x-` passthrough.
+        ## once for a declaration file.
         declaration, source_path = {INDEX_SCOPE_SECTION: stated}, None
     else:
-        declaration, source_path = load_declaration_located(root, guard_config)
+        declaration, source_path = load_declaration_located(root)
     section = declaration.get(INDEX_SCOPE_SECTION)
     if section is None:
         return None
@@ -1051,10 +1061,8 @@ def _declared_index_scope(
     excludes = _existing_paths(root, section.get("excludes") or [], "exclude")
     return DerivedScope(
         source=SOURCE_DECLARED,
-        ## NAMES THE FILE IT WAS ACTUALLY READ FROM. This said
-        ## `<root>/.clew.yaml` unconditionally, so a declaration carried by the
-        ## guard config's `x-` passthrough was attributed to a file that need not exist —
-        ## checkable and wrong, which sends an owner to edit nothing.
+        ## NAMES THE FILE IT WAS ACTUALLY READ FROM, or the caller when the scope was
+        ## stated — never a file that need not exist, which sends an owner to edit nothing.
         reason=(
             f"{INDEX_SCOPE_SECTION} stated by the caller (tier 1)"
             if stated
@@ -1145,7 +1153,7 @@ def _holds_git_tree(directory: Path) -> bool:
 ## @brief Does the enclosing repository record this directory as a gitlink (a submodule)?
 ## @param directory Candidate nested-tree directory.
 ## @return True when the parent tracks it as mode 160000; False when it tracks its files, or on any doubt.
-## @version 2
+## @version 3
 ## @dg_internal
 def _is_dependency_of_parent(directory: Path) -> bool:
     """ASKS THE PARENT, because the parent is the only thing that knows whether this directory
@@ -1179,7 +1187,7 @@ def _is_dependency_of_parent(directory: Path) -> bool:
 
     @brief Test whether the parent records this directory as a submodule gitlink.
     @return True only on a positive gitlink reading.
-    @version 2
+    @version 3
     """
     parent = directory.parent
     try:
@@ -1188,12 +1196,13 @@ def _is_dependency_of_parent(directory: Path) -> bool:
         ## inherited `GIT_DIR` overrides cwd entirely — so the gitlink probe answered about
         ## the hook's repository and returned False for every real submodule.
         proc = subprocess.run(
-            ["git", "ls-files", "-s", "--", directory.name],
+            git_argv("ls-files", "-s", "--", directory.name),
             cwd=str(parent),
             capture_output=True,
             text=True,
             check=False,
             env=git_env(),
+            timeout=GIT_TIMEOUT_SECONDS,
         )
     except OSError:
         return False
@@ -1228,19 +1237,43 @@ def _is_within(path: Path, ancestor: Path) -> bool:
     return path == ancestor or ancestor in path.parents
 
 
-## @brief Resolve declared repo-relative entries that exist on disk.
+## @brief Resolve declared repo-relative entries that exist INSIDE the repository.
 ## @param root Repo root the entries are relative to.
 ## @param entries Declared relative path strings.
-## @param label Word used in the warning for a missing entry.
-## @return Absolute paths that exist.
-## @version 1
+## @param label Word used in the warning for a rejected entry.
+## @return Absolute paths that exist and lie within `root`.
+## @version 2
 ## @dg_internal
 def _existing_paths(root: Path, entries: list, label: str) -> list[Path]:
-    """@brief Resolve declared paths, warning about (and dropping) missing ones."""
+    """RESOLVE, THEN CONTAIN, THEN STAT — in that order, because the other orders are the
+    bug (1.1.0 security audit, H5). `roots:` is repo-relative BY CONTRACT and nothing here
+    enforced it: `(root / "/etc").resolve()` is `/etc`, since joining an absolute path
+    discards the left operand, and `../` simply walks out. An index built from such a
+    declaration is served as THIS repository's content under paths its owner never offered,
+    and the declaration can be STATED by an MCP caller for a repository it merely names.
+
+    Dropped with a warning rather than raised: this function already drops an entry that does
+    not exist, and dropping every root leaves `roots` empty, which the caller above turns into
+    the rejection an operator sees. One failure mode, one existing message path.
+
+    @brief Resolve declared paths, dropping ones that escape the repo or do not exist.
+    @return Contained, existing absolute paths.
+    @version 2
+    """
     found = []
+    resolved_root = root.resolve()
     for entry in entries:
-        path = (root / str(entry)).resolve()
-        if path.exists():
+        path = (resolved_root / str(entry)).resolve()
+        if not _is_within(path, resolved_root):
+            logger.warning(
+                "index_scope %s %r resolves to %s, OUTSIDE %s — refusing it. Declared paths "
+                "are repository-relative; an absolute or `../` entry is not honoured.",
+                label,
+                entry,
+                path,
+                resolved_root,
+            )
+        elif path.exists():
             found.append(path)
         else:
             logger.warning(
@@ -1251,43 +1284,33 @@ def _existing_paths(root: Path, entries: list, label: str) -> list[Path]:
 
 ## @brief Where a declaration was looked for, phrased for a fallback reason.
 ## @param root Resolved repo root.
-## @param guard_config Explicit guard-config path overriding discovery, or None.
-## @return A clause naming the located config, or every location that was searched.
-## @version 2
+## @return A clause naming the declaration file, and whether it exists.
+## @version 3
 ## @req REQ-DDB-CONFIG-001
-def _guard_config_note(root: Path, guard_config: Path | str | None) -> str:
-    """SAY WHERE WE LOOKED, BEFORE FALLING BACK. This clause is the substance of
-    gh#16: a repo whose scope cannot be derived gets a DIFFERENT tree indexed than it
-    declares, and without this the only evidence is a warning naming one file — so
-    "this repo declares no scope" and "we looked in the wrong place for its config"
-    produce the same message.
-
-    A config that WAS found and still yielded no scope is worth saying too, and is no
-    contradiction: the `x-clew` passthrough is optional, so a guard config can
-    be present, valid, and silent about the index.
+def _declaration_note(root: Path) -> str:
+    """SAY WHERE WE LOOKED, BEFORE FALLING BACK (gh#16): "this repo declares no scope"
+    and "we looked in the wrong place" must not produce the same message. There is one
+    place now, `<root>/.clew.yaml`, so the clause names it and says whether it exists;
+    a file that exists and declares no `index_scope:` (one that configures only the
+    gate, say) is no contradiction.
 
     @brief Describe the declaration search for a fallback reason.
     @return A human-readable clause.
-    @version 2
     """
-    location = discover_guard_config(root, guard_config)
-    if location.path is None:
-        return f"no doxygen-guard config was found (searched {location.describe_search()})"
-    return (
-        f"a doxygen-guard config WAS found at {location.path} (via {location.source}), but it "
-        f"carries no {INDEX_SCOPE_SECTION}"
-    )
+    from .declaration import DECLARATION_NAME
+
+    path = root / DECLARATION_NAME
+    if not path.is_file():
+        return f"no {DECLARATION_NAME} was found at {path}"
+    return f"{path} exists but carries no {INDEX_SCOPE_SECTION}"
 
 
 ## @brief Derive a scope and log which scope was used and why.
 ## @param repo_root Repo root to derive scope for.
-## @param guard_config Explicit guard-config path overriding discovery, or None.
 ## @return The derived (or whole-repo) scope.
 ## @version 6
 ## @req REQ-DDB-CONFIG-001
-def derive_scope_logged(
-    repo_root: Path, guard_config: Path | str | None = None, stated: dict | None = None
-) -> DerivedScope:
+def derive_scope_logged(repo_root: Path, stated: dict | None = None) -> DerivedScope:
     """Fail SAFE and LOUD: a declared derivation logs its roots at INFO, the
     whole-repo default logs its reason at WARNING so a boundary nobody chose is never
     mistaken for one somebody did.
@@ -1300,7 +1323,7 @@ def derive_scope_logged(
     @return The derived (or whole-repo) scope.
     @version 6
     """
-    scope = derive_scope(repo_root, guard_config, stated)
+    scope = derive_scope(repo_root, stated)
     if scope.is_derived():
         logger.info(
             "scope: declared — %s — %d INPUT root(s), %d EXCLUDE(s): %s",

@@ -156,7 +156,51 @@ from .tiers import OPTIONS_META_PREFIX
 ##     * `context_conflicts` holds different `confidence` values and a qualified `detail`: a
 ##       path through a name this index defines more than once is reported `low` rather than
 ##       `medium`, which is 9 of RIOT's 12 conflicts.
-CLEW_BUILD_VERSION = 7
+## 8 (substrate PR 2b) — identical source now yields different rows, and an index built
+##   before it would report itself current while missing them:
+##
+##     * JavaScript / TypeScript files have `path`, `memberdef` (dg_source='parse'),
+##       `compounddef`, `member` and `compoundref` rows from the parse-built front end
+##       (clew/synth.py), and their call sites come from jsast — before this they had no
+##       rows at all, and a JS-only repo still ran doxygen for nothing.
+##     * binary files and the repo's toolchain.toml / suppress.toml exclusions leave the index.
+##     * C AND C++ ROWS MOVE TOO, which is the half of this bump a reader is most likely to be
+##       surprised by: the languages that did not change front ends still report differently,
+##       because the substrate's tree-sitter-c went to 0.24 and its ERROR RECOVERY changed.
+##       Measured on the mbedtls acceptance target, 1.1.0 audit:
+##
+##         - 7 AST-recovered functions LOST. These were recovered from source doxygen never
+##           emitted, so they are `provenance='ast'` rows, and the 0.24 parser declines to
+##           recover where 0.23 guessed.
+##         - two `ssl_parse_*` functions GAINED, for the same reason read the other way: the
+##           new recovery resolves a construct the old one abandoned.
+##         - three FABRICATED `if` functions removed, and roughly 30 leaked locals with them.
+##           These were never real symbols — a mis-recovered `if (…)` presented as a function
+##           definition — so this is the delta a consumer most wants and the one that looks
+##           like a regression in a raw row count.
+##
+##       Net on that target the function count BARELY MOVES while the set changes in four
+##       directions at once, which is why the v7 -> v8 comparison for this release diffs file
+##       lists and symbol SETS before row counts: a net-zero count would hide a swapped set.
+##
+##       A SECOND TARGET, because mbedtls alone reads as a net LOSS and that is not the rule.
+##       Measured on sassafras-class (C++ with a vendored doctest, 2,530 files) against a
+##       baseline rebuilt by 1.0.39 from the same source minutes earlier, so the only variable
+##       is this code:
+##
+##         - +190 symbols from `.js`, every one `dg_source='parse'` — the front end above.
+##         - +115 from `.h`, +15 `.cpp`, +4 `.c`, of which 102 are `dg_source='ast'`. So the
+##           0.24 recovery GAINED AST symbols here where mbedtls lost them. Error recovery
+##           changed, not weakened: it recovers differently, and which way a given tree moves
+##           is not predictable from the version alone.
+##         - -4 symbols: `ArrayType`, `UT`, `beginPos`, `ret`. The last two are leaked locals
+##           and the first two mis-recovered type names — the fabrication class above, removed.
+##
+##       And two targets where NOTHING moved: RIOT (1,258 files, 33,720 memberdefs) and
+##       entropic (748 files, 13,068) were byte-identical across the bump. A C-heavy tree is
+##       not evidence either way until it is measured; "expect RIOT to move" was predicted for
+##       this release and was wrong.
+CLEW_BUILD_VERSION = 8
 
 
 ## @brief Stamp the build version, scope, coverage and preprocessor config into build_meta.
@@ -187,6 +231,7 @@ def write_build_signature(
     diagnostics: dict[str, str] | None = None,
     data_model: dict[str, str] | None = None,
     declaration: dict[str, str] | None = None,
+    tool: dict[str, str] | None = None,
 ) -> None:
     """WHY THE FILE SET IS WHAT IT IS, recorded rather than only logged.
 
@@ -298,8 +343,8 @@ def write_build_signature(
     the build-version-9 bump, one key further out. A sha and a section list identify the
     document exactly without saying where on disk it sat.
 
-    @brief Stamp the build version and optional scope, coverage, preprocessor, kconfig, refresh, options, diagnostics, data_model and declaration sections.
-    @version 13
+    @brief Stamp the build version and optional scope, coverage, preprocessor, kconfig, refresh, options, diagnostics, data_model, declaration and tool sections.
+    @version 14
     """
     conn = sqlite3.connect(str(db_path))
     try:
@@ -332,6 +377,14 @@ def write_build_signature(
             ## reason every other section is: one prefixing pass means a further section is a
             ## one-line change, and a reader learns the whole namespace from this tuple.
             ("declaration", declaration),
+            ## The TENTH leg (B4, 1.1.0 merge review), and the only one that is a fact about
+            ## the BUILDER rather than about the repository, the boundary or this index's own
+            ## rows. `lang-parsing-substrate` reads every byte of every target, and the
+            ## build-version-8 note below is a measured record of one of its upgrades moving
+            ## an index — so without this an index that changed because the PARSER changed
+            ## was indistinguishable from one that changed because the code did, which is the
+            ## ambiguity every other section here exists to remove.
+            ("tool", tool),
         ):
             rows += [(f"{prefix}.{k}", v) for k, v in sorted((section or {}).items()) if v]
         conn.executemany(

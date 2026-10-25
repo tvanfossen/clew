@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 15389,
+  "stop_reason": "end_turn",
+  "session_id": "df0a02e9-3b98-4af7-9b6e-4e1932343a45",
+  "total_cost_usd": 0.00275388,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 3004,
+    "cache_read_input_tokens": 107248,
+    "output_tokens": 2160,
+    "output_tokens_details": {
+      "thinking_tokens": 1151
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 3004,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1842,
+        "cache_read_input_tokens": 36162,
+        "cache_creation_input_tokens": 2385,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2385
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 2160,
+      "cacheReadInputTokens": 107248,
+      "cacheCreationInputTokens": 3004,
+      "webSearchRequests": 0,
+      "costUSD": 0.00275388,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1151,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "For `_answering_with_refresh` (clew/mcp_server/server.py:519), the reply has one caller, `register_query_tools`, with `source: doxygen_sqlite` and `confidence: exact`. Its one resolved callee is `refused`, from `ast`. `before` (line 549) and `ToolError` (line 566) appear only under `external_callees`, with their call lines. `covering_tests` is empty and `liveness` is `live`.\n\nSo the answer is a set of edges, each tagged with where it came from and how sure clew is. It is not a list of every place the function runs. Reading it as one is wrong in these ways:\n\n- **The caller is the registration site, not the invoker.** `register_query_tools` wraps the tool and hands it to the MCP SDK. At runtime the SDK calls the wrapper, and that dispatch doesn't appear as a call edge. The \"caller\" means \"statically references and wires this up\".\n- **Parameters and callbacks are invisible as callees.** `before` is a parameter, so clew can't resolve it. It lands in `external_callees` rather than `callees`. An empty `callees` list therefore doesn't mean the function calls nothing.\n- **Lists are capped and can be incomplete.** `max_neighbors` defaults to 8, and depth 1 is only immediate neighbours. Transitive paths need `depth` \u2265 2, which returns a bounded `chain`. Check the unresolved counts (`callers_unresolved`, `context_undecidable`) before trusting that a list is complete.\n- **Provenance and confidence vary per row.** A row from `doxygen_sqlite` and one from `ast` are different kinds of evidence. `exact` and `resolved` are not the same grade.\n- **Name-based resolution can collide.** An `ambiguous` block means several signatures share the name, and the neighbour rows are shared across them. Re-ask with `qualified` before attributing a caller to one overload.\n- **Empty `covering_tests` is a measurement, not a verdict.** It means no linked test was found. It doesn't mean the function is untested, and it depends on requirement and test links being recorded.\n- **Staleness can make it describe old code.** `anchor_mismatch: true` means the file changed since the build, so those line numbers are no longer this function.\n\nI checked this on one symbol, so the behaviour of the other fields (`ambiguous`, the unresolved counts, `chain`) is taken from the tool's documented contract, not from a reply I inspected here.",
+  "ttft_ms": 3290,
+  "type": "result",
+  "duration_ms": 15645,
+  "uuid": "e8149d9a-05c5-4c72-9d42-332af07e102a",
+  "ttft_stream_ms": 2539,
+  "time_to_request_ms": 73,
+  "first_content_frame_ms": 2539,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

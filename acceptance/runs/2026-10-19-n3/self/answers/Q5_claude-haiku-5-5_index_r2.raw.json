@@ -1,0 +1,105 @@
+{
+  "duration_api_ms": 19306,
+  "stop_reason": "end_turn",
+  "session_id": "0d99df17-bad7-4576-bb9d-43e56f64a811",
+  "total_cost_usd": 0.01152719,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 36242,
+    "cache_read_input_tokens": 268209,
+    "output_tokens": 3191,
+    "output_tokens_details": {
+      "thinking_tokens": 1122
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 36242,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1875,
+        "cache_read_input_tokens": 60249,
+        "cache_creation_input_tokens": 11535,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 11535
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3191,
+      "cacheReadInputTokens": 268209,
+      "cacheCreationInputTokens": 36242,
+      "webSearchRequests": 0,
+      "costUSD": 0.01152719,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1122,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "mcp__clew__propose_declaration",
+      "tool_use_id": "toolu_01AHnp7NitRPLoCNnh5Vg5Lo",
+      "tool_input": {}
+    }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Clew has three ways to say how a repo should be indexed, plus one of its own tools for proposing a file. When two of them disagree, the higher tier wins for that one setting, and the winner is recorded in the index.\n\n**The ways to say so**\n\n1. **Tier 1, a stated option.** A caller passes an `options` mapping at build time, for example through MCP or an embedding call. Each key is the name of a declaration section or one of a few inline options such as `entry_patterns`, `vendored` and `test_paths`. Per `clew/buildoptions.py`, the option name is the section name, with `predefined` as the one documented alias. The CLI is six arguments, and everything else is a section or an option.\n2. **Tier 2, the declaration file.** The repo's own `.clew.yaml`. The index reads every section except `guard:`, and the gate reads `guard:` from the same file. `.doxygen-guard.yaml` is no longer read at all.\n3. **Built-in defaults, tiers 3 to 5.** Tiers 3 and 4 are facts the repo already states elsewhere, such as Doxyfile aliases or ecosystem signatures. They accumulate and no stated tier can remove them. Tier 5 is name-pattern guessing. It is the only layer a stated tier can replace.\n\nSeparately, `clew/cli.py` `_apply_declared_paths` fills any path option the operator left unset from `.clew.yaml`. `propose_declaration` drafts a commented `.clew.yaml` for a repo. I could not run it because the permission to use it was denied, so the draft is not something I checked.\n\n**When two disagree**\n\n- **Tier 1 against tier 2, same option.** Tier 1 replaces the declaration for that option. The file is not consulted for it. Tiers 3 and 4 still accumulate underneath. `clew/tiers.py` gives the rule as `resolved = (tier1 or tier2 or tier5) union tier3 union tier4`, which means you can correct the guesses but cannot un-discover a fact.\n- **Which tier won is recorded.** The build stamps `options.<name>.tier` into `build_meta`. A tier-1 statement is also stored, so a later rebuild replays it. A tier-2 value is not stored, because the file re-derives it. An empty `{}` withdraws a statement and falls back to the declaration.\n- **Scope and the Doxyfile.** A stated `index_scope` is refused unless `--scope` is `from-guard`, because the other paths would build a different boundary and still report success. A stated `doxyfile` must exist, because a missing one falls through to whole-repo synthesis and produces a valid-looking index of something else.\n- **Inside one file.** YAML keeps the last duplicate key silently. `.clew.yaml` in this repo carries a comment about exactly that trap with `tags:`.\n- **Requirements.** A stated `requirements` sits one tier above the gate's `impact.requirements.file`, which in turn sits above the conventional root file.\n\nThe validators are deliberately stricter on the inline route than on the file route. An unknown key in an inline manifest is refused by name, because a misspelled key would otherwise read as absent and fall back to the default with no error. That gap is spelled out in `clew/buildoptions.py`.",
+  "ttft_ms": 1489,
+  "type": "result",
+  "duration_ms": 19982,
+  "uuid": "645ce4ec-a946-4ed8-8c91-6ff33ea8746d",
+  "ttft_stream_ms": 1208,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1208,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

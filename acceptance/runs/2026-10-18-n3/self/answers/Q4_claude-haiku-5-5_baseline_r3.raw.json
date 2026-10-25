@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 24591,
+  "stop_reason": "end_turn",
+  "session_id": "c9c3e463-12a0-4f67-a33e-a13be47356fc",
+  "total_cost_usd": 0.00975856,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 22230,
+    "cache_read_input_tokens": 283716,
+    "output_tokens": 4948,
+    "output_tokens_details": {
+      "thinking_tokens": 1812
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 22230,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2659,
+        "cache_read_input_tokens": 51651,
+        "cache_creation_input_tokens": 695,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 695
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 4948,
+      "cacheReadInputTokens": 283716,
+      "cacheCreationInputTokens": 22230,
+      "webSearchRequests": 0,
+      "costUSD": 0.00975856,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1812,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer is a set of graph edges with provenance and confidence attached, plus a few signals about what the index could not see. It is not a verified list of call sites.\n\n**What a `callers` entry carries** (`clew/query/models.py` `CallEdge`, `clew/query/symbols.py` `_direct_call_edges`)\n\n- **Endpoint identity**, one per distinct function identity rather than per name. Doxygen splits one function across declaration and definition rows, and the code merges them.\n- **`source`**: which layer found the edge. The vocabulary is `doxygen_sqlite` (doxygen xrefs), `ast` (bare-identifier call found by tree-sitter), `ast_member` (member or qualified call unwrapped to its tail name), `fnptr` (call through a registered function pointer), `macro_hop`, `declared_dispatch`, and `binding`.\n- **`confidence`**: `exact`, `resolved` (unique name match) or `fuzzy` (several candidates share the name, so the class was never confirmed).\n- **`implementors`**: an annotation on an existing edge, listing concrete overrides when doxygen records them. It is not a new edge.\n- **`edge_class`**: `call` or `key`. Shared-key dataflow edges share the same type. Check the class before reading an entry as a call.\n\n**What the dossier adds around it**\n\n- `unresolved_inbound`: a count of callers that exist but did not resolve to a symbol. It is `None` when the table is absent, which means \"unmeasured\", not zero.\n- `candidates`: the namesakes, populated only when the name is an overload or shares its name with other functions.\n- `overrides` and `overridden_by`: virtual-dispatch relations. Callers that reach the function through a base pointer appear here, not in `callers`.\n- `locks_held`, `threads`, `termini`, `external_callees`, `liveness`, `staleness`.\n\n**What makes it wrong to read `callers` as a list of call sites**\n\n1. **Fuzzy edges are included.** The code does not filter them for `callers`. Its own comment says 21.3% of this repo's call edges are fuzzy and 79.8% of entropic's (C++). Many C++ member-call edges are fuzzy by construction. A fuzzy caller may be a different function with the same name. `chain_trace` filters fuzzy edges; the flat neighbour list does not.\n2. **Empty does not mean nobody calls it.** Callers can exist and fail resolution. That is what `unresolved_inbound` is for. The gh#15 incident was a reader who followed the only resolved caller, a test helper, and drew the wrong conclusion.\n3. **It is one hop and static.** `callers` lists direct edges. Transitive reach needs a separate walk, and that walk filters fuzzy edges. A listed caller can also be dead code or a test. Liveness is a separate reachability answer.\n4. **Coverage has known holes.**\n   - Function-pointer calls resolve only for the registration-then-dispatch pattern (`GLOBAL = PARAM;` then `GLOBAL(...)`).\n   - On Python and Rust, a newly added cross-file call waits for a full rebuild.\n   - The self-edge guard deletes self-edges that lack a bare or self-rooted call shape, so some real recursion may not appear.\n   - Calls through virtual dispatch and macros are only partly represented.\n5. **Staleness.** Queries auto-refresh when sources have moved, but a refresh that cannot splice (the cross-file limit above) leaves the answer stale until a full rebuild.\n6. **Key edges are not calls.** A `key` entry means a shared-key write/read with no call. It may be asynchronous and cross a thread boundary.\n\n**Bottom line:** read each caller with its `source` and `confidence`, treat an empty list as \"unknown until `unresolved_inbound` is checked\", and treat the list as one-hop, static, and possibly fuzzy. I read the code for this answer and did not run clew against this repository.",
+  "ttft_ms": 948,
+  "type": "result",
+  "duration_ms": 24928,
+  "uuid": "c000345f-d2d3-416a-8b4c-3d6f4a4037e2",
+  "ttft_stream_ms": 691,
+  "time_to_request_ms": 79,
+  "first_content_frame_ms": 691,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -356,6 +356,20 @@ def test_chunk_markdown_empty_section_skipped() -> None:
     assert chunks == [("B", "body")]
 
 
+def test_chunk_markdown_a_hash_line_in_a_code_fence_is_not_a_heading() -> None:
+    """A shell comment or C preprocessor line inside a fence stays in its section."""
+    text = "# Build\n```sh\n# configure first\nmake\n```\n"
+    chunks = chunk_markdown(text, "x.md")
+    assert chunks == [("Build", "```sh\n# configure first\nmake\n```")]
+
+
+def test_chunk_markdown_splits_on_setext_and_keeps_deeper_headings_inline() -> None:
+    """`Title` over `=====` is a heading; `####` stays inside the section above it."""
+    text = "Intro\n\nUsage\n=====\nrun it\n\n#### Detail\nmore\n"
+    chunks = chunk_markdown(text, "x.md")
+    assert chunks == [("x.md", "Intro"), ("Usage", "run it\n\n#### Detail\nmore")]
+
+
 def test_supplementary_patterns_includes_readme_and_docs() -> None:
     """Glob list must cover the standard layouts before runtime adds any."""
     assert "README.md" in SUPPLEMENTARY_PATTERNS

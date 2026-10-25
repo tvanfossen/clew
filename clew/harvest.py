@@ -51,7 +51,7 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from ._common import logger, make_progress
@@ -90,32 +90,96 @@ _PY_EXTS = (".py", ".pyi")
 # repo the SAME tree-sitter richness layers (call edges, threads, locks) a
 # doxygen-sourced C/C++/Python repo already gets.
 _RUST_EXTS = (".rs",)
+# JavaScript and TypeScript have no doxygen front end at all: clew/synth.py writes their
+# rows from this same parse. `.tsx` needs the JSX-aware grammar, which the substrate keeps
+# under its own key; JSX in plain JavaScript is handled by the javascript grammar.
+# Shell holds a repository's deploy, release and CI logic — the only code in an
+# indexed tree that had no rows at all before 1.1.0. clew/shast.py harvests it.
+_SH_EXTS = (".sh", ".bash")
+# CMake is matched by FILE NAME as well as by extension, and the name is matched as a whole
+# PATH COMPONENT. Expressing it in the suffix table as `endswith("cmakelists.txt")` was
+# shorter and wrong: it also claims `oldcmakelists.txt` and `vendor-CMakeLists.txt`.
+# Routing `.txt` itself would be worse again — every `requirements.txt` and `notes.txt` in
+# the tree handed to a build-script grammar.
+_CMAKE_EXTS = (".cmake",)
+_CMAKE_NAMES = ("cmakelists.txt",)
+_JS_EXTS = (".js", ".mjs", ".cjs", ".jsx")
+_TS_EXTS = (".ts", ".mts", ".cts")
+_TSX_EXTS = (".tsx",)
 # Extension group → grammar module, in PRECEDENCE order: the C++ suffixes are
 # tried first so `.hpp`/`.h++` never fall through to the C grammar. A table
 # rather than an if-chain because the house limit is three returns per function
 # and adding Python made the fourth.
+#
+# A `substrate:<key>` entry is parsed by lang-parsing-substrate (clew/tsnode.py) rather
+# than by a py-tree-sitter grammar package: same Node API, the grammars knots, moldy and
+# aurora-lint share, and no per-language Python package pinned to py-tree-sitter's ABI.
+# Every grammar is a substrate one now, so py-tree-sitter is not a dependency at all.
 _TS_GRAMMARS: tuple[tuple[tuple[str, ...], str], ...] = (
-    (_CPP_EXTS, "tree_sitter_cpp"),
-    (_C_EXTS, "tree_sitter_c"),
-    (_PY_EXTS, "tree_sitter_python"),
-    (_RUST_EXTS, "tree_sitter_rust"),
+    (_CPP_EXTS, "substrate:cpp"),
+    (_C_EXTS, "substrate:c"),
+    (_PY_EXTS, "substrate:python"),
+    (_RUST_EXTS, "substrate:rust"),
+    (_JS_EXTS, "substrate:javascript"),
+    (_TS_EXTS, "substrate:typescript"),
+    (_TSX_EXTS, "substrate:tsx"),
+    (_SH_EXTS, "substrate:bash"),
+    (_CMAKE_EXTS, "substrate:cmake"),
 )
 
+## Grammars selected by a file's whole NAME rather than by a suffix, checked first. Keyed
+## lower-cased, because `CMakeLists.txt` is also written `CMakeLists.TXT` on a
+## case-insensitive filesystem and the router has always lower-cased the path.
+_NAME_GRAMMARS: dict[str, str] = {name: "substrate:cmake" for name in _CMAKE_NAMES}
 
-## @brief Import a tree-sitter grammar module by name, or None if absent.
-## @return The imported grammar module, or None when it isn't installed.
+_SUBSTRATE_PREFIX = "substrate:"
+
+## Grammars that MAY BE ABSENT from the installed substrate, so a route to one is checked
+## before it is taken. `parse_tree` raises `ValueError: unknown language key` for a grammar
+## the wheel was not built with, which on an unchecked route is a build that dies partway
+## through a parse pass instead of simply not covering those files.
+##
+## The other keys are deliberately NOT gated: a substrate without C or Python is a broken
+## install, and a loud failure is the right answer there rather than an index that quietly
+## holds nothing.
+_OPTIONAL_KEYS = frozenset({"bash", "cmake"})
+
+
+## @brief A grammar served by the substrate, standing in for a grammar module.
 ## @version 1
 ## @dg_internal
+class _SubstrateGrammar:
+    """Only `__name__` is read off a grammar module outside this file (it keys the
+    parser cache and `propose/scanning.py`'s grammar filter), so that is all this
+    carries.
+
+    @brief Grammar handle for a substrate language key.
+    """
+
+    __slots__ = ("__name__", "key")
+
+    ## @brief Record the grammar name and its substrate key.
+    ## @param name A `substrate:<key>` grammar name.
+    ## @version 1
+    ## @dg_internal
+    def __init__(self, name: str) -> None:
+        self.__name__ = name
+        self.key = name[len(_SUBSTRATE_PREFIX) :]
+
+
+## @brief The grammar handle for a `substrate:<key>` name, or None for any other name.
+## @return The substrate grammar handle, or None.
+## @version 3
+## @dg_internal
 def _try_import_ts_module(modname: str):
-    try:
-        return __import__(modname)
-    except ImportError:
-        return None
+    if modname.startswith(_SUBSTRATE_PREFIX):
+        return _SubstrateGrammar(modname)
+    return None
 
 
 ## @brief Select the C, C++, Python or Rust tree-sitter language by extension.
 ## @return The grammar module for the path's extension, or None if unhandled.
-## @version 4
+## @version 5
 ## @dg_internal
 def _ts_language_for(path: str):
     """Select the tree-sitter grammar for one path's extension.
@@ -133,8 +197,32 @@ def _ts_language_for(path: str):
     @version 3
     """
     lower = path.lower()
-    modname = next((m for exts, m in _TS_GRAMMARS if lower.endswith(exts)), None)
-    return _try_import_ts_module(modname) if modname is not None else None
+    modname = _NAME_GRAMMARS.get(PurePosixPath(lower).name)
+    if modname is None:
+        modname = next((m for exts, m in _TS_GRAMMARS if lower.endswith(exts)), None)
+    if modname is None or not _grammar_available(modname):
+        return None
+    return _try_import_ts_module(modname)
+
+
+## @brief Whether a routed grammar is actually compiled into the installed substrate.
+## @param modname A `substrate:<key>` grammar name.
+## @return True unless the key is optional and absent.
+## @version 1
+## @dg_internal
+def _grammar_available(modname: str) -> bool:
+    """Only the optional keys are measured, and only they can be missing — see
+    `_OPTIONAL_KEYS`. `clew/substrate.py` caches the answer, so this costs one set lookup
+    per file after the first.
+
+    @brief Optional-grammar capability check.
+    """
+    key = modname[len(_SUBSTRATE_PREFIX) :]
+    if key not in _OPTIONAL_KEYS:
+        return True
+    from . import substrate
+
+    return substrate.has_language(key)
 
 
 # `.h` says nothing about the language: C uses it, and so does every C++ project
@@ -155,22 +243,47 @@ _AMBIGUOUS_EXTS = (".h",)
 _FLUSH_EVERY = 500
 
 
-## @brief Memoized tree-sitter parser for one grammar module name.
-## @param mod_name Grammar module to load ("tree_sitter_c" / "tree_sitter_cpp").
+## @brief Memoized substrate parser for one grammar name.
+## @param mod_name Grammar name to load ("substrate:c", "substrate:cpp", ...).
 ## @param parser_cache Mutated in place to memoize parsers per grammar.
-## @param Parser tree_sitter Parser class.
-## @param Language tree_sitter Language class.
-## @return A Parser, or None when the grammar module is not installed.
-## @version 1
+## @return A Parser, or None for a name that is not a substrate grammar.
+## @version 4
 ## @dg_internal
-def _cached_parser(mod_name: str, parser_cache: dict, Parser, Language):
-    """@brief Build (once) and return the parser for a grammar module."""
+def _cached_parser(mod_name: str, parser_cache: dict):
+    """Every grammar is parsed by clew/tsnode.py's substrate parser.
+
+    @brief Build (once) and return the parser for a grammar name.
+    @return A parser, or None when the grammar is unknown.
+    @version 4
+    """
     parser = parser_cache.get(mod_name)
     if parser is None:
         mod = _try_import_ts_module(mod_name)
-        parser = Parser(Language(mod.language())) if mod is not None else None
+        if mod is not None:
+            from .tsnode import Parser as SubstrateParser
+
+            parser = SubstrateParser(mod.key)
         parser_cache[mod_name] = parser
     return parser
+
+
+## @brief Whether a file may be parsed: it exists and is not binary.
+## @param abs_path Absolute path of the candidate file.
+## @return True for a regular file that classify_file does not call binary.
+## @version 1
+## @req REQ-DDB-PIPE-011
+def _parseable_file(abs_path: Path) -> bool:
+    """The doxygen stage already drops binaries from the scanned tree, but `path` rows
+    also come from doxygen's followed includes and from rustdoc, outside that scan. This
+    is the gate in front of every harvest read, and it sits before the content hash so a
+    2 GB archive named `.c` is never read whole.
+
+    @brief Existence plus binary check ahead of a parse.
+    @return Whether to parse the file.
+    """
+    from .filetypes import binary_file
+
+    return abs_path.is_file() and binary_file(abs_path) is None
 
 
 ## @brief Count ERROR/MISSING nodes in a parsed tree.
@@ -194,18 +307,16 @@ def _parse_error_count(root) -> int:
 ## @param c_tree The tree produced by the C grammar.
 ## @param src_bytes Raw file bytes.
 ## @param parser_cache Parser memo.
-## @param Parser tree_sitter Parser class.
-## @param Language tree_sitter Language class.
 ## @return Whichever tree has fewer parse errors.
-## @version 1
+## @version 3
 ## @dg_internal
-def _disambiguate_header(c_tree, src_bytes: bytes, parser_cache: dict, Parser, Language):
+def _disambiguate_header(c_tree, src_bytes: bytes, parser_cache: dict):
     """Only reached for a `.h` whose C parse ALREADY errored, so a genuine C
     header never pays for this. Comparing error counts (rather than demanding
     zero) keeps the right grammar for a C++ header that also trips on macros.
     Ties keep C, so nothing changes unless C++ is strictly better.
     """
-    cpp = _cached_parser("tree_sitter_cpp", parser_cache, Parser, Language)
+    cpp = _cached_parser("substrate:cpp", parser_cache)
     if cpp is None:
         return c_tree
     cpp_tree = cpp.parse(src_bytes)
@@ -216,14 +327,12 @@ def _disambiguate_header(c_tree, src_bytes: bytes, parser_cache: dict, Parser, L
 
 ## @brief Parse one file with the appropriate tree-sitter grammar.
 ## @return (tree, src_bytes), or None for an unhandled/unreadable file.
-## @version 3
+## @version 5
 ## @dg_internal
 def _ast_parse_one_file(
     rel_path: str,
     abs_path: Path,
     parser_cache: dict,
-    Parser,
-    Language,
 ) -> tuple[Any, bytes] | None:
     """Parse one file with the appropriate tree-sitter grammar.
 
@@ -234,15 +343,11 @@ def _ast_parse_one_file(
     A `.h` that fails to parse as C is retried as C++ (see _AMBIGUOUS_EXTS).
 
     @brief Parse one source file into a tree-sitter tree.
-    @version 3
+    @version 5
     """
     lang_mod = _ts_language_for(rel_path)
-    parser = (
-        _cached_parser(lang_mod.__name__, parser_cache, Parser, Language)
-        if lang_mod is not None
-        else None
-    )
-    if parser is None or not abs_path.is_file():
+    parser = _cached_parser(lang_mod.__name__, parser_cache) if lang_mod is not None else None
+    if parser is None or not _parseable_file(abs_path):
         return None
     try:
         src_bytes = abs_path.read_bytes()
@@ -250,28 +355,8 @@ def _ast_parse_one_file(
         return None
     tree = parser.parse(src_bytes)
     if rel_path.lower().endswith(_AMBIGUOUS_EXTS) and tree.root_node.has_error:
-        tree = _disambiguate_header(tree, src_bytes, parser_cache, Parser, Language)
+        tree = _disambiguate_header(tree, src_bytes, parser_cache)
     return tree, src_bytes
-
-
-## @brief Try importing tree_sitter's Language/Parser classes.
-## @return (Language, Parser), or None if tree_sitter isn't installed.
-## @version 2
-## @req REQ-DDB-PIPE-003
-def try_import_tree_sitter() -> tuple[Any, Any] | None:
-    """Return (Language, Parser), or None if tree_sitter isn't importable.
-
-    @brief Optional tree_sitter import.
-    @version 2
-    """
-    try:
-        from tree_sitter import (  # type: ignore[import-not-found]
-            Language,
-            Parser,
-        )
-    except ImportError:
-        return None
-    return Language, Parser
 
 
 ## @brief Nearest enclosing node of one of the given types.
@@ -355,14 +440,13 @@ class HarvestTally:
 
 ## @brief Serve one file's payload from cache, or parse + harvest + store it.
 ## @return The file's payload, or None when the file isn't parseable.
-## @version 3
+## @version 4
 ## @dg_internal
 def _harvest_one_file(
     rel_path: str,
     abs_path: Path,
     harvester: Harvester,
     parser_cache: dict,
-    ts_classes: tuple[Any, Any],
     cache: IndexCache | None,
     tally: HarvestTally,
 ) -> Any | None:
@@ -371,12 +455,12 @@ def _harvest_one_file(
     computed simply parses (fail toward the MISS).
 
     @brief Cached single-file harvest.
-    @version 2
+    @version 3
     """
     # Non-source paths and paths doxygen recorded but that don't exist under
     # the repo root (system headers it followed) never reach the parser, so
     # they never reach the cache either.
-    if _ts_language_for(rel_path) is None or not abs_path.is_file():
+    if _ts_language_for(rel_path) is None or not _parseable_file(abs_path):
         return None
     sha = cache.sha_for(rel_path, abs_path) if cache is not None else None
     hit = _cached_payload(harvester, cache, sha)
@@ -384,7 +468,7 @@ def _harvest_one_file(
         tally.cached += 1
         return hit
     tally.computed += 1
-    return _parse_and_store(rel_path, abs_path, harvester, parser_cache, ts_classes, cache, sha)
+    return _parse_and_store(rel_path, abs_path, harvester, parser_cache, cache, sha)
 
 
 ## @brief This file's cached payload for this harvester stage, if any.
@@ -421,7 +505,6 @@ def _cached_payload(harvester: Harvester, cache: IndexCache | None, sha: str | N
 ## @param abs_path Absolute path to read.
 ## @param harvester The stage to run.
 ## @param parser_cache Per-language parser memo.
-## @param ts_classes (Language, Parser) from tree_sitter.
 ## @param cache Live index cache, or None.
 ## @param sha The file's content sha, or None.
 ## @return The harvested payload, or None when the file is not parseable.
@@ -432,7 +515,6 @@ def _parse_and_store(
     abs_path: Path,
     harvester: Harvester,
     parser_cache: dict,
-    ts_classes: tuple[Any, Any],
     cache: IndexCache | None,
     sha: str | None,
 ) -> Any | None:
@@ -440,8 +522,7 @@ def _parse_and_store(
 
     @version 2
     """
-    language_cls, parser_cls = ts_classes
-    parsed = _ast_parse_one_file(rel_path, abs_path, parser_cache, parser_cls, language_cls)
+    parsed = _ast_parse_one_file(rel_path, abs_path, parser_cache)
     if parsed is None:
         return None
     payload = harvester.harvest(parsed[0], parsed[1])
@@ -476,7 +557,6 @@ def run_harvest(
     conn: sqlite3.Connection,
     repo_root: Path,
     harvester: Harvester,
-    ts_classes: tuple[Any, Any],
     cache: IndexCache | None = None,
 ) -> list[tuple[int, Any]]:
     """Iterate the `path` table in rowid order (so edge insertion order — and
@@ -513,7 +593,6 @@ def run_harvest(
                 repo_root / rel_path,
                 harvester,
                 parser_cache,
-                ts_classes,
                 cache,
                 tally,
             )
@@ -539,7 +618,7 @@ def run_harvest(
 ## @param abs_path Absolute path to read.
 ## @param cache Live index cache.
 ## @return The file's content sha, or None to leave it to the per-stage driver.
-## @version 1
+## @version 2
 ## @dg_internal
 def _shareable_sha(rel_path: str, abs_path: Path, cache: IndexCache) -> str | None:
     """None means "not shareable", for either of the two reasons the per-stage
@@ -548,9 +627,9 @@ def _shareable_sha(rel_path: str, abs_path: Path, cache: IndexCache) -> str | No
     themselves — the pre-gh#358 behaviour, which is slow and correct.
 
     @brief Sha for a file the shared pass can warm, else None.
-    @version 1
+    @version 2
     """
-    if _ts_language_for(rel_path) is None or not abs_path.is_file():
+    if _ts_language_for(rel_path) is None or not _parseable_file(abs_path):
         return None
     return cache.sha_for(rel_path, abs_path)
 
@@ -560,7 +639,6 @@ def _shareable_sha(rel_path: str, abs_path: Path, cache: IndexCache) -> str | No
 ## @param abs_path Absolute path to read.
 ## @param harvesters Every stage the build will run.
 ## @param parser_cache Per-language parser memo.
-## @param ts_classes (Language, Parser) from tree_sitter.
 ## @param cache Live index cache.
 ## @param tally Mutated in place with the cached/computed/parsed counts.
 ## @version 1
@@ -570,7 +648,6 @@ def _shared_parse_one_file(
     abs_path: Path,
     harvesters: list[Harvester],
     parser_cache: dict,
-    ts_classes: tuple[Any, Any],
     cache: IndexCache,
     tally: HarvestTally,
 ) -> None:
@@ -594,8 +671,7 @@ def _shared_parse_one_file(
     tally.cached += len(harvesters) - len(pending)
     if not pending:
         return
-    language_cls, parser_cls = ts_classes
-    parsed = _ast_parse_one_file(rel_path, abs_path, parser_cache, parser_cls, language_cls)
+    parsed = _ast_parse_one_file(rel_path, abs_path, parser_cache)
     if parsed is None:
         return
     tally.parsed += 1
@@ -612,29 +688,27 @@ def _shared_parse_one_file(
 _WORKER: dict[str, Any] = {}
 
 
-## @brief Prepare one pool worker: keep the harvesters, import tree-sitter, own a parser cache.
+## @brief Prepare one pool worker: keep the harvesters, own a parser cache.
 ## @param harvesters The plan's harvesters, pickled once per worker rather than once per file.
 ## @return None.
-## @version 1
+## @version 2
 ## @dg_internal
 def _worker_init(harvesters: list[Harvester]) -> None:
-    """TREE-SITTER IS IMPORTED HERE, NOT SENT. `Language` and `Parser` are C extension types and
-    do not pickle, so the parent cannot hand them over; each worker imports its own. The same is
-    true of `parser_cache`, which memoizes live `Parser` objects — per-worker by necessity, which
-    costs one grammar construction per worker rather than per file.
+    """THE PARSER CACHE IS BUILT HERE, NOT SENT: it memoizes live parser objects, which belong
+    to the process that made them. Per-worker by necessity, which costs one parser construction
+    per worker rather than per file.
 
     @brief Initialise one shared-parse worker.
-    @version 1
+    @version 2
     """
     _WORKER["harvesters"] = harvesters
     _WORKER["parser_cache"] = {}
-    _WORKER["ts"] = try_import_tree_sitter()
 
 
 ## @brief Parse one file in a worker and harvest every stage that asked for it.
 ## @param job (rel_path, absolute path as str, indices of the harvesters still needed).
 ## @return (rel_path, {harvester index: payload}) or (rel_path, None) when unparseable.
-## @version 1
+## @version 2
 ## @dg_internal
 def _worker_parse(job: tuple[str, str, tuple[int, ...]]) -> tuple[str, dict[int, Any] | None]:
     """RETURNS PAYLOADS RATHER THAN WRITING THEM. Every cache write stays in the parent, so there
@@ -648,16 +722,10 @@ def _worker_parse(job: tuple[str, str, tuple[int, ...]]) -> tuple[str, dict[int,
     recorded more than any other.
 
     @brief Parse and harvest one file inside a pool worker.
-    @version 1
+    @version 2
     """
     rel_path, abs_path, pending = job
-    ts = _WORKER["ts"]
-    if ts is None:
-        return rel_path, None
-    language_cls, parser_cls = ts
-    parsed = _ast_parse_one_file(
-        rel_path, Path(abs_path), _WORKER["parser_cache"], parser_cls, language_cls
-    )
+    parsed = _ast_parse_one_file(rel_path, Path(abs_path), _WORKER["parser_cache"])
     if parsed is None:
         return rel_path, None
     harvesters = _WORKER["harvesters"]
@@ -769,7 +837,6 @@ def _shared_parse_pooled(
 ## @param conn Open connection to the database being built.
 ## @param repo_root Repository root the indexed paths are relative to.
 ## @param harvesters Every per-file stage this build will run.
-## @param ts_classes (Language, Parser) from tree_sitter.
 ## @param cache Live index cache; None disables the pass entirely.
 ## @param jobs Worker processes for the parse; 1 keeps the serial path.
 ## @return The tally of payloads cached/computed and files parsed.
@@ -779,7 +846,6 @@ def run_shared_parse(
     conn: sqlite3.Connection,
     repo_root: Path,
     harvesters: list[Harvester],
-    ts_classes: tuple[Any, Any],
     cache: IndexCache | None = None,
     jobs: int = 1,
 ) -> HarvestTally:
@@ -843,7 +909,6 @@ def run_shared_parse(
                 repo_root / rel_path,
                 harvesters,
                 parser_cache,
-                ts_classes,
                 cache,
                 tally,
             )

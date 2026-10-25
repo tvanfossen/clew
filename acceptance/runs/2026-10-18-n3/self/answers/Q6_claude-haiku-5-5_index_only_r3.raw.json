@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 40854,
+  "stop_reason": "end_turn",
+  "session_id": "29e5fdd8-5943-48bd-a1e1-6bacc94924d0",
+  "total_cost_usd": 0.015249770000000001,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 37381,
+    "cache_read_input_tokens": 384347,
+    "output_tokens": 7857,
+    "output_tokens_details": {
+      "thinking_tokens": 4066
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37381,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4290,
+        "cache_read_input_tokens": 69783,
+        "cache_creation_input_tokens": 1576,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1576
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 7857,
+      "cacheReadInputTokens": 384347,
+      "cacheCreationInputTokens": 37381,
+      "webSearchRequests": 0,
+      "costUSD": 0.015249770000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4066,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nFor shell, CMake, YAML and JSON, the index holds **a file-set entry for every such file, plus function-level definitions for shell and CMake only**. It holds no symbols, bodies, calls or structure for YAML and JSON. On an install whose parser lacks the bash or CMake grammar, those files silently lose their definitions and keep their file rows. A missing C or Python grammar is treated as a broken install and fails loudly.\n\n## How it works\n\nDoxygen reads none of these languages, so a separate front end in `clew/synth.py` handles them. Its selection function `claims()` is extension-based, and it registers matching files in the `path` table.\n\n| File type | In the index | Symbols | Source |\n|---|---|---|---|\n| Shell (`.sh`, `.bash`, `deploy.sh`) | yes | function definitions, with `#` doc blocks | `clew/shast.py` via `_ScriptSymbolHarvester` |\n| CMake (`CMakeLists.txt`, `*.cmake`) | yes | `function` and `macro` definitions (macros as \"macro definition\") | `clew/cmakeast.py`, `harvest_definitions` |\n| YAML (`config.yaml`, `.github/workflows/ci.yml`) | yes, as a file | none | registered by `claims()`, \"harvested by nothing\" |\n| JSON (`data.json`) | yes, as a file | none | same as YAML |\n\nTwo details matter:\n\n- **CMake is matched by file name, not extension.** `CMakeLists.txt` routes, but a plain `.txt` does not. A `CMakeLists.txt` with no function definitions yields only its file row.\n- **Shell and CMake definitions go through the same writer as JS/TS**, under a separate `script` key prefix, so they cannot collide with JS symbols at the same line.\n\n## What the index does not hold\n\n- **CMake build content.** `cmakeast.py` harvests only function and macro definitions. Targets, `add_executable`/`target_link_libraries` dependencies, compile flags and options are not recorded, even though the module's own docs say `CMakeLists.txt` is where a repo states what it builds.\n- **YAML and JSON content of any kind.** The test `test_the_data_files_are_in_the_file_set_with_no_symbols` pins this: they are registered and carry no rows. CI workflows, `config.yaml` keys and `data.json` values are not searchable through the index.\n- **Call edges, locks, threads or dataflow from shell or CMake.** I found no evidence of these; the script front end emits definitions only.\n- **Shell and CMake bodies beyond definition records**, as far as the index shows.\n\nI could not confirm whether this repository's own `.sh` or `.cmake` files are in scope. The index's scope summary lists `.c .cpp .h .json .md .py .yaml` as indexed extensions and does not list `.sh` or `.cmake`. Check `index(action='status')` on this target if that matters.\n\n## An installation whose parser lacks the grammars\n\n1. **Detection.** `compiled_languages()` in `clew/substrate.py` reads `lang_parsing_substrate.languages()`. If the package is missing or unreadable, it logs an ERROR (\"reports no languages\") and returns an empty set, not a silent fallback.\n2. **Optional keys.** Only `bash` and `cmake` are optional (`_OPTIONAL_KEYS` in `clew/harvest.py`). `_grammar_available()` returns False for them when absent, and `_ts_language_for()` returns `None`. The test `test_a_missing_grammar_routes_to_nothing_instead_of_raising` pins this degrade.\n3. **Result.** `claims()` does not consult grammars, so `register_paths` still inserts the `.sh` and `CMakeLists.txt` path rows. Their harvest then routes to nothing, so the file appears in the file set with zero definitions and no error at the file level.\n4. **Always-present grammars are not gated.** C, C++ and Python are not in `_OPTIONAL_KEYS`. A wheel missing them is treated as a broken install, and failing loudly is the intended behaviour.\n5. **YAML and JSON are not optional keys either.** The index does not say what happens if their grammars are missing. Since they carry no symbols, the effect should be nil, but I did not verify that.\n6. **Tests skip, not fail.** `test_shell_and_cmake_definitions_become_rows` calls `pytest.skip(\"substrate lacks [...]\")` when bash or cmake is absent. On such an install the suite reports a skip, not a failure, so CI can go green while the shell and CMake feature is off.\n\nThe substrate's own brief says the five configuration languages (bash, cmake, yaml, json, markdown) are registered in a fork of lang-parsing-substrate that is open upstream. I read that as meaning a stock upstream wheel may lack bash and CMake, but I did not confirm which wheels ship them, and I could not read the referenced `.claude/tmp/substrate-fork.md`.\n\nA caveat on the answers: several dossiers reported `anchor_mismatch`, meaning the file changed since the index was built, for `build_harvest_plan`, `run_harvest` and the degrade test. Line numbers for those may be off, though the behaviour described matches their bodies.",
+  "ttft_ms": 1646,
+  "type": "result",
+  "duration_ms": 42371,
+  "uuid": "3163cbc1-9c27-4907-815d-93992877f57b",
+  "ttft_stream_ms": 1249,
+  "time_to_request_ms": 74,
+  "first_content_frame_ms": 1250,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

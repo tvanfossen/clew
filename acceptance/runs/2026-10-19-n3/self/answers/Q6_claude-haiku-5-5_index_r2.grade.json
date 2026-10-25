@@ -1,0 +1,143 @@
+{
+  "cell": "Q6_claude-haiku-5-5_index_r2",
+  "arm": "index",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "47cdb1e6a8e6c4bb",
+  "judge_model": "claude-sonnet-4-5-20250929",
+  "score": 0.0,
+  "unmarked_pct": 1.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "9cc2b15baf93",
+  "decisions": [
+    {
+      "mark": "names the shell and CMake extensions, including CMakeLists.txt matched by file name rather than by extension",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": null,
+      "detail": "1/1 calls failed: rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"b2a1841b-9e6a-4ebc-a0eb-edd643e49f89\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear",
+      "agreement": 0.0,
+      "samples": 1,
+      "errors": 1
+    },
+    {
+      "mark": "states that YAML and JSON are registered in the file set but carry NO symbols, so the two file groups are treated differently rather than alike",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": null,
+      "detail": "3/3 calls failed: rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"fd855fd8-055c-4167-b8fe-9e9098d7174b\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"3047fa60-8ded-405c-a7df-e5687becb7df\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"7e773e86-04c0-462c-aaa7-fe8f1728d1a0\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear",
+      "agreement": 0.0,
+      "samples": 3,
+      "errors": 3
+    },
+    {
+      "mark": "states that markdown is deliberately NOT given a path row, because it is prose and a path row would also count it as indexed source in coverage figures",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": null,
+      "detail": "3/3 calls failed: rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"552fcae6-9d52-4040-bc40-e518f53be3b2\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"fc44ea17-2c99-434c-a8e3-69efe792d9c7\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"bdf61630-6f2f-4122-9354-c16b6b4a8a7c\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear",
+      "agreement": 0.0,
+      "samples": 3,
+      "errors": 3
+    },
+    {
+      "mark": "concludes that an installation lacking the grammars DEGRADES rather than failing \u2014 the router consults a capability gate before routing, and those file types are then reported as not indexed",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": null,
+      "detail": "3/3 calls failed: rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"31bc649b-ddaf-46ea-a7fa-733c868f4e16\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"5b0d3759-c69f-45ea-8533-ab7c8a23be83\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"bcaa3f5a-487a-4536-b05a-b33e8a21fb2d\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear",
+      "agreement": 0.0,
+      "samples": 3,
+      "errors": 3
+    },
+    {
+      "mark": "states that the root node type cannot be the discriminator, because shell shares its root with JavaScript and CMake shares its root with Rust",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": null,
+      "detail": "3/3 calls failed: rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"1ecf8c72-9404-48a4-8f04-9702e679c9bf\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"e1e5770f-5a65-4455-8013-3e809b56afc2\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"6b1233e7-1ede-41fd-bf0d-d51a2f3d8336\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear",
+      "agreement": 0.0,
+      "samples": 3,
+      "errors": 3
+    },
+    {
+      "mark": "states that CMake's definition name is an ARGUMENT of the command rather than a named field of the node",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": null,
+      "detail": "1/1 calls failed: rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"c00d9862-8209-4e54-81b4-69f350c30634\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear",
+      "agreement": 0.0,
+      "samples": 1,
+      "errors": 1
+    },
+    {
+      "mark": "states that a shell function is recorded with no argument list and no return, because the language has neither",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": null,
+      "detail": "1/1 calls failed: rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"f0601fc9-d41e-4281-9532-2859570bcfb3\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear",
+      "agreement": 0.0,
+      "samples": 1,
+      "errors": 1
+    },
+    {
+      "mark": "states that both languages share ONE harvest partition, and gives the reason \u2014 a second partition would write an empty payload row per file per index",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": null,
+      "detail": "3/3 calls failed: rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"3721d110-a98a-42af-b088-3c3280bbfd02\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"cec1b358-27c3-44bf-bca2-f87d55a1ff2f\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"858478d3-0011-4360-acb4-0e185e5ca564\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear",
+      "agreement": 0.0,
+      "samples": 3,
+      "errors": 3
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction unavailable",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction unavailable",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction unavailable",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction unavailable",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction unavailable",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

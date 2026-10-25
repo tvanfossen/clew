@@ -35,7 +35,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..gitenv import git_env
+from ..gitenv import GIT_TIMEOUT_SECONDS, git_argv, git_env
 from ..reachability import DEFAULT_ENTRY_PATTERNS
 from ..scope import INDEX_SCOPE_SECTION
 from .context import Context
@@ -79,7 +79,7 @@ class NotIndexedDir:
 ## @brief Git-tracked repo-relative paths, or None when git is unavailable.
 ## @param repo_root Repo root to query.
 ## @return Set of tracked repo-relative POSIX paths, or None.
-## @version 3
+## @version 4
 ## @req REQ-DDB-CONFIG-001
 def tracked_files(repo_root: Path) -> frozenset[str] | None:
     """Tracked-only is what keeps submodule and vendored trees out of the
@@ -87,17 +87,18 @@ def tracked_files(repo_root: Path) -> frozenset[str] | None:
     third-party checkout never appears as a directory an owner should index.
 
     @brief List the repo's git-tracked files.
-    @version 3
+    @version 4
     """
     try:
         ## `env=git_env()`: an absolute `GIT_DIR` exported to a hook overrides `cwd`, so
         ## without it this lists the HOOK's repository and every file in the target repo
         ## reads as untracked. See `clew.gitenv`.
         proc = subprocess.run(
-            ["git", "ls-files", "-z"],
+            git_argv("ls-files", "-z"),
             cwd=str(repo_root),
             capture_output=True,
             text=True,
+            timeout=GIT_TIMEOUT_SECONDS,
             check=False,
             env=git_env(),
         )

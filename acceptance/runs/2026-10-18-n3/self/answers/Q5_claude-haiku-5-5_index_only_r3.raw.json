@@ -1,0 +1,105 @@
+{
+  "duration_api_ms": 16232,
+  "stop_reason": "end_turn",
+  "session_id": "2e2ee8f2-0013-4a25-a831-ee8219eceea0",
+  "total_cost_usd": 0.006084890000000001,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 13748,
+    "cache_read_input_tokens": 191979,
+    "output_tokens": 2829,
+    "output_tokens_details": {
+      "thinking_tokens": 1089
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 13748,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1523,
+        "cache_read_input_tokens": 44549,
+        "cache_creation_input_tokens": 3127,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3127
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 2829,
+      "cacheReadInputTokens": 191979,
+      "cacheCreationInputTokens": 13748,
+      "webSearchRequests": 0,
+      "costUSD": 0.006084890000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1089,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "mcp__clew__propose_declaration",
+      "tool_use_id": "toolu_017cCqLjBHDXjAxDhXTdSX9W",
+      "tool_input": {}
+    }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "There are three ways to tell clew how to index a repo, and they are resolved by one five-tier rule.\n\n**The ways to say so**\n\n| Tier | Source | Role |\n|---|---|---|\n| 1 | Explicit statement at call time: a CLI flag, or the `options` argument on the MCP `index` tool | Operator's one-off override |\n| 2 | The repo's checked-in `.clew.yaml` (the \"declaration\") | The repo's standing statement |\n| 3 | Facts someone else already wrote, such as a Doxyfile | Always present, always accumulates |\n| 4 | Ecosystem signatures for a known language or platform | Always accumulates |\n| 5 | Built-in name-pattern guesses | The layer any stated tier displaces |\n\n`.clew.yaml` is the main route. Its top-level sections are checked against a fixed list (`ACCEPTED_SECTIONS`). An unknown section is refused by name, so a misspelling fails loudly. The `guard:` section belongs to the doxygen gate, and the index ignores it. Keys with an `x-` prefix are tolerated and ignored, so an older clew doesn't refuse a newer file. The old `.doxygen-guard.yaml` is no longer read at all. A malformed file degrades to built-in defaults with a message. A comments-only file is reported as stating nothing.\n\n**When two disagree**\n\nThe rule, as stated in `clew/tiers.py` and `resolve_layered`, is `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`.\n\n- **Flag vs. declaration:** the flag wins outright. The declaration's values for that option are dropped, not merged in. The test `test_explicit_flag_wins_over_the_declaration` pins this.\n- **Stated tier vs. guesses:** a stated value (tier 1 or 2) displaces only the tier-5 guesses. Facts and ecosystem values (tiers 3\u20134) always stay.\n- **Empty flag:** `[]` is a withdrawal, not a statement. It falls through to the declaration, and then to the guesses. This lets an operator undo a recorded flag without deleting the database.\n- **Provenance:** the winning tier is recorded in build metadata. Only a tier-1 statement is stored for replay, so a declaration or guess is never replayed as if someone had typed it.\n\n**Caveats**\n\n- Scope resolution follows a separate order: scope's declaration beats the guard, which beats the Doxyfile.\n- Shared-key matching was once inverted, with a built-in default beating a declared pattern. That was fixed, and a declaration now beats a default.\n- I did not call `propose_declaration`, since it was not permitted. Its output would show what the defaults would find, so it is the next check if you want to see what a repo gets without a file.",
+  "ttft_ms": 2071,
+  "type": "result",
+  "duration_ms": 16707,
+  "uuid": "ed213160-c6ea-4809-8015-4012e854efe8",
+  "ttft_stream_ms": 1059,
+  "time_to_request_ms": 74,
+  "first_content_frame_ms": 1059,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

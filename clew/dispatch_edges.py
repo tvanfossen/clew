@@ -46,7 +46,7 @@ from ._common import logger
 from .call_edges import _ast_record_call_edge, _build_function_indexes
 from .callback_edges import _ensure_external_boundaries_table
 from .dispatch import DispatchManifest, InterfaceBinding
-from .harvest import Harvester, run_harvest, try_import_tree_sitter
+from .harvest import Harvester, run_harvest
 from .indexcache import IndexCache
 from .shared_key_edges import _definition_preferring_name_index
 from .threads import _qualified_at_boundary, _resolve_qualified_entry, _tail_identifier
@@ -676,7 +676,7 @@ def _insert_boundaries(conn: sqlite3.Connection, boundaries: list[tuple[int, str
 ## @param extra_key Manifest-derived cache-key component.
 ## @param harvester Pre-built harvester from the shared parse pass; built here when omitted.
 ## @return Flat list of [registrar, handler] pairs, or [] when nothing to do.
-## @version 2
+## @version 3
 ## @dg_internal
 def _harvest_sites(
     conn: sqlite3.Connection,
@@ -691,18 +691,14 @@ def _harvest_sites(
     `dispatch_harvester` returns None for that case rather than an inert object.
 
     @brief Drive the per-file registration harvest.
-    @version 2
+    @version 3
     """
-    ts_classes = try_import_tree_sitter()
     harvester = harvester or dispatch_harvester(manifest, extra_key)
     if harvester is None:
         return []
-    if ts_classes is None:
-        logger.info("tree_sitter not available — skipping declared dispatch-table harvest")
-        return []
     return [
         site
-        for _rowid, payload in run_harvest(conn, repo_root, harvester, ts_classes, cache)
+        for _rowid, payload in run_harvest(conn, repo_root, harvester, cache)
         for site in payload
     ]
 

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 36044,
+  "stop_reason": "end_turn",
+  "session_id": "a37f21c3-0996-4f7c-b9f3-78107edf4f46",
+  "total_cost_usd": 0.010545559999999999,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 17929,
+    "cache_read_input_tokens": 352646,
+    "output_tokens": 6863,
+    "output_tokens_details": {
+      "thinking_tokens": 2984
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 17929,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1533,
+        "cache_read_input_tokens": 46770,
+        "cache_creation_input_tokens": 1319,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1319
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 6863,
+      "cacheReadInputTokens": 352646,
+      "cacheCreationInputTokens": 17929,
+      "webSearchRequests": 0,
+      "costUSD": 0.010545559999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2984,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 16,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does.** `include/mbedtls/private_access.h` defines the macro two ways:\n\n```c\n#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS\n#define MBEDTLS_PRIVATE(member) private_##member   /* default */\n#else\n#define MBEDTLS_PRIVATE(member) member             /* opt-out */\n#endif\n```\n\nEvery struct member in the public headers is spelled `MBEDTLS_PRIVATE(name)` in its declaration. By default the member is actually named `private_name`. Application code that writes `ctx->name` gets a compile error, so the field is not part of the API. It is a compile-time speed bump, not a security boundary: anyone can define the opt-out or write `ctx->MBEDTLS_PRIVATE(name)` explicitly. Its purpose is to let Mbed TLS rearrange internals across minor releases without breaking callers who depended on field names. `docs/3.0-migration-guide.md:74` describes direct access as a last resort done \"at your own risk\", and `ssl.h:5159-5170` calls direct state access deprecated.\n\n**Who the opt-out is for.** The opt-out is turned on in three places:\n\n| Location | How | Who it covers |\n|---|---|---|\n| `library/common.h:132` | Unconditional `#define MBEDTLS_ALLOW_PRIVATE_ACCESS` | All library `.c` and internal `.h` files that include `common.h` |\n| `programs/ssl/ssl_server2.c:8` | Defined before any include | The server test program |\n| `programs/ssl/ssl_client2.c:8` | Defined before any include | The client test program |\n\nThe library's own sources are the main beneficiaries. For example, `library/ssl_tls.c` includes `common.h` at line 12, before `mbedtls/ssl.h` at line 18. Because the macro is evaluated when a header is parsed, the struct's members are declared as real names in that translation unit. Code in the same translation unit can then use `ssl->state` or `info->MBEDTLS_PRIVATE(key_exchange)` directly. The order matters: if a public header were parsed before the define, the struct would have `private_x` members while the library code expected `x`, and the build would fail. The two test programs define the macro before `ssl_test_lib.h` pulls in the headers, for the same reason.\n\nThe opt-out is per translation unit, not a build option. Nothing in the CMake or Makefile files sets it. An out-of-tree consumer gets the private names unless it defines the macro itself before including any Mbed TLS header.\n\n**One nuance.** `programs/ssl/ssl_context_info.c` uses `ciphersuite_info->MBEDTLS_PRIVATE(flags)` at line 553 and related lines, but never defines the opt-out. That compiles, because the struct declaration in `ssl_ciphersuites.h` expands the same way, so both sides refer to `private_flags`. The program is therefore reaching into internals by spelling the private name explicitly, without the opt-out. That works but is fragile, and it is the one spot where the macro is used as a deliberate escape hatch rather than a library-internal convenience.",
+  "ttft_ms": 1637,
+  "type": "result",
+  "duration_ms": 36515,
+  "uuid": "3e32a200-ae74-4651-a237-5e7284f15847",
+  "ttft_stream_ms": 1149,
+  "time_to_request_ms": 84,
+  "first_content_frame_ms": 1150,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

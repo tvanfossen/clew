@@ -71,7 +71,7 @@ def _make_scan_tree(root: Path) -> tuple[list[Path], list[Path]]:
     _write_scan_file(root / "src" / "engine.h")
     _write_scan_file(root / "src" / "snippet.txt", "example text\n")
     _write_scan_file(root / "Doxyfile", "INPUT = src\n")
-    _write_scan_file(root / ".doxygen-guard.yaml", "validate: {}\n")
+    _write_scan_file(root / ".clew.yaml", "guard: {}\n")
     _write_scan_file(root / "vendored" / "blob.c")
     _write_scan_file(root / "vendored" / "deep" / "nested" / "more.c")
     _write_scan_file(root / ".cache" / "junk.json", "{}\n")
@@ -148,7 +148,7 @@ def test_excluded_subtree_is_never_visited(tmp_path: Path, monkeypatch) -> None:
 
 ## @brief A non-source file under INPUT is still enumerated.
 ## @version 1
-@pytest.mark.parametrize("name", ["src/snippet.txt", "Doxyfile", ".doxygen-guard.yaml"])
+@pytest.mark.parametrize("name", ["src/snippet.txt", "Doxyfile", ".clew.yaml"])
 def test_non_source_files_are_enumerated(tmp_path: Path, name: str) -> None:
     """The scan is deliberately NOT extension-filtered. A filter is the obvious
     way to make this walk cheaper and it would drop exactly these paths.
@@ -200,7 +200,7 @@ def _tree_sha(tmp_path: Path, cache_path: Path) -> str:
 
 ## @brief Editing any scanned file — source or not — moves the doxygen cache key.
 ## @version 1
-@pytest.mark.parametrize("name", ["src/engine.c", "src/snippet.txt", ".doxygen-guard.yaml"])
+@pytest.mark.parametrize("name", ["src/engine.c", "src/snippet.txt", ".clew.yaml"])
 def test_editing_a_scanned_file_invalidates_the_tree_hash(tmp_path: Path, name: str) -> None:
     """A faster scan that misses an invalidation is worse than a slow one. The
     non-source cases are the ones an extension filter would break: the tree hash

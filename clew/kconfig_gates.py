@@ -47,7 +47,7 @@ from pathlib import Path
 from typing import Any
 
 from ._common import logger
-from .harvest import Harvester, run_harvest, try_import_tree_sitter
+from .harvest import Harvester, run_harvest
 from .preprocessor import bare_macro_names
 from .indexcache import IndexCache
 from .vocabulary import (
@@ -468,7 +468,7 @@ def declared_macro_names(macros: Iterable[str]) -> frozenset[str]:
 ## @param cache Optional incremental index cache; None disables caching.
 ## @param declared Macro names the target's preprocessor declaration supplies.
 ## @return Number of gate rows written.
-## @version 4
+## @version 5
 ## @req REQ-DDB-PIPE-007
 def import_kconfig_gates(
     db_path: Path,
@@ -489,19 +489,12 @@ def import_kconfig_gates(
 
     @brief Fill kconfig_gates from the indexed source tree.
     @return Row count.
-    @version 4
+    @version 5
     """
-    ts_classes = try_import_tree_sitter()
-    if ts_classes is None:
-        logger.warning(
-            "kconfig gates: tree-sitter unavailable — no gating sites harvested, and "
-            "kconfig_gates is deliberately NOT created so its absence is visible"
-        )
-        return 0
     conn = sqlite3.connect(str(db_path))
     try:
         ensure_kconfig_gates_table(conn)
-        harvested = run_harvest(conn, repo_root, gate_harvester(), ts_classes, cache)
+        harvested = run_harvest(conn, repo_root, gate_harvester(), cache)
         names = declared_macro_names(declared)
         rows = [
             (symbol, macro, form, path, line, end, _origin(symbol, macro, names))

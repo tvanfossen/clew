@@ -1,0 +1,105 @@
+{
+  "duration_api_ms": 18098,
+  "stop_reason": "end_turn",
+  "session_id": "1c8206c7-1e72-4401-b818-12ca29018e14",
+  "total_cost_usd": 0.009725649999999999,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 27754,
+    "cache_read_input_tokens": 270345,
+    "output_tokens": 2940,
+    "output_tokens_details": {
+      "thinking_tokens": 720
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 27754,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1175,
+        "cache_read_input_tokens": 46572,
+        "cache_creation_input_tokens": 1031,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1031
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 2940,
+      "cacheReadInputTokens": 270345,
+      "cacheCreationInputTokens": 27754,
+      "webSearchRequests": 0,
+      "costUSD": 0.009725649999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 720,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "mcp__clew__propose_declaration",
+      "tool_use_id": "toolu_0186AN3zCfb7oqk5xWw6x79H",
+      "tool_input": {}
+    }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Clew has three ways to tell it how to index a repo, and when they conflict, the more explicit one wins. The rule is \"you can correct our guesses; you cannot un-discover a fact.\"\n\n**The ways to say so**\n\n1. **CLI flags / tool arguments (tier 1, \"explicit\").** These cover one build. The `index(action='refresh')` call takes `options`, `scope`, `exclude`, `doxyfile` and `sub_index`, and `clew` accepts argv flags such as `--entry-patterns`.\n2. **`.clew.yaml` at the repo root (tier 2, \"declared\").** This is the repo's standing declaration. It has named sections (for example `dispatch:`, `locks:`, `threads:`, `entry_patterns:`, `mqtt:`, `shared_key:`, `data_model:`, `preprocessor:`, `kconfig:`), and `clew/declaration.py` lists every accepted key in `ACCEPTED_SECTIONS`. A `guard:` section is also allowed in the same file; that section configures the doxygen-guard gate, and the index ignores it. An unknown top-level key is refused by name, and an unreadable or non-mapping file falls back to defaults.\n3. **Facts the target already wrote (tier 3, \"target-fact\").** Examples are a Doxyfile's `ALIASES`/`PREDEFINED`, a generator manifest, and language or platform entry points. These are read automatically.\n4. **Known-ecosystem signatures (tier 4).** Examples are UDM and ingot. These are also automatic.\n5. **Built-in name-pattern heuristics (tier 5).** These are the floor, and they are explicitly provisional.\n\nScope is resolved separately. A declared scope overrides the Doxyfile's INPUT; the docstring in `clew/scope.py` (around line 462) says the declaration beats the guard and the Doxyfile. I read that from the docstring and did not trace the full code path.\n\n**When two of them disagree**\n\n- **Tiers 1 and 2 (flag over declaration).** The flag replaces the declared value for that build. The `options` in `build_meta` record which tier won.\n- **Tiers 1, 2 and 5 (stated over heuristic).** A stated value replaces the tier-5 guesses. The `entry_patterns` tests confirm this: a stated value replaces guesses but keeps built-in facts such as `main`.\n- **Tiers 3 and 4 (facts).** These accumulate. No flag or declaration removes them. The resolved set is the union of the stated-or-guessed layer with the facts, so a fact cannot be discarded by stating something else.\n- **Declaration over built-in default.** A declared pattern beats a default with the same prefix. The tests in `tests/test_build_docs_db.py` cover a case that used to be backwards and was fixed.\n\nThe result is that a flag does not silently drop a declared value, and a declaration does not silently drop a fact from a Doxyfile or manifest. The tier that won is recorded in the build log and `build_meta`, so you can see which layer applied.\n\nI did not run `propose_declaration` because its permission was not granted. That tool would show what the defaults would find for a repo that has no `.clew.yaml`.",
+  "ttft_ms": 1709,
+  "type": "result",
+  "duration_ms": 18445,
+  "uuid": "f9adc433-3788-4c8a-9b78-e72a7a76cf49",
+  "ttft_stream_ms": 1060,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1061,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

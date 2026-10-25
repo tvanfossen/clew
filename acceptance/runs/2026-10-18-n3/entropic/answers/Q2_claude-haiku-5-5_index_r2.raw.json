@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 27637,
+  "stop_reason": "end_turn",
+  "session_id": "f70c26ff-a46d-4829-ab1f-4c37da3d7e33",
+  "total_cost_usd": 0.014873759999999998,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 39364,
+    "cache_read_input_tokens": 398606,
+    "output_tokens": 6027,
+    "output_tokens_details": {
+      "thinking_tokens": 2233
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 39364,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2706,
+        "cache_read_input_tokens": 75155,
+        "cache_creation_input_tokens": 2053,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2053
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 6027,
+      "cacheReadInputTokens": 398606,
+      "cacheCreationInputTokens": 39364,
+      "webSearchRequests": 0,
+      "costUSD": 0.014873759999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2233,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** llama.cpp is a vendored git submodule, compiled from source into `librentropic.so` as a private static dependency. Its types are used inside `src/inference/` and in one place in the facade. The public C ABI does not expose them, but a few public C++ headers under `include/entropic/inference/` do.\n\n## How it is brought in\n\n- **Submodule:** `.gitmodules` maps `extern/llama.cpp` to `ggml-org/llama.cpp`. The `extern/CMakeLists.txt` comment says it is pinned at `b8420`.\n- **Build:** `extern/CMakeLists.txt` runs `add_subdirectory(llama.cpp EXCLUDE_FROM_ALL)`, then `add_subdirectory(llama.cpp/tools/mtmd ...)` for multimodal. Upstream's tools/examples/server are switched off. `LLAMA_BUILD_COMMON=ON` is forced so the `llama-common` target exists. `ENTROPIC_HAS_CUDA` is bridged to `GGML_CUDA`.\n- **Targets used:** `llama`, `llama-common` (the `common/` helpers: `chat.h`, `sampling.h`, `speculative.h`), and `mtmd`.\n- **Absorbed, not exported:** `src/facade/CMakeLists.txt` links `llama`, `mtmd` and `llama-common` as `$<LINK_ONLY:>` privately into `entropic-facade`. The comment says consumers never link llama directly. `src/inference/CMakeLists.txt` links `llama` and `mtmd` PRIVATE, and `llama-common` PUBLIC, into the inference object library.\n- **Include paths:** `src/inference` gets `extern/llama.cpp/{vendor,common}`. The facade gets `extern/llama.cpp/{include,ggml/include}`.\n\n## How far into entropic's source it reaches\n\n| Layer | Reach |\n|---|---|\n| `src/inference/` | Deep. `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler`, `llama_cpp_tokenizer`, `orchestrator.cpp`, `adapter_manager.cpp`, `grammar_registry.cpp`, `speculative_compat.cpp`, `secondary_model_loader.cpp`, `inference_c_api.cpp`, `interface_factory.cpp`, and the `tool_call_markers.h` / `prompt_cache.h` / `warm_keep_util.h` helpers. `LlamaCppBackend` is the only concrete backend and derives from `entropic::InferenceBackend`. |\n| `src/facade/entropic.cpp` | Shallow. It `dynamic_cast`s to `LlamaCppBackend` for LoRA and adapter wiring, and calls `llama_model_ptr()` / `llama_context_ptr()`. |\n| `src/core/`, `src/config/`, `src/mcp/`, `src/storage/`, `src/cli/` | None. No llama includes. `config/loader.cpp` only reads config keys (`ggml_logging`, `llama_log_path`). The core talks to the backend through the `InferenceBackend` abstraction. |\n| `python/` | None. The wrapper is generated from `entropic.h`. |\n| `tests/` | Direct. Many `tests/model/` and `tests/unit/inference/` files include `llama.h` or `chat.h`. |\n\n## Where it leaks into the public surface\n\n- **C ABI (`include/entropic/entropic.h`):** no llama types in signatures. llama.cpp appears only in doc comments, such as the state-blob portability note.\n- **C++ public headers under `include/entropic/inference/`:** these forward-declare `struct llama_model`, `llama_context`, `llama_adapter_lora` and use them in method signatures:\n  - `orchestrator.h`: `deactivate_if_active(llama_context*)`\n  - `adapter_manager.h`: `load(..., llama_model*, ...)`, `activate(..., llama_context*)`, and `AdapterManager::handle` fields\n  - `speculative_compat.h`: `check(const llama_model* target, const llama_model* draft)`\n\n  These are opaque pointers, so consumers don't link against llama. But the headers are not llama-free, and the \"no third-party headers in interface contracts\" rule in `CLAUDE.md` is only partly met here.\n\n## Things to fix or check\n\n- **Stale comment:** `extern/CMakeLists.txt` says \"llama.cpp is a submodule but NOT built in v1.8.0\", which contradicts the `add_subdirectory` calls directly below it.\n- **Not built here:** this is from reading the CMake and source, not from a configure or build.",
+  "ttft_ms": 963,
+  "type": "result",
+  "duration_ms": 28099,
+  "uuid": "2fe53a80-a41f-4b33-b68f-374a73ab0e15",
+  "ttft_stream_ms": 760,
+  "time_to_request_ms": 65,
+  "first_content_frame_ms": 761,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

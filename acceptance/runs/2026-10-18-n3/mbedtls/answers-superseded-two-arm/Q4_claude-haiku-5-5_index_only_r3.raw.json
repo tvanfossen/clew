@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 20756,
+  "stop_reason": "end_turn",
+  "session_id": "ed65bca3-6a60-4158-988b-f47a71bd1abc",
+  "total_cost_usd": 0.01341664,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 45192,
+    "cache_read_input_tokens": 249524,
+    "output_tokens": 3764,
+    "output_tokens_details": {
+      "thinking_tokens": 1503
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 45192,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2479,
+        "cache_read_input_tokens": 72933,
+        "cache_creation_input_tokens": 6238,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6238
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3764,
+      "cacheReadInputTokens": 249524,
+      "cacheCreationInputTokens": 45192,
+      "webSearchRequests": 0,
+      "costUSD": 0.01341664,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1503,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** a negative return value becomes text through `mbedtls_strerror()`, which splits the code into a high-level part and a low-level part and looks each one up in a switch table in `library/error.c`. Adding a new string means adding a define in the module header and a `case` in that switch. The index shows the table is marked auto-generated, but it does not contain the generator, so I can't confirm the regeneration step.\n\n**Lookup path**\n\n```\ncaller: ret = -0x6C80 (negative)\n   \u2502\n   \u25bc\nmbedtls_strerror(ret, buf, buflen)          library/error.c:792\n   \u251c\u2500 buflen == 0 \u2192 return; memset(buf, 0)\n   \u251c\u2500 ret = -ret                             (sign stripped)\n   \u251c\u2500 high = ret & 0xFF80\n   \u2502    \u2514\u2500 mbedtls_high_level_strerr(ret)   error.c:174  switch on module id\n   \u2502         (fatal SSL alert \u2192 return here, skip low level)\n   \u251c\u2500 low  = ret & ~0xFF80\n   \u2502    \u2514\u2500 mbedtls_low_level_strerr(ret)    error.c:537  switch on module code\n   \u2514\u2500 if both present: \"HIGH : LOW\" concatenated\n      unknown code \u2192 \"UNKNOWN ERROR CODE (%04X)\"\n```\n\n- **Sign:** the switch cases are written as `-(MBEDTLS_ERR_xxx)`, so the function negates the input once up front and matches positive magnitudes.\n- **Two layers:** the bit layout is documented in `include/mbedtls/error.h` (around line 165, the `MBEDTLS_ERR_ERROR_GENERIC_ERROR` doc). The high-level part is a 3-bit module ID; the low-level part is a 7-bit code. A single returned value can carry both, which is why a message can read `SSL - ... : ...`.\n- **Output:** the result is always NUL-terminated and truncated to `buflen`. The caller gets a formatted string in its own buffer, not a pointer to static text.\n- **Build gating:** the tables are wrapped in `#if defined(MBEDTLS_<MODULE>_C)` blocks, and the whole file is gated on `MBEDTLS_ERROR_C`. With `MBEDTLS_ERROR_C` off, the function is a stub. A second definition at `error.c:867` sits under that gate's other branch. I did not read its body, so I can't say exactly what it returns.\n- **Public accessors:** `mbedtls_high_level_strerr()` and `mbedtls_low_level_strerr()` are also public, declared in `error.h` at lines 180 and 195.\n\n**What a contributor has to do for a new code**\n\n1. Add `MBEDTLS_ERR_<MODULE>_<NAME>` to the module's public header with a value that fits the bit layout. Check the code table in `error.h` for free slots, since the table lists which numbers are already taken. Note that `error.h` documents the high-level IDs and the module low-level ranges separately, so pick the slot under the right module.\n2. Add a `case -(MBEDTLS_ERR_<MODULE>_<NAME>): return( \"<MODULE> - <description>\" );` inside the matching `#if defined(MBEDTLS_<MODULE>_C)` block in `library/error.c`. The module ID block for high-level codes lives in `mbedtls_high_level_strerr`, and the low-level block lives in `mbedtls_low_level_strerr`. Keep the `MODULE - text` prefix format used in the existing entries.\n3. If the file's `Begin/End Auto-Generated Code` markers apply, make the change in whatever generates them rather than hand-editing. The index has no `generate_errors` symbol and does not index `.pl` files, so I can't name that generator. A search of the repo's docs found nothing on how to run it. Check the repo's `scripts/` directory or its contributing docs for the exact command.\n4. Add a `ChangeLog.d` entry. `ChangeLog.d/00README.md` describes the format, and the repo's docs say new error codes are part of the public API.\n\n**Gaps:** the index can't show the generator for the `error.c` tables, the body of the `error.c:867` definition, or whether any test checks that every `MBEDTLS_ERR_*` has a string. Those would need a look at the source tree outside this index.",
+  "ttft_ms": 1391,
+  "type": "result",
+  "duration_ms": 21809,
+  "uuid": "06d2d78e-de94-48cc-a59f-02bf08fa1c71",
+  "ttft_stream_ms": 945,
+  "time_to_request_ms": 78,
+  "first_content_frame_ms": 945,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 26378,
+  "stop_reason": "end_turn",
+  "session_id": "cff7ca63-006f-4983-ac9e-d5ca0a7e9d15",
+  "total_cost_usd": 0.013814740000000002,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 48550,
+    "cache_read_input_tokens": 158194,
+    "output_tokens": 5044,
+    "output_tokens_details": {
+      "thinking_tokens": 2962
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 48550,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3355,
+        "cache_read_input_tokens": 59239,
+        "cache_creation_input_tokens": 9562,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 9562
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 5044,
+      "cacheReadInputTokens": 158194,
+      "cacheCreationInputTokens": 48550,
+      "webSearchRequests": 0,
+      "costUSD": 0.013814740000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2962,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** in the default configuration the library creates no threads and takes no locks, so nothing inside mbedtls runs concurrently. Any concurrency comes from the application calling the library from several threads. The mutexes only exist when the build enables `MBEDTLS_THREADING_C`, and then they protect a small set of shared globals plus the heap.\n\n**What runs concurrently**\n\n- **Library code:** none. The index holds four spawn sites, all in `programs/` (`ssl_pthread_server.c`, `benchmark.c` \u00d72, `ssl_server2.c`). None are in `library/`. Two of the four are signal or timer handlers (`sighandler`, `term_handler`, `TimerProc`), which are asynchronous but also outside the library. This count covers only the thread primitives the index's patterns match.\n- **Application threads:** whatever the integrator runs. The per-connection `handle_ssl_connection` thread in the example server is the model case: each thread has its own `ssl` context, and the shared `mbedtls_ssl_config` is read by all of them.\n\n**Default build (what the index can say)**\n\n- `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` are both recorded as `default_state: off`. `MBEDTLS_THREADING_ALT` is also off. The `THREADING_C` default site cited is `configs/config-symmetric-only.h`, not the shipped header, but the shipped `mbedtls_config.h` has no live `#define` for it, so it is off there too.\n- With these off, `threading.c` compiles to nothing, the heap wrappers are not built (`buffer_alloc_*_mutexed` is gated on `THREADING_C`, default off), and the lock call sites in the ctr_drbg, entropy, ssl_cache, ssl_cookie and ssl_ticket code are not compiled either.\n- So in the default build, shared state (PSA key slots, the RNG and entropy contexts, the ssl session cache, the heap) is **unprotected**. Concurrent use is safe only if the application serializes calls.\n\n**When threading is enabled (the index's build)**\n\n- **Global mutexes**, all declared in `library/threading.c` and initialized with `MUTEX_INIT`:\n\n  | Mutex | Protects (basis) |\n  |---|---|\n  | `mbedtls_threading_key_slot_mutex` | PSA key slot unregistration. Verified: `psa_unregister_read_under_mutex` wraps `psa_unregister_read` in lock/unlock. |\n  | `mbedtls_threading_psa_globaldata_mutex` | PSA global state. Inferred from the name only. |\n  | `mbedtls_threading_psa_rngdata_mutex` | PSA RNG state. Inferred from the name only. |\n  | `mbedtls_threading_gmtime_mutex` | `gmtime` static result. Inferred from the name only. |\n  | `mbedtls_threading_readdir_mutex` | `readdir` directory stream. Inferred from the name only. |\n\n- **Heap:** `heap.mutex` in `library/memory_buffer_alloc.c`. Verified: `buffer_alloc_calloc_mutexed` locks `heap.mutex` around `buffer_alloc_calloc`, and the free path does the same.\n- **Pluggable:** `mbedtls_threading_set_alt` installs the four function pointers (`mbedtls_mutex_init/free/lock/unlock`) and initializes the global mutexes. The default lock function is `threading_mutex_lock_pthread`, which calls `pthread_mutex_lock` on the mutex's `->mutex` field.\n- **Lock ordering:** the index records one lock identity (`mutex->mutex`, scope unknown) and zero nested acquisitions. That means no critical section calls into a second lock, which is not a proof of deadlock freedom.\n\n**Gaps and caveats**\n\n- The index was built with `THREADING_C` and `PTHREAD` forced on, so the lock and thread rows describe that variant. The index has no config header, so it cannot state what the repository's own default enables.\n- Only the key-slot and heap critical sections were read in source. The other mutex-to-data mappings above are inferred from names, and I could not confirm which context structures take which lock.\n- Concurrency in the default build is an application responsibility. The index cannot show how the application serializes its calls.",
+  "ttft_ms": 1894,
+  "type": "result",
+  "duration_ms": 27357,
+  "uuid": "f57a19a3-a84c-4c3f-b430-2591b9fda6e1",
+  "ttft_stream_ms": 1607,
+  "time_to_request_ms": 79,
+  "first_content_frame_ms": 1607,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

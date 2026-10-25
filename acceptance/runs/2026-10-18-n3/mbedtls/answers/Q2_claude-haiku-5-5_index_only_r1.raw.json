@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 19655,
+  "stop_reason": "end_turn",
+  "session_id": "7428a96c-26d4-4612-a9c9-340677018d6c",
+  "total_cost_usd": 0.00830724,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 26109,
+    "cache_read_input_tokens": 123014,
+    "output_tokens": 3709,
+    "output_tokens_details": {
+      "thinking_tokens": 1934
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 26109,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2308,
+        "cache_read_input_tokens": 37930,
+        "cache_creation_input_tokens": 3870,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3870
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3709,
+      "cacheReadInputTokens": 123014,
+      "cacheCreationInputTokens": 26109,
+      "webSearchRequests": 0,
+      "costUSD": 0.00830724,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1934,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does.** `MBEDTLS_PRIVATE(member)` is a function-like macro in `include/mbedtls/private_access.h`. In a default build it expands to `private_##member`, so a struct field is declared as, say, `private_nr` instead of `nr` (`aes.h:64`, `mbedtls_aes_context`). Any code outside the library that writes `ctx->nr` therefore fails to compile. The field is still there, and the library's own code reaches it through the same macro, so the rename costs nothing internally. The aim is encapsulation: mbedtls can change struct layouts and field meanings across releases without breaking callers who only used the public API.\n\n**The switch.** `private_access.h` has two arms gated on `MBEDTLS_ALLOW_PRIVATE_ACCESS`:\n\n```\n#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS\n  #define MBEDTLS_PRIVATE(member) private_##member   // line 15: hidden names\n#endif\n#ifdef  MBEDTLS_ALLOW_PRIVATE_ACCESS\n  #define MBEDTLS_PRIVATE(member) member             // line 17: plain names\n#endif\n```\n\n**Who opts out in this tree.** The index records three definition sites for `MBEDTLS_ALLOW_PRIVATE_ACCESS`:\n\n| Site | Who it affects |\n|---|---|\n| `library/common.h:132` | Library translation units that include the common header. Their `ctx->MBEDTLS_PRIVATE(x)` becomes `ctx->x`, so they see the real field names. |\n| `programs/ssl/ssl_client2.c:8` | The sample client program only. It can touch private fields. |\n| `programs/ssl/ssl_server2.c:8` | The sample server program only. Same effect. |\n\nConsequences:\n- Inside the library, the macro is a no-op. Library code can read and write any field directly.\n- The two SSL sample programs are the only application code in the tree that bypasses encapsulation. Their define is the sanctioned exception, presumably so the test tools can inspect state. Any other application or third-party code that defines it gets the same access, and any code that doesn't define it gets compile errors on private fields.\n- Opt-out is a per-translation-unit preprocessor define, not a config option. It must appear before the mbedtls headers are included, or the macro has already been expanded.\n\n**Limits of what I could confirm from the index.** I could not read `library/common.h:132` and the `ssl_*.c` lines, so I can't say whether those defines are unconditional or sit inside a conditional. The `origin: undeclared` tag means no config header declares the macro. I also couldn't confirm which library files include `common.h`, so \"all library code\" is an inference from the header's location. A direct read of those three lines would settle both points.",
+  "ttft_ms": 1825,
+  "type": "result",
+  "duration_ms": 20209,
+  "uuid": "e8d8abbc-62b2-4651-bde7-68ad0ce0c260",
+  "ttft_stream_ms": 1708,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1708,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

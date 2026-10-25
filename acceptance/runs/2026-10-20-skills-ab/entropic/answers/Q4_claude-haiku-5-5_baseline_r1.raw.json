@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 44242,
+  "stop_reason": "end_turn",
+  "session_id": "e6cedf1c-7640-435b-abaa-eb593c09490b",
+  "total_cost_usd": 0.01697881,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 49833,
+    "cache_read_input_tokens": 307081,
+    "output_tokens": 7880,
+    "output_tokens_details": {
+      "thinking_tokens": 2855
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 49833,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3589,
+        "cache_read_input_tokens": 60715,
+        "cache_creation_input_tokens": 1917,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1917
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 7880,
+      "cacheReadInputTokens": 307081,
+      "cacheCreationInputTokens": 49833,
+      "webSearchRequests": 0,
+      "costUSD": 0.01697881,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2855,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 20,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Several parts of entropic run off the caller's thread. Most are guarded by mutexes, atomics, or join-before-return. The one I'd call a real hazard is the detached async worker, which is not joined on shutdown.\n\n## Threads that run off the caller's thread\n\n| Thread | Where | What it does | What keeps it safe |\n|---|---|---|---|\n| Accept loop | `src/facade/external_bridge.cpp:796` | Polls the listen socket every 500 ms | `running_` is atomic. `stop()` closes the listen fd, then joins (`:826-834`). |\n| Per-client serve threads | `external_bridge.cpp:945` | One per connected MCP client, blocked in `read()` | Accepted fds are gated by `SO_PEERCRED` (`:929`). `stop()` calls `shutdown(SHUT_RDWR)` on each fd to wake the read, then joins (`:846-851`). Finished threads are reaped under `client_threads_mutex_` (`:880`). |\n| Async-ask worker | `external_bridge.cpp:1158`, `.detach()` at `:1222` | Runs `entropic_run` for `entropic.ask` | Task registry is guarded by `tasks_mutex_`. The sentinel file is written under that lock (`:1183`). The phase observer uses a generation counter so stale callbacks are dropped (`:1076`, `:1120`). |\n| Broadcast | `external_bridge.cpp:1285` | Sends notifications to subscribers from worker threads | Subscriber set is copied under `subscribers_mutex_`. Sends use `MSG_DONTWAIT \\| MSG_NOSIGNAL`. Dead fds are dropped. |\n| Health monitor | `src/mcp/health_monitor.cpp:92` | Polls server liveness every 500 ms and attempts reconnects | Checks run under `watched_mutex_`. Events go into a queue under `event_mutex_` (`:291`). The engine thread drains the queue via `process_events()` (`server_manager.cpp:710`), so callbacks run on the engine thread, not the monitor thread. |\n| SSE reader | `src/mcp/transport_sse.cpp:107` | Reads the server-sent-event stream | `close()` sets flags, wakes waiters, and joins (`:127-140`). |\n| Stdio stderr forwarder | `src/mcp/transport_stdio.cpp:164` | Forwards subprocess stderr | Not read in detail. |\n| Cancel poller (batch) | `src/inference/inference_c_api.cpp:376-420` | Polls an `int*` cancel flag every 10 ms and raises a `std::atomic<bool>` for the backend | RAII class. `done_` is atomic, and the destructor joins. |\n| Cancel observer (response generator) | `src/core/response_generator.cpp:410-429` | Mirrors the engine interrupt flag into an `int` for the backend | Joined on every path before the locals go out of scope. |\n| Interface-factory poller | `src/inference/interface_factory.cpp:244` | Similar cancel bridge | Not read in detail. |\n\nThe project's own rule in `.claude/CLAUDE.md` is \"`std::atomic` for state queries, mutex for transitions only.\" The code follows it. Thread-local log routing is also propagated explicitly into each spawned thread via `HandleLogScope` (for example `external_bridge.cpp:797`, `:946`, `:1159`). Without that, log lines from the new threads would not reach the owning handle's session log.\n\n## Hazards I found\n\n1. **The detached async worker outlives the bridge.** `run_async_ask` captures `this` and detaches the thread. `stop()` and `~ExternalBridge` (`:612`) do not wait for in-flight async workers. The only wait is the roughly 1 s poll in `cancel_inflight_async_tasks` (`:439`), which is used by `context_clear`, not by teardown. If the bridge is destroyed while a run is in flight, the worker touches freed members, and the phase observer still registered on the handle may point at freed memory. I did not verify whether the handle always outlives the bridge in callers. The backlog proposal `.claude/proposals/BACKLOG/P2-20260429-001-async-bridge-io-architecture.md` already flags the unbounded detach and proposes a bounded worker pool. It does not appear to cover the teardown race.\n\n2. **Non-atomic `int` cancel flag across threads.** The C ABI passes `int*`, and the observer thread (`response_generator.cpp:416`) writes it while the backend reads it. The poller in `inference_c_api.cpp` does the same. Under the C++ memory model this is a data race, even if it works in practice on current hardware. The `int*` shape is forced by the C ABI, but the reads and writes could use `std::atomic_ref` or relaxed atomic access.\n\n3. **Health monitor holds one lock across slow work.** `check_server` and `attempt_reconnect` run under `watched_mutex_`, which `watch()` and `unwatch()` also take. A slow reconnect blocks unwatching. This is a latency issue, not a data race.\n\nI did not run the concurrency tests in `tests/concurrency/test_thread_safety.cpp`, so the above comes from reading the code.",
+  "ttft_ms": 2293,
+  "type": "result",
+  "duration_ms": 44530,
+  "uuid": "1cecb634-af25-483a-a43c-1f3be00ef0a4",
+  "ttft_stream_ms": 1937,
+  "time_to_request_ms": 88,
+  "first_content_frame_ms": 1937,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

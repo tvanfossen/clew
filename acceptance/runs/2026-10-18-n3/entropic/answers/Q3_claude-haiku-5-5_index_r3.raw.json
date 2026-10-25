@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 37357,
+  "stop_reason": "end_turn",
+  "session_id": "000943a8-4c7a-4d22-b0e0-43f95c9a52c2",
+  "total_cost_usd": 0.01555579,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 39719,
+    "cache_read_input_tokens": 424939,
+    "output_tokens": 6722,
+    "output_tokens_details": {
+      "thinking_tokens": 2698
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 39719,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3627,
+        "cache_read_input_tokens": 74770,
+        "cache_creation_input_tokens": 2803,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2803
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 6722,
+      "cacheReadInputTokens": 424939,
+      "cacheCreationInputTokens": 39719,
+      "webSearchRequests": 0,
+      "costUSD": 0.01555579,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2698,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A tool call passes through several gates in `ToolExecutor` before it runs. The permission lists only feed two of them. The allow list can skip the prompt, and the deny list is checked later, at dispatch.\n\n```\nmodel emits tool call\n  \u2502\n  \u25bc  ToolExecutor::check_call_preconditions  (tool_executor.cpp:667)\n  1. anti-spiral hard block\n  2. schema validation             (check_schema)\n  3. MCP key authorization         (check_mcp_authorization :575)\n  4. tier allowed_tools            (check_tier_allowed :198)\n  5. duplicate detection\n  6. approval                      (check_approval :161)\n  \u2502     auto_approve_tools?  \u2500\u2500yes\u2500\u2500\u25ba approved\n  \u2502     allow list match?   \u2500\u2500yes\u2500\u2500\u25ba approved\n  \u2502     on_tool_call cb set? \u2500yes\u2500\u2500\u25ba approved (see caveat)\n  \u2502     otherwise                 \u2500\u2500\u25ba \"Permission denied\"\n  \u25bc\n  ServerManager::execute  (server_manager.cpp:153)\n  7. DENY list match?  \u2500\u2500yes\u2500\u2500\u25ba \"Error: Permission denied for <tool>\"\n  \u25bc\n  route_tool_call \u2192 in-process server or external MCP client\n```\n\n**What decides the call:** the first gate that rejects it wins. The permission lists only matter at steps 6 and 7. Steps 3 and 4 can reject a call that the allow list would otherwise approve.\n\n**The lists**\n\n- `permissions.allow` and `permissions.deny` come from YAML via `parse_permissions_config` (`src/config/loader.cpp:365`). They land in `PermissionsConfig` (`include/entropic/types/config.h:589`), alongside `auto_approve`.\n- `ServerManager` copies both lists into a `PermissionManager` at construction (`server_manager.cpp:35`).\n- `permissions.auto_approve` becomes `LoopConfig.auto_approve_tools` (`src/facade/entropic.cpp:1489`), which skips the prompt entirely.\n\n**What a pattern does** (`permission_manager.cpp:101`)\n\nEach call is turned into a string `tool:firstArg`. `args_to_pattern` (`server_manager.cpp:426`) takes the first string-valued argument, or `*` when there are no args or the first value is not a string. A pattern is then split at the first `:`:\n\n| Pattern | Tool part | Arg part | Matches |\n|---|---|---|---|\n| `filesystem.*` | `filesystem.*` | none | every filesystem tool, any args |\n| `git.commit` | `git.commit` | none | that tool, any args |\n| `bash.execute:python*` | `bash.execute` | `python*` | bash calls whose first argument starts with `python` |\n\n- Both halves use `fnmatch`, with no flags. `*` also matches `/`.\n- With no colon, the tool name alone decides the match.\n- With a colon, the tool name must match and the full `tool:arg` string must match too.\n- Lists are checked in order, first match wins. A deny match is logged as `Permission DENIED`, and an allow match as `Permission ALLOWED`.\n\n**Things to know**\n\n- Deny beats allow in practice. A call on the allow list still reaches `ServerManager::execute`, where the deny list is checked again. So a tool that is both allowed and denied is blocked. The header comment says the same (`permission_manager.h:6`).\n- Deny is checked late. A denied tool still gets through the approval step, and the `ON_PERMISSION_CHECK` hook reports it as `allowed` in that case (`tool_executor.cpp:177`). That makes the hook misleading for denied calls.\n- The callback cannot veto. `on_tool_call` returns `void` and `approved` is set to `true` right after it is called (`tool_executor.cpp:168-172`). Whether a user actually blocks a call depends on what the consumer does inside that callback, which I did not trace.\n- Only the allow list is consulted at approval. `is_explicitly_allowed` (`server_manager.cpp:286`) checks only `permissions_.is_allowed`.\n- \"Always Allow/Deny\" writes the pattern into the YAML `allow:`/`deny:` lists via `PermissionPersister::save_permission` (`permission_persister.cpp:227`). It is also added to the in-memory list through `add_permission`.\n\nI read the source directly for this. The index had `dossier` results for the pattern and config symbols, but not for `ToolExecutor::check_approval` or `ServerManager::execute`.",
+  "ttft_ms": 1448,
+  "type": "result",
+  "duration_ms": 37694,
+  "uuid": "16864d8a-af76-44f4-b560-9129bea09e8a",
+  "ttft_stream_ms": 1157,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1157,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

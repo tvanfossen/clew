@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 14345,
+  "stop_reason": "end_turn",
+  "session_id": "c8fcdb3f-473b-405b-838c-232efdf3176e",
+  "total_cost_usd": 0.0070799,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 24934,
+    "cache_read_input_tokens": 88400,
+    "output_tokens": 2417,
+    "output_tokens_details": {
+      "thinking_tokens": 1131
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24934,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1834,
+        "cache_read_input_tokens": 36188,
+        "cache_creation_input_tokens": 7033,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7033
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 2417,
+      "cacheReadInputTokens": 88400,
+      "cacheCreationInputTokens": 24934,
+      "webSearchRequests": 0,
+      "costUSD": 0.0070799,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1131,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 4,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index checks its own currency on every query and attaches a `staleness` block to any reply it would otherwise mislead on. The caller reads that block and, for most axes, runs `index(action='refresh')`. The exception is the code axis, where only a client restart helps.\n\n**How it knows.** Three axes are measured separately (REQ-DDB-MCP-004):\n\n| Axis | Meaning | Fix |\n|---|---|---|\n| `data` | The database is older than the source tree. | `index(action='refresh')` |\n| `schema` | The stamped build version differs from the one this server expects. | Rebuilding re-stamps the same version, so it does not help when the index is newer. |\n| `code` | This server process is older than the working tree. | Restart the client. A build through the stale process is refused. |\n\nThe data check is not just a version compare. A test (`test_db_status_detects_source_drift`) records that a version-only check let a database built before many source edits report `stale: false`, and `build_or_refresh` then refused to rebuild. Source drift is therefore detected from mtimes.\n\n**What it tells the caller.**\n- `staleness_notices` (`clew/mcp_server/server.py:1548`) returns a list of `{axis, message}`. It is empty when the index is current, so a healthy index adds no noise.\n- The notices ride in the payload of every query reply, including misses. The point is that a caller holding a fresh-looking answer would not think to call `status` to check.\n- A routed reply is annotated with the staleness of the repository it actually read, not the default one.\n- The annotation never raises. If staleness cannot be measured, the reply goes out unannotated.\n- `status` reports `stale` unconditionally, but its interpretation is omitted when there is nothing to interpret.\n\n**What the caller does.**\n1. Read the `axis`. `data` staleness alone keeps definitive empty answers (`test_data_staleness_alone_keeps_the_definitive_claim`). `schema` staleness withdraws them.\n2. For `data`, call `index(action='refresh')`. If the index is current, this is a cheap skip. The reply reports a measured `duration_ms` for the call, which lets the caller state what the correction cost.\n3. For `code`, restart the client. A refresh is refused until then, and `force` cannot override the refusal.\n4. Concurrent refreshes of one target produce a single build, because the freshness check runs inside the per-target lock.\n\n**One observation from this session.** My dossier replies flagged `anchor_mismatch: true` on `_staleness` and `build_or_refresh`. The docs define that as \"the file changed since the build.\" I did not see a top-level `staleness` block on those replies. Either the per-symbol flag is a separate signal from the reply-level block, or the two disagree. I could not settle which from the index alone. Running `index(action='status')` would show the axes directly.",
+  "ttft_ms": 2331,
+  "type": "result",
+  "duration_ms": 14846,
+  "uuid": "c21f9088-3ff4-4dbd-b46f-5a96bd266261",
+  "ttft_stream_ms": 1402,
+  "time_to_request_ms": 73,
+  "first_content_frame_ms": 1402,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

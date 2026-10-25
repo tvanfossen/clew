@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 46077,
+  "stop_reason": "end_turn",
+  "session_id": "be70484a-7b41-41e2-a3aa-024ed4adccce",
+  "total_cost_usd": 0.01773652,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 43858,
+    "cache_read_input_tokens": 503862,
+    "output_tokens": 7849,
+    "output_tokens_details": {
+      "thinking_tokens": 4081
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 43858,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3219,
+        "cache_read_input_tokens": 73951,
+        "cache_creation_input_tokens": 2334,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2334
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 7849,
+      "cacheReadInputTokens": 503862,
+      "cacheCreationInputTokens": 43858,
+      "webSearchRequests": 0,
+      "costUSD": 0.01773652,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4081,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## What decides whether a tool call runs\n\nFive gates run in order. The allow and deny lists act at different points.\n\n```\nPRE_TOOL_CALL hook          tool_executor.cpp:857   hook returns nonzero \u2192 cancelled\n  \u2502\nanti-spiral hard block      tool_executor.cpp:938   projected same-tool count \u2265 threshold \u2192 rejected\n  \u2502\nschema validation           tool_executor.cpp:640   bad args \u2192 rejected\n  \u2502\nMCP key / access level      tool_executor.cpp:575   identity lacks access \u2192 rejected\n  \u2502\ntier allowed_tools          tool_executor.cpp:198   tier allowlist excludes tool \u2192 rejected\n  \u2502\nduplicate call              tool_executor.cpp:117   same name+args seen \u2192 rejected\n  \u2502\ncheck_approval()            tool_executor.cpp:161\n  \u2502   auto_ok = permissions.auto_approve  OR  allow-list matches\n  \u2502   if !auto_ok and on_tool_call callback set \u2192 callback(), approved = true\n  \u2502   if !auto_ok and no callback              \u2192 \"Permission denied\"\n  \u2502\nServerManager::execute()    server_manager.cpp:153\n  \u2502   deny-list matches \u2192 \"Error: Permission denied for <tool>\"   (the real veto)\n  \u2502\nroute_tool_call \u2192 server\n```\n\nTwo things in this trace are not what the header comments promise:\n\n1. **The approval callback cannot refuse a call.** `on_tool_call` is `void(*)(const char*, void*)` (`engine_types.h:370`). `check_approval` sets `approved = true` whenever the callback exists, so the frontend's prompt is a notification, not a gate. `permission_manager.h:7` says tools are \"approved via callback\", which is not how it works.\n2. **The deny list is the only real block, and it runs after approval.** A deny-listed call that is not on the allow list still fires the callback, so the user is prompted for a call that will be refused anyway. The deny message is also a plain `Error: Permission denied` result, not the `create_denied_message` text, so the model doesn't get the \"do not retry\" instruction.\n\nAlso, `auto_approve` does not bypass the deny list. `execute()` checks deny unconditionally.\n\n## What a pattern means\n\nFormat is `tool[:arg-glob]`, split at the first colon (`permission_manager.cpp:101-125`).\n\n| Pattern | Matches |\n|---|---|\n| `filesystem.*` | Any filesystem tool, any args (tool part is fnmatch'd) |\n| `bash.execute` | That tool, any args (no colon, so args are ignored) |\n| `bash.execute:python*` | `bash.execute` whose first string arg starts with `python` |\n| `*` | Every tool. Empty args produce the pattern `*` (`server_manager.cpp:428`). |\n\nDetails that matter:\n\n- **Only one argument is inspected.** `args_to_pattern` (`server_manager.cpp:426`) takes the first string-valued argument, not all of them. Under nlohmann's default sorted object, that is usually the alphabetically first key. So `filesystem.write_file:/safe/*` does not constrain `path` if `content` sorts first.\n- **Globs are not path- or shell-aware.** `fnmatch` runs with flags 0, so `*` crosses `/`, spaces and `;`. `bash.execute:python*` matches `python3 x.py; rm -rf ~`. That is a real hole for shell commands.\n- **Deny beats allow, but only in effect.** Allow skips the prompt. Deny blocks at execute time no matter what.\n- **Duplicates are ignored.** `add_permission` skips patterns already in the list (`permission_manager.cpp:79-90`).\n- **Where lists come from.** `permissions.allow`, `permissions.deny`, `permissions.auto_approve` in config (`loader.cpp:369-370`, `config.h:589-593`). `auto_approve` feeds `LoopConfig.auto_approve_tools` (`entropic.cpp:1489`). The lists seed `ServerManager` (`server_manager.cpp:35`). `ALWAYS_ALLOW`/`ALWAYS_DENY` answers are written back to project config through `PermissionPersister`. I did not trace who calls the persister.\n\nOne more finding: `BashServer::get_permission_pattern` (`bash.cpp:200`) is never called from the gate. Both `execute` and `is_explicitly_allowed` build the pattern with `args_to_pattern`, so any per-server pattern logic is dead code for permissions.\n\nI did not build or run the test suite. The trace is from reading `tool_executor.cpp`, `server_manager.cpp`, `permission_manager.cpp` and the headers.",
+  "ttft_ms": 2095,
+  "type": "result",
+  "duration_ms": 46553,
+  "uuid": "a9ed0d80-e901-417d-bd35-2680ab69bd2f",
+  "ttft_stream_ms": 1800,
+  "time_to_request_ms": 67,
+  "first_content_frame_ms": 1800,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

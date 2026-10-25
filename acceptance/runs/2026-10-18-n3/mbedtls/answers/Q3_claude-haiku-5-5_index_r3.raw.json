@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 17546,
+  "stop_reason": "end_turn",
+  "session_id": "4dbf640c-8249-4aee-8333-107e2d8220d3",
+  "total_cost_usd": 0.009260889999999999,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 28447,
+    "cache_read_input_tokens": 187119,
+    "output_tokens": 3399,
+    "output_tokens_details": {
+      "thinking_tokens": 694
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 28447,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2127,
+        "cache_read_input_tokens": 60527,
+        "cache_creation_input_tokens": 3471,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3471
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3399,
+      "cacheReadInputTokens": 187119,
+      "cacheCreationInputTokens": 28447,
+      "webSearchRequests": 0,
+      "costUSD": 0.009260889999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 694,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "In mbedtls, every library allocation goes through two public names, `mbedtls_calloc()` and `mbedtls_free()`, and what they reach depends on how the library was built. The resolution happens in `include/mbedtls/platform.h` and `library/platform.c`.\n\n**What gets called**\n\n| Build configuration | `mbedtls_calloc` resolves to | `mbedtls_free` resolves to |\n|---|---|---|\n| `MBEDTLS_PLATFORM_MEMORY` off | libc `calloc` (via macro, `platform.h:166-167`) | libc `free` |\n| `MBEDTLS_PLATFORM_MEMORY` on, both `MBEDTLS_PLATFORM_{CALLOC,FREE}_MACRO` defined | that macro, expanded at compile time (`platform.h:139-144`) | that macro |\n| `MBEDTLS_PLATFORM_MEMORY` on, macros not defined | `mbedtls_calloc()` function, which calls through a static function pointer | `mbedtls_free()`, which calls through a static function pointer |\n\nIn the third row, `platform.c:44-45` initialises the pointers to `MBEDTLS_PLATFORM_STD_CALLOC` and `MBEDTLS_PLATFORM_STD_FREE`. If the user has not defined those, `platform.c:24-42` substitutes stubs that fail. `platform_calloc_uninit` returns NULL and `platform_free_uninit` does nothing. So an unconfigured runtime allocator fails cleanly rather than crashing.\n\nInside the library, the call sites just write `mbedtls_calloc(...)` and `mbedtls_free(...)`. The index shows about 150 functions calling `mbedtls_calloc` directly, from `aes_ctx_alloc` and `ecp_mul_comb` up through the SSL and X.509 code. `mbedtls_zeroize_and_free` (`library/platform_util.c:139`) zeroizes a buffer and then calls `mbedtls_free`.\n\n**How a project substitutes its allocator**\n\nTwo routes:\n\n1. **Compile time (no runtime cost).** Enable `MBEDTLS_PLATFORM_MEMORY` and define both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` in the user config, or in a header pulled in by `MBEDTLS_USER_CONFIG_FILE`. Both must be set together. The header then maps to the project's functions. The calls are direct, with no indirection.\n\n2. **Runtime.** Enable `MBEDTLS_PLATFORM_MEMORY` without the macros. Call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` before any other mbedtls call (`platform.c:57-63`). It just stores the two pointers in the static variables. The `MBEDTLS_PLATFORM_STD_CALLOC` and `MBEDTLS_PLATFORM_STD_FREE` macros let you pick the defaults without calling the setter.\n\nThe config docs in `mbedtls_config.h:155-203` and `4113-4133` specify the contract. `calloc` must zero the memory. A zero-size request may return NULL or a valid pointer. `free(NULL)` must be a no-op. A non-NULL pointer passed to `free` must be one the allocator returned and that hasn't been freed yet. The setter is global, so it is not per-context, and the pointers are not guarded by a lock. The code does not check thread-safety for you.\n\n**What the library itself does with the facility**\n\nThe library ships its own allocator behind the same hook, `library/memory_buffer_alloc.c`. `mbedtls_memory_buffer_alloc_init(buf, len)` (`memory_buffer_alloc.c:566-600`) takes a caller-supplied buffer and manages it as a heap. It zeroes the buffer and sets up one free block. It then calls `mbedtls_platform_set_calloc_free(buffer_alloc_calloc_mutexed, buffer_alloc_free_mutexed)`, or the unmutexed pair if `MBEDTLS_THREADING_C` is off. Every later `mbedtls_calloc` and `mbedtls_free` is served from that buffer, with no libc involved. The same mechanism is what makes the buffer allocator usable on bare-metal targets with no heap.\n\nThings to be aware of:\n\n- The buffer allocator changes global state. Calling `mbedtls_memory_buffer_alloc_init` silently redirects every mbedtls allocation in the process, and it is not reset by free or `mbedtls_memory_buffer_alloc_free`. Any custom allocator set earlier is overwritten.\n- The index also shows `component_test_psa_crypto_without_heap` in `tests/scripts/components-configuration-crypto.sh`. It builds a configuration where the test code can use calloc/free but the core library cannot. That is the supported way to verify that a no-heap build really has no hidden allocations.\n- I did not read `memory_buffer_alloc.c`'s internal `buffer_alloc_calloc`/`buffer_alloc_free` bodies or the mutex wrapper, so I have not verified their details.",
+  "ttft_ms": 1631,
+  "type": "result",
+  "duration_ms": 18271,
+  "uuid": "9da39846-4588-4ceb-9e93-0bed30a396d3",
+  "ttft_stream_ms": 1231,
+  "time_to_request_ms": 74,
+  "first_content_frame_ms": 1231,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

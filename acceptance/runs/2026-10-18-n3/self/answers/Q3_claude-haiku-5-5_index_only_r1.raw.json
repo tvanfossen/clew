@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 12921,
+  "stop_reason": "end_turn",
+  "session_id": "43ffe487-54a0-42a4-892b-5ec949e684f8",
+  "total_cost_usd": 0.008411140000000001,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 32564,
+    "cache_read_input_tokens": 89624,
+    "output_tokens": 2003,
+    "output_tokens_details": {
+      "thinking_tokens": 627
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 32564,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1573,
+        "cache_read_input_tokens": 37412,
+        "cache_creation_input_tokens": 13439,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 13439
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 2003,
+      "cacheReadInputTokens": 89624,
+      "cacheCreationInputTokens": 32564,
+      "webSearchRequests": 0,
+      "costUSD": 0.008411140000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 627,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 5,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The index detects its own staleness on two independent signals, reports it inside every query reply, and the caller's remedy depends on which signal fired.\n\n**How it knows.** `db_status` (`clew/mcp_server/state.py:1140`) marks a database stale when any of these hold:\n- the database file does not exist;\n- the pipeline version that stamped it (`build_version`) differs from the running `CLEW_BUILD_VERSION`;\n- source files have changed since the build (`source_changed_files > 0`), so editing a file makes the index stale even when the version matches.\n\nIt also reports `age_days` and `newest_changed_source`. The `staleness` key is present only when something is stale, so its presence is itself the signal.\n\n**What it tells the caller.** Staleness is split into axes, and `stale` is interpreted rather than left as a bare boolean. Three different causes clear in three different ways:\n- an older pipeline stamp is cleared by a rebuild;\n- an index stamped with a newer version than the server expects (`expected_build_version` below `build_version`) cannot be cleared by a rebuild, because the rebuild re-stamps the same newer version, so the client must be restarted;\n- anything else the consumer cannot change.\n\n`status` also reports `coverage`, which is separate from staleness: an index can be current yet have parsed almost nothing. Each of these is reported separately.\n\n**How it reaches the caller without `status`.** `staleness_notices` (`server.py:1548`) runs on the way out of every query reply and returns `{axis, message}` entries. The design choice is that the warning rides in the payload, because a consumer holding a plausible-looking answer would not think to call `status`. The measurement never raises: any failure just means no annotation. Notices are sized against the real payload, in three tiers: full prose, then a compact form, then a minimal \"stale \u2014 call status\". A large reply therefore still carries the warning, shortened rather than dropped. A routed reply is annotated only with the staleness of the repository it actually read, never the derived one's, so the caller is not warned about a database that was never opened.\n\n**What the caller does.**\n1. Read the `staleness` block on the reply. The compact text says to call `status` for the full diagnosis and the remedy.\n2. Call `status`. It gives `stale`, the version numbers, the `refresh` cost measured on this target, and `target_source`, which shows why this repository was chosen.\n3. Act on the cause:\n   - rebuild with `index(action='refresh')`, using `force` if needed;\n   - restart the client, for the newer-version case;\n   - for old version-stamped databases, `index(action='cull')` removes them.\n4. Re-query. A current index adds no `staleness` key at all.\n\nCaveats: I read the body of `staleness_notices` and `db_status` but not `notices()` or `build_or_refresh`, so the exact wording of each axis message and the refresh internals are unverified. The index also flagged the line anchors of `_staleness` and `_staleness_within_budget` as mismatched with the current file, so their reported line numbers may be off.",
+  "ttft_ms": 1835,
+  "type": "result",
+  "duration_ms": 13765,
+  "uuid": "22e14a71-ab88-4fe3-91cc-f7927e0cd300",
+  "ttft_stream_ms": 1430,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1430,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

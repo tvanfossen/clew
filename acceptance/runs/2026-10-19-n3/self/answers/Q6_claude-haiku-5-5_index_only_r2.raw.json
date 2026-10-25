@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 29915,
+  "stop_reason": "end_turn",
+  "session_id": "23271e0d-e3ce-4de4-9e79-a429f43b6a09",
+  "total_cost_usd": 0.01327868,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 37490,
+    "cache_read_input_tokens": 288698,
+    "output_tokens": 5785,
+    "output_tokens_details": {
+      "thinking_tokens": 2763
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37490,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3114,
+        "cache_read_input_tokens": 69069,
+        "cache_creation_input_tokens": 2399,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2399
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5785,
+      "cacheReadInputTokens": 288698,
+      "cacheCreationInputTokens": 37490,
+      "webSearchRequests": 0,
+      "costUSD": 0.01327868,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2763,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 20,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The index holds definitions for shell and CMake, file-level entries for YAML and JSON, and nothing about what the files do. On an installation without the grammars, clew degrades: the files are named in the miss report, nothing raises, and nothing is harvested.\n\n**What the index holds**\n\n| File type | In the index | Source of the claim |\n|---|---|---|\n| Shell (`.sh`, `.bash`) | Function definitions as symbols, with line spans and the `#` comment block as the brief | `clew/shast.py` `harvest_definitions`; tests in `test_shast.py` |\n| CMake (`CMakeLists.txt`, `.cmake`) | `function` and `macro` definitions as symbols, with spans and briefs | `clew/cmakeast.py` `harvest_definitions`; `test_cmakeast.py` |\n| YAML (`.yaml`, `.yml`) and JSON (`.json`) | A file-set entry, findable by name, with no symbols | `clew/synth.py` `DATA_EXTS`; `test_the_data_files_are_in_the_file_set_with_no_symbols` |\n| Markdown | Not a symbol-bearing file; the repo's prose is a separate full-text corpus | `docs/languages/SCRIPT_INTEGRATION.md` |\n\nThe shell and CMake payloads carry only definitions: a `functions` list and an empty `classes` list. A CMake file that only calls commands such as `add_library` defines nothing and yields no rows. Both shell function spellings are harvested.\n\n**What it does not hold**\n\n- No symbols for YAML or JSON at all. Their grammars offer `block_mapping_pair` and `pair`, which clew does not harvest. The repo's own doc says they are \"registered and never harvested.\"\n- No command or invocation records for CMake and shell. The payload has no call list, so a CMake target's dependencies or flags are not queryable.\n- YAML and JSON content is not searchable as symbols. I could not confirm from the index whether their body text is searchable at all; \"findable by name\" is the only documented claim.\n- Not every YAML file is indexed. The scope note says YAML in `conf/`, `deploy/`, or the repo root is indexed, while CI workflows under dot directories are not. The test suite does claim `.github/workflows/ci.yml` routes to the front end, so the two statements conflict and I could not resolve which governs.\n\n**On an installation whose parser lacks the grammars**\n\n- The parser registry is `lang-parsing-substrate`. The bash and cmake grammars are the only optional keys (`_OPTIONAL_KEYS`). Before routing a file, clew asks `substrate.has_language`. If the answer is no, `_ts_language_for` returns `None` and the file is not harvested.\n- The file stays in the file set. A query that finds nothing names the skipped types in the not-indexed report. The test `test_a_missing_grammar_routes_to_nothing_instead_of_raising` pins this.\n- If the substrate module is missing entirely, `compiled_languages()` returns an empty set rather than raising (`test_an_unimportable_substrate_degrades_rather_than_raising`).\n- C, C++, Python, Rust, JavaScript, and TypeScript are not gated (`_ALWAYS`). A wheel without them is treated as a broken install, and clew fails loudly.\n- The gate measures capability rather than comparing versions (`tests/test_substrate_capability.py`). The substrate's language set is recorded in the acceptance identity, and the substrate version is part of the cache key.\n- YAML and JSON are registered only in the fork of lang-parsing-substrate, which the repo describes as open upstream and not yet merged. The test file says the five fork languages are present \"only while the dev wheel is installed.\" On a stock installation, I could not confirm from the index whether YAML and JSON still enter the file set. Since they carry no symbols either way, the practical loss is only the by-name entry.\n\nSo a stock installation loses shell and CMake definitions and gets a not-indexed message in their place. It does not get an error, a crash, or a partial parse.",
+  "ttft_ms": 1853,
+  "type": "result",
+  "duration_ms": 31090,
+  "uuid": "fd71fa6b-b4e3-4305-8af0-d46a0381d0aa",
+  "ttft_stream_ms": 1372,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1372,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

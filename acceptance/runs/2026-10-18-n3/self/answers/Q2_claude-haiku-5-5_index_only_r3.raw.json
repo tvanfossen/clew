@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 10603,
+  "stop_reason": "end_turn",
+  "session_id": "b85412c3-609a-421e-a9cd-7489a76c9a63",
+  "total_cost_usd": 0.00170424,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 709,
+    "cache_read_input_tokens": 67904,
+    "output_tokens": 1766,
+    "output_tokens_details": {
+      "thinking_tokens": 710
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 709,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1556,
+        "cache_read_input_tokens": 33952,
+        "cache_creation_input_tokens": 709,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 709
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 1766,
+      "cacheReadInputTokens": 67904,
+      "cacheCreationInputTokens": 709,
+      "webSearchRequests": 0,
+      "costUSD": 0.00170424,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 710,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 2,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the reply tells you which places it searched and which it didn't. A \"no rows\" result is a firm answer only for the places it searched, and the reply says so itself.\n\nI ran a probe with a made-up name, `zzqx_nonexistent_symbol_probe`, to see the shape. It returned `count: 0` and a `note` that calls the result \"a definitive empty result from the database, NOT an error and NOT a malformed call,\" with an instruction not to retry. The reply also carries three things that set the scope:\n\n- **`scope`**: the indexed footprint. Here that is 426 files, whole-repo, extensions `.c .cpp .h .json .md .py .yaml`, with a `not_indexed` list (`.rs`, `.toml`, `.sql`, `.lock`, `.csv`, `.jsonl`, `.motor`, and no-extension files).\n- **`note`, \"Searched:\"**: names and `@brief` text of functions, variables, macros, typedefs, enums and enum values, macro expansions, classes/structs/unions, the config symbols the repo gates on, and file docs.\n- **`note`, \"NOT searched:\"**: markdown and Kconfig prose, which is a separate corpus (`search(corpus='prose')`).\n- **`target`**: the repository that answered. Here it is the repo root, so the answer came from the right index.\n\nA `staleness` block appears only when the index is stale. Its absence here means the index is current.\n\n**How much confidence each answer gets**\n\n| Situation | What the reply supports | Confidence |\n|---|---|---|\n| Zero rows, name-like query, `target` is the right repo, no `staleness`, the kind of thing sits in a searched layer | \"This repo does not define that symbol\" | High. The reply says not to retry. |\n| Zero rows for a conceptual phrase | Only \"no symbol's name or brief matches\" | Low. Try `corpus='prose'`, since the words may live in docs. |\n| Zero rows, and the thing would live in a `not_indexed` extension, a Makefile, CI config, or other non-indexed file | Nothing. The index never looked there. | None. The reply can't settle it. |\n| Zero rows for a multi-word query | Every token must match one unit, so one missing token empties the result | Re-query with the most distinctive token before concluding. The multi-token miss names the token that caused it. |\n| Symbol has no doxygen brief (`provenance: 'ast'`) | Matching was by name only | An empty brief means unparsed, not undocumented. A concept-level query can miss it. |\n\n**Practical rule:** treat \"no rows\" as \"absent from these layers of this index.\" Escalate to prose, check the `scope` extensions and `not_indexed` list, and only then conclude the repo lacks the thing. Anything outside the indexed file set needs a direct read of the file, not a retry of the index.\n\nI couldn't check any of this against the source, since I only had the index tools. The reading above comes from the probe reply and the tool descriptions.",
+  "ttft_ms": 2024,
+  "type": "result",
+  "duration_ms": 10824,
+  "uuid": "dc2f5cfb-39be-4e73-85dc-76689b500768",
+  "ttft_stream_ms": 1041,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1041,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

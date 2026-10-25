@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: MIT
+#
+# WHY THIS FILE EXISTS (S4, 1.1.0 security audit)
+# -----------------------------------------------
+# Every GitHub Action and every pre-commit hook in this repository is pinned by commit SHA,
+# because a tag is mutable by whoever owns the repository it names and a branch is mutable on
+# every push — the publish action, in the only job that holds the PyPI credential, was pinned
+# to a BRANCH until 1.1.0.
+#
+# SHA pinning makes every dependency stale by construction. A pin is only safe if something
+# tells you when the thing you pinned has a known vulnerability, so the pinning and this file
+# are one control rather than two: without this, the audit's fix would decay into a set of
+# frozen, unwatched versions, which is worse than tags for anything but a targeted attack.
+#
+# BOTH ECOSYSTEMS, for different reasons. `pip` is what an adopter installs. `github-actions`
+# is what can publish as this project. `tests/test_packaging.py` asserts both are listed.
+#
+# Grouped and monthly on purpose: this repository has one maintainer, and a dependency bot
+# that opens more pull requests than anyone reads is a bot whose alerts get ignored —
+# including the one that mattered. Security updates are not grouped and are not delayed;
+# GitHub opens those regardless of the schedule below.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      # One PR for the lot. The gate runs the full suite on it, which is the actual review.
+      python-dependencies:
+        patterns: ["*"]
+    # `lang-parsing-substrate` parses every byte of every target repository in-process and
+    # its output IS the index — `clew/signature.py`'s build-version-8 note measures what one
+    # of its minor upgrades did to an mbedtls index. It gets its own PR so that measurement
+    # is never bundled with a routine bump and merged on a green gate alone.
+    ignore:
+      - dependency-name: lang-parsing-substrate
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      github-actions:
+        patterns: ["*"]

@@ -53,7 +53,6 @@ from clew.declaration import (
     SECTION_THREADS,
     load_declaration,
 )
-from clew.harvest import try_import_tree_sitter
 from clew.propose import (
     YAML_MARKER,
     SectionStatus,
@@ -71,11 +70,6 @@ from clew.propose.sharedkey_report import _section_yaml
 from clew.propose.threads_detect import resolve_fixpoint
 from clew.scope import INDEX_SCOPE_SECTION
 from clew.signature import write_build_signature
-
-pytestmark = pytest.mark.skipif(
-    try_import_tree_sitter() is None,
-    reason="the proposer needs tree_sitter + its C/C++ grammars",
-)
 
 _GUARD_CONFIG = """\
     repos:

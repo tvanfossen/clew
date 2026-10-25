@@ -29,6 +29,7 @@ while a configured macro is a property of this one index.
 from __future__ import annotations
 
 import sqlite3
+from dataclasses import replace
 
 from ..vocabulary import LAYER_STATE_ABSENT, LAYER_STATE_EMPTY, LAYER_STATE_POPULATED
 from ._common import DbSource, connect, has_columns, table_exists
@@ -495,7 +496,7 @@ def kconfig_space(
 ## @param file_path Repo-relative path of the file the line is in.
 ## @param line The line to test for coverage.
 ## @return (covering gates, number of rows skipped for having no recorded extent).
-## @version 1
+## @version 2
 ## @req REQ-DDB-QUERY-006
 def gates_covering(
     conn: sqlite3.Connection, file_path: str, line: int
@@ -549,4 +550,63 @@ def gates_covering(
         "ORDER BY line",
         (file_path, line, line),
     ).fetchall()
-    return tuple(KconfigGate(*row) for row in rows), unknown
+    gates = tuple(KconfigGate(*row) for row in rows)
+    return _with_defaults(conn, gates), unknown
+
+
+## @brief Attach each gating macro's shipped default to its gate.
+## @param conn Open connection.
+## @param gates The covering gates.
+## @return The same gates, carrying `default_state` and `default_site` where known.
+## @version 1
+## @dg_internal
+def _with_defaults(
+    conn: sqlite3.Connection, gates: tuple[KconfigGate, ...]
+) -> tuple[KconfigGate, ...]:
+    """THE DECLARED HEADER WINS, AND DISAGREEMENT AMONG GUESSES DECIDES NOTHING.
+
+    mbedtls is the motivating shape exactly: `MBEDTLS_PLATFORM_MEMORY` is commented out in the
+    declared `mbedtls_config.h` and actively defined in two alternative profiles under
+    `configs/`. The declared header is what a default build reads, so it answers; the profiles
+    are other builds and must not outvote it.
+
+    When no declared header mentions the macro and the heuristic ones DISAGREE, the field stays
+    empty. Picking one of two profiles and calling it the default is the confident wrong answer
+    this layer was built to remove, re-made one level up.
+
+    @brief Join shipped defaults onto gates.
+    @return Gates with defaults where they are unambiguous.
+    @version 1
+    """
+    if not gates or not table_exists(conn, "config_defaults"):
+        return gates
+    macros = sorted({gate.macro for gate in gates})
+    placeholders = ",".join("?" * len(macros))
+    rows = conn.execute(
+        f"SELECT macro, state, file_path, line, origin FROM config_defaults "  # noqa: S608
+        f"WHERE macro IN ({placeholders})",
+        macros,
+    ).fetchall()
+    decided: dict[str, tuple[str, str]] = {}
+    seen: dict[str, set[str]] = {}
+    for macro, state, path, line_no, origin in rows:
+        site = f"{path}:{line_no}"
+        if origin == "declared":
+            decided[macro] = (str(state), site)
+            continue
+        seen.setdefault(macro, set()).add(str(state))
+        decided.setdefault(macro, (str(state), site))
+    ## COMPUTED ONCE, not per macro. It is the same set every iteration, and unpacking five
+    ## positional fields inside the loop to rebuild it is both slower and how `l` ended up
+    ## shadowing nothing legible.
+    settled = {str(row[0]) for row in rows if row[4] == "declared"}
+    for macro, states in seen.items():
+        ## More than one state among GUESSES, and no declared header to settle it.
+        if len(states) > 1 and macro not in settled:
+            decided.pop(macro, None)
+    return tuple(
+        replace(gate, default_state=decided[gate.macro][0], default_site=decided[gate.macro][1])
+        if gate.macro in decided
+        else gate
+        for gate in gates
+    )

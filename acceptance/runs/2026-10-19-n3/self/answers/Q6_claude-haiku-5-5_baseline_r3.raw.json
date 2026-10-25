@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 73944,
+  "stop_reason": "end_turn",
+  "session_id": "777c52ce-8c68-45c0-82bf-212fb7ec25a4",
+  "total_cost_usd": 0.026707300000000003,
+  "usage": {
+    "input_tokens": 30,
+    "cache_creation_input_tokens": 56249,
+    "cache_read_input_tokens": 897750,
+    "output_tokens": 12954,
+    "output_tokens_details": {
+      "thinking_tokens": 7541
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 56249,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4334,
+        "cache_read_input_tokens": 83089,
+        "cache_creation_input_tokens": 3325,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3325
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 30,
+      "outputTokens": 12954,
+      "cacheReadInputTokens": 897750,
+      "cacheCreationInputTokens": 56249,
+      "webSearchRequests": 0,
+      "costUSD": 0.026707300000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 7541,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 20,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nFor shell and CMake, the index holds function-level rows only when the substrate has the grammars. For YAML and JSON it holds a file-set entry and nothing else, on any install. On a published-wheel install, the not-indexed report also fails to name shell and CMake files, which the code's own docs say it does. I traced that statically and did not run a build, so treat it as a strong finding to confirm.\n\n## What the index holds\n\n| File type | Route | Rows written |\n|---|---|---|\n| `.sh`, `.bash` | `harvest.py:126` \u2192 `substrate:bash` | `path` row, plus one `memberdef` (kind `function`) per `name() {}` or `function name {}` (`shast.py:98-140`). Args are empty, and the doc is the `#` block directly above. |\n| `.cmake`, `CMakeLists.txt` (matched by whole name) | `harvest.py:127,133` \u2192 `substrate:cmake` | `path` row, plus `memberdef` for `function` and `macro` definitions. Macros map to doxygen's `macro definition`. |\n| `.yaml`, `.yml`, `.json` | Never routed. `_TS_GRAMMARS` has no entry (`harvest.py:118-127`). | `path` row only (`synth.py:80`, `register_paths`). No symbols, no call edges. |\n\nWhat it does not hold:\n\n- **Shell:** variables, `source` graph, and command invocations as rows. Generic call-edge code can parse `.sh` with the bash grammar, but I did not verify what it emits.\n- **CMake:** `add_executable`, `target_link_libraries`, `set()` variables, `option()`, and `include()` are not rows. The harvester records only function and macro definitions.\n- **YAML and JSON:** their content. `synth.py:23-26` says so deliberately. Clew's own config readers (`.clew.yaml`, `requirements.yaml`, the datamodel) parse them outside the index.\n\nDoxygen covers none of these four types. None of its default `FILE_PATTERNS` (`doxygen.py:203` onward) list them.\n\n## What happens without the grammars\n\n1. **No crash.** `_grammar_available` (`harvest.py:213-225`) checks only `bash` and `cmake`, the keys in `_OPTIONAL_KEYS`. When one is missing, `_ts_language_for` returns None. The file is never parsed and gets no memberdef rows.\n2. **The path row is still written.** `claims()` (`synth.py:191-199`) and `register_paths` (`synth.py:219-240`) never ask whether the grammar exists. Shell and CMake files therefore enter the `path` table with zero symbols.\n3. **The not-indexed report stays silent for them.** `_not_indexed_scope` (`cli.py:2646-2672`) subtracts every `path WHERE type = 1` row from the scanned set. `register_synth_paths` runs at `cli.py:1909`, before that report at `cli.py:2263`. So `.sh` and `.cmake` never appear as missing.\n4. **YAML and JSON behave the same on both installs.** They are always path-only and always absent from the not-indexed report, because they always have a path row.\n\nThat contradicts the docs. `substrate.py:13-14` says the miss report names these types on the published wheel. `synth.py:6-7` says the data files are \"named by the not-indexed report.\" The unit test `tests/test_not_indexed_report.py:38-44` builds a hand-made `path` table, so it never runs `register_paths` and misses the interaction.\n\n## Also noticed\n\n`missing_languages` (`substrate.py:72`) has no production caller. Only tests use it.\n\nI can fix the mismatch in one of two ways. Either `claims()` skips shell and CMake when their grammar is absent, or the not-indexed subtraction excludes path rows that have no harvest. The second is more honest for YAML and JSON as well. Tell me which you want and I'll make the change with a test that runs `register_paths` and `_not_indexed_scope` together.",
+  "ttft_ms": 1299,
+  "type": "result",
+  "duration_ms": 74632,
+  "uuid": "d24cb616-4117-4fb2-b265-1a1e598859a8",
+  "ttft_stream_ms": 891,
+  "time_to_request_ms": 79,
+  "first_content_frame_ms": 892,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

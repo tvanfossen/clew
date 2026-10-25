@@ -67,7 +67,7 @@ from .critical_sections import (
     resolve_section,
 )
 from .declaration import SECTION_LOCKS
-from .harvest import Harvester, enclosing, run_harvest, try_import_tree_sitter
+from .harvest import Harvester, enclosing, run_harvest
 from .indexcache import IndexCache
 from .pyast import node_text
 from .treescan import manifest_key
@@ -428,10 +428,10 @@ def _pattern_document(source: Path | dict | None) -> dict:
 ## @brief Create the L1 lock tables if they do not exist.
 ## @param conn Open connection to the database being built.
 ## @return None.
-## @version 3
+## @version 4
 ## @dg_internal
 def _ensure_lock_tables(conn: sqlite3.Connection) -> None:
-    """Always created, even when tree_sitter is absent or the repo has no
+    """Always created, even when the repo has no
     locks, so R2/R4 never branch on table existence — the requirements.py
     precedent the thread layer also follows.
 
@@ -451,7 +451,7 @@ def _ensure_lock_tables(conn: sqlite3.Connection) -> None:
     registered in the vocabulary and absent from the shipped schema.
 
     @brief Create locks + lock_acquisitions + critical_section_calls.
-    @version 3
+    @version 4
     """
     conn.executescript(
         f"""
@@ -1204,7 +1204,7 @@ def _insert_one_site(
 ## @param cache Live index cache, or None.
 ## @param harvester Pre-built harvester from the shared parse pass; built here when omitted.
 ## @return None.
-## @version 4
+## @version 5
 ## @req REQ-DDB-SCHEMA-011
 def extract_locks(
     db_path: Path,
@@ -1215,8 +1215,7 @@ def extract_locks(
 ) -> None:
     """Runs after the call-edge layers so function extents exist for holder
     resolution. The tables are created unconditionally, so a repo with no locks
-    — or a build without tree_sitter — yields empty tables rather than absent
-    ones, and R2/R4 never branch on existence.
+    yields empty tables rather than absent ones, and R2/R4 never branch on existence.
 
     The function-name index that Layer 3 builds for call edges is reused here to
     resolve L2's callee names, so an `critical_section_calls.callee_rowid` and a
@@ -1230,23 +1229,17 @@ def extract_locks(
     caller outside the pipeline), it is built here exactly as before.
 
     @brief Populate locks + lock_acquisitions + critical_section_calls.
-    @version 4
+    @version 5
     """
     from .call_edges import _build_function_indexes
 
     conn = sqlite3.connect(str(db_path))
     _ensure_lock_tables(conn)
-    ts_classes = try_import_tree_sitter()
-    if ts_classes is None:
-        logger.info("locks: tree_sitter unavailable — skipping (tables still created)")
-        conn.commit()
-        conn.close()
-        return
     name_to_rowids, file_funcs = _build_function_indexes(conn)
     harvester = harvester or lock_harvester(lock_patterns)
     inserted = 0
     members = 0
-    for path_rowid, payload in run_harvest(conn, repo_root, harvester, ts_classes, cache):
+    for path_rowid, payload in run_harvest(conn, repo_root, harvester, cache):
         added, member_rows = _insert_sites(
             conn, path_rowid, payload, file_funcs.get(path_rowid, []), name_to_rowids
         )

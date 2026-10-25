@@ -1,0 +1,496 @@
+3 target(s): entropic, mbedtls, self
+
+=== provision entropic
+
+=== provision mbedtls
+
+=== provision self
+
+=== generate entropic
+resuming — 0 cell(s) already answered, 45 to run
+ok  Q4_claude-haiku-5-5_baseline_r1      40.8s out    7624 cache   362481    4202 B turns  23 tools  44/ 44 denied  0
+ok  Q4_claude-haiku-5-5_index_only_r1    23.2s out    3512 cache   180369    3701 B turns   7 tools   8/  0 denied  0
+ok  Q4_claude-haiku-5-5_index_r1         44.2s out    7790 cache   416813    3520 B turns  17 tools  30/ 23 denied  0
+ok  Q4_claude-haiku-5-5_index_only_r2    21.5s out    3454 cache   209011    3678 B turns   6 tools   7/  0 denied  0
+ok  Q4_claude-haiku-5-5_index_r2         37.9s out    6167 cache   388457    4124 B turns  15 tools  24/ 19 denied  0
+ok  Q4_claude-haiku-5-5_baseline_r2      32.0s out    6061 cache   240828    5053 B turns   8 tools  13/ 13 denied  0
+ok  Q4_claude-haiku-5-5_index_r3         31.5s out    4789 cache   467171    3889 B turns  16 tools  25/ 17 denied  0
+ok  Q4_claude-haiku-5-5_baseline_r3      31.3s out    5595 cache   307661    3554 B turns  11 tools  20/ 20 denied  0
+ok  Q4_claude-haiku-5-5_index_only_r3    20.4s out    3148 cache   216537    3918 B turns   7 tools   8/  0 denied  0
+ok  Q1_claude-haiku-5-5_baseline_r1      36.2s out    6439 cache   267161    2912 B turns  13 tools  21/ 21 denied  0
+ok  Q1_claude-haiku-5-5_index_only_r1    40.3s out    6219 cache   491270    3508 B turns  20 tools  30/  0 denied  0
+ok  Q1_claude-haiku-5-5_index_r1         43.4s out    6638 cache   426960    3165 B turns  20 tools  31/  7 denied  0
+ok  Q1_claude-haiku-5-5_index_only_r2    57.0s out    7767 cache   387611    3041 B turns  13 tools  12/  0 denied  0
+ok  Q1_claude-haiku-5-5_index_r2         58.4s out    8346 cache   705742    3390 B turns  21 tools  30/ 22 denied  0
+ok  Q1_claude-haiku-5-5_baseline_r2      43.2s out    6393 cache   277061    3331 B turns   9 tools  13/ 13 denied  0
+ok  Q1_claude-haiku-5-5_index_r3         33.5s out    4641 cache   324994    3090 B turns  11 tools  20/ 14 denied  0
+ok  Q1_claude-haiku-5-5_baseline_r3      35.8s out    5721 cache   304189    3611 B turns  13 tools  23/ 23 denied  0
+ok  Q1_claude-haiku-5-5_index_only_r3    33.5s out    5071 cache   391721    3380 B turns  12 tools  17/  0 denied  0
+ok  Q2_claude-haiku-5-5_baseline_r1      18.4s out    3193 cache   128009    3084 B turns   6 tools  10/ 10 denied  0
+ok  Q2_claude-haiku-5-5_index_only_r1    18.6s out    2865 cache    98580    2770 B turns   7 tools  12/  0 denied  0
+ok  Q2_claude-haiku-5-5_index_r1         29.3s out    5934 cache   214573    3334 B turns   9 tools  16/ 12 denied  0
+ok  Q2_claude-haiku-5-5_index_only_r2    30.9s out    5318 cache   241843    2822 B turns  10 tools  17/  0 denied  0
+ok  Q2_claude-haiku-5-5_index_r2         29.8s out    6027 cache   398606    3668 B turns  10 tools  18/ 14 denied  0
+ok  Q2_claude-haiku-5-5_baseline_r2      16.9s out    3091 cache   142845    2825 B turns   7 tools  12/ 12 denied  0
+ok  Q2_claude-haiku-5-5_index_r3         22.9s out    3905 cache   236987    3296 B turns   9 tools  16/ 12 denied  0
+ok  Q2_claude-haiku-5-5_baseline_r3      26.2s out    4917 cache   243445    3328 B turns  10 tools  18/ 18 denied  0
+ok  Q2_claude-haiku-5-5_index_only_r3    20.1s out    2995 cache   175675    2180 B turns  10 tools  18/  0 denied  0
+ok  Q3_claude-haiku-5-5_baseline_r1      45.0s out    7673 cache   574735    3707 B turns  17 tools  29/ 29 denied  0
+ok  Q3_claude-haiku-5-5_index_only_r1    52.2s out    7420 cache   919050    4172 B turns  33 tools  58/  0 denied  0
+ok  Q3_claude-haiku-5-5_index_r1         48.3s out    8083 cache   653926    4027 B turns  30 tools  53/ 25 denied  0
+ok  Q3_claude-haiku-5-5_index_only_r2    42.1s out    6227 cache   593066    3963 B turns  19 tools  26/  0 denied  0
+ok  Q3_claude-haiku-5-5_index_r2         40.2s out    7032 cache   464686    3639 B turns  19 tools  36/ 28 denied  0
+ok  Q3_claude-haiku-5-5_baseline_r2      47.4s out    7849 cache   503862    4090 B turns  14 tools  22/ 22 denied  0
+ok  Q3_claude-haiku-5-5_index_r3         39.5s out    6722 cache   424939    3987 B turns  18 tools  33/ 25 denied  0
+ok  Q3_claude-haiku-5-5_baseline_r3      41.0s out    7003 cache   498848    3629 B turns  16 tools  27/ 27 denied  0
+ok  Q3_claude-haiku-5-5_index_only_r3    36.0s out    5714 cache   427172    4267 B turns  12 tools  17/  0 denied  0
+ok  Q5_claude-haiku-5-5_baseline_r1      52.8s out    9257 cache   574615    4117 B turns  17 tools  32/ 32 denied  0
+ok  Q5_claude-haiku-5-5_index_only_r1    24.7s out    4077 cache   198631    4138 B turns  13 tools  21/  0 denied  0
+ok  Q5_claude-haiku-5-5_index_r1         39.6s out    6749 cache   371463    4532 B turns  11 tools  20/ 16 denied  0
+ok  Q5_claude-haiku-5-5_index_only_r2    21.8s out    3759 cache   165841    4463 B turns  11 tools  20/  0 denied  0
+ok  Q5_claude-haiku-5-5_index_r2         49.1s out    9184 cache   585412    4740 B turns  21 tools  40/ 28 denied  0
+ok  Q5_claude-haiku-5-5_baseline_r2      41.7s out    7758 cache   378198    4632 B turns  11 tools  20/ 20 denied  0
+ok  Q5_claude-haiku-5-5_index_r3         50.5s out    8710 cache   597349    4811 B turns  16 tools  30/ 24 denied  0
+ok  Q5_claude-haiku-5-5_baseline_r3      39.5s out    6719 cache   393901    5332 B turns  11 tools  19/ 19 denied  0
+ok  Q5_claude-haiku-5-5_index_only_r3    22.3s out    3373 cache   269575    3368 B turns  15 tools  26/  0 denied  0
+
+45/45 cells produced an answer
+--- generate entropic ok in 1611s
+
+=== generate mbedtls
+resuming — 0 cell(s) already answered, 45 to run
+ok  Q2_claude-haiku-5-5_baseline_r1      28.4s out    5651 cache   150002    2954 B turns  12 tools  22/ 22 denied  0
+ok  Q2_claude-haiku-5-5_index_only_r1    21.9s out    3709 cache   123014    2556 B turns  10 tools  16/  0 denied  0
+ok  Q2_claude-haiku-5-5_index_r1         61.6s out   11401 cache   530303    2693 B turns  19 tools  34/ 33 denied  0
+ok  Q2_claude-haiku-5-5_index_only_r2    16.7s out    2357 cache   141844    2264 B turns   7 tools  12/  0 denied  0
+ok  Q2_claude-haiku-5-5_index_r2         22.3s out    3617 cache   187980    3041 B turns  11 tools  20/ 18 denied  0
+ok  Q2_claude-haiku-5-5_baseline_r2      31.7s out    6227 cache   206542    2461 B turns  17 tools  32/ 32 denied  0
+ok  Q2_claude-haiku-5-5_index_r3         53.8s out   10116 cache   460516    3516 B turns  18 tools  34/ 34 denied  0
+ok  Q2_claude-haiku-5-5_baseline_r3      23.1s out    3769 cache   158644    3049 B turns   9 tools  16/ 16 denied  0
+ok  Q2_claude-haiku-5-5_index_only_r3    21.0s out    2999 cache   150189    2786 B turns   8 tools   7/  0 denied  0
+ok  Q1_claude-haiku-5-5_baseline_r1      25.4s out    4918 cache   129711    2825 B turns   6 tools  10/ 10 denied  0
+ok  Q1_claude-haiku-5-5_index_only_r1    29.5s out    4992 cache   130530    3323 B turns   8 tools  11/  0 denied  0
+ok  Q1_claude-haiku-5-5_index_r1         37.1s out    6807 cache   252894    3608 B turns  13 tools  24/ 18 denied  0
+ok  Q1_claude-haiku-5-5_index_only_r2    32.1s out    5470 cache   161471    3310 B turns   7 tools  10/  0 denied  0
+ok  Q1_claude-haiku-5-5_index_r2         37.5s out    6617 cache   260203    3858 B turns  12 tools  17/ 10 denied  0
+ok  Q1_claude-haiku-5-5_baseline_r2      40.5s out    7740 cache   281347    3320 B turns   8 tools  14/ 14 denied  0
+ok  Q1_claude-haiku-5-5_index_r3         25.3s out    4483 cache   162790    3680 B turns   9 tools  16/ 10 denied  0
+ok  Q1_claude-haiku-5-5_baseline_r3      47.2s out    7586 cache   326021    3170 B turns   9 tools  16/ 16 denied  0
+ok  Q1_claude-haiku-5-5_index_only_r3    32.6s out    5834 cache   104340    3840 B turns   7 tools   9/  0 denied  0
+ok  Q5_claude-haiku-5-5_baseline_r1      59.4s out   11039 cache   699334    5762 B turns  14 tools  26/ 26 denied  0
+ok  Q5_claude-haiku-5-5_index_only_r1    39.5s out    5846 cache   288662    4601 B turns  14 tools  13/  0 denied  0
+ok  Q5_claude-haiku-5-5_index_r1         49.1s out    9234 cache   497845    5748 B turns  20 tools  36/ 32 denied  0
+ok  Q5_claude-haiku-5-5_index_only_r2    42.6s out    6711 cache   310703    5738 B turns  15 tools  19/  0 denied  0
+ok  Q5_claude-haiku-5-5_index_r2         59.1s out   11424 cache   608218    6126 B turns  21 tools  39/ 33 denied  0
+ok  Q5_claude-haiku-5-5_baseline_r2      45.1s out    7955 cache   323670    5019 B turns  11 tools  20/ 20 denied  0
+ok  Q5_claude-haiku-5-5_index_r3         70.5s out   13198 cache   809219    5827 B turns  28 tools  52/ 44 denied  0
+ok  Q5_claude-haiku-5-5_baseline_r3      44.4s out    7857 cache   375831    4498 B turns  11 tools  20/ 20 denied  0
+ok  Q5_claude-haiku-5-5_index_only_r3    30.5s out    5500 cache   284711    5825 B turns  14 tools  24/  0 denied  0
+ok  Q3_claude-haiku-5-5_baseline_r1      30.1s out    5860 cache   258445    4551 B turns  14 tools  26/ 26 denied  0
+ok  Q3_claude-haiku-5-5_index_only_r1    29.1s out    5361 cache   148782    4053 B turns   7 tools   6/  0 denied  0
+ok  Q3_claude-haiku-5-5_index_r1         29.5s out    4798 cache   298679    4220 B turns  11 tools  17/  9 denied  0
+ok  Q3_claude-haiku-5-5_index_only_r2    25.2s out    4418 cache   158559    3697 B turns   7 tools  11/  0 denied  0
+ok  Q3_claude-haiku-5-5_index_r2         25.6s out    4380 cache   353893    3715 B turns  12 tools  18/ 13 denied  0
+ok  Q3_claude-haiku-5-5_baseline_r2      32.6s out    6351 cache   329340    3383 B turns  13 tools  22/ 22 denied  0
+ok  Q3_claude-haiku-5-5_index_r3         19.9s out    3399 cache   187119    4194 B turns   7 tools   9/  5 denied  0
+ok  Q3_claude-haiku-5-5_baseline_r3      34.4s out    6721 cache   263102    4221 B turns  11 tools  19/ 19 denied  0
+ok  Q3_claude-haiku-5-5_index_only_r3    29.6s out    5353 cache   179528    4180 B turns   7 tools   9/  0 denied  0
+ok  Q4_claude-haiku-5-5_baseline_r1      19.2s out    3302 cache   116236    3605 B turns   6 tools  10/ 10 denied  0
+ok  Q4_claude-haiku-5-5_index_only_r1    24.0s out    3441 cache   245728    3172 B turns  11 tools  16/  0 denied  0
+ok  Q4_claude-haiku-5-5_index_r1         26.7s out    4429 cache   247152    3959 B turns   9 tools  14/  8 denied  0
+ok  Q4_claude-haiku-5-5_index_only_r2    22.4s out    3841 cache   162493    3897 B turns  12 tools  22/  0 denied  0
+ok  Q4_claude-haiku-5-5_index_r2         26.8s out    4445 cache   245823    4477 B turns   8 tools  12/  8 denied  0
+ok  Q4_claude-haiku-5-5_baseline_r2      23.6s out    3893 cache   171206    3810 B turns   7 tools  12/ 12 denied  0
+ok  Q4_claude-haiku-5-5_index_r3         27.7s out    4689 cache   260705    3554 B turns  10 tools  16/  8 denied  0
+ok  Q4_claude-haiku-5-5_baseline_r3      19.9s out    3415 cache   130564    3084 B turns   5 tools   8/  8 denied  0
+ok  Q4_claude-haiku-5-5_index_only_r3    21.3s out    3275 cache   212237    3516 B turns  12 tools  19/  0 denied  0
+
+45/45 cells produced an answer
+
+WARNING — 1 index cell(s) made ZERO index calls: ['Q2_claude-haiku-5-5_index_r3']
+That is what an index arm running WITHOUT its index looks like: the server starts, finds no database, registers no query tools, and the agent answers from the source with no error anywhere. Verify the MCP config resolves before trusting these cells.
+--- generate mbedtls ok in 1496s
+
+=== generate self
+resuming — 0 cell(s) already answered, 54 to run
+ok  Q2_claude-haiku-5-5_baseline_r1      33.2s out    4572 cache   490468    2866 B turns  11 tools  20/ 20 denied  0
+ok  Q2_claude-haiku-5-5_index_only_r1    14.7s out    2151 cache    49643    2580 B turns   2 tools   1/  0 denied  0
+ok  Q2_claude-haiku-5-5_index_r1         13.4s out    1782 cache    52819    2294 B turns   3 tools   4/  0 denied  0
+ok  Q2_claude-haiku-5-5_index_only_r2    14.1s out    2109 cache    67904    2723 B turns   3 tools   2/  0 denied  0
+ok  Q2_claude-haiku-5-5_index_r2         14.0s out    2094 cache    71132    2612 B turns   3 tools   2/  0 denied  0
+ok  Q2_claude-haiku-5-5_baseline_r2      21.2s out    3574 cache   181250    3498 B turns   6 tools   9/  9 denied  0
+ok  Q2_claude-haiku-5-5_index_r3         13.9s out    1905 cache    71132    2660 B turns   3 tools   2/  0 denied  0
+ok  Q2_claude-haiku-5-5_baseline_r3      23.6s out    4019 cache   182932    3481 B turns   6 tools  10/ 10 denied  0
+ok  Q2_claude-haiku-5-5_index_only_r3    12.5s out    1766 cache    67904    2777 B turns   2 tools   1/  0 denied  0
+ok  Q4_claude-haiku-5-5_baseline_r1      25.4s out    3878 cache   203191    3746 B turns   7 tools  12/ 12 denied  0
+ok  Q4_claude-haiku-5-5_index_only_r1    19.5s out    2839 cache    87311    3496 B turns   5 tools   4/  0 denied  0
+ok  Q4_claude-haiku-5-5_index_r1         14.4s out    1932 cache   129966    3065 B turns   5 tools   6/  0 denied  0
+ok  Q4_claude-haiku-5-5_index_only_r2    18.8s out    2474 cache   102650    2693 B turns   3 tools   2/  0 denied  0
+ok  Q4_claude-haiku-5-5_index_r2         20.4s out    3354 cache   146903    3233 B turns   7 tools  10/  2 denied  0
+ok  Q4_claude-haiku-5-5_baseline_r2      21.8s out    4279 cache   188782    3645 B turns   8 tools  14/ 14 denied  0
+ok  Q4_claude-haiku-5-5_index_r3         19.7s out    2595 cache   146189    2657 B turns   5 tools   4/  0 denied  0
+ok  Q4_claude-haiku-5-5_baseline_r3      25.7s out    4948 cache   283716    3676 B turns  10 tools  18/ 18 denied  0
+ok  Q4_claude-haiku-5-5_index_only_r3    14.2s out    1784 cache   102835    2520 B turns   4 tools   5/  0 denied  0
+ok  Q3_claude-haiku-5-5_baseline_r1      33.9s out    4805 cache   532438    3720 B turns  12 tools  21/ 21 denied  0
+ok  Q3_claude-haiku-5-5_index_only_r1    15.5s out    2003 cache    89624    3112 B turns   5 tools   4/  0 denied  0
+ok  Q3_claude-haiku-5-5_index_r1         20.3s out    2600 cache   205068    2845 B turns   6 tools   7/  0 denied  0
+ok  Q3_claude-haiku-5-5_index_only_r2    15.4s out    2257 cache   165514    3602 B turns   7 tools   9/  0 denied  0
+ok  Q3_claude-haiku-5-5_index_r2         16.2s out    2204 cache   158972    3497 B turns   5 tools   4/  0 denied  0
+ok  Q3_claude-haiku-5-5_baseline_r2      31.0s out    4514 cache   349612    3682 B turns  10 tools  17/ 17 denied  0
+ok  Q3_claude-haiku-5-5_index_r3         20.4s out    2521 cache   223987    3490 B turns   7 tools   6/  0 denied  0
+ok  Q3_claude-haiku-5-5_baseline_r3      20.6s out    3276 cache   256470    3357 B turns  11 tools  18/ 18 denied  0
+ok  Q3_claude-haiku-5-5_index_only_r3    14.9s out    1981 cache   108550    3063 B turns   6 tools   8/  0 denied  0
+ok  Q1_claude-haiku-5-5_baseline_r1      32.0s out    5024 cache   501166    3760 B turns  14 tools  26/ 26 denied  0
+ok  Q1_claude-haiku-5-5_index_only_r1    21.4s out    3177 cache   244491    3251 B turns  10 tools  12/  0 denied  0
+ok  Q1_claude-haiku-5-5_index_r1         19.2s out    3342 cache   164217    3081 B turns   8 tools  12/  5 denied  1
+ok  Q1_claude-haiku-5-5_index_only_r2    25.1s out    3892 cache   314412    4229 B turns  19 tools  36/  0 denied  0
+ok  Q1_claude-haiku-5-5_index_r2         30.2s out    3912 cache   379711    4125 B turns  12 tools  22/ 10 denied  0
+ok  Q1_claude-haiku-5-5_baseline_r2      39.1s out    5634 cache   417736    4001 B turns  14 tools  26/ 26 denied  0
+ok  Q1_claude-haiku-5-5_index_r3         19.6s out    3011 cache   250864    3385 B turns   9 tools  15/ 11 denied  1
+ok  Q1_claude-haiku-5-5_baseline_r3      30.9s out    5336 cache   427971    4109 B turns  14 tools  26/ 26 denied  0
+ok  Q1_claude-haiku-5-5_index_only_r3    17.6s out    2502 cache   211398    2852 B turns   9 tools  13/  0 denied  0
+ok  Q5_claude-haiku-5-5_baseline_r1      32.3s out    5780 cache   425486    3316 B turns  14 tools  26/ 26 denied  0
+ok  Q5_claude-haiku-5-5_index_only_r1    23.9s out    3030 cache   181220    2820 B turns   8 tools  10/  0 denied  0
+ok  Q5_claude-haiku-5-5_index_r1         20.0s out    2940 cache   270345    2883 B turns  10 tools  13/  9 denied  1
+ok  Q5_claude-haiku-5-5_index_only_r2    21.5s out    3024 cache   280487    2726 B turns  14 tools  21/  0 denied  1
+ok  Q5_claude-haiku-5-5_index_r2         23.6s out    3153 cache   249296    2349 B turns   9 tools  16/  6 denied  0
+ok  Q5_claude-haiku-5-5_baseline_r2      36.4s out    6753 cache   468311    3295 B turns  15 tools  25/ 25 denied  0
+ok  Q5_claude-haiku-5-5_index_r3         27.7s out    3801 cache   355128    2701 B turns  13 tools  20/  0 denied  0
+ok  Q5_claude-haiku-5-5_baseline_r3      47.4s out    7139 cache   643958    2981 B turns  16 tools  30/ 30 denied  0
+ok  Q5_claude-haiku-5-5_index_only_r3    18.3s out    2829 cache   191979    2506 B turns  10 tools  18/  0 denied  1
+ok  Q6_claude-haiku-5-5_baseline_r1      99.2s out   10265 cache   662680    3742 B turns  15 tools  27/ 27 denied  0
+ok  Q6_claude-haiku-5-5_index_only_r1    40.0s out    6364 cache   476753    3641 B turns  21 tools  36/  0 denied  0
+ok  Q6_claude-haiku-5-5_index_r1         36.1s out    6261 cache   445595    3647 B turns  17 tools  30/ 22 denied  0
+ok  Q6_claude-haiku-5-5_index_only_r2    31.0s out    4530 cache   340082    3727 B turns  17 tools  21/  0 denied  0
+ok  Q6_claude-haiku-5-5_index_r2         49.2s out    7400 cache   554174    3811 B turns  18 tools  34/ 22 denied  0
+ok  Q6_claude-haiku-5-5_baseline_r2      55.9s out    8769 cache   586072    4826 B turns  15 tools  28/ 28 denied  0
+ok  Q6_claude-haiku-5-5_index_r3         59.8s out    9251 cache   867986    3858 B turns  20 tools  38/ 32 denied  0
+ok  Q6_claude-haiku-5-5_baseline_r3      67.2s out   10492 cache  1509975    3921 B turns  26 tools  49/ 49 denied  0
+ok  Q6_claude-haiku-5-5_index_only_r3    43.9s out    7857 cache   384347    4795 B turns  18 tools  31/  0 denied  0
+
+54/54 cells produced an answer
+--- generate self ok in 1497s
+
+=== grade entropic
+Q1_claude-haiku-5-5_index_only_r1  score  71.4%  unmarked  0.0%
+Q1_claude-haiku-5-5_index_r1       score  71.4%  unmarked  0.0%
+Q1_claude-haiku-5-5_baseline_r1    score 100.0%  unmarked  0.0%
+Q1_claude-haiku-5-5_index_only_r3  score  76.2%  unmarked  0.0%
+Q1_claude-haiku-5-5_index_r2       score  85.7%  unmarked  0.0%
+Q1_claude-haiku-5-5_baseline_r2    score  71.4%  unmarked  0.0%
+Q1_claude-haiku-5-5_index_only_r2  score  76.2%  unmarked  0.0%
+Q1_claude-haiku-5-5_baseline_r3    score  76.2%  unmarked  0.0%
+Q2_claude-haiku-5-5_baseline_r1    score  69.2%  unmarked  0.0%
+Q2_claude-haiku-5-5_baseline_r3    score  46.2%  unmarked  0.0%
+Q2_claude-haiku-5-5_baseline_r2    score  69.2%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_only_r3  score  38.5%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_only_r2  score  61.5%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_r1       score  46.2%  unmarked  0.0%
+Q1_claude-haiku-5-5_index_r3       score  90.5%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_only_r1  score  53.8%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_r2       score  46.2%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_r3       score  69.2%  unmarked  0.0%
+Q3_claude-haiku-5-5_baseline_r1    score  66.7%  unmarked  0.0%
+Q3_claude-haiku-5-5_baseline_r3    score  66.7%  unmarked  0.0%
+Q3_claude-haiku-5-5_baseline_r2    score  73.3%  unmarked  0.0%
+Q3_claude-haiku-5-5_index_only_r1  score  73.3%  unmarked  0.0%
+Q3_claude-haiku-5-5_index_only_r2  score  46.7%  unmarked  0.0%
+
+STOPPED after 23 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"54ade995-5d9a-47b3-b4b0-c10013a72a18","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+--- grade entropic FAILED in 2558s
+
+=== grade mbedtls
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"dd68f6c0-f55a-4cb8-94f5-a364d3671cbe","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+--- grade mbedtls FAILED in 25s
+
+=== grade self
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"335ecdaa-32a2-4209-9ce9-bf96f4c9fd29","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+--- grade self FAILED in 29s
+
+0/3 target(s) completed every phase
+  FAILED entropic at grade: 
+  FAILED mbedtls at grade: 
+  FAILED self at grade: 
+3 target(s): entropic, mbedtls, self
+
+=== provision entropic
+
+=== provision mbedtls
+
+=== provision self
+
+=== generate entropic
+resuming — 45 cell(s) already answered, 0 to run
+
+0/0 cells produced an answer
+--- generate entropic ok in 0s
+
+=== generate mbedtls
+resuming — 45 cell(s) already answered, 0 to run
+
+0/0 cells produced an answer
+--- generate mbedtls ok in 0s
+
+=== generate self
+resuming — 54 cell(s) already answered, 0 to run
+
+0/0 cells produced an answer
+--- generate self ok in 0s
+
+=== grade entropic
+Q1_claude-haiku-5-5_index_r1       score  85.7%  unmarked  0.0%
+Q1_claude-haiku-5-5_index_only_r3  score  71.4%  unmarked  0.0%
+Q1_claude-haiku-5-5_index_r2       score  85.7%  unmarked  0.0%
+Q1_claude-haiku-5-5_baseline_r3    score  76.2%  unmarked  0.0%
+Q1_claude-haiku-5-5_baseline_r1    score 100.0%  unmarked  0.0%
+Q1_claude-haiku-5-5_index_only_r2  score  61.9%  unmarked  0.0%
+Q1_claude-haiku-5-5_index_only_r1  score  76.2%  unmarked  0.0%
+Q1_claude-haiku-5-5_baseline_r2    score  71.4%  unmarked  0.0%
+Q2_claude-haiku-5-5_baseline_r3    score  46.2%  unmarked  0.0%
+Q2_claude-haiku-5-5_baseline_r2    score  69.2%  unmarked  0.0%
+Q2_claude-haiku-5-5_baseline_r1    score  69.2%  unmarked  0.0%
+Q1_claude-haiku-5-5_index_r3       score  90.5%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_r1       score  46.2%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_only_r3  score  53.8%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_only_r1  score  53.8%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_only_r2  score  61.5%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_r3       score  69.2%  unmarked  0.0%
+Q2_claude-haiku-5-5_index_r2       score  69.2%  unmarked  0.0%
+Q3_claude-haiku-5-5_baseline_r3    score  66.7%  unmarked  0.0%
+Q3_claude-haiku-5-5_baseline_r2    score  73.3%  unmarked  0.0%
+Q3_claude-haiku-5-5_baseline_r1    score  56.7%  unmarked  0.0%
+Q3_claude-haiku-5-5_index_only_r1  score  53.3%  unmarked  0.0%
+Q3_claude-haiku-5-5_index_only_r2  score  46.7%  unmarked  0.0%
+Q3_claude-haiku-5-5_index_r2       score  46.7%  unmarked  0.0%
+Q3_claude-haiku-5-5_index_only_r3  score  70.0%  unmarked  0.0%
+Q4_claude-haiku-5-5_baseline_r1    score  74.1%  unmarked  0.0%
+Q3_claude-haiku-5-5_index_r1       score  66.7%  unmarked  0.0%
+Q3_claude-haiku-5-5_index_r3       score  50.0%  unmarked  0.0%
+Q4_claude-haiku-5-5_baseline_r3    score  81.5%  unmarked  0.0%
+Q4_claude-haiku-5-5_baseline_r2    score  85.2%  unmarked  0.0%
+
+STOPPED after 30 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"be21cd40-8a4e-498f-8635-58b77e6a8e84","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+--- grade entropic FAILED in 3013s
+
+=== grade mbedtls
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"7dc483c9-5574-4525-b9f7-e12bbf7dc0df","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+--- grade mbedtls FAILED in 23s
+
+=== grade self
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"73c93cbc-3f76-4488-83d1-bc692cad30dd","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+--- grade self FAILED in 30s
+
+0/3 target(s) completed every phase
+  FAILED entropic at grade: 
+  FAILED mbedtls at grade: 
+  FAILED self at grade: 
+3 target(s): entropic, mbedtls, self
+
+=== provision entropic
+
+=== provision mbedtls
+
+=== provision self
+
+=== generate entropic
+resuming — 45 cell(s) already answered, 0 to run
+
+0/0 cells produced an answer
+--- generate entropic ok in 0s
+
+=== generate mbedtls
+resuming — 45 cell(s) already answered, 0 to run
+
+0/0 cells produced an answer
+--- generate mbedtls ok in 0s
+
+=== generate self
+resuming — 54 cell(s) already answered, 0 to run
+
+0/0 cells produced an answer
+--- generate self ok in 0s
+
+=== grade entropic
+skipping 30 cell(s) already at 1 pass(es); 15 to grade
+Q4_claude-haiku-5-5_index_only_r2  score  33.3%  unmarked  0.0%
+Q4_claude-haiku-5-5_index_only_r3  score  51.9%  unmarked  0.0%
+Q4_claude-haiku-5-5_index_r1       score  74.1%  unmarked  0.0%
+Q4_claude-haiku-5-5_index_r3       score  66.7%  unmarked  0.0%
+Q5_claude-haiku-5-5_baseline_r1    score  58.8%  unmarked  0.0%
+Q4_claude-haiku-5-5_index_r2       score  74.1%  unmarked  0.0%
+Q4_claude-haiku-5-5_index_only_r1  score  48.1%  unmarked  0.0%
+Q5_claude-haiku-5-5_baseline_r2    score  58.8%  unmarked  0.0%
+Q5_claude-haiku-5-5_index_only_r1  score  41.2%  unmarked  0.0%
+Q5_claude-haiku-5-5_index_only_r3  score  41.2%  unmarked  0.0%
+Q5_claude-haiku-5-5_index_only_r2  score  26.5%  unmarked  0.0%
+Q5_claude-haiku-5-5_baseline_r3    score  64.7%  unmarked  0.0%
+Q5_claude-haiku-5-5_index_r1       score  55.9%  unmarked  0.0%
+Q5_claude-haiku-5-5_index_r3       score  88.2%  unmarked  0.0%
+Q5_claude-haiku-5-5_index_r2       score  73.5%  unmarked  0.0%
+--- grade entropic ok in 1650s
+
+=== grade mbedtls
+skipping 0 cell(s) already at 1 pass(es); 45 to grade
+Q1_claude-haiku-5-5_baseline_r1    score  50.0%  unmarked  0.0%
+Q1_claude-haiku-5-5_index_r2       score  65.0%  unmarked  0.0%
+Q1_claude-haiku-5-5_baseline_r2    score  35.0%  unmarked  0.0%
+Q1_claude-haiku-5-5_index_r1       score  55.0%  unmarked  0.0%
+Q1_claude-haiku-5-5_baseline_r3    score  35.0%  unmarked  0.0%
+Q1_claude-haiku-5-5_index_only_r1  score  65.0%  unmarked  0.0%
+
+STOPPED after 6 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"4efcb178-d5cd-4327-beb7-a0fde394a83e","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+--- grade mbedtls FAILED in 683s
+
+=== grade self
+skipping 0 cell(s) already at 1 pass(es); 54 to grade
+
+STOPPED after 0 cell(s) — the judge is out of capacity, so this pass would record holes rather than verdicts:
+{"duration_api_ms":0,"stop_reason":"stop_sequence","session_id":"e81bd575-bfe9-4291-a1a0-92238a9eeca9","total_cost_usd":0,"usage":{"output_tokens_details":{"thinking_tokens":0},"input_tokens":0,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"server_tool_use":{"web_sear
+Nothing is wrong with the rubric or the answers. Wait for capacity and re-run `grade` — grading is additive, so the passes already written stand and the rest fill in.
+--- grade self FAILED in 31s
+
+=== report entropic
+cell                                  time  out tok  cache tok    bytes  turns  tools  !idx  deny   score  unmkd  split
+-----------------------------------------------------------------------------------------------------------------------
+Q1_claude-haiku-5-5_baseline_r1      36.2s     6439     267161     2912     13     21    21     0  100.0%   0.0%      0
+Q1_claude-haiku-5-5_baseline_r2      43.2s     6393     277061     3331      9     13    13     0   71.4%   0.0%      1
+Q1_claude-haiku-5-5_baseline_r3      35.8s     5721     304189     3611     13     23    23     0   76.2%   0.0%      0
+Q1_claude-haiku-5-5_index_only_r1    40.3s     6219     491270     3508     20     30     0     0   76.2%   0.0%      0
+Q1_claude-haiku-5-5_index_only_r2    57.0s     7767     387611     3041     13     12     0     0   61.9%   0.0%      2
+Q1_claude-haiku-5-5_index_only_r3    33.5s     5071     391721     3380     12     17     0     0   71.4%   0.0%      1
+Q1_claude-haiku-5-5_index_r1         43.4s     6638     426960     3165     20     31     7     0   85.7%   0.0%      1
+Q1_claude-haiku-5-5_index_r2         58.4s     8346     705742     3390     21     30    22     0   85.7%   0.0%      0
+Q1_claude-haiku-5-5_index_r3         33.5s     4641     324994     3090     11     20    14     0   90.5%   0.0%      0
+Q2_claude-haiku-5-5_baseline_r1      18.4s     3193     128009     3084      6     10    10     0   69.2%   0.0%      0
+Q2_claude-haiku-5-5_baseline_r2      16.9s     3091     142845     2825      7     12    12     0   69.2%   0.0%      1
+Q2_claude-haiku-5-5_baseline_r3      26.2s     4917     243445     3328     10     18    18     0   46.2%   0.0%      0
+Q2_claude-haiku-5-5_index_only_r1    18.6s     2865      98580     2770      7     12     0     0   53.8%   0.0%      1
+Q2_claude-haiku-5-5_index_only_r2    30.9s     5318     241843     2822     10     17     0     0   61.5%   0.0%      1
+Q2_claude-haiku-5-5_index_only_r3    20.1s     2995     175675     2180     10     18     0     0   53.8%   0.0%      1
+Q2_claude-haiku-5-5_index_r1         29.3s     5934     214573     3334      9     16    12     0   46.2%   0.0%      0
+Q2_claude-haiku-5-5_index_r2         29.8s     6027     398606     3668     10     18    14     0   69.2%   0.0%      1
+Q2_claude-haiku-5-5_index_r3         22.9s     3905     236987     3296      9     16    12     0   69.2%   0.0%      1
+Q3_claude-haiku-5-5_baseline_r1      45.0s     7673     574735     3707     17     29    29     0   56.7%   0.0%      1
+Q3_claude-haiku-5-5_baseline_r2      47.4s     7849     503862     4090     14     22    22     0   73.3%   0.0%      1
+Q3_claude-haiku-5-5_baseline_r3      41.0s     7003     498848     3629     16     27    27     0   66.7%   0.0%      0
+Q3_claude-haiku-5-5_index_only_r1    52.2s     7420     919050     4172     33     58     0     0   53.3%   0.0%      1
+Q3_claude-haiku-5-5_index_only_r2    42.1s     6227     593066     3963     19     26     0     0   46.7%   0.0%      2
+Q3_claude-haiku-5-5_index_only_r3    36.0s     5714     427172     4267     12     17     0     0   70.0%   0.0%      4
+Q3_claude-haiku-5-5_index_r1         48.3s     8083     653926     4027     30     53    25     0   66.7%   0.0%      2
+Q3_claude-haiku-5-5_index_r2         40.2s     7032     464686     3639     19     36    28     0   46.7%   0.0%      2
+Q3_claude-haiku-5-5_index_r3         39.5s     6722     424939     3987     18     33    25     0   50.0%   0.0%      1
+Q4_claude-haiku-5-5_baseline_r1      40.8s     7624     362481     4202     23     44    44     0   74.1%   0.0%      0
+Q4_claude-haiku-5-5_baseline_r2      32.0s     6061     240828     5053      8     13    13     0   85.2%   0.0%      2
+Q4_claude-haiku-5-5_baseline_r3      31.3s     5595     307661     3554     11     20    20     0   81.5%   0.0%      1
+Q4_claude-haiku-5-5_index_only_r1    23.2s     3512     180369     3701      7      8     0     0   48.1%   0.0%      1
+Q4_claude-haiku-5-5_index_only_r2    21.5s     3454     209011     3678      6      7     0     0   33.3%   0.0%      0
+Q4_claude-haiku-5-5_index_only_r3    20.4s     3148     216537     3918      7      8     0     0   51.9%   0.0%      1
+Q4_claude-haiku-5-5_index_r1         44.2s     7790     416813     3520     17     30    23     0   74.1%   0.0%      0
+Q4_claude-haiku-5-5_index_r2         37.9s     6167     388457     4124     15     24    19     0   74.1%   0.0%      1
+Q4_claude-haiku-5-5_index_r3         31.5s     4789     467171     3889     16     25    17     0   66.7%   0.0%      0
+Q5_claude-haiku-5-5_baseline_r1      52.8s     9257     574615     4117     17     32    32     0   58.8%   0.0%      0
+Q5_claude-haiku-5-5_baseline_r2      41.7s     7758     378198     4632     11     20    20     0   58.8%   0.0%      1
+Q5_claude-haiku-5-5_baseline_r3      39.5s     6719     393901     5332     11     19    19     0   64.7%   0.0%      1
+Q5_claude-haiku-5-5_index_only_r1    24.7s     4077     198631     4138     13     21     0     0   41.2%   0.0%      0
+Q5_claude-haiku-5-5_index_only_r2    21.8s     3759     165841     4463     11     20     0     0   26.5%   0.0%      0
+Q5_claude-haiku-5-5_index_only_r3    22.3s     3373     269575     3368     15     26     0     0   41.2%   0.0%      1
+Q5_claude-haiku-5-5_index_r1         39.6s     6749     371463     4532     11     20    16     0   55.9%   0.0%      1
+Q5_claude-haiku-5-5_index_r2         49.1s     9184     585412     4740     21     40    28     0   73.5%   0.0%      1
+Q5_claude-haiku-5-5_index_r3         50.5s     8710     597349     4811     16     30    24     0   88.2%   0.0%      0
+
+question                files arm          baseline       arm  separation  shell displaced
+-----------------------------------------------------------------------------------------
+Q1_claude-haiku-5-5_r1      2 index_only    100.0%    76.2%     -23.8pt              +21
+Q1_claude-haiku-5-5_r1      2 index         100.0%    85.7%     -14.3pt              +14
+Q1_claude-haiku-5-5_r2      2 index_only     71.4%    61.9%      -9.5pt              +13
+Q1_claude-haiku-5-5_r2      2 index          71.4%    85.7%     +14.3pt               -9
+Q1_claude-haiku-5-5_r3      2 index_only     76.2%    71.4%      -4.8pt              +23
+Q1_claude-haiku-5-5_r3      2 index          76.2%    90.5%     +14.3pt               +9
+Q2_claude-haiku-5-5_r1      7 index_only     69.2%    53.8%     -15.4pt              +10
+Q2_claude-haiku-5-5_r1      7 index          69.2%    46.2%     -23.1pt               -2
+Q2_claude-haiku-5-5_r2      7 index_only     69.2%    61.5%      -7.7pt              +12
+Q2_claude-haiku-5-5_r2      7 index          69.2%    69.2% +0.0pt  TIED               -2
+Q2_claude-haiku-5-5_r3      7 index_only     46.2%    53.8%      +7.7pt              +18
+Q2_claude-haiku-5-5_r3      7 index          46.2%    69.2%     +23.1pt               +6
+Q3_claude-haiku-5-5_r1      7 index_only     56.7%    53.3%      -3.3pt              +29
+Q3_claude-haiku-5-5_r1      7 index          56.7%    66.7%     +10.0pt               +4
+Q3_claude-haiku-5-5_r2      7 index_only     73.3%    46.7%     -26.7pt              +22
+Q3_claude-haiku-5-5_r2      7 index          73.3%    46.7%     -26.7pt               -6
+Q3_claude-haiku-5-5_r3      7 index_only     66.7%    70.0%      +3.3pt              +27
+Q3_claude-haiku-5-5_r3      7 index          66.7%    50.0%     -16.7pt               +2
+Q4_claude-haiku-5-5_r1      7 index_only     74.1%    48.1%     -25.9pt              +44
+Q4_claude-haiku-5-5_r1      7 index          74.1%    74.1% +0.0pt  TIED              +21
+Q4_claude-haiku-5-5_r2      7 index_only     85.2%    33.3%     -51.9pt              +13
+Q4_claude-haiku-5-5_r2      7 index          85.2%    74.1%     -11.1pt               -6
+Q4_claude-haiku-5-5_r3      7 index_only     81.5%    51.9%     -29.6pt              +20
+Q4_claude-haiku-5-5_r3      7 index          81.5%    66.7%     -14.8pt               +3
+Q5_claude-haiku-5-5_r1      7 index_only     58.8%    41.2%     -17.6pt              +32
+Q5_claude-haiku-5-5_r1      7 index          58.8%    55.9%      -2.9pt              +16
+Q5_claude-haiku-5-5_r2      7 index_only     58.8%    26.5%     -32.4pt              +20
+Q5_claude-haiku-5-5_r2      7 index          58.8%    73.5%     +14.7pt               -8
+Q5_claude-haiku-5-5_r3      7 index_only     64.7%    41.2%     -23.5pt              +19
+Q5_claude-haiku-5-5_r3      7 index          64.7%    88.2%     +23.5pt               -5
+
+2 of 30 comparison(s) TIED. A tie contributes nothing — and a tie at the CEILING means the question is saturated and should be replaced rather than averaged in.
+
+cell                                passes      low     high    spread  marks that flipped
+------------------------------------------------------------------------------------------
+Q1_claude-haiku-5-5_baseline_r1          2  100.0%  100.0%      0.0pt  none
+Q1_claude-haiku-5-5_baseline_r2          2   71.4%   71.4%      0.0pt  none
+Q1_claude-haiku-5-5_baseline_r3          2   76.2%   76.2%      0.0pt  none
+Q1_claude-haiku-5-5_index_only_r1        2   71.4%   76.2%      4.8pt  locates the two-call pattern in src/inferenc
+Q1_claude-haiku-5-5_index_only_r2        2   61.9%   76.2%     14.3pt  concludes that a failed tokenization is ther
+Q1_claude-haiku-5-5_index_only_r3        2   71.4%   76.2%      4.8pt  locates the two-call pattern in src/inferenc
+Q1_claude-haiku-5-5_index_r1             2   71.4%   85.7%     14.3pt  concludes that this is SIZE NEGOTIATION rath
+Q1_claude-haiku-5-5_index_r2             2   85.7%   85.7%      0.0pt  none
+Q1_claude-haiku-5-5_index_r3             2   90.5%   90.5%      0.0pt  none
+Q2_claude-haiku-5-5_baseline_r1          2   69.2%   69.2%      0.0pt  none
+Q2_claude-haiku-5-5_baseline_r2          2   69.2%   69.2%      0.0pt  none
+Q2_claude-haiku-5-5_baseline_r3          2   46.2%   46.2%      0.0pt  none
+Q2_claude-haiku-5-5_index_only_r1        2   53.8%   53.8%      0.0pt  none
+Q2_claude-haiku-5-5_index_only_r2        2   61.5%   61.5%      0.0pt  none
+Q2_claude-haiku-5-5_index_only_r3        2   38.5%   53.8%     15.4pt  identifies the seam as llama.cpp's C API — f
+Q2_claude-haiku-5-5_index_r1             2   46.2%   46.2%      0.0pt  none
+Q2_claude-haiku-5-5_index_r2             2   46.2%   69.2%     23.1pt  concludes that the dependency is CONCENTRATE
+Q2_claude-haiku-5-5_index_r3             2   69.2%   69.2%      0.0pt  none
+Q3_claude-haiku-5-5_baseline_r1          2   56.7%   66.7%     10.0pt  identifies that the approval callback CANNOT
+Q3_claude-haiku-5-5_baseline_r2          2   73.3%   73.3%      0.0pt  none
+Q3_claude-haiku-5-5_baseline_r3          2   66.7%   66.7%      0.0pt  none
+Q3_claude-haiku-5-5_index_only_r1        2   53.3%   73.3%     20.0pt  the files a permission decision passes throu, the files a permission decision passes throu, the files a permission decision passes throu
+Q3_claude-haiku-5-5_index_only_r2        2   46.7%   46.7%      0.0pt  none
+mean spread by arm: baseline 1.1pt (9 cells)  index 6.2pt (6 cells)  index_only 7.4pt (8 cells)
+SPREAD is between grading passes of the SAME answers against the SAME rubric — it is the grader's
+        own noise, not a difference between arms. Passes graded against a different rubric digest are excluded.
+
+OUT TOK and CACHE TOK are reported apart, never summed. Measured on one cell:
+534,192 cached against 7,292 output — a blended figure describes the prefix, not the work.
+!idx = tool calls that did not use the index, the lever under test.
+-1 in a tool column means the count could not be determined, NOT zero.
+DENY on the BASELINE arm is contamination: it reached for a tool it should not see.
+SPLIT = verdicts whose judge samples disagreed — a decision the judge was unsure of, NOT a drift
+        predictor: regrading five cells, the one that moved furthest (-12.1pt) had no split verdicts at all.
+FILES = distinct files that question's marks cite, printed beside separation because multi-file
+        questions are where the index is predicted to excel. The harness prints the pair; it does not rule on it.
+--- report entropic ok in 0s
+
+1/3 target(s) completed every phase
+  FAILED mbedtls at grade: 
+  FAILED self at grade: 

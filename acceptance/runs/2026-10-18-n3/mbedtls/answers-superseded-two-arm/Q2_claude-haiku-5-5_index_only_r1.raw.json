@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 20905,
+  "stop_reason": "end_turn",
+  "session_id": "c7be7902-0c3d-4894-96b1-1c4c470b3b33",
+  "total_cost_usd": 0.012928219999999997,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 47314,
+    "cache_read_input_tokens": 161192,
+    "output_tokens": 3705,
+    "output_tokens_details": {
+      "thinking_tokens": 1527
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 47314,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2398,
+        "cache_read_input_tokens": 44434,
+        "cache_creation_input_tokens": 2880,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2880
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3705,
+      "cacheReadInputTokens": 161192,
+      "cacheCreationInputTokens": 47314,
+      "webSearchRequests": 0,
+      "costUSD": 0.012928219999999997,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1527,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does.** `MBEDTLS_PRIVATE(member)` is a macro that wraps a struct member name in the declaration. With the opt-out off, it expands to `private_##member` (token-pasting), so the field is renamed. Code outside the library that writes `ctx.member` then fails to compile, and the field is only reachable by the mangled name. With the opt-out on, it expands to plain `member`, so the field is ordinary. The macro is defined in `include/mbedtls/private_access.h` (lines 14\u201318), and its gate is `MBEDTLS_ALLOW_PRIVATE_ACCESS`. The index does not show the wrapped declarations' bodies here, but the dossier shows the wrapping on members such as `mbedtls_aes_context` (`nr`, `rk`) and `mbedtls_ctr_drbg_context`, and the ~480 `MBEDTLS_PRIVATE` declarator rows in `ssl.h`, `psa/crypto_struct.h`, `bignum.h`, `rsa.h`, and others.\n\n**The intent.** The 3.0 migration guide (`docs/3.0-migration-guide.md`, \"Most structure fields are now private\") says the fields are not part of the public API. The escape hatch is written as \"as a last resort\": `bar.MBEDTLS_PRIVATE(foo)`. So the purpose is to keep struct layout and field names out of the supported API. Applications can then change internals across releases without breaking, and the library keeps the freedom to rearrange or rename fields. The opt-out exists so the library's own code and its test tools can still touch those fields.\n\n**Who the opt-out is for.** The index shows the define in three places:\n\n| Site | What it is |\n|---|---|\n| `library/common.h:132` | `#define MBEDTLS_ALLOW_PRIVATE_ACCESS` (empty body). Per its doc: \"Allow library to access its structs' private members.\" |\n| `programs/ssl/ssl_client2.c:8` | Test/debug client program |\n| `programs/ssl/ssl_server2.c:8` | Test/debug server program |\n\nSo the opt-out is for library-internal code and for two sample/test SSL programs that poke at internals. Those translation units see the real field names, and the macro gate picks the plain-name branch for them. Everything else, including ordinary applications, gets the renamed fields. Where the library's own code is concerned, the define must be visible before `private_access.h` is included, since the `#ifndef` is evaluated there. For the two `programs/ssl` files, line 8 suggests it sits above the includes, but the index does not record include order, so I can't confirm that.\n\n**Gaps.**\n- I can't tell whether `library/common.h:132` is unconditional or inside a conditional. Its surrounding lines are not in the index.\n- The gate symbol is \"origin undeclared\": the index has no Kconfig or config header for it, and no config header is recorded for this target. So I can't say whether the default build enables it. The index's `configured_macros` list (`MBEDTLS_THREADING_C`, `MBEDTLS_THREADING_PTHREAD`) is the index build's flags and does not include it.\n- Other programs and tests that touch private fields are not visible as opt-ins in this index. The index only shows these three sites define the macro, so if a test in `tests/` accesses fields, it does so either through the library's internal header path or not at all, which I can't tell from here.\n- Doxygen's function rows for `MBEDTLS_PRIVATE` (336 \"callers\") are artifacts of the macro appearing in declarators, not real functions. I'd discount those.",
+  "ttft_ms": 1564,
+  "type": "result",
+  "duration_ms": 21621,
+  "uuid": "f8660139-04fa-4e22-8b6d-60540a259d56",
+  "ttft_stream_ms": 1310,
+  "time_to_request_ms": 69,
+  "first_content_frame_ms": 1310,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 32816,
+  "stop_reason": "end_turn",
+  "session_id": "2de88694-ef03-4961-9212-214e6b014320",
+  "total_cost_usd": 0.009946110000000001,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 17880,
+    "cache_read_input_tokens": 323051,
+    "output_tokens": 6276,
+    "output_tokens_details": {
+      "thinking_tokens": 3106
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 17880,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3063,
+        "cache_read_input_tokens": 48802,
+        "cache_creation_input_tokens": 1544,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1544
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 6276,
+      "cacheReadInputTokens": 323051,
+      "cacheCreationInputTokens": 17880,
+      "webSearchRequests": 0,
+      "costUSD": 0.009946110000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3106,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Why it calls twice:** It's a size probe, not a retry. Both calls are in one function, `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:55` and `:61`). llama.cpp's `llama_tokenize` needs a buffer, and when the buffer is null or too small it returns the negative of the required token count. The first call passes no buffer to learn the size, the code negates it (line 58), allocates, and the second call fills the buffer. The second call runs unconditionally, with no loop, backoff, or condition on the first result. The comment at line 45 and the code comment at line 97 both say \"retry\", which is a misleading name. \"Size probe\" describes it better.\n\nThe only other `llama_tokenize` double call I found is in `tests/model/test_gh87_common_chat_e2e.cpp:51-56`, which uses the same pattern.\n\n**What the caller gets on failure:** An empty `std::vector<int32_t>`. There's no error code or exception. The failure path logs at error level (`llama_cpp_tokenizer.cpp:65`) and returns `{}`. A null `vocab_` also returns `{}` silently. The header contract (`include/entropic/inference/tokenizer.h:51`) says \"empty on failure or empty input\", so callers can't tell a failure from a legitimately empty string.\n\n**What the callers do with it:**\n\n| Caller | Behavior on empty result |\n|---|---|\n| `count_tokens` / `do_count_tokens` (`llama_cpp_backend.cpp:825`), C API `entropic_inference_count_tokens` | Returns 0, which looks like an empty prompt. The cold-model path returns a `len/4` estimate instead, so the two cases differ. |\n| `tokenize_text` (`:837`) | Passes the empty vector up. |\n| `compute_prefix_token_count` (`:2051`) | Returns 0. That feeds the prefix-cache logic at `:2289`, which I did not trace. |\n| `generate` (`:2561`), `generate_cancellable` (`:2643`), `stream` (`:2728`) | No check. Empty tokens go to `run_prefill_cached`. `run_prefill` (`:1484`) clears KV memory, decodes nothing, and returns `true`. I did not trace what the decode loop does next with no prompt logits, so I can't say whether it errors or emits garbage. |\n| `complete` (`:3947`) | No check. Same path as generate via `decode_loop`. |\n| Speculative (`:3593`) and MTP (`:3921`) | Check `tokens.size() < 2` and return `ENTROPIC_ERROR_GENERATE_FAILED`. These are the only paths that turn a failure into an explicit error, but the message says \"prompt must have at least 2 tokens\", which misreports a tokenization failure as a short prompt. |\n| Batch (`:1911`) | `batch_shared_prefix_len` returns 0 when any sequence is empty, so the batch path proceeds with an empty sequence. I did not trace further. |\n\n**Practical takeaway:** A tokenization failure is invisible to most callers. Only the speculative and MTP paths produce an error, and it's the wrong one. The generate, stream, and complete paths push zero tokens into prefill and succeed silently. Fixing this would mean returning a status alongside the vector, or at least checking `text.empty()` before treating an empty result as a failure. I haven't verified the downstream behavior of the generate path with zero tokens, so that's the first thing to confirm by running it.",
+  "ttft_ms": 1166,
+  "type": "result",
+  "duration_ms": 33198,
+  "uuid": "fbfa15ff-de34-4dc1-ae82-f62598ea98f7",
+  "ttft_stream_ms": 918,
+  "time_to_request_ms": 76,
+  "first_content_frame_ms": 918,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

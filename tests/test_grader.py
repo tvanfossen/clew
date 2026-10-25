@@ -434,13 +434,18 @@ def test_ask_records_stdout_when_stderr_is_empty(monkeypatch: pytest.MonkeyPatch
     import subprocess as sp
 
     monkeypatch.setattr(judge.time, "sleep", lambda _s: None)
+    ## NOT AN ACCOUNT-LIMIT STRING. This used "You've hit your session limit", which is now
+    ## detected and RAISED rather than recorded — the detection reads stdout too, so the
+    ## stdout-is-read property this test exists for is still exercised, just by
+    ## `tests/test_judge_retry.py` for that phrase. Here the fixture is an ordinary failure, so
+    ## this keeps testing the thing it was written for: a reason on stdout must survive.
     monkeypatch.setattr(
         sp,
         "run",
-        lambda argv, **_k: sp.CompletedProcess(argv, 1, "You've hit your session limit", ""),
+        lambda argv, **_k: sp.CompletedProcess(argv, 1, "model stream ended unexpectedly", ""),
     )
     error = judge.ask("p", "claude-x-1").error
-    assert "session limit" in error, f"the reason must survive: {error!r}"
+    assert "stream ended unexpectedly" in error, f"the reason must survive: {error!r}"
 
     ## STDERR STILL WINS when both are present — it is the channel a failure belongs on, and
     ## preferring stdout would bury a real diagnostic under ordinary output.

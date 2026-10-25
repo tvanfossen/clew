@@ -1,0 +1,43 @@
+{
+  "stem": "Q1_claude-haiku-5-5_index_r3",
+  "arm": "index",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "seconds": 35.70330229299725,
+  "input_tokens": 14,
+  "output_tokens": 6727,
+  "cache_read_tokens": 331556,
+  "cache_creation_tokens": 33081,
+  "cost_usd": 0.01329666,
+  "result_bytes": 3561,
+  "turns": 12,
+  "tool_calls": 11,
+  "non_index_tool_calls": 6,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/2026-10-19-n3/mbedtls/repo.\n\nYou have the usual shell and file tools \u2014 Read, Grep, Glob and Bash \u2014 and additionally a queryable index of this repository: mcp__clew__dossier for everything known about a named symbol, mcp__clew__search to find a name or enumerate a layer, mcp__clew__index for status. USE THE INDEX FIRST for any question about a symbol, its callers or callees, what it touches, or where something lives; fall back to reading source only where the index cannot answer.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nmbedtls ships mutex and thread code. As the library is configured by default, what\nactually runs concurrently, and what protects what?\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash,mcp__clew__dossier,mcp__clew__search,mcp__clew__index",
+    "--strict-mcp-config",
+    "--mcp-config",
+    "/home/tvanfossen/Projects/clew/acceptance/runs/2026-10-19-n3/mbedtls/mcp.json"
+  ],
+  "cell": {
+    "target": "Mbed-TLS/mbedtls",
+    "question_id": "Q1",
+    "arm": "index",
+    "model": "claude-haiku-5-5",
+    "replicate": 3,
+    "order": 15
+  },
+  "tool_calls_as_recorded": 21,
+  "non_index_tool_calls_as_recorded": 12,
+  "tool_counts_corrected": "recounted by tool_use id; blocks were double-counted (see acceptance/execute.py count_tools v3)"
+}

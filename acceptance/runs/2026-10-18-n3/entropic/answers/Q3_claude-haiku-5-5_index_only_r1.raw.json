@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 47948,
+  "stop_reason": "end_turn",
+  "session_id": "8711419f-10b6-42e8-b327-d632333bfa34",
+  "total_cost_usd": 0.0251151,
+  "usage": {
+    "input_tokens": 34,
+    "cache_creation_input_tokens": 61056,
+    "cache_read_input_tokens": 919050,
+    "output_tokens": 7420,
+    "output_tokens_details": {
+      "thinking_tokens": 2573
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 61056,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2348,
+        "cache_read_input_tokens": 78326,
+        "cache_creation_input_tokens": 1019,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1019
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 34,
+      "outputTokens": 7420,
+      "cacheReadInputTokens": 919050,
+      "cacheCreationInputTokens": 61056,
+      "webSearchRequests": 0,
+      "costUSD": 0.0251151,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2573,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 33,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The index answers this from code bodies and the header docs. I did not re-read the source files, and I could not view the body of `ServerManager::execute` directly, so its deny check is inferred from the call graph (see the caveat below).\n\n## What decides whether a call runs\n\nTwo layers decide, in order. The first is `ToolExecutor`, which decides whether the user or config approved the call. The second is `ServerManager`, which applies the deny list and routes the call.\n\n```\ntool call\n  \u2502\n  \u25bc\nToolExecutor::check_call_preconditions            (tool_executor.cpp:667)\n  1. anti-spiral hard block\n  2. check_schema                  \u2192 rejected_schema\n  3. check_mcp_authorization       \u2192 rejected_precondition\n  4. check_tier_allowed            \u2192 rejected_unauthorized\n  5. check_duplicate               \u2192 rejected_duplicate\n  6. check_approval_pc \u2192 check_approval        (tool_executor.cpp:161)\n        approved = auto_approve_tools\n                || ServerManager::is_explicitly_allowed(name, args)\n        if !approved and callbacks.on_tool_call != nullptr \u2192 approved = true\n        if !approved \u2192 \"Permission denied\"\n  \u2502\n  \u25bc\nToolExecutor::execute_tool                        (tool_executor.cpp:379)\n  \u2502\n  \u25bc\nServerManager::execute(name, args)                (server_manager.h:113)\n  - checks deny list via PermissionManager::is_denied   (inferred, see caveat)\n  - route_tool_call \u2192 in-process server or external client\n```\n\nPoints that matter:\n\n- **Allow list = skip the prompt.** `is_explicitly_allowed` is the only path to approval without a callback. It builds `tool:first_arg` and checks `PermissionManager::is_allowed`.\n- **Deny is a second gate.** `is_denied` is called from `ServerManager::execute`, which is downstream of approval. So a deny match should block the call even when `auto_approve_tools` or an allow match approved it. The header says \"Deny list takes precedence over allow list.\" That is consistent with the call graph, but I could not confirm the order in the body.\n- **Surprising behavior in `check_approval`.** If `on_tool_call` is non-null, `approved` is set to `true` unconditionally. The callback reads as an approval prompt, but as written it is a notification and always approves. Whether the host treats it as a gate depends on what the host's callback does. Worth checking in the frontend code. The log line \"No approval callback \u2014 denying\" only fires when no callback is registered.\n- **Not interactive here.** Nothing in the index shows the callback blocking for a user answer.\n\n## What a pattern does\n\nPatterns are `fnmatch` strings in `permissions.allow` / `permissions.deny` (`PermissionsConfig`, config.h:589). `pattern_matches` (permission_manager.cpp:101) works like this:\n\n- Split the pattern at the first `:`.\n- The part before the colon is matched against the fully-qualified tool name, for example `filesystem.read_file`. Globs such as `filesystem.*` work.\n- With no colon, the tool-name match alone is sufficient, so the pattern covers every argument set.\n- With a colon, the full string `tool:arg` must also match. The arg is built by `args_to_pattern`, which takes the first JSON argument's string value, or `*` if there are no args or the parse fails. Only the first argument is considered.\n\n`get_permission_pattern` (server_base.h:87) produces the pattern for \"Always Allow/Deny\". The default returns the bare tool name, so it covers every call to that tool. The bash server overrides it to `execute:{base_cmd} *`, which is per-command granularity.\n\nPersistence: `PermissionPersister` appends patterns to `permissions.allow` / `deny` in `.entropic/config.local.yaml` (read-modify-write, mutex-guarded). Runtime additions go through `add_permission`.\n\n## Caveats\n\n- `ServerManager::execute` is not directly queryable. Its deny placement rests on the `execute \u2192 is_denied` edge and its doc comment (\"Checks permissions before execution\"). Confirm the ordering against its body.\n- The default is deny (`docs/architecture-cpp.md`). The `PermissionManager` constructor takes its lists directly, so the default-deny behavior comes from the approval path rather than from a default deny list.",
+  "ttft_ms": 1562,
+  "type": "result",
+  "duration_ms": 50593,
+  "uuid": "ab8cc05f-831a-43d4-afb7-f454dbf12ce7",
+  "ttft_stream_ms": 1348,
+  "time_to_request_ms": 66,
+  "first_content_frame_ms": 1348,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

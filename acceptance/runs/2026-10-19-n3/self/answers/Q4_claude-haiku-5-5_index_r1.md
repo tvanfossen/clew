@@ -1,0 +1,15 @@
+The `callers` field is a list of **caller functions with an edge classification**, not a list of call sites. Reading it as the second is the main mistake.
+
+**What's in the answer.** For `function_dossier` I got 17 callers. Each entry has a `name`, a `source` (`ast` or `doxygen_sqlite`), a `confidence` (`resolved` or `exact`), and an `edge_class` (`call`). There are no line numbers or call-site context on caller entries. Line numbers appear only in `external_callees` (for example, `Dossier` at line 543 of `_dossier_conn`'s body). To see how a caller invokes the function, you have to read its body. The same reply also carries callees, `writes`/`reads`, `overrides`/`overridden_by`, threads, locks, requirements, covering tests, liveness, and a body excerpt. Those are separate facts about the symbol, not caller information.
+
+**What makes it wrong to read as a call-site list:**
+
+1. **Incomplete by design.** `callers_unresolved: 38` on `function_dossier` means 38 inbound references were counted but not listed. Absence from the list does not mean absence of callers.
+2. **Mixed provenance.** `ast/resolved` and `doxygen_sqlite/exact` rows come from different extractors with different confidence labels. I haven't verified what each extractor covers, so treat the two as different evidence.
+3. **Tests dominate.** Of the 17 `function_dossier` callers, 16 are test functions and one (`_gated_by`) is production code. A reader scanning for "who uses this" gets a skewed picture unless they filter by file.
+4. **Static resolution misses real dispatch.** Function pointers, callbacks, virtual calls (which surface in `overridden_by`, not as callers), macro-expanded calls, and dynamic Python dispatch are not reliably captured. External clients are invisible. `dossier` is itself an MCP tool, so its real users are outside the indexed repo and cannot appear in its caller list.
+5. **Bare names collide.** Without `qualified`, the pick is the definition-preferring first row, which is arbitrary among namesakes. Even with `qualified`, the docstring says `writes`/`reads` and `requirements`/`covering_tests` still match on the bare name. A caller list scoped by identity is not the same as a fully disambiguated answer.
+6. **The cap is unclear.** I passed `max_neighbors: 8` and got 17 callers. Either the cap doesn't apply to this list or it counts something else. I didn't resolve this, so I wouldn't assume the list is either complete or capped at a known size.
+7. **The body may not match.** Both replies set `anchor_mismatch: true`, meaning the stored line range may no longer be that function's text. The index reports itself as not stale, so this is a discrepancy to check against source before quoting the body.
+
+**How to use it.** Treat `callers` as a starting set of likely inbound edges, split it by file and `edge_class`, and check `callers_unresolved` before concluding anything about absence. Confirm specific call sites by reading the source. For a question like "is this function ever called from production code?", the answer needs the unresolved count, the test/production split, and a grep for indirect references, not just the list.

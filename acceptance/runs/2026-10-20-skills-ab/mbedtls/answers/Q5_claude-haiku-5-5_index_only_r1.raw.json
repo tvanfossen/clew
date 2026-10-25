@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 31808,
+  "stop_reason": "end_turn",
+  "session_id": "b4e03ce1-b70c-41a0-bba4-0457c53b87e7",
+  "total_cost_usd": 0.01584471,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 51780,
+    "cache_read_input_tokens": 219921,
+    "output_tokens": 6577,
+    "output_tokens_details": {
+      "thinking_tokens": 3217
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 51780,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4495,
+        "cache_read_input_tokens": 65353,
+        "cache_creation_input_tokens": 6678,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6678
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 6577,
+      "cacheReadInputTokens": 219921,
+      "cacheCreationInputTokens": 51780,
+      "webSearchRequests": 0,
+      "costUSD": 0.01584471,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3217,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** constant-time behaviour is enforced by construction, not by a checker. Branch-free masks and volatile barriers are written into C, with hand-written assembly on a few targets. Where that assembly is unavailable, a plain C fallback runs with no build-time check. The facility reaches the secret-dependent paths in bignum, RSA, EC, TLS record MAC verification and base64. The index cannot show the emitted machine code, so the instruction-level claims below come from reading the source, not from disassembly.\n\n**1. How it is enforced at the instruction level**\n\nEverything sits on one representation: `mbedtls_ct_condition_t` is an all-ones or all-zeros mask, and the helpers combine masks with bitwise operations (`library/constant_time_impl.h`).\n\n- **Mask generation.** `mbedtls_ct_bool(x)` turns any non-zero `x` into an all-ones mask without a branch. The AArch64 path is `neg; orr; asr #63`. The x86-64 path is `mov; neg; or; sar $63`. The generic C path uses `-xo | -(xo>>1)` and a shift.\n- **Hiding values from the optimiser.** `mbedtls_ct_compiler_opaque(x)` is an empty `asm volatile` barrier when assembly is enabled. Otherwise it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global (`library/constant_time.c:29`). Its stated purpose is that the compiler cannot prove any condition value, so it cannot turn a mask back into a branch.\n- **Forced full memory reads.** `mbedtls_ct_memcmp` (`library/constant_time.c:67`) reads both buffers through `volatile` pointers and never exits early. Its comment says why: without `volatile`, the compiler may emit an early exit once `diff` is non-zero. Its length `n` is public.\n- **Fixed iteration counts.** `mbedtls_mpi_core_lt_ct` (`library/bignum_core.c:133`) walks every limb, with `done` and `ret` carried as masks. `mbedtls_mpi_core_check_zero_ct` force-reads each limb through a `volatile` pointer.\n- **Fixed memory access patterns.** `ecp_select_comb` (`library/ecp.c:2010`) reads the whole precomputed table and selects with `MPI_ECP_COND_ASSIGN`, so the access pattern does not depend on the secret index.\n\n**2. A compiler that cannot support it**\n\n- Assembly is gated by `MBEDTLS_CT_ASM`, which requires `MBEDTLS_HAVE_ASM` and either `__GNUC__` or `__ARMCC_VERSION` (`library/constant_time_impl.h:40-52`). Per-architecture variants are selected by `__aarch64__` and the `MBEDTLS_CT_*_ASM` macros. Word width is selected by `MBEDTLS_CT_SIZE_32` or `_64`.\n- Anything else falls through to the C fallback. The header comment says that as of May 2023, trunk clang, gcc and MSVC did not turn that fallback into branches or conditional instructions. That is a point-in-time observation, not a guarantee.\n- **Nothing fails the build.** The only hard `#error` in the constant-time code is in `mbedtls_ct_memcmp`, and it fires only when `int` is narrower than 32 bits.\n- `SECURITY.md` (\"Caveats\") says compilers can introduce timing side channels into code meant to be constant-time, and that the library uses standard C \"except with known compilers\". The index holds only part of that passage, so I cannot quote the rest.\n- `3rdparty/p256-m` has its own variant. Its README says the constant-time multiplication path depends on the `MUL64_IS_CONSTANT_TIME` symbol, and that some features need GCC extended asm.\n\n**3. How far it reaches**\n\nPublic API: `mbedtls_ct_memcmp` in `include/mbedtls/constant_time.h`, `mbedtls_mpi_lt_mpi_ct` in `bignum.h`, and `mbedtls_mpi_gcd_modinv_odd` as a wrapper over constant-time code.\n\nInternal users the index shows:\n\n| Location | Function | What it hides |\n|---|---|---|\n| `library/ssl_msg.c` | `mbedtls_ct_hmac` | TLS record MAC over a secret-length range; clones the hash and finishes at every length (padding-oracle defence). Gated on `MBEDTLS_SSL_SOME_SUITES_USE_MAC`. |\n| `library/rsa.c` | `mbedtls_ct_rsaes_pkcs1_v15_unpadding` | PKCS#1 v1.5 unpadding, to resist Bleichenbacher-style oracles. |\n| `library/ecp.c` | `ecp_select_comb` | Comb-method table lookup during EC scalar multiplication. |\n| `library/base64.c` | `mbedtls_ct_base64_dec_value` | Base64 decoding without table lookups indexed by the secret byte. |\n| `library/constant_time.c` | `mbedtls_ct_memcpy_if`, `_offset`, `memmove_left`, `memcmp_partial` | Conditional copies and shifts. |\n| `library/bignum.c` | `mbedtls_ct_mpi_sign_if` | Conditional sign selection. |\n\nA name search for `ct_` returned exactly 60 rows, which is the limit I set, so there may be more. I did not enumerate every caller.\n\n**Limits**\n\n- Documentation says there is no equivalent in the PSA API (`docs/psa-transition.md`). PSA-path code that compares MACs must call `mbedtls_ct_memcmp` by hand.\n- `SECURITY.md` says Mbed TLS makes no guarantee against local non-timing side channels.\n- The one dynamic check the index shows is `test_with_valgrind_constant_time` in `tests/scripts/components-configuration-crypto.sh`. It runs a small set of constant-time tests under Valgrind. I could not confirm from the index whether CI runs it on every compiler.",
+  "ttft_ms": 1796,
+  "type": "result",
+  "duration_ms": 33011,
+  "uuid": "7d6caee7-50ce-4b3f-8b41-8edee89b0248",
+  "ttft_stream_ms": 1142,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1142,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

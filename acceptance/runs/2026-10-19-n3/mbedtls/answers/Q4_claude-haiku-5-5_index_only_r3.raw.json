@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 26610,
+  "stop_reason": "end_turn",
+  "session_id": "615044ae-e581-49c8-a08a-bc1eca4753c6",
+  "total_cost_usd": 0.01041006,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 29363,
+    "cache_read_input_tokens": 265126,
+    "output_tokens": 3770,
+    "output_tokens_details": {
+      "thinking_tokens": 1717
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 29363,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2174,
+        "cache_read_input_tokens": 61953,
+        "cache_creation_input_tokens": 1352,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1352
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3770,
+      "cacheReadInputTokens": 265126,
+      "cacheCreationInputTokens": 29363,
+      "webSearchRequests": 0,
+      "costUSD": 0.01041006,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1717,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A negative code becomes text in `mbedtls_strerror()` in `library/error.c`. The declaration is in `include/mbedtls/error.h:165`, and the body runs from `error.c:792` to `:860`. The index doesn't show a generator script, so the steps for adding a code are only partly confirmed.\n\n**Translation path**\n\n1. The caller passes the return value, a buffer and its length. If `buflen` is 0 it returns; otherwise it zeroes the buffer.\n2. The sign is dropped (`ret = -ret`), so `-0x000D` and `0x000D` are handled the same way.\n3. **High-level part:** `ret & 0xFF80` goes to `mbedtls_high_level_strerr()` (`error.c:174`). That is a `switch` over per-module codes, each case under its module's `#if defined(MBEDTLS_xxx_C)`. A match returns a string such as `\"CIPHER - Authentication failed (for AEAD modes)\"`. An unknown value formats as `UNKNOWN ERROR CODE (%04X)`.\n4. **Early exit:** if the high-level part is the SSL fatal-alert wrapper (`MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE`, `-0x7780`, `include/mbedtls/ssl.h:76`), it stops there and does not translate the low-level part.\n5. **Low-level part:** `ret & ~0xFF80` goes to `mbedtls_low_level_strerr()` (`error.c:537`), another `switch` with the same module guards. If a high-level string was already written, it appends `\" : \"` and continues into the rest of the buffer.\n6. **Truncation:** if fewer than 5 bytes remain, the append is skipped. Each `snprintf` keeps the buffer null-terminated.\n\nExample: `MBEDTLS_ERR_CCM_BAD_INPUT` is `-0x000D`. It has no high-level bits, so the output is just `\"CCM - Bad input parameters to the function\"`.\n\nWhen `MBEDTLS_ERROR_C` is off, `error.c` compiles a different `mbedtls_strerror` stub (around line 867). I inferred that from the gate ranges; I did not read its body.\n\n**Adding a new code**\n\n- Define the `MBEDTLS_ERR_<MODULE>_<NAME>` macro in the module's public header, with a value that doesn't collide with existing codes in that module's range. I did not verify the range rules.\n- Add a `case` for it in `mbedtls_high_level_strerr` or `mbedtls_low_level_strerr`, inside the block for that module, under the same `#if` guard the module uses. The string format is `\"MODULE - description\"`.\n- Don't hand-edit those blocks blindly. Both switches are marked `/* Begin Auto-Generated Code */`, and the README has a \"Generated source files\" section that presumably explains the generator. I could not read that section or find the generator through the index (`generate_errors` returned nothing, and `.pl` files aren't indexed), so check it before editing.\n- Verify with `programs/util/strerror.c`, which takes an error code (decimal or `0x`/`-0x`) and prints its string.\n- Add a `ChangeLog.d` entry if the repo's convention requires one. The directory is indexed, but I did not check its rules.",
+  "ttft_ms": 1367,
+  "type": "result",
+  "duration_ms": 27642,
+  "uuid": "7a3a5a24-3184-4004-92c8-3790ddd9e71b",
+  "ttft_stream_ms": 1210,
+  "time_to_request_ms": 76,
+  "first_content_frame_ms": 1210,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

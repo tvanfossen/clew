@@ -39,6 +39,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from .grader.judge import CAPACITY_PHRASES
 from .grader.rubric import RubricError, Rubric, load
 from .runner import check_declaration_applied, check_revision
 
@@ -194,8 +195,18 @@ def build_index(rubric: Rubric, repo: Path, state_home: Path, declare_file: Path
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise ProvisionError(f"index build could not run: {exc}") from exc
     if done.returncode != 0:
+        ## BOTH STREAMS, STDERR FIRST. Measured on the first published grid's pre-flight: one
+        ## target refused with exactly "index build failed (rc=1): " and nothing after the
+        ## colon, because the pipeline logs its progress AND its doxygen failure to stdout while
+        ## this quoted only stderr. An operator is then told that a build failed and nothing
+        ## about why, on the one phase whose entire purpose is to fail cheaply and informatively.
+        ##
+        ## THE TAIL, because a build prints thousands of file-typing lines before it fails and
+        ## the failure is at the end.
+        detail = "\n".join(part for part in (done.stderr.strip(), done.stdout.strip()) if part)
         raise ProvisionError(
-            f"index build failed (rc={done.returncode}): {done.stderr.strip()[-600:]}"
+            f"index build failed (rc={done.returncode}): "
+            f"{detail[-1200:] if detail else '<the build printed nothing on either stream>'}"
         )
 
 
@@ -304,8 +315,10 @@ def check_index_tools_reachable(config: Path, repo: Path) -> None:
     ##
     ## The two failures need OPPOSITE responses — fix the config, versus wait and re-run the
     ## identical command — so they get different refusals.
-    blocked = ("session limit", "rate limit", "usage limit", "quota", "overloaded")
-    if any(phrase in reply.lower() for phrase in blocked):
+    ## ONE LIST, SHARED WITH THE JUDGE. Both have to tell a capacity refusal from a real
+    ## failure, and two copies of the vocabulary drift into one of them recognising a phrase
+    ## the other does not — which reads as the two phases disagreeing about the machine.
+    if any(phrase in reply.lower() for phrase in CAPACITY_PHRASES):
         raise ProvisionError(
             f"index-tool probe could not run — the model refused before reaching the tools:\n"
             f"{reply[:300]}\n"
@@ -321,6 +334,47 @@ def check_index_tools_reachable(config: Path, repo: Path) -> None:
         )
 
 
+## @brief Record what built this target's index, in a file that survives the run.
+## @param rubric The rubric naming the target and pin.
+## @param db The built index.
+## @param meta Its `build_meta` rows.
+## @param path Where to write the record.
+## @return None.
+## @version 1
+def write_provision_record(rubric: Rubric, db: Path, meta: dict, path: Path) -> None:
+    """THE ONLY PLACE THE BUILD'S OWN IDENTITY REACHES A COMMITTED FILE. `build_version` was
+    read here and only PRINTED, so it survived a run solely if the operator happened to redirect
+    stdout — and the database that carries it is gitignored, deliberately, because it is
+    reproducible from the pin. The consequence was a published score attributable to a target
+    and a rubric but not to a version of clew.
+
+    WRITTEN AFTER THE INDEX-TOOL PROBE, so a record exists only for a target that an index arm
+    can actually reach. A record beside an unreachable index would describe a build that no cell
+    ever queried.
+
+    EVERY FIELD IS DROPPED WHEN UNREADABLE rather than written blank — see `acceptance.identity`.
+
+    @brief Write provision.json.
+    @return None.
+    @version 1
+    """
+    from .identity import tool_identity
+
+    record = {
+        "target": rubric.target,
+        "commit": rubric.commit,
+        "rubric_version": rubric.version,
+        "db": str(db),
+        **{
+            key: str(meta[key])
+            for key in ("build_version", "tool.substrate_version")
+            if meta.get(key)
+        },
+        **tool_identity(),
+    }
+    path.write_text(json.dumps(record, indent=2), encoding="utf-8")
+
+
 ## @brief Provision one target end to end.
 ## @param rubric The validated rubric.
 ## @param root Directory to hold the checkout, index and config.
@@ -332,7 +386,7 @@ def provision(rubric: Rubric, root: Path) -> Provisioned:
 
     @brief Provision a target.
     @return Provisioned.
-    @version 1
+    @version 2
     """
     root.mkdir(parents=True, exist_ok=True)
     root = root.resolve()
@@ -371,6 +425,7 @@ def provision(rubric: Rubric, root: Path) -> Provisioned:
     config = root / "mcp.json"
     write_mcp_config(db, repo, config, state_home)
     check_index_tools_reachable(config, repo)
+    write_provision_record(rubric, db, meta, root / "provision.json")
     return Provisioned(
         repo=repo,
         db=db,

@@ -1,0 +1,41 @@
+{
+  "stem": "Q1_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "seconds": 22.024918315000832,
+  "input_tokens": 12,
+  "output_tokens": 3662,
+  "cache_read_tokens": 207063,
+  "cache_creation_tokens": 33496,
+  "cost_usd": 0.01060203,
+  "result_bytes": 3048,
+  "turns": 7,
+  "tool_calls": 6,
+  "non_index_tool_calls": 6,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/2026-10-19-n3/self/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nWhen clew indexes a repository, what decides which files end up in the index? Walk\nthrough how that decision is made and what happens when nothing has been declared.\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "tvanfossen/clew",
+    "question_id": "Q1",
+    "arm": "baseline",
+    "model": "claude-haiku-5-5",
+    "replicate": 1,
+    "order": 27
+  },
+  "tool_calls_as_recorded": 12,
+  "non_index_tool_calls_as_recorded": 12,
+  "tool_counts_corrected": "recounted by tool_use id; blocks were double-counted (see acceptance/execute.py count_tools v3)"
+}

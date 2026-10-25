@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 29696,
+  "stop_reason": "end_turn",
+  "session_id": "8096e26d-52b4-4a68-910e-170d3207083e",
+  "total_cost_usd": 0.01491715,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 46778,
+    "cache_read_input_tokens": 267085,
+    "output_tokens": 5779,
+    "output_tokens_details": {
+      "thinking_tokens": 1838
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 46778,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2765,
+        "cache_read_input_tokens": 63400,
+        "cache_creation_input_tokens": 5191,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5191
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5779,
+      "cacheReadInputTokens": 267085,
+      "cacheCreationInputTokens": 46778,
+      "webSearchRequests": 0,
+      "costUSD": 0.01491715,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1838,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** in the default configuration, the library runs no mutexes and no threads of its own. Every lock in the library is compiled out, and the only concurrency is in the sample programs, which are not part of the library.\n\n**What is off by default**\n\n- `MBEDTLS_THREADING_C` is commented out (`include/mbedtls/mbedtls_config.h:3787`). `library/threading.c` is wrapped entirely in `#if defined(MBEDTLS_THREADING_C)` (line 18), so the global mutexes do not exist in a default build.\n- `MBEDTLS_THREADING_PTHREAD` (line 2196) and `MBEDTLS_THREADING_ALT` (line 2185) are also off. There is no backend even if the layer were turned on.\n- `MBEDTLS_MEMORY_BUFFER_ALLOC_C` is off (line 3076), so the heap's `buffer_alloc_*_mutexed` wrappers are not built.\n\n**What is on by default**\n\n- `MBEDTLS_PSA_CRYPTO_C` is enabled (line 3334). PSA keeps its own process-wide state in `static psa_global_data_t global_data` (`library/psa_crypto.c:124`), and with the threading layer off, nothing protects it.\n- The header's own documentation says that if more than one thread may call any PSA function, you must enable `MBEDTLS_THREADING_C` (`mbedtls_config.h:3749`). With the default build, the library is therefore only safe for single-threaded use, or for use where the application serialises all calls itself.\n\n**What runs concurrently in the shipped programs**\n\n| Thread or handler | Where | Gated by | Protection |\n|---|---|---|---|\n| `handle_ssl_connection` (one pthread per client) | `programs/ssl/ssl_pthread_server.c:98`, spawned at line 277 | `MBEDTLS_THREADING_C` + `_PTHREAD`, both off by default | Each thread owns its own `mbedtls_ssl_context`. The shared `mbedtls_ssl_config` is read-only after setup. The debug callback `my_mutexed_debug` serialises output through the program's own `debug_mutex` (line 65). |\n| `sighandler` (SIGALRM) | `programs/test/benchmark.c:435` | Timing and platform gates | Sets `mbedtls_timing_alarmed = 1` and does nothing else. No lock. |\n| `TimerProc` (Win32 timer thread) | `programs/test/benchmark.c:410` | Win32 only | Same flag write, no lock. |\n| `term_handler` (SIGTERM) | `programs/ssl/ssl_server2.c:1070` | Non-Windows | Sets `received_sigterm` and closes the listen and client sockets to unblock accept/read. No lock. |\n\nNote that `ssl_pthread_server.c` is a sample of what a multithreaded application can do. It is not a configuration the library enables for you.\n\n**What each mutex protects, if you enable `MBEDTLS_THREADING_C`**\n\nAll of these are defined in `library/threading.c:182\u2013190` and declared in `include/mbedtls/threading.h`.\n\n- **`mbedtls_threading_psa_globaldata_mutex`** guards `global_data.initialized`, the driver-wrapper state, and most of the PSA context. It is taken in `psa_crypto.c` around `psa_crypto_init` and its helpers (lines 141, 159, 8407, 8439) and in `psa_crypto_slot_management.c:200`.\n- **`mbedtls_threading_psa_rngdata_mutex`** guards the RNG state in `global_data.rng_state`. It is taken in `psa_get_initialized` (line 131), in `psa_crypto_random.c:147`, and around RNG seeding and querying in `psa_crypto.c:8030\u20138083` and `8384\u20138449`. The doc says `mbedtls_psa_random_free` is not thread-safe at all.\n- **`mbedtls_threading_key_slot_mutex`** guards the key store. The doc says it protects every read or write of `slot->state` and `slot->registered_readers`, and every traversal of the store. `psa_unregister_read_under_mutex` (`psa_crypto_slot_management.c:931`) is the wrapper. About 20 call sites in `psa_crypto.c` and `psa_crypto_slot_management.c` take it.\n- **`mbedtls_threading_gmtime_mutex`** serialises `gmtime()` in `library/platform_util.c:189\u2013201`, but only when `MBEDTLS_HAVE_TIME_DATE` is set and `MBEDTLS_PLATFORM_GMTIME_R_ALT` is not. It is needed because `gmtime()` returns a pointer to static storage.\n- **`mbedtls_threading_readdir_mutex`** serialises `readdir()` in `library/x509_crt.c:1611\u20131660`, used when loading a certificate directory.\n\nEach of these is held for a short critical section. The PSA key-slot lock is the only one that nests across calls, and the doc does not describe a lock order between the PSA mutexes.\n\n**Gaps in what I could verify**\n\n- The index's lock layer returned only one identity, `mutex->mutex` in `threading.c` (`scope: unknown`). It does not model the `mbedtls_threading_*` globals, which I found by grep. Its `nestings` field is empty, which the index reports as \"no two-lock holdings\", not as proof of lock-order safety.\n- I did not check whether `MBEDTLS_THREADING_ALT` or the PTHREAD backend is used by any default test configuration. I also did not check the `configs/` profiles beyond what the index reported for `MBEDTLS_THREADING_C`.",
+  "ttft_ms": 1601,
+  "type": "result",
+  "duration_ms": 30041,
+  "uuid": "5facea43-16b8-459c-99e6-e70b45e39177",
+  "ttft_stream_ms": 1388,
+  "time_to_request_ms": 84,
+  "first_content_frame_ms": 1389,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

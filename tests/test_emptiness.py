@@ -254,18 +254,24 @@ def test_an_index_without_the_corpus_is_not_definitive(tmp_path: Path) -> None:
     assert "Do not retry" not in note
 
 
-## The whole-repo tier's real `scope.reason`, abridged only where it lists candidate config
-## paths. Present verbatim enough to carry the two things a per-query reply must not repeat:
-## the derivation narrative and the `Declare \`x-clew: index_scope:\`` advice.
+## The whole-repo tier's real `scope.reason`. Present verbatim enough to carry the two things
+## a per-query reply must not repeat: the derivation narrative and the `Declare an
+## \`index_scope:\`` advice.
+##
+## RE-MEASURED FOR 1.1.0 (group C). This held doxygen-guard's text — "no doxygen-guard config
+## was found (searched .doxygen-guard.yaml, .pre-commit-config.yaml …)" and advice to declare
+## `x-clew: index_scope:` — long after `.doxygen-guard.yaml` stopped being read at all. That
+## is not a cosmetic staleness: the assertion below that the string is ABSENT from a query
+## reply was passing against a string nothing in the tree produces, so it tested nothing. The
+## text here is now `derive_scope(<git repo with no .clew.yaml>, None).reason`, captured
+## rather than paraphrased.
 WHOLE_REPO_REASON = (
-    "no index_scope is declared for this repo — no doxygen-guard config was found "
-    "(searched .doxygen-guard.yaml, .pre-commit-config.yaml (doxygen-guard hook --config "
-    "arg), conf/doxygen-guard.yaml) — so the whole repository is the index scope, INCLUDING "
+    "no index_scope is declared for this repo — no .clew.yaml was found at "
+    "/some/repo/.clew.yaml — so the whole repository is the index scope, INCLUDING "
     "any nested git trees, less the paths git ignores and the dot/cache directories. A "
     "Doxyfile, if the repo ships one, still supplies ALIASES and PREDEFINED but no longer "
     "supplies the INPUT: that is a documentation target, not a reasoning boundary. Declare "
-    "`x-clew: index_scope:` in .doxygen-guard.yaml, or an `index_scope:` in "
-    ".clew.yaml, to let the two differ."
+    "an `index_scope:` in .clew.yaml to let the two differ."
 )
 
 
@@ -324,7 +330,11 @@ def test_an_empty_reply_does_not_repeat_the_scope_DERIVATION(wide_db: Path) -> N
     body = str(out)
     assert "reason" not in out["scope"], "the derivation belongs to status, not to a query"
     assert "index_scope:" not in body, "declaration advice is operator guidance, not an answer"
-    assert "no doxygen-guard config was found" not in body
+    ## ASSERTED ON A STRING THE TREE ACTUALLY PRODUCES (group C, 1.1.0). This named
+    ## doxygen-guard's search clause, which nothing has emitted since `.doxygen-guard.yaml`
+    ## stopped being read — so it passed by vacuity. The derivation's own opening clause is
+    ## the thing that must not reach a query reply.
+    assert "no index_scope is declared for this repo" not in body
 
     ## MEASURED ON THE NOTE, NOT ON THE REPLY'S REPR (gh#30). This asserted
     ## `len(str(out)) < 900`, and two things were wrong with that. The repr carries `target`,

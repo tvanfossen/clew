@@ -208,7 +208,7 @@ def test_requirement_traceability_state_is_known(self_index_db: Path) -> None:
     assert trace.implementers, (
         "REQ-DDB-CONFIG-001 resolves to no implementers. The package tags itself, so "
         "this is a req_edges regression, not the old task #62 gap — check that the "
-        "declared id pattern in .doxygen-guard.yaml still matches the tags."
+        "declared id pattern in .clew.yaml's guard: section still matches the tags."
     )
     assert all(imp.name and imp.liveness for imp in trace.implementers), (
         "an implementer with no name or no liveness verdict is an unusable row"

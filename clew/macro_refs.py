@@ -48,7 +48,7 @@ from pathlib import Path
 from typing import Any
 
 from ._common import logger
-from .harvest import Harvester, run_harvest, try_import_tree_sitter
+from .harvest import Harvester, run_harvest
 from .indexcache import IndexCache
 from .vocabulary import STAGE_MACRO_REFS
 
@@ -216,7 +216,7 @@ def _identifiers_in(body: Any, src_bytes: bytes) -> list[tuple[str, int]]:
 # @param repo_root Repository the index describes.
 # @param cache Index cache, or None.
 # @return Number of xrefs rows inserted.
-# @version 1
+# @version 3
 # @req REQ-DDB-PIPE-003
 def import_ast_macro_refs(db: Path, repo_root: Path, cache: IndexCache | None = None) -> int:
     """FILTERED AGAINST REAL MACRO ROWS, so an identifier that merely shares a name with nothing
@@ -233,17 +233,16 @@ def import_ast_macro_refs(db: Path, repo_root: Path, cache: IndexCache | None = 
     itself.
 
     @brief Recover and insert AST-sourced macro references.
-    @return Rows inserted.
-    @version 1
-    """
-    ts = try_import_tree_sitter()
-    if ts is None:
-        logger.info("macro_refs: tree-sitter unavailable — skipping (doxygen xrefs only)")
-        return 0
+    THE CALLER IS RESOLVED IN ITS OWN FILE. The enclosing function is looked up by the
+    file the body was harvested from and its name. Only when that file holds no row for it
+    does a name resolve alone, and then only if no other function shares it.
 
+    @return Rows inserted.
+    @version 3
+    """
     conn = sqlite3.connect(str(db))
     try:
-        payloads = run_harvest(conn, repo_root, MacroRefHarvester(), ts, cache)
+        payloads = run_harvest(conn, repo_root, MacroRefHarvester(), cache)
         macros = {
             name: rowid
             for rowid, name in conn.execute(
@@ -253,18 +252,28 @@ def import_ast_macro_refs(db: Path, repo_root: Path, cache: IndexCache | None = 
         if not macros:
             logger.info("macro_refs: index holds no macro definitions — nothing to recover")
             return 0
-        functions = {
-            name: rowid
-            for rowid, name in conn.execute(
-                "SELECT rowid, name FROM memberdef WHERE kind='function'"
-            )
-        }
+        ## Keyed by the defining file as well as the name: a bare name is shared across
+        ## files (two vendored copies of one program, a C `help` and a shell `help`), and a
+        ## name-only map credits every body to whichever row was read last.
+        functions: dict[tuple[int, str], int] = {}
+        by_name: dict[str, list[int]] = {}
+        for rowid, name, file_id, bodyfile_id in conn.execute(
+            "SELECT rowid, name, file_id, bodyfile_id FROM memberdef "
+            "WHERE kind='function' ORDER BY rowid"
+        ):
+            functions[(file_id, name)] = rowid
+            if bodyfile_id is not None:
+                functions[(bodyfile_id, name)] = rowid
+            by_name.setdefault(name, []).append(rowid)
+        ## A body whose file holds no row for it (only a prototype elsewhere carries the
+        ## name) still resolves when the name is unambiguous across the index.
+        unique = {name: rowids[0] for name, rowids in by_name.items() if len(rowids) == 1}
 
         rows: list[tuple[int, int, str]] = []
-        for _path_rowid, payload in payloads:
+        for path_rowid, payload in payloads:
             for fn_name, ident, _line in payload or ():
                 dst = macros.get(ident)
-                src = functions.get(fn_name)
+                src = functions.get((path_rowid, fn_name), unique.get(fn_name))
                 if dst is None or src is None or src == dst:
                     continue
                 rows.append((src, dst, AST_REF_CONTEXT))

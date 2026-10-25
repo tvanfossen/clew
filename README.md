@@ -4,7 +4,8 @@
 > out of the labyrinth. It is the archaic spelling, and the direct ancestor, of the word "clue".*
 
 **Give an agent the thread, not a map of the whole maze.** `clew` runs doxygen (or, for a Rust
-repo, `rustdoc`) and tree-sitter over a C, C++, Python or Rust repository and compiles the result
+repo, `rustdoc`; for JavaScript and TypeScript, its own parse) and tree-sitter over a C, C++,
+Python, Rust, JavaScript or TypeScript repository and compiles the result
 into a SQLite graph — symbols, call edges, callbacks, threads, locks, dataflow, requirement
 links, file inventory, prose — then serves it over MCP. Pull on one symbol and you get its
 callers, its locks, the thread it runs on and the requirement it satisfies.
@@ -13,19 +14,37 @@ Per-language setup, what each front end populates, and what it cannot:
 [C](docs/languages/C_INTEGRATION.md) ·
 [C++](docs/languages/CPP_INTEGRATION.md) ·
 [Rust](docs/languages/RUST_INTEGRATION.md) ·
-[Python](docs/languages/PYTHON_INTEGRATION.md).
+[Python](docs/languages/PYTHON_INTEGRATION.md) ·
+[JavaScript / TypeScript](docs/languages/JS_TS_INTEGRATION.md) ·
+[Shell / CMake / YAML / JSON](docs/languages/SCRIPT_INTEGRATION.md) — whose grammars
+lang-parsing-substrate publishes from 0.12.0; a build without them degrades to a file-set
+entry with no symbols.
+
+**Files that are not source are never read**, whatever their extension: a zip or object file
+named `.c` is detected (lang-parsing-substrate's `classify_file`) and skipped before doxygen or
+any parser sees it, and the build records how many. **The repo's shared toolchain config** —
+`toolchain.toml` `[ignore].paths` and `suppress.toml` entries for every tool, the files knots,
+moldy and aurora-lint also read — excludes paths from the index and the gate; see
+[docs/GUARD.md](docs/GUARD.md#files-the-gate-skips).
+
+**Indexing a repository runs that repository's code, by design** — `cargo` compiles it,
+`doxygen` runs with its own Doxyfile as base text. Treat `clew index <tree>` as equivalent in
+trust to `cargo build` on that tree, and read
+[`docs/SECURITY.md`](docs/SECURITY.md) before pointing it at something you did not write: it
+states what clew does and does not promise, and how to report a vulnerability.
 
 **What it is for is aggregation, not capability.** Nothing here is a question `grep` cannot
 answer. The difference is that "who calls this, transitively, across a function-pointer
 boundary, and which of those run on another thread" is one query instead of a dozen searches
 and a mental model you rebuild every session. It is a cache for work you would otherwise redo.
 
-**doxygen-guard is optional.** [It](https://github.com/tvanfossen/doxygen-guard) is a
-pre-commit gate that keeps a repo's doxygen accurate, and a repo that uses it gets a richer
-index — briefs, requirement tags, versioned comments. But `clew` needs neither the gate nor a
-Doxyfile: a repo that declares nothing gets its whole tree indexed, and three of the four
-reference repositories are measured that way. If you want the gate, it is a separate tool with
-one job; if you do not, this still works.
+**The doxygen gate is optional.** `clew guard`, formerly the separate
+[doxygen-guard](https://github.com/tvanfossen/doxygen-guard), is a pre-commit gate that keeps a
+repo's doxygen accurate. A repo that uses it gets a richer index: briefs, requirement tags,
+versioned comments. But `clew` needs neither the gate nor a Doxyfile. A repo that declares
+nothing gets its whole tree indexed, and three of the four reference repositories are measured
+that way. The gate ships in this package and stays off until a repo declares its hook. See
+[docs/GUARD.md](docs/GUARD.md).
 
 ## The four tools
 
@@ -257,7 +276,7 @@ tells you if it is missing. Everything else, including the MCP SDK, comes with t
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -e .[dev]   # pipeline + doxygen-guard + gates
+.venv/bin/pip install -e .[dev]   # pipeline + the doxygen gate + dev tooling
 sudo apt install doxygen          # external binary (plantuml optional)
 ```
 
@@ -308,10 +327,9 @@ Nothing about a target repo is hardcoded: every section above is a declared over
 a built-in default. The identical mapping is the `options` argument of `build_index()` and
 of the MCP `index(action="refresh")` tool, so an agent with no shell can state any of it.
 
-The repo's `.doxygen-guard.yaml` — which supplies the declared `@req` id pattern and the
-catalog column mapping — is **discovered** from `--repo-root`: its root, then the path the
-doxygen-guard pre-commit hook names in its own `--config` argument, then
-`conf/ | config/ | .config/`.
+The declared `@req` id pattern and the catalog column mapping come from the `guard:` section
+of the same `.clew.yaml` — the gate's config, read by the index with the gate's schema (see
+[docs/GUARD.md](docs/GUARD.md)).
 
 ### Commit what you stated
 
@@ -375,6 +393,7 @@ the narrower form that describes a function or macro and returns `None` for anyt
 |---|---|
 | `clew/` | The pipeline (`python -m clew`) |
 | `clew/query/` | The stable query API the MCP server is a view over |
+| `clew/guard/` | The doxygen gate (`clew guard`, formerly doxygen-guard); tests in `tests/guard/` |
 | `tests/` | `.venv/bin/python -m pytest tests/ -q` (add `--integration` for the tier that builds real repos) |
 | `acceptance/DESIGN.md` | The schema and grading routine for the instrument being rebuilt |
 | `acceptance/operational/` | Build and refresh cost, and judge variance — measured beside the matrix, never inside it |
@@ -382,12 +401,22 @@ the narrower form that describes a function or macro and returns `None` for anyt
 ## Dogfooding
 
 clew runs its own gate: `.venv/bin/pre-commit run --all-files` → ruff (lint +
-format), doxygen-guard (`@brief`/`@version`/`@return` presence on the shipped
-package), and the full test suite. Its own catalog lives in `requirements.yaml`.
+format), the doxygen gate (`@brief`/`@version`/`@return` presence on the shipped
+package, run from this tree as `python -m clew guard`), and the full test suite. Its own
+catalog lives in `requirements.yaml`.
 
-## doxygen-guard
+## The doxygen gate (`clew guard`)
 
-[doxygen-guard](https://github.com/tvanfossen/doxygen-guard) is a separate tool, consumed here as
-a pip dependency and pinned by `rev:` in `.pre-commit-config.yaml`. Its scope is
-validation, traceability and change impact; nothing here extends it, and `clew` does not require
-it — see the top of this file.
+doxygen-guard was a separate tool that clew consumed as a pip dependency. It is now part of
+clew (`clew/guard/`, absorbed at its 1.4.2 release). Its config is the `guard:` section of the
+repo's `.clew.yaml`, so the gate and the index read one file with one schema;
+`.doxygen-guard.yaml` is no longer read. The tags and the hook id are unchanged. Adopting repos
+switch the hook's `repo:` and `rev:` to this repository and move their config — see
+[Migrating from doxygen-guard](docs/GUARD.md#migrating-from-doxygen-guard). The gate
+also checks Rust (rustdoc `///` comments) when a repo declares it. Its scope is unchanged:
+validation, traceability and change impact. It is optional, and the index pipeline never runs
+it. Full reference: [docs/GUARD.md](docs/GUARD.md).
+
+Language detection for the gate, and every tree-sitter parse in the gate and the index, comes
+from [lang-parsing-substrate](https://github.com/brandon-arrendondo/lang_parsing_substrate), the
+Rust parsing library shared with knots, moldy and aurora-lint, installed from its PyPI wheels.

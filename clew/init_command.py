@@ -277,10 +277,54 @@ def _check_mcp_sdk() -> Check:
     return Check(CHECK_MCP_SDK, CHECK_OK, f"{MCP_SERVER_MODULE} is importable")
 
 
+## Directories never worth walking for this question: dependencies and VCS metadata.
+_NO_SOURCE_DIRS = frozenset({".git", "node_modules", ".venv", "venv", "__pycache__", "dist"})
+
+## A walk this long without an answer is treated as "needs doxygen" (the safe answer).
+_DOXYGEN_PROBE_LIMIT = 50_000
+
+
+## @brief Whether any file in the repo is one doxygen would index.
+## @param repo_root Repo being registered.
+## @return False only for a tree with JS/TS and nothing doxygen reads.
+## @version 1
+## @req REQ-DDB-PIPE-012
+def _needs_doxygen(repo_root: Path) -> bool:
+    """Asked only when doxygen is missing, so a repo that has it never pays for the walk.
+    Mirrors the build's own decision (`cli._doxygen_has_source`): documentation files
+    (markdown, `.dox`) do not count.
+
+    @brief Probe the tree for a doxygen-source file.
+    @return Whether doxygen is needed.
+    """
+    import fnmatch
+    import os
+
+    from .doxygen import DOXYGEN_DEFAULT_FILE_PATTERNS
+
+    from .synth import claims
+
+    patterns = [
+        p for p in DOXYGEN_DEFAULT_FILE_PATTERNS if p not in ("*.md", "*.markdown", "*.dox")
+    ]
+    seen = 0
+    parse_built = False
+    for _dir, dirnames, filenames in os.walk(repo_root):
+        dirnames[:] = [d for d in dirnames if d not in _NO_SOURCE_DIRS and not d.startswith(".")]
+        for name in filenames:
+            seen += 1
+            if seen > _DOXYGEN_PROBE_LIMIT or any(fnmatch.fnmatchcase(name, p) for p in patterns):
+                return True
+            parse_built = parse_built or claims(name)
+    ## Only a repo that HAS JavaScript / TypeScript is known not to need doxygen. An empty
+    ## or unrecognised tree keeps the old verdict: doxygen is what a build will look for.
+    return not parse_built
+
+
 ## @brief Whether the external doxygen binary is available.
 ## @param repo_root Repo being registered.
 ## @return The doxygen check.
-## @version 3
+## @version 4
 ## @dg_internal
 def _check_doxygen(repo_root: Path) -> Check:
     """doxygen is a SUBPROCESS dependency, invisible to pip, so nothing else in
@@ -294,9 +338,12 @@ def _check_doxygen(repo_root: Path) -> Check:
     dropped outright, so a repo that LATER grows a C/C++ component still has the
     evidence on record.
 
+    A repo holding nothing doxygen reads (JavaScript / TypeScript only) does not run it
+    either, so it is not a blocker there.
+
     @brief Verify doxygen is on PATH and was built with sqlite3 output.
     @return The doxygen check.
-    @version 3
+    @version 5
     """
     from .rustdoc import uses_rustdoc
 
@@ -308,6 +355,13 @@ def _check_doxygen(repo_root: Path) -> Check:
             "(no Cargo.toml-adjacent Doxyfile found)",
         )
     found = shutil.which("doxygen")
+    if not found and not _needs_doxygen(repo_root):
+        return Check(
+            CHECK_DOXYGEN,
+            CHECK_OK,
+            "not required — nothing in this repo is a language doxygen reads (JavaScript / "
+            "TypeScript are indexed by clew's own parse)",
+        )
     if not found:
         return Check(
             CHECK_DOXYGEN,

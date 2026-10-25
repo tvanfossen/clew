@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 22467,
+  "stop_reason": "end_turn",
+  "session_id": "7b3189e4-cfde-4683-9813-7cb888d8851e",
+  "total_cost_usd": 0.011178720000000001,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 30436,
+    "cache_read_input_tokens": 314412,
+    "output_tokens": 3892,
+    "output_tokens_details": {
+      "thinking_tokens": 879
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 30436,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1591,
+        "cache_read_input_tokens": 61791,
+        "cache_creation_input_tokens": 2578,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2578
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 3892,
+      "cacheReadInputTokens": 314412,
+      "cacheCreationInputTokens": 30436,
+      "webSearchRequests": 0,
+      "costUSD": 0.011178720000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 879,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 19,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Two things decide what gets indexed: the repo's own `index_scope:` declaration in `.clew.yaml`, if it has one, and otherwise the whole repository minus what git ignores. A file also has to be in a language clew can parse.\n\n**The decision, in order**\n\n```\nderive_scope(repo_root)                              clew/scope.py:639\n \u251c\u2500 _declared_index_scope(root)                      scope.py:991\n \u2502    reads .clew.yaml \u2192 index_scope: {roots, excludes}\n \u2502    \u251c\u2500 no section                    \u2192 None (fall through)\n \u2502    \u251c\u2500 bad shape / unknown key / no\n \u2502    \u2502  root that exists              \u2192 _Rejected (logged, then fall through)\n \u2502    \u2514\u2500 valid                         \u2192 DerivedScope(source=declared)\n \u2514\u2500 whole_repo_scope(root)                           scope.py:683\n      roots = (repo_root,)\n      excludes = git-ignored paths + dot/cache dirs\n```\n\n1. **Declaration first.** `derive_scope` calls `_declared_index_scope`, which loads `.clew.yaml` through `load_declaration_located` (`clew/declaration.py:299`). That function returns the parsed mapping and the file it came from, and drops the `guard:` section because that belongs to the gate. Roots are repo-relative. A root that does not exist on disk is dropped. A declared root is taken at its word and never walked. The `roots` key is required; `excludes` alone does nothing.\n2. **Failures fall through, but they are not silent.** A declaration that is present but unusable is logged as a WARNING with the reason and the build still proceeds on the whole-repo tier. A misspelled top-level section is different: `load_declaration_located` raises `DeclarationError` and refuses, because a section nothing reads would otherwise look honoured while the build uses defaults.\n3. **Whole-repo default.** With nothing declared, the single root is the repository itself. The excludes are:\n   - everything `git ls-files --others --ignored --exclude-standard --directory` reports, run with a sanitized git environment;\n   - the ignored paths of each nested git tree, so a submodule's `.gitignore` counts;\n   - dot-directories (any name starting with `.`) and `__pycache__` and `node_modules`, pruned by `_pruned_dirs`. The walk stops at nested git trees and at a depth limit (16 per the comment), and the walk does not descend below either.\n\n   Nested git trees are included, not excluded. `external.py` tags their rows afterward so a vendored codebase can be told apart in an answer.\n4. **Doxyfile no longer decides scope.** The old fallback that handed INPUT to the Doxyfile was removed (gh#333). A Doxyfile still supplies aliases and predefined macros, but not the file set.\n5. **The file set the index publishes.** For a parse-built front end (Rust, JS/TS, or a build with no doxygen stage), `_scanned_files` in `clew/cli.py:2483` reads the `DerivedScope` the build actually applied and walks only inside its roots and excludes. With no declaration it walks `[repo_root]`. Extensions decide whether a file is parsed at all: a file whose extension no grammar handles is not indexed, so a large directory can be small in the index. The extension tables live in `harvest` and `synth`; I did not read their contents through the index.\n\n**When nothing is declared**\n\nThe whole repository is indexed, less what git ignores and the dot and cache directories. The `reason` string on the scope says so and names where it looked for a declaration, then points to `propose_declaration` for narrowing it. In short, zero config means \"everything git tracks or would track, minus ignored and dot paths, parsed by extension.\" The `index` tool's `scope` argument accepts `from-declaration`, which `normalize_scope` maps to the recorded `from-guard`. Unknown values are not mapped to a default; they are refused by the caller.\n\n**Caveats**\n- `load_declaration_located` came back with `anchor_mismatch: true`, so its line range may not match the current source. The behaviour above is from its docstring and the callers, not a verified read of the body.\n- The depth limit of 16 comes from a comment next to `_MAX_DEPTH`; I did not dossier the constant itself.\n- The extension tables and the `_skip_dir` rule come from test names and docstrings, not their bodies.",
+  "ttft_ms": 1625,
+  "type": "result",
+  "duration_ms": 23521,
+  "uuid": "4df335e5-5317-44a5-a4cd-2b31a7e7e93e",
+  "ttft_stream_ms": 1105,
+  "time_to_request_ms": 73,
+  "first_content_frame_ms": 1105,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

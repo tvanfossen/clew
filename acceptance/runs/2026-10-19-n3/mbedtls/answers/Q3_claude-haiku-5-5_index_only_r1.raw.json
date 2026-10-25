@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 18159,
+  "stop_reason": "end_turn",
+  "session_id": "72090fb1-ab37-4c4a-b779-9c3a09a7fe49",
+  "total_cost_usd": 0.014348240000000002,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 55121,
+    "cache_read_input_tokens": 159524,
+    "output_tokens": 3456,
+    "output_tokens_details": {
+      "thinking_tokens": 1061
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 55121,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1910,
+        "cache_read_input_tokens": 70100,
+        "cache_creation_input_tokens": 3312,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3312
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3456,
+      "cacheReadInputTokens": 159524,
+      "cacheCreationInputTokens": 55121,
+      "webSearchRequests": 0,
+      "costUSD": 0.014348240000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1061,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nLibrary code never calls `calloc`/`free` directly. It calls `mbedtls_calloc()` and `mbedtls_free()`, which are thin wrappers that forward through two static function pointers in `library/platform.c`. A project swaps the allocator by installing its own function pointers at runtime, or by pointing the macros at its own symbols at compile time.\n\n## The call chain\n\n```\nlibrary code (e.g. aes_ctx_alloc, mbedtls_md_setup, ssl_*)\n        \u2502  mbedtls_calloc(n, size)          [macro, platform.h]\n        \u25bc\nmbedtls_calloc()  \u2014 library/platform.c:47\n        \u2502  (*mbedtls_calloc_func)(n, size)  [static fn ptr, platform.c:44]\n        \u25bc\nthe installed allocator (libc calloc, your allocator, or the buffer allocator)\n```\n\n`mbedtls_free()` at `library/platform.c:52` follows the same pattern through `mbedtls_free_func` (`platform.c:45`).\n\nThe function pointers are initialised to `MBEDTLS_PLATFORM_STD_CALLOC` and `MBEDTLS_PLATFORM_STD_FREE`. The index shows `MBEDTLS_PLATFORM_STD_CALLOC` is off by default (`mbedtls_config.h:4124`). Where it is off, the fallback `platform_calloc_uninit` (`platform.c:25`) simply returns `NULL`, so allocation fails until something is installed. I did not query the free-side default body, so treat the exact fallback behaviour on that side as unverified.\n\n## How a project substitutes its allocator\n\nThere are three routes. The index shows all three:\n\n1. **Runtime, via `mbedtls_platform_set_calloc_free(calloc_fn, free_fn)`** (`platform.c:57`). It assigns the two static pointers and returns 0. It is the only setter, and it has no failure path. Call it before any library allocation.\n2. **Compile time, via the `MBEDTLS_PLATFORM_MEMORY` gate in `include/mbedtls/platform.h:138\u2013168`.** Inside it, the `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` options (both default off in `mbedtls_config.h:4150\u20134151`) redirect the `mbedtls_calloc`/`mbedtls_free` macros to your own symbols. The test config `tests/configs/user-config-malloc-0-null.h` uses this route, mapping `MBEDTLS_PLATFORM_STD_CALLOC` to a `custom_calloc`.\n3. **Shipped alternative, `mbedtls_memory_buffer_alloc_init(buf, len)`** (`library/memory_buffer_alloc.c:566`). It serves allocations from a caller-supplied static buffer. It calls `mbedtls_platform_set_calloc_free` itself, choosing `buffer_alloc_calloc_mutexed` when `MBEDTLS_THREADING_C` is set, otherwise `buffer_alloc_calloc`. It also initialises a mutex and lays out a header-linked free list inside the buffer.\n\nA project's minimal integration is therefore:\n\n```c\nmbedtls_platform_set_calloc_free(my_calloc, my_free);  // before any mbedtls call\n```\n\nor, for a static-memory build, `mbedtls_memory_buffer_alloc_init(pool, sizeof pool);` followed by the normal library calls.\n\n## What the library does with the facility\n\n- **Allocation sites use the wrappers everywhere.** The index shows `mbedtls_calloc` referenced by the context constructors in `cipher_wrap.c` (AES, ARIA, DES, GCM, CCM, ChaCha20 and others), by the ECP/MPI code, by the PK and X.509 parsers, by the SSL code, and by PSA key handling. `mbedtls_free` mirrors this on the destructor paths.\n- **The `ALLOC` macro in `library/md.c`** is a typical example. It calls `mbedtls_calloc(1, sizeof(...))`, returns `MBEDTLS_ERR_MD_ALLOC_FAILED` on NULL, then runs the type's `_init`.\n- **Overflow checking happens inside the buffer allocator**, not in the wrapper. `buffer_alloc_calloc` rejects `n*size` overflow and oversize requests before searching the free list.\n- **The buffer allocator also zeroes, guards and debugs its own heap**: it uses magic-number headers, optional backtraces (`MBEDTLS_MEMORY_BACKTRACE`) and optional debug output (`MBEDTLS_MEMORY_DEBUG`). It calls `mbedtls_exit(1)` if it finds a block on the free list that is already allocated.\n\n## Caveats\n\n- The index does not show where the library *reads* the free pointer on zeroize-and-free paths beyond the listed callers. `mbedtls_zeroize_and_free` is a caller of `mbedtls_free`, so the sensitive-buffer path goes through the same hook.\n- The `KRML_HOST_CALLOC`/`MALLOC` macros in `3rdparty/everest` are the Everest/Kremlin code's own allocator hooks. They are separate from the mbedtls facility.",
+  "ttft_ms": 1365,
+  "type": "result",
+  "duration_ms": 19052,
+  "uuid": "d708298b-7cac-4d17-afe7-94e8eae1bbad",
+  "ttft_stream_ms": 1163,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1163,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

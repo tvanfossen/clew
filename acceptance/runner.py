@@ -47,13 +47,20 @@ from .grader.rubric import Rubric
 ## THE CORE HYPOTHESIS DOES NOT CHANGE. H1 is about the retrieval substrate, not about whether an
 ## agent thinks to reach for it; 1.1.0 simply does not aim to answer it in full. The blended arm
 ## is a 1.2.0 target, once adoption is solved.
-ARMS = ("baseline", "index_only")
+## THE BLENDED ARM REJOINED THE GRID (owner ruling, 2026-10-18), because the first measured
+## target made the omission expensive. On mbedtls the ceiling arm lost by 11.4 points, and the
+## losses were concentrated on questions about configuration state that a shell reads in one
+## grep. Reporting that as the product's result would describe something nobody ships; reporting
+## it WITHOUT the product's result leaves the published matrix silent on what a user experiences.
+##
+## So the grid now answers both questions at once: `index_only` asks whether the index ALONE is
+## sufficient, which is falsifiable and is the retrieval claim; `index` asks whether the shipped
+## shape is better than no index at all, which is the adoption-confounded but user-visible one.
+ARMS = ("baseline", "index_only", "index")
 
-## THE BLENDED ARM. Still runnable and still the shipped product's shape, but NOT part of the
-## 1.1.0 comparison for the reason above. Kept so 1.2.0 has a prior measurement to improve on
-## rather than starting from nothing.
+## Kept as a name because two call sites and the docs refer to the blend by it.
 BLENDED_ARM = "index"
-ALL_ARMS = ARMS + (BLENDED_ARM,)
+ALL_ARMS = ARMS
 
 ## THE ONLY PERMITTED DIFFERENCE BETWEEN THE TWO BRIEFS. Everything else is byte-identical and
 ## `check_symmetry` refuses on any other delta. Asymmetry in what an arm is TOLD is a handicap
@@ -90,13 +97,20 @@ _TOOLS = {
     ## needs source (quote this comment, show these lines) will fail here even when the index
     ## holds the fact, and that is informative rather than a defect: it partitions the rubric
     ## into what the index can answer and what it can only point at.
+    ## NO ADVICE ABOUT NOT KNOWING. This sentence used to end "say so plainly rather than
+    ## guessing — an honest gap is the useful answer here", and the baseline's carried nothing
+    ## of the kind. The rubric scores COMPLETENESS, so telling one arm that stopping is a good
+    ## answer plausibly lowers its score for a reason that is not retrieval — and the gap would
+    ## then be read as a property of the index.
+    ##
+    ## `check_symmetry` cannot catch this: it verifies that the TOOL SENTENCE is the only line
+    ## that differs, never that the sentences license the same behaviour. An inventory is
+    ## symmetric; advice on handling a dead end is not, and belongs in no brief.
     "index_only": (
         "You have ONLY a queryable index of this repository — no shell, no file reading, no "
         "search over the source. The tools are mcp__clew__dossier for everything known about a "
         "named symbol, mcp__clew__search to find a name or enumerate a layer, and "
-        "mcp__clew__index for status. Answer from the index alone. Where the index cannot tell "
-        "you something, say so plainly rather than guessing — an honest gap is the useful "
-        "answer here."
+        "mcp__clew__index for status. Answer from the index alone."
     ),
 }
 
@@ -212,25 +226,27 @@ def check_symmetry() -> None:
 
     @brief Prompt symmetry holds.
     @return None.
-    @version 1
+    @version 2
     """
-    ## DERIVED FROM `ARMS`, never hardcoded. This check named its two arms literally and kept
-    ## comparing the OLD pair after the compared arms changed — it refused a correct
-    ## configuration while silently no longer checking the one in use.
-    first, second = ARMS
-    left = brief(first, "/repo", "Q?").splitlines()
-    right = brief(second, "/repo", "Q?").splitlines()
-    ## `line[1:]`, NOT `line[2:]`. `unified_diff` prefixes ONE character; slicing two ate the
-    ## first character of every line, so nothing ever matched `permitted` and the check refused
-    ## its own symmetric briefs. It failed loudly, which is the only reason it was cheap.
-    changed = [
-        line[1:]
-        for line in difflib.unified_diff(left, right, n=0, lineterm="")
-        if line.startswith(("+", "-")) and not line.startswith(("+++", "---"))
-    ]
-    ## ONLY THE COMPARISON ARMS. The ceiling arm is deliberately asymmetric — it is not part of
-    ## the grid and diffing it here would either fail the check or dilute it into permitting
-    ## anything.
+    ## EVERY ARM AGAINST THE FIRST, NOT A HARDCODED PAIR. This unpacked exactly two arms, so
+    ## adding a third would have raised ValueError from a function whose job is to refuse
+    ## asymmetry — and before that it named its two arms literally and kept comparing the OLD
+    ## pair after the compared arms changed, refusing a correct configuration while silently no
+    ## longer checking the one in use. Both failures came from writing the arity down.
+    reference, *others = ARMS
+    left = brief(reference, "/repo", "Q?").splitlines()
+    changed: list[str] = []
+    for arm in others:
+        right = brief(arm, "/repo", "Q?").splitlines()
+        ## `line[1:]`, NOT `line[2:]`. `unified_diff` prefixes ONE character; slicing two ate the
+        ## first character of every line, so nothing ever matched `permitted` and the check refused
+        ## its own symmetric briefs. It failed loudly, which is the only reason it was cheap.
+        changed += [
+            line[1:]
+            for line in difflib.unified_diff(left, right, n=0, lineterm="")
+            if line.startswith(("+", "-")) and not line.startswith(("+++", "---"))
+        ]
+    ## EVERY ARM IN THE GRID, because every arm in the grid is compared against every other.
     permitted = {_TOOLS[a] for a in ARMS}
     stray = [line for line in changed if line not in permitted]
     if stray:
@@ -263,7 +279,7 @@ def plan(rubric: Rubric, models: tuple[str, ...], replicates: int, seed: int) ->
 
     @brief Ordered cells for a run.
     @return Cells in execution order.
-    @version 2
+    @version 3
     """
     if replicates < 1:
         raise ValueError("replicates must be at least 1")
@@ -275,8 +291,12 @@ def plan(rubric: Rubric, models: tuple[str, ...], replicates: int, seed: int) ->
         rng.shuffle(questions)
         for qid in questions:
             for rep in range(1, replicates + 1):
-                pair = ARMS if rep % 2 else tuple(reversed(ARMS))
-                for arm in pair:
+                ## ROTATED, NOT FLIPPED. A parity flip counterbalances two arms and no more:
+                ## with three it pins the middle arm to the middle slot on every replicate, so
+                ## any drift over a run lands on one arm — the confound this exists to remove.
+                ## Rotating by replicate gives every arm every position as replicates accrue.
+                shift = (rep - 1) % len(ARMS)
+                for arm in ARMS[shift:] + ARMS[:shift]:
                     cells.append(Cell(rubric.target, qid, arm, model, rep, order))
                     order += 1
     return cells

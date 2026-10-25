@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "clew": {
+      "command": "/home/tvanfossen/Projects/clew/.venv/bin/clew-mcp",
+      "args": [
+        "--repo",
+        "/home/tvanfossen/Projects/clew/acceptance/runs/2026-10-20-skills-ab/entropic/repo"
+      ],
+      "env": {
+        "CLEW_STATE_HOME": "/home/tvanfossen/Projects/clew/acceptance/runs/2026-10-20-skills-ab/entropic/state"
+      }
+    }
+  }
+}

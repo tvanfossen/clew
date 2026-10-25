@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 14576,
+  "stop_reason": "end_turn",
+  "session_id": "f6ac1c49-86e8-46b2-aa63-a985570d8c9b",
+  "total_cost_usd": 0.00400754,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 7049,
+    "cache_read_input_tokens": 141844,
+    "output_tokens": 2357,
+    "output_tokens_details": {
+      "thinking_tokens": 890
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 7049,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1603,
+        "cache_read_input_tokens": 38856,
+        "cache_creation_input_tokens": 2166,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2166
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2357,
+      "cacheReadInputTokens": 141844,
+      "cacheCreationInputTokens": 7049,
+      "webSearchRequests": 0,
+      "costUSD": 0.00400754,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 890,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it accomplishes:** `MBEDTLS_PRIVATE(member)` wraps a struct field name in the header so that the field is only reachable by its real name when a build opts in. `include/mbedtls/private_access.h` has two branches gated on `MBEDTLS_ALLOW_PRIVATE_ACCESS`:\n\n- **Default (macro not defined), lines 14\u201316:** `MBEDTLS_PRIVATE(member)` expands to `private_##member`. The field is renamed, so code that writes `ctx->nr` fails to compile. Only accessors and internal code that use the new name can touch it.\n- **Opt-in (macro defined), lines 16\u201318:** `MBEDTLS_PRIVATE(member)` expands to `member`. Field names are unchanged.\n\nSo the mechanism is a compile-time guard against direct field access. It is not a runtime or ABI protection. The intent is that consumers go through the public functions, and the library can change internal layouts without breaking callers who stuck to the API.\n\n**Who the opt-out is for:** The index shows `MBEDTLS_ALLOW_PRIVATE_ACCESS` defined in exactly three places:\n\n| Location | What it means |\n|---|---|\n| `library/common.h:132` | The library's own internal sources get raw field names. This is the main opt-out for the library. |\n| `programs/ssl/ssl_client2.c:8` | The sample client can reach struct internals directly. |\n| `programs/ssl/ssl_server2.c:8` | The sample server can reach struct internals directly. |\n\nExternal consumers get the renamed `private_` fields unless they define the macro themselves before including mbedtls headers. Doing so is an explicit choice to depend on internals.\n\n**Caveats from the index:**\n- The three definitions show no enclosing `#if` gate, so I read them as unconditional. The index does not record include order, though. If `common.h` is included after a public header in some library file, that file would still see the renamed fields. I could not confirm this from the index alone.\n- The index was built with only `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` set, and no config header is recorded. So I cannot say whether the opt-out is on in the repository's default configuration.\n- The index shows `mbedtls_cipher_get_iv_size` and `mbedtls_pk_get_type` referencing the macro. These are library accessors that read wrapped fields and are the sanctioned path for outside code.",
+  "ttft_ms": 1862,
+  "type": "result",
+  "duration_ms": 15112,
+  "uuid": "635abc38-4312-44e1-a8ce-0faaf22a994c",
+  "ttft_stream_ms": 1569,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1570,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

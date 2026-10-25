@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 33003,
+  "stop_reason": "end_turn",
+  "session_id": "2ecbe0c0-933f-4d23-b276-3c1166039e67",
+  "total_cost_usd": 0.01464615,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 44735,
+    "cache_read_input_tokens": 252445,
+    "output_tokens": 6347,
+    "output_tokens_details": {
+      "thinking_tokens": 3524
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 44735,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3706,
+        "cache_read_input_tokens": 60459,
+        "cache_creation_input_tokens": 4125,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4125
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 6347,
+      "cacheReadInputTokens": 252445,
+      "cacheCreationInputTokens": 44735,
+      "webSearchRequests": 0,
+      "costUSD": 0.01464615,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3524,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index holds file membership for YAML and JSON, and function-level definitions for shell and CMake. It holds nothing about what is inside the YAML or JSON. On an install whose parser lacks the shell or CMake grammar, those files drop to membership-only, but the not-indexed report may not say so. I worked from the index and source reading, not from running a build.\n\n**What the index holds, by file type**\n\n| Files | Path row (file set) | Symbols | Grammar |\n|---|---|---|---|\n| `.sh`, `.bash`, `.cmake`, `CMakeLists.txt` | Yes | Yes: function-level `memberdef` rows, with doc blocks reaching the row | `substrate:bash`, `substrate:cmake` via `_TS_GRAMMARS` / `_NAME_GRAMMARS` |\n| `.yaml`, `.yml`, `.json` | Yes | None | None |\n| `.js`, `.ts`, etc. | Yes | Yes | Parse-built front end |\n| `.md` | No | No | Not claimed |\n\n- The shell and CMake handling lives in `clew/synth.py`. `SCRIPT_EXTS` is `.sh/.bash/.cmake` and `CLAIMED_EXTS` is the union of the JS/TS, script and data lists. `emit_definitions` runs the script harvester alongside the JS one.\n- `claims()` is documented as \"a YAML file is claimed so that it is in the file set, and harvested by nothing.\" The test `test_the_data_files_are_in_the_file_set_with_no_symbols` asserts that `_members` is empty after YAML and JSON are registered.\n- The config corpus holds only preprocessor gate macros (`WIDGET_LOG_LEVEL` and similar). It does not hold YAML or JSON keys, so a search for a config key finds nothing.\n\n**What it does not hold**\n\n- Keys, values, or structure of YAML and JSON. A GitHub workflow such as `.github/workflows/ci.yml` is in the file set, but no job, step or script inside it is indexed.\n- Anything doxygen would have produced for these types. Doxygen reads none of the four, so there are no `path` rows from doxygen, no call edges, and no doc-comment structure beyond what the synth walkers emit.\n- Cross-file links. A shell script that calls a C binary, or a CMake target, has no edge to anything. I did not verify whether shell or CMake definitions carry call edges at all.\n- Markdown, by design. The test asserts `README.md` is not claimed.\n\n**What happens on an install whose parser lacks the grammars**\n\n- Bash and CMake are the only optional keys. `_OPTIONAL_KEYS = {\"bash\", \"cmake\"}`. `_grammar_available` checks them, and `_ts_language_for` returns `None` when the grammar is missing. `test_a_missing_grammar_routes_to_nothing_instead_of_raising` pins that outcome. The C, C++, Python, Rust and JS/TS grammars are not optional, so a wheel missing them fails loudly on purpose.\n- YAML and JSON have no grammar, so the install's grammar set does not affect them. They are always membership-only.\n- If the substrate cannot be imported at all, `compiled_languages()` logs an error and returns an empty set. The optional-key check would then exclude bash and CMake. I did not trace what happens to the non-optional grammars in that case.\n\n**The gap I would check first**\n\nThe not-indexed report (`_not_indexed_scope` in `clew/cli.py`) decides what is missing by looking for `path` rows of type 1. `register_paths` calls `claims()`, and `claims()` tests the extension only. It never asks whether a grammar is available. So on an install without the bash grammar, a `.sh` file still gets a path row, is counted as indexed, and does not appear in `not_indexed`. Its symbols are silently absent. This is inferred from the code, not from a test. I did not find a test that covers it, and I could not find the callers of `missing_languages` to confirm whether a missing-grammar warning is ever emitted.\n\n**Smaller items**\n\n- The `_ts_language_for` docstring says it selects \"C, C++, Python or Rust\". The routing table also covers JS, TS, shell and CMake, so the docstring is stale.\n- The index flagged `test_a_missing_grammar_routes_to_nothing_instead_of_raising` as having an anchor mismatch, so the file changed after indexing. Its assertions may differ from what the index shows; I did not re-read it.",
+  "ttft_ms": 1619,
+  "type": "result",
+  "duration_ms": 34407,
+  "uuid": "70afb478-7514-4506-a374-ea9228e12ed0",
+  "ttft_stream_ms": 1223,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1223,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -679,6 +679,34 @@ STAGE_MACRO_REFS = "macro_refs"
 ## about eighty names.
 STAGE_BLOCKING = "blocking"
 
+## JavaScript / TypeScript DEFINITIONS for the parse-built front end (clew/synth.py). Its own
+## partition because doxygen writes no rows for these files at all: this payload IS their
+## symbol table, read before any call layer resolves, the way `ast_symbols` is for the rows
+## doxygen missed.
+STAGE_JS_SYMBOLS = "js_symbols"
+
+## Python definition DOCSTRINGS (clew/pydocs.py): the PEP 257 summary and @version of each
+## function and class, used only where doxygen left the row undocumented.
+STAGE_PY_DOCSTRINGS = "py_docstrings"
+
+## SHELL AND CMAKE definitions for the parse-built front end (clew/shast.py,
+## clew/cmakeast.py), 1.1.0. ONE partition for both languages rather than two: every stage
+## in this vocabulary is harvested over every indexed file, so a second partition would add
+## an empty payload row per file per index — on a 40,000-file target that is 40,000 rows
+## recording that a C file defines no shell function. The two walkers are versioned
+## together as the cost of that.
+STAGE_SCRIPT_SYMBOLS = "script_symbols"
+
+## COMMENTED-OUT `#define`s IN CONFIGURATION HEADERS, 1.1.0. The one fact an index of what
+## EXISTS structurally cannot hold: what a build deliberately leaves OFF.
+##
+## Measured on mbedtls. `MBEDTLS_PLATFORM_MEMORY` is `//#define` at mbedtls_config.h:208 — the
+## shipped default — so it produces no definition row, while two alternative config profiles
+## DO define it and produce two. An agent asking what a default build does is therefore told
+## "this macro is defined, here and here", which is true and points the wrong way. That is
+## worse than a gap: a gap yields "I do not know", and this yields a confident wrong answer.
+STAGE_CONFIG_DEFAULTS = "config_defaults"
+
 STAGE = Vocabulary(
     id="stage",
     values=(
@@ -694,6 +722,10 @@ STAGE = Vocabulary(
         STAGE_KCONFIG_GATES,
         STAGE_MACRO_REFS,
         STAGE_BLOCKING,
+        STAGE_JS_SYMBOLS,
+        STAGE_PY_DOCSTRINGS,
+        STAGE_SCRIPT_SYMBOLS,
+        STAGE_CONFIG_DEFAULTS,
     ),
     means="extract_cache partition key — a typo is a permanent silent cache miss, not an error",
     rank={
@@ -709,7 +741,28 @@ STAGE = Vocabulary(
         STAGE_KCONFIG_GATES: 0,
         STAGE_MACRO_REFS: 0,
         STAGE_BLOCKING: 0,
+        STAGE_JS_SYMBOLS: 0,
+        STAGE_PY_DOCSTRINGS: 0,
+        STAGE_SCRIPT_SYMBOLS: 0,
+        STAGE_CONFIG_DEFAULTS: 0,
     },
+)
+
+## WHETHER A CONFIGURATION OPTION IS ON OR OFF AS THE REPOSITORY SHIPS IT.
+##
+## TWO VALUES AND NO THIRD. "off" is a `#define` the header comments out, which is how every
+## C project of this shape expresses "available, not enabled by default"; "on" is one it leaves
+## active. A macro the scan never saw gets NO ROW — absence here means "this header does not
+## decide it", never "it is off", because reading an absent row as off would reintroduce the
+## confident wrong answer this layer exists to remove.
+CONFIG_DEFAULT_OFF = "off"
+CONFIG_DEFAULT_ON = "on"
+
+CONFIG_DEFAULT_STATE = Vocabulary(
+    id="config_default_state",
+    values=(CONFIG_DEFAULT_OFF, CONFIG_DEFAULT_ON),
+    means="whether a configuration header leaves an option enabled as shipped",
+    rank={CONFIG_DEFAULT_OFF: 0, CONFIG_DEFAULT_ON: 0},
 )
 
 ## WHERE A `memberdef` ROW CAME FROM (gh#11). `memberdef` is doxygen's OWN table —
@@ -734,6 +787,11 @@ STAGE = Vocabulary(
 ## stated, the other is what we recovered from the source text.
 SYMBOL_SOURCE_DOXYGEN = "doxygen"
 SYMBOL_SOURCE_AST = "ast"
+## Written by clew's own parse-built front end (clew/synth.py) for a language doxygen
+## cannot read (JavaScript, TypeScript). Like a 'doxygen' row it was produced by a front
+## end that read the documentation (JSDoc: brief, detail, @req), so it ranks with
+## 'doxygen' above 'ast'; it is named separately so nothing claims doxygen read the file.
+SYMBOL_SOURCE_PARSE = "parse"
 
 ## The COLUMN NAME is deliberately namespaced, and this is the one place it is
 ## spelled. `memberdef` belongs to doxygen: an unprefixed `source` would collide
@@ -775,9 +833,9 @@ UNRESOLVED_PATH_COLUMN = "dg_unresolved"
 
 SYMBOL_SOURCE = Vocabulary(
     id="symbol_source",
-    values=(SYMBOL_SOURCE_DOXYGEN, SYMBOL_SOURCE_AST),
-    means="whether a memberdef row was documented by doxygen or recovered by the tree-sitter parser (an 'ast' row has NO brief, no documented parameters and no @req tags)",
-    rank={SYMBOL_SOURCE_DOXYGEN: 1, SYMBOL_SOURCE_AST: 0},
+    values=(SYMBOL_SOURCE_DOXYGEN, SYMBOL_SOURCE_PARSE, SYMBOL_SOURCE_AST),
+    means="whether a memberdef row was documented by doxygen, written by clew's parse-built front end for a language doxygen cannot read (JS/TS, with its JSDoc), or recovered by the tree-sitter parser (an 'ast' row has NO brief, no documented parameters and no @req tags)",
+    rank={SYMBOL_SOURCE_DOXYGEN: 1, SYMBOL_SOURCE_PARSE: 1, SYMBOL_SOURCE_AST: 0},
 )
 
 ## CLI-ONLY, like KEY_DIRECTION and STAGE above: these three constrain tokens the
@@ -983,6 +1041,7 @@ GRAPH_LAYERS: tuple[str, ...] = (
     "file_docs",
     "kconfig_symbols",
     "kconfig_gates",
+    "config_defaults",
 )
 
 ## Every vocabulary by id, so a test (or a generated doc) can enumerate them
@@ -1025,6 +1084,7 @@ VOCABULARIES: dict[str, Vocabulary] = {
         SYMBOL_SOURCE,
         KCONFIG_TYPE,
         KCONFIG_GATE_FORM,
+        CONFIG_DEFAULT_STATE,
         GATE_ORIGIN,
         LAYER_STATE,
         DATA_MODEL_DIALECT,
@@ -1072,6 +1132,7 @@ COLUMNS: dict[tuple[str, str], Vocabulary] = {
     ("kconfig_symbols", "type"): KCONFIG_TYPE,
     ("kconfig_gates", "form"): KCONFIG_GATE_FORM,
     ("kconfig_gates", "origin"): GATE_ORIGIN,
+    ("config_defaults", "state"): CONFIG_DEFAULT_STATE,
     ("data_model_keys", "dialect"): DATA_MODEL_DIALECT,
 }
 

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 20155,
+  "stop_reason": "end_turn",
+  "session_id": "477b426f-4e45-416d-b760-d529868dd9aa",
+  "total_cost_usd": 0.00976923,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 31115,
+    "cache_read_input_tokens": 162493,
+    "output_tokens": 3841,
+    "output_tokens_details": {
+      "thinking_tokens": 1331
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 31115,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2281,
+        "cache_read_input_tokens": 55848,
+        "cache_creation_input_tokens": 9209,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 9209
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3841,
+      "cacheReadInputTokens": 162493,
+      "cacheCreationInputTokens": 31115,
+      "webSearchRequests": 0,
+      "costUSD": 0.00976923,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1331,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the caller passes the negative code and a buffer to `mbedtls_strerror()`. That function splits the code into a high-level part and a low-level part, looks each up in a switch table in `library/error.c`, and joins the two strings. Adding a new code means defining a macro in the module header and adding a matching case to the table. The table is marked as auto-generated, so the table edit should come from the generator, not by hand.\n\n**The path, step by step**\n\n```\nmbedtls_xxx() returns e.g. -0x2A80\n        \u2502\n        \u25bc\nmbedtls_strerror(ret, buf, buflen)            library/error.c:792\n  1. buflen==0 \u2192 return; memset buf to 0\n  2. ret = -ret                              (work with positive value)\n  3. high = ret & 0xFF80 \u2192 mbedtls_high_level_strerr()   error.c:174\n       NULL \u2192 \"UNKNOWN ERROR CODE (xxxx)\"\n       SSL fatal alert \u2192 return early, skip low level\n  4. low = ret & ~0xFF80 \u2192 if 0, done\n  5. if buf already has high text, append \" : \"\n  6. mbedtls_low_level_strerr()               error.c:537\n       NULL \u2192 \"UNKNOWN ERROR CODE (xxxx)\"\n  7. write result into buf (always NUL-terminated, truncated if needed)\n```\n\n- **Bit layout:** `include/mbedtls/error.h` documents a 16-bit layout. The top 3 bits after the sign identify the high-level module (PEM, X509, SSL, and so on). The next 5 bits are a module-specific code. The low 7 bits (`0x007F`) are the low-level module code (AES, MPI, NET, and so on). The header also lists the code ranges assigned to each module.\n- **Two lookup tables:** both are switch statements under the banner `/* Begin Auto-Generated Code. */`. Each case is wrapped in the module's `#if defined(MBEDTLS_xxx_C)`, so only compiled-in modules appear. For example, `MBEDTLS_ERR_AES_BAD_INPUT_DATA` is `-0x0021` in `include/mbedtls/aes.h:50`, and `mbedtls_low_level_strerr` returns `\"AES - Invalid input data\"` for it.\n- **Caller-facing API:** `include/mbedtls/error.h:165` declares `mbedtls_strerror(int, char *, size_t)`. The definition is in `library/error.c`, and the whole file is gated by `MBEDTLS_ERROR_C`. The `MBEDTLS_ERROR_STRERROR_DUMMY` config symbol also gates it, and `configs/config-symmetric-only.h` turns that symbol on. I did not confirm what the second overload at `error.c:867` does, though it is probably the dummy variant.\n- **Example consumers:** `programs/test/benchmark.c` (`PRINT_ERROR`) and `programs/util/strerror.c` (a CLI that decodes an integer, hex included).\n\n**Adding a new error code**\n\n1. **Define the macro** in the owning module's public header, for example `include/mbedtls/<module>.h`, as `#define MBEDTLS_ERR_<MODULE>_<NAME> -0x00XX`. Choose a value that fits that module's range in the `error.h` table. Check for collisions there too. A high-level code goes in the high-level table, and a low-level code in the low-level table.\n2. **Add a case to the table** in `library/error.c`. Each lookup has a case of the form `case -(MBEDTLS_ERR_<MODULE>_<NAME>): return(\"<MODULE> - <message>\");`, placed in the module's `#if` block. The string should follow the existing `MODULE - sentence` style.\n3. **Regenerate rather than hand-edit.** The switch bodies sit in the \"Auto-Generated Code\" section. The generator script is in `scripts/` as a `.pl` file, which this index does not cover, so I can't name it or confirm the exact command. Check the repo's build docs or the `.pl` in `scripts/` before editing, or the change will be overwritten on the next regeneration.\n4. **Add a test and a ChangeLog entry.** The repo has a top-level `ChangeLog.d/` directory. I did not verify the test convention from the index, so check the existing error-string tests before writing one.\n\n**What the index could not settle:** the generator script and its invocation, and any test that covers `mbedtls_strerror`. The index lists no covering tests for it, and its `.pl` and build-script inputs are not indexed.",
+  "ttft_ms": 1588,
+  "type": "result",
+  "duration_ms": 20844,
+  "uuid": "c7850409-453f-46f8-812f-1e6b848e6f39",
+  "ttft_stream_ms": 1131,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1131,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

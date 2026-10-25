@@ -28,7 +28,14 @@ import yaml
 SCHEMA = 1
 
 MARK_TYPES = ("retrieval", "conclusion", "set")
-ARMS = ("baseline", "index")
+## EVERY ARM A MARK MAY BE FENCED TO. This held only ("baseline", "index") while the grid had
+## been running `index_only` since August, so a rubric could not fence a mark to the arm
+## actually under test — `arm_only: index_only` was refused BY NAME as an unknown value.
+##
+## DUPLICATED FROM `runner.ARMS` RATHER THAN IMPORTED, because `runner` imports this module and
+## the reverse would be circular. `tests/test_runner.py` holds the two together, which is the
+## same parity-test shape the index/gate extension lists use.
+ARMS = ("baseline", "index_only", "index")
 
 _TOP_REQUIRED = ("schema", "target", "commit", "version", "ground_truth", "judge", "questions")
 _TOP_OPTIONAL = ("ref", "index")

@@ -45,6 +45,7 @@ from clew.call_edges import build_call_edges
 from clew.callback_edges import _ensure_external_boundaries_table
 from clew.datamodel import _ensure_table as _ensure_data_model_keys_table
 from clew.kconfig import ensure_kconfig_tables
+from clew.config_defaults import ensure_config_defaults_table
 from clew.kconfig_gates import ensure_kconfig_gates_table
 from clew.blocking import ensure_blocking_table
 from clew.context import ensure_context_table
@@ -219,6 +220,11 @@ def schema_db(tmp_path: Path) -> Path:
     ## make one layer's absence look like the other's.
     ensure_kconfig_tables(conn)
     ensure_kconfig_gates_table(conn)
+    ## 1.1.0's configuration-default layer, created by its own stage for the same reason the
+    ## two above are: a repo whose headers decide nothing gets an EMPTY table, never an absent
+    ## one, so no consumer has to branch on existence to tell "nothing to report" from
+    ## "this layer never ran".
+    ensure_config_defaults_table(conn)
     _create_req_edges_table(conn)
     ## gh#351. Created unconditionally by its own stage — a target with no data model gets an
     ## empty table rather than none — so the fixture calls it unconditionally too.

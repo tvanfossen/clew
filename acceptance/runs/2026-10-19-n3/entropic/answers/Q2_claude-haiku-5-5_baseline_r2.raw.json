@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 17457,
+  "stop_reason": "end_turn",
+  "session_id": "d613c3be-2d93-477e-8554-5ec81d461960",
+  "total_cost_usd": 0.0064157699999999995,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 14599,
+    "cache_read_input_tokens": 185547,
+    "output_tokens": 3279,
+    "output_tokens_details": {
+      "thinking_tokens": 562
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 14599,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1600,
+        "cache_read_input_tokens": 43091,
+        "cache_creation_input_tokens": 3925,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3925
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3279,
+      "cacheReadInputTokens": 185547,
+      "cacheCreationInputTokens": 14599,
+      "webSearchRequests": 0,
+      "costUSD": 0.0064157699999999995,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 562,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How it's brought in:** llama.cpp is a git submodule at `extern/llama.cpp` (`.gitmodules`, pinned at commit `20a04b22`). It is not fetched via FetchContent like spdlog, ryml, Catch2, nlohmann/json and cpp-httplib, which are declared in the same `extern/CMakeLists.txt`. The CMake file sets the llama build options (`LLAMA_BUILD_COMMON=ON`, `LLAMA_BUILD_TOOLS=OFF`, tests/examples/server off, CUDA bridged from `ENTROPIC_HAS_CUDA`) and then calls `add_subdirectory(llama.cpp EXCLUDE_FROM_ALL)`. It also adds `llama.cpp/tools/mtmd` for multimodal support. Everything is compiled as static code and absorbed into the entropic shared libraries; nothing is installed or exported to consumers.\n\n**Where it's linked:**\n- `src/inference/CMakeLists.txt` links `llama`, `mtmd` and `nlohmann_json` PRIVATE, and `llama-common` PUBLIC.\n- `src/facade/CMakeLists.txt` links `llama`, `mtmd` and `llama-common` as `LINK_ONLY` PRIVATE, so they resolve at the `.so` link step.\n\n**How far it reaches into entropic's source:** the reach is wide. The C++ backend uses it directly and several modules touch it.\n\n| Layer | Reach |\n|---|---|\n| `src/inference/` | Direct. `llama_cpp_backend`, `_sampler`, `_tokenizer`, `speculative_compat`, `adapter_manager`, `grammar_registry`, `orchestrator`, `inference_c_api`, `interface_factory`, `secondary_model_loader`. Includes `<llama.h>`, `<chat.h>`, `<common.h>`, `<sampling.h>`, `<speculative.h>`, `<mtmd.h>`, `<mtmd-helper.h>`, and `tool_call_markers.h` pulls in `chat.h`. |\n| `src/facade/entropic.cpp` | Includes `llama_cpp_backend.h`. It `dynamic_cast`s to `LlamaCppBackend` and calls `llama_model_ptr()` / `llama_context_ptr()` to drive adapter load, unload and swap. |\n| `src/config/loader.cpp` | Only config keys (`ggml_logging`, `llama_log_path`). No llama.cpp types. |\n| `include/entropic/` (public) | No llama headers, but llama.cpp types leak as forward declarations: `llama_model`, `llama_context`, `llama_adapter_lora` appear in `orchestrator.h`, `adapter_manager.h`, `speculative_compat.h`, and the `sampler.h` / `grammar_registry.h` docs. Consumers see the names, not the headers. |\n| Tests | `tests/unit/inference/*` and `tests/model/*` include `<llama.h>` and `<chat.h>` directly. |\n\n**Observations:**\n- The design rule \"no third-party headers in interface contracts\" is kept at the header level, but the public API still names llama.cpp structs, so a consumer cannot use those signatures without llama.cpp's type names being in scope.\n- The `llama-common` PUBLIC link in `src/inference` propagates to anything that links the inference target. The facade's `LINK_ONLY` suggests this was meant to stay internal, so it is worth checking whether it is needed.\n- The comment at the top of `extern/CMakeLists.txt` (\"NOT built in v1.8.0\") is stale. The code now builds llama.cpp.",
+  "ttft_ms": 1298,
+  "type": "result",
+  "duration_ms": 17715,
+  "uuid": "28b7128f-b274-4956-807e-d06c2e2e44c0",
+  "ttft_stream_ms": 1052,
+  "time_to_request_ms": 66,
+  "first_content_frame_ms": 1052,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

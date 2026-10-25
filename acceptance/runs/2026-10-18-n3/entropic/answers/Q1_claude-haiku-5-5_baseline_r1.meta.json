@@ -1,0 +1,41 @@
+{
+  "stem": "Q1_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "seconds": 36.186946631999945,
+  "input_tokens": 14,
+  "output_tokens": 6439,
+  "cache_read_tokens": 267161,
+  "cache_creation_tokens": 37278,
+  "cost_usd": 0.01334811,
+  "result_bytes": 2912,
+  "turns": 13,
+  "tool_calls": 12,
+  "non_index_tool_calls": 12,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/2026-10-18-n3/entropic/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nentropic's tokenizer calls into llama.cpp twice in a row in two different places. Why does\nit call twice, and would you describe this as retry logic?\n\nThen follow the failure outward: when tokenization fails, what value does the caller\nreceive, and what do the callers do with it?\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "tvanfossen/entropic",
+    "question_id": "Q1",
+    "arm": "baseline",
+    "model": "claude-haiku-5-5",
+    "replicate": 1,
+    "order": 9
+  },
+  "tool_calls_as_recorded": 21,
+  "non_index_tool_calls_as_recorded": 21,
+  "tool_counts_corrected": "recounted by tool_use id; blocks were double-counted (see acceptance/execute.py count_tools v3)"
+}

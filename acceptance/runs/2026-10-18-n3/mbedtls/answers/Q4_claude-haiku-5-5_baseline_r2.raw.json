@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 22561,
+  "stop_reason": "end_turn",
+  "session_id": "409e8728-f74c-4712-92da-97bbed261c28",
+  "total_cost_usd": 0.00626556,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 13030,
+    "cache_read_input_tokens": 171206,
+    "output_tokens": 3893,
+    "output_tokens_details": {
+      "thinking_tokens": 985
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 13030,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2238,
+        "cache_read_input_tokens": 41061,
+        "cache_creation_input_tokens": 2098,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2098
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3893,
+      "cacheReadInputTokens": 171206,
+      "cacheCreationInputTokens": 13030,
+      "webSearchRequests": 0,
+      "costUSD": 0.00626556,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 985,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short version:** `mbedtls_strerror()` in `library/error.c` negates the code, splits it into a high-level part and a low-level part, and looks each part up in a `switch`. That `switch` is generated, so adding a message means adding a `#define` with a Doxygen comment and regenerating, not hand-editing `error.c`.\n\n## How a negative code becomes a string\n\n```\nret (e.g. -0x7780)\n  \u2502\n  \u25bc\nmbedtls_strerror(ret, buf, buflen)        library/error.c:792\n  \u251c\u2500 buflen == 0 \u2192 return; else zero buf\n  \u251c\u2500 ret = -ret                            (sign dropped)\n  \u251c\u2500 ret & 0xFF80 ?  (high-level bits)\n  \u2502     \u2514\u2500 mbedtls_high_level_strerr(ret) \u2192 \"SSL - ...\"  (or \"UNKNOWN ERROR CODE (xxxx)\")\n  \u2502        \u2514\u2500 if high == SSL FATAL_ALERT \u2192 return early (don't decode the alert's low bits)\n  \u251c\u2500 ret & ~0xFF80 ?  (low-level bits)\n  \u2502     \u251c\u2500 if high text already present \u2192 append \" : \"\n  \u2502     \u2514\u2500 mbedtls_low_level_strerr(ret) \u2192 \"ERROR - ...\"  (or \"UNKNOWN ERROR CODE (xxxx)\")\n  \u25bc\nbuf: e.g. \"SSL - A fatal alert message was received from our peer\"\n```\n\n- The 16-bit layout (`include/mbedtls/error.h:17`) is 3 bits of high-level module ID plus 7 bits of low-level code. The split mask is `0xFF80`.\n- Each lookup is a `switch` over `case -(MBEDTLS_ERR_...)` labels, grouped by module. Those labels and the description strings are emitted by the generator.\n- If no description matches, the caller gets `UNKNOWN ERROR CODE (XXXX)` rather than nothing.\n- When `MBEDTLS_ERROR_C` is disabled, a dummy `mbedtls_strerror` at `error.c:867` just writes an empty string.\n\n## Where the table comes from\n\n`library/error.c` is a build artifact. `scripts/generate_errors.pl` produces it from `scripts/data_files/error.fmt` (the template) plus the headers in `include/mbedtls/*.h`.\n\nThe generator:\n1. Scans every header for this pattern: `/** ...doc... */` before or `/**< ...doc... */` after, then `#define MBEDTLS_ERR_<MODULE>_<NAME> -0x....`. Exactly one of the two doc comments must be present, or it dies.\n2. Dies on duplicate numeric codes.\n3. Maps the `<MODULE>` prefix to an `#if defined(MBEDTLS_<MODULE>_C)` guard and a `low_level` or `high_level` switch. A module missing from its hard-coded `@low_level_modules` / `@high_level_modules` lists causes an exit with `Do not know how to handle`.\n4. Derives the include name from the module (lowercased, `NET` \u2192 `net_sockets`) and checks that header is among the included files, or errors.\n\nRegeneration is wired into `library/Makefile:355`, `library/CMakeLists.txt:134`, and `tests/scripts/check-generated-files.sh`. CI flags a stale `error.c`.\n\n## What a contributor has to do\n\n1. **Define the code** in the header for its module, such as `include/mbedtls/<module>.h`. Use the form `#define MBEDTLS_ERR_<MODULE>_<NAME> -0x<hex>` with a Doxygen doc comment, placed before or after, not both. Pick a value that is free in the module's range (the table at `error.h:37-80` lists the assignments).\n2. **If the module is new**, add it to `@low_level_modules` or `@high_level_modules` in `scripts/generate_errors.pl:31-38`. Also add the guard and header mapping if the prefix doesn't follow the default rule.\n3. **Regenerate**: `perl scripts/generate_errors.pl` from the repo root, or run `make` in `library/`, or let CMake's custom command do it. Don't edit `library/error.c` by hand.\n4. **Verify**: `tests/scripts/check-generated-files.sh` should be clean, and the `test_suite_error` tests (`tests/suites/test_suite_error.data`) should cover the new string. Add a case there if the code is user-visible.\n5. Add a ChangeLog entry if the change is user-visible. The repo keeps one.\n\nCaveat I did not run: I read the generator and `error.c` but did not run the script or the test suite, so the exact failure messages are from reading the code.",
+  "ttft_ms": 1792,
+  "type": "result",
+  "duration_ms": 22854,
+  "uuid": "35a1d0c6-ae03-43eb-9a2c-713163c3ab10",
+  "ttft_stream_ms": 1601,
+  "time_to_request_ms": 96,
+  "first_content_frame_ms": 1601,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

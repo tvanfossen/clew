@@ -83,6 +83,15 @@ DOXYGEN_SCHEMA_PATH = Path(__file__).resolve().parent / "data" / "doxygen_schema
 
 ## doxygen's `path.type` discriminator — only files are ever written here (Rust
 ## has no separate "directory" concept this module needs to record).
+## HOW LONG A CARGO CALL MAY RUN BEFORE IT IS KILLED. `cargo +nightly rustdoc` COMPILES THE
+## TARGET REPOSITORY, which runs its `build.rs`, every proc-macro it declares and whatever its
+## `.cargo/config.toml` says — so this is a backstop against a repository that never finishes,
+## not a budget for a legitimate build. Sized like `_DOXYGEN_TIMEOUT` for the same reason: a
+## large real crate graph must still complete. The two probes get the short bound beside it,
+## because a `--version` or a metadata read that takes a minute is already broken.
+_CARGO_BUILD_TIMEOUT = 900
+_CARGO_PROBE_TIMEOUT = 30
+
 _TYPE_FILE = 1
 
 ## rustdoc `inner` keys this module turns into a `memberdef` row, and the doxygen
@@ -142,7 +151,7 @@ def uses_rustdoc(repo_root: Path) -> bool:
 
 
 ## @brief Refuse before spawning cargo, naming exactly what is missing.
-## @version 1
+## @version 2
 ## @dg_internal
 def _require_nightly_rustdoc() -> None:
     """rustdoc's JSON output has required `-Z unstable-options` (nightly-only)
@@ -160,7 +169,7 @@ def _require_nightly_rustdoc() -> None:
 
     @brief Verify cargo and a nightly toolchain are both usable.
     @raises RustdocUnavailableError when cargo or a nightly toolchain is unusable.
-    @version 1
+    @version 2
     """
     if shutil.which("cargo") is None:
         raise RustdocUnavailableError(
@@ -172,6 +181,7 @@ def _require_nightly_rustdoc() -> None:
         capture_output=True,
         text=True,
         env=clean_subprocess_env(),
+        timeout=_CARGO_PROBE_TIMEOUT,
     )
     if proc.returncode != 0:
         raise RustdocUnavailableError(
@@ -186,7 +196,7 @@ def _require_nightly_rustdoc() -> None:
 ## @brief The lib and bin targets `cargo metadata` reports for this repo.
 ## @param repo_root Repository root (a package or a workspace).
 ## @return One target per package lib (if any) plus one per bin target.
-## @version 2
+## @version 3
 ## @dg_internal
 def _discover_targets(repo_root: Path) -> list[_CargoTarget]:
     """Only `--no-deps` packages — the workspace's OWN crates, never a
@@ -206,7 +216,7 @@ def _discover_targets(repo_root: Path) -> list[_CargoTarget]:
     @brief Resolve which cargo targets to run rustdoc against.
     @return One `_CargoTarget` per package target (lib and/or bins).
     @raises RustdocUnavailableError when `cargo metadata` itself fails.
-    @version 2
+    @version 3
     """
     proc = subprocess.run(
         ["cargo", "metadata", "--no-deps", "--format-version", "1"],
@@ -214,6 +224,7 @@ def _discover_targets(repo_root: Path) -> list[_CargoTarget]:
         capture_output=True,
         text=True,
         env=clean_subprocess_env(),
+        timeout=_CARGO_PROBE_TIMEOUT,
     )
     if proc.returncode != 0:
         raise RustdocUnavailableError(
@@ -240,7 +251,7 @@ def _discover_targets(repo_root: Path) -> list[_CargoTarget]:
 ## @param scratch_dir A `--target-dir` outside the repo, so a build never writes
 ##        into the tree it is indexing (mirrors `_doxygen_out_dir`'s rule for doxygen).
 ## @return Path to the generated `<target>.json`.
-## @version 2
+## @version 3
 ## @dg_internal
 def _run_rustdoc_json(repo_root: Path, target: _CargoTarget, scratch_dir: Path) -> Path:
     """Invoke `cargo +nightly rustdoc --output-format json` for one target.
@@ -251,7 +262,7 @@ def _run_rustdoc_json(repo_root: Path, target: _CargoTarget, scratch_dir: Path) 
     @brief Invoke `cargo +nightly rustdoc --output-format json` for one target.
     @raises RustdocUnavailableError when the invocation fails or the expected
         file is absent.
-    @version 2
+    @version 3
     """
     kind_flag = "--lib" if target.kind == "lib" else f"--bin={target.name}"
     cmd = [
@@ -277,6 +288,7 @@ def _run_rustdoc_json(repo_root: Path, target: _CargoTarget, scratch_dir: Path) 
         capture_output=True,
         text=True,
         env=clean_subprocess_env(),
+        timeout=_CARGO_BUILD_TIMEOUT,
     )
     if proc.returncode != 0:
         raise RustdocUnavailableError(
@@ -680,7 +692,7 @@ def _trait_self_membership(doc: dict[str, Any], doc_prefix: str) -> list[_Impl]:
 ## @return An open connection to the new database.
 ## @version 1
 ## @dg_internal
-def _create_schema(db_path: Path) -> sqlite3.Connection:
+def create_doxygen_schema(db_path: Path) -> sqlite3.Connection:
     """@brief Load doxygen's own schema (clew/data/doxygen_schema.sql) into a fresh db."""
     db_path.parent.mkdir(parents=True, exist_ok=True)
     if db_path.exists():
@@ -973,7 +985,7 @@ def _write_compounds(
 ## @param repo_root Repository root (a cargo package or workspace).
 ## @param db_path Where to write the resulting database.
 ## @return `db_path`, for symmetry with `doxygen.run_doxygen`'s return contract.
-## @version 2
+## @version 3
 ## @utility
 def run_rustdoc(repo_root: Path, db_path: Path) -> Path:
     """The Rust analog of `doxygen.run_doxygen`: same contract (a Path to a
@@ -995,7 +1007,7 @@ def run_rustdoc(repo_root: Path, db_path: Path) -> Path:
     @return Path to the generated database (`db_path`).
     @raises RustdocUnavailableError when cargo/nightly rustdoc is unusable, or no
         lib/bin target is found.
-    @version 2
+    @version 3
     """
     repo_root = Path(repo_root).resolve()
     _require_nightly_rustdoc()
@@ -1020,7 +1032,7 @@ def run_rustdoc(repo_root: Path, db_path: Path) -> Path:
             compounds.extend(_compounds_from_json(doc, prefix))
             impls.extend(_impls_from_json(doc, prefix))
             impls.extend(_trait_self_membership(doc, prefix))
-    conn = _create_schema(Path(db_path))
+    conn = create_doxygen_schema(Path(db_path))
     try:
         state = _write_symbols(conn, symbols)
         _write_compounds(conn, state, compounds, impls)

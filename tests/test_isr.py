@@ -18,19 +18,12 @@ Zephyr v4.4.2, FreeRTOS-Kernel V11.3.1 with the 202411.00 demos), not off docume
 
 from __future__ import annotations
 
-import pytest
 
-from clew.harvest import try_import_tree_sitter
 from clew.threads import (
     DEFAULT_SPAWN_PATTERNS,
     _walk_spawn_sites,
     load_thread_patterns,
     patterns_by_name,
-)
-
-pytestmark = pytest.mark.skipif(
-    try_import_tree_sitter() is None,
-    reason="the ISR tests need tree_sitter + its C grammar",
 )
 
 ## The septet `_walk_spawn_sites` emits, read by meaning rather than by index literal.
@@ -43,10 +36,9 @@ NAME, ENTRY, KIND, QUALIFIED, SEP, LINE, ENCLOSING, SOURCE = range(8)
 ## @version 1
 def _sites(src: bytes) -> list[list]:
     """@brief Walk one C blob with the shipped pattern set."""
-    import tree_sitter_c
-    from tree_sitter import Language, Parser
+    from clew.tsnode import Parser
 
-    parser = Parser(Language(tree_sitter_c.language()))
+    parser = Parser("c")
     return _walk_spawn_sites(parser.parse(src), src, patterns_by_name(load_thread_patterns(None)))
 
 
@@ -269,8 +261,7 @@ def test_a_registration_inside_a_macro_body_is_counted_not_ignored() -> None:
     @brief Registrations hidden in macro bodies are counted.
     @version 1
     """
-    import tree_sitter_c
-    from tree_sitter import Language, Parser
+    from clew.tsnode import Parser
 
     from clew.isr import count_macro_body_registrations
 
@@ -287,7 +278,7 @@ void visible_setup(void)
     IRQ_CONNECT(3, 1, other_isr, NULL, 0);
 }
 """
-    parser = Parser(Language(tree_sitter_c.language()))
+    parser = Parser("c")
     tree = parser.parse(src)
     spellings = frozenset(load_thread_patterns(None) and {p.name for p in DEFAULT_SPAWN_PATTERNS})
 
@@ -543,7 +534,7 @@ def test_a_thread_payload_cached_before_the_widened_patterns_is_not_served(tmp_p
     conn.execute("CREATE TABLE path (name TEXT)")
     conn.execute("INSERT INTO path (name) VALUES (?)", (rel,))
 
-    payload = run_harvest(conn, root, harvester, try_import_tree_sitter(), cache)[0][1]
+    payload = run_harvest(conn, root, harvester, cache)[0][1]
     entries = sorted(site[ENTRY] for site in payload["sites"])
 
     assert entries == ["ISR_GPIOTE", "isr_port1"], (

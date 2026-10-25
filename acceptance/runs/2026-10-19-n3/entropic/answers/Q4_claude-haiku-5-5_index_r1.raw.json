@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 17757,
+  "stop_reason": "end_turn",
+  "session_id": "6436da3f-81d0-4b33-9254-2af502ebb885",
+  "total_cost_usd": 0.014300620000000002,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 54454,
+    "cache_read_input_tokens": 182832,
+    "output_tokens": 3161,
+    "output_tokens_details": {
+      "thinking_tokens": 1173
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 54454,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1478,
+        "cache_read_input_tokens": 52990,
+        "cache_creation_input_tokens": 1464,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1464
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3161,
+      "cacheReadInputTokens": 182832,
+      "cacheCreationInputTokens": 54454,
+      "webSearchRequests": 0,
+      "costUSD": 0.014300620000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1173,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Five background threads run in the repo, all spawned by `pthread_create` / `std::thread`. Each one is kept safe by one of three things: an atomic flag for lifecycle, a mutex around shared state, or a handoff that runs callbacks on the engine thread.\n\n| Thread | Spawned at | What it does | What keeps it safe |\n|---|---|---|---|\n| `ExternalBridge::accept_loop` | `external_bridge.cpp:796` (in `start`) | Polls the listen socket every 500 ms, checks peer UID, and starts a serve thread per client | `running_` is `std::atomic<bool>`. The per-client list is guarded by `client_threads_mutex_`. Each client thread sets an atomic `finished` flag before exit, and `reap_finished_clients_locked()` joins those threads under the lock. |\n| Per-client `serve_client` threads | `std::thread` lambda inside `accept_loop` (`external_bridge.cpp` ~line 950) | Reads JSON-RPC lines from one client and writes responses | Each thread gets a `HandleLogScope` so its logs route to the owning handle. `subscribe`/`unsubscribe` are RAII-guarded, and `stop()` shuts down the fd to wake blocking reads. |\n| `HealthMonitor::monitor_loop` | `health_monitor.cpp:92` (in `start`) | Every 500 ms, checks watched MCP servers under `watched_mutex_` | `running_` is atomic. The loop waits on `wake_cv_` under `wake_mutex_`, so shutdown can wake it early. |\n| `HealthMonitor::process_events` | Not a thread. It runs on the engine thread. | Drains the event queue and fires `status_callback_` | This is the handoff. The monitor thread pushes events under `event_mutex_`, and `process_events` swaps the queue out under that lock and then invokes callbacks outside it. The docstring says callbacks run on the engine thread. |\n| `StdioTransport::stderr_reader_loop` | `transport_stdio.cpp:164` (in `open`) | Forwards child-process stderr to the logger | `connected_` is atomic. `io_mutex_` covers the stdio transport's I/O. |\n| `SSETransport::sse_reader_loop` | `transport_sse.cpp:107` (in `open`) | Runs the blocking SSE GET and parses events | `connected_` and `running_` are atomic. `pending_mutex_` guards pending requests. The loop returns `running_` from the content receiver to stop the stream. |\n\n**Lock discipline.** The index reports 45 distinct mutex identities in the repo. Most are simple leaf locks taken and released without nesting. The notable nested pair is `auth_mutex_` \u2192 `key_mutex_` in `check_access` (`mcp_authorization.cpp:105`). I found no pair taken in opposite orders. The index also reports `event_mutex_` \u2192 `adapter_mutex_` from `process_events` at `health_monitor.cpp:122`, but that row has `resolved_sites=0` and comes from a `swap` on an unverified receiver. The swap only touches `event_mutex_`, so I believe that row is a false positive. I did not confirm that by reading the code.\n\n**Gaps in this answer:**\n- The index found only five spawn sites. The per-client threads in `accept_loop` are spawned with a `std::thread` lambda, and the index attributes them to `accept_loop`, not as separate entries.\n- I did not read `ExternalBridge::stop`, `HealthMonitor::stop`, or the transport close paths. The index did not resolve those names, so the join ordering on shutdown is unverified.\n- The `tests/unit/mcp/transport_sse_test.cpp` thread is a test mock and is not part of the runtime.",
+  "ttft_ms": 2010,
+  "type": "result",
+  "duration_ms": 18593,
+  "uuid": "0295499a-81ac-4ea1-9e1c-49a4f124f545",
+  "ttft_stream_ms": 1512,
+  "time_to_request_ms": 63,
+  "first_content_frame_ms": 1512,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

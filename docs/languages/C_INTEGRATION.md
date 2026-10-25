@@ -3,7 +3,8 @@
 
 | | |
 |---|---|
-| front end | **doxygen** (sqlite3 output) **+ tree-sitter-c** |
+| front end | **doxygen** (sqlite3 output) **+ tree-sitter** |
+| tree-sitter layer | lang-parsing-substrate's C grammar (`clew/tsnode.py`), the one knots, moldy and aurora-lint use |
 | requires | `doxygen` built with sqlite3 support; `gcc` for preprocessor work |
 | Doxyfile | optional — one is synthesized when a repo ships none |
 
@@ -27,8 +28,8 @@ whole trees, and the build exits 0 with a plausible count while doing it.
 **Index scope is not gate scope and not Doxyfile scope.** A Doxyfile is a *documentation* target
 and may cover far less than you want to reason about; honouring its `INPUT` punished a repo for
 documenting itself. Precedence is declaration > whole repo, with the Doxyfile kept for `ALIASES`
-and `PREDEFINED` and its `INPUT` replaced. Declare `index_scope` in `.clew.yaml` or
-`x-clew: index_scope:` in `.doxygen-guard.yaml` to let the two differ.
+and `PREDEFINED` and its `INPUT` replaced. Declare `index_scope` in `.clew.yaml` to let the two
+differ.
 
 ## Macros are the recurring trap
 
@@ -62,6 +63,10 @@ without a release token every critical section stays NULL.
 ## Requirements
 
 `@req` tags work both literally and via an `ALIASES` xrefitem. The id pattern is read from the
-repo's own `.doxygen-guard.yaml`, never assumed. A catalog (`requirements.yaml`) is optional
+`guard:` section of the repo's own `.clew.yaml`, never assumed. A catalog (`requirements.yaml`) is optional
 metadata: without one, `req_edges` still populate from tags and only titles and priorities are
 missing.
+
+To *enforce* the tags (presence, revision bumps, catalog membership) at commit time, use the
+gate that ships with clew: `clew guard`, the absorbed doxygen-guard. See
+[docs/GUARD.md](../GUARD.md).

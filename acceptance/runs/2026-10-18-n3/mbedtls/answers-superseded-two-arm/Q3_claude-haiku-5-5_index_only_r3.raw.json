@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 28574,
+  "stop_reason": "end_turn",
+  "session_id": "b907fe71-0458-4846-8a7d-6abd164ced77",
+  "total_cost_usd": 0.01082976,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 32888,
+    "cache_read_input_tokens": 104606,
+    "output_tokens": 6411,
+    "output_tokens_details": {
+      "thinking_tokens": 4540
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 32888,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 5739,
+        "cache_read_input_tokens": 36658,
+        "cache_creation_input_tokens": 30204,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 30204
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 6411,
+      "cacheReadInputTokens": 104606,
+      "cacheCreationInputTokens": 32888,
+      "webSearchRequests": 0,
+      "costUSD": 0.01082976,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4540,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** every library allocation goes through `mbedtls_calloc()` and `mbedtls_free()`. By default those forward to libc `calloc`/`free` through two file-static function pointers. A project can replace the allocator at build time with macros or at run time with `mbedtls_platform_set_calloc_free()`. The library's only internal use of that run-time hook is its own stack-based allocator, which installs itself as the global allocator.\n\n**1. What gets called by default**\n\n```\nmbedtls_calloc(n, size)         library/platform.c:47\n  \u2514\u2500 (*mbedtls_calloc_func)     platform.c:44, initialised to MBEDTLS_PLATFORM_STD_CALLOC\n       \u2514\u2500 calloc                platform.h:84\n\nmbedtls_free(ptr)               library/platform.c:52\n  \u2514\u2500 (*mbedtls_free_func)       platform.c:45, initialised to MBEDTLS_PLATFORM_STD_FREE\n       \u2514\u2500 free\n```\n\nCallers in the library use the `mbedtls_calloc`/`mbedtls_free` names, not `calloc`/`free`. The index shows them used across cipher context allocation, ASN.1, MPI growth, PK, PSA, SSL and X.509.\n\n**2. Substitution at build time (macros)**\n\n- `platform.h:139-145` maps `mbedtls_calloc` to `MBEDTLS_PLATFORM_CALLOC_MACRO` (line 144) and `mbedtls_free` to `MBEDTLS_PLATFORM_FREE_MACRO` (line 143). Both sit behind `MBEDTLS_PLATFORM_MEMORY`.\n- A project defines those two macros in its user config. The index has the gate structure but no definition site for either macro, and no config header is recorded for this target. So I cannot confirm the shipped default or the exact polarity of the `#if`.\n- The test fixture `tests/configs/user-config-malloc-0-null.h` defines a `custom_calloc` function and wires it in through `MBEDTLS_PLATFORM_STD_CALLOC`. That is a working example of the pattern, but I did not read its body.\n\n**3. Substitution at run time (function pointers)**\n\n`mbedtls_platform_set_calloc_free(calloc_func, free_func)` (`platform.c:57-63`) assigns the two statics and returns 0. The body has no NULL check, no lock and no return-value check. A project calls it before any allocation, with its own `calloc`- and `free`-shaped functions.\n\n**4. What the library does with the facility**\n\n`mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566-600`) is the library's own user of the hook:\n\n- It zeroes its heap context, then calls `mbedtls_platform_set_calloc_free`. It passes the mutexed variants when `MBEDTLS_THREADING_C` is defined, and the plain variants otherwise.\n- It only then checks `len` and aligns the buffer. From the body, a too-small buffer returns early but leaves the buffer allocator installed globally. With `heap.buf == NULL`, `buffer_alloc_calloc` (`:199-278`) returns NULL for every request. This is my reading of the code, not something the index states as a finding, so treat it as worth verifying.\n- The function is process-wide. Installing it changes allocation for every Mbed TLS object in the process.\n\n**Gaps in the index**\n\n- Default value of `MBEDTLS_PLATFORM_CALLOC_MACRO` / `FREE_MACRO`: no definition site and no `config_header`, so unknown.\n- Whether `mbedtls_platform_set_calloc_free` is safe to call while other threads allocate: the body shows no synchronisation, but I did not query locks.\n- The `#if` polarity of the `platform.c:20-64` block and the `platform.h` branches: the index gives gate expressions without their conditions, so the two modes above come from the gate structure, not a read of the condition.",
+  "ttft_ms": 1571,
+  "type": "result",
+  "duration_ms": 29627,
+  "uuid": "84e32657-2f47-45f4-9f59-70e370b6f02e",
+  "ttft_stream_ms": 827,
+  "time_to_request_ms": 73,
+  "first_content_frame_ms": 827,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

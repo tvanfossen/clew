@@ -30,15 +30,8 @@ from __future__ import annotations
 
 import sqlite3
 
-import pytest
-
 from clew.ast_symbols import _recover_class_fields_into, harvest_python_class_fields
-from clew.harvest import _ast_parse_one_file, try_import_tree_sitter
-
-pytestmark = pytest.mark.skipif(
-    try_import_tree_sitter() is None,
-    reason="the class-field recovery tests need tree_sitter + the Python grammar",
-)
+from clew.harvest import _ast_parse_one_file
 
 
 ##
@@ -48,10 +41,9 @@ pytestmark = pytest.mark.skipif(
 # @version 1
 def _parse(tmp_path):
     """@brief Parse the module fixture through the real per-file parse path."""
-    Language, Parser = try_import_tree_sitter()
     path = tmp_path / "m.py"
     path.write_text(_SOURCE, encoding="utf-8")
-    parsed = _ast_parse_one_file("m.py", path, {}, Parser, Language)
+    parsed = _ast_parse_one_file("m.py", path, {})
     assert parsed is not None
     return parsed
 

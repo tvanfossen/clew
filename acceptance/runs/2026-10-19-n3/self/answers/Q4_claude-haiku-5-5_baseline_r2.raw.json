@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 24148,
+  "stop_reason": "end_turn",
+  "session_id": "e3157f33-6cad-4538-b89f-757dc314b1d3",
+  "total_cost_usd": 0.00801576,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 18260,
+    "cache_read_input_tokens": 226356,
+    "output_tokens": 4198,
+    "output_tokens_details": {
+      "thinking_tokens": 1663
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 18260,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2390,
+        "cache_read_input_tokens": 46944,
+        "cache_creation_input_tokens": 1432,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1432
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4198,
+      "cacheReadInputTokens": 226356,
+      "cacheCreationInputTokens": 18260,
+      "webSearchRequests": 0,
+      "costUSD": 0.00801576,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1663,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer is a set of **caller functions with a provenance label on each edge**, not a list of call sites. Reading it as call sites is wrong in several specific ways.\n\nI answered from the source and docs in this repo. I did not run `clew` against an index.\n\n**What a caller row contains**\n\n`clew` no longer has a separate `callers` tool. Its `dossier` reply carries `callers` and `callees` fields, plus the body, threads, locks, liveness and requirements for the same symbol. Each edge is stored as `call_edges(caller_rowid, callee_rowid, source, confidence)` (`clew/call_edges.py:4`). So an edge is a pair of functions plus two labels:\n\n- **`source`** says which layer found it: `ast` (bare identifier), `ast_member` (member call recovered by unwrapping), `doxygen_sqlite`, `macro_hop`, `fnptr`, `declared_dispatch`, and others.\n- **`confidence`** is `exact`, `resolved` or `fuzzy`. `fuzzy` means the callee name matched several indexed functions and the edge was fanned out to each of them.\n\nThe reply also carries `callers_unresolved`, a count of call sites that could not be attached to any indexed function. It returns `None`, not 0, when the index predates that measurement.\n\n**What makes it wrong to read as a call-site list**\n\n1. **Rows are function-to-function, not line-to-line.** The table has no line column, and it is unique on (caller, callee, source). A caller that invokes the target five times is one row.\n\n2. **`fuzzy` is a name guess.** When several functions share a name, each namesake gets a row. A later pass (`clew/dominated_edges.py`) deletes some of these when a stronger layer already named the real callee, but only where such an anchor exists. Surviving fuzzy rows are still guesses.\n\n3. **Shared names pool the neighbours.** If a name matches several signatures, the `ambiguous` block says the rows are shared across all of them. Re-ask with `qualified` before attributing a caller to one function.\n\n4. **An empty `callers` is not \"nothing calls this\".** Possible causes include unresolved inbound sites (`callers_unresolved`), calls through function pointers, virtual dispatch, macros, and code outside the indexed tree. Check `callers_unresolved` before trusting an empty list.\n\n5. **`exact` is only as good as the layer that produced it.** Member-call edges are graded `resolved` only after receiver narrowing succeeds. Otherwise they stay `fuzzy`.\n\n6. **Coverage depends on language and index age.** Python and Rust do not pick up new cross-file calls until a full rebuild. A stale index is refreshed automatically on query, but only what was indexed is answered.\n\n7. **It is one hop.** `callers` shows direct edges. The README's \"transitively, across a function-pointer boundary\" claim depends on other tools or walks that I did not trace in this build.\n\nIn short: read each row as \"this function, by this layer, at this confidence, plausibly calls the target.\" Treat `fuzzy` rows as candidates to verify, and treat an empty list as \"not found in the index\", not as \"no callers\".",
+  "ttft_ms": 1648,
+  "type": "result",
+  "duration_ms": 24419,
+  "uuid": "ae1c4165-e44b-4872-8271-eb0a8ffb8329",
+  "ttft_stream_ms": 1198,
+  "time_to_request_ms": 79,
+  "first_content_frame_ms": 1198,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

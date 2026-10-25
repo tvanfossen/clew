@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 48106,
+  "stop_reason": "end_turn",
+  "session_id": "e418ccfc-c74d-474c-8bab-9caccff69f72",
+  "total_cost_usd": 0.016872090000000003,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 32707,
+    "cache_read_input_tokens": 597349,
+    "output_tokens": 8710,
+    "output_tokens_details": {
+      "thinking_tokens": 3866
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 32707,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3431,
+        "cache_read_input_tokens": 70275,
+        "cache_creation_input_tokens": 282,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 282
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 8710,
+      "cacheReadInputTokens": 597349,
+      "cacheCreationInputTokens": 32707,
+      "webSearchRequests": 0,
+      "costUSD": 0.016872090000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3866,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 16,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## How Python reaches the engine\n\nPython never links against the engine. It loads the shared library at runtime with `ctypes`, so there is no compiled extension and no pybind or cffi layer.\n\n```\nPython (entropic-engine wheel)\n  _loader.py     find librentropic.so, ctypes.CDLL(path)\n  _bindings.py   ctypes bindings, generated from entropic.h\n  hooks.py / streams.py / helpers.py / mcp.py   thin Python facades\n        \u2502  C ABI (pure C, opaque handles, error codes)\n        \u25bc\nlibrentropic.so   src/facade/entropic.cpp \u2192 C++ engine behind it\n```\n\n- **Library discovery** (`python/src/entropic/_loader.py`): checks `$ENTROPIC_LIB`, then `$ENTROPIC_HOME`, then `~/.entropic`, then `ldconfig`. Both the nested and flat install layouts are searched.\n- **Bindings** (`python/src/entropic/_bindings.py`): auto-generated from `include/entropic/entropic.h` by `scripts/gen_bindings.py`. Each function gets explicit `restype` and `argtypes`. The file also holds the enums, the `ctypes.Structure` types and the `CFUNCTYPE` callback typedefs. Pre-commit runs `gen-bindings --check` and fails if the file has drifted from the header.\n- **Lazy import** (`_bindings_manifest.py`): the export list is a static set, so `import entropic` works before the `.so` exists. That is what lets `entropic install-engine` run first.\n- **Loader type**: `ctypes.CDLL` is used rather than `PyDLL`, so the GIL is released during each engine call. A blocking `entropic_run` does not stall other Python threads, and `entropic_interrupt()` can be called from another thread.\n- **No high-level class**: the package exposes flat C-ABI symbols. Only the hooks, streams, helpers and mcp modules add Python-side conveniences.\n\n## Rules for memory crossing the boundary\n\nThese come from the header's \"Memory ownership\" section plus how the Python side follows it.\n\n1. **Engine-allocated strings are caller-owned.** Any `char*` returned or written through a `char**` out-param transfers ownership. The caller must release it with `entropic_free()`. `NULL` is a no-op.\n2. **Handle-owned strings are not freed.** A `const char*` return is owned by the handle and is valid only until the next call on that handle. `entropic_version()` is static and must not be freed.\n3. **The engine frees what Python gives it only via `entropic_alloc()`.** Hook `modified_json` is the example. `hooks.py` (`_alloc_c_string`, and the trampoline's write to `mod_out_ptr`) allocates through `entropic_alloc` and copies the bytes in with `memmove`. The engine then `free()`s it. Python-owned buffers such as `create_string_buffer` or bytes objects must never be handed over for the engine to free.\n4. **Python must keep callback wrappers alive.** A `CFUNCTYPE` object that is garbage-collected leaves the engine holding a dangling function pointer. `streams.py` stores the wrapper in a module-level `_observers` dict keyed by handle address. `hooks.py` keeps a per-handle registry. The `helpers.py` docstring tells consumers to hold the wrapper for the engine's lifetime.\n5. **Exceptions never cross into C.** Both the hook trampoline and the stream trampoline catch every exception, print the traceback, and return a pass-through value. This matches design rule 6 in `docs/architecture-cpp.md`.\n6. **Errors are return codes, not exceptions.** Each call returns an `entropic_error_t`. Detail comes from the per-handle `last_error`. The Python `EntropicError` IntEnum mirrors the codes.\n7. **Thread rules.** Calls are serialized per handle. Callbacks may fire on the engine thread or a delegation thread, so consumer callbacks must be thread-safe. Create and destroy must not race other calls on the same handle.\n\n## A gap I found\n\nThe Python package has no wrapper that frees engine-owned strings. The only `entropic_free` in the Python source is the auto-generated binding itself, and nothing in `src/` or `examples/` calls it on a result. Two consequences:\n\n- **Leak on `c_char_p` returns.** `entropic_adapter_info`, `entropic_grammar_get` and `entropic_grammar_validate` are bound with `restype=c_char_p`. ctypes copies the string into a Python `bytes` and drops the raw pointer. The header says the caller must free these, but the caller has no pointer left to free, so each call leaks.\n- **Out-param results need manual handling.** `entropic_run` and the others write through `POINTER(c_char_p)`. A caller who reads `.value` gets a copy, and still has to call `entropic_free(out)` on the raw pointer. Nothing in the package enforces that.\n\nThe fix is probably to bind those three functions with `c_void_p` restype, copy the value, and call `entropic_free` before returning. Adding a small RAII-style helper for result pointers would also cover the out-param case. I read this from the code and did not run it, so the leak is unconfirmed until a test exercises it.",
+  "ttft_ms": 1585,
+  "type": "result",
+  "duration_ms": 48951,
+  "uuid": "742d29e9-6f0a-4fb1-8f41-94c6dc266922",
+  "ttft_stream_ms": 1189,
+  "time_to_request_ms": 79,
+  "first_content_frame_ms": 1189,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 19555,
+  "stop_reason": "end_turn",
+  "session_id": "6f2802f4-105a-46d7-879a-44bd99e4298a",
+  "total_cost_usd": 0.00820302,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 21183,
+    "cache_read_input_tokens": 247472,
+    "output_tokens": 2981,
+    "output_tokens_details": {
+      "thinking_tokens": 1245
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 21183,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1530,
+        "cache_read_input_tokens": 52208,
+        "cache_creation_input_tokens": 2903,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2903
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 2981,
+      "cacheReadInputTokens": 247472,
+      "cacheCreationInputTokens": 21183,
+      "webSearchRequests": 0,
+      "costUSD": 0.00820302,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1245,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The index describes five precedence tiers, one combination rule, and an explicit rule for when a stated value beats a declared one. I answered from the index alone, so I could not check the full CLI flag list or the scope-option details against source.\n\n**The ways to say so, highest precedence first** (`clew/tiers.py`, `TIER_ORDER`):\n\n| Tier | Source | Effect |\n|---|---|---|\n| 1 `explicit` | A CLI flag for one build, or the same value passed inline as a mapping by an embedding caller (gh#360, REQ-DDB-CONFIG-008) | Replaces the lower stated layers for that build |\n| 2 `declared` | The target's `.clew.yaml` | Replaces tier 5 |\n| 3 `target-fact` | Facts already in the repo, such as language, platform, or its own manifests | Accumulates; no stated tier removes it |\n| 4 `ecosystem` | Built-in known-ecosystem signatures | Accumulates; a declaration can add to it but not remove it |\n| 5 `heuristic` | Name-pattern guesses | Only the floor; any stated tier displaces it |\n\nTwo other things to know:\n- `.clew.yaml` is read from the repo root. An unknown section name makes the load refuse with an error, rather than silently falling back to defaults. A file that only has `guard:` declares nothing to the index.\n- `clew propose` and the `propose_declaration` tool only write a commented draft `.clew.yaml`. They change nothing until someone uncomments it.\n\n**When two disagree**\n\n- **Tier 1 vs tier 2 (flag vs declaration):** the flag wins, because it is a deliberate one-off override of the repo's standing statement. The declaration is still read but not used for that build.\n- **Stated vs guess:** a declared or flagged value displaces the heuristic guesses entirely.\n- **Facts and ecosystem defaults:** these never lose to a stated value. A declaration adds to them and cannot subtract.\n- **An empty flag is a withdrawal, not a statement.** `[]` falls through to the declaration and then to the guesses. This lets an operator undo a recorded flag without deleting the database.\n- **Per-section, not whole-file:** some options take a union across sections. For example, shared-key alias prefixes from the accessor manifest and the dispatch manifest's `shared_key_wrappers` add together, and passing a flag for one of them does not drop the other. The flag only changes the label recorded for the winning tier.\n- **Scope is special:** only a declaration yields index roots. A rejected declaration refuses the build instead of silently widening the scope.\n\n**Recording the outcome:** the index stores which tier won for each layered option. `db_status` reports it, and an index built before build 30 has no record. That lets a surprising result be traced back to a flag, the declaration, or a guess.",
+  "ttft_ms": 1804,
+  "type": "result",
+  "duration_ms": 20568,
+  "uuid": "6e224b88-b58e-4e6d-a2ae-39bc61ca023a",
+  "ttft_stream_ms": 1257,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1257,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

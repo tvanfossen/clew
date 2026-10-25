@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 12125,
+  "stop_reason": "end_turn",
+  "session_id": "0b2eaa48-4d00-4f8b-afa6-f761ead9e04a",
+  "total_cost_usd": 0.0019814200000000002,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 1291,
+    "cache_read_input_tokens": 71132,
+    "output_tokens": 2023,
+    "output_tokens_details": {
+      "thinking_tokens": 893
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 1291,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1604,
+        "cache_read_input_tokens": 35566,
+        "cache_creation_input_tokens": 1291,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1291
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2023,
+      "cacheReadInputTokens": 71132,
+      "cacheCreationInputTokens": 1291,
+      "webSearchRequests": 0,
+      "costUSD": 0.0019814200000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 893,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply doesn't use one \"no results\" signal. It gives several fields that separate the cases, and each carries a different amount of confidence.\n\n**What I ran:** `search` for `zzqxv nonexistentwidget` (symbols) and `zzqxv` (prose). Both returned `count: 0`, but the notes differ.\n\n**Symbol search, multi-token miss:**\n- `note` says it is \"NOT an error and NOT a definitive negative.\"\n- `token_hits` gives per-token counts (`zzqxv=0`, `nonexistentwidget=0`). Matching is a conjunction, so the note names the tokens that emptied the result. The fix is to retry with one distinctive token, not to conclude absence.\n- `note` also lists what was searched: names, `@brief`s, macros and expansions, types, config symbols, and file docs. It says markdown and Kconfig prose were not searched, and points to `corpus='prose'`.\n- `scope` gives the reach: 426 files, whole repo, the indexed extensions, and the `not_indexed` extensions with counts (e.g. `.rs=2`, `.toml=2`, `.sql=1`, no-extension files=3).\n- `target` names the repository that answered.\n\n**Prose search, single-token miss:** the note says \"This IS a definitive empty result from the database.\" That is stronger, but only for the indexed markdown.\n\n**The \"did I look in the right place\" channel:**\n- `target`: confirms which repo was queried. Wrong target means the answer is about the wrong repo.\n- `scope` / `not_indexed`: lists extensions and files the index never read.\n- `not_searched`: appears when a sub-index (e.g. vendored code) was skipped. It was absent here, so nothing was skipped.\n- `staleness`: appears only when the index is older than the source. It was absent here, so the index is current.\n\n**Confidence I would assign:**\n\n| Situation | What an empty reply supports |\n|---|---|\n| Single token, empty prose corpus, file type in `scope`, no `not_searched`/`staleness` | Strong: the repo indexed text of that kind and does not contain it |\n| Multi-token symbol miss | Weak until retried with each distinctive token alone |\n| Symbol search, no prose check | Moderate: prose and Kconfig were not read |\n| Target file is in a `not_indexed` extension, a Makefile, a CI config, or outside the indexed set | None: the index cannot answer. Read the file directly |\n| `not_searched` or `staleness` present | None until the named part is searched or the index is refreshed |\n| Name spelled differently per consumer (e.g. macro-generated or language-bound names) | Weak: the index can't settle cross-spelling |\n\n**Short version:** an empty reply means \"not found in these corpora, over this file set, in this target.\" Only the single-token prose miss on indexed text approaches \"the repo does not contain it.\" Everything else needs a retry with a single token, a prose search, or a direct file read before you conclude the thing is absent.",
+  "ttft_ms": 2133,
+  "type": "result",
+  "duration_ms": 12312,
+  "uuid": "9f2b583a-2457-40e3-b4cf-423f52062a62",
+  "ttft_stream_ms": 839,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 839,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

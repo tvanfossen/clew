@@ -1,0 +1,36 @@
+## Why it calls llama.cpp twice
+
+The two calls are llama.cpp's size-query idiom, not retry logic. In `src/inference/llama_cpp_tokenizer.cpp`:
+
+1. **Line 55:** call `llama_tokenize` with a null buffer and size 0. llama.cpp returns the negative of the required token count.
+2. **Line 60:** allocate a vector of that size.
+3. **Line 61:** call again with the buffer. This call is unconditional, not triggered by a failure of the first.
+
+The first call's result is used as the buffer size, so the second call is required, and it makes no attempt to recover from anything. The same two-phase shape appears in `detokenize` (lines 93 and 99), where the retry is driven by a too-small buffer, and in `tests/model/test_gh87_common_chat_e2e.cpp:51-56`. If "two places" meant the tokenizer and that test, that is the match.
+
+So it is not retry. A retry would re-run a failed operation. Here nothing failed in the first call, and nothing is re-attempted after the second one fails.
+
+## What the caller receives on failure
+
+Tokenization failure produces an **empty `std::vector`**. There is no error code, no exception, and no status. The paths are:
+
+| Location | Condition | Result |
+|---|---|---|
+| `llama_cpp_tokenizer.cpp:52` | `vocab_ == nullptr` | `{}`, silently (no log) |
+| `llama_cpp_tokenizer.cpp:64-67` | second `llama_tokenize` returns < 0 | logs error, `{}` |
+| `llama_cpp_backend.cpp:795` | `tokenizer_` not wired | `{}`, silently |
+
+The header comment says "never throws; on llama.cpp error they log and return empty/0." That is a deliberate contract, but it means a failed tokenization is **indistinguishable from an empty prompt**. Only the error log tells them apart.
+
+## What the callers do with the empty vector
+
+- **Generate, stream, and cancellable generate** (`llama_cpp_backend.cpp:2561, 2643, 2728`): tokenize, log "0 input tokens", and go straight into `run_prefill_cached`. I found no `tokens.empty()` guard on these paths, so generation proceeds with an empty prompt. I did not trace what `llama_decode` or `decode_loop` do with zero tokens, so the actual downstream failure mode is unverified.
+- **`complete`** (`llama_cpp_backend.cpp:3947`): same pattern, with no guard before `decode_loop`.
+- **Speculative and MTP** (`llama_cpp_backend.cpp:3593, 3921`): these are the only paths that check. They return `ENTROPIC_ERROR_GENERATE_FAILED` when `tokens.size() < 2`, with the message "must have at least 2 tokens." That converts a tokenization failure into a generic error and blames the prompt length, not the tokenizer.
+- **Batch** (`llama_cpp_backend.cpp:1911`): produces an empty token list for the failing request. I did not read `batch_shared_prefix_len`, so I cannot say how it handles a zero-length entry.
+- **Count** (`llama_cpp_backend.cpp:825-827`): returns `0`. The C API `entropic_inference_count_tokens` passes that straight through, so a failed count looks like an empty string. I did not trace the callers of `count_tokens` above the C API.
+- **System-prefix count** (`llama_cpp_backend.cpp:2066`): returns `0`.
+
+## Recommendation
+
+The empty-vector failure is collapsed into a valid-looking result. Only the speculative and MTP paths notice it, and they report the wrong cause. The fix I'd suggest is to have `LlamaCppTokenizer::tokenize` return a status alongside the tokens, or an `std::optional`, and have the generate, stream, and complete paths return a tokenization error instead of running on an empty prompt. That would respect the "log and return" rule while letting callers distinguish failure from an empty input. I have not changed anything; this is read-only analysis.

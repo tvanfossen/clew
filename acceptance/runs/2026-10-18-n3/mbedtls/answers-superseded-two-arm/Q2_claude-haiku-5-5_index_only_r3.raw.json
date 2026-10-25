@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 17231,
+  "stop_reason": "end_turn",
+  "session_id": "d0ef8da8-e1f7-4c6c-987f-2bc7d84556a1",
+  "total_cost_usd": 0.00453111,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 7722,
+    "cache_read_input_tokens": 142341,
+    "output_tokens": 3125,
+    "output_tokens_details": {
+      "thinking_tokens": 1615
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 7722,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2174,
+        "cache_read_input_tokens": 39205,
+        "cache_creation_input_tokens": 2527,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2527
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3125,
+      "cacheReadInputTokens": 142341,
+      "cacheCreationInputTokens": 7722,
+      "webSearchRequests": 0,
+      "costUSD": 0.00453111,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1615,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it accomplishes.** `MBEDTLS_PRIVATE(member)` is a preprocessor wrapper around struct member names, defined in `include/mbedtls/private_access.h:15`. Its default expansion is `private_##member`, so a field declared as `MBEDTLS_PRIVATE(nr)` is actually named `private_nr` to any translation unit that doesn't opt out. Code outside the library that writes `ctx->nr` fails to compile, which makes the internal layout of structs like `mbedtls_aes_context` (the `nr` field at `include/mbedtls/aes.h:64`) an unstable implementation detail rather than API. The index shows the macro applied across many headers (aes, aria, asn1, block_cipher, and others), so this is a deliberate tree-wide convention.\n\n**Who the opt-out is for.** The switch is `MBEDTLS_ALLOW_PRIVATE_ACCESS`. When it is defined, the macro expands to the plain `member` name, so the field is visible again. The index shows three places that define it:\n\n| Site | Who it covers |\n|---|---|\n| `library/common.h:132` | The library itself. Internal `.c` files that include the common header see real field names. |\n| `programs/ssl/ssl_client2.c:8` | The sample/test client. |\n| `programs/ssl/ssl_server2.c:8` | The sample/test server. |\n\nTwo of the functions that reference the macro, `mbedtls_cipher_get_iv_size` and `mbedtls_pk_get_type`, appear in the index's `referenced_by` list. I did not read their bodies, so I can't say exactly how they use the fields.\n\n**What that means in those places.** Inside the library and the two ssl sample programs, field access is unchecked. Those translation units can read and write internal members directly, so changing a private field's name or meaning can break them at compile time or silently. For everyone else, the privacy is a compile-time convention: a consumer can define the macro before including the headers and reach the internals. Nothing stops that; the wrapper only makes accidental dependence fail to compile.\n\n**Gaps in what the index shows.**\n- Dossier lists the three definition sites above, but the search summary says the switch \"gates 2 site(s)\". I went with the three.\n- The index reports the switch's origin as \"undeclared\", which I read as meaning no Kconfig or doc declaration backs it. It is a plain preprocessor define.\n- I could not tell from the index whether the `#define` at `library/common.h:132` sits inside another conditional. If it is unconditional, every library build gets the opt-out; checking that needs the source.",
+  "ttft_ms": 1334,
+  "type": "result",
+  "duration_ms": 18129,
+  "uuid": "5f540d75-f3aa-4ba3-88cb-eeff9430acb7",
+  "ttft_stream_ms": 1089,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1090,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

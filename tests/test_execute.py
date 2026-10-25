@@ -185,3 +185,165 @@ def test_index_cell_with_no_index_calls_is_flagged() -> None:
         CellResult("failed", "index", "m", False, tool_calls=0, non_index_tool_calls=0),
     ]
     assert index_cells_that_never_used_the_index(rows) == ["blind"]
+
+
+## @brief The blindness check covers the arm the 1.1.0 grid actually runs.
+## @return None.
+## @version 1
+def test_an_index_only_cell_that_called_nothing_is_reported_as_blind():
+    """THE ARM NAMED LITERALLY WAS THE WRONG ARM. `ARMS` is ("baseline", "index_only"), so a
+    check written against "index" alone watched the arm the grid does not run — the same defect
+    `runner.check_symmetry` already carries a comment about, which named its two arms literally
+    and kept comparing the OLD pair after the compared arms changed.
+
+    IT MATTERS MORE HERE THAN FOR THE BLENDED ARM. `index_only` is granted no Read, Grep, Glob or
+    Bash at all, so a cell with zero index calls made zero tool calls of ANY kind: it answered
+    from nothing. On the blended arm the same number means "preferred the shell", which is
+    adoption. On this arm it means the answer was fabricated, and nothing else in the artifacts
+    says so.
+
+    @brief An index_only cell at zero calls is blind.
+    @return None.
+    @version 1
+    """
+    from acceptance.execute import CellResult, index_cells_that_never_used_the_index
+
+    rows = [
+        CellResult("fabricated", "index_only", "m", True, tool_calls=0, non_index_tool_calls=0),
+        CellResult("worked", "index_only", "m", True, tool_calls=6, non_index_tool_calls=0),
+        ## UNKNOWN IS STILL NOT ZERO, on this arm as on the other.
+        CellResult("unknown", "index_only", "m", True, tool_calls=-1, non_index_tool_calls=-1),
+    ]
+    assert index_cells_that_never_used_the_index(rows) == ["fabricated"]
+
+
+## @brief A usage document reaches the agent as a system prompt, and the cell records that it did.
+## @return None.
+## @version 1
+def test_a_skills_document_is_appended_and_recorded(tmp_path, monkeypatch) -> None:
+    """THE DOCUMENT IS A SEPARATE SURFACE FROM THE BRIEF, deliberately. `check_symmetry` guards
+    the brief and must keep passing: an A/B of a usage document has to vary something the brief
+    does not, or it becomes the coached-versus-uncoached asymmetry that invalidated an earlier
+    run. `--append-system-prompt` is that surface, and it is also how an adopter actually loads
+    a repo-level agent doc.
+
+    AND THE CELL SAYS WHETHER IT HAD ONE. A run directory holding both variants is unreadable if
+    a cell cannot say which it was; the stem alone cannot carry it, because the stem is the
+    (question, model, arm, replicate) key both variants share.
+
+    @brief The skills doc is appended and recorded.
+    @return None.
+    @version 1
+    """
+    import json
+    import subprocess
+
+    from acceptance import execute
+    from acceptance.runner import Cell
+
+    doc = tmp_path / "SKILLS.md"
+    doc.write_text("ASK FOR EVERYTHING IN ONE CALL.", encoding="utf-8")
+    seen = {}
+
+    def fake(argv, **kw):
+        seen["argv"] = argv
+        return subprocess.CompletedProcess(
+            argv, 0, json.dumps({"result": "an answer", "usage": {}, "session_id": "s"}), ""
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake)
+    cell = Cell("t", "Q1", "index_only", "m", 1, 0)
+    out = tmp_path / "out"
+    res = execute.run_cell(
+        cell, "a question?", tmp_path, out, mcp_config=doc, skills=doc, timeout=5
+    )
+    assert res.ok
+
+    argv = seen["argv"]
+    assert "--append-system-prompt" in argv, "the document must reach the agent"
+    assert "ASK FOR EVERYTHING IN ONE CALL." in argv[argv.index("--append-system-prompt") + 1]
+    ## THE BRIEF IS UNTOUCHED — the document is a different surface, which is what keeps the
+    ## comparison free of the brief asymmetry.
+    assert "ASK FOR EVERYTHING" not in argv[argv.index("-p") + 1]
+
+    meta = json.loads((out / f"{cell.stem()}.meta.json").read_text())
+    assert meta["skills"], "a cell must record that it was given a usage document"
+
+
+## @brief Without the document nothing is appended, and the record says so.
+## @return None.
+## @version 1
+def test_without_a_skills_document_nothing_is_appended(tmp_path, monkeypatch) -> None:
+    """The default must produce the argv every earlier measurement used, or the two halves of
+    the A/B are not comparable to the baseline that motivated it.
+
+    @brief No doc, no flag.
+    @return None.
+    @version 1
+    """
+    import json
+    import subprocess
+
+    from acceptance import execute
+    from acceptance.runner import Cell
+
+    seen = {}
+
+    def fake(argv, **kw):
+        seen["argv"] = argv
+        return subprocess.CompletedProcess(
+            argv, 0, json.dumps({"result": "an answer", "usage": {}, "session_id": "s"}), ""
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake)
+    cell = Cell("t", "Q1", "baseline", "m", 1, 0)
+    out = tmp_path / "out2"
+    execute.run_cell(cell, "a question?", tmp_path, out, timeout=5)
+    assert "--append-system-prompt" not in seen["argv"]
+    meta = json.loads((out / f"{cell.stem()}.meta.json").read_text())
+    assert meta["skills"] == "", "absent is recorded as absent, not omitted"
+
+
+## @brief A tool call recorded twice in the transcript is counted once.
+## @return None.
+## @version 1
+def test_a_repeated_transcript_row_does_not_double_count_a_tool_call(tmp_path, monkeypatch):
+    """MEASURED ON THE 1.1.0 GRID, and it inflated every tool figure the matrix produced. One
+    cell's session JSONL held 118 rows against 64 distinct uuids and 30 `tool_use` blocks against
+    **16 distinct ids** — so `tool_calls` was recorded as 30 when the agent made 16. Uniform at
+    1.92-1.94x across all three arms, which is why it hid: every cross-arm RATIO looked right
+    while every absolute count was nearly double.
+
+    THE ID IS THE IDENTITY. A `tool_use` block carries an id the model assigned; the same id
+    appearing twice is the same call written down twice, whatever caused the transcript to repeat
+    a row. Counting blocks instead of ids trusts the file's shape rather than its content.
+
+    A non-index tool counted twice is doubly wrong: `non_index_tool_calls` drives the shell
+    displacement column, and `tool_calls == non_index_tool_calls` is the blind-cell test.
+
+    @brief Duplicate transcript rows are de-duplicated by tool_use id.
+    @return None.
+    @version 1
+    """
+    import json
+
+    from acceptance.execute import count_tools
+
+    slug = "-" + str(tmp_path).lstrip("/").replace("/", "-")
+    proj = tmp_path / "home" / ".claude" / "projects" / slug
+    proj.mkdir(parents=True)
+    row = {
+        "message": {
+            "content": [
+                {"type": "tool_use", "id": "toolu_A", "name": "mcp__clew__dossier"},
+                {"type": "tool_use", "id": "toolu_B", "name": "Grep"},
+            ]
+        }
+    }
+    ## The same row written twice, which is what the real transcripts do.
+    (proj / "sid.jsonl").write_text(json.dumps(row) + "\n" + json.dumps(row) + "\n", "utf-8")
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path / "home"))
+
+    total, non_index = count_tools({}, "sid", tmp_path)
+    assert total == 2, f"two distinct calls written twice must count as 2, got {total}"
+    assert non_index == 1, f"one non-index call written twice must count as 1, got {non_index}"

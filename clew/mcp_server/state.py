@@ -732,21 +732,54 @@ class TargetRegistry:
     ## @param data The loaded registry mapping, mutated in place.
     ## @param key The entry to remove.
     ## @return None.
-    ## @version 1
+    ## @version 2
     ## @dg_internal
     def _discard(self, data: dict[str, dict[str, str]], key: str) -> None:
         """SHARED BY BOTH REMOVERS so a directory-deleting rule lives once. The containment
         check is the load-bearing half: `db_path` comes off disk and a record naming a path
         outside the state root must never be followed into an `rmtree`.
 
+        AND IT HAS TO RESOLVE FIRST (1.1.0 audit, M3 — a defect in code this project shipped
+        last week). `is_relative_to` on the unresolved path is a LEXICAL test:
+        `<home>/targets/../../victim` is textually under `home` and resolves outside it, so a
+        registry row — a JSON file editable by anything running as the user — chose the
+        directory `drop` and `cull` deleted.
+
+        `ignore_errors=True` went with it rather than separately: it was swallowing the very
+        failures that would have made an escape visible, and rmtree's own refusal to recurse
+        through a symlinked directory is a defence worth HEARING about. A removal that fails is
+        logged and the entry still goes from the registry, because the alternative — raising —
+        would leave a caller unable to forget a target whose directory it cannot delete.
+
         @brief Remove one entry and its database directory.
         @return None.
-        @version 1
+        @version 2
         """
         record = data.pop(key)
-        db_dir = Path(record.get("db_path", "")).parent
-        if db_dir.is_dir() and db_dir.is_relative_to(self.home):
-            shutil.rmtree(db_dir, ignore_errors=True)
+        db_dir = Path(record.get("db_path", "")).parent.resolve()
+        home = self.home.resolve()
+        if db_dir != home and home not in db_dir.parents:
+            logger.error(
+                "registry: entry %r names %s, which resolves OUTSIDE the state root %s — "
+                "refusing to delete it. The registry row was edited or written by something "
+                "other than this tool.",
+                key,
+                db_dir,
+                home,
+            )
+            return
+        if not db_dir.is_dir():
+            return
+        try:
+            shutil.rmtree(db_dir)
+        except OSError as error:
+            logger.error(
+                "registry: could not remove %s for entry %r (%s) — the entry is forgotten "
+                "anyway, so the directory is now orphaned and safe to delete by hand",
+                db_dir,
+                key,
+                error,
+            )
 
     ## @brief Forget EXACTLY one target, leaving every sibling sub-index registered.
     ## @param target The target to remove, as `targets()` returned it.
@@ -785,7 +818,7 @@ class TargetRegistry:
 ## @param db Path to the built database.
 ## @param repo_root Working tree the indexed paths are relative to.
 ## @return (number of files newer than the db, the newest such path or None).
-## @version 2
+## @version 3
 ## @dg_internal
 def _source_drift(db: Path, repo_root: Path) -> tuple[int, str | None]:
     """Stat every indexed source file against the database's own mtime.
@@ -803,7 +836,7 @@ def _source_drift(db: Path, repo_root: Path) -> tuple[int, str | None]:
 
     @brief Detect source files newer than the database.
     @return (changed count, newest changed repo-relative path).
-    @version 2
+    @version 3
     """
     try:
         db_mtime = db.stat().st_mtime
@@ -817,16 +850,44 @@ def _source_drift(db: Path, repo_root: Path) -> tuple[int, str | None]:
     finally:
         conn.close()
     changed, newest, newest_mtime = 0, None, 0.0
+    ## A MTIME IN THE FUTURE IS NOT EVIDENCE OF AN EDIT (1.1.0 audit, M7). It is newer than
+    ## every database that will ever be built from the file, so the index is PERMANENTLY stale
+    ## and the 15 s `keep_current` loop rebuilds it forever — doxygen, cargo and the Kconfig
+    ## parse, every one of them a repo-controlled stage, on a loop for the life of the server.
+    ## A skewed clock on the machine that made the checkout produces it by accident; a
+    ## committed timestamp produces it on purpose. The file stays INDEXED either way; only its
+    ## timestamp is refused as a staleness signal, and the refusal is reported once.
+    horizon = time.time() + _MTIME_SKEW_TOLERANCE_SECONDS
+    future_dated = 0
     for rel in indexed:
         try:
             mtime = (repo_root / rel).stat().st_mtime
         except OSError:
             continue  # deleted/moved: the rebuild will notice, this pass will not
+        if mtime > horizon:
+            future_dated += 1
+            continue
         if mtime > db_mtime:
             changed += 1
             if mtime > newest_mtime:
                 newest, newest_mtime = rel, mtime
+    if future_dated:
+        logger.warning(
+            "freshness: %d indexed file(s) under %s are dated in the future and were NOT "
+            "treated as edits — they would otherwise keep this index stale forever. Check the "
+            "clock on the machine that produced the checkout.",
+            future_dated,
+            repo_root,
+        )
     return changed, newest
+
+
+## HOW FAR AHEAD OF NOW A SOURCE MTIME MAY BE AND STILL COUNT AS AN EDIT. Generous on
+## purpose: a few minutes absorbs an ordinary NTP correction or a filesystem whose clock
+## differs from the host's (an NFS mount, a container volume), and nothing legitimate needs
+## more. Beyond it the timestamp is refused as a signal rather than trusted — see
+## `_source_drift`, which is its only consumer.
+_MTIME_SKEW_TOLERANCE_SECONDS = 300.0
 
 
 ## @brief One namespaced `build_meta` section, read without its key prefix.
@@ -1177,7 +1238,7 @@ def db_status(target: Target) -> dict[str, object]:
 ## @param max_age_days Age threshold in days; None culls only version-stale dbs.
 ## @param include_stale Also cull dbs whose stamped build version is not current.
 ## @return List of status dicts for the targets that were culled.
-## @version 3
+## @version 4
 ## @req REQ-DDB-MCP-001
 def cull(
     registry: TargetRegistry,
@@ -1198,13 +1259,20 @@ def cull(
 
     @brief Cull aged/stale target databases.
     @return Status dicts of the culled targets.
-    @version 3
+    @version 4
     """
     culled: list[dict[str, object]] = []
     for target in registry.targets():
         status = db_status(target)
         age = status["age_days"]
-        aged_out = max_age_days is not None and isinstance(age, float) and age > max_age_days
+        ## NON-POSITIVE MEANS "NO AGE RULE", not "every database is too old" (1.1.0 audit,
+        ## M4). `age > 0` holds for everything that exists, so `max_age_days=0` — which an
+        ## agent reading "age threshold in days" passes to mean no limit, as it does in most
+        ## such knobs — deleted every index on the machine, including repositories the session
+        ## had never heard of. `None` already spelled the disable; 0 now agrees with it
+        ## instead of inverting it, and the MCP boundary refuses a non-positive value outright.
+        age_rule = max_age_days is not None and max_age_days > 0
+        aged_out = age_rule and isinstance(age, float) and age > max_age_days
         version_stale = include_stale and status["build_version"] != CLEW_BUILD_VERSION
         if not status["exists"] or aged_out or version_stale:
             registry.drop_one(target)

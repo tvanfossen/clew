@@ -65,7 +65,10 @@ acceptance cell: 7 of 21 tool calls returned zero rows and cost 25.5% of every b
 the index arm returned, and a single zero-row `search` cost **2,556 bytes** — larger
 than any function body in the run. Two thirds of that one reply was the whole-repo
 tier's `scope.reason`, a ~840-byte paragraph emitted TWICE (once as prose, once in the
-payload) and ending in "Declare `x-clew: index_scope:` …" — operator
+payload) and ending in "Declare `x-clew: index_scope:` …" (the spelling of THAT DAY;
+the advice now names `index_scope:` in `.clew.yaml`, and `.doxygen-guard.yaml` is not
+read at all — quoted as measured rather than silently updated, because the byte count
+above is a measurement of that exact text) — operator
 configuration advice an agent cannot act on mid-session, delivered three times in one
 cell. The derivation is `status.scope.reason`'s job and is unchanged there; an empty
 ANSWER gets the file count, the top levels and the extensions, which are the fields
@@ -204,7 +207,7 @@ def _scope_sentence(scope: q.IndexScope) -> str:
 ## @brief The scope block for a per-query reply: the covered shape, minus the derivation.
 ## @param scope The summarised scope.
 ## @return Wire dict for the scope, with `reason` removed.
-## @version 1
+## @version 2
 ## @dg_internal
 def _scope_payload(scope: q.IndexScope) -> dict[str, Any]:
     """`reason` is dropped HERE rather than in `wire` or in `IndexScope`, because it is not
@@ -223,6 +226,14 @@ def _scope_payload(scope: q.IndexScope) -> dict[str, Any]:
     """
     block = wire.one(scope) or {}
     block.pop("reason", None)
+    ## THE FALSY-DROP RULE, APPLIED ON THE WAY OUT. An index built before the build stamped
+    ## the not-indexed report has no row, and `not_indexed: []` beside the covered shape
+    ## states that nothing was missed — a claim that build never made. This module's own
+    ## standard is that "the limit was not reached" and "nobody looked" must not read the
+    ## same, so an unrecorded report is absent rather than empty.
+    if not scope.not_indexed_count:
+        block.pop("not_indexed", None)
+        block.pop("not_indexed_count", None)
     return block
 
 

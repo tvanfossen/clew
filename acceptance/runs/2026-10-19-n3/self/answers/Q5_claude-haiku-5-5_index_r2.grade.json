@@ -1,0 +1,143 @@
+{
+  "cell": "Q5_claude-haiku-5-5_index_r2",
+  "arm": "index",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "47cdb1e6a8e6c4bb",
+  "judge_model": "claude-sonnet-4-5-20250929",
+  "score": 0.25925925925925924,
+  "unmarked_pct": 0.4444444444444444,
+  "split_decisions": 3,
+  "grader_fingerprint": "9cc2b15baf93",
+  "decisions": [
+    {
+      "mark": "identifies that layered build options resolve through FIVE named precedence tiers, rather than a single override",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "",
+      "agreement": 1.0,
+      "samples": 1,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the rule is ASYMMETRIC \u2014 the stated tiers REPLACE one another while the discovered layers ACCUMULATE and survive whatever anyone states",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that tiers 3 and 4 combine IDENTICALLY, so the distinction between them is deliberately inert, and that the load-bearing line is fact-versus-guess",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies `.clew.yaml` as the repository's own standing declaration \u2014 tier 2, discovered from the repo root by BOTH entry points rather than plumbed per section",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that tier 1 is reachable from BOTH entry points \u2014 a CLI flag and a structured options argument \u2014 so an embedding caller with no shell can still state the top tier",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that the option names an embedding caller states are the SAME WORDS as the declaration file's section names, and the same words the diagnostics use",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that an unknown SECTION is refused by name against the allowed set rather than ignored, and gives the reason \u2014 an ignored section builds with defaults while reporting the declaration was honoured",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": null,
+      "detail": "3/3 calls failed: rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"1acecfe6-22de-4608-a71a-ff8044af5453\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"dbd0cd01-9672-4cbe-9b40-46694d18fe28\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"4f1da0aa-42ff-4b12-b8d7-25b9e2f100e2\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear",
+      "agreement": 0.0,
+      "samples": 3,
+      "errors": 3
+    },
+    {
+      "mark": "identifies a SECOND refusal one level down \u2014 an unknown key INSIDE a well-named section \u2014 and that a correctly-spelled derived key is refused with its reason rather than as unknown",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": null,
+      "detail": "3/3 calls failed: rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"cfaa2959-788c-44cd-8044-216ddf6c993b\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"e92eeada-33f7-41cd-ba60-242d0ce0f7c0\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"8fa77cb5-ad1d-495d-b24e-bebad4cbccaa\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear",
+      "agreement": 0.0,
+      "samples": 3,
+      "errors": 3
+    },
+    {
+      "mark": "states that the winning tier is RECORDED with the index, and that the record is derived from the stored rows rather than stamped as a separate summary",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": null,
+      "detail": "3/3 calls failed: rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"0570fd20-e699-47f5-872a-e3bc835cd557\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"24503d9f-0d28-42f9-a435-1dc91a051417\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear; rc=1 after 4 attempt(s): {\"duration_api_ms\":0,\"stop_reason\":\"stop_sequence\",\"session_id\":\"0e08d2a6-bbe4-4227-a762-4d6e277ab2c7\",\"total_cost_usd\":0,\"usage\":{\"output_tokens_details\":{\"thinking_tokens\":0},\"input_tokens\":0,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":0,\"server_tool_use\":{\"web_sear",
+      "agreement": 0.0,
+      "samples": 3,
+      "errors": 3
+    },
+    {
+      "mark": "the modules that decide a build option's value",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction unavailable",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction unavailable",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction unavailable",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction unavailable",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

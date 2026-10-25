@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 40090,
+  "stop_reason": "end_turn",
+  "session_id": "8b9b79fb-d2cc-4b2c-9f60-da8c8e60e773",
+  "total_cost_usd": 0.011809270000000002,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 19936,
+    "cache_read_input_tokens": 403657,
+    "output_tokens": 7567,
+    "output_tokens_details": {
+      "thinking_tokens": 3310
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 19936,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4015,
+        "cache_read_input_tokens": 49337,
+        "cache_creation_input_tokens": 741,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 741
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 20,
+      "outputTokens": 7567,
+      "cacheReadInputTokens": 403657,
+      "cacheCreationInputTokens": 19936,
+      "webSearchRequests": 0,
+      "costUSD": 0.011809270000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3310,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** constant-time behaviour is enforced by coding style and hand-written assembly, not by the compiler. Every constant-time primitive is written as branch-free mask arithmetic. On GCC/Clang-compatible targets, the core mask operations are pinned in inline assembly. Everywhere else, the same C runs with no guarantee. Testing (Valgrind/MSan) is the only check that catches a regression.\n\n**1. How it's enforced at the instruction level**\n\n- The primitives live in `library/constant_time_impl.h` and `library/constant_time_internal.h`, with the public API in `include/mbedtls/constant_time.h`.\n- A condition is a mask: all-ones for true, zero for false. `mbedtls_ct_bool()` turns any value into a mask with a `neg`/`or`/`asr` sequence, with no branch.\n- `mbedtls_ct_if()` selects between two values with `and`/`not`/`and`/`or`, again with no branch.\n- `mbedtls_ct_compiler_opaque()` is an empty `asm volatile` barrier, so the optimizer cannot prove the value of a mask and rewrite it into a branch.\n- Each primitive has hand-written asm for ARM (Thumb-aware), AArch64, x86-64 and x86. These paths are selected by `MBEDTLS_CT_{ARM,AARCH64,X86_64,X86}_ASM` plus a 32- or 64-bit size macro.\n- `mbedtls_ct_memcmp()` reads through `volatile` pointers and XORs every byte, with no early exit. On ARM/AArch64 it uses volatile unaligned word loads for speed.\n- Higher-level operations (eq, lt, select on secret values, RSA padding checks, CBC padding removal) are built from these masks. For example, `rsa.c` accumulates a `bad` mask rather than branching on each padding check.\n\n**2. A compiler that can't support it**\n\n- The asm path requires `MBEDTLS_HAVE_ASM` and `__GNUC__`. Some compilers, such as MSVC and IAR, and old armcc5 fail that test.\n- When it fails, `MBEDTLS_CT_ASM` is undefined and the plain-C fallback is compiled. `mbedtls_ct_compiler_opaque()` becomes `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global.\n- There is no `#error` or warning. The degradation is silent.\n- The C fallback's comment says it was checked as of May 2023 with trunk Clang, GCC and MSVC and not optimised into branches. Nothing in the build stops a future optimiser from doing so.\n- The one hard rule is in `check_config.h`: MemorySanitizer combined with `MBEDTLS_HAVE_ASM` is a compile-time `#error`. So MSan builds must disable asm.\n\n**3. How far it reaches**\n\nCounts of `mbedtls_ct_` references under `library/`:\n\n| File | Refs | Role |\n|---|---|---|\n| `rsa.c` | 37 | PKCS#1 v1.5 / OAEP padding checks |\n| `bignum_core.c` | 32 | Core bignum (plus 6 in `bignum_core.h`) |\n| `cipher.c` | 30 | CBC padding |\n| `bignum.c` | 26 | Bignum wrappers |\n| `ssl_msg.c` | 24 | TLS record CBC padding and MAC handling |\n| `base64.c` | 21 | Base64 decoding of secret data |\n| `psa_crypto.c` | 9 | PSA paths |\n| `nist_kw.c`, `ssl_tls12_*`, `ssl_tls13_*`, `ssl_cookie.c`, `ssl_tls.c`, `ccm.c`, `gcm.c`, `cmac.c`, `chachapoly.c`, and others | 1\u20138 each | Assorted |\n\nAbout 28 library `.c` files use the API. Points to note:\n\n- Coverage is selective. `ecp.c` matched my grep only on comment text, and I did not verify its scalar-multiplication path, so I can't say whether it is constant-time in this sense.\n- `3rdparty/p256-m` and `3rdparty/everest` are separate constant-time implementations with their own code.\n- The primitives address secret-dependent control flow and memory addresses only. They do not stop cache-timing attacks on table lookups, and they do not cover variable-time division or other instructions.\n\n**4. How it's verified**\n\n- Test suites annotate secrets with `TEST_CF_SECRET` and `TEST_CF_PUBLIC`. There are 94 uses across the suites, including `test_suite_constant_time`, `bignum_core`, `pkcs1_v15`, `base64` and `cipher`.\n- The macros are defined in the test framework. In this checkout `framework/` is empty, so I could not read their definitions.\n- Under `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` or `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN`, secrets are marked undefined or tainted. Any branch or memory access that depends on them is then reported.\n- Both options are commented out in `mbedtls_config.h`, so they are off by default.\n- CI runs them in `tests/scripts/components-sanitizers.sh`: `component_test_memsan_constant_flow`, `component_release_test_valgrind_constant_flow`, and a `_no_asm` variant. The no-asm variant exercises the C fallback.",
+  "ttft_ms": 2382,
+  "type": "result",
+  "duration_ms": 40790,
+  "uuid": "ca7630fc-4d02-4cfb-a35c-d81b2bf49724",
+  "ttft_stream_ms": 944,
+  "time_to_request_ms": 81,
+  "first_content_frame_ms": 945,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

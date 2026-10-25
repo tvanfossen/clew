@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 27400,
+  "stop_reason": "end_turn",
+  "session_id": "b642f63d-771b-4743-9abf-5d3ea79f7ccd",
+  "total_cost_usd": 0.016668130000000003,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 55728,
+    "cache_read_input_tokens": 328463,
+    "output_tokens": 4473,
+    "output_tokens_details": {
+      "thinking_tokens": 1783
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 55728,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2070,
+        "cache_read_input_tokens": 68630,
+        "cache_creation_input_tokens": 2484,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2484
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 4473,
+      "cacheReadInputTokens": 328463,
+      "cacheCreationInputTokens": 55728,
+      "webSearchRequests": 0,
+      "costUSD": 0.016668130000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1783,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the tool compares three things against the current disk, reports the result as a `staleness` block on replies, and for the data axis refreshes itself before answering. The caller's job is mostly to restart the client when the code axis fires, not to rebuild.\n\n**How it knows: three axes** (`clew/mcp_server/freshness.py:2-21`)\n\n| Axis | Check | Where |\n|---|---|---|\n| `data` | Any indexed source file whose mtime is newer than the database's mtime | `_source_drift`, `clew/mcp_server/state.py:823-882` |\n| `schema` | Stamped `build_version` differs from `CLEW_BUILD_VERSION` | `db_status`, `state.py:1140-1233` |\n| `code` | SHA-256 over the relative path and content of every `.py` in the running package, compared with the fingerprint taken at process start | `source_fingerprint` and `code_identity`, `freshness.py:112-242` |\n\n`db_status` sets `stale` if the database is missing, the build version is wrong, or any source file has changed. It also reports `source_changed_files`, `newest_changed_source`, the measured cost of the last refresh, and a `code` block.\n\n**What it tells the caller**\n\n- Every query reply names its `target`. It carries a `staleness` list only when some axis is active (`tools_query.py:1841-1844`). A current index adds nothing.\n- Each notice has an `axis` and a message that names the action that clears it (`freshness.py:381-484`).\n- When the schema axis is active, a \"definitive empty\" answer is rewritten to say it is not definitive and to refresh first (`tools_query.py:194-268`). On a subject miss under the data axis, the wording is the same. The data-axis case is an inference from the code's comments, not something I ran.\n\n**What the caller does, per axis**\n\n- **data:** the query path refreshes first. `_auto_refresh` (`server.py:1242-1285`) takes a bounded build lock, re-checks inside it so concurrent queries collapse into one build, and runs the incremental refresh. If the refresh fails or the lock wait times out, the query answers from the old index and the notice stays on the reply. The caller can also call `index(action='refresh')`, with `force=True` for a full rebuild.\n- **schema, index older than server:** `index(action='refresh', force=True)`.\n- **schema, index newer than server:** a rebuild cannot clear it, because it re-stamps the same newer version. The caller must restart the MCP client (`freshness.py:412-442`).\n- **code:** a rebuild cannot fix it. The caller must restart the client. Until then, writes are refused: `stale_code_refusal` is checked in `_first_build_refusal` (`server.py:1393`) and before builds. Reads stay live because each query opens the database fresh. `force=True` does not get past this refusal (`freshness.py:531-564`).\n- **The caller's own rule** (from the wording in `tools_query.py:216-221`): if an answer says something is missing and a data notice is present, refresh and ask again before concluding it does not exist.\n\n**Caveats I found**\n\n- The data axis uses mtimes (`state.py:842-873`). `freshness.py:116-129` says mtimes are wrong for the code axis because `git checkout` and `touch` change them without changing content. The same objection applies to data drift, so a checkout can trigger a refresh that does no real work. I did not check whether the refresh itself skips unchanged content.\n- Incremental refresh has limits. A newly added cross-file call in Python or Rust waits for a full rebuild, and a call that needs two new hops does too (`README.md:122-129`).\n- A stale process reads live data but writes old logic, which is why the write refusal exists (`freshness.py:30-40`).",
+  "ttft_ms": 2195,
+  "type": "result",
+  "duration_ms": 27659,
+  "uuid": "8061bcf2-55d5-4b93-a086-d67f756cc6ed",
+  "ttft_stream_ms": 1839,
+  "time_to_request_ms": 82,
+  "first_content_frame_ms": 1839,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 30709,
+  "stop_reason": "end_turn",
+  "session_id": "48e8757b-1fc9-428c-8fde-fa794cd692ec",
+  "total_cost_usd": 0.01679326,
+  "usage": {
+    "input_tokens": 24,
+    "cache_creation_input_tokens": 46336,
+    "cache_read_input_tokens": 501166,
+    "output_tokens": 5024,
+    "output_tokens_details": {
+      "thinking_tokens": 1383
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 46336,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1947,
+        "cache_read_input_tokens": 60246,
+        "cache_creation_input_tokens": 1476,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1476
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 24,
+      "outputTokens": 5024,
+      "cacheReadInputTokens": 501166,
+      "cacheCreationInputTokens": 46336,
+      "webSearchRequests": 0,
+      "costUSD": 0.01679326,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1383,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the repository's own `index_scope:` declaration decides the roots. If there isn't one, the whole repository is the scope, minus what git ignores and a few directory names. Nothing filters by file extension at the walk stage. Extensions only matter later, in the doxygen and per-language parsers.\n\n**1. Declared scope (tier 1).** `derive_scope` in `clew/scope.py:639` first calls `_declared_index_scope`, which reads `index_scope:` from `.clew.yaml`. A declared `roots:` list replaces the scope entirely; `excludes:` is subtracted from it. A root that doesn't exist on disk is dropped. If the section is present but unusable (wrong type, unknown key such as `exclude:` for `excludes:`, or no surviving root), it is rejected with a logged warning and the build falls back to whole-repo. The rejection reason is carried through to the log so the warning doesn't contradict itself.\n\n**2. Whole-repo default (tier 2).** When nothing is declared, `whole_repo_scope` (`clew/scope.py:683`) makes one root: the repo itself. Then it subtracts:\n- **Git-ignored paths.** `git ls-files --others --ignored --exclude-standard --directory` (`_gitignored_paths`, `clew/scope.py:845`). This runs through `git_argv`/`git_env` so a cloned repo's config can't execute code.\n- **Dot and cache directories.** Anything starting with `.`, plus `__pycache__` and `node_modules` (`_skip_dir`, `clew/scope.py:490`). These are pruned by `_pruned_dirs`.\n- **Nested git trees are indexed, not excluded.** Their own `.gitignore`s are applied separately, because the parent's `git ls-files` can't see inside a submodule. Nested trees are tagged later by `external.py`.\n- **Walk depth.** Descent stops at 16 levels; anything deeper is recorded and logged.\n\nThe `.clew.yaml` in this repo declares only `guard:` and no `index_scope:`, so this repo indexes on the whole-repo tier. Its header comment says the same.\n\n**3. Doxyfile and gate are not inputs.** A repo's Doxyfile `INPUT` no longer decides scope (gh#333). The Doxyfile still supplies ALIASES and PREDEFINED. The doxygen-guard `files:` pattern is also not a scope tier; it answers what must be documented, not what gets indexed.\n\n**4. Walk and binary filter.** `enumerate_tree` (`clew/treescan.py:203`) walks the roots with the excludes pruned during the walk. It is deliberately not extension-filtered. Then `_drop_binary_files` (`clew/cli.py:2554`) removes files that `lang_parsing_substrate.classify_file` marks as binary (magic numbers and NUL/control-byte ratios). Those files are added to the exclude channel before doxygen runs. Size is not limited, so a large generated `.c` still counts as source.\n\n**5. Extension filtering happens later.** Doxygen is forced to its own default `FILE_PATTERNS` list (`clew/doxygen.py:203`). A repo's declared `FILE_PATTERNS` no longer vetoes files that scope admitted (gh#340). That list covers C/C++, Java, C#, PHP, Fortran, Python, Markdown, VHDL and others. Languages outside it, such as Rust and JS/TS, are picked up by their own front ends: for example, `filedocs.py` picks files by each extractor's `EXTENSIONS`. I did not trace the JS/TS and Rust paths end to end, so treat the exact handoff for those as unverified.\n\n**What happens with nothing declared, in order:**\n1. Root = repo, no declaration rejection.\n2. Git-ignored paths, dot/cache directories, and nested-tree gitignores are excluded.\n3. Everything else is walked, including nested git trees.\n4. Binary files are dropped and logged at INFO.\n5. Doxygen parses what matches its default patterns; language front ends parse their own extensions.\n\nThe log line for this case says \"no `index_scope` is declared \u2026 so the whole repository is the index scope\", which is the easiest way to confirm it on a real build.",
+  "ttft_ms": 1252,
+  "type": "result",
+  "duration_ms": 31233,
+  "uuid": "1c0d5ee4-e5ec-42d6-b7b4-59c240787e16",
+  "ttft_stream_ms": 1017,
+  "time_to_request_ms": 95,
+  "first_content_frame_ms": 1018,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

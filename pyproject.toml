@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "clew-trace"
-version = "1.0.39"
-description = "Queryable, layered symbol database for C, C++, Rust and Python codebases: doxygen + tree-sitter call graph, threads, locks and dataflow edges, served to AI agents over MCP."
+version = "1.1.0"
+description = "Queryable, layered symbol database for C, C++, Rust and Python codebases: doxygen + tree-sitter call graph, threads, locks and dataflow edges, served to AI agents over MCP — plus the doxygen-guard pre-commit gate."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -33,7 +33,10 @@ classifiers = [
 ]
 dependencies = [
     "pyyaml>=6.0,<8",
-    "rich>=13.0",
+    # Capped at the next major (S1, 1.1.0 audit). Console rendering only — `rich.console`,
+    # `rich.table`, `rich.panel` — so the exposure is cosmetic rather than structural, but an
+    # unbounded major installs unreviewed into every new adopter. Installed: 15.x.
+    "rich>=13.0,<16",
     # DECLARED, NOT LEFT TRANSITIVE VIA fastmcp. `pydantic.Field` carries the tool
     # parameters' descriptions into the JSON Schema, and the schema is the ONE
     # surface a client cannot truncate — measured, a third of every prose tool
@@ -41,28 +44,31 @@ dependencies = [
     # the only untruncatable routing signal to zero, so the version window is ours
     # to state rather than fastmcp's to change under us.
     "pydantic>=2.0,<3",
-    # Pinned to doxygen-guard's tree-sitter window so both stacks share one venv.
-    "tree-sitter>=0.23,<0.24",
-    "tree-sitter-c>=0.23,<0.23.5",
-    "tree-sitter-cpp>=0.23,<0.23.5",
-    # Declared, not left transitive: the importer swallows ImportError, so losing
-    # this takes the whole Python AST layer to zero rows with no error.
-    "tree-sitter-python>=0.23,<0.23.5",
-    # <0.23.3, not <0.23.5 like the sibling pins above: 0.23.3 ships a newer
-    # ABI (language version 15) than this project's pinned tree-sitter 0.23.2
-    # python binding accepts (13-14) — verified empirically, not assumed.
-    "tree-sitter-rust>=0.23,<0.23.3",
-    "doxygen-guard>=1.4.2,<2",
+    # The shared Rust parsing substrate (knots, moldy, aurora-lint), through its PyO3
+    # wheels. Capped at the next minor: it is 0.x, so a minor release may break the API.
+    # It parses every language for every harvester and the gate (`parse_tree`, wrapped
+    # by clew/tsnode.py; 0.11 is the first release with it), which is why neither
+    # py-tree-sitter nor any per-language grammar package is a dependency. It also
+    # supplies the gate's extension -> language table, classifies binaries out of every file walk
+    # (classify_file, 0.11.1) and matches toolchain.toml globs (PathIgnore, 0.11.1).
+    # 0.11.2 makes `parse_tree`'s flat-tree copy ~25% cheaper. 0.12.0 is the first
+    # published wheel with the bash, cmake, yaml, json and markdown grammars that the
+    # script front ends (clew/shast.py, clew/cmakeast.py) parse with, and the
+    # `markdown_sections` that clew/prose.py chunks prose by.
+    # NOT optional: losing it takes every AST layer to zero rows.
+    "lang-parsing-substrate>=0.12.0,<0.13",
     # Pinned <15: reads Kconfig.unique_defined_syms, unique_choices,
     # Symbol.orig_type, MenuNode.prompt/help/filename/linenr, expr_str.
     "kconfiglib>=14,<15",
     # Floored at 2: 1.x had mcp.server.fastmcp, which 2.0.0 deleted. Capped at 3:
     # an unbounded major range already shipped a broken `init` once.
     "mcp>=2,<3",
-    "anyio>=4.0",
+    # `anyio.run(...)` IS the MCP server's main loop, so a major that changes task-group or
+    # cancellation semantics changes how the server shuts down. Capped at the next major.
+    "anyio>=4.0,<5",
     "mcp-types>=2,<3",
     # tomllib is stdlib only from 3.11; below that the backport IS the parser.
-    'tomli>=2; python_version < "3.11"',
+    'tomli>=2,<3; python_version < "3.11"',
 ]
 
 [project.scripts]
@@ -71,13 +77,20 @@ clew-mcp = "clew.mcp_server.server:main"
 ## The PostToolUse hook. A console script rather than a shell file so the plugin never ships a
 ## shell command line, and so the entry point is the same installed package the server is.
 clew-hook = "clew_hook:main"
+## The doxygen gate (absorbed doxygen-guard). The same entry point as `clew guard`; a console
+## script of its own because it is what the published pre-commit hook runs.
+clew-guard = "clew.guard.main:cli_main"
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0",
-    "pre-commit>=3.6",
-    "build>=1.0",
-    "twine>=5.0",
+    # BOUNDED LIKE THE RUNTIME SET, and for a reason that is not merely tidiness: these four
+    # ARE the release gate. A pytest or pre-commit major landing unreviewed changes what
+    # "green" means on the commit that ships, which is the one moment nobody re-reads the
+    # tooling. Installed: pytest 9.1, pre-commit 4.6, build 1.6, twine 7.0.
+    "pytest>=8.0,<10",
+    "pre-commit>=3.6,<5",
+    "build>=1.0,<2",
+    "twine>=5.0,<8",
 ]
 
 [project.urls]
@@ -107,8 +120,9 @@ include = [
     "/README.md",
     "/LICENSE",
     "/requirements.yaml",
-    "/.doxygen-guard.yaml",
+    "/.clew.yaml",
     "/.pre-commit-config.yaml",
+    "/.pre-commit-hooks.yaml",
 ]
 exclude = [
     "/.claude",

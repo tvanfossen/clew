@@ -129,15 +129,12 @@ def text_of(node: Any, src: bytes) -> str:
 ## @param src Raw file bytes.
 ## @param rel Repo-relative path of the file.
 ## @param scoped Whether the file is inside the derived index scope.
-## @param ts_classes (Language, Parser) from tree_sitter, for macro-body re-parse.
 ## @return The FuncDef, or None when the definition has no usable name.
 ## @version 1
 ## @req REQ-DDB-CONFIG-001
-def definition_record(
-    node: Any, src: bytes, rel: str, scoped: bool, ts_classes: tuple[Any, Any]
-) -> FuncDef | None:
+def definition_record(node: Any, src: bytes, rel: str, scoped: bool) -> FuncDef | None:
     """@brief Extract one definition's name, parameters and forwarding calls."""
-    signature = _signature(node, src, ts_classes)
+    signature = _signature(node, src)
     if signature is None:
         return None
     name, params, body, body_src = signature
@@ -156,13 +153,10 @@ def definition_record(
 ## @brief Name, parameters and walkable body of one definition node.
 ## @param node A function_definition or preproc_function_def node.
 ## @param src Raw file bytes.
-## @param ts_classes (Language, Parser) from tree_sitter.
 ## @return (name, params, body node, bytes the body was parsed from), or None.
 ## @version 1
 ## @dg_internal
-def _signature(
-    node: Any, src: bytes, ts_classes: tuple[Any, Any]
-) -> tuple[str, tuple[str, ...], Any, bytes] | None:
+def _signature(node: Any, src: bytes) -> tuple[str, tuple[str, ...], Any, bytes] | None:
     """A macro's body lives in a different byte buffer than the file's, because
     it had to be re-parsed — so the buffer travels with the body node rather
     than being assumed to be `src`.
@@ -172,7 +166,7 @@ def _signature(
     """
     if node.type == "preproc_function_def":
         named = _macro_signature(node, src)
-        body, body_src = _macro_body(node, src, ts_classes) if named else (None, b"")
+        body, body_src = _macro_body(node, src) if named else (None, b"")
         return (*named, body, body_src) if named else None
     signature = _function_signature(node, src)
     return signature
@@ -220,11 +214,10 @@ def _macro_signature(node: Any, src: bytes) -> tuple[str, tuple[str, ...]] | Non
 ## @brief Re-parse a macro's body so its calls become visible.
 ## @param node The preproc_function_def node.
 ## @param src Raw file bytes.
-## @param ts_classes (Language, Parser) from tree_sitter.
 ## @return (parsed body root, the bytes it was parsed from); (None, b"") when empty.
 ## @version 1
 ## @dg_internal
-def _macro_body(node: Any, src: bytes, ts_classes: tuple[Any, Any]) -> tuple[Any, bytes]:
+def _macro_body(node: Any, src: bytes) -> tuple[Any, bytes]:
     """Wrap the body in a synthetic function so an expression-shaped body parses
     as a statement. A body that still fails to parse yields ERROR nodes, and the
     `call_expression` nodes inside it are usually recovered anyway — which is
@@ -238,7 +231,7 @@ def _macro_body(node: Any, src: bytes, ts_classes: tuple[Any, Any]) -> tuple[Any
     if not body_text:
         return None, b""
     wrapped = b"void __docsdb_macro__(void){\n" + body_text.encode("utf-8") + b"\n;}\n"
-    parser = _macro_parser(ts_classes)
+    parser = _macro_parser()
     if parser is None:
         return None, b""
     return parser.parse(wrapped).root_node, wrapped
@@ -248,25 +241,20 @@ _MACRO_PARSER: list[Any] = []
 
 
 ## @brief Memoised C parser used for macro replacement text.
-## @param ts_classes (Language, Parser) from tree_sitter.
-## @return A Parser, or None when the C grammar is not installed.
-## @version 2
+## @return The substrate's C parser.
+## @version 3
 ## @dg_internal
-def _macro_parser(ts_classes: tuple[Any, Any]) -> Any:
+def _macro_parser() -> Any:
     """Always the C grammar: a replacement list is preprocessor text, and the
     C++ grammar buys nothing for the call shapes this module reads.
 
     @brief Build (once) the parser for macro bodies.
-    @version 2
+    @version 3
     """
     if not _MACRO_PARSER:
-        language_cls, parser_cls = ts_classes
-        try:
-            import tree_sitter_c
+        from ..tsnode import Parser
 
-            _MACRO_PARSER.append(parser_cls(language_cls(tree_sitter_c.language())))
-        except ImportError:
-            _MACRO_PARSER.append(None)
+        _MACRO_PARSER.append(Parser("c"))
     return _MACRO_PARSER[0]
 
 

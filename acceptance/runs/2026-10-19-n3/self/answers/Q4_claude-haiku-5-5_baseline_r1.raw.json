@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 27808,
+  "stop_reason": "end_turn",
+  "session_id": "650f58bb-74ef-4635-a1d4-51a95df4c055",
+  "total_cost_usd": 0.014145910000000001,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 41351,
+    "cache_read_input_tokens": 334861,
+    "output_tokens": 5051,
+    "output_tokens_details": {
+      "thinking_tokens": 1892
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 41351,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2998,
+        "cache_read_input_tokens": 54671,
+        "cache_creation_input_tokens": 2066,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2066
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 5051,
+      "cacheReadInputTokens": 334861,
+      "cacheCreationInputTokens": 41351,
+      "webSearchRequests": 0,
+      "costUSD": 0.014145910000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1892,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** `callers` returns a list of causal neighbours, not a list of call sites. Each row says where the edge came from, how precisely its endpoint was resolved, and whether it is a call at all. Several things in that list make a plain \"A calls B\" reading wrong.\n\n**What a row contains** (`CallEdge`, `clew/query/models.py:145`; built in `_direct_call_edges`, `clew/query/symbols.py:389`)\n\n| Field | Meaning |\n|---|---|\n| `name`, `rowid` | The neighbour, one row per distinct endpoint identity (name plus definition), not per name. |\n| `edge_class` | `'call'` for a synchronous call, or `'key'` for a shared-key dataflow hop. `callers` returns both. |\n| `source` | Which layer found it: doxygen xrefs, tree-sitter, function-pointer resolution, binding, and so on. |\n| `confidence` | `exact`, `resolved` or `fuzzy`. The vocabulary says this is \"how precisely the callee rowid was resolved (NOT how likely the call is real)\" (`clew/vocabulary.py`, `CALL_MATCH`). |\n| `implementors` | Known overrides of a virtual endpoint, from doxygen's `reimplements`. This is an annotation, not an edge. |\n| `via_macro` | The macro and its expansion, when the call is written as a macro invocation and so does not appear in the caller's text. |\n| `key_name`, `dispatch_mode`, `crosses_thread`, `to_thread`, `strength` | Present on `'key'` rows only. |\n\nThrough `dossier`, the same answer also carries the body, brief, both edge directions, locks, thread, requirements, `gated_by` (the `#if` gates covering the function), and `callers_unresolved` (`clew/query/dossier.py:640`).\n\n**What makes it wrong to read as a list of call sites**\n\n1. **`'key'` rows are not calls.** A writer of a key the function reads appears in `callers` with no call connecting them. It may run asynchronously or on another thread. Check `edge_class` before reading \"calls\".\n2. **`fuzzy` is not filtered here.** The query deliberately keeps fuzzy edges. The code says 21.3% of clew's own call edges are fuzzy, and 79.8% on a large C++ target. A fuzzy row is a candidate that may be the wrong function. Only `confidence` tells you which rows to distrust.\n3. **`exact` and `resolved` do not mean \"really called\".** They describe how well the name was pinned down, not whether the call happens at runtime.\n4. **An empty list is not \"nothing calls it\".** `callers_unresolved` counts call sites that named this function but did not resolve. `None` means the index predates that measurement, so the answer is unknown, not zero. The `unresolved_inbound` table is the basis for this (`clew/query/symbols.py:348`).\n5. **Same-named functions can blur together.** `name_ambiguity` (`clew/query/symbols.py:1959`) reports when neighbours arrive through a shared name. The `qualified` selector narrows the focal side only, and dataflow rows are not narrowed.\n6. **Virtual dispatch is not resolved.** A call to a base method does not say which override runs. `implementors` lists the candidates, and the confidence stays on the call.\n7. **Function-pointer callers can be missing.** When a callback is registered out of repo, it is recorded as a terminus, not as a caller edge. A function invoked only through a pointer can therefore show no callers.\n8. **It is one hop, and the graph reflects one configuration.** Code the preprocessor excluded is not in the graph, which is why `gated_by` exists. Liveness (reachability) is a separate layer, so a caller being listed does not mean the caller runs.\n9. **The index can be stale or truncated.** A stale query refreshes first. New cross-file calls in Python and Rust need a full rebuild. The MCP boundary applies a response byte budget, so long lists may be cut.\n\n**Practical reading:** treat `callers` as candidate causal predecessors. Filter on `edge_class == 'call'` and `confidence != 'fuzzy'` when you need a confident call list. Check `callers_unresolved` before believing an empty result, and go to source for anything that matters.\n\nI read the code and docs but did not run the tool against a database, so the behaviour above comes from the source and its comments, not from a live query.",
+  "ttft_ms": 1559,
+  "type": "result",
+  "duration_ms": 28181,
+  "uuid": "e8454fc3-f12f-41d8-8298-1ff374adb985",
+  "ttft_stream_ms": 1010,
+  "time_to_request_ms": 79,
+  "first_content_frame_ms": 1010,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

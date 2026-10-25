@@ -29,8 +29,6 @@ import logging
 import sqlite3
 from pathlib import Path
 
-import pytest
-
 from clew.call_edges import (
     GUARDED_SELF_EDGE_SOURCES,
     _build_function_indexes,
@@ -38,16 +36,11 @@ from clew.call_edges import (
     import_ast_call_edges,
     prune_fabricated_self_edges,
 )
-from clew.harvest import _ast_parse_one_file, try_import_tree_sitter
+from clew.harvest import _ast_parse_one_file
 from clew.vocabulary import (
     CALL_SOURCE_DECLARED_DISPATCH,
     CALL_SOURCE_DOXYGEN_SQLITE,
     CALL_SOURCE_FNPTR,
-)
-
-pytestmark = pytest.mark.skipif(
-    try_import_tree_sitter() is None,
-    reason="the self-edge guard needs tree_sitter + its C/C++/Python grammars",
 )
 
 # Each function below is one measured mechanism, named for it.
@@ -158,11 +151,10 @@ def _parse(tmp_path: Path, name: str, text: str):
     @return (tree, src_bytes).
     @version 1
     """
-    language_cls, parser_cls = try_import_tree_sitter()
     tmp_path.mkdir(parents=True, exist_ok=True)
     path = tmp_path / name
     path.write_text(text, encoding="utf-8")
-    parsed = _ast_parse_one_file(name, path, {}, parser_cls, language_cls)
+    parsed = _ast_parse_one_file(name, path, {})
     assert parsed is not None, f"{name} did not parse"
     return parsed
 
@@ -287,7 +279,7 @@ def _prune(db_path: Path, repo_root: Path) -> set[int]:
     """
     conn = sqlite3.connect(str(db_path))
     _name_index, file_funcs = _build_function_indexes(conn)
-    prune_fabricated_self_edges(conn, repo_root, try_import_tree_sitter(), file_funcs)
+    prune_fabricated_self_edges(conn, repo_root, file_funcs)
     conn.commit()
     survivors = {
         r[0]
@@ -609,9 +601,7 @@ def test_the_guard_does_not_reparse_a_file_whose_sites_are_cached(
         conn = sqlite3.connect(str(working))
         _names, file_funcs = _build_function_indexes(conn)
         cache = IndexCache(cache_path, tmp_path)
-        prune_fabricated_self_edges(
-            conn, tmp_path, try_import_tree_sitter(), file_funcs, cache=cache
-        )
+        prune_fabricated_self_edges(conn, tmp_path, file_funcs, cache=cache)
         conn.commit()
         cache.commit()
         survivors = {

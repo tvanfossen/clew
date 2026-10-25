@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 20567,
+  "stop_reason": "end_turn",
+  "session_id": "69c74244-6c54-4daa-9b36-ac55a8c16f46",
+  "total_cost_usd": 0.00962694,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 24134,
+    "cache_read_input_tokens": 300774,
+    "output_tokens": 3582,
+    "output_tokens_details": {
+      "thinking_tokens": 889
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24134,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1503,
+        "cache_read_input_tokens": 54600,
+        "cache_creation_input_tokens": 3476,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3476
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 3582,
+      "cacheReadInputTokens": 300774,
+      "cacheCreationInputTokens": 24134,
+      "webSearchRequests": 0,
+      "costUSD": 0.00962694,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 889,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 16,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The runtime path is clear from the index. The contributor path is only partly visible, because the generator for the table isn't in the index.\n\n**How a negative code becomes a string**\n\n```\ncaller: ret = mbedtls_xxx(...)   // e.g. -0x0021\n   \u2502\n   \u25bc\nmbedtls_strerror(ret, buf, buflen)            library/error.c:792\n   \u251c\u2500 buflen == 0 \u2192 return; else memset(buf, 0)\n   \u251c\u2500 ret = -ret                                // sign stripped\n   \u251c\u2500 high = ret & 0xFF80\n   \u2502    \u2514\u2500 mbedtls_high_level_strerr(ret)      error.c:174  (module, e.g. \"CIPHER - ...\")\n   \u2502         \u2514\u2500 if SSL fatal alert \u2192 return early (no low-level part)\n   \u251c\u2500 low = ret & ~0xFF80\n   \u2502    \u2514\u2500 mbedtls_low_level_strerr(ret)       error.c:537  (specific cause, e.g. \"AES - Invalid input data\")\n   \u2514\u2500 join with \" : \" if both present; \"UNKNOWN ERROR CODE (%04X)\" on a miss\n```\n\n1. The caller passes the negative int and a buffer to `mbedtls_strerror` (declared in `include/mbedtls/error.h`, defined in `library/error.c:792`). It always NUL-terminates and truncates if needed.\n2. The sign is stripped, then the value is split on the `0xFF80` mask. The high bits identify the module (`MBEDTLS_ERR_AES_*`, `MBEDTLS_ERR_SSL_*`, and so on); the low bits identify the specific error.\n3. Each half is looked up by `mbedtls_high_level_strerr` or `mbedtls_low_level_strerr`. Each is a large `switch` over the `MBEDTLS_ERR_*` constants, and every case is wrapped in `#if defined(MBEDTLS_<MODULE>_C)`. Unknown codes fall back to `UNKNOWN ERROR CODE (xxxx)`.\n4. The two halves are joined with ` : `. The whole file is gated by `MBEDTLS_ERROR_C`, and by `MBEDTLS_ERROR_STRERROR_DUMMY` in some configs.\n\nExample: `MBEDTLS_ERR_AES_BAD_INPUT_DATA` is `-0x0021` (`include/mbedtls/aes.h`). That maps to the low-level case `\"AES - Invalid input data\"`.\n\n**What a contributor has to do to add one**\n\nThe index confirms these parts:\n- Define the new `MBEDTLS_ERR_<MODULE>_<NAME>` macro with a negative value in the module's public header, for example `include/mbedtls/aes.h`. The new value has to fall in the module's high-level or low-level range.\n- Add a matching `case -(MBEDTLS_ERR_...)` with its description string in the right `#if defined(MBEDTLS_<MODULE>_C)` block of `mbedtls_high_level_strerr` or `mbedtls_low_level_strerr` in `library/error.c`. Keep the description in the `\"MODULE - text\"` style used by the other cases.\n\nThe index does not confirm this part: the switch bodies are marked `/* Begin Auto-Generated Code. */`, which means they are produced by a generator rather than written by hand. The index holds no generator script. `scripts/` has 21 indexed files and none of them is an error-table generator, and a prose search for `generate_errors` returns nothing. The index can't tell me the generator's name, what it reads, or how to re-run it. The fix is to find the generator in the repository (or its docs) and regenerate `error.c` instead of hand-editing the generated block. I did not verify that from the index.\n\nI also could not check whether a test or doc requires new codes to be documented. The index shows no requirement or covering-test links on these functions. The repo's `ChangeLog.d/` directory is indexed, but I did not inspect its contents.",
+  "ttft_ms": 1485,
+  "type": "result",
+  "duration_ms": 21414,
+  "uuid": "39ff34dd-6581-4d76-940d-72b2b64b962a",
+  "ttft_stream_ms": 1024,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1024,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

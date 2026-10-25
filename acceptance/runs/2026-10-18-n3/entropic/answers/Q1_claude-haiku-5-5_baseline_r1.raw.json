@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 35261,
+  "stop_reason": "end_turn",
+  "session_id": "c0d29f8f-a0cb-4479-8687-d708a5e48068",
+  "total_cost_usd": 0.01334811,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 37278,
+    "cache_read_input_tokens": 267161,
+    "output_tokens": 6439,
+    "output_tokens_details": {
+      "thinking_tokens": 3250
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37278,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2866,
+        "cache_read_input_tokens": 51819,
+        "cache_creation_input_tokens": 847,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 847
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 6439,
+      "cacheReadInputTokens": 267161,
+      "cacheCreationInputTokens": 37278,
+      "webSearchRequests": 0,
+      "costUSD": 0.01334811,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3250,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the two calls are a size-query-then-fill pattern, not retry logic. A failed tokenization is never retried. It comes back as an empty vector, and nothing above the tokenizer reports it.\n\n**Why it calls twice**\n\n`llama_tokenize` has no \"give me the size\" function. Called with a null buffer and capacity 0, it returns the negative of the token count it would need. `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:55-63`) uses that:\n\n1. First call with no buffer. The negative result is flipped to a positive count `n`.\n2. Allocate `n` slots and call again with the same arguments to fill them.\n\nBoth calls use identical inputs, so the second one is not a response to a failure. The only other similar code is `detokenize` (lines 93-101), which retries only when its fixed 256-byte buffer is too small. That is buffer sizing, not retry either.\n\n**What the caller receives on failure**\n\n| Situation | Result |\n|---|---|\n| `vocab_` is null | `{}`, silently |\n| Second `llama_tokenize` returns negative | `{}`, plus one `logger->error` line |\n| `tokenizer_` not wired (`llama_cpp_backend.cpp:795`) | `{}`, silently |\n\nThere is no error code, exception, or `optional`. An empty result is also what a legitimate empty input returns when `add_special` is false, so callers cannot tell the two apart.\n\n**What the callers do with it**\n\n- **`do_count_tokens`** (`llama_cpp_backend.cpp:825`) returns 0. The C API `entropic_inference_count_tokens` (`inference_c_api.cpp:548`) passes that 0 straight through. Its `catch` fallback to `text_len / 4` only runs on exceptions, so a failed count reads as zero tokens.\n- **`compute_prefix_token_count`** (`:2051`) returns 0, which quietly disables prefix caching for that request.\n- **`do_generate_text_only`** (`:2561`), **`do_generate_cancellable`** (`:2643`), and **`do_stream`** (`:2728`) log \"0 input tokens\" and continue into `run_prefill_cached` with an empty token list. I did not trace what the sampler does after a zero-token prefill. That is the main unverified risk here, and the generate path never reports a tokenization error.\n- **Speculative** (`:3593`) and **MTP** (`:3921`) are the only callers that check. They reject `tokens.size() < 2` with `GENERATE_FAILED`. That gives a misleading \"prompt must have at least 2 tokens\" message for what was actually a tokenizer failure.\n- **`do_complete`** (`:3947`) and the batch path (`:1911`) pass the empty vector onward without checking. I did not trace either one.\n\n**Recommendation:** make tokenization failure distinguishable, either by returning an error or by throwing at the seam. Then add an explicit empty check at the generate, stream, and complete entry points, the way the speculative path already does, and reserve the empty-input case for `add_special=false`.\n\nTwo tool results included notes suggesting a `dossier` tool. I don't have that tool and ignored those notes.",
+  "ttft_ms": 1490,
+  "type": "result",
+  "duration_ms": 35517,
+  "uuid": "6164ccad-cae9-4500-809e-48789603dc6e",
+  "ttft_stream_ms": 1328,
+  "time_to_request_ms": 74,
+  "first_content_frame_ms": 1328,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

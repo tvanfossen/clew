@@ -1,0 +1,10 @@
+## The doxygen gate, absorbed from doxygen-guard (clew/guard/). The hook ID is doxygen-guard's.
+## Its config is the `guard:` section of the repo's `.clew.yaml`; `args: [--config, <file>]`
+## points it at a different file of the same shape.
+- id: doxygen-guard
+  name: Doxygen Guard (clew)
+  description: Validate doxygen comments for presence, version staleness, and custom tag syntax
+  entry: clew-guard
+  language: python
+  types_or: [c, c++, python, rust, javascript, jsx, ts, tsx]
+  require_serial: true

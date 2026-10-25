@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 15287,
+  "stop_reason": "end_turn",
+  "session_id": "53dd6abb-4bb2-4b57-a5c6-4576442e5226",
+  "total_cost_usd": 0.008758890000000002,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 28986,
+    "cache_read_input_tokens": 163919,
+    "output_tokens": 2643,
+    "output_tokens_details": {
+      "thinking_tokens": 1241
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 28986,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1582,
+        "cache_read_input_tokens": 39237,
+        "cache_creation_input_tokens": 5440,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5440
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 2643,
+      "cacheReadInputTokens": 163919,
+      "cacheCreationInputTokens": 28986,
+      "webSearchRequests": 0,
+      "costUSD": 0.008758890000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1241,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does:** `MBEDTLS_PRIVATE(member)` is a preprocessor rename of a struct field. In `include/mbedtls/private_access.h`, when `MBEDTLS_ALLOW_PRIVATE_ACCESS` is not defined, `MBEDTLS_PRIVATE(member)` expands to `private_##member`. When it is defined, it expands to plain `member`. So a field such as `mbedtls_aes_context`'s `nr` is spelled `private_nr` for ordinary users, and any direct use of the public name fails to compile. This is a compile-time barrier against accidental access, not a language-level access control, and the header's own docs describe it only as a \"Macro wrapper for struct's members.\" The index does not show the field layout, so I can't confirm from it that the change is layout-neutral. The rename is the only mechanism it reports.\n\n**For whom:** the wrapping targets *external users of the public headers*. The library's documentation says structs in headers are public, but their members are private and should not be touched by users. The 3.0 migration guide treats direct access as a \"last resort\" that means writing `bar.MBEDTLS_PRIVATE(foo)` yourself.\n\n**Where the opt-out is turned on in this tree:**\n\n| Location | What it does |\n|---|---|\n| `library/common.h:132` | Defines `MBEDTLS_ALLOW_PRIVATE_ACCESS`. This is the library's own internal header, so library sources see plain field names. |\n| `programs/ssl/ssl_client2.c:8` | Defines it, so this sample client reaches the struct internals directly. |\n| `programs/ssl/ssl_server2.c:8` | Same for the sample server. |\n\nFor those three places, the field names are plain and the code compiles unchanged. Everyone else gets the `private_` names.\n\nTwo caveats from the index. First, it does not show whether the `common.h` define is unconditional or sits behind a guard. Second, it does not show whether `common.h` is always included before `private_access.h` in every library translation unit, which determines whether the library actually gets the opt-out everywhere. Confirming either needs a read of those files, which this index-only session can't do.",
+  "ttft_ms": 1427,
+  "type": "result",
+  "duration_ms": 16023,
+  "uuid": "ddf3e7d7-d462-4a7d-9ba2-f3fe31b39438",
+  "ttft_stream_ms": 1151,
+  "time_to_request_ms": 80,
+  "first_content_frame_ms": 1152,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

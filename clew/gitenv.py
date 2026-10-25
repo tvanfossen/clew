@@ -21,8 +21,8 @@ That is the same shape as this repo's recorded worktree/venv trap — a gate tha
 where the work is being done — and the same shape as its standing warning that a green
 `--all-files` is necessary and not sufficient.
 
-@brief The git-hook environment variables a subprocess must be run without.
-@version 1
+@brief The git-hook environment variables, and the config keys, a git subprocess must not obey.
+@version 2
 """
 
 from __future__ import annotations
@@ -46,6 +46,65 @@ GIT_HOOK_VARS: tuple[str, ...] = (
     "GIT_COMMON_DIR",
     "GIT_NAMESPACE",
 )
+
+
+## HOW LONG ANY `git` CALL MAY RUN. git is normally instant, so this is a backstop against a
+## pathological tree (a million untracked files, a network-backed filesystem that stalls), not a
+## budget. The gate measured the need first — a hung `git diff` used to crash it — and
+## `guard.git.DEFAULT_GIT_TIMEOUT_SECONDS` now aliases this so the two halves cannot drift.
+GIT_TIMEOUT_SECONDS = 30
+
+
+## Every git configuration key whose VALUE GIT RUNS AS A COMMAND. Set in a repository's own
+## `.git/config`, each one turns an ordinary query — `git ls-files` — into arbitrary code
+## execution by the tree being inspected. `core.fsmonitor` is the one an adversarial audit of
+## 1.1.0 reproduced (twice, git 2.34.1): clone a repository, set it, and every clew git call runs
+## the planted command, during an index build and during the pre-commit gate alike.
+##
+## ENUMERATED RATHER THAN NARROWED TO THE ONE OBSERVED FIRING, for the same reason
+## `GIT_HOOK_VARS` is: a fix that covers only the reported key waits for the next one. These are
+## the keys git documents as running a program, minus the ones that cannot reach a read-only
+## query. `-c <key>=` on the command line outranks any config FILE, which is why this is argv and
+## not environment — no scrub of `os.environ` can reach a value inside the tree.
+GIT_COMMAND_VALUED_KEYS: tuple[str, ...] = (
+    "core.fsmonitor",
+    "core.hooksPath",
+    "core.alternateRefsCommand",
+    "core.sshCommand",
+    "core.askPass",
+    "core.editor",
+    "core.pager",
+    "diff.external",
+    "uploadpack.packObjectsHook",
+    "credential.helper",
+    "protocol.ext.allow",
+)
+
+
+## @brief One git argv with every command-valued configuration key disarmed.
+## @param args The git arguments this call needs, without the leading `git`.
+## @return The full argv to hand to `subprocess.run`.
+## @version 1
+## @req REQ-DDB-CONFIG-001
+def git_argv(*args: str) -> list[str]:
+    """THE SINGLE PLACE THE RULE LIVES, so a new git call site inherits the defence instead of
+    having to remember it — `tests/test_security_surface.py` asserts no site builds its own.
+    `core.hooksPath=/dev/null` rather than empty, because an empty value makes git fall back to
+    the repository's own hooks directory; the rest disarm by emptying.
+
+    This is the ARGV half of the pair `git_env()` completes: `git_env` removes the overrides a
+    hook EXPORTS, and this removes the commands a tree's own config FILE supplies. Neither
+    substitutes for the other, and a call site needs both.
+
+    @brief Build a git argv that cannot run commands from the inspected tree's config.
+    @return The argv, ready for subprocess.
+    @version 1
+    """
+    disarmed: list[str] = ["git"]
+    for key in GIT_COMMAND_VALUED_KEYS:
+        disarmed.extend(["-c", f"{key}=/dev/null" if key == "core.hooksPath" else f"{key}="])
+    disarmed.extend(args)
+    return disarmed
 
 
 ## @brief The current environment with git's hook-repository overrides removed.

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 41758,
+  "stop_reason": "end_turn",
+  "session_id": "1ce565e6-6734-4bc2-ad89-3e6f507e1d0b",
+  "total_cost_usd": 0.01890617,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 59375,
+    "cache_read_input_tokens": 347127,
+    "output_tokens": 7117,
+    "output_tokens_details": {
+      "thinking_tokens": 2943
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 59375,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4419,
+        "cache_read_input_tokens": 77100,
+        "cache_creation_input_tokens": 566,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 566
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 7117,
+      "cacheReadInputTokens": 347127,
+      "cacheCreationInputTokens": 59375,
+      "webSearchRequests": 0,
+      "costUSD": 0.01890617,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2943,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nConstant-time behaviour in mbedtls is a best-effort discipline, not a compiler-enforced guarantee. A small internal layer builds branch-free bitmask primitives. Inline assembly pins the critical ones on a few architectures, and a volatile barrier stops the compiler from folding the masks back into branches. Above that layer, a handful of bignum, RSA, ECP, TLS-MAC and base64 routines are written in that style. Nothing at build time rejects a compiler that can't preserve it.\n\n## How it is enforced, bottom up\n\n```\n  consumers     rsa.c unpadding \u00b7 ssl_msg.c ct_hmac \u00b7 bignum_core.c lt_ct \u00b7 ecp.c select_comb \u00b7 base64.c\n       \u2502\n  public API    include/mbedtls/constant_time.h   mbedtls_ct_memcmp, memcpy_if, memcpy_offset, ...\n       \u2502\n  primitives    library/constant_time_impl.h      mbedtls_ct_bool / uint_eq / uint_lt / if / error_if ...\n       \u2502         (inline; per-arch asm or plain C)\n  barrier       mbedtls_ct_compiler_opaque(x)     asm volatile(\"\" : \"+r\"(x))   or   x ^ mbedtls_ct_zero\n```\n\n1. **Masks, not branches.** A condition is all-ones or all-zeros (`mbedtls_ct_condition_t`). Selection is bitwise: `(cond & a) | (~cond & b)`. `mbedtls_ct_bool` turns a value into a mask with negate/or/shift.\n2. **Compiler barrier.** `mbedtls_ct_compiler_opaque` hides the value from the optimizer. With `MBEDTLS_CT_ASM` it is an empty `asm volatile` that passes the value through a register. Without it, it XORs with `mbedtls_ct_zero`, a `volatile` global holding 0, so the compiler cannot prove the value.\n3. **Hand-written asm, per architecture.** `mbedtls_ct_bool` and `mbedtls_ct_if` have asm for AArch64, ARM Thumb (32-bit), x86-64 and x86-32. `MBEDTLS_CT_ASM` is only defined when `MBEDTLS_HAVE_ASM` is set and the compiler is GCC-like or ARMCC. Some asm paths require `MBEDTLS_CT_SIZE_32` or `SIZE_64` to match the word size.\n4. **Volatile reads for comparison.** `mbedtls_ct_memcmp` reads both buffers through `volatile` pointers, so every byte is always read. It ORs the XOR differences together, then folds the result so it is non-zero iff the buffers differ. Its doc says it is not constant with respect to `n`, which is public.\n\n## What happens on a compiler that can't support it\n\n- **No `#error`, no fallback warning.** When the asm guards are false, the plain-C paths run. The `volatile` zero and the mask arithmetic remain, but nothing checks that the optimizer kept them branch-free.\n- **The only compile-time guard I found** is in `mbedtls_ct_memcmp`: it refuses to build if `int` is narrower than 32 bits, because a narrow cast could drop the difference bits.\n- **Documented stance.** The `mbedtls_ct_bool` comment says the C fallback was checked in May 2023 and was not turned into branches by trunk clang, GCC or MSVC v19. That is a dated observation, not a guarantee. `SECURITY.md` (\"Caveats\") says compilers can introduce timing side channels in code meant to be constant-time, and that the project treats exploitable ones as vulnerabilities \"if they appear with a common compiler\". So an unusual toolchain gets the plain-C path with no guarantee, and the project's remedy is a bug report.\n\n## How it is verified\n\n- `test_with_valgrind_constant_time` (`tests/scripts/components-configuration-crypto.sh`) runs the `tests/suites/*constant_time*.data` suites under Valgrind. It excludes the HMAC constant-time suite via `GLOBIGNORE`; the index does not record why.\n- The repo's own docs describe a testing approach using Valgrind memory poisoning for control-flow checks. That is the only verification I found in the index.\n\n## How far it reaches\n\n| Area | Constant-time entry points | Purpose (from index) |\n|---|---|---|\n| Generic helpers | `mbedtls_ct_memcmp`, `memcpy_if`, `memcpy_offset`, `memmove_left`, `zeroize_if`, `memcmp_partial` | Buffer compare, conditional copy, copy from secret offset |\n| Bignum | `mbedtls_mpi_core_lt_ct`, `mbedtls_mpi_core_check_zero_ct`, `mbedtls_mpi_lt_mpi_ct`, `mbedtls_mpi_gcd_modinv_odd`, `mbedtls_ct_mpi_sign_if` | Secret-scalar comparisons, modular inverse |\n| RSA | `mbedtls_ct_rsaes_pkcs1_v15_unpadding` (called from `mbedtls_rsa_rsaes_pkcs1_v15_decrypt`) | Bleichenbacher padding-oracle resistance |\n| ECP | `ecp_select_comb` | Table selection without secret-indexed access |\n| TLS record MAC | `mbedtls_ct_hmac` (`ssl_msg.c`) | CBC MAC verification with constant flow; uses `psa_hash_clone` |\n| Padding / encoding | `mbedtls_get_pkcs_padding`, `mbedtls_ct_base64_dec_value` / `enc_char` | Branch-free padding check and base64 |\n| Third-party | p256-m (`3rdparty/p256-m`) | Its own constant-time design (Fermat inversion); has a `MUL64_IS_CONSTANT_TIME` switch |\n\nThe facility stops at the library's boundary in two ways:\n\n- **Not every secret path uses it.** Most of the library, including plenty of code that handles secrets, does not call `mbedtls_ct_*`. Only the places listed above were found.\n- **PSA is outside it.** `docs/psa-transition.md` says the PSA API has no equivalent of these utilities. The PSA spec for AEAD verify says only that implementations \"shall make the best effort\" to compare tags in constant time.\n\n## What I could not settle from the index\n\n- I did not read the full bodies of `mbedtls_ct_hmac` or `mbedtls_ct_rsaes_pkcs1_v15_unpadding`; the index truncated them. I only know their documented intent.\n- I did not confirm which callers are compiled in each configuration, or whether any constant-time path is switched off under a config option.\n- The rest of the `SECURITY.md` caveat sentence was truncated in the index, so I cannot quote its exact wording beyond the part above.\n- The index has no build-system or CI definitions, so I could not confirm which compilers the CI actually covers.",
+  "ttft_ms": 2085,
+  "type": "result",
+  "duration_ms": 43154,
+  "uuid": "afdebb42-3560-452c-b657-7a4e4ad40f94",
+  "ttft_stream_ms": 1924,
+  "time_to_request_ms": 70,
+  "first_content_frame_ms": 1924,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 32746,
+  "stop_reason": "end_turn",
+  "session_id": "be45110b-48d7-4d2f-bfe2-0130eac2c256",
+  "total_cost_usd": 0.012339770000000003,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 31484,
+    "cache_read_input_tokens": 360437,
+    "output_tokens": 4874,
+    "output_tokens_details": {
+      "thinking_tokens": 1787
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 31484,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2222,
+        "cache_read_input_tokens": 60738,
+        "cache_creation_input_tokens": 862,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 862
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 4874,
+      "cacheReadInputTokens": 360437,
+      "cacheCreationInputTokens": 31484,
+      "webSearchRequests": 0,
+      "costUSD": 0.012339770000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1787,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer is not a list of call sites. It is a list of **caller functions**, each tagged with how clew found the link and how sure it is. Read the tags before counting anything.\n\n**What `dossier` returns for callers**\n\n`dossier` is the only tool that answers \"who calls this\". There is no separate `callers` tool in the served surface (README, \"The four tools\"). Its `callers` field is a list of `CallEdge` rows (`clew/query/models.py:145`), and each row carries:\n\n- `name` and `rowid`: the caller function, resolved by identity.\n- `source`: the layer that found the edge, such as `doxygen_sqlite`, `ast`, `ast_member`, `fnptr` or `macro_hop`.\n- `confidence`: `exact`, `resolved` or `fuzzy`, describing the strongest evidence for that endpoint.\n- `edge_class`: always `'call'` in `dossier`. Dataflow neighbours go to the separate `writes`/`reads` fields.\n- `implementors`: present only when doxygen records overrides of the endpoint. It is an annotation, not an extra edge.\n\nThe reply also has `callers_unresolved`, the count of call sites that named the function but failed resolution. It is `None` when the index predates that measurement, and `0` is a real measured zero.\n\n**What makes it wrong to read as a call-site list**\n\n1. **Rows are per caller function, not per call.** `_direct_call_edges` keeps one row per endpoint identity. Five calls from one function are one row. The row count is not a call count.\n\n2. **`fuzzy` is not filtered here.** Unlike `chain_trace`, this surface keeps fuzzy edges on purpose. The code comment says 21.3% of clew's own call edges are fuzzy, and 79.8% on a large C++ codebase. A fuzzy caller is a name match that was never confirmed against the receiver's class. You have to weigh `confidence` on every row.\n\n3. **Macro hops are not textual calls.** A `macro_hop` edge means the caller reaches the callee through a macro. The caller's body may never name the callee. The table stores `via_macro_rowid`, but I did not confirm that it reaches the `dossier` wire output.\n\n4. **An empty list is not a proof of no callers.** It can mean the true caller is outside `index_scope`, or that resolution refused the site. Check `callers_unresolved` before believing an empty result. Function-pointer callers exist only if the registration was harvested (`fnptr`).\n\n5. **Same-name functions are separated, but only by identity.** Callers are selected by resolved rowid (gh#26), so `dossier(\"_classify\")` does not mix up three unrelated functions. If the name is ambiguous, `candidates` lists the alternatives, and you must re-query with `qualified`. Otherwise you may be reading callers of the wrong overload.\n\n**Caveat on this answer:** I read the code and the README and did not run clew against this repository. The claims above come from the source comments and the code paths I read (`call_edges.py`, `query/symbols.py`, `query/dossier.py`, `query/models.py`).",
+  "ttft_ms": 2046,
+  "type": "result",
+  "duration_ms": 33106,
+  "uuid": "d4630d80-87f9-4ebf-9f92-b108c4acae78",
+  "ttft_stream_ms": 1585,
+  "time_to_request_ms": 91,
+  "first_content_frame_ms": 1586,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

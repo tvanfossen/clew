@@ -536,24 +536,26 @@ def test_explicit_output_is_left_alone(tmp_path: Path) -> None:
 
 ## @brief Every dispatched subcommand is named in --help.
 ## @return None.
-## @version 1
+## @version 2
 def test_help_names_every_subcommand() -> None:
     """THEY ARE NOT SUBPARSERS, so argparse cannot list them and nothing failed when they were
     absent — three working commands were discoverable only by already knowing they existed.
     Asserted against the constants `main` actually dispatches on, so renaming one fails here
     instead of quietly dropping it from the help again.
 
-    @brief --help lists init, propose and export.
+    @brief --help lists init, propose, export and guard.
     @return None.
-    @version 1
+    @version 2
     """
     from clew.cli import (
         EXPORT_COMMAND,
+        GUARD_COMMAND,
         INIT_COMMAND,
         PROPOSE_COMMAND,
         _build_argparser,
     )
 
     text = _build_argparser().format_help()
-    missing = [c for c in (INIT_COMMAND, PROPOSE_COMMAND, EXPORT_COMMAND) if c not in text]
+    commands = (INIT_COMMAND, PROPOSE_COMMAND, EXPORT_COMMAND, GUARD_COMMAND)
+    missing = [c for c in commands if c not in text]
     assert not missing, f"--help does not mention {missing}, which main() dispatches on"

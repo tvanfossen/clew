@@ -28,16 +28,10 @@ elements and `_fold_call_payload` defaults arity to unknown.
 
 from __future__ import annotations
 
-import pytest
 
 from clew.call_edges import SOURCE_AST, SOURCE_AST_MEMBER, SOURCE_BINDING
-from clew.harvest import _ast_parse_one_file, try_import_tree_sitter
+from clew.harvest import _ast_parse_one_file
 from clew.pyast import harvest_calls
-
-pytestmark = pytest.mark.skipif(
-    try_import_tree_sitter() is None,
-    reason="the Python receiver tests need tree_sitter + the Python grammar",
-)
 
 _SOURCE = '''\
 """Module."""
@@ -70,10 +64,9 @@ class Other:
 # @version 1
 def _sites(tmp_path):
     """@brief Harvest the fixture's call sites."""
-    Language, Parser = try_import_tree_sitter()
     path = tmp_path / "m.py"
     path.write_text(_SOURCE, encoding="utf-8")
-    tree, src = _ast_parse_one_file("m.py", path, {}, Parser, Language)
+    tree, src = _ast_parse_one_file("m.py", path, {})
     return {
         s[0]: s for s in harvest_calls(tree, src, SOURCE_AST, SOURCE_AST_MEMBER, SOURCE_BINDING)
     }

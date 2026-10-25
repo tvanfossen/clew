@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 7026,
+  "stop_reason": "end_turn",
+  "session_id": "693a5959-4514-45d4-a5a6-741a1f52dc73",
+  "total_cost_usd": 0.0018331999999999999,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 2829,
+    "cache_read_input_tokens": 67850,
+    "output_tokens": 1177,
+    "output_tokens_details": {
+      "thinking_tokens": 303
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 2829,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 796,
+        "cache_read_input_tokens": 33925,
+        "cache_creation_input_tokens": 2829,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2829
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 1177,
+      "cacheReadInputTokens": 67850,
+      "cacheCreationInputTokens": 2829,
+      "webSearchRequests": 0,
+      "costUSD": 0.0018331999999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 303,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A clew index can go stale on three separate axes, and the tool checks them on every query rather than only when asked.\n\n**How it knows**\n\n- **Data:** the database is older than the source. The repo's own test notes say a version check alone cannot see source edits, so drift is detected from file mtimes.\n- **Schema:** the build version stamped in the database differs from the one the server expects.\n- **Code:** the running server process is older than the working tree. This is the case where a rebuild would be unsafe.\n\nThe check runs through `staleness_notices` in `clew/mcp_server/server.py`, which feeds `StalenessProvider` and `_staleness` in `tools_query.py`. A failing measurement is tolerated: the reply still goes out.\n\n**What the caller sees**\n\nEvery query reply names its `target`. A `staleness` block appears only when some axis is stale; a current index adds nothing. The block lists which axes are in play. A data-stale miss is also flagged, because an empty result may come from an old graph.\n\n**What the caller does**\n\n- **Data stale:** `index(action='refresh')` rebuilds or updates incrementally. Queries also auto-refresh a stale index before answering, waiting up to `_LOCK_WAIT_SECONDS` for a refresh already in progress. If that wait runs out, the reply answers stale.\n- **Schema stale:** a refresh does not clear it when the index is newer than the server. The caller has to fix the version mismatch, not rebuild.\n- **Code stale:** the process must be restarted. Reads still return current data, but a build through the old process is refused, so it cannot re-stamp the index with old pipeline logic and drop layers. The tests cover that refusal.\n- **Diagnosis:** `index(action='status')` is the full diagnosis. The server guidance says not to call it at the start of a session, since the reply's `staleness` block already announces problems.\n\n**Caveat**\n\nI answered from the index alone. The exact refresh and wait behaviour comes from docstrings and test notes, not from reading the implementation. I did not open the functions' bodies.",
+  "ttft_ms": 2109,
+  "type": "result",
+  "duration_ms": 7206,
+  "uuid": "aad19862-caa5-427f-817e-8f9dab3ebe7c",
+  "ttft_stream_ms": 1062,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1062,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

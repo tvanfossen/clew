@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 46467,
+  "stop_reason": "end_turn",
+  "session_id": "d2ad2de5-9cfe-40ad-b4b9-9d97281ab637",
+  "total_cost_usd": 0.05327108,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 70748,
+    "cache_read_input_tokens": 585412,
+    "output_tokens": 9184,
+    "output_tokens_details": {
+      "thinking_tokens": 4830
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 70748,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 5251,
+        "cache_read_input_tokens": 103707,
+        "cache_creation_input_tokens": 4891,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4891
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 9184,
+      "cacheReadInputTokens": 585412,
+      "cacheCreationInputTokens": 70748,
+      "webSearchRequests": 0,
+      "costUSD": 0.05327108,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4830,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 21,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## How Python reaches the engine\n\nPython does not have a native extension. It loads the C shared library with `ctypes`:\n\n```\nPython code\n  \u2514\u2500 entropic/_bindings.py     flat ctypes shims, one per C symbol (auto-generated)\n       \u2514\u2500 ctypes.CDLL(librentropic.so)     found by entropic/_loader.py\n            \u2514\u2500 src/facade/entropic.cpp     extern \"C\" entropic_* functions\n                 \u2514\u2500 C++ engine (exceptions caught here, turned into error codes)\n```\n\n- `_loader.py` resolves the `.so` in order: `$ENTROPIC_LIB`, then `$ENTROPIC_HOME`, then `~/.entropic/...`, then `ctypes.util.find_library`.\n- `_bindings.py` is generated from `include/entropic/entropic.h` by `scripts/gen_bindings.py`. Each line pins `restype` and `argtypes`, e.g. `entropic_create = _bind(\"entropic_create\", c_int, POINTER(c_void_p))`. The handle is `c_void_p`, so Python treats it as opaque.\n- `__init__.py` exposes these symbols lazily (PEP 562) so `install-engine` can run before the `.so` exists. There is no `EntropicEngine` class.\n- The Python-side helpers are thin: `hooks.py` (decorator plus trampoline), `streams.py` (token observer), `mcp.py` (JSON marshalling), and `helpers.py` (`apply_patch`).\n\n## Memory rules at the boundary\n\nThe header states these rules at `entropic.h:32-37`, and the implementations confirm them. `entropic_alloc` and `entropic_free` are plain `malloc` and `free` (`src/facade/entropic.cpp:1944-1956`).\n\n| Direction | Rule | Where it applies |\n|---|---|---|\n| Engine returns `char*` | Caller owns it and must call `entropic_free()` | `entropic_run*`, `entropic_context_get`, `entropic_grammar_get`, `entropic_list_mcp_servers`, `entropic_metrics_json` |\n| Engine returns `const char*` | Handle owns it, valid until the next call on that handle. Do not free | `entropic_validation_last_result`, `entropic_version` (static lifetime) |\n| Caller passes a buffer the engine will free | Must be allocated with `entropic_alloc()`, not Python's allocator | Hook `modified_json` |\n| Callback-scoped pointers | Valid only for the callback. Copy before returning | Token `(ptr, len)`, `ent_delegation_result_t` (`patch`, `files_touched`), residency `tier_name` and `model_path` |\n| Python callbacks handed to C | The `CFUNCTYPE` wrapper must be kept referenced for the handle's lifetime, or C calls freed memory | `hooks.py` `_bound` registry, `streams.py` `_observers`, and the `helpers.py` example |\n| Exceptions | Never cross the `.so` boundary. Caught in the facade, returned as `entropic_error_t`, detail in `handle->last_error` | Every `entropic_*` function |\n| Re-entrancy | Callbacks must not call back into the API on the same handle | Stated for token and residency callbacks |\n\nOn the Python side, the existing code follows the rules where it matters. `hooks.py` writes `modified_json` with `entropic_alloc`, so the engine's `free()` is valid. `streams.py` and `helpers.py` copy callback-scoped data with `ctypes.string_at(ptr, len)`. Callback trampolines catch Python exceptions so nothing escapes into C.\n\n## Gaps I found\n\n1. **Returned `char*` strings leak through the Python bindings.** `_bindings.py` declares many functions documented as \"caller frees\" with `c_char_p` restype, e.g. `entropic_list_mcp_servers` (line 294), `entropic_grammar_get` (310), `entropic_profile_get` (315), `entropic_list_mcp_keys` (322), `entropic_get_identity_config` (332) and `entropic_list_identities` (333). ctypes converts the return to `bytes` and discards the raw pointer, so `entropic_free` can never be called on it. My reading is that the generator maps `char*` to `c_char_p` without ownership information. I did not confirm this in `gen_bindings.py`.\n2. **Out-param strings are also never freed in the package.** `entropic_run`, `entropic_context_get` and similar take `POINTER(c_char_p)`. Nothing in `python/src` calls `entropic_free`. A caller must read the raw pointer before `.value` converts it, then free it. The package gives no helper for this.\n3. **Doc drift.** `entropic.h` (lines 701 and 812) and `entropic.cpp` (4022, 4099) say to free with `entropic_free_string`, which does not exist. The real function is `entropic_free`.\n4. **Dead code.** `hooks.py:_alloc_c_string` has no callers. The trampoline inlines the same logic.\n5. **Stale docstring.** The `hooks.py` module docstring uses `entropic.create()`, `entropic.configure()` and `entropic.run()`. None of those are exported; `__getattr__` would raise `AttributeError`. Only the raw `entropic_*` names are exported.\n\nI did not run the Python test suite or check how the existing tests exercise these paths. Item 1 is the most important, because it is a silent leak on every affected call. It is also the first thing to confirm in `scripts/gen_bindings.py`.",
+  "ttft_ms": 1439,
+  "type": "result",
+  "duration_ms": 47392,
+  "uuid": "abc6f236-2e1d-4574-bc16-8077e4318cd5",
+  "ttft_stream_ms": 1279,
+  "time_to_request_ms": 61,
+  "first_content_frame_ms": 1280,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

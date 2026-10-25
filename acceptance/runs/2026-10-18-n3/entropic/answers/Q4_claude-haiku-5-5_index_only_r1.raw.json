@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 20795,
+  "stop_reason": "end_turn",
+  "session_id": "3a9a15b3-b83f-438a-803d-33ac2b18058b",
+  "total_cost_usd": 0.01489409,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 56667,
+    "cache_read_input_tokens": 180369,
+    "output_tokens": 3512,
+    "output_tokens_details": {
+      "thinking_tokens": 1448
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 56667,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2430,
+        "cache_read_input_tokens": 50959,
+        "cache_creation_input_tokens": 5708,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5708
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3512,
+      "cacheReadInputTokens": 180369,
+      "cacheCreationInputTokens": 56667,
+      "webSearchRequests": 0,
+      "costUSD": 0.01489409,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1448,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Five spawn sites in this repo are indexed as background threads, and the safety comes from per-state mutexes, a stop sequence that joins everything, and a few lock-order checks. The index is incomplete for `std::thread`, so the list below is a floor, not a full inventory.\n\n**Background threads (indexed)**\n\n| Thread | Spawned in | What it does |\n|---|---|---|\n| `ExternalBridge::accept_loop` | `ExternalBridge::start`, `src/facade/external_bridge.cpp:796` | Polls the listen socket, rejects peers whose uid doesn't match (`SO_PEERCRED`), and gives each client its own thread. |\n| `HealthMonitor::monitor_loop` | `HealthMonitor::start`, `src/mcp/health_monitor.cpp:92` | Checks watched MCP servers every 500 ms. |\n| `StdioTransport::stderr_reader_loop` | `StdioTransport::open`, `src/mcp/transport_stdio.cpp:164` | Reads the child process's stderr. |\n| `SSETransport::sse_reader_loop` | `SSETransport::open`, `src/mcp/transport_sse.cpp:107` | Reads the SSE stream. |\n\nPer-client serve threads and the detached `ExternalBridge::run_async_ask` worker (which runs `entropic_run` for an async ask) are documented as threads, but the index does not list them. `run_async_ask` shows no thread entry at all, so the index can't confirm its threading. The per-client threads appear only as an inline `std::thread` inside `accept_loop`. Treat the five above as the indexed set, not the whole set.\n\n**What keeps it safe**\n\n- **Each shared structure has its own mutex.** Examples: `tasks_mutex_` guards the async task map, which `run_async_ask`, `update_task_phase`, `handle_ask_status`, and `cleanup_expired_tasks` all touch. `subscribers_mutex_` guards subscriber notifications. `client_threads_mutex_` guards the client-thread vector. `watched_mutex_` guards the watch list that `monitor_loop` iterates while `watch` and `unwatch` modify it.\n- **Work is handed off through swaps, not held locks.** `HealthMonitor::process_events` swaps the event queue out under `event_mutex_`, then runs the callbacks after releasing it. Callbacks never run under the lock.\n- **Shutdown is ordered.** `ExternalBridge::stop` sets `running_` to false, closes the listen fd, and joins the accept thread, so no new client threads can appear. It then `shutdown(SHUT_RDWR)`s each client fd so blocking reads return, and joins each client thread. `HealthMonitor` uses a condition variable on `wake_mutex_` with a `running_` predicate, so it wakes at once on stop.\n- **Ownership is explicit.** Client threads hold a raw pointer into a `unique_ptr` stored in `client_threads_`. That is safe only because the pointer is removed after the thread is joined, which `reap_finished_clients_locked` and `stop` do. The `finished` atomic is the handshake.\n- **Ordering for observers.** `run_async_ask` writes the completion sentinel file while holding `tasks_mutex_`, before the progress notification goes out, so a watcher reacting to the sentinel sees the final task state.\n- **Logs stay with their handle.** Each spawned thread captures `log_id` and opens a `HandleLogScope`, so its logs route to the owning session.\n- **Port claims are global.** `s_bound_sockets_mu` guards the set of bound socket paths, so two handles in one process can't bind the same path.\n\n**Lock-order check**\n\nThe index shows three two-lock nestings, and none is taken in opposite orders, so it finds no deadlock pair:\n- `auth_mutex_` \u2192 `key_mutex_` in `check_access` (4 sites).\n- `event_mutex_` \u2192 `adapter_mutex_` in `process_events`, and `mu_` \u2192 `adapter_mutex_` in a test helper. These two are unverified: the receiver wasn't resolved (`resolved_sites=0`).\n\nThe index only records observed nestings, so this is evidence, not a proof that no deadlock exists.",
+  "ttft_ms": 1886,
+  "type": "result",
+  "duration_ms": 21600,
+  "uuid": "36b00770-b9d5-4921-94aa-0e9c8922e940",
+  "ttft_stream_ms": 1631,
+  "time_to_request_ms": 65,
+  "first_content_frame_ms": 1631,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

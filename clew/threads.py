@@ -31,7 +31,7 @@ call-graph layers already use (`call_edges._ast_parse_one_file`,
      guessed).
 
 The `threads` / `thread_membership` tables are ALWAYS created (empty when no
-spawns are found or tree_sitter is absent), so R2/R4 never branch on table
+spawns are found), so R2/R4 never branch on table
 existence — the `requirements.py` precedent.
 
 @brief Thread spawn harvest, membership closure, and shared-key boundary flags.
@@ -51,7 +51,6 @@ from .harvest import (
     Harvester,
     enclosing,
     run_harvest,
-    try_import_tree_sitter,
 )
 from .indexcache import IndexCache
 from .isr import (
@@ -1298,7 +1297,6 @@ def _harvest_all_spawn_sites(
     conn: sqlite3.Connection,
     repo_root: Path,
     harvester: Harvester,
-    ts_classes: tuple[Any, Any],
     cache: IndexCache | None = None,
 ) -> tuple[list[_SpawnSite], int]:
     """Drive the cached per-file harvest and flatten it back into _SpawnSite.
@@ -1328,7 +1326,7 @@ def _harvest_all_spawn_sites(
     ## is what those versions could measure.
     harvested = [
         (path_rowid, payload if isinstance(payload, dict) else {"sites": payload})
-        for path_rowid, payload in run_harvest(conn, repo_root, harvester, ts_classes, cache)
+        for path_rowid, payload in run_harvest(conn, repo_root, harvester, cache)
     ]
     refused = sum(int(payload.get("macro_registrations", 0)) for _rowid, payload in harvested)
     sites = [
@@ -1659,7 +1657,7 @@ def _populate_membership(conn: sqlite3.Connection) -> int:
 ## @param thread_patterns_path Optional --thread-patterns YAML, or None.
 ## @param cache Optional incremental index cache; None disables caching.
 ## @param harvester Pre-built harvester from the shared parse pass; built here when omitted.
-## @version 7
+## @version 8
 ## @req REQ-DDB-SCHEMA-001
 def extract_threads(
     db_path: Path,
@@ -1670,7 +1668,7 @@ def extract_threads(
 ) -> None:
     """Harvest thread-spawn sites into `threads` and compute
     `thread_membership` as a per-entry call-edge closure. Tables are always
-    created (empty when tree_sitter is absent or no spawn matches), so
+    created (empty when no spawn matches), so
     consumers never branch on existence. Runs after the call-edge layers so
     membership sees the complete non-fuzzy call graph (including fnptr edges).
 
@@ -1678,24 +1676,16 @@ def extract_threads(
     built here from `thread_patterns_path` exactly as before.
 
     @brief Import threads + thread_membership (spawn harvest + BFS closure).
-    @version 3
+    @version 4
     """
     conn = sqlite3.connect(str(db_path))
     _ensure_threads_tables(conn)
-
-    ts_classes = try_import_tree_sitter()
-    if ts_classes is None:
-        logger.info("tree_sitter not available — threads table left empty")
-        conn.commit()
-        conn.close()
-        return
 
     name_index = _definition_preferring_name_index(conn)
     sites, macro_registrations = _harvest_all_spawn_sites(
         conn,
         repo_root,
         harvester or spawn_harvester(thread_patterns_path),
-        ts_classes,
         cache,
     )
     from .call_edges import _build_function_indexes

@@ -245,3 +245,90 @@ def test_doxygen_any_refuses_another_configurations_output(tmp_path: Path) -> No
     )
     cache.commit()
     cache.close()
+
+
+# ─── B4: the parser's own version is part of the configuration ────────────────
+
+
+def test_the_substrate_version_is_in_the_cache_key() -> None:
+    """B4, 1.1.0 MERGE REVIEW. `lang-parsing-substrate` parses every byte of every target —
+    the JS/TS front end, `classify_file`, the shared AST pass — and `clew/signature.py`'s v8
+    note records the measurable consequence of ONE of its upgrades: on mbedtls, 7
+    AST-recovered functions lost, two `ssl_parse_*` gained, three fabricated `if` functions
+    removed. Both cache sites passed `extra=[]`, so upgrading the wheel changed what a build
+    WOULD produce and invalidated nothing: the next build served the old output under a key
+    that no longer described it. `CLEW_BUILD_VERSION` cannot cover this — it moves when clew's
+    own pipeline changes, not when a dependency's parser does.
+
+    MEASURED, NOT ASSUMED, ABOUT THE OTHER HALF: the resolved scope needs no digest here.
+    `_apply_scope` prepends the derived roots to `extra_input` and the resolved excludes to
+    `extra_exclude`, and both are rendered into the exact Doxyfile the key folds — verified
+    as `INPUT += <root>` and `EXCLUDE_PATTERNS += <exclude>/*` lines moving the content. The
+    merge review's "cache keys on declaration text, not resolved roots" does not hold, so no
+    second digest is added; adding one would be key material that only looks like a fix.
+
+    @brief `_cache_key_extra` names the substrate version. @version 1
+    """
+    from clew.cli import _cache_key_extra
+
+    extra = _cache_key_extra()
+
+    assert any(item.startswith("substrate=") for item in extra), (
+        f"nothing in the cache key moves when the parser is upgraded: {extra}"
+    )
+    assert not any(item.endswith("=") for item in extra), (
+        f"an empty value is indistinguishable from an absent dependency: {extra}"
+    )
+
+
+def test_an_unresolvable_substrate_version_is_named_not_blank() -> None:
+    """`write_build_signature` DROPS falsy values and `_config_digest` folds every item, so
+    `""` would both vanish from `build_meta` and fold a key that silently says nothing. An
+    editable or vendored install that has no distribution metadata must read as `unknown`.
+
+    @brief A missing distribution yields "unknown", never "". @version 1
+    """
+    from importlib.metadata import PackageNotFoundError
+
+    import clew.cli as cli
+
+    def _raise(_name: str) -> str:
+        raise PackageNotFoundError("lang-parsing-substrate")
+
+    original = cli.metadata_version
+    cli.metadata_version = _raise
+    try:
+        assert cli._cache_key_extra() == ["substrate=unknown"]
+    finally:
+        cli.metadata_version = original
+
+
+def test_both_cache_sites_fold_the_same_key_material() -> None:
+    """`config_sha` MUST be a strict prefix of what `tree_sha` folds — `_config_digest`'s own
+    docstring is explicit that rendering it in one place is what makes them impossible to
+    diverge. Two call sites each spelling their own `extra` list would reintroduce exactly the
+    divergence that shared helper exists to prevent, and the symptom would be a splice keying
+    off a different notion of sameness than the skip.
+
+    Asserted on the SOURCE, because the defect is two literals drifting apart, not a value.
+
+    @brief Both cache-key calls pass the same expression. @version 1
+    """
+    import ast
+
+    source = (Path(__file__).resolve().parent.parent / "clew" / "cli.py").read_text()
+    calls = [
+        node
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in {"tree_sha", "config_sha"}
+        and len(node.args) == 2
+    ]
+
+    assert len(calls) == 2, f"expected one tree_sha and one config_sha call, found {len(calls)}"
+    spellings = {ast.dump(call.args[1]) for call in calls}
+    assert len(spellings) == 1, (
+        "tree_sha and config_sha are folding different extra key material, so the "
+        "configuration prefix invariant no longer holds"
+    )

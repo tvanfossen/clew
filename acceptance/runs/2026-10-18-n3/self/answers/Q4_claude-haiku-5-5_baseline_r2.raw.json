@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 20790,
+  "stop_reason": "end_turn",
+  "session_id": "ccaf787d-bb66-4caf-a47a-8ac4f96d1ebf",
+  "total_cost_usd": 0.00817632,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 20740,
+    "cache_read_input_tokens": 188782,
+    "output_tokens": 4279,
+    "output_tokens_details": {
+      "thinking_tokens": 1674
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 20740,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2529,
+        "cache_read_input_tokens": 48881,
+        "cache_creation_input_tokens": 1975,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1975
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4279,
+      "cacheReadInputTokens": 188782,
+      "cacheCreationInputTokens": 20740,
+      "webSearchRequests": 0,
+      "costUSD": 0.00817632,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1674,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What the answer contains**\n\n`clew` answers \"who calls X\" from `call_edges`, a table of `(caller, callee, source, confidence)` rows, one per distinct endpoint identity (`clew/query/symbols.py`, around line 392). Each row is a function-to-function edge, not a call site:\n\n- **`source`** records which layer found it. The values are `doxygen_sqlite` (inline xrefs), `ast` (bare-identifier call), `ast_member` (member/qualified callee unwrapped to its tail name), `fnptr` (registration then dispatch through a function pointer), `macro_hop`, `declared_dispatch` (synthesized from a `.clew.yaml` declaration) and `binding`. See `clew/call_edges.py`, lines 1\u201330.\n- **`confidence`** is `exact`, `resolved` or `fuzzy`. `fuzzy` means the name matched without confirming the class.\n- **Dossier extras** (`clew/query/dossier.py`): body excerpt, brief, locks, thread, requirements and covering tests, liveness, and `callers_unresolved`, a count of inbound edges that were refused. `name_ambiguity` adds a warning when a common name has fuzzy member neighbours.\n\n**What makes it wrong to read as a list of call sites**\n\n1. **Rows are inferences, not observed call sites.** `fnptr` edges come from registration-plus-dispatch matching. `macro_hop` edges are composed from two observations. `declared_dispatch` edges are author-stated. `doxygen_sqlite` inline xrefs are described in the code as \"the closest proxy for a call edge\", so a reference can land there too.\n\n2. **Fuzzy edges are not filtered in the flat list.** `symbols.py` says so explicitly: 21.3% of clew's own edges and 79.8% of entropic's C++ edges are fuzzy, and the flat `callers` list keeps them. A fuzzy `ast_member` caller may be calling a different class's method with the same name. Meanwhile `traversal.py` and `reachability.py` drop fuzzy edges, so the same graph gives different answers on different surfaces.\n\n3. **An empty `callers` does not mean nothing calls it.** The `callers_unresolved` count exists for this. It is `None` (not 0) on an index built before the measurement existed, so a missing value is not a clean bill of health.\n\n4. **Self-edges can be deleted or kept by shape.** The self-edge guard keeps a `caller == callee` row only when the caller's body contains a bare or self-rooted call to that name. It fails closed, so an unparseable caller keeps its edges.\n\n5. **\"Live\" is not \"called\".** `symbol_liveness` is a BFS from seeds that include name-shape guesses (`%init%`, `%handler%`, `%task%`) and every function with zero non-fuzzy callers. A function with no callers is marked live by construction.\n\n6. **Coverage has known holes.** Calls through function pointers with no visible registration are missed. Cross-file calls newly added in Python or Rust wait for a full rebuild. Callers outside the indexed repo are not visible, except through the terminus layer. Dossier batches are capped at 8 symbols, and the MCP boundary caps rows by response size (`RESPONSE_BUDGET_BYTES`). The row cap is lossy, so a long caller list can be silently shortened.\n\n7. **Freshness.** Queries refresh a stale index first, and the `staleness` block appears only when the index is actually stale. A refresh that fails or is skipped would leave edges describing old code.\n\n**Practical reading:** treat the callers list as a ranked set of candidates. Check `confidence`, `source` and `callers_unresolved` before trusting a negative, and open the body at each caller before claiming a call site.\n\nI read the README, the docs and the query and edge-building code. I did not run clew against a target, so the behaviour above is what the code and docstrings say, not measured output.",
+  "ttft_ms": 1058,
+  "type": "result",
+  "duration_ms": 21039,
+  "uuid": "0b51bd3f-7b9c-4389-88ca-caf15b946103",
+  "ttft_stream_ms": 700,
+  "time_to_request_ms": 78,
+  "first_content_frame_ms": 700,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

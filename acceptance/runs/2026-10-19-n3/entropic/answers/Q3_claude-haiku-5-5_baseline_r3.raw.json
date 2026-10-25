@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 40876,
+  "stop_reason": "end_turn",
+  "session_id": "638f6e15-2c78-41ae-af7d-fa05195c4f22",
+  "total_cost_usd": 0.01698324,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 42580,
+    "cache_read_input_tokens": 491244,
+    "output_tokens": 7106,
+    "output_tokens_details": {
+      "thinking_tokens": 2912
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 42580,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2017,
+        "cache_read_input_tokens": 72586,
+        "cache_creation_input_tokens": 2421,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2421
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 7106,
+      "cacheReadInputTokens": 491244,
+      "cacheCreationInputTokens": 42580,
+      "webSearchRequests": 0,
+      "costUSD": 0.01698324,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2912,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## What decides whether a tool call runs\n\nTwo lists, one switch, and a deny check that runs late. The path for one call:\n\n```\nmodel emits tool call\n \u2514\u2500 ToolExecutor::process_single_call          tool_executor.cpp:729\n     \u251c\u2500 PRE_TOOL_CALL hook (can cancel)        :733\n     \u251c\u2500 check_call_preconditions               :667\n     \u2502   \u251c\u2500 anti-spiral hard block             :673\n     \u2502   \u251c\u2500 schema validation                  :677\n     \u2502   \u251c\u2500 MCP key authorization              :680\n     \u2502   \u251c\u2500 tier allowed_tools                 :684\n     \u2502   \u251c\u2500 duplicate-call check               :687\n     \u2502   \u2514\u2500 check_approval  (allow list / callback)   :691, :161\n     \u2514\u2500 execute_tool \u2192 ServerManager::execute  :379, :397\n         \u2514\u2500 is_denied(deny list)  \u2192 \"Error: Permission denied\"   server_manager.cpp:158-159\n            \u2514\u2500 route to in-process or external server\n```\n\nThe allow decision is in `check_approval` (`tool_executor.cpp:161-188`):\n\n1. `auto_ok = loop_config_.auto_approve_tools || server_manager_.is_explicitly_allowed(...)`. `auto_approve` comes from `permissions.auto_approve` (`facade/entropic.cpp:1489`).\n2. If that is false and an `on_tool_call` callback is set, the code sets `approved = true` unconditionally (`:168-173`). The callback's return is void, so the frontend cannot veto anything.\n3. If there is no callback, the call is denied (`:184-186`). The test at `tests/unit/mcp/tool_executor_test.cpp:280` pins this headless behaviour.\n\nThe deny list is not consulted in `check_approval`. It is checked only inside `ServerManager::execute`, after approval has already passed. So `deny` beats `allow` and `auto_approve` in practice, but only at dispatch time.\n\n## What a pattern does\n\nPatterns are parsed in `PermissionManager::pattern_matches` (`permission_manager.cpp:101-125`) and stored from config `permissions.allow` / `permissions.deny` (`config/loader.cpp:365-371`, `server_manager.cpp:35`).\n\n- **`tool`** (no colon): `fnmatch` on the fully-qualified tool name. `filesystem.*` covers every filesystem tool.\n- **`tool:argpattern`**: the part before the first `:` is matched against the tool name. The part after is matched with `fnmatch` against `tool_name:<arg>`, where `<arg>` comes from `args_to_pattern` (`server_manager.cpp:426-443`). `bash.execute:python*` therefore matches when the command starts with `python`.\n\nTwo gotchas in `args_to_pattern`:\n\n- It only inspects the first key of the args object. nlohmann::json objects are sorted by key by default, so \"first\" means alphabetically first, not the order the model wrote them. If that value is not a string, the subject becomes `*`.\n- Because the subject becomes `tool:*`, a deny like `bash.execute:rm*` does not match in that case. The deny fails open. This is a real hole if the first-key argument is not the one you meant to guard.\n\nAllow and deny semantics:\n\n| List | Where it is checked | Effect on match |\n|---|---|---|\n| `allow` | `check_approval` via `is_explicitly_allowed` | Skips the approval callback. Does not bypass the deny check. |\n| `deny` | `ServerManager::execute` via `is_denied` | Returns `\"Error: Permission denied for <tool>\"` as the tool result. The call is never routed. |\n\n## Things that look wrong\n\n- **Header vs. code.** `permission_manager.h:6-7` says tools are \"approved via callback\" under default-deny. The code grants approval whenever a callback is wired, so every unlisted tool runs once a frontend registers `on_tool_call`. The `ON_PERMISSION_CHECK` hook then reports `\"allowed\"` for those calls (`tool_executor.cpp:176-182`).\n- **Per-command bash patterns are dead code.** `ServerManager::get_permission_pattern` (`server_manager.cpp:301`, implemented in `bash.cpp:200`) is never called. The permission path builds its subject from `args_to_pattern`, not the server's pattern, so bash-specific matching is not used.\n- **Denied calls still fire callbacks.** `on_tool_start` and the hooks run before the deny check, and `record_tool_history` records the call.\n\nI did not trace the `PermissionPersister` (`storage/permission_persister.cpp`) path that may write new allow entries at runtime, or how the frontend's `on_tool_call` is wired in practice. Both are outside what the question asked, and I did not confirm either.",
+  "ttft_ms": 1398,
+  "type": "result",
+  "duration_ms": 41369,
+  "uuid": "dc75e913-c439-4567-a8c0-8325a4c2392f",
+  "ttft_stream_ms": 1213,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1213,
+  "queued_turn_count": 0,
+  "result_index": 0
+}
