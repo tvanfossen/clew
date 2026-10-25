@@ -103,7 +103,7 @@ def count_tools(envelope: dict, session_id: str | None, repo_root: Path) -> tupl
 
     @brief Tool-call counts from the session transcript.
     @return (total, non-index).
-    @version 2
+    @version 3
     """
     if not session_id:
         return -1, -1
@@ -114,8 +114,18 @@ def count_tools(envelope: dict, session_id: str | None, repo_root: Path) -> tupl
         if not found:
             return -1, -1
         path = found[0]
-    total = 0
-    non_index = 0
+    ## COUNTED BY tool_use ID, NOT BY BLOCK, because a transcript repeats rows. Measured on the
+    ## 1.1.0 grid: one cell's JSONL held 118 rows against 64 distinct uuids and 30 `tool_use`
+    ## blocks against SIXTEEN distinct ids, so this reported 30 calls for an agent that made 16.
+    ##
+    ## IT HID BECAUSE IT WAS UNIFORM — 1.92x to 1.94x on all three arms — so every cross-arm
+    ## ratio looked right while every absolute count was nearly double. A figure that is wrong
+    ## by the same factor everywhere is the hardest kind to notice and the easiest to publish.
+    ##
+    ## The id is the call's identity: the model assigns it, and the same id twice is one call
+    ## written down twice, whatever made the file repeat a row. Counting blocks trusts the
+    ## file's shape; counting ids trusts its content.
+    seen: dict[str, str] = {}
     try:
         for line in path.read_text(encoding="utf-8").splitlines():
             try:
@@ -126,11 +136,14 @@ def count_tools(envelope: dict, session_id: str | None, repo_root: Path) -> tupl
             for block in content if isinstance(content, list) else []:
                 if not isinstance(block, dict) or block.get("type") != "tool_use":
                     continue
-                total += 1
-                if "clew" not in str(block.get("name") or ""):
-                    non_index += 1
+                ## A block with no id cannot be de-duplicated, so it is kept under a key of its
+                ## own rather than silently collapsing every such block into one.
+                key = str(block.get("id") or f"anon:{len(seen)}")
+                seen.setdefault(key, str(block.get("name") or ""))
     except OSError:
         return -1, -1
+    total = len(seen)
+    non_index = sum(1 for name in seen.values() if "clew" not in name)
     return total, non_index
 
 

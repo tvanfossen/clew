@@ -302,3 +302,48 @@ def test_without_a_skills_document_nothing_is_appended(tmp_path, monkeypatch) ->
     assert "--append-system-prompt" not in seen["argv"]
     meta = json.loads((out / f"{cell.stem()}.meta.json").read_text())
     assert meta["skills"] == "", "absent is recorded as absent, not omitted"
+
+
+## @brief A tool call recorded twice in the transcript is counted once.
+## @return None.
+## @version 1
+def test_a_repeated_transcript_row_does_not_double_count_a_tool_call(tmp_path, monkeypatch):
+    """MEASURED ON THE 1.1.0 GRID, and it inflated every tool figure the matrix produced. One
+    cell's session JSONL held 118 rows against 64 distinct uuids and 30 `tool_use` blocks against
+    **16 distinct ids** — so `tool_calls` was recorded as 30 when the agent made 16. Uniform at
+    1.92-1.94x across all three arms, which is why it hid: every cross-arm RATIO looked right
+    while every absolute count was nearly double.
+
+    THE ID IS THE IDENTITY. A `tool_use` block carries an id the model assigned; the same id
+    appearing twice is the same call written down twice, whatever caused the transcript to repeat
+    a row. Counting blocks instead of ids trusts the file's shape rather than its content.
+
+    A non-index tool counted twice is doubly wrong: `non_index_tool_calls` drives the shell
+    displacement column, and `tool_calls == non_index_tool_calls` is the blind-cell test.
+
+    @brief Duplicate transcript rows are de-duplicated by tool_use id.
+    @return None.
+    @version 1
+    """
+    import json
+
+    from acceptance.execute import count_tools
+
+    slug = "-" + str(tmp_path).lstrip("/").replace("/", "-")
+    proj = tmp_path / "home" / ".claude" / "projects" / slug
+    proj.mkdir(parents=True)
+    row = {
+        "message": {
+            "content": [
+                {"type": "tool_use", "id": "toolu_A", "name": "mcp__clew__dossier"},
+                {"type": "tool_use", "id": "toolu_B", "name": "Grep"},
+            ]
+        }
+    }
+    ## The same row written twice, which is what the real transcripts do.
+    (proj / "sid.jsonl").write_text(json.dumps(row) + "\n" + json.dumps(row) + "\n", "utf-8")
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path / "home"))
+
+    total, non_index = count_tools({}, "sid", tmp_path)
+    assert total == 2, f"two distinct calls written twice must count as 2, got {total}"
+    assert non_index == 1, f"one non-index call written twice must count as 1, got {non_index}"
