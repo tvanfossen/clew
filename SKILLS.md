@@ -5,9 +5,10 @@ clew answers questions about a repository from a prebuilt index, through three M
 `dossier`, `search` and `index`. This document is how to use them so they cost less than reading
 the source — which is the only reason to use them at all.
 
-**Every number below was measured**, on a 90-cell acceptance grid over Mbed-TLS and a C++
-service, against the same questions answered by an agent with only shell tools. Where clew loses,
-that is stated too.
+Every rule here came from watching real runs get it wrong, and where clew loses, that is stated
+too. **No figures live in this document.** The measurement and its disclosed defects have exactly
+one home — `acceptance/runs/<date>/` — because a number copied into a usage document has no owner
+and no test, and goes stale the next time the grid runs.
 
 ---
 
@@ -19,10 +20,9 @@ that is stated too.
 dossier(subject=["mbedtls_ssl_handshake", "mbedtls_ssl_setup", "mbedtls_ssl_init"])
 ```
 
-**Measured: 69% of real dossier calls passed a single subject.** That arm then spent 11.8 dossier
-calls per question where roughly 6 would have done, and finished with *more* round trips than the
-shell-only agent — while using 30% fewer output tokens per call. The index was cheaper per
-question asked and lost the advantage by asking one at a time.
+**Most real calls pass a single subject.** That is the single most common way to use these tools
+badly: every declined batch is a round trip bought for nothing, because the reply for three
+subjects costs barely more than the reply for one.
 
 So: **collect the names first, then fetch them together.** If a reply names five callers you want
 to inspect, that is one call, not five.
@@ -35,8 +35,8 @@ For "what does this reach" or "what reaches this", `dossier` walks the graph its
 dossier(subject="mbedtls_ssl_read", depth=3, direction="back")
 ```
 
-**Measured: 3% of calls used `depth > 1`.** The other 97% re-implemented the walk one call at a
-time. `direction="back"` is upstream, `"forward"` downstream, and the reply's `chain` is the
+**`depth > 1` is almost never used.** Nearly every walk gets re-implemented one call at a time
+instead. `direction="back"` is upstream, `"forward"` downstream, and the reply's `chain` is the
 bounded causal path.
 
 ## 3. `search` finds names; it is not where you read answers
@@ -105,10 +105,14 @@ recorded**. If a thread question matters, confirm against the source.
 
 ## The honest summary
 
-On the 1.1.0 grid, the index alone scored **17.9 points below** a shell-only agent on answer
-completeness, while using **29.8% fewer output tokens** and **18.4% less wall time**. The same
-agent given both the index and a shell scored **4.1 points above** shell-only.
+**The index alone answers less completely than a shell-only agent, and costs meaningfully less to
+run. Given both, an agent answers about as completely as with a shell alone, still cheaper.**
 
 So clew is a cheaper way to be precise about named things, and not a replacement for reading a
 repository. Used as in §1–§4 it should cost fewer round trips than grep; used one symbol at a
 time it costs more.
+
+**For the figures, read `acceptance/runs/<date>/RESULTS.md` and the `KNOWN-DEFECTS.md` beside
+it** — never a number quoted anywhere else, including here. The published result is PROVISIONAL
+and its defects are disclosed with the direction each one moves the numbers; a headline copied out
+of that pair loses the disclosure that makes it honest.

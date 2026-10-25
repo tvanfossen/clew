@@ -281,8 +281,15 @@ opinion.
 One command drives every target through provision → generate → grade → report:
 
 ```bash
-.venv/bin/python -m acceptance.matrix --out acceptance/runs/<date>-n3 --models sonnet --replicates 3 --seed 7
+.venv/bin/python -m acceptance.matrix --out acceptance/runs/<date>-n3 \
+    --models <DATED-MODEL-ID> --replicates 3 --seed 7
 ```
+
+**`--models` takes a DATED id and refuses an alias**, on `plan` as well as `generate`. This
+command read `--models sonnet` until 1.1.1, which the CLI now rejects — see the repeatability
+requirements below for why. The id is left as a placeholder deliberately: writing a specific one
+here would be a claim about which model a future run should use, and that belongs in the run's
+pre-registration, not in the design document.
 
 **Do not run the four phases per target by hand.** That is sixteen commands carrying their own
 paths, and every path defect this harness has shipped came from that sequence — a relative
@@ -325,12 +332,16 @@ unresolved rather than as a result.
 
 ## Repeatability requirements
 
-Five things must be pinned, and the fifth was missing from this list as well as from the
-artifacts:
+Six things must be pinned. Each of the last two was missing from this list as well as from the
+artifacts, and was added after a published run had already gone out without it:
 
 1. the target commit — `check_revision` refuses on mismatch, and on a dirty tree
 2. **the judge model, by dated id** — an alias moves under the rubric silently. Every shipped
-   rubric pins one, and `grader/rubric.py` REFUSES a value that looks like an alias
+   rubric pins one, and `grader/rubric.py` REFUSES a value that looks like an alias.
+
+   **The rule that did this was weaker than it read, until 1.1.1.** It asked for a hyphen and any
+   digit, which `claude-haiku-5-5` satisfies — so it rejected `sonnet` and accepted any family
+   alias. It now asks for a date, via `acceptance/modelpin.py`, which is shared with item 6.
 3. the scorer version — `grader_fingerprint`, a hash of every file under `grader/`, in every
    sidecar
 4. the question-order seed, recorded in `run.json`
@@ -342,6 +353,27 @@ artifacts:
    five configuration grammars 1.1.0 reads live in a fork whose wheel reports the same version
    string as the published one, so the version cannot say which wheel answered. The compiled-in
    key set can.
+
+6. **the ANSWERING model, by dated id** — and this list omitted it for the same reason item 5 was
+   omitted: every entry above is an input to the measurement or the instrument grading it, and
+   the model being graded is neither, so nobody checked it. The 1.1.0 grid was judged by
+   `claude-sonnet-4-5-20250929` and answered by `claude-haiku-5-5`, an alias — with the rubric
+   digest, the commit pin and the seed all reading as held while the model underneath could move.
+
+   `--models` now refuses an alias, sharing one rule with the judge. **The 1.1.0 artifacts are
+   not retroactively corrected**: they are evidence of a measurement taken under an alias, and
+   that run's `RESULTS.md` keeps its caveat.
+
+### One window per sitting, appended
+
+A grid assembled over several capacity windows must not read as one pass. `run.json` records a
+`windows` list — one entry per `generate`, each carrying its own `tool_identity()`, because the
+build is the thing that can legitimately differ between sittings.
+
+This was `resumed`, a single list of already-answered stems, and every `generate` **rewrote** the
+file: after three windows the record described only the last one. The 1.1.0 grid was assembled
+over several windows and its `run.json` can no longer say how many. A record written before the
+key existed reads as no prior windows rather than raising, so the frozen runs still load.
 
 ## Deliberately absent
 

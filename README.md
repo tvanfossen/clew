@@ -59,6 +59,11 @@ already is, so building a second one is not where the value is.
 | **`index(action=…)`** | Administration, not questions: `refresh` builds, `status` diagnoses, `targets` lists every indexed repo, `stats` grades one, `cull` deletes aged-out databases. |
 | **`propose_declaration`** | Reads the repo's evidence and proposes a `.clew.yaml`, entirely as comments, for when a causal layer looks emptier than the code warrants. |
 
+**How to use them so they cost less than reading the source** is [SKILLS.md](SKILLS.md) — batching,
+when depth pays, which layers to enumerate, and a blunt section on what clew cannot answer. Every
+figure in it was measured on the acceptance grid, including the places clew loses. It installs with
+the package at `clew/SKILLS.md`, so an agent on a `pip install` can be pointed at it directly.
+
 Every reply names the `target` it answered from, and carries a `staleness` block only when that
 index is actually stale — so a current index costs nothing to establish.
 
@@ -97,7 +102,13 @@ question was answered. They have been deleted rather than migrated; git history 
 [`acceptance/DESIGN.md`](https://github.com/tvanfossen/clew/blob/main/acceptance/DESIGN.md) is the
 replacement's schema and grading routine, and
 [`docs/CORE_HYPOTHESIS.md`](https://github.com/tvanfossen/clew/blob/main/docs/CORE_HYPOTHESIS.md)
-is the claim it tests. No measured figures are published until it has run.
+is the claim it tests.
+
+**It has now run.** The first baseline is published as PROVISIONAL under
+[`acceptance/runs/`](https://github.com/tvanfossen/clew/tree/main/acceptance/runs), each run beside
+the `KNOWN-DEFECTS.md` that discloses what moves its numbers and in which direction. Figures are
+deliberately not repeated here or in `SKILLS.md`: the run directory is the only source, so a stale
+copy cannot outlive it.
 
 ## Refreshing an index
 
@@ -278,7 +289,15 @@ tells you if it is missing. Everything else, including the MCP SDK, comes with t
 python3 -m venv .venv
 .venv/bin/pip install -e .[dev]   # pipeline + the doxygen gate + dev tooling
 sudo apt install doxygen          # external binary (plantuml optional)
+.venv/bin/pre-commit install      # the commit-time gate — not optional
 ```
+
+That last line is listed because this repository reached 1.1.0 without it: nothing gated a commit,
+and every green in its history was a human remembering to run one. The `gate-hygiene` hook now
+refuses to report success in a checkout where it is missing.
+
+[AGENTS.md](AGENTS.md) is the contributor contract — the gate, the `@version` rule on doxygen
+blocks, "absence is not emptiness", and the seven places a new index layer has to touch.
 
 ## Build a database
 
