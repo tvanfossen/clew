@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 31231,
+  "stop_reason": "end_turn",
+  "session_id": "eeeb1fed-f07c-443b-b42b-2e9d5fb4acea",
+  "total_cost_usd": 0.013540820000000002,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 42966,
+    "cache_read_input_tokens": 260542,
+    "output_tokens": 4682,
+    "output_tokens_details": {
+      "thinking_tokens": 2228
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 42966,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2566,
+        "cache_read_input_tokens": 60542,
+        "cache_creation_input_tokens": 883,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 883
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4682,
+      "cacheReadInputTokens": 260542,
+      "cacheCreationInputTokens": 42966,
+      "webSearchRequests": 0,
+      "costUSD": 0.013540820000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2228,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How Python reaches the engine:** through `ctypes` over the C ABI. There is no C++ binding and no OOP wrapper.\n\n```\nPython (entropic package)\n  _bindings.py   ctypes shim, auto-generated from entropic.h by scripts/gen_bindings.py\n  _bind(name, restype, *argtypes)  pins restype/argtypes on each symbol of the loaded .so\n  hooks.py       Pythonic facade; builds HOOK_CB CFUNCTYPE trampolines\n        \u2502  ctypes calls, opaque handles, pure C types\n        \u25bc\nlibrentropic.so   include/entropic/entropic.h  (pure C, ENTROPIC_EXPORT)\n  src/facade/entropic.cpp, entropic_hooks.cpp   \u2192 C++ engine internals\n```\n\nThe header states that no C++ types cross this boundary. Callers get an opaque `entropic_handle_t` from `entropic_create`, and `entropic_destroy` tears it down. Per the project design rules, exceptions never cross the `.so` boundary; errors come back as `entropic_error_t` codes.\n\n**Memory rules across the boundary**\n\n| Direction | Rule | Source |\n|---|---|---|\n| Engine \u2192 caller (`char*` return) | Ownership transfers to the caller. Free with `entropic_free()`, which calls `free()`. NULL is a no-op. | `entropic.h` file doc; `entropic_free` in `src/facade/entropic.cpp` |\n| Caller \u2192 engine (string the engine will free) | Allocate with `entropic_alloc()` (wraps `malloc`). Use this for hook `modified_json` and any string the engine takes ownership of. | `entropic_alloc` doc; `_alloc_c_string` and `_build_trampoline` in `hooks.py` |\n| Inference backend \u2192 engine | Strings from `generate`/`complete` are freed with `entropic_inference_free()` (wraps `std::free`). | `src/inference/inference_c_api.cpp`; `i_inference_backend.h` |\n| Token callbacks | The `token` pointer in `entropic_run_streaming`'s `on_token` is valid only for the callback. Copy it if you keep it. `on_token` must not call back into the entropic API (deadlock risk). | `entropic_run_streaming` doc |\n| Python exceptions in hooks | Never escape into C. `_trampoline` catches them, prints a traceback, and returns 0 (pass-through). | `_build_trampoline` in `hooks.py` |\n| Hook return values | Return `None` to pass. A non-None return is JSON-encoded into an `entropic_alloc` buffer and written to `*modified_json`, and the return code becomes 1 (cancel or transform). | `_build_trampoline` |\n| Handle lifetime | `entropic_destroy` is NULL-safe and invalidates the handle. Init and destroy are single-threaded and must not race other calls on the same handle. It tears down the hook registry, which is owned by value. | `entropic_destroy` in `src/facade/entropic.cpp` |\n\n**Lifetime of Python callables:** `hooks.py` file doc says a `CFUNCTYPE`-wrapped Python callable must be kept referenced for as long as the engine can call it, or it will be garbage-collected under C. The index truncates the second foot-gun it names, so I can't report it.\n\n**Caveats**\n- The index holds only the first few hundred characters of the `hooks.py` and `entropic.h` file-level docs. The full ownership section in `entropic.h` isn't visible here, so the table above reflects the per-symbol docs and the snippets I could retrieve. Read `include/entropic/entropic.h` (the \"Memory ownership\" section) and `python/src/entropic/hooks.py` (the header docstring) to confirm the full rule set.\n- `entropic_alloc` and `entropic_free` both use the C library `malloc`/`free`, so mixing them is harmless today. The rule is to pair them anyway, because the convention is the contract.",
+  "ttft_ms": 3634,
+  "type": "result",
+  "duration_ms": 32458,
+  "uuid": "fc835cee-b370-4513-8dcb-c801fa662c7d",
+  "ttft_stream_ms": 3034,
+  "time_to_request_ms": 62,
+  "first_content_frame_ms": 3034,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

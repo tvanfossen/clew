@@ -22,12 +22,14 @@ leaves recall and precision to arithmetic.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import subprocess
 import time
 from collections import Counter
 from dataclasses import dataclass
+from pathlib import Path
 
 VERDICTS: tuple[str, ...] = ("HIT", "MISS")
 
@@ -146,6 +148,12 @@ class Vote:
     errors: int
     ## Why each failed attempt failed, in order. Empty on a clean vote.
     reasons: tuple = ()
+    ## WHAT THE JUDGE SAID FOR THE VERDICT THAT WON — its own `QUOTE:` and `WHY:`, which the
+    ## harness asked for and then discarded for every binary decision. An audit of 26 failed
+    ## decisions found 11 carrying no reason at all and named that as its first obstacle.
+    ## Only the winning samples' reasons are kept: a dissenting sample explains a verdict that
+    ## was not recorded, and pairing it with the recorded one would mislead.
+    rationale: tuple = ()
 
 
 ## @brief Strip arm, model and run identity from an answer before judging.
@@ -206,6 +214,69 @@ def _took_no_api_time(stdout: str) -> bool:
         return False
 
 
+## WHERE VERDICTS ARE REMEMBERED, or None to judge afresh every call.
+##
+## WHY A CACHE AND NOT temperature=0. The judge reaches the model through the `claude` CLI, which
+## exposes no temperature, seed or top_p flag — so every call is a sample at default sampling and
+## re-grading the same answer produces a DIFFERENT score. Measured on 21 re-graded cells: 8.95 pt
+## mean absolute spread, larger than most effects this harness exists to detect.
+##
+## The alternative — calling the API directly to pin temperature — moves ~3.1M judge input tokens
+## per pass from a subscription onto metered billing, recurring forever, and still leaves residual
+## nondeterminism. A content-addressed cache is strictly better at the thing that was wanted: the
+## same answer and the same mark return the SAME verdict BY CONSTRUCTION, and a re-grade costs
+## nothing instead of 3,348 calls.
+##
+## IT MAKES A GRADE REPRODUCIBLE, NOT CORRECT. A wrong verdict becomes reliably wrong, which for a
+## published measurement is the better failure: stable, inspectable and challengeable rather than
+## different every time anyone checks.
+##
+## MODULE-LEVEL RATHER THAN THREADED THROUGH, deliberately. The alternative is four layers of
+## plumbing — `cmd_grade` to `score_question` to `vote` to `ask` — carrying a parameter every
+## layer in between ignores. It is configured once per process by the command that owns the run.
+_CACHE_DIR: Path | None = None
+
+
+## @brief Point the judge cache at a directory, or disable it.
+## @param path Directory to store verdicts in, or None to judge afresh.
+## @return None.
+## @version 1
+def configure_cache(path: Path | None) -> None:
+    """DISABLING IS HOW THE FLOOR GETS MEASURED. A deliberate second pass with no cache is what
+    quantifies judge variance; with the cache on, a second pass would replay the first and report
+    a floor of zero — a measurement of the cache rather than of the judge.
+
+    @brief Configure the verdict cache.
+    @return None.
+    @version 1
+    """
+    global _CACHE_DIR
+    _CACHE_DIR = path
+    if path is not None:
+        path.mkdir(parents=True, exist_ok=True)
+
+
+## @brief The cache file for one prompt and model, or None when caching is off.
+## @param prompt The exact prompt sent to the judge.
+## @param model The judge model id.
+## @return Path to the entry, or None.
+## @version 1
+## @dg_internal
+def _cache_entry(prompt: str, model: str) -> Path | None:
+    """CONTENT-ADDRESSED ON THE WHOLE PROMPT, which already contains the mark text and the
+    anonymised answer, so the key needs nothing else to be exact. The model id is included
+    because two models are two instruments.
+
+    @brief Cache path for a call.
+    @return The path or None.
+    @version 1
+    """
+    if _CACHE_DIR is None:
+        return None
+    digest = hashlib.sha256(f"{model}\x00{prompt}".encode()).hexdigest()
+    return _CACHE_DIR / f"{digest}.json"
+
+
 ## @param prompt Full prompt text.
 ## @param model Dated model id — never an alias.
 ## @param timeout Seconds before the call is abandoned.
@@ -243,6 +314,15 @@ def ask(prompt: str, model: str, timeout: int = DEFAULT_TIMEOUT) -> Reply:
     ## Bounded rather than indefinite: a genuinely broken invocation must still surface as an
     ## error instead of hanging a run. A missing binary is not retried at all, since it will not
     ## fix itself and would burn the whole budget.
+    entry = _cache_entry(prompt, model)
+    if entry is not None and entry.is_file():
+        try:
+            ## A CACHED ERROR IS NEVER REPLAYED. Only verdicts are stored, so a transient capacity
+            ## failure cannot become permanent — it retries on the next pass, as it should.
+            return Reply(text=str(json.loads(entry.read_text("utf-8"))["text"]))
+        except (OSError, ValueError, KeyError):
+            pass
+
     last = Reply(error="no attempt made")
     fast = False
     for attempt in range(ASK_ATTEMPTS):
@@ -289,7 +369,17 @@ def ask(prompt: str, model: str, timeout: int = DEFAULT_TIMEOUT) -> Reply:
             last = Reply(error=f"rc={done.returncode} after {attempt + 1} attempt(s): {detail}")
             continue
         try:
-            return Reply(text=str(json.loads(done.stdout).get("result") or ""))
+            reply = Reply(text=str(json.loads(done.stdout).get("result") or ""))
+            if entry is not None:
+                ## WRITTEN ONLY ON SUCCESS, and tolerantly: a cache that cannot be written must
+                ## not fail a grading pass that otherwise worked.
+                try:
+                    entry.write_text(
+                        json.dumps({"model": model, "text": reply.text}, indent=2), "utf-8"
+                    )
+                except OSError:
+                    pass
+            return reply
         except (json.JSONDecodeError, AttributeError) as exc:
             last = Reply(error=f"unparseable envelope: {exc}")
     return last
@@ -393,6 +483,42 @@ def read_verdict(text: str) -> str | None:
     return token if token in VERDICTS else None
 
 
+## @brief Pull the judge's stated reason out of a reply.
+## @param text Judge reply text.
+## @return "QUOTE … | WHY …" as the judge wrote them, or "" when neither is present.
+## @version 1
+def read_reason(text: str) -> str:
+    """**THE JUDGE WAS ASKED FOR ITS REASONING AND THE HARNESS THREW IT AWAY.** The verdict prompt
+    requires a `QUOTE:` carrying the item's substance and a one-line `WHY:`, written before the
+    verdict is settled — and only `read_verdict` was ever called, so every binary decision landed
+    in the record with `detail: ""`.
+
+    Measured cost: an audit of 26 failed decisions found 11 with no stated reason at all, could
+    not quote the judge where it disagreed with it, and said so as its first limitation. A
+    measurement whose individual decisions cannot be disputed is not inspectable, and this project
+    publishes its grids for other people to argue with.
+
+    TAKES THE LAST OF EACH, matching `read_verdict`: a judge that revises its quote has revised
+    it, and the reason must describe the verdict actually recorded.
+
+    RETURNS "" RATHER THAN A PLACEHOLDER when the judge wrote neither. A reason that was never
+    given and a reason that was lost must not read alike, and "" is what the field already means
+    everywhere else in `Decision`.
+
+    @brief Extract the judge's stated reason.
+    @return The reason, or "".
+    @version 1
+    """
+    quotes = re.findall(r"^\s*QUOTE:\s*(.+?)\s*$", text, re.MULTILINE)
+    whys = re.findall(r"^\s*WHY:\s*(.+?)\s*$", text, re.MULTILINE)
+    parts = []
+    if quotes:
+        parts.append(f"QUOTE: {quotes[-1].strip()}")
+    if whys:
+        parts.append(f"WHY: {whys[-1].strip()}")
+    return " | ".join(parts)
+
+
 ## @brief Pull the extracted item list out of a judge reply.
 ## @param text Judge reply text.
 ## @return Tuple of items, empty when the answer named none.
@@ -440,6 +566,7 @@ def vote(mark_text: str, answer: str, model: str, n: int) -> Vote:
     ## failures needing three different responses. Recording only the tally made an unruled
     ## decision uninvestigable after the fact.
     reasons: list[str] = []
+    said: dict[str, list[str]] = {}
     prompt = verdict_prompt(mark_text, answer)
     for _ in range(requested):
         reply = ask(prompt, model)
@@ -449,9 +576,20 @@ def vote(mark_text: str, answer: str, model: str, n: int) -> Vote:
             reasons.append(reply.error or "reply carried no VERDICT line")
             continue
         counts[token] += 1
+        ## KEYED BY THE TOKEN IT JUSTIFIED, so the winning verdict's reasons can be selected
+        ## after the vote rather than guessed at.
+        stated = read_reason(reply.text)
+        if stated:
+            said.setdefault(token, []).append(stated)
     if not counts:
         return Vote(None, 0.0, (), requested, errors, tuple(reasons))
     top, top_n = counts.most_common(1)[0]
     return Vote(
-        top, top_n / requested, tuple(sorted(counts.items())), requested, errors, tuple(reasons)
+        top,
+        top_n / requested,
+        tuple(sorted(counts.items())),
+        requested,
+        errors,
+        tuple(reasons),
+        tuple(said.get(top, ())),
     )

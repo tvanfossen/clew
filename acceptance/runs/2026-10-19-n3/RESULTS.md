@@ -112,6 +112,38 @@ version, commit, dirty flag, build version and the substrate's compiled-in langu
    after the answers were frozen, so `resumed` now lists every cell and no longer says which
    window produced what.
 
+### Added 2026-10-26: this run's grading keys are now historical
+
+Both keys this run was graded under have since moved, deliberately, and **these cells can no
+longer be re-graded at their own keys from the current tree.** They remain re-gradable from the
+tagged tree that produced them, which is where a third party reproducing this must start.
+
+| key | here | now | why it moved |
+|---|---|---|---|
+| `grader_fingerprint` | `9cc2b15baf93` | `274b0d72688b` | a verdict cache was added to `judge.ask` |
+| `rubric_digest` (all targets) | as recorded per sidecar | changed | `samples_when_weight_at_least` 2 → 1 |
+
+**Both changes answer a defect this run disclosed rather than adding a feature.** Gap 1 above was
+closed by replacing the dated-id requirement with a canonical-id requirement plus recorded
+provenance — the provider publishes no dated form for the current family, and
+`modelUsage.canonicalModel` in all 144 transcripts here is *also* `claude-haiku-5-5`, so there was
+never a dated id to record. Gap 2 was closed by appending one window record per `generate`.
+
+The judge-noise finding at the top of this file — **8.95 pt mean absolute spread** over 21
+re-graded cells — drove both of the key changes:
+
+- The CLI the judge runs through exposes no temperature, seed or top_p, so every call is a sample
+  at default sampling. A verdict cache keyed on prompt and model makes a re-grade exact and free.
+  Calling the API directly to pin temperature would have moved roughly 3.1M judge input tokens per
+  pass onto metered billing, recurring forever, and still left residual nondeterminism.
+- **12.7% of this run's graded weight was decided by a single judge call**, because marks of
+  weight 1 were not voted. Every mark is now voted at k=3, for +10% judge calls. That share is
+  now 0%.
+
+Neither correction changes a number on this page. They change what the NEXT baseline can claim,
+and they mean this one's figures carry a wider interval than its own `±3.31 pt` cluster SEM
+suggests — a per-question swing of ±10 pt was free on this instrument.
+
 ## What to beat
 
 Next baseline should improve on: **−13.92 pt completeness** at **−35.2% output tokens**, with the

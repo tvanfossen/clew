@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 19028,
+  "stop_reason": "end_turn",
+  "session_id": "59d0033d-d5a8-4648-8f0c-2ab634d228d8",
+  "total_cost_usd": 0.01042237,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 34167,
+    "cache_read_input_tokens": 180217,
+    "output_tokens": 3572,
+    "output_tokens_details": {
+      "thinking_tokens": 1356
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 34167,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2460,
+        "cache_read_input_tokens": 62595,
+        "cache_creation_input_tokens": 7969,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7969
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3572,
+      "cacheReadInputTokens": 180217,
+      "cacheCreationInputTokens": 34167,
+      "webSearchRequests": 0,
+      "costUSD": 0.01042237,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1356,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** llama.cpp is a git submodule at `extern/llama.cpp`, pinned to a commit. Its C and common-library APIs are called from the `src/inference/` layer and nowhere else. The public `include/entropic/` headers mention it only in comments. Caveat: the index doesn't cover CMake files, so I could not confirm how the submodule is built into the library. Everything below is from doc and source comments plus symbol bodies.\n\n**How it's brought in**\n\n- `docs/architecture-cpp.md` (Project Structure) lists `extern/llama.cpp/` as a git submodule.\n- The pin is a commit, and the pin history is in `RELEASE_NOTES.md`: `253ba110b` (v2.1.11), then `ac4cddeb` (v2.9.0), then `20a04b22` / `b9886` (v2.9.3).\n- `src/inference/llama_cpp_backend.cpp:1` still says \"Pinned against llama.cpp submodule b8420\". That comment is stale, since the pin has moved on.\n- Vendoring rules: `CONTRIBUTING.md` says vendored deps go under `extern/`.\n- Other third-party code is pulled differently. `examples/openai-server/README.md` says cpp-httplib and nlohmann/json come in via CMake `FetchContent`. The core engine's deps (sqlite, spdlog, ryml, nlohmann/json) are listed in the architecture doc's dependency graph.\n\n**How far it reaches into entropic's source**\n\n| Layer | Files | What it touches |\n|---|---|---|\n| Backend | `llama_cpp_backend.{h,cpp}` | Model load/unload, context creation, decode loop, KV state save/restore, prompt cache, logprobs, speculative and MTP decode. `LlamaCppBackend` is a concrete subclass of `InferenceBackend`, with `do_*` overrides. Its members are raw `llama_model*`, `llama_context*` and `llama_vocab*`. |\n| Sampler | `llama_cpp_sampler.{h,cpp}` | Wraps a `llama_sampler` chain. `LlamaCppSampler` takes ownership of the chain. |\n| Tokenizer | `llama_cpp_tokenizer.{h,cpp}` | Forwards to `llama_tokenize` / `llama_token_to_piece` against a borrowed `llama_vocab*`. |\n| Chat / tool parsing | `adapters/adapter_registry.cpp`, `tool_call_markers.h`, `llama_cpp_backend.h` (`render_with_tools`, `parse_response`) | Uses llama.cpp's `common_chat` render and PEG parsers. Entropic decides when to trust them: only dedicated grammars such as PEG_GEMMA4 parse multi-parameter tool calls. Tool-call close markers are pinned to vendored `chat-peg-parser.cpp` defaults. |\n| Speculative decoding | `speculative_compat.{h,cpp}` | Mirrors the file-private `common_speculative_are_compatible` from `extern/llama.cpp/common/speculative.cpp`, because the upstream version is not exported. |\n| LoRA | `adapter_manager.cpp` | Calls the llama.cpp LoRA C API (`llama_adapter_lora_init`, `llama_set_adapters_lora`). |\n| Images | `image_preprocessor.cpp` | Uses the `stb_image` copy vendored with llama.cpp. Resize is in-house because `stb_image_resize2` isn't in that tree. |\n| Logging | `OLD_NOTES.md` | Routes the llama log callback into entropic's log files. |\n| Tests | `tests/unit/inference/*` | Use link-time mocks for llama adapter functions. Seams `Tokenizer` and `Sampler` exist so most backend logic can be tested without a model. |\n\n**Where it stops**\n\n- The seam design is meant to stop llama.cpp at the backend. `include/entropic/inference/tokenizer.h` and `sampler.h` are abstract interfaces, and their briefs describe llama.cpp only as history.\n- `architecture-cpp.md` requires pure C at `.so` boundaries with no third-party headers in interface contracts. The index found no llama types in `include/entropic/interfaces/`.\n- I did not read the signatures of every public header, so \"no llama types leak\" is supported by the rule and the index's search results, not verified header by header.",
+  "ttft_ms": 2045,
+  "type": "result",
+  "duration_ms": 19507,
+  "uuid": "e26e9bd5-d23b-4bef-8bb0-5e540ed48805",
+  "ttft_stream_ms": 1812,
+  "time_to_request_ms": 79,
+  "first_content_frame_ms": 1812,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

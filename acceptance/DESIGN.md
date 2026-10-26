@@ -12,6 +12,35 @@ status line that is wrong in the safe direction still teaches a reader to discou
 
 ## What the instrument has to measure
 
+### `index_only` tests the hypothesis; `index` tests a grep-trained model
+
+Owner ruling, 2026-10-26. **We cannot guarantee how an agent will use the tool. We can only
+guarantee that the tool ENABLES the hypothesis.** So the three arms answer two different
+questions and are not interchangeable:
+
+| arm | the question it answers | about |
+|---|---|---|
+| `index_only` | can the index answer this at all, and more cheaply? | **clew** — the primary arm |
+| `index` | will an agent with both choose the cheaper path? | **the model's habits** |
+| `baseline` | what does the same question cost with shell alone? | the control |
+
+`index_only` is therefore the arm the hypothesis is judged on. It is a capability ceiling: it says
+what clew makes possible. `index` is the shipped shape and a second arm to improve against, but a
+model trained and fine-tuned on grep is not evidence about clew's ceiling — **the benefit is
+maximised by a model trained on clew usage, which does not exist yet.** A blended result that
+trails `index_only` is expected and is a target, not a refutation.
+
+**TWO THINGS THIS RULING DOES NOT EXCUSE.** First, the shipped configuration is blended, so a
+regression there is a product regression even while the hypothesis validates on `index_only` —
+and 1.1.0's publishable headline was the blended arm, quality-neutral at −15.4% output tokens.
+Second, **the tool's own served text is ours, not the model's.** When a reply suggests a follow-up
+call, a blended agent can take the suggestion *and* grep; "we do not control the model" is no
+defence for text that invites extra work. Measured on the 2e probe: correcting the served
+selector and adding a recovery hint moved `index_only` from +1.7% to 0.0% tool calls against
+baseline, while blended went from +6.8% to +32.2%. One target, n=1, five cells per arm.
+
+### Where each arm stops
+
 Both arms can answer every question given unbounded budget. **What differs is where each arm
 stops.** An agent retrieves what may invisibly be a subset of the complete answer and reports it
 with the confidence of a whole one. So the rubric grades *completeness at the budget the agent

@@ -338,3 +338,38 @@ def rich_db(tmp_path_factory: pytest.TempPathFactory) -> Path:
     @version 2
     """
     return build_rich_db(tmp_path_factory.mktemp("richdb") / "clew.db", CSAMPLE)
+
+
+##
+# @brief Reset the judge's verdict cache before and after every test.
+# @return None.
+# @version 1
+@pytest.fixture(autouse=True)
+def _no_leaked_judge_cache():
+    """**A MODULE-LEVEL GLOBAL SET BY A CLI COMMAND LEAKED INTO UNRELATED TESTS.**
+    `acceptance.grader.judge._CACHE_DIR` is configured once per process by `cmd_grade`, which is
+    correct for a command — each invocation is its own process — and wrong for a test session,
+    where one test calling `cmd_grade` leaves the cache pointed at its `tmp_path` for everything
+    that runs afterwards.
+
+    Measured: three long-standing tests failed after the cache landed —
+    `test_ask_retries_transient_failures_but_not_a_missing_binary`,
+    `test_ask_records_stdout_when_stderr_is_empty` and `test_ask_closes_stdin`. All three assert
+    that `ask` reaches the subprocess, and all three got a cache hit instead, so the subprocess
+    was never called and their assertions read against an empty `Reply`. Nothing about those
+    tests was wrong; the state they ran in was.
+
+    AUTOUSE AND SESSION-WIDE RATHER THAN PER-MODULE, because the leak crosses modules by
+    construction — the test that configures the cache and the tests that suffer for it are in
+    different files, and `pytest-randomly` means their order changes run to run. A per-module
+    fixture would have left this passing locally and failing in CI, or the reverse.
+
+    @brief No test inherits another's judge cache.
+    @return None.
+    @version 1
+    """
+    from acceptance.grader import judge
+
+    judge.configure_cache(None)
+    yield
+    judge.configure_cache(None)

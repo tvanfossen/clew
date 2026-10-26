@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 29488,
+  "stop_reason": "end_turn",
+  "session_id": "7a3a32da-e322-4c6f-a0c4-ebe3006376bb",
+  "total_cost_usd": 0.009948890000000002,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 24290,
+    "cache_read_input_tokens": 266869,
+    "output_tokens": 4842,
+    "output_tokens_details": {
+      "thinking_tokens": 2422
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24290,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2535,
+        "cache_read_input_tokens": 56431,
+        "cache_creation_input_tokens": 4305,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4305
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4842,
+      "cacheReadInputTokens": 266869,
+      "cacheCreationInputTokens": 24290,
+      "webSearchRequests": 0,
+      "costUSD": 0.009948890000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2422,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Why it calls twice:** It's a size-then-fill query, not retry. In `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`), the first `llama_tokenize` call passes a null buffer and length 0. llama.cpp answers with the negative of the required token count, which the code negates. The code then allocates that many slots and makes the second call to fill them. Each call is a single attempt, with no loop, backoff, or re-try on failure. The doc comment on the method calls the second call a \"sized retry,\" which is misleading. I found only this one pair of `llama_tokenize` calls. If you meant a different pair, such as `mtmd_tokenize` in `mtmd_prefill`, the index didn't surface it and I didn't verify it.\n\n**What the caller receives on failure:** The tokenizer returns an empty vector. It logs `Tokenization failed for text of length N` only when the second call returns negative. A null `vocab_` returns empty silently. `LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788-800`) passes that through, and it also returns empty when no tokenizer is wired. There is no error code and no exception, so an empty result can't be told apart from a legitimately empty token sequence.\n\n**What the callers do with it:**\n\n| Caller | Result on empty | Consequence |\n|---|---|---|\n| `tokenize_text` (public API) | empty vector | Documented as \"empty if COLD or error,\" so the caller can't tell which |\n| `do_count_tokens` / `count_tokens` | `0` | A plausible-looking count. A caller budgeting context would conclude the prompt fits. |\n| `do_complete` (`llama_cpp_backend.cpp:3941`) | proceeds with 0 input tokens | Logs \"0 input tokens\" and calls `decode_loop` anyway |\n| `decode_loop` \u2192 `run_prefill` | returns `true` | `run_prefill` with zero tokens skips the decode loop and returns success. `decode_loop` only checks sampler creation and prefill, so generation runs with nothing prefilled. |\n| `compute_prefix_token_count` \u2192 `prefill_dispatch` | `0` | `prefill_and_cache_prefix` treats 0 as \"no prefix\" and falls back to plain prefill without caching |\n\nThe main risk is `do_complete`. A tokenization failure is logged once inside the tokenizer and then turns into a successful generation over no prompt. I didn't read `generate_after_prefill`, so what it does with zero prefilled positions is inferred, not verified. The `decode_loop` error branches only cover sampler and prefill failures, which is consistent with that reading.",
+  "ttft_ms": 1200,
+  "type": "result",
+  "duration_ms": 30436,
+  "uuid": "1825b06a-4e8c-43d6-b4ae-b227c5b9d983",
+  "ttft_stream_ms": 1031,
+  "time_to_request_ms": 64,
+  "first_content_frame_ms": 1031,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

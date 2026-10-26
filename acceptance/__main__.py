@@ -33,7 +33,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .execute import index_cells_that_never_used_the_index, run_cell
-from .grader.judge import JudgeCapacityError
+from .grader.judge import JudgeCapacityError, configure_cache
 from .grader.rubric import RubricError, load
 from .identity import tool_identity
 from .modelpin import floats, require_pinned
@@ -188,6 +188,25 @@ def cmd_generate(args) -> int:
 
     prompts = {q.id: q.prompt for q in rubric.questions}
     cells = plan(rubric, tuple(args.models), args.replicates, args.seed)
+
+    ## NARROWING THE ARMS IS OPT-IN, and an unknown name is REFUSED rather than matched against
+    ## nothing. A typo'd arm that silently selected zero cells would generate no answers and exit
+    ## 0 — a run directory that reads as "the grid is cheap" rather than "the filter was wrong".
+    ##
+    ## WHY IT EXISTS: a probe about index-call waste gets nothing from the baseline arm, which
+    ## makes no index calls at all, so buying those cells is pure spend. The alternative was
+    ## planting fake answer files so `--resume` would skip them, and a fake answer makes the run
+    ## record lie, which is worse than the cost.
+    wanted = tuple(getattr(args, "arms", None) or ())
+    if wanted:
+        unknown = sorted(set(wanted) - set(ARMS))
+        if unknown:
+            print(
+                f"REFUSED — unknown arm(s) {unknown}; this harness has {list(ARMS)}",
+                file=sys.stderr,
+            )
+            return 1
+        cells = [c for c in cells if c.arm in set(wanted)]
     args.out.mkdir(parents=True, exist_ok=True)
 
     ## THE FROZEN ANSWER IS THE RECORD, so resuming reads it rather than buying it again.
@@ -237,6 +256,10 @@ def cmd_generate(args) -> int:
             if (floating := [m for m in args.models if floats(m)])
             else {}
         ),
+        ## WHICH ARMS WERE ASKED FOR. A directory holding two arms is indistinguishable from a
+        ## three-arm run that lost a third of its cells unless the record says so. Absent when
+        ## every arm ran, so "all arms" and "nobody recorded" do not read alike.
+        **({"arms": sorted(set(wanted))} if wanted else {}),
         "cells_pending": len(pending),
         **({"resumed": resumed} if resumed else {}),
         **tool_identity(),
@@ -382,6 +405,15 @@ def cmd_grade(args) -> int:
     rubric = _rubric(args.rubric)
     if rubric is None:
         return 1
+
+    ## THE CACHE LIVES WITH THE RUN, not in a user-wide location, so a published grading is
+    ## replayable by anyone holding the artifacts — which is what makes the score reproducible
+    ## rather than merely recorded. `--no-judge-cache` turns it off, and that is how the judge
+    ## FLOOR is measured: a second pass with the cache on would replay the first and report a
+    ## floor of zero, measuring the cache instead of the judge.
+    configure_cache(
+        None if getattr(args, "no_judge_cache", False) else args.answers / "judge-cache"
+    )
     questions = {q.id: q for q in rubric.questions}
 
     ## @brief Grade one frozen answer and write its two sidecars.
@@ -962,6 +994,7 @@ def main() -> int:
             p.add_argument("--out", type=Path, required=True)
             p.add_argument("--mcp-config", type=Path, default=None)
             p.add_argument("--timeout", type=int, default=1800)
+            p.add_argument("--arms", nargs="+", default=None)
             p.add_argument(
                 "--resume",
                 action="store_true",
@@ -984,6 +1017,14 @@ def main() -> int:
             ## would contaminate it; a judge call's wall-clock is reported nowhere. The judge
             ## already retries with backoff, which is what absorbs the added rate pressure.
             p.add_argument("--jobs", type=int, default=1, help="judge this many answers at once")
+            ## OFF BY DEFAULT MEANS CACHED BY DEFAULT: a published grading should be replayable
+            ## from its artifacts. This flag is for the deliberate floor pass, where replaying the
+            ## first pass's verdicts would measure the cache instead of the judge.
+            p.add_argument(
+                "--no-judge-cache",
+                action="store_true",
+                help="judge afresh, ignoring and not writing the per-run verdict cache",
+            )
             p.add_argument(
                 "--skip-graded",
                 type=int,

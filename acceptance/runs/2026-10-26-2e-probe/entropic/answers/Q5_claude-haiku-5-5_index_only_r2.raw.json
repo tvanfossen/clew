@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 19880,
+  "stop_reason": "end_turn",
+  "session_id": "3073ac19-af9d-4261-acd3-e37b7fc7bc56",
+  "total_cost_usd": 0.0119275,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 39936,
+    "cache_read_input_tokens": 211030,
+    "output_tokens": 3658,
+    "output_tokens_details": {
+      "thinking_tokens": 912
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 39936,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1980,
+        "cache_read_input_tokens": 56291,
+        "cache_creation_input_tokens": 2104,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2104
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3658,
+      "cacheReadInputTokens": 211030,
+      "cacheCreationInputTokens": 39936,
+      "webSearchRequests": 0,
+      "costUSD": 0.0119275,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 912,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How Python reaches the engine**\n\nThe Python package is a `ctypes` wrapper over `librentropic.so`, the shared library built from the C ABI in `include/entropic/entropic.h`. There is no C++ ABI crossing: Python loads the `.so` and calls exported C functions directly. The index describes it as \"a thin pure-Python ctypes shim plus a small CLI,\" with no object-oriented wrapper layer.\n\nThe layers, as the index shows them:\n\n| Layer | File | Role |\n|---|---|---|\n| Loader | `python/src/entropic/_loader.py` | Locates `librentropic.so` in the install tree. |\n| Generated bindings | `python/src/entropic/_bindings.py` | ctypes function objects, IntEnums, Structures, and CFUNCTYPE callback typedefs for every `ENTROPIC_EXPORT` symbol. |\n| Generator | `scripts/gen_bindings.py`, run via `inv gen-bindings` (`tasks.py:1002`) | Parses `entropic.h` and writes `_bindings.py`. A `--check` mode diffs against the committed file and backs a pre-commit hook. |\n| Pythonic facades | `hooks.py`, `streams.py`, `mcp.py`, `helpers.py` | Hand-written wrappers that handle dict/JSON conversion and callback lifetimes. |\n\nThe C side is `entropic.h`, implemented in `src/facade/entropic.cpp`. `librentropic.so` is the facade over the engine subsystems. The bindings are kept in sync with the header, and `tests/unit/test_bindings_abi.py` checks that the Python IntEnums match the C enums in both directions.\n\n**Memory rules that cross the boundary**\n\n1. **Engine-allocated strings are caller-owned.** Per the `entropic.h` file docs, any function returning `char*` transfers ownership to the caller, who frees it with `entropic_free()`. `entropic_free` is a plain `free()` wrapper (`src/facade/entropic.cpp:1954`), and passing NULL is a no-op. The index does not show whether the Python wrapper frees these strings itself. I could not confirm that from the index.\n\n2. **Memory the engine will free must come from `entropic_alloc()`.** `entropic_alloc` is a `malloc()` wrapper (`src/facade/entropic.cpp:1944`). The header says all cross-boundary allocations the engine will later free, such as hook `modified_json` output or consumer strings the engine takes ownership of, must use it. Mixing allocators (Python's allocator or a plain `malloc` in the consumer) is therefore unsafe.\n\n3. **Callee-allocated outputs.** The interfaces `i_inference_backend.h`, `i_inference_callbacks.h`, and `i_mcp_server.h` say the same thing: strings returned by `generate`/`complete`, `list_tools`, and `execute` are allocated by the callee and must be freed with the callee's free function. The MCP interface uses `entropic_free`.\n\n4. **Hooks write results through `entropic_alloc`.** In `_build_trampoline` (`python/src/entropic/hooks.py:140`), a dict returned by the Python callback is JSON-encoded, copied into a block from `entropic_alloc`, and stored in `*modified_json`. The engine then frees it. A `None` return maps to pass-through (0), and a non-`None` return maps to a transform or cancel (1).\n\n5. **Callback lifetime (Python-side GC hazard).** The `hooks.py` file doc says a CFUNCTYPE-wrapped Python callable must be kept referenced for as long as the engine can call it, or the C side holds a dangling function pointer. The Pythonic facade handles this. The stream observer in `streams.py` does it explicitly: `register_token_observer` stores the CFUNCTYPE in a module-level `_observers` dict keyed by handle address (`_observers[handle_key] = cb  # keepalive`). Replacing the observer overwrites that entry.\n\n6. **Exceptions never cross into C.** Every trampoline wraps the Python call in `try/except`, logs via `traceback.print_exc()`, and returns a pass-through code. The stream observer does the same. This follows the design rule that exceptions do not cross `.so` boundaries.\n\n7. **Borrowed token buffers are copied.** The stream trampoline calls `ctypes.string_at(token_ptr, length)` and decodes it, so Python gets its own copy and does not hold the engine's pointer. The index does not show the engine's lifetime guarantee for that pointer. My reading is that it is valid only for the duration of the callback.\n\n**Gaps**\n\n- The index does not cover `_loader.py` or `_bindings.py` as symbols, so I took their roles from file-level docs only.\n- I did not verify whether `_bindings.py` or `helpers.py` calls `entropic_free` on returned strings. That is the main unverified point for rule 1.",
+  "ttft_ms": 2113,
+  "type": "result",
+  "duration_ms": 20671,
+  "uuid": "8d93ede3-90df-4112-85cf-f907ed8a350d",
+  "ttft_stream_ms": 1431,
+  "time_to_request_ms": 63,
+  "first_content_frame_ms": 1431,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

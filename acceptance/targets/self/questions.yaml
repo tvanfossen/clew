@@ -60,7 +60,7 @@ ground_truth: |
 
 judge:
   model: claude-sonnet-4-5-20250929
-  samples_when_weight_at_least: 2
+  samples_when_weight_at_least: 1
 
 questions:
   - id: Q1
