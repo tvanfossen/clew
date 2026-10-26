@@ -36,7 +36,7 @@ from .execute import index_cells_that_never_used_the_index, run_cell
 from .grader.judge import JudgeCapacityError
 from .grader.rubric import RubricError, load
 from .identity import tool_identity
-from .modelpin import require_pinned
+from .modelpin import floats, require_pinned
 from .grader.score import grader_fingerprint, score_question
 from .runner import ARMS, check_revision, check_symmetry, parse_stem, plan
 
@@ -226,6 +226,17 @@ def cmd_generate(args) -> int:
         "ordinal": len(prior) + 1,
         "started": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "models": list(args.models),
+        ## WHICH OF THEM CAN MOVE UNDER THE RUN. A canonical id without a date — every current
+        ## Claude family id is one — can mean different weights on two different days, and the
+        ## provider publishes no dated form to pin instead. The owner's ruling is that the grid
+        ## SHOULD track the models rather than freeze against a receding one, so the requirement
+        ## is that the run say which ids float. Absent when none do, so "nothing floated" and
+        ## "nobody checked" do not read alike.
+        **(
+            {"models_floating": floating}
+            if (floating := [m for m in args.models if floats(m)])
+            else {}
+        ),
         "cells_pending": len(pending),
         **({"resumed": resumed} if resumed else {}),
         **tool_identity(),
