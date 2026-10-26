@@ -512,3 +512,43 @@ def test_ask_closes_stdin(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sp, "run", capture)
     judge.ask("p", "claude-x-1")
     assert seen.get("stdin") is sp.DEVNULL, "the judge must not wait on inherited stdin"
+
+
+##
+# @brief The grader fingerprint must stay at the value the published runs recorded.
+# @return None.
+# @version 1
+def test_grader_fingerprint_is_the_value_published_runs_recorded() -> None:
+    """**A PUBLISHED RUN CAN ONLY BE RE-GRADED AT ITS OWN KEYS, AND 1.1.1 BROKE THAT BY ACCIDENT.**
+    `grader_fingerprint()` hashes every `*.py` in this directory, so an edit anywhere here moves
+    it — and a release that refactored input validation in `rubric.py` moved it from
+    `9cc2b15baf93` to `18f7cfdb541c`. Nothing noticed: no preflight compares a run's recorded
+    fingerprint to the current one, `--skip-graded` treats a mismatch as a reason to grade rather
+    than to refuse, and `.grade.json` is then overwritten unconditionally. The 144 frozen cells of
+    `acceptance/runs/2026-10-19-n3/` stamped `9cc2b15baf93` and silently stopped being
+    re-gradable.
+
+    **THIS PIN IS DELIBERATELY BRITTLE, AND THAT IS THE WHOLE POINT.** Any change under
+    `acceptance/grader/` fails this test. That is not friction to route around — it is the one
+    moment someone has to decide, consciously, that the new scoring behaviour is worth making an
+    already-published run un-re-gradable. When that decision is genuinely taken, update the
+    constant here and record in the affected run's `RESULTS.md` that it can no longer be
+    re-graded at its own keys.
+
+    **WHAT IT DOES NOT PIN.** Not behaviour — `test_grader_fingerprint_tracks_its_own_source`
+    covers the mechanism. This pins one number against one published artifact.
+
+    @brief The fingerprint matches the published runs.
+    @return None.
+    @version 1
+    """
+    published = "9cc2b15baf93"
+
+    assert score.grader_fingerprint() == published, (
+        f"grader_fingerprint() is {score.grader_fingerprint()!r}, but every graded cell under "
+        f"acceptance/runs/2026-10-19-n3/ recorded {published!r}. Those answers can no longer be "
+        f"re-graded at the keys their run was published with. If the change under "
+        f"acceptance/grader/ was intended, update this constant AND say in that run's RESULTS.md "
+        f"that it is no longer re-gradable; if it was incidental, move the change out of "
+        f"acceptance/grader/ instead — input validation, for one, does not belong in the scorer."
+    )

@@ -46,15 +46,43 @@ from .runner import ARMS, check_revision, check_symmetry, parse_stem, plan
 ## @return Rubric, or None after printing the refusal.
 ## @version 1
 def _rubric(path: Path):
-    """@brief Load a rubric for the CLI.
+    """THE JUDGE PIN IS ENFORCED HERE, NOT IN `grader/rubric.py`, AND THE REASON IS A DEFECT THIS
+    PROJECT SHIPPED. `grader_fingerprint()` hashes every `*.py` under `acceptance/grader/`, so the
+    1.1.1 release — which only refactored *input validation* in `rubric.py` — moved it from
+    `9cc2b15baf93` to `18f7cfdb541c` and silently made the 144 published cells of
+    `acceptance/runs/2026-10-19-n3/` un-re-gradable at their own keys. Nothing noticed: no
+    preflight compares the two, `--skip-graded` reads a mismatch as a reason to grade rather than
+    to refuse, and `.grade.json` is then overwritten unconditionally.
+
+    Validating a model-id string is not scoring behaviour, so it does not belong in the hashed
+    directory. `_rubric` is the single load point for every CLI path that produces a measurement —
+    `plan`, `generate` and `grade` — which makes it the right place and keeps `grader/` byte-stable.
+
+    **TWO LAYERS, DELIBERATELY, AND THE WEAKER ONE MUST NOT BE "TIDIED AWAY".** `rubric.load`
+    still rejects a bare `sonnet`, by a rule that asks only for a hyphen and a digit — which
+    `claude-haiku-5-5` satisfies, so it is not sufficient on its own. It is kept because
+    strengthening it in place would move the fingerprint again, and it is useful as a refusal that
+    reaches every loader including `python -m acceptance.grader.rubric`. The dated-id rule is this
+    layer's job.
+
+    `acceptance.grader.rubric`'s own CLI is deliberately NOT covered: it validates and prints a
+    rubric's shape, produces no measurement, and already prints `judge:` so a reader sees an alias.
+
+    @brief Load a rubric for the CLI, refusing an unpinned judge.
     @return Rubric or None.
-    @version 1
+    @version 2
     """
     try:
-        return load(path)
+        rubric = load(path)
     except RubricError as exc:
         print(f"REFUSED — {exc}", file=sys.stderr)
         return None
+    try:
+        require_pinned("judge.model", rubric.judge_model)
+    except ValueError as exc:
+        print(f"REFUSED — {path}: {exc}", file=sys.stderr)
+        return None
+    return rubric
 
 
 ## @brief Read the window records an earlier `generate` left in a run record.

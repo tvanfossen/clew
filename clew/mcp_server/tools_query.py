@@ -561,7 +561,13 @@ def _limited_block(field_name: str, was: int, now: int, how_to_narrow: str) -> d
 ## @param db Active database path.
 ## @param built The resolved subject dossier.
 ## @return Per-direction ambiguity blocks, or None when the name is unambiguous.
-## @version 1
+##
+## v2: the served `how_to_narrow` said `candidates` "lists the signatures" and to re-ask with the
+## one you mean. The accessor takes `candidates[i].qualified` and compares by exact match, so a
+## signature — which carries a return type — selects NOTHING. This text was read at the exact
+## moment a model had been told its name was ambiguous, so it steered the retry into a guaranteed
+## miss. It now names the field the code accepts.
+## @version 2
 ## @dg_internal
 def _ambiguity_block(db: Path, built: Any) -> dict[str, Any] | None:
     """`candidates` DISAMBIGUATES THE IDENTITY; NOTHING DISAMBIGUATES THE EDGES. That
@@ -604,9 +610,10 @@ def _ambiguity_block(db: Path, built: Any) -> dict[str, Any] | None:
                 "of those functions. At most one per call site is real."
             ),
             "how_to_narrow": (
-                "`candidates` in this same payload lists the signatures; re-ask dossier "
-                f"with qualified= set to the one you mean. Do NOT report these as "
-                f"{field_name} of a specific overload until you have."
+                "`candidates` in this same payload carries a `qualified` per identity; re-ask "
+                "dossier with `qualified=` set to the one you mean — that field, not the "
+                f"`signature`. Do NOT report these as {field_name} of a specific overload "
+                f"until you have."
             ),
         }
     return blocks or None
@@ -760,7 +767,13 @@ def _distinct_identities(db: Path, name: str) -> int:
 ## @param db Active database path.
 ## @param payload The flat subject payload, already built.
 ## @return A disclosure dict, or None when the list was not capped.
-## @version 1
+##
+## v2: same defect as `_ambiguity_block` v2 — "`qualified=` set to the signature you mean" sends
+## the model to a value the accessor refuses. It also advertised "Narrow by file", and no accessor
+## takes a file selector: `matching_identity`'s docstring records that one was considered and
+## REJECTED. Advertising a parameter that does not exist is the same defect in a second place, so
+## that clause is gone rather than reworded.
+## @version 2
 ## @dg_internal
 def _candidates_capped(db: Path | None, payload: dict[str, Any]) -> dict[str, Any] | None:
     """SILENT TRUNCATION ON THE ONE FIELD WHOSE JOB IS DISAMBIGUATION. `MAX_CANDIDATES` is 8 and
@@ -797,8 +810,9 @@ def _candidates_capped(db: Path | None, payload: dict[str, Any]) -> dict[str, An
         "adjusted": {"candidates": f"{total} -> {len(shown)}"},
         "total_available": total,
         "how_to_narrow": (
-            "The listed rows are a SAMPLE, not the identity set. Narrow by file or re-ask with "
-            "`qualified=` set to the signature you mean; `search` can enumerate the rest."
+            "The listed rows are a SAMPLE, not the identity set. Re-ask with `qualified=` set to "
+            "a `candidates[i].qualified` — the qualified name, not the signature; `search` can "
+            "enumerate the rest."
         ),
     }
 
@@ -2032,8 +2046,10 @@ class QueryTools:
             str | None,
             Field(
                 description=(
-                    "The exact signature from a previous reply's `candidates`, to pick one "
-                    "overload. Single name only."
+                    "A `candidates[i].qualified` from a previous reply — the QUALIFIED NAME, "
+                    "such as `Owner::method`, NOT the `signature`, which carries a return type "
+                    "and will match nothing. Selects one identity; same-class overloads share "
+                    "one. Keep `subject` bare. Single name only."
                 )
             ),
         ] = None,
