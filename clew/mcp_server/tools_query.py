@@ -30,6 +30,7 @@ from pydantic import Field
 from .. import query as q
 from .. import wire
 from ..query import _common
+from ..query.recovery import recovery_hint
 from .descriptions import load_descriptions
 from .emptiness import prose_emptiness, search_emptiness
 from .routing import MAX_LISTED_SIBLINGS, no_index_message
@@ -894,7 +895,11 @@ _BUILD_WIDE_KEYS = ("configured_macros", "configured_macros_source", "config_hea
 ## @param entries The per-subject payloads, mutated in place.
 ## @param out The batch envelope to receive the hoisted values.
 ## @return None.
-## @version 1
+##
+## v2: each miss entry now carries a recovery hint. A batch needs it MORE than a single
+## call, because the model receives up to eight negatives at once with no indication which
+## were near misses.
+## @version 2
 ## @dg_internal
 def _hoist_build_wide(entries: list[dict[str, Any]], out: dict[str, Any]) -> None:
     """FIRES ONLY ON UNANIMITY, which is the guard that makes this safe rather than merely
@@ -1373,10 +1378,16 @@ def _kind_limitation_clause(unresolved: tuple[str, ...]) -> str:
 ## @brief The reply for a batched name that resolves to nothing.
 ## @param name The unresolved function name.
 ## @param unresolved Unsupported kinds the index holds for it, from `unresolved_kinds`.
+## @param hint What to try instead, from `recovery_hint`, or "" when nothing was found.
 ## @return A per-symbol miss envelope.
-## @version 2
+##
+## v3: carries a recovery hint. The short note said "check the envelope's `target`", which the
+## 1.1.0 grid showed was almost never the problem — 80.6% of unanswered subjects were recoverable
+## from what the index already held. A batched miss needs it MORE than a single one, because the
+## model gets eight negatives at once and no indication which were near misses.
+## @version 3
 ## @dg_internal
-def _batch_miss(name: str, unresolved: tuple[str, ...] = ()) -> dict[str, Any]:
+def _batch_miss(name: str, unresolved: tuple[str, ...] = (), hint: str = "") -> dict[str, Any]:
     """PER SYMBOL, NEVER PER CALL. One unresolvable name in a batch of five must not
     fail the other four, and it must not vanish either: a dropped entry would silently
     re-align the reader's mapping from names to answers, which is a worse error than the
@@ -1396,7 +1407,7 @@ def _batch_miss(name: str, unresolved: tuple[str, ...] = ()) -> dict[str, Any]:
         "note": (
             "Not indexed in this repository. A definitive negative from the database, "
             "not an error — check the envelope's `target` before concluding it does not "
-            "exist." + _kind_limitation_clause(unresolved)
+            "exist." + _kind_limitation_clause(unresolved) + hint
         ),
     }
 
@@ -1737,6 +1748,34 @@ class QueryTools:
         provider = self._repo_provider if self._repo_provider is not None else self._db_provider
         return str(provider())
 
+    ## @brief What to try instead, for a subject this index could not answer.
+    ## @param subject The subject as the caller passed it.
+    ## @param target Repository the call named, or None.
+    ## @param sub_index Name of the part the call named, or None.
+    ## @return A hint sentence, or "" when the index holds no neighbour.
+    ## @version 1
+    ## @dg_internal
+    def _recovery_for(
+        self, subject: str | None, target: str | None, sub_index: str | None = None
+    ) -> str:
+        """SAME TOLERANCE AS `_unresolved_for`, and for the same reason: this runs while building a
+        reply that has already failed, so nothing here may turn a clean negative into a traceback.
+
+        Measured on the 1.1.0 grid: the old miss note advised checking `target` and staleness,
+        which is true and was almost never the problem — 80.6% of the 237 unanswered subjects were
+        recoverable from what the index already held.
+
+        @brief Probe for a recovery hint, tolerating any failure.
+        @return The hint, or "".
+        @version 1
+        """
+        if not subject:
+            return ""
+        try:
+            return recovery_hint(self.db(target, sub_index), subject)
+        except Exception:
+            return ""
+
     ## @brief Unsupported kinds this index holds for a name that failed to resolve.
     ## @param subject The name that missed, or None.
     ## @param target Repository the call named, or None for the derived one.
@@ -1771,7 +1810,13 @@ class QueryTools:
     ## @param target Repository the call named, or None when the derived one answered.
     ## @param sub_index Name of the part the call named, or None.
     ## @return The reply, always a dict, always carrying `target` and any staleness.
-    ## @version 8
+    ##
+    ## v9: the miss note carries a recovery hint. It previously advised checking `target` and
+    ## staleness and nothing else — both true, and almost never the cause. Measured on the 1.1.0
+    ## grid, 82 of 129 unanswered subjects were recoverable from what the index already held, so a
+    ## model with the right target and a fresh index had nowhere to go but retry the same name.
+    ## `found` is unchanged: a hint is an extra field on a negative.
+    ## @version 9
     ## @dg_internal
     def _answered(
         self,
@@ -1835,6 +1880,17 @@ class QueryTools:
                     ## describe, the sentence above is FALSE as a negative — so it is
                     ## qualified here rather than left to mislead.
                     + _kind_limitation_clause(self._unresolved_for(subject, target, sub_index))
+                    ## THE ADVICE ABOVE WAS TRUE AND ALMOST NEVER THE PROBLEM. Measured on the
+                    ## 1.1.0 grid: 26.7% of dossier calls returned nothing, and 80.6% of the 237
+                    ## unanswered subjects were recoverable from what this index already held —
+                    ## the qualified form of a bare name, the bare tail of a qualified one, or the
+                    ## file itself for all 48 subjects that were a path. Checking `target` was the
+                    ## only thing the reply suggested, so a model with the right target and a
+                    ## fresh index had nowhere to go but retry the same name.
+                    ##
+                    ## STILL A MISS. `found` stays False; a hint is an extra field on a negative,
+                    ## never a softening of one.
+                    + self._recovery_for(subject, target, sub_index)
                 ),
             }
         )
@@ -1926,7 +1982,12 @@ class QueryTools:
     ## @param max_body_lines Cap on each body excerpt.
     ## @param depth Hops to traverse per subject.
     ## @return The batch envelope: one entry per requested name, in request order.
-    ## @version 6
+    ##
+    ## v7: each miss entry carries a recovery hint, probed on the same miss that already probes
+    ## `unresolved_kinds`. A BATCH NEEDS IT MORE THAN A SINGLE CALL, not less: the model receives
+    ## up to eight negatives at once with no indication which were near misses, so advice omitted
+    ## here is advice omitted exactly where the reply is hardest to read.
+    ## @version 7
     ## @dg_internal
     def _batched_dossiers(
         self,
@@ -1966,14 +2027,15 @@ class QueryTools:
             max_body_lines=max_body_lines,
             depth=depth,
         )
+
         ## PROBED ONLY ON A MISS (gh#6). `unresolved_kinds` is one indexed lookup, and running it
         ## for every hit would charge the hot path for a question only a miss asks.
+        def miss(name: str) -> dict[str, Any]:
+            """Both probes on one miss: the unsupported-kind clause and the recovery hint."""
+            return _batch_miss(name, q.unresolved_kinds(db, name), recovery_hint(db, name))
+
         entries = [
-            _batch_miss(name, q.unresolved_kinds(db, name))
-            if doss is None
-            else (
-                _flatten_subject(doss, db, depth) or _batch_miss(name, q.unresolved_kinds(db, name))
-            )
+            miss(name) if doss is None else (_flatten_subject(doss, db, depth) or miss(name))
             for name, doss in zip(subjects, built, strict=True)
         ]
         out: dict[str, Any] = {

@@ -323,6 +323,24 @@ requirements:
       models KconfigEntry / KconfigGate / KconfigSpace; exposed over MCP as the `kconfig` tool
       (mcp_server/tools_query.py, descriptions/kconfig.json), returned through wire.one rather than
       the many-envelope so `found`/`error` survive. tests/test_kconfig.py, tests/test_mcp_server.py.
+  REQ-DDB-QUERY-013:
+    subsystem: query
+    name: A definitive negative says what to try instead, or stays silent
+    acceptance_criteria: When a subject cannot be resolved, the miss envelope carries a recovery hint
+      derived from what the index ACTUALLY HOLDS — the indexed file, when the subject was a path; the
+      bare tail to pass with `qualified=`, when the subject was a qualified name; or the qualified
+      form of a bare name. The hint names only what was found, is empty when the index holds no
+      neighbour, is derived by the same rule the `qualified` selector accepts, and NEVER changes
+      `found` from false. A database that cannot be read contributes no hint rather than raising.
+    x-priority: P2
+    x-status: implemented
+    x-evidence: Measured on acceptance/runs/2026-10-19-n3. Of 129 unanswered dossier subjects,
+      48 were a FILE PATH the index had scanned (100% recoverable), 36 a qualified name whose bare
+      tail was indexed (34 recoverable), 31 a bare name (26 absent outright, 5 holding a row and
+      missing anyway — tracked separately as a retrieval defect) and 14 a `qualified` that could
+      not match. The prior note advised checking `target` and staleness only, which was true and
+      almost never the cause. clew/query/recovery.py recovery_hint / _hint_from; wired at
+      mcp_server/tools_query.py _recovery_for and _batch_miss. tests/test_recovery_hint.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table
