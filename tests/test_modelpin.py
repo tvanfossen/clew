@@ -17,6 +17,8 @@ here is specifically the case the old rule let through.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from acceptance.modelpin import is_pinned, require_pinned
@@ -128,3 +130,57 @@ def test_a_pinned_id_is_accepted() -> None:
     @version 1
     """
     require_pinned("judge.model", "claude-sonnet-4-5-20250929")
+
+
+##
+# @brief The CLI rubric loader must refuse an alias judge model from outside the grader.
+# @param tmp_path Pytest temporary directory.
+# @return None.
+# @version 1
+def test_the_cli_loader_refuses_an_alias_judge_model(tmp_path) -> None:
+    """**THE RULE HAD TO MOVE, AND THIS PINS THAT IT SURVIVED THE MOVE.** It used to live in
+    `acceptance/grader/rubric.py`, where `grader_fingerprint()` hashes it — so improving it there
+    moved the fingerprint and made 144 published cells un-re-gradable at their own keys. It now
+    lives in `_rubric`, the single load point for every CLI path that produces a measurement.
+
+    The fixture uses `claude-haiku-5-5` on purpose: `rubric.load`'s own surviving check asks only
+    for a hyphen and a digit, which that string satisfies. So this test passes ONLY if the dated-id
+    rule is genuinely being applied at this layer — a revert to the weak rule alone fails it.
+
+    @brief The CLI loader refuses an alias judge.
+    @return None.
+    @version 1
+    """
+    import yaml
+
+    from acceptance import __main__ as cli
+
+    src = Path(__file__).resolve().parent.parent / "acceptance/targets/mbedtls/questions.yaml"
+    doc = yaml.safe_load(src.read_text("utf-8"))
+    doc["judge"]["model"] = "claude-haiku-5-5"
+    rubric_path = tmp_path / "q.yaml"
+    rubric_path.write_text(yaml.safe_dump(doc), encoding="utf-8")
+
+    assert cli._rubric(rubric_path) is None, (
+        "the CLI loader accepted an alias judge model; the dated-id rule did not survive being "
+        "moved out of acceptance/grader/"
+    )
+
+
+##
+# @brief A rubric with a dated judge model must still load.
+# @return None.
+# @version 1
+def test_the_cli_loader_accepts_a_pinned_judge_model() -> None:
+    """The permissive leg, against a REAL shipped rubric rather than a fixture: a loader wired to
+    refuse everything would pass the test above and break every run.
+
+    @brief A pinned judge loads.
+    @return None.
+    @version 1
+    """
+    from acceptance import __main__ as cli
+
+    src = Path(__file__).resolve().parent.parent / "acceptance/targets/mbedtls/questions.yaml"
+
+    assert cli._rubric(src) is not None, "a shipped rubric with a dated judge id failed to load"
