@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 30641,
+  "stop_reason": "end_turn",
+  "session_id": "2c298be0-1d5a-48fb-bc3e-ef299c9f68cc",
+  "total_cost_usd": 0.017091299999999997,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 46533,
+    "cache_read_input_tokens": 549500,
+    "output_tokens": 4575,
+    "output_tokens_details": {
+      "thinking_tokens": 1509
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 46533,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1798,
+        "cache_read_input_tokens": 61924,
+        "cache_creation_input_tokens": 3068,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3068
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 4575,
+      "cacheReadInputTokens": 549500,
+      "cacheCreationInputTokens": 46533,
+      "webSearchRequests": 0,
+      "costUSD": 0.017091299999999997,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1509,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The short answer: a call runs only if it clears a fixed chain of checks in `ToolExecutor`. Permission patterns come in through two lists, `allow` and `deny`. A deny match is meant to beat an allow match, and an allow match skips the approval prompt. I could not confirm the deny check's exact call site, so that part is partly inferred.\n\n**Decision path (from `process_single_call`, `src/mcp/tool_executor.cpp:729`)**\n\n1. `PRE_TOOL_CALL` hook fires first. If a hook cancels the call, it is rejected (\"Cancelled by hook\").\n2. `check_call_preconditions` (`:667`) runs in this order, stopping at the first rejection:\n   - anti-spiral hard block\n   - schema check\n   - MCP authorization\n   - tier allowed\n   - duplicate detection\n   - approval (`check_approval_pc`)\n3. `execute_tool` (`:379`) calls `ServerManager::execute`. A deny check most likely lives there, since `PermissionManager::is_denied` is called from a method named `execute`, but I could not pull that method's body to confirm it.\n4. The result is recorded and the post-tool hooks fire.\n\n**Approval step (`ToolExecutor::check_approval`, `tool_executor.cpp:161`)**\n\n- `auto_ok` is true if `loop_config_.auto_approve_tools` is set, or if `ServerManager::is_explicitly_allowed` matches the allow list.\n- If not auto-approved and an `on_tool_call` callback is registered, the callback is invoked and `approved` is set to `true` anyway. The callback is therefore a notification, not a gate.\n- If no callback is registered and the call is not auto-approved, it is denied (\"No approval callback \u2014 denying\").\n\nThat contradicts the header comment in `permission_manager.h`, which says tools \"must be explicitly allowed or approved via callback\". Per the code, a registered callback approves every call it sees. Worth verifying.\n\n**What a pattern means**\n\n- Config keys: `permissions.allow`, `permissions.deny`, `permissions.auto_approve` (`PermissionsConfig`, `include/entropic/types/config.h:589`; parsed in `src/config/loader.cpp:365`).\n- A pattern is `tool` or `tool:argpattern`, matched with `fnmatch` (`PermissionManager::pattern_matches`, `permission_manager.cpp:101`).\n  - The tool part is globbed against the fully qualified tool name, e.g. `filesystem.read_file`.\n  - With no `:`, the tool name alone is enough, so the pattern matches every call to that tool regardless of arguments.\n  - With `:`, the arg part is globbed against `tool:<first string arg value>`. Empty or `{}` args become `*`, and unparseable JSON also falls back to `*` (`ServerManager::args_to_pattern`, `server_manager.cpp:426`).\n- Default for a tool with no matching pattern is deny (default-deny), and it reaches the approval callback or is refused.\n- Pattern generation for \"Always Allow/Deny\" is `MCPServerBase::get_permission_pattern`, which returns the bare tool name by default. `BashServer` overrides it; I could not read that override, so I don't know its granularity.\n- \"Always\" choices persist via `PermissionPersister`, which edits `.entropic/config.local.yaml` in place.\n\n**Gaps to check**\n\n- The deny-precedence behaviour rests on the header comment and on the `is_denied` caller, not on a body I read.\n- `ServerManager::execute` could not be fetched by name because the index has many `execute` symbols.",
+  "ttft_ms": 2539,
+  "type": "result",
+  "duration_ms": 32119,
+  "uuid": "d6c03abe-a43f-4132-856a-4ae2381f2968",
+  "ttft_stream_ms": 2250,
+  "time_to_request_ms": 63,
+  "first_content_frame_ms": 2250,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

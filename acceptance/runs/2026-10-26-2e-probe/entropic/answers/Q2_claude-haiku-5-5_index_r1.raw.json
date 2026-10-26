@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 32733,
+  "stop_reason": "end_turn",
+  "session_id": "31cf4420-ef1c-4c2c-b65a-46fb89f10616",
+  "total_cost_usd": 0.01597468,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 41864,
+    "cache_read_input_tokens": 382228,
+    "output_tokens": 7556,
+    "output_tokens_details": {
+      "thinking_tokens": 3451
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 41864,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4191,
+        "cache_read_input_tokens": 61405,
+        "cache_creation_input_tokens": 480,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 480
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 7556,
+      "cacheReadInputTokens": 382228,
+      "cacheCreationInputTokens": 41864,
+      "webSearchRequests": 0,
+      "costUSD": 0.01597468,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3451,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** llama.cpp is a git submodule at `extern/llama.cpp`, compiled statically into `librentropic.so` via `add_subdirectory`. Its types are confined to the C++ inference layer and never reach the C ABI. The containment is partial, though: the facade and orchestrator call the llama C API directly in several places.\n\n## How it's brought in\n\n- **Submodule, not FetchContent.** `.gitmodules` points at `ggml-org/llama.cpp`, and the gitlink is `20a04b2`. spdlog, ryml, json, Catch2 and httplib are FetchContent; llama.cpp is the only one vendored as a submodule.\n- **Not initialised in this checkout.** `extern/llama.cpp/` is empty and `git submodule status` shows `-20a04b2\u2026`. A build needs `git submodule update --init` first.\n- **Configured in `extern/CMakeLists.txt`:**\n  - Sets `LLAMA_BUILD_TESTS/EXAMPLES/SERVER/TOOLS` off and `LLAMA_BUILD_COMMON` on.\n  - Maps `ENTROPIC_HAS_CUDA` to `GGML_CUDA`.\n  - Forces `BUILD_SHARED_LIBS OFF`, so it is static.\n  - Runs `add_subdirectory(llama.cpp EXCLUDE_FROM_ALL)`, then adds only `llama.cpp/tools/mtmd` for multimodal.\n- **Linked privately into the facade.** `src/facade/CMakeLists.txt:33-49` links `llama`, `mtmd` and `llama-common` as `LINK_ONLY` under `PRIVATE`. `src/inference/CMakeLists.txt:66-69` links the same targets for the inference library. Consumers of the installed library never link llama.\n\n```\nextern/CMakeLists.txt\n  add_subdirectory(llama.cpp)          \u2500\u2510\n  add_subdirectory(llama.cpp/tools/mtmd) \u251c\u2500 static libs (EXCLUDE_FROM_ALL)\n                                        \u2502\nsrc/inference  \u2500\u2500 links llama, mtmd, llama-common\nsrc/facade     \u2500\u2500 absorbs them PRIVATE \u2500\u2500\u25ba librentropic.so  (no llama in exports)\n```\n\n## How far it reaches into entropic's source\n\n| Layer | Reach |\n|---|---|\n| `include/entropic/entropic.h` (C ABI) | No llama identifiers. Clean. |\n| `include/entropic/inference/*.h` (public C++) | Forward declarations `struct llama_model/llama_context/llama_adapter_lora` (`orchestrator.h:44-45`, `adapter_manager.h:37-39`, `speculative_compat.h:47`). Raw `llama_*` pointers appear in signatures (`orchestrator.h:759,773,892`, `adapter_manager.h:71-113`). No llama.h include. |\n| `src/inference/llama_cpp_backend.h:33` | Includes `<llama.h>` directly. This is the chokepoint. |\n| `llama_cpp_backend.cpp` | Includes `llama.h`, `common.h`, `chat.h`, `sampling.h`, `speculative.h`, `mtmd.h`, `mtmd-helper.h`. |\n| Other `src/inference` files including llama headers | `llama_cpp_sampler.cpp`, `llama_cpp_tokenizer.cpp`, `speculative_compat.cpp`, `adapter_manager.cpp`, `orchestrator.cpp`, `grammar_registry.cpp`. `tool_call_markers.h` includes `chat.h` at header level. |\n| Files that include the backend header | `interface_factory.cpp`, `secondary_model_loader.cpp`, `inference_c_api.cpp`, `src/facade/entropic.cpp`. |\n| Direct C API calls outside the backend | `orchestrator.cpp:1287` calls `llama_memory_clear(llama_get_memory(ctx), true)`. `inference_c_api.cpp:657,709` calls `llama_log_set`. |\n| Facade accessors | `src/facade/entropic.cpp:2923-3001` uses `llama_model_ptr()` and `llama_context_ptr()` for adapter wiring. |\n\nSo the design intent is that `LlamaCppBackend` is the only class touching llama.cpp, with the sampler and tokenizer split out as seams (v2.3.10). In practice the orchestrator and the facade reach past it to the raw C API.\n\n## Tests\n\nSeveral unit tests link `llama` directly. Some define mock symbols with the real llama names (for example `llama_adapter_lora_init` in `adapter_manager_test.cpp` and `llama_vocab_*` in `speculative_compat_test.cpp`). Those mocks shadow the real library at link time.\n\n## Things I noticed\n\n- `extern/CMakeLists.txt` still says llama.cpp is \"NOT built in v1.8.0\", which is stale.\n- The backend header says it is pinned at `b8420`. I did not verify that against the gitlink, because the submodule is not checked out.",
+  "ttft_ms": 828,
+  "type": "result",
+  "duration_ms": 33258,
+  "uuid": "943597dc-66ee-4be1-94cc-e2e64acd798d",
+  "ttft_stream_ms": 592,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 592,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

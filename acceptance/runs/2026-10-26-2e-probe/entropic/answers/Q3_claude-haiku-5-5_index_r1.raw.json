@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 30130,
+  "stop_reason": "end_turn",
+  "session_id": "fab54702-ff0f-4d9c-9bdf-e9c8a22e3c67",
+  "total_cost_usd": 0.01619692,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 42520,
+    "cache_read_input_tokens": 471742,
+    "output_tokens": 5947,
+    "output_tokens_details": {
+      "thinking_tokens": 2153
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 42520,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1636,
+        "cache_read_input_tokens": 60823,
+        "cache_creation_input_tokens": 1718,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1718
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 20,
+      "outputTokens": 5947,
+      "cacheReadInputTokens": 471742,
+      "cacheCreationInputTokens": 42520,
+      "webSearchRequests": 0,
+      "costUSD": 0.01619692,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2153,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Two lists in the `permissions:` config (`allow` and `deny`) feed a `PermissionManager`. Deny is checked in two places, and the allow list only decides whether the call skips the approval fallback. Nothing in the config decides whether a call runs by itself. The code path below is from reading the source; I did not build or run anything.\n\n**Decision path for one tool call**\n\n```\nToolExecutor::check_call_preconditions          src/mcp/tool_executor.cpp:667\n 1. check_anti_spiral_hard_block                 (refuses first, regardless of permissions)\n 2. check_schema                                 (argument validation)\n 3. check_mcp_authorization                      (MCP key set, gh#/v1.9.4)\n 4. check_tier_allowed                           (identity/tier allowed_tools)\n 5. check_duplicate\n 6. check_approval_pc -> check_approval          :161\n      a. loop_config_.auto_approve_tools?  -> approved\n      b. ServerManager::is_explicitly_allowed -> PermissionManager::is_allowed   (allow list)\n      c. else, if callbacks_.on_tool_call set -> call it, approved = true\n      d. else denied (\"No approval callback \u2014 denying\")\n      (ON_PERMISSION_CHECK hook fires informationally)\n        |\n        v  (approved)\nToolExecutor -> ServerManager::execute          src/mcp/server_manager.cpp:153\n 7. PermissionManager::is_denied(tool, \"tool:\" + first_arg)  -> deny list\n      match -> \"Error: Permission denied for <tool>\"  (no execution)\n 8. route_tool_call -> server runs the tool\n```\n\nDeny is the last gate before execution. Allow is only consulted in step 6b, and it does not override deny: a call that matches both lists passes approval and is then stopped at step 7.\n\n**What a pattern does**\n\nMatching is in `PermissionManager::pattern_matches` (`src/mcp/permission_manager.cpp:101`), which uses `fnmatch` with flags 0:\n\n- Text before the first `:` is matched against the tool name. `filesystem.*` matches every tool in that namespace. `git.commit` matches exactly that tool. A pattern with no `:` matches on the tool name alone.\n- Text after the `:` is matched against the call's argument pattern. The argument pattern is built by `ServerManager::args_to_pattern` (`server_manager.cpp:426`), which takes only the value of the first key in the args JSON, or `*` if there are no args or that value isn't a string. So `bash.execute:python*` matches a bash call whose first argument starts with `python`. It does not inspect other arguments.\n- Patterns are checked in order. The first match wins, and the match is logged at INFO.\n\n**Config and runtime sources**\n\n- `config/loader.cpp:369-371` reads `permissions.allow`, `permissions.deny` and `permissions.auto_approve`.\n- `auto_approve` becomes `LoopConfig::auto_approve_tools` (`facade/entropic.cpp:1489`). When it is true, step 6 approves everything. Step 7 still applies deny.\n- `ServerManager::add_permission` (`server_manager.cpp:361`) adds patterns at runtime. `PermissionPersister` writes them back to the project YAML, so an \"Always Allow\" choice outlives the session.\n\n**Things I noticed that you may want to check**\n\n1. **The approval callback cannot say no.** `on_tool_call` returns `void`, and `check_approval` sets `approved = true` immediately after calling it (`tool_executor.cpp:168-173`). Any host that registers `on_tool_call` therefore approves every call that isn't on the allow list. The \"callback approval\" described in `permission_manager.h` is really notification-only. Auto-approve is not the only bypass.\n2. **Deny with an argument constraint can fail open.** If a call's first argument is not a string, `args_to_pattern` returns `*`. A deny rule such as `bash.execute:rm*` then does not match, and the call runs. Allow rules fail closed in the same case.\n3. **The header comment is inconsistent with the code.** `permission_manager.h` says unknown tools are \"not denied, the engine handles prompting\". In practice they are denied at step 6d unless a callback is registered (see item 1).\n\nI did not write a test for any of these. The existing tests in `tests/unit/mcp/permission_manager_test.cpp` and `server_manager_test.cpp` would be the place to start.",
+  "ttft_ms": 968,
+  "type": "result",
+  "duration_ms": 31030,
+  "uuid": "1913f607-3a42-4cfe-8fc8-a959cb10fa79",
+  "ttft_stream_ms": 759,
+  "time_to_request_ms": 63,
+  "first_content_frame_ms": 759,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

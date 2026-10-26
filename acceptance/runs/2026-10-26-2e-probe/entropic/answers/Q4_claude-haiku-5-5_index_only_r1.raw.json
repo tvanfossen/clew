@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 31462,
+  "stop_reason": "end_turn",
+  "session_id": "995c097b-8675-4c36-87b0-7f96667c9a1c",
+  "total_cost_usd": 0.01689102,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 58123,
+    "cache_read_input_tokens": 227472,
+    "output_tokens": 5981,
+    "output_tokens_details": {
+      "thinking_tokens": 2396
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 58123,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2998,
+        "cache_read_input_tokens": 51999,
+        "cache_creation_input_tokens": 6124,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6124
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5981,
+      "cacheReadInputTokens": 227472,
+      "cacheCreationInputTokens": 58123,
+      "webSearchRequests": 0,
+      "costUSD": 0.01689102,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2396,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 19,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The index shows five thread spawn sites in entropic's own code. Four are real background loops, and one is a test helper. What keeps them safe is mostly ownership and locking discipline inside each component. I could not confirm lock ordering: the index's nested-lock pairs are unverified.\n\n**Background threads**\n\n| Thread | Spawned in | What it does |\n|---|---|---|\n| `ExternalBridge::accept_loop` | `ExternalBridge::start`, `src/facade/external_bridge.cpp:796` | Polls the listen socket every 500 ms and accepts MCP clients. |\n| `HealthMonitor::monitor_loop` | `HealthMonitor::start`, `src/mcp/health_monitor.cpp:92` | Checks watched MCP servers every 500 ms or on wake. |\n| `StdioTransport::stderr_reader_loop` | `StdioTransport::open`, `src/mcp/transport_stdio.cpp:164` | Drains the child process's stderr. |\n| `SSETransport::sse_reader_loop` | `SSETransport::open`, `src/mcp/transport_sse.cpp:107` | Blocks on the SSE stream and parses events. |\n| `listen_after_bind` | `MockSSEServer`, test code only | Test fixture. |\n\nEach row is detected by spawn pattern and rated \"medium\" confidence. The count is exact only for the primitives the index matches. The index also misses the per-client serve threads: `accept_loop` creates them with `ct->thread = std::thread(...)`, but they do not appear as rows.\n\n**What keeps them safe**\n\n- **Bridge socket ownership.** `ExternalBridge::start` claims the canonical socket path in a process-wide set (`s_bound_sockets`) under `s_bound_sockets_mu` before it unlinks or binds. Two handles in one process cannot steal each other's socket.\n- **Client-thread bookkeeping.** `accept_loop` pushes and reaps `client_threads_` only under `client_threads_mutex_`. Each client thread closes its own fd, then sets an atomic `finished` flag for the reaper to join.\n- **Access control before spawn.** Each accepted fd is checked with `peer_uid_matches` (SO_PEERCRED) and closed before a serve thread is created.\n- **Shutdown.** `running_` is atomic. `HealthMonitor` waits on `wake_cv_` under `wake_mutex_`, so `stop()` wakes it instead of waiting out the poll. The bridge's `stop()` calls `shutdown(fd)` to unblock reads.\n- **Health checks.** `monitor_loop` runs `check_server` for each watched entry while holding `watched_mutex_`.\n- **Health events.** `process_events` swaps the queue out under `event_mutex_`, then invokes callbacks with no lock held. The header says callbacks run on the engine thread, so the monitor thread never runs engine callbacks.\n- **Log routing.** The bridge captures `handle_->log_id` and installs a `HandleLogScope` in each thread body, so its logs reach the owning handle's session log.\n\n**Caveats**\n\n- **Lock nesting is unconfirmed.** The index reports three nested lock pairs, and all three have `resolved_sites=0`. Two look like misresolved `swap` calls: `process_events` only swaps `event_queue_` under `event_mutex_`, and the body shows no nested acquisition. I cannot claim a lock order, and I cannot rule out a deadlock from this index.\n- **Not traced.** The index lists `pending_mutex_` in `SSETransport` (2 acquisitions) and `io_mutex_` in `StdioTransport` (1 acquisition). I did not read the code that uses them, so I cannot say what they protect.",
+  "ttft_ms": 2086,
+  "type": "result",
+  "duration_ms": 32421,
+  "uuid": "22e0cb4f-54a6-4754-9861-72dbba58bcf9",
+  "ttft_stream_ms": 1790,
+  "time_to_request_ms": 66,
+  "first_content_frame_ms": 1790,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 32933,
+  "stop_reason": "end_turn",
+  "session_id": "62a2e3c7-994d-40f4-a354-a8ee1673e03e",
+  "total_cost_usd": 0.012141470000000001,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 28830,
+    "cache_read_input_tokens": 400237,
+    "output_tokens": 4743,
+    "output_tokens_details": {
+      "thinking_tokens": 2093
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 28830,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2627,
+        "cache_read_input_tokens": 63311,
+        "cache_creation_input_tokens": 1926,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1926
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 4743,
+      "cacheReadInputTokens": 400237,
+      "cacheCreationInputTokens": 28830,
+      "webSearchRequests": 0,
+      "costUSD": 0.012141470000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2093,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** an allow-list match or auto-approve skips the prompt. A deny-list match blocks the call at the server boundary, after approval has already passed. Several other gates run before any of this.\n\n```\nprocess_single_call (tool_executor.cpp:729)\n \u251c\u2500 PRE_TOOL_CALL hook            \u2192 may cancel\n \u2514\u2500 check_call_preconditions      (first rejection wins)\n     1. anti-spiral hard block\n     2. check_schema\n     3. check_mcp_authorization   key/access level vs tool's required level\n     4. check_tier_allowed        locked tier's allowed_tools\n     5. check_duplicate           identical recent call \u2192 rejected\n     6. check_approval_pc         \u2192 check_approval\n           auto_approve_tools OR is_explicitly_allowed(allow list)  \u2192 run\n           else if on_tool_call callback set \u2192 notify, approved = true\n           else \u2192 \"Permission denied\"\n \u2514\u2500 execute_tool \u2192 ServerManager::execute (server_manager.cpp:153)\n     7. permissions_.is_denied(deny list) \u2192 \"Permission denied\" (hard stop)\n     8. route_tool_call\n```\n\n**What decides it**\n\n- **Allow list** (`PermissionManager::is_allowed`): lets the call skip approval. It is consulted only in `check_approval`.\n- **Deny list** (`PermissionManager::is_denied`): checked only in `ServerManager::execute`. It runs even if approval passed, so it is a backstop that cannot be bypassed by `auto_approve`.\n- **`auto_approve_tools`**: skips the allow check and approves everything that reaches step 6.\n- **Callback** (`on_tool_call`): as the body reads, it is called and `approved` is then set to `true` unconditionally. So a callback makes the call run, and the callback itself is not a gate. The header describes \"approved via callback\" as a gate, which contradicts this. Worth checking the wiring in the frontend before relying on it.\n\n**What a pattern means**\n\n- Format is `tool` or `tool:argpattern`, matched with `fnmatch`.\n- `tool` alone (no colon) matches any call to that tool, e.g. `filesystem.read_file`.\n- `tool:arg` matches the tool name in the tool portion, then matches the full `tool:arg` string against the arg pattern, e.g. `bash.execute:pytest *`.\n- The arg value comes from `args_to_pattern`: the first string-valued field of the JSON args object, or `*` if the args are empty, unparseable, or the first field is not a string. So `bash.execute:rm *` only matches when the first string argument starts with `rm `.\n- `get_permission_pattern` decides what a stored \"Always Allow/Deny\" rule looks like. The base class returns tool-level only. `BashServer` overrides it to produce command-level patterns.\n- Both allow and deny share this syntax. Deny entries are checked with the same matcher.\n\n**Configuration and persistence**\n\n- `PermissionsConfig` has `allow`, `deny` (glob lists) and `auto_approve` (bool), parsed from the YAML `permissions:` section.\n- `PermissionPersister::save_permission` appends a pattern to `permissions.allow` or `permissions.deny` in the project YAML. It is a no-op if the pattern is already present.\n\n**Non-pattern gates you may not expect**\n\n- Identity/MCP key access level (`check_mcp_authorization`) and tier `allowed_tools` (`check_tier_allowed`) both reject before approval, regardless of the allow or deny lists.\n- A denied call returns a message telling the model \"Do NOT retry it\", so the model won't retry it.\n\nBasis: index only. I did not verify where `on_tool_call` is wired, and I did not read the header's full \"default-deny\" description beyond the search brief.",
+  "ttft_ms": 2124,
+  "type": "result",
+  "duration_ms": 34414,
+  "uuid": "ea4d513f-fddb-4867-af32-d882bb94ba36",
+  "ttft_stream_ms": 1877,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1877,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

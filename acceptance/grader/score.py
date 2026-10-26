@@ -20,6 +20,7 @@ marks into failures against both arms.
 from __future__ import annotations
 
 import hashlib
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -148,23 +149,49 @@ class QuestionResult:
         return sum(1 for d in self.decisions if d.samples > 0 and 0.0 < d.agreement < 1.0)
 
 
+## A TRAILING LINE CITATION, which is part of how an answer names a file and not part of the name.
+## `:796` and `:107-120` both count; a non-numeric colon does not, because `Owner::method` and a
+## drive prefix are names rather than citations and stripping at the first colon would silently
+## merge distinct members.
+_LINE_SUFFIX = re.compile(r":\d+(?:-\d+)?$")
+
+
 ## @brief Normalise a path or name for set comparison.
 ## @param value Raw item text.
 ## @return Comparable key.
-## @version 1
+##
+## v2: strips a trailing `:LINE`. Without it a cited line number silently zeroed whole set marks
+## — see the docstring. Deterministic, differential, and invisible in the score.
+## @version 2
 def _key(value: str) -> str:
-    """Compare on the LAST path segment plus a lowercase fold.
+    """Compare on the LAST path segment plus a lowercase fold, ignoring a cited line number.
 
     An answer writing `programs/ssl/ssl_pthread_server.c`, `./programs/ssl/ssl_pthread_server.c`
     or `ssl_pthread_server.c` has named the same file, and grading it otherwise would measure
     citation style rather than what the agent found. Two DIFFERENT files sharing a basename
     would collide — declare fuller values in that case; the rubric controls the members.
 
+    **A CITED LINE NUMBER USED TO LOSE THE DECISION, AND THAT WAS NOT JUDGE NOISE.** v1 folded
+    directories and backticks but not `:796`, so `src/facade/external_bridge.cpp:796` keyed to
+    `external_bridge.cpp:796` and could never equal the member's `external_bridge.cpp`. Measured
+    on one cell: 4 of 7 members correctly named, ALL EIGHT set decisions scored against the
+    answer, 18.5 points lost. Set marks carry 30-38% of a question's weight on these rubrics, so
+    every set decision in a graded run was suspect until this landed.
+
+    The grader printed its own refutation and nothing checked it — that cell's precision detail
+    listed four MEMBER paths as "not in the set". `score_set` now refuses rather than scores when
+    that happens.
+
+    **THE BIAS WAS DIFFERENTIAL, SO AVERAGING COULD NOT ABSORB IT.** It penalised whichever arm
+    cited line numbers, and `path:line` is the citation style a code index encourages — the arm
+    under test was the one more likely to be punished.
+
     @brief Comparison key.
     @return Normalised key.
-    @version 1
+    @version 2
     """
-    return value.strip().strip("`'\"").rstrip("/").rsplit("/", 1)[-1].lower()
+    bare = value.strip().strip("`'\"").rstrip("/")
+    return _LINE_SUFFIX.sub("", bare).rsplit("/", 1)[-1].lower()
 
 
 ## @brief Score one set mark: a decision per member, plus one for precision.
@@ -217,6 +244,33 @@ def score_set(mark: Mark, answer: str, model: str, samples: int = 3) -> list[Dec
         ]
 
     got = {key: written[key] for key, n in tally.items() if n * 2 > ok}
+
+    ## EXTRACTED SOMETHING, MATCHED NOTHING — REFUSE RATHER THAN SCORE. This is the signature of a
+    ## key mismatch, not of a wrong answer, and the harness has already published one: a trailing
+    ## `:796` kept `src/facade/external_bridge.cpp:796` from ever equalling the member's
+    ## `src/facade/external_bridge.cpp`, so a cell that named 4 of 7 members correctly was scored
+    ## 0 of 8 set decisions and the precision detail printed four MEMBER paths as spurious. The
+    ## grader stated its own refutation and nothing read it.
+    ##
+    ## `_key` now strips a line citation, so that instance cannot recur — this guard is for the
+    ## NEXT normalisation gap, which will not be anticipated either. An answer that named several
+    ## things and matched none of the members is far more likely to have been mis-keyed than to
+    ## have named only irrelevant files.
+    ##
+    ## UNRULED, NOT ZERO. The weight still sits in the denominator so the arm does not profit, but
+    ## it is disclosed as unmeasured instead of counted as a confident miss — absence is not
+    ## emptiness, applied to the grader's own uncertainty.
+    member_keys = {_key(str(m["value"])) for m in mark.members}
+    if got and not (member_keys & set(got)):
+        detail = (
+            f"extraction matched no member — likely a key mismatch, not a wrong answer. "
+            f"extracted {sorted(got.values())}; members {sorted(member_keys)}"
+        )
+        return [
+            Decision(mark.text, "set", mark.weight, None, detail)
+            for _ in range(len(mark.members) + 1)
+        ]
+
     out: list[Decision] = []
     correct = set()
     for member in mark.members:
@@ -290,8 +344,18 @@ def score_question(question: Question, answer: str, rubric: Rubric, arm: str) ->
                 kind=mark.type,
                 weight=mark.weight,
                 hit=None if voted.verdict is None else voted.verdict == "HIT",
+                ## THE JUDGE'S OWN REASON, WHICH USED TO BE DISCARDED. The verdict prompt
+                ## requires a `QUOTE:` carrying the item's substance and a one-line `WHY:`, and
+                ## only the verdict token was ever read — so every binary decision was recorded
+                ## with `detail: ""`. An audit of 26 failed decisions found 11 with no stated
+                ## reason, could not quote the judge where it disagreed, and named that its first
+                ## limitation. A decision nobody can dispute is not evidence.
+                ##
+                ## A FAILED VOTE STILL REPORTS THE TRANSPORT REASONS instead, because "the judge
+                ## never ruled" and "the judge ruled and said why" are different facts and the
+                ## second must not paper over the first.
                 detail=(
-                    ""
+                    " || ".join(dict.fromkeys(voted.rationale))
                     if voted.verdict
                     else f"{voted.errors}/{voted.samples} calls failed: "
                     + "; ".join(dict.fromkeys(voted.reasons))

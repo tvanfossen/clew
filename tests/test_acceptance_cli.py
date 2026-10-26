@@ -1116,3 +1116,86 @@ def test_jobs_grades_concurrently_and_changes_no_sidecar(
         thin = json.loads((tmp_path / "serial" / f"{stem}.grade.json").read_text())
         assert wide == thin, f"{stem} graded differently under --jobs"
         assert wide["grader_fingerprint"] == thin["grader_fingerprint"]
+
+
+## @brief Generating a subset of arms spends only those arms, and the record says so.
+## @param tmp_path Per-test temporary directory.
+## @param monkeypatch Pytest monkeypatch fixture.
+## @return None.
+## @version 1
+def test_arms_can_be_narrowed_and_the_record_says_which(tmp_path: Path, monkeypatch) -> None:
+    """A PROBE THAT ONLY NEEDS THE INDEX ARMS MUST NOT PAY FOR THE BASELINE. The baseline arm
+    makes no index calls at all, so for a measurement about index-call waste its cells are pure
+    spend. Without this flag the choices were to buy them anyway or to plant fake answer files so
+    `--resume` would skip them — and a fake answer makes the run record lie, which is worse than
+    the cost.
+
+    THE RECORD MUST NAME THE SUBSET. A directory holding only two arms is indistinguishable from
+    a three-arm run that lost a third of its cells, unless the window says which arms were asked
+    for. Absent when every arm ran, so "all arms" and "nobody recorded" do not read alike.
+
+    @brief --arms narrows generation and is recorded.
+    @return None.
+    @version 1
+    """
+    ran: list[str] = []
+    monkeypatch.setattr(cli, "check_revision", lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        cli,
+        "run_cell",
+        lambda cell, *_a, **_k: (
+            ran.append(cell.arm),
+            execute.CellResult(cell.stem(), cell.arm, cell.model, True),
+        )[1],
+    )
+    answers = tmp_path / "answers"
+    args = cli.argparse.Namespace(
+        rubric=MBEDTLS,
+        models=["claude-haiku-5-5"],
+        replicates=1,
+        seed=7,
+        repo=tmp_path / "repo",
+        out=answers,
+        mcp_config=None,
+        timeout=60,
+        resume=False,
+        arms=["index_only", "index"],
+    )
+
+    assert cli.cmd_generate(args) == 0
+    assert set(ran) == {"index_only", "index"}, f"arms outside the request were spent: {set(ran)}"
+    assert "baseline" not in ran, "the baseline arm was generated despite being excluded"
+
+    window = json.loads((answers / "run.json").read_text())["windows"][-1]
+    assert window["arms"] == ["index", "index_only"], (
+        f"the window record does not name the arms that were asked for: {window}"
+    )
+
+
+## @brief An unknown arm name must be refused by name rather than silently dropped.
+## @param tmp_path Per-test temporary directory.
+## @return None.
+## @version 1
+def test_an_unknown_arm_is_refused_by_name(tmp_path: Path) -> None:
+    """REFUSED BY NAME, like every other declaration in this project. A typo'd arm that silently
+    matched nothing would generate zero cells and report success — a run directory with no answers
+    and a green exit code, which reads as "the grid is cheap" rather than "the filter was wrong".
+
+    @brief An unknown arm is refused.
+    @return None.
+    @version 1
+    """
+    args = cli.argparse.Namespace(
+        rubric=MBEDTLS,
+        models=["claude-haiku-5-5"],
+        replicates=1,
+        seed=7,
+        repo=tmp_path / "repo",
+        out=tmp_path / "answers",
+        mcp_config=None,
+        timeout=60,
+        resume=False,
+        arms=["index_onlyy"],
+    )
+
+    assert cli.cmd_generate(args) == 1, "a misspelled arm was accepted"

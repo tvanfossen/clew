@@ -1,0 +1,99 @@
+{
+  "duration_api_ms": 19495,
+  "stop_reason": "end_turn",
+  "session_id": "6b8e06b7-753c-41d0-b4f7-1417108adf4e",
+  "total_cost_usd": 0.01262663,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 47277,
+    "cache_read_input_tokens": 157543,
+    "output_tokens": 3190,
+    "output_tokens_details": {
+      "thinking_tokens": 1304
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 47277,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2051,
+        "cache_read_input_tokens": 61325,
+        "cache_creation_input_tokens": 4411,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4411
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3190,
+      "cacheReadInputTokens": 157543,
+      "cacheCreationInputTokens": 47277,
+      "webSearchRequests": 0,
+      "costUSD": 0.01262663,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1304,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How it's brought in:** llama.cpp is vendored as a git submodule at `extern/llama.cpp`. The index holds `extern/CMakeLists.txt` but no CMake logic, so I can't confirm the build wiring (add_subdirectory vs. FetchContent) from here. The submodule is established by repo prose: `src/inference/llama_cpp_backend.cpp` says \"Pinned against llama.cpp submodule b8420\", and `RELEASE_NOTES.md` (v2.9.3) records an `extern/llama.cpp` pin bump from `ac4cddeb` to `b9886`. The file-header pin comment is stale. `extern/` is excluded from the C/C++ quality gates.\n\n**How far it reaches into entropic's source:** deep, but confined to one layer.\n\n- **Direct C API use lives in `src/inference/llama_cpp_*`.** `LlamaCppBackend` (`llama_cpp_backend.h:65`) is the 15% concrete base. It owns `model_`, `ctx_`, and `vocab_` as raw `llama_model*`/`llama_context*`/`llama_vocab*`. It also implements the load/activate/deactivate lifecycle, the decode and speculative loops, the MTP head path, and the state save/restore calls. `LlamaCppSampler`/`LlamaCppSamplerFactory` wrap `llama_sampler` chains, and `LlamaCppTokenizer` wraps `llama_vocab`.\n- **Raw pointers leak to library callers, not the public API.** `llama_model_ptr()` and `llama_context_ptr()` are public accessors on the backend, so any code holding a backend can reach llama.cpp types. I found no `llama_` types in `include/entropic/`, which is consistent with the design rule that no C++ or third-party types cross the `.so` boundary. I could not verify that every header is clean.\n- **Two places copy llama.cpp source rather than link it.** `include/entropic/inference/speculative_compat.h` re-implements `common_speculative_are_compatible` as a file-private static, copied from `extern/llama.cpp/common/speculative.cpp`. `src/inference/tool_call_markers.h` hard-codes markers that mirror `extern/llama.cpp/common/chat-peg-parser.cpp` lines 442\u2013443. Both will drift on a pin bump unless someone checks them, and the test files note this risk.\n- **Tests mock the C API.** `tests/unit/inference/` defines link-time stubs for `llama_adapter_lora_*`, `llama_set_adapters_lora`, `llama_model_*`, and `llama_vocab_*`, so CPU-only unit tests run without a real model. The GPU and model tests use the real library.\n- **Vendored deps sit alongside it.** `image_preprocessor.cpp` uses stb_image, which is vendored with llama.cpp for the mtmd path.\n\n**Summary:** llama.cpp is a submodule under `extern/`. Its API is used only inside `src/inference/llama_cpp_*` and is hidden behind the pure-C interface, with two hand-copied fragments and a few raw-pointer accessors as the exceptions. To confirm the build wiring, read `extern/CMakeLists.txt` and the top-level CMake file, which are not in the index.",
+  "ttft_ms": 2802,
+  "type": "result",
+  "duration_ms": 20037,
+  "uuid": "cbb09d6b-e4c5-46c9-a755-8e0d22224ac5",
+  "ttft_stream_ms": 2520,
+  "time_to_request_ms": 64,
+  "first_content_frame_ms": 2520,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

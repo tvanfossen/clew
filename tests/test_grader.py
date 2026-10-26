@@ -542,7 +542,30 @@ def test_grader_fingerprint_is_the_value_published_runs_recorded() -> None:
     @return None.
     @version 1
     """
-    published = "9cc2b15baf93"
+    ## MOVED DELIBERATELY ON 2026-10-26, from `9cc2b15baf93`, to add the verdict cache to
+    ## `judge.ask`. The cache is the fix for an instrument that gave a different reading each time
+    ## it was used: the `claude` CLI exposes no temperature, seed or top_p, so re-grading the same
+    ## answers moved the score by a mean absolute 8.95 pt. Caching verdicts by prompt and model
+    ## makes a re-grade exact and free; the alternative, calling the API directly to pin
+    ## temperature, would have moved ~3.1M judge input tokens per pass onto metered billing and
+    ## still left residual nondeterminism.
+    ##
+    ## CONSEQUENCE, RECORDED HERE AND IN THE RUN'S OWN RESULTS.md: the 144 cells of
+    ## acceptance/runs/2026-10-19-n3 were graded at `9cc2b15baf93` and can no longer be re-graded
+    ## at their own keys from this tree. They remain re-gradable from the tagged tree that
+    ## produced them, which is why the constant below is a record and not just a guard.
+    ## MOVED AGAIN, 2026-10-26, from `274b0d72688b`. Three defects were fixed in one pass after
+    ## an Opus audit of four graded cells, and all three change recorded scores:
+    ##   - `_key` did not strip a trailing `:LINE`, so an answer citing `file.cpp:796` could
+    ##     never match the member `file.cpp`. Deterministic, and DIFFERENTIAL — it punished
+    ##     whichever arm cited line numbers, which is the style a code index encourages. One cell
+    ##     named 4 of 7 members correctly and scored 0 of 8 set decisions: 18.5 points.
+    ##   - `score_set` now REFUSES when extraction matched no member at all, rather than scoring
+    ##     a confident zero. That is the signature of a key mismatch, and the harness had already
+    ##     published one while printing four member paths as "not in the set".
+    ##   - the judge's own `QUOTE:`/`WHY:` are recorded. They were requested by the prompt and
+    ##     discarded, leaving 11 of 26 audited failures with no stated reason to dispute.
+    published = "0e7ad2bdb67d"
 
     assert score.grader_fingerprint() == published, (
         f"grader_fingerprint() is {score.grader_fingerprint()!r}, but every graded cell under "
@@ -552,3 +575,207 @@ def test_grader_fingerprint_is_the_value_published_runs_recorded() -> None:
         f"that it is no longer re-gradable; if it was incidental, move the change out of "
         f"acceptance/grader/ instead — input validation, for one, does not belong in the scorer."
     )
+
+
+##
+# @brief A cited line number must not stop a set member from matching.
+# @param written How the answer wrote the path.
+# @param member How the rubric declares it.
+# @return None.
+# @version 1
+@pytest.mark.parametrize(
+    ("written", "member"),
+    [
+        ("src/facade/external_bridge.cpp:796", "src/facade/external_bridge.cpp"),
+        ("src/mcp/health_monitor.cpp:92", "src/mcp/health_monitor.cpp"),
+        ("src/mcp/transport_sse.cpp:107-120", "src/mcp/transport_sse.cpp"),
+        ("./src/core/response_generator.cpp:402", "src/core/response_generator.cpp"),
+        ("`src/x.cpp:1`", "src/x.cpp"),
+    ],
+)
+def test_a_cited_line_number_still_matches_its_member(written: str, member: str) -> None:
+    """**THIS SILENTLY ZEROED WHOLE SET MARKS, AND IT IS DETERMINISTIC — NOT JUDGE NOISE.**
+    `_key` folded directories and backticks but not a trailing `:LINE`, so an answer citing
+    `src/facade/external_bridge.cpp:796` keyed to `external_bridge.cpp:796` and could never equal
+    the member's `external_bridge.cpp`. Measured on one 2026-10-26 cell: 4 of 7 members were
+    correctly named and ALL EIGHT set decisions were scored against the answer — 18.5 points on
+    that cell alone.
+
+    **THE GRADER PRINTED ITS OWN REFUTATION AND NOTHING CHECKED IT.** That cell's precision detail
+    read `named 4 not in the set: ['src/facade/external_bridge.cpp:796',
+    'src/mcp/health_monitor.cpp:92', 'src/mcp/transport_sse.cpp:107',
+    'src/mcp/transport_stdio.cpp:164']` — four MEMBER paths, reported as spurious.
+
+    **THE BIAS IS DIFFERENTIAL, WHICH IS WHY AVERAGING CANNOT ABSORB IT.** It penalises whichever
+    arm happens to cite line numbers, and on Q4 the two arms differed in exactly that habit on the
+    same question. `path:line` is the citation style a code index encourages, so the arm under test
+    is the one more likely to be punished.
+
+    A RANGE IS INCLUDED because `:107-120` is as natural a citation as `:107`, and a fix that
+    handled only the single-line form would leave half the defect in place.
+
+    @brief A line suffix does not break matching.
+    @param written The answer's spelling.
+    @param member The rubric's spelling.
+    @return None.
+    @version 1
+    """
+    assert score._key(written) == score._key(member), (
+        f"{written!r} keyed to {score._key(written)!r} but the member keys to "
+        f"{score._key(member)!r} — a cited line number is still losing the decision"
+    )
+
+
+##
+# @brief A real colon in a name must survive normalisation.
+# @return None.
+# @version 1
+def test_a_colon_that_is_not_a_line_number_survives() -> None:
+    """THE OVER-EAGER FIX IS THE OTHER FAILURE. `Owner::method` and a Windows-style `C:` prefix
+    both contain colons that are not line citations, and stripping at the first colon would
+    silently merge distinct members. Only a trailing `:digits` (optionally a range) is a citation.
+
+    @brief Non-numeric colons are kept.
+    @return None.
+    @version 1
+    """
+    assert score._key("ServerManager::execute") == "servermanager::execute"
+    assert score._key("src/a.cpp:abc") == "a.cpp:abc"
+
+
+##
+# @brief Extracting items but matching no member must be refused, not scored zero.
+# @param monkeypatch Pytest monkeypatch fixture.
+# @return None.
+# @version 1
+def test_extracting_items_that_match_no_member_is_refused(monkeypatch) -> None:
+    """**THE HARNESS ALREADY PUBLISHED THIS FAILURE AND NOTHING NOTICED.** A trailing `:796` kept
+    an answer's `src/facade/external_bridge.cpp:796` from equalling the member's
+    `src/facade/external_bridge.cpp`, so a cell that named 4 of 7 members correctly scored 0 of 8
+    set decisions, and the precision detail printed four MEMBER paths as "not in the set".
+
+    `_key` now strips the citation, so that instance cannot recur. **This guard is for the next
+    normalisation gap**, which will be just as unanticipated. The signature is specific: the
+    extractor found things and NONE of them matched any member. That is far more likely a
+    mis-keying than an answer that named only irrelevant files.
+
+    The fixture deliberately uses a separator the current `_key` does NOT fold — a backslash
+    path — so it stands in for a future gap rather than re-testing the one just fixed.
+
+    @brief A total mismatch is unruled.
+    @return None.
+    @version 1
+    """
+    mark = Mark(
+        text="every file that creates a thread",
+        type="set",
+        weight=2,
+        members=[{"value": "src/facade/external_bridge.cpp"}, {"value": "src/mcp/health.cpp"}],
+        extract="List the files.",
+    )
+    monkeypatch.setattr(
+        score,
+        "ask",
+        lambda *_a, **_k: judge.Reply(text="ITEMS:\nsrc\\facade\\other_thing.cpp\nEND"),
+    )
+
+    out = score.score_set(mark, "an answer", "claude-sonnet-4-5-20250929", samples=1)
+
+    assert all(d.hit is None for d in out), (
+        f"a total member mismatch was scored instead of refused: {[(d.mark, d.hit) for d in out]}"
+    )
+    assert "key mismatch" in out[0].detail, f"the refusal does not say why: {out[0].detail!r}"
+
+
+##
+# @brief A genuine partial match must still be scored normally.
+# @param monkeypatch Pytest monkeypatch fixture.
+# @return None.
+# @version 1
+def test_a_partial_member_match_is_still_scored(monkeypatch) -> None:
+    """THE GUARD MUST NOT SWALLOW REAL GRADING. If any member matched, the extraction demonstrably
+    speaks the same language as the rubric, and the misses are then real misses. A guard that
+    fired on partial matches would turn every imperfect answer into an unmeasured one.
+
+    @brief Partial matches score.
+    @return None.
+    @version 1
+    """
+    mark = Mark(
+        text="every file that creates a thread",
+        type="set",
+        weight=2,
+        members=[{"value": "src/facade/external_bridge.cpp"}, {"value": "src/mcp/health.cpp"}],
+        extract="List the files.",
+    )
+    monkeypatch.setattr(
+        score,
+        "ask",
+        lambda *_a, **_k: judge.Reply(text="ITEMS:\nsrc/facade/external_bridge.cpp:796\nEND"),
+    )
+
+    out = score.score_set(mark, "an answer", "claude-sonnet-4-5-20250929", samples=1)
+    hits = {d.mark.rsplit("— ", 1)[-1]: d.hit for d in out}
+
+    assert hits["src/facade/external_bridge.cpp"] is True, (
+        f"the cited member was not credited — the line-suffix fix regressed: {hits}"
+    )
+    assert hits["src/mcp/health.cpp"] is False, f"an unnamed member was credited: {hits}"
+
+
+##
+# @brief The judge's stated reason must reach the recorded decision.
+# @param monkeypatch Pytest monkeypatch fixture.
+# @return None.
+# @version 1
+def test_the_judges_reason_reaches_the_record(monkeypatch) -> None:
+    """**THE HARNESS ASKED FOR REASONING AND THREW IT AWAY.** `verdict_prompt` requires a `QUOTE:`
+    carrying the item's substance and a one-line `WHY:`, written before the verdict is settled —
+    and only `read_verdict` was ever called, so every binary decision was recorded with
+    `detail: ""`.
+
+    Measured cost: an audit of 26 failed decisions found 11 with no stated reason at all, could
+    not quote the judge where it disagreed with it, and listed that as its first limitation. A
+    published grid exists for other people to argue with; a decision carrying no reason cannot be
+    argued with at all.
+
+    @brief The reason is recorded.
+    @return None.
+    @version 1
+    """
+    reply = judge.Reply(
+        text="QUOTE: it names ServerManager::execute\nVERDICT: HIT\nWHY: stated directly in prose"
+    )
+    monkeypatch.setattr(judge, "ask", lambda *_a, **_k: reply)
+    mark = Mark(text="names the entry point", type="retrieval", weight=1)
+
+    voted = judge.vote(mark.text, "an answer", "claude-sonnet-4-5-20250929", 1)
+
+    assert voted.verdict == "HIT"
+    assert voted.rationale, "the winning verdict carried no rationale"
+    assert "ServerManager::execute" in voted.rationale[0], voted.rationale
+
+
+##
+# @brief A failed vote must report transport reasons, not an empty rationale.
+# @param monkeypatch Pytest monkeypatch fixture.
+# @return None.
+# @version 1
+def test_a_failed_vote_still_reports_why_it_failed(monkeypatch) -> None:
+    """ "THE JUDGE NEVER RULED" AND "THE JUDGE RULED AND SAID WHY" ARE DIFFERENT FACTS. Recording
+    the rationale must not displace the transport reasons on an unruled decision, or a hole
+    becomes indistinguishable from a verdict whose reason happened to be empty.
+
+    @brief Unruled decisions keep their transport reasons.
+    @return None.
+    @version 1
+    """
+    monkeypatch.setattr(
+        judge, "ask", lambda *_a, **_k: judge.Reply(error="rc=1 after 1: overloaded")
+    )
+
+    voted = judge.vote("a mark", "an answer", "claude-sonnet-4-5-20250929", 1)
+
+    assert voted.verdict is None
+    assert not voted.rationale, "a failed vote invented a rationale"
+    assert any("overloaded" in r for r in voted.reasons), voted.reasons
