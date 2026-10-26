@@ -67,6 +67,19 @@ class CellResult:
     ## the stem cannot carry it, being the (question, model, arm, replicate) key both share.
     ## Recorded as "" rather than omitted, so "no document" and "nobody recorded" differ.
     skills: str = ""
+    ## WHAT ACTUALLY ANSWERED, as the provider named it — `modelUsage`'s own key, not the id this
+    ## harness asked for. These are usually the same string and the day they differ is the day
+    ## this field is the only evidence of it.
+    ##
+    ## THIS IS THE PROVENANCE THAT REPLACED A DATE REQUIREMENT. 1.1.0 asked for
+    ## `claude-haiku-5-5` and recorded only that it had asked; a fix then demanded a dated id and
+    ## rejected every current-family model, because the provider publishes none. The resolution is
+    ## to accept the canonical id and record what came back, so drift is visible rather than
+    ## either silent or forbidden.
+    ##
+    ## "" MEANS THE ENVELOPE DID NOT SAY, never "the asked-for model answered". A cell whose
+    ## provenance is unknown must not read as a cell that confirmed it.
+    answered_by: str = ""
     seconds: float = 0.0
     ## FOUR TOKEN NUMBERS, NEVER ONE. Blending them hides that cached prefix dominates: measured
     ## at 534,192 cache-read against 7,292 output on a single cell.
@@ -250,10 +263,17 @@ def run_cell(
     ## Summing them into one number is the "turn counter times a mostly-cached prompt" the
     ## hypothesis warns about — it would have been dominated by cached prefix and said nothing
     ## about retrieval.
+    ## ONE KEY OR NONE. `modelUsage` is keyed by the model that served the call, so a single key
+    ## is the answer; several would mean the run fanned across models and the field must not pick
+    ## one and imply it was the only one.
+    usage_models = sorted((envelope.get("modelUsage") or {}).keys())
+    answered_by = usage_models[0] if len(usage_models) == 1 else ",".join(usage_models)
+
     result = CellResult(
         stem=cell.stem(),
         arm=cell.arm,
         model=cell.model,
+        answered_by=answered_by,
         ok=bool(answer.strip()),
         seconds=elapsed,
         input_tokens=int(usage.get("input_tokens") or 0),

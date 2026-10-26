@@ -256,16 +256,21 @@ def test_grading_prints_each_cell_before_the_last_one_is_scored(tmp_path, monkey
 
 
 ##
-# @brief `generate` must refuse an answering model that is an alias.
+# @brief `generate` must refuse an answering model that is a client-resolved shortcut.
 # @param tmp_path Pytest temporary directory.
 # @param monkeypatch Pytest monkeypatch fixture.
 # @return None.
 # @version 1
-def test_generate_refuses_an_alias_answering_model(tmp_path: Path, monkeypatch) -> None:
-    """**THIS IS THE 1.1.0 GAP.** The judge was refused an alias from the first release and the
-    model being GRADED was never asked, so the published grid was judged by
-    `claude-sonnet-4-5-20250929` and answered by `claude-haiku-5-5`. The rubric digest, the commit
-    pin and the seed all read as held while the model underneath could move.
+def test_generate_refuses_a_shortcut_answering_model(tmp_path: Path, monkeypatch) -> None:
+    """**THIS IS THE 1.1.0 GAP, NARROWED BY A LATER RULING.** The judge was checked from the first
+    release and the model being GRADED was never asked, so the published grid was judged by
+    `claude-sonnet-4-5-20250929` and answered by `claude-haiku-5-5` with nothing recording it.
+
+    v2: the fixture is `sonnet`, not `claude-haiku-5-5`. A first fix demanded a DATED id and
+    thereby rejected every current-family model, blocking the harness; the owner ruled that the
+    grid should move with the models and that the requirement is faithful recording, not
+    immutability. A client-resolved shortcut is still refused, because the client maps it through
+    configuration this harness never records.
 
     It refuses BEFORE any cell runs: `run_cell` is replaced with something that records being
     called, and the assertion is that it never was. A check that refused after spending the grid
@@ -286,7 +291,7 @@ def test_generate_refuses_an_alias_answering_model(tmp_path: Path, monkeypatch) 
     out = tmp_path / "answers"
     args = cli.argparse.Namespace(
         rubric=FREERTOS,
-        models=["claude-haiku-5-5"],
+        models=["sonnet"],
         replicates=1,
         seed=7,
         repo=tmp_path / "repo",
@@ -296,7 +301,7 @@ def test_generate_refuses_an_alias_answering_model(tmp_path: Path, monkeypatch) 
         resume=False,
     )
 
-    assert cli.cmd_generate(args) == 1, "an alias answering model was accepted"
+    assert cli.cmd_generate(args) == 1, "a client-resolved shortcut was accepted"
     assert not spent, f"cells were spent before the refusal: {spent}"
 
 
@@ -364,3 +369,100 @@ def test_each_generate_appends_a_window_rather_than_overwriting(
     assert "clew_build_version" in windows[1], (
         f"a window carries no tool identity, so it cannot be attributed: {windows[1]}"
     )
+
+
+##
+# @brief A floating canonical model must be accepted and named in the window record.
+# @param tmp_path Pytest temporary directory.
+# @param monkeypatch Pytest monkeypatch fixture.
+# @return None.
+# @version 1
+def test_a_floating_model_is_accepted_and_recorded_as_floating(tmp_path: Path, monkeypatch) -> None:
+    """**ACCEPTANCE WITHOUT DISCLOSURE WOULD REPRODUCE THE ORIGINAL DEFECT.** 1.1.0 answered with
+    a floating id and recorded nothing about it. A date requirement then rejected every
+    current-family model and blocked the harness, so the ruling is that the grid tracks the models
+    and the run says which ids can move.
+
+    Both halves asserted together: the run must SUCCEED on `claude-haiku-5-5` and must NAME it as
+    floating. A change that accepted it silently passes the first assertion alone.
+
+    @brief Floating models are accepted and disclosed.
+    @return None.
+    @version 1
+    """
+    import json
+
+    from acceptance import __main__ as cli
+    from acceptance import execute
+
+    FREERTOS = Path(__file__).resolve().parent.parent / "acceptance/targets/freertos/questions.yaml"
+    monkeypatch.setattr(cli, "check_revision", lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        cli,
+        "run_cell",
+        lambda cell, *_a, **_k: execute.CellResult(cell.stem(), cell.arm, cell.model, ok=True),
+    )
+    out = tmp_path / "answers"
+    args = cli.argparse.Namespace(
+        rubric=FREERTOS,
+        models=["claude-haiku-5-5"],
+        replicates=1,
+        seed=7,
+        repo=tmp_path / "repo",
+        out=out,
+        mcp_config=None,
+        timeout=60,
+        resume=False,
+    )
+
+    assert cli.cmd_generate(args) == 0, "a current-family model was refused; the harness is blocked"
+
+    window = json.loads((out / "run.json").read_text())["windows"][-1]
+    assert window["models_floating"] == ["claude-haiku-5-5"], (
+        f"the run accepted a floating id without recording it: {window}"
+    )
+
+
+##
+# @brief A dated model must not be recorded as floating.
+# @param tmp_path Pytest temporary directory.
+# @param monkeypatch Pytest monkeypatch fixture.
+# @return None.
+# @version 1
+def test_a_dated_model_is_not_recorded_as_floating(tmp_path: Path, monkeypatch) -> None:
+    """ABSENT RATHER THAN EMPTY. A run where nothing floated carries no `models_floating` key at
+    all, so "nothing floated" and "nobody checked" cannot read alike — and a reader who finds the
+    key knows it means something.
+
+    @brief Dated models are not flagged.
+    @return None.
+    @version 1
+    """
+    import json
+
+    from acceptance import __main__ as cli
+    from acceptance import execute
+
+    FREERTOS = Path(__file__).resolve().parent.parent / "acceptance/targets/freertos/questions.yaml"
+    monkeypatch.setattr(cli, "check_revision", lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        cli,
+        "run_cell",
+        lambda cell, *_a, **_k: execute.CellResult(cell.stem(), cell.arm, cell.model, ok=True),
+    )
+    out = tmp_path / "answers"
+    args = cli.argparse.Namespace(
+        rubric=FREERTOS,
+        models=["claude-sonnet-4-5-20250929"],
+        replicates=1,
+        seed=7,
+        repo=tmp_path / "repo",
+        out=out,
+        mcp_config=None,
+        timeout=60,
+        resume=False,
+    )
+
+    assert cli.cmd_generate(args) == 0
+    window = json.loads((out / "run.json").read_text())["windows"][-1]
+    assert "models_floating" not in window, f"a dated id was reported as floating: {window}"
