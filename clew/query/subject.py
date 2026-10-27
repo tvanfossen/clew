@@ -36,11 +36,18 @@ from ._common import (
     extract_version,
     function_candidates,
     has_columns,
+    identity_rowids,
+    qualified_name_of,
     strip_xml,
     symbol_provenance,
     table_exists,
 )
 from .corpus import CLASS_KINDS, file_subject, is_indexed_file, lookup_class
+
+## C7 reuses `recovery.bare_tail` rather than re-splitting the string here, so the
+## rewrite this module performs and the one the recovery hint ADVERTISES cannot drift —
+## the same discipline that made the `qualified` selector and its hint share one rule.
+from .recovery import bare_tail
 from .dossier import _dossier_conn, _macro_dossier
 from .kconfig import kconfig_space
 from .locks import lock_roster, runs_under_lock
@@ -884,7 +891,9 @@ def _chain_for(
 ## @param direction Traversal direction when depth > 1.
 ## @param max_neighbors Fan-out cap for the traversal.
 ## @return The SubjectDossier, or None when the index holds no subject of that name.
-## @version 2
+## v3 (C7): a qualified spelling that resolves to nothing as given is re-read as
+## (bare tail, selector), because 93.6% of measured misses were spellings clew had served.
+## @version 3
 ## @req REQ-DDB-QUERY-004
 ## @req REQ-DDB-QUERY-009
 ## @req REQ-DDB-QUERY-010
@@ -914,7 +923,7 @@ def dossier(
 
     @brief Describe one subject of any kind, with its adjacency.
     @return SubjectDossier or None.
-    @version 2
+    @version 3
     """
     if depth < 1 or depth > MAX_SUBJECT_DEPTH:
         raise ValueError(
@@ -924,6 +933,15 @@ def dossier(
             "component."
         )
     kinds = _rank_enum_over_mirror(db, subject, resolve_subject(db, subject))
+    ## C7: a QUALIFIED spelling is one clew serves and used to refuse. Re-read only when the
+    ## string as given resolved to NOTHING and the caller supplied no selector of its own — a
+    ## caller that passed `qualified=` has disambiguated deliberately and must not have its
+    ## subject reinterpreted underneath it.
+    if not kinds and qualified is None:
+        split = _split_qualified(db, subject)
+        if split is not None:
+            subject, qualified = split
+            kinds = _rank_enum_over_mirror(db, subject, resolve_subject(db, subject))
     chosen = _chosen_kind(kinds, kind)
     if chosen is None:
         return None
@@ -945,6 +963,111 @@ def dossier(
         chain=_chain_for(db, chosen, subject, depth, direction, max_neighbors),
         **section,
     )
+
+
+## @brief Re-read a subject that resolved to nothing as a QUALIFIED spelling.
+## @param db Path, str or open connection to a built index.
+## @param subject The subject as the caller passed it.
+## @return (bare tail, the qualified spelling) when the split resolves, else None.
+## @version 1
+## @req REQ-DDB-QUERY-010
+## @dg_internal
+def _split_qualified(db: DbSource, subject: str) -> tuple[str, str] | None:
+    """clew SERVED THE SPELLING AND THEN REFUSED IT (C7).
+
+    MEASURED by replaying all 48 frozen `index_only` transcripts from the 1.1.0 grid: of 157
+    `dossier` subjects that came back `found: false`, **147 — 93.6% — were strings clew itself had
+    put in front of the model in an earlier reply.** 75 were file paths (C1), 33 were qualified
+    C++ names (this), and 49 were bare names with no row at all.
+
+    The 33 sit in entropic Q1, Q3 and Q4 — three of the six worst clusters. The source is exact:
+    `search(corpus="threads")` serves `{"name": "HealthMonitor::monitor_loop", "entry":
+    "monitor_loop"}` and the tool's prose says a row's name is what goes back to `dossier`. The
+    model obeyed, three cells of three, and spent two of six calls on refusals. Making the row's
+    `name` bare is not available — `UNIQUE(name, entry, kind)` is what stops four distinct threads
+    collapsing into one row — so this side gives.
+
+    THE REWRITE IS NOT NEW JUDGEMENT. `recovery._hint_from` already tells the caller, in words, to
+    pass `subject="<tail>", qualified="<whole>"`. This repo therefore already holds the
+    transformation correct and was charging a round trip to have the model type it.
+
+    LAST RESORT, AND THAT IS THE WHOLE SAFETY ARGUMENT. It runs only after `resolve_subject` has
+    returned nothing for the string as given, so no subject that resolves today can change
+    meaning — a file path still resolves as a file (C1), and a dotted name the index holds whole
+    still wins. It also cannot invent a hit: `identity_rowids` must select at least one row for
+    the ORIGINAL spelling as the qualified selector, so `Nonexistent::monitor_loop` stays a miss
+    even though its tail is indexed.
+
+    @brief Resolve a qualified spelling to (bare, selector).
+    @return The pair, or None.
+    @version 1
+    """
+    tail = bare_tail(subject)
+    if tail == subject or not tail:
+        return None
+    with connect(db) as conn:
+        ## THE EXACT SPELLING FIRST, which is the cheap case and the one `candidates[i].qualified`
+        ## produces: the caller copied the selector verbatim and merely put it in the wrong slot.
+        if identity_rowids(conn, tail, subject):
+            return tail, subject
+        matches = _qualified_suffix_matches(conn, tail, subject)
+    ## EXACTLY ONE, OR NOTHING. A partial qualification matching two identities names neither, and
+    ## answering it would be the arbitrary pick reported as the answer that `also` exists to
+    ## prevent. The recovery hint remains the right reply for an ambiguous one.
+    return (tail, matches[0]) if len(matches) == 1 else None
+
+
+## @brief Indexed qualified names ending in a partially qualified spelling, at a separator.
+## @param conn Open connection.
+## @param tail The bare member name.
+## @param subject The partially qualified spelling the caller passed.
+## @return Every indexed qualified name the spelling identifies; usually zero or one.
+## @version 1
+## @dg_internal
+def _qualified_suffix_matches(conn: sqlite3.Connection, tail: str, subject: str) -> list[str]:
+    """A SUFFIX MATCH, BECAUSE TWO QUALIFIED SPELLINGS ARE IN CIRCULATION AND ONLY ONE WAS
+    ACCEPTED. Found by replaying C7's first version against the live entropic index, where it
+    resolved 3 of the 12 measured misses:
+
+        qualified_name_of  ->  entropic::HealthMonitor::monitor_loop   (what the index holds)
+        threads[].name     ->  HealthMonitor::monitor_loop             (what clew SERVES)
+
+    Nine of those twelve omitted the namespace. That is the spelling the thread corpus hands a
+    reader and the spelling a reader writes unprompted, so accepting only the fully-qualified form
+    fixes the minority of a defect whose majority is the form clew itself prints.
+
+    ALIGNED TO A SEPARATOR, never a bare string suffix. `Monitor::monitor_loop` is a plain-string
+    suffix of `entropic::HealthMonitor::monitor_loop` because `HealthMonitor` ends in `Monitor`,
+    and resolving it would describe `HealthMonitor` under a class name this index does not hold —
+    the confidently-wrong-symbol failure in its most literal form.
+
+    DERIVED FROM `qualified_name_of`, the same function the `qualified` selector compares against,
+    so this can only ever name a form the selector then accepts. Narrowed in SQL by the bare tail
+    first: that column is indexed and the candidate set is the handful of rows sharing one member
+    name, not the whole table.
+
+    @brief Match a partial qualification against indexed identities.
+    @return The qualified names it identifies.
+    @version 1
+    """
+    if not table_exists(conn, "memberdef"):
+        return []
+    rows = conn.execute(
+        "SELECT DISTINCT name, COALESCE(definition, name) FROM memberdef WHERE name = ?", (tail,)
+    ).fetchall()
+    out: list[str] = []
+    for row_name, definition in rows:
+        full = qualified_name_of(str(row_name), str(definition))
+        if full == subject or not full.endswith(subject):
+            if full == subject and full not in out:
+                out.append(full)
+            continue
+        ## The character before the match must be the end of a separator, so the boundary falls
+        ## between identifiers rather than inside one.
+        boundary = full[: len(full) - len(subject)]
+        if boundary.endswith(("::", ".")) and full not in out:
+            out.append(full)
+    return out
 
 
 ## @brief Subject dossiers for several names over ONE connection.

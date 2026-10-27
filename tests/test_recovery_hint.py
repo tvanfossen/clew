@@ -373,7 +373,51 @@ def test_the_hint_reaches_the_mcp_surface_on_a_single_miss(index: Path, tmp_path
 def test_a_qualified_subject_is_told_to_split_it_at_the_wire(index: Path, tmp_path: Path) -> None:
     """The second-largest mode: 36 unanswered subjects, 34 of which had an indexed bare tail.
 
-    @brief The split advice reaches the wire.
+    THE ADVICE BECAME THE BEHAVIOUR (C7). This asserted that the wire SERVED the split advice for
+    `ServerManager::execute`. It now resolves outright, because the rewrite the hint described —
+    tail as `subject`, whole as `qualified` — is deterministic, and replaying all 48 frozen
+    `index_only` transcripts showed 93.6% of missed subjects were spellings clew had served
+    itself. Charging a round trip to have the model type a rewrite we had already specified was
+    the round trip; the hint was a stopgap for it.
+
+    So the assertion is now that there is NO note, because there was no miss. A hint still served
+    here would mean the subject did not resolve. The hint itself is NOT deleted — see the two
+    tests below for the cases that survive C7 — and `recovery_hint` is still asserted directly by
+    `test_a_qualified_subject_is_told_to_split_it`, which calls the library rather than the wire.
+
+    @brief A qualified subject resolves rather than being advised about.
+    @return None.
+    @version 2
+    """
+    from clew.mcp_server.tools_query import QueryTools
+
+    tools = QueryTools(lambda: index, lambda: tmp_path)
+
+    reply = tools.dossier(QUALIFIED)
+
+    assert reply.get("found") is not False, (
+        f"a qualified spelling naming one indexed identity must resolve: {reply!r}"
+    )
+    assert reply["subject_kind"] == "function"
+
+
+##
+# @brief A qualified spelling whose OWNER is not indexed still misses, and is still advised.
+# @param index The seeded database.
+# @param tmp_path Per-test temporary directory.
+# @return None.
+# @version 1
+def test_a_qualified_spelling_with_an_unindexed_owner_still_gets_the_hint(
+    index: Path, tmp_path: Path
+) -> None:
+    """WHAT SURVIVES C7, AND WHY THE HINT IS NOT DELETED. `Nonexistent::execute` has an indexed
+    tail and an owner this index does not hold, so the split correctly refuses it — resolving it
+    would describe the real `ServerManager::execute` under a class name that does not exist.
+
+    That refusal is exactly where the advice is still worth its bytes: the reader has a spelling
+    whose tail IS indexed, and the hint names the bare form to try.
+
+    @brief An unresolvable qualified spelling keeps its hint.
     @return None.
     @version 1
     """
@@ -381,9 +425,9 @@ def test_a_qualified_subject_is_told_to_split_it_at_the_wire(index: Path, tmp_pa
 
     tools = QueryTools(lambda: index, lambda: tmp_path)
 
-    missed = tools.dossier(QUALIFIED)
+    missed = tools.dossier("Nonexistent::execute")
 
-    assert missed["found"] is False
+    assert missed["found"] is False, "an owner the index does not hold must stay a miss"
     assert 'subject="execute"' in missed["note"], (
         f"the note did not name the bare tail to pass: {missed['note']!r}"
     )
@@ -414,12 +458,17 @@ def test_the_hint_reaches_each_entry_of_a_batched_miss(index: Path, tmp_path: Pa
 
     tools = QueryTools(lambda: index, lambda: tmp_path)
 
-    reply = tools.dossier([QUALIFIED, "no_such_symbol_anywhere"])
+    ## `Nonexistent::execute` rather than `ServerManager::execute` since C7: the latter now
+    ## RESOLVES, so it is no longer a miss and cannot hold a miss note. This spelling has an
+    ## indexed tail and an owner the index does not hold, which is the shape that still misses —
+    ## see `test_a_qualified_spelling_with_an_unindexed_owner_still_gets_the_hint`.
+    near = "Nonexistent::execute"
+    reply = tools.dossier([near, "no_such_symbol_anywhere"])
     entries = {entry["name"]: entry for entry in reply["results"]}
 
-    assert entries[QUALIFIED]["found"] is False
-    assert 'subject="execute"' in entries[QUALIFIED]["note"], (
-        f"a batched miss carried no hint: {entries[QUALIFIED]['note']!r}"
+    assert entries[near]["found"] is False
+    assert 'subject="execute"' in entries[near]["note"], (
+        f"a batched miss carried no hint: {entries[near]['note']!r}"
     )
     assert "execute" not in entries["no_such_symbol_anywhere"]["note"], (
         "a name with no neighbour was given another subject's hint"

@@ -358,6 +358,20 @@ def test_self_index_thread_layer_resolves_its_entries(self_index_db: Path) -> No
     # So the falsifiable invariant is not "nothing is NULL", it is: an entry is NULL
     # ONLY when its own tail name is genuinely absent from the index. A NULL beside
     # a name the index DOES know is a resolution failure worth catching.
+    #
+    # ONE REFINEMENT, FOUND BY TRIPPING IT: "a name the index knows" has to mean a name the index
+    # knows EXACTLY ONCE. A second function of the same name makes the entry genuinely ambiguous,
+    # and NULL is then the SAME fail-closed behaviour this comment already defends two paragraphs
+    # up, for the same reason — borrowing one of two same-named strangers' rowids would attribute
+    # a thread to unrelated code. The original form treated "exists" as "resolvable", so it
+    # reported the correct answer as a defect.
+    #
+    # It was tripped by a test helper rather than by a real collision: a new module-level `_call`
+    # beside the nested `_call` that `tests/test_doxygen_timeout.py` spawns a thread on. That
+    # helper was renamed, because its name was arbitrary and the collision gratuitous. The
+    # invariant is narrowed as well, because renaming alone leaves the trap: the next incidental
+    # same-name helper would fail this test with a message blaming the extractor. It stays
+    # falsifiable — a NULL beside a UNIQUELY indexed name still fails it.
     conn = sqlite3.connect(str(self_index_db))
     try:
         unresolved = [
@@ -368,12 +382,18 @@ def test_self_index_thread_layer_resolves_its_entries(self_index_db: Path) -> No
                 "WHERE m.rowid IS NULL"
             )
         ]
-        indexed = {r[0] for r in conn.execute("SELECT name FROM memberdef WHERE kind='function'")}
+        ## COUNTED, not collected as a set: one row per name is what tells "known" from
+        ## "resolvable", and only the second makes a NULL entry a defect.
+        indexed = dict(
+            conn.execute("SELECT name, COUNT(*) FROM memberdef WHERE kind='function' GROUP BY name")
+        )
     finally:
         conn.close()
 
-    wrongly_unresolved = [name for name in unresolved if name.rsplit(".", 1)[-1] in indexed]
+    wrongly_unresolved = [
+        name for name in unresolved if indexed.get(name.rsplit(".", 1)[-1], 0) == 1
+    ]
     assert wrongly_unresolved == [], (
-        f"thread entries left NULL although the index knows the function: "
+        f"thread entries left NULL although the index knows the function UNIQUELY: "
         f"{wrongly_unresolved} — that is a resolution failure, not fail-closed"
     )
