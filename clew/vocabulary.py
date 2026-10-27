@@ -1242,3 +1242,12 @@ SEARCH_WEIGHT_EXACT_NAME = 1000
 SEARCH_WEIGHT_NAME_SUBSTRING = 200
 SEARCH_WEIGHT_TOKEN_IN_NAME = 50
 SEARCH_WEIGHT_TOKEN_IN_BRIEF = 5
+
+## WEAKEST OF THE FOUR, AND DELIBERATELY BELOW A BRIEF. A symbol that merely LIVES in a matching
+## file is weaker evidence than one named or described by the query, so `search("src")` must not
+## promote every symbol under `src/` above the one actually called `src`.
+##
+## It exists because the omission was measured: `search("loader")` returned 24 rows and none was
+## `_candidate_paths`, which is defined in `_loader.py`; the symbol was reachable only by
+## searching a phrase already inside its own docstring.
+SEARCH_WEIGHT_TOKEN_IN_PATH = 2

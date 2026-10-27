@@ -857,8 +857,56 @@ def _named_entry(arg: Any, src_bytes: bytes) -> tuple[str, str] | None:
     return (qualified, tail) if tail is not None else None
 
 
+## @brief The variable a spawn call is assigned to, or "" when it is a bare temporary.
+## @param call_node The spawn call site.
+## @param src_bytes The file's raw source bytes.
+## @return The assignment target's text, or "".
+## @version 1
+## @dg_internal
+def _assignment_target(call_node: Any, src_bytes: bytes) -> str:
+    """**THIS IS WHAT KEEPS AN UNNAMEABLE SPAWN FROM COLLAPSING INTO ONE ROW.** `threads` is
+    UNIQUE(name, entry_memberdef_rowid, kind), so several lambda-bodied spawns with a NULL entry
+    and one constant placeholder would become a SINGLE row — a fix that reads as working while
+    undercounting. Measured shape: one real tree had `poller_`, `poller` and `observer`, three
+    distinct threads that a placeholder would have merged.
+
+    Walks up through the wrappers the two real forms produce — `x = std::thread(...)` is an
+    `assignment_expression`, `std::thread x = std::thread(...)` an `init_declarator` — and stops
+    at the enclosing function so a bare `std::thread(...).detach()` returns "" rather than
+    borrowing an unrelated name from further up.
+
+    @brief The assignment target of a spawn call.
+    @return The target text, or "".
+    @version 1
+    """
+    node = call_node
+    for _ in range(6):
+        parent = getattr(node, "parent", None)
+        if parent is None or parent.type in ("function_definition", "translation_unit"):
+            return ""
+        if parent.type == "assignment_expression":
+            left = parent.child_by_field_name("left")
+            return src_bytes[left.start_byte : left.end_byte].decode("utf-8", "replace").strip()
+        if parent.type == "init_declarator":
+            decl = parent.child_by_field_name("declarator")
+            return src_bytes[decl.start_byte : decl.end_byte].decode("utf-8", "replace").strip()
+        node = parent
+    return ""
+
+
 ## @brief Resolve one spawn call site into a _SpawnSite, if it resolves.
-## @version 3
+##
+## v4: a spawn whose entry is an unnameable lambda is RECORDED with a NULL entry instead of
+## dropped. `_entry_names` resolves a lambda only when its body is a single call, so every
+## multi-statement lambda was discarded along with the thread it created. Measured: the entropic
+## index held 5 of 9 thread sites and all four missing ones were multi-statement lambdas; the
+## graded answer reported 5 and was scored against 9. The schema has always allowed a NULL entry
+## — `insert_threads` calls it "thread present, no closure".
+##
+## The ASSIGNMENT TARGET names the row, because `threads` is UNIQUE(name, entry, kind) and a
+## constant placeholder would have collapsed four threads into one — a fix reading as a success
+## while undercounting by three.
+## @version 4
 ## @dg_internal
 def _resolve_spawn_site(
     call_node: Any,
@@ -878,7 +926,31 @@ def _resolve_spawn_site(
     """
     names = _entry_names(call_node, pattern.entry_arg_index, src_bytes)
     if names is None:
-        return None
+        ## **AN UNNAMEABLE ENTRY IS NOT AN ABSENT THREAD.** `_entry_names` resolves a lambda only
+        ## when its body is a single call; a multi-statement body returns None, and returning
+        ## None here then dropped the SPAWN as well. Measured on a graded cell: the index held 5
+        ## of 9 thread sites and the four missing ones were all multi-statement lambdas —
+        ## `poller = std::thread([...]{ while (...) {...} })` and one
+        ## `std::thread([...]{...}).detach()`. The answer reported 5 threads and was scored
+        ## against 9. "No row" asserted no thread, which is the flattering reading of a parser
+        ## limit.
+        ##
+        ## THE SCHEMA ALWAYS ALLOWED THIS. `insert_threads` already documents a NULL entry as
+        ## "thread present, no closure", so the row had somewhere to go the whole time.
+        ##
+        ## STILL FAIL-CLOSED ON WHAT IT IS NOT: only a lambda or closure argument reaches here as
+        ## a thread with an unnameable entry. Anything else — a bare value, a macro, a cast of
+        ## something that is not a function — is not a spawn this harvester can claim, and
+        ## guessing would put a garbage row in a table a reader quotes.
+        arg = _nth_call_argument(call_node, pattern.entry_arg_index)
+        if arg is None or arg.type not in ("lambda_expression", "closure_expression"):
+            return None
+        target = _assignment_target(call_node, src_bytes)
+        ## The spawn line disambiguates a detached temporary, which has no target to borrow. It
+        ## is part of the NAME rather than a separate column because the UNIQUE key is what the
+        ## collision would defeat.
+        unnamed = target or f"<lambda>@{call_node.start_point[0] + 1}"
+        return _SpawnSite(unnamed, "", pattern.kind, "")
     qualified_entry, entry_tail = names
     thread_name: str | None = None
     if pattern.name_arg_index is not None:
