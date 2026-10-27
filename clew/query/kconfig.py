@@ -32,7 +32,7 @@ import sqlite3
 from dataclasses import replace
 
 from ..vocabulary import LAYER_STATE_ABSENT, LAYER_STATE_EMPTY, LAYER_STATE_POPULATED
-from ._common import DbSource, connect, has_columns, table_exists
+from ._common import DbSource, connect, has_columns, is_shipped_config, table_exists
 from .models import KconfigEntry, KconfigGate, KconfigSpace
 
 ## The `build_meta` prefix `kconfig.as_meta` writes under. Spelled here rather than
@@ -558,7 +558,17 @@ def gates_covering(
 ## @param conn Open connection.
 ## @param gates The covering gates.
 ## @return The same gates, carrying `default_state` and `default_site` where known.
-## @version 1
+##
+## v2: the SHIPPED config settles a disagreement among guessed defaults instead of the
+## macro being dropped. Measured: MBEDTLS_PLATFORM_MEMORY has three heuristic rows that
+## disagree — on in a TFM profile, off in include/mbedtls/mbedtls_config.h, on in a test
+## config — so the gate reported NO default, dossier('mbedtls_calloc') returned both
+## preprocessor branches with nothing to choose between them, and a weight-3 mark was
+## answered with its opposite: the agent called the MEMORY-ON indirection the normal path
+## when the default build maps straight onto calloc/free. An alternate profile and a test
+## fixture are not peers of the repository's own header. A DECLARED header still wins, and a
+## disagreement with no shipped site is still dropped — inventing one is worse than silence.
+## @version 2
 ## @dg_internal
 def _with_defaults(
     conn: sqlite3.Connection, gates: tuple[KconfigGate, ...]
@@ -600,10 +610,32 @@ def _with_defaults(
     ## positional fields inside the loop to rebuild it is both slower and how `l` ended up
     ## shadowing nothing legible.
     settled = {str(row[0]) for row in rows if row[4] == "declared"}
+    ## THE SHIPPED CONFIG SETTLES A DISAGREEMENT AMONG GUESSES, and dropping instead turned a
+    ## known fact into silence. Measured on mbedtls Q3: `MBEDTLS_PLATFORM_MEMORY` has three
+    ## heuristic rows — `on` in a TFM profile, `off` in `include/mbedtls/mbedtls_config.h`, `on`
+    ## in a test config — so the gate came back with NO default, `dossier("mbedtls_calloc")`
+    ## returned both preprocessor branches with nothing to choose between them, and the answer
+    ## described the `MBEDTLS_PLATFORM_MEMORY`-ON path as the normal one. The default build has it
+    ## OFF, where platform.h #undefs the names straight onto `calloc`/`free`, so a weight-3 mark
+    ## was answered with its opposite, confidently.
+    ##
+    ## An alternate profile and a test fixture are NOT peers of the repository's own default
+    ## header; treating them as peers is what produced the silence. `default_site` names the file
+    ## that was believed, so a reader can disagree with the choice.
+    shipped = {
+        str(row[0]): (str(row[1]), f"{row[2]}:{row[3]}")
+        for row in rows
+        if row[4] != "declared" and is_shipped_config(str(row[2]))
+    }
     for macro, states in seen.items():
-        ## More than one state among GUESSES, and no declared header to settle it.
-        if len(states) > 1 and macro not in settled:
-            decided.pop(macro, None)
+        if len(states) <= 1 or macro in settled:
+            continue
+        if macro in shipped:
+            ## The shipped header's own state, not the first row encountered.
+            decided[macro] = shipped[macro]
+            continue
+        ## STILL DROPPED WHEN EVERY SITE IS AN EQUAL GUESS. Inventing one is worse than silence.
+        decided.pop(macro, None)
     return tuple(
         replace(gate, default_state=decided[gate.macro][0], default_site=decided[gate.macro][1])
         if gate.macro in decided

@@ -830,6 +830,43 @@ class ExternalCallee:
 
 ## @brief One `#define` site: its parameters, its expansion and where it is written.
 ## @version 1
+## @brief One configured default: where a config macro is set or left commented out.
+## @version 1
+@dataclass(frozen=True)
+class ConfigDefault:
+    """**A COMMENTED-OUT DEFAULT IS NOT A DEFINITION, so no definition layer can carry it.**
+    `macros` comes from `memberdef WHERE kind='macro definition'` — doxygen's view, which holds
+    only ACTIVE `#define`s. The shipped `mbedtls_config.h` leaves most options commented out, and
+    those lines exist only in `config_defaults`, harvested from AST comment nodes.
+
+    Measured consequence of carrying only the first layer: `dossier("MBEDTLS_PLATFORM_MEMORY")`
+    reported a TFM profile header as the macro's file, never mentioned the shipped config, and so
+    read as ENABLED when the default is off. 1,471 config rows existed for that target, 283 of
+    them `off`, and the reply exposed none.
+
+    `shipped` IS WHY LISTING IS NOT ENOUGH. `MBEDTLS_ERROR_C` already appeared in `macros` with
+    its shipped site third, unordered and stateless, and its mark failed anyway — a reader has to
+    be able to tell which site is the default build rather than one option among many.
+
+    @brief A config macro's state at one site.
+    @version 1
+    """
+
+    macro: str
+    ## 'on' when a `#define` is active at this site, 'off' when the line is commented out. These
+    ## are measurements of the TEXT, not of a build: a site can be on in a profile and off in the
+    ## shipped header, which is exactly the disagreement this record exists to show.
+    state: str
+    file: str
+    line: int | None = None
+    ## 'declared' when the operator named this header, 'heuristic' when the name matched a
+    ## config-header pattern. A declared header outvotes a guessed one.
+    origin: str = ""
+    ## True for the repository's own shipped config header, which is the default build a question
+    ## about "is this enabled" is almost always about.
+    shipped: bool = False
+
+
 @dataclass(frozen=True)
 class MacroDef:
     """A PREPROCESSOR DEFINITION, which is not a function and has no body, no
@@ -1005,6 +1042,17 @@ class Dossier:
     ## by name rather than by the resolved identity, because a macro has no identity
     ## to resolve — `qualified_name_of` is a token scan over a function signature.
     macros: list[MacroDef] = field(default_factory=list)
+
+    ## WHERE A CONFIG MACRO IS SET OR LEFT COMMENTED OUT, shipped header first. `macros` above
+    ## lists only ACTIVE definitions, so a commented-out default — which is what "is this enabled
+    ## by default" turns on — could not appear there at all. Measured: `MBEDTLS_PLATFORM_MEMORY`
+    ## was reported as living in a TFM profile header while the shipped config has it off, and 10
+    ## failed marks across two graded cells were config-state claims.
+    ##
+    ## EMPTY FOR A NON-CONFIG SUBJECT, and empty is the honest answer there: a function has no
+    ## configured state. It is absent from the served payload rather than sent as `[]`, so
+    ## "not a config macro" and "config layer never ran" do not read alike.
+    config_defaults: list[ConfigDefault] = field(default_factory=list)
 
     ## THE PRECONDITION OF EVERY OTHER FIELD IN THIS RECORD: the configuration gates whose branch
     ## covers this function's definition line. A caller reading `callers` and `locks_held` off a

@@ -770,3 +770,30 @@ def liveness_of(conn: sqlite3.Connection, name: str) -> str:
         (rowid,),
     ).fetchone()
     return row[0] if row else ""
+
+
+## A shipped config header is the repository's OWN default build, not one of the alternates it
+## ships for other people's builds. Measured on mbedtls: `configs/` holds twelve alternate
+## profiles and `tests/configs/` several more, while the default is `include/mbedtls/
+## mbedtls_config.h` — so a reply that treats them as peers tells a reader the opposite of the
+## truth about the default build.
+_NOT_SHIPPED_DIRS = ("configs/", "tests/", "test/", "examples/", "programs/", "doc/")
+
+
+## @brief Whether a config-header path is the repository's own shipped default.
+## @param path Repo-relative path of the config header.
+## @return True when it is not an alternate profile, test or example config.
+## @version 1
+## @req REQ-DDB-QUERY-013
+def is_shipped_config(path: str) -> bool:
+    """A HEURISTIC OVER PATHS, and it is reported as `shipped` rather than applied silently, so a
+    reader can disagree with it. `include/mbedtls/mbedtls_config.h` is shipped;
+    `configs/ext/tfm_mbedcrypto_config_profile_medium.h` and
+    `tests/configs/user-config-malloc-0-null.h` are not.
+
+    @brief Is this the shipped config header.
+    @return True when shipped.
+    @version 1
+    """
+    lower = path.lower()
+    return not any(part in lower for part in _NOT_SHIPPED_DIRS)
