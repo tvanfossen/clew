@@ -628,7 +628,11 @@ def _print_variance(answers: Path) -> None:
     print("-" * len(head))
     by_arm: dict[str, list[float]] = {}
     for cell, passes in rows:
-        scores = [float(p.get("score", 0.0)) for p in passes]
+        ## UNMEASURED PASSES DROPPED, NOT ZEROED — see `_scored_passes`.
+        measured = _scored_passes(passes)
+        if len(measured) < 2:
+            continue
+        scores = [float(p["score"]) for p in measured]
         low, high = min(scores), max(scores)
         by_arm.setdefault(str(passes[-1].get("arm", "?")), []).append((high - low) * 100)
         moved = sorted(
@@ -695,7 +699,16 @@ def _print_cells(rows: list) -> None:
     print(head)
     print("-" * len(head))
     for meta, grade in rows:
-        score = f"{grade['score']:6.1%}" if grade else "     —"
+        ## `unruled` IS NOT A DASH AND NOT A ZERO. A missing grade prints `—`; a grade whose
+        ## score is null is a cell the judge ruled NOTHING on, which is a different fact and the
+        ## one that was published as 0.0. Found by running the report over synthetic null-score
+        ## sidecars — grepping the read sites missed this one, because the crash is in a format
+        ## string rather than in arithmetic.
+        score = (
+            "unruled"
+            if grade and grade.get("score") is None
+            else (f"{grade['score']:6.1%}" if grade else "     —")
+        )
         unmarked = f"{grade['unmarked_pct']:5.1%}" if grade else "    —"
         split = str(grade.get("split_decisions", "—")) if grade else "—"
         print(
@@ -784,6 +797,44 @@ def cmd_report(args) -> int:
         "prints the pair; it does not rule on it."
     )
     return 0
+
+
+##
+# @brief Grade passes that carry a score, dropping the ones nothing was ruled on.
+# @param passes Grade records for one cell, oldest first.
+# @return The subset whose `score` is not null.
+# @version 1
+def _scored_passes(passes: list[dict]) -> list[dict]:
+    """A PASS WITH NO SCORE HAS NO SPREAD, and coercing it to zero is the defect
+    `QuestionResult.score` was just fixed for, moved one file over. `float(p.get("score", 0.0))`
+    raises `TypeError` on the `null` a fully-unruled cell records — a crash the test suite did not
+    catch, because no test fed a null score through the report.
+
+    @brief Keep only passes the judge ruled something on.
+    @return The scored passes.
+    @version 1
+    """
+    return [p for p in passes if p.get("score") is not None]
+
+
+##
+# @brief Whether two cells scored the same.
+# @param ref The reference arm's grade record.
+# @param other The compared arm's grade record.
+# @return True only when BOTH carry a score and the two are equal.
+# @version 1
+def _is_tie(ref: dict, other: dict) -> bool:
+    """TWO ABSENCES ARE NOT A TIE. `abs(ref["score"] - other["score"])` raises on a null, and the
+    obvious repair — treating two nulls as equal — is worse than the crash: a tie means two arms
+    SCORED the same, and the report reads a tie at the ceiling as a saturated question that should
+    be replaced. Two cells nobody ruled on would argue for replacing a question on no evidence.
+
+    @brief Equal scores, both measured.
+    @return True when both scored and the scores match.
+    @version 1
+    """
+    a, b = ref.get("score"), other.get("score")
+    return a is not None and b is not None and abs(a - b) < 1e-9
 
 
 ## @brief Per-question arm comparison: separation and shell displacement.
@@ -957,7 +1008,7 @@ def _name_incomplete(paired: dict, complete: dict, reference: str, compared: lis
             continue
         for arm in compared:
             other = cells[arm][1]
-            if other and abs(ref["score"] - other["score"]) < 1e-9:
+            if other and _is_tie(ref, other):
                 tied += 1
     if tied:
         print(
