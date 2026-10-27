@@ -1081,6 +1081,13 @@ _DOSSIER_LISTS = (
     ## a `#define` conditionally redefined per platform can have dozens of sites, and a
     ## list left out of the budget is a list that grows without one.
     "macros",
+    ## Budgeted for the same reason as `macros` directly above, and measured: mbedtls declares
+    ## twelve alternate config profiles plus several test configs, so one option can carry a dozen
+    ## sites. TRIMMING IS SAFE HERE ONLY BECAUSE THE ORDER IS LOAD-BEARING —
+    ## `config_defaults_conn` sorts shipped-config first, then declared over heuristic, so a
+    ## trim drops alternate profiles and keeps the row that answers "what does the default build
+    ## do". Reordering that sort would make this budget lossy in the one way that matters.
+    "config_defaults",
     ## gh#372 — the lists the NON-FUNCTION subject kinds contribute. A key that is not in
     ## this tuple is a list nothing can trim, so a subject kind added without its lists
     ## reintroduces the unbounded payload one kind at a time. Named here rather than

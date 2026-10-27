@@ -27,9 +27,17 @@ from __future__ import annotations
 
 import sqlite3
 
-from ._common import DbSource, connect, has_columns, strip_xml, symbol_provenance, table_exists
+from ._common import (
+    is_shipped_config,
+    DbSource,
+    connect,
+    has_columns,
+    strip_xml,
+    symbol_provenance,
+    table_exists,
+)
 from .kconfig import gates_covering
-from .models import MacroDef
+from .models import ConfigDefault, MacroDef
 
 ## The `memberdef.kind` doxygen writes for a `#define`. Spelled once: it is a
 ## doxygen vocabulary string, not ours, and a second literal copy is the drift that
@@ -212,3 +220,51 @@ def macro_definitions(db: DbSource, name: str) -> list[MacroDef]:
     """
     with connect(db) as conn:
         return macro_definitions_conn(conn, name)
+
+
+## @brief Every configured-default site for a macro name, shipped config first.
+## @param conn Open connection.
+## @param name The macro name.
+## @return ConfigDefault rows, the repository's own shipped config header first.
+## @version 1
+## @req REQ-DDB-QUERY-013
+def config_defaults_conn(conn: sqlite3.Connection, name: str) -> list[ConfigDefault]:
+    """**THE LAYER EXISTED AND NO SUBJECT REPLY READ IT.** `config_defaults` records each config
+    macro's state per header, including the commented-out lines that are a shipped default's
+    whole point, and only `kconfig.py` ever queried it. A macro dossier therefore answered "where
+    is this defined" with doxygen's active definitions and said nothing about whether the shipped
+    build turns it on.
+
+    SHIPPED FIRST, NOT MERELY INCLUDED. A site buried mid-list reads as one option among many;
+    `MBEDTLS_ERROR_C` already had its shipped site listed third and stateless and its mark failed.
+    The shipped header is the one under the repository's own include root rather than under a
+    profile, example or test directory — the ordering is a heuristic over paths and says so by
+    setting `shipped` rather than by silently sorting.
+
+    A DECLARED ORIGIN OUTVOTES A GUESSED ONE within the same file, because an operator naming a
+    config header is better evidence than a filename pattern matching one.
+
+    @brief Configured-default sites for a macro.
+    @return Rows, shipped first.
+    @version 1
+    """
+    if not table_exists(conn, "config_defaults"):
+        return []
+    rows = conn.execute(
+        "SELECT macro, state, file_path, line, origin FROM config_defaults WHERE macro=? "
+        "ORDER BY file_path, line",
+        (name,),
+    ).fetchall()
+    out = [
+        ConfigDefault(
+            macro=str(macro),
+            state=str(state),
+            file=str(path),
+            line=line,
+            origin=str(origin or ""),
+            shipped=is_shipped_config(str(path)),
+        )
+        for macro, state, path, line, origin in rows
+    ]
+    ## Shipped first, then declared over heuristic, then by path for determinism.
+    return sorted(out, key=lambda c: (not c.shipped, c.origin != "declared", c.file, c.line or 0))

@@ -44,7 +44,7 @@ from .corpus import CLASS_KINDS, lookup_class
 from .dossier import _dossier_conn, _macro_dossier
 from .kconfig import kconfig_space
 from .locks import lock_roster, runs_under_lock
-from .macros import MACRO_KIND, macro_definitions_conn
+from .macros import MACRO_KIND, config_defaults_conn, macro_definitions_conn
 from .models import (
     Chain,
     Dossier,
@@ -1033,7 +1033,12 @@ def _config_subject(conn: sqlite3.Connection, name: str) -> KconfigSpace | None:
 ## @param conn Open connection.
 ## @param name Bare macro name.
 ## @return The macro Dossier, or None when the name defines no macro.
-## @version 2
+##
+## v3: a macro subject now carries `config_defaults` — where the macro is set or left
+## commented out, shipped header first. `macros` is doxygen's ACTIVE definitions, so a
+## commented-out shipped default could never appear there; the reply named a TFM profile
+## header and omitted the shipped config, reading as enabled when the default is off.
+## @version 3
 ## @dg_internal
 def _macro_subject(conn: sqlite3.Connection, name: str) -> Dossier | None:
     """THE EMPTY-LIST COUPLING MADE EXPLICIT (gh#404). `_macro_dossier` indexes `macros[0]`
@@ -1051,7 +1056,13 @@ def _macro_subject(conn: sqlite3.Connection, name: str) -> Dossier | None:
     @version 2
     """
     macros = macro_definitions_conn(conn, name)
-    return _macro_dossier(macros) if macros else None
+    if not macros:
+        return None
+    ## READ ON THE MACRO PATH ONLY, one indexed lookup once the subject is known to be a macro.
+    ## `macros` above carries doxygen's ACTIVE definitions; a commented-out shipped default is
+    ## not a definition and lives only in `config_defaults`, which is why the reply used to name
+    ## a profile header and omit the shipped config entirely.
+    return _macro_dossier(macros, config_defaults_conn(conn, name))
 
 
 ## One builder per subject kind, returning the KWARG that populates its section.

@@ -45,7 +45,7 @@ from .locks import (
     locks_held_for_rowids,
     sections_for_rowids,
 )
-from .macros import MACRO_KIND, macro_definitions_conn
+from .macros import MACRO_KIND, config_defaults_conn, macro_definitions_conn
 from .models import BodyExcerpt, Dossier, ExternalCallee, MacroDef, ReqRef
 from .source import DEFAULT_BODY_LINES, body_excerpt
 from .symbols import (
@@ -269,7 +269,7 @@ def _body_and_external(
 ## @return A Dossier carrying the macro identity and an otherwise-empty function payload.
 ## @version 2
 ## @req REQ-DDB-QUERY-012
-def _macro_dossier(macros: list[MacroDef]) -> Dossier:
+def _macro_dossier(macros: list[MacroDef], configs: list | None = None) -> Dossier:
     """gh#373. The name defines a macro and no function, so every function-shaped
     layer is EMPTY BY CONSTRUCTION rather than unmeasured: there is no body to
     excerpt, no liveness row, no thread membership, no caller and no callee, because
@@ -316,6 +316,11 @@ def _macro_dossier(macros: list[MacroDef]) -> Dossier:
         static=False,
         liveness="",
         macros=macros,
+        ## WHERE THE SHIPPED BUILD STANDS ON IT, which `macros` structurally cannot say: that list
+        ## is doxygen's ACTIVE definitions, and a commented-out default is not a definition.
+        ## Measured: this reply named a TFM profile header as the macro's file and omitted the
+        ## shipped config entirely, so it read as enabled when the default is off.
+        config_defaults=list(configs or ()),
         gated_by=list(first.gated_by),
         gates_unplaceable=first.gates_unplaceable,
     )
@@ -490,7 +495,12 @@ def _anchored_pick(
 ## @param repo_root Working tree, or None to skip the body and external-callee panels.
 ## @param max_body_lines Cap on the body excerpt.
 ## @return The populated Dossier, or None when `fn` resolves to nothing.
-## @version 8
+##
+## v9: a macro subject now carries `config_defaults` — where the macro is set or left
+## commented out, shipped header first. `macros` is doxygen's ACTIVE definitions, so a
+## commented-out shipped default could never appear there; the reply named a TFM profile
+## header and omitted the shipped config, reading as enabled when the default is off.
+## @version 9
 ## @req REQ-DDB-QUERY-004
 ## @dg_internal
 def _dossier_conn(
@@ -520,7 +530,12 @@ def _dossier_conn(
         ## Only on a BARE name: an unmatched `qualified` is a request for a
         ## specific function identity, and answering it with a macro would
         ## substitute a different symbol for the one that was asked for.
-        return _macro_dossier(macros) if macros and qualified is None else None
+        if macros and qualified is None:
+            ## READ ONLY ON THE MACRO PATH, one indexed lookup, and only once the subject is
+            ## already known to be a macro — a function subject has no configured state and
+            ## would pay for the query to learn so.
+            return _macro_dossier(macros, config_defaults_conn(conn, fn))
+        return None
     rowid = _anchored_pick(conn, cands, repo_root, max_body_lines)
     ident = _identity(conn, rowid)
     if ident is None:

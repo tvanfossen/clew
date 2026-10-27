@@ -404,6 +404,62 @@ file: after three windows the record described only the last one. The 1.1.0 grid
 over several windows and its `run.json` can no longer say how many. A record written before the
 key existed reads as no prior windows rather than raising, so the frozen runs still load.
 
+## Post-release review: read the cells, not the mean
+
+**A PUBLISHED GRID IS NOT THE END OF THE MEASUREMENT, IT IS THE START OF ONE.** The 1.1.0 run
+scored 144 cells, published a headline, and did not surface: a grader bug that cost one cell 18.5
+points, a judge whose stated reasons were discarded, 12.7% of weight decided by a single sample,
+four of nine threads invisible to the harvester, a symbol search that ignored the file a symbol
+lives in, a files corpus that answered a bare term with a confident zero, and a config gate that
+left its default unstated so an answer described the wrong preprocessor branch as normal. Every
+one of those was found by reading individual cells AFTER the run, and none by looking at the mean.
+
+So this is a required step, not an optional follow-up. Run it on the lowest cells of every
+published grid.
+
+### The procedure
+
+1. **Rank by the index-vs-baseline GAP, not by raw score.** A cluster every arm fails measures the
+   RUBRIC, not the tool — `self` Q4 scores 16.1% on baseline, and reading it as a clew defect
+   would send the work in the wrong direction. The gap is what indicts the index.
+2. **Read the whole answer.** Not the score, not the failed-mark list: the prose. The 1.1.0
+   answers often state their own gap in a caveat — one named `ct->thread = std::thread(...)` as
+   missing from the index, which was exactly the harvester bug.
+3. **Trace the agent's actual call sequence AND every reply.** The call list alone is not enough;
+   what came back is where the cause lives. `search(corpus="files", text="llama")` returning
+   `count=0` in a repository with seven `llama_cpp_*` files is invisible unless the reply is read.
+4. **Probe the frozen index for every failed mark's `refs`.** Is the file indexed at all? Is the
+   symbol there? Is the brief there?
+5. **Classify each failed mark** as: absent from the index · present but undiscoverable · a
+   genuinely thin answer · a judge or rubric error. The four need completely different fixes, and
+   the ratio between them is what decides where effort goes. Measured on the first six clusters
+   reviewed: discoverability outnumbered coverage roughly two to one, which inverted the fix order
+   that had been planned from intuition.
+6. **For "present", PROVE IT by replaying the query the agent would naturally make.** This is the
+   rule the review earned the hard way: a classification asserted from the SHAPE of a subject
+   string was wrong three times in one session — a batch reply's top-level `found` is a count and
+   not a boolean, so 121 "bare names the index does not hold" were actually 31; `_key`'s missing
+   line-suffix strip was first dismissed as a non-defect; and five "retrieval defects" were
+   typedefs already disclosed by the kind-limitation clause. Only a replayed query or a read reply
+   counts as evidence. An inference about the index does not.
+
+### What makes it cheap
+
+Steps 2 through 5 cost **no judge calls and no generation** — they read frozen transcripts and the
+frozen index. The whole review of six clusters cost less than one grading pass.
+
+`scripts/selector_waste.py` is the counting half and is tested. The call-tracing and
+mark-classification steps were hand-rolled and belong in `scripts/` before the next release, so
+the procedure does not have to be re-derived from this section.
+
+### What it must not become
+
+**A licence to edit the rubric after seeing the scores.** A mark is changed only when no correct
+answer could pass it, and that must be SHOWN. "The index cannot reach this" is a finding about
+clew, and the honest response is to fix clew or to record the limit — not to delete the question.
+`PRE-REGISTRATION.md` names the failure this guards against: *measure → dislike the result →
+adjust the instrument is how a benchmark becomes a self-portrait.*
+
 ## Deliberately absent
 
 **No response format shown to the answering agent.** See the leak argument above.
