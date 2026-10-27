@@ -893,7 +893,9 @@ def _chain_for(
 ## @return The SubjectDossier, or None when the index holds no subject of that name.
 ## v3 (C7): a qualified spelling that resolves to nothing as given is re-read as
 ## (bare tail, selector), because 93.6% of measured misses were spellings clew had served.
-## @version 3
+## v4: a SIGNATURE passed as `qualified` is recovered to the qualified name it contains — all
+## twelve selectors the 1.1.0 agents passed were signatures, and all twelve resolved to nothing.
+## @version 4
 ## @req REQ-DDB-QUERY-004
 ## @req REQ-DDB-QUERY-009
 ## @req REQ-DDB-QUERY-010
@@ -923,7 +925,7 @@ def dossier(
 
     @brief Describe one subject of any kind, with its adjacency.
     @return SubjectDossier or None.
-    @version 3
+    @version 4
     """
     if depth < 1 or depth > MAX_SUBJECT_DEPTH:
         raise ValueError(
@@ -932,6 +934,14 @@ def dossier(
             "bounded because an unbounded one on a hub symbol returns its whole "
             "component."
         )
+    ## A SIGNATURE PASSED AS THE SELECTOR is what every 1.1.0 agent passed, because the served
+    ## text said to. Recovered before resolution so the rest of this function sees the selector
+    ## it would have seen from a correct caller; `""` leaves it untouched.
+    if qualified:
+        with connect(db) as conn:
+            if not identity_rowids(conn, subject, qualified):
+                recovered = _selector_from_signature(subject, qualified)
+                qualified = recovered or (None if "(" in qualified else qualified)
     kinds = _rank_enum_over_mirror(db, subject, resolve_subject(db, subject))
     ## C7: a QUALIFIED spelling is one clew serves and used to refuse. Re-read only when the
     ## string as given resolved to NOTHING and the caller supplied no selector of its own — a
@@ -963,6 +973,48 @@ def dossier(
         chain=_chain_for(db, chosen, subject, depth, direction, max_neighbors),
         **section,
     )
+
+
+## @brief Recover the qualified name from a SIGNATURE passed as the selector.
+## @param subject The bare subject the caller passed.
+## @param selector The `qualified` value, which may be a full signature.
+## @return The qualified name, or "" when nothing better than the bare name can be recovered.
+## @version 1
+## @req REQ-DDB-QUERY-010
+## @dg_internal
+def _selector_from_signature(subject: str, selector: str) -> str:
+    """EVERY `qualified` VALUE THE 1.1.0 AGENTS PASSED WAS A SIGNATURE — twelve distinct pairs
+    across the frozen grid, all carrying a return type, every one resolving to nothing. They were
+    obeying the served text, which then read *"The exact signature from a previous reply's
+    `candidates`."* 655952c corrected that sentence; this accepts the string the surface spent a
+    release advertising, because the wasted calls are already measured and the correction cannot
+    reach a model that learned the old wording.
+
+    THE ARGUMENT LIST IS STRIPPED FIRST, and that order is the whole implementation.
+    `qualified_name_of` already scans tokens from the right for one whose tail is `name` at a
+    `::` or `.` boundary — but an argument list contains spaces and colons, so it returns the bare
+    name when one is present. Cutting at the first `(` leaves `<return type> <qualified name>`,
+    which is the shape that function was written for. Trailing `const` / `override` / `noexcept`
+    fall away with the parenthesis.
+
+    REUSING THAT FUNCTION RATHER THAN PARSING A SIGNATURE HERE is deliberate: it is the rule the
+    selector compares against, so a value recovered by it can only ever be a value the selector
+    then accepts. Deriving advice from one rule and acceptance from another is how the served
+    text came to advertise `signature` in the first place.
+
+    EMPTY WHEN NOTHING IS RECOVERED, including when the result is just the bare subject — a free
+    function has no qualification, so the honest outcome is to drop the selector rather than to
+    pass the subject back as its own identity.
+
+    @brief Extract a usable selector from a signature.
+    @return The qualified name, or "".
+    @version 1
+    """
+    head = selector.split("(", 1)[0].strip()
+    if not head:
+        return ""
+    recovered = qualified_name_of(subject, head)
+    return recovered if recovered and recovered != subject else ""
 
 
 ## @brief Re-read a subject that resolved to nothing as a QUALIFIED spelling.

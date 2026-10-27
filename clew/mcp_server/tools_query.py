@@ -2710,7 +2710,10 @@ class QueryTools:
     ## @param limit Ignored — the name list has its own cap, and it reports when it applies.
     ## @param target Repo root or slug to answer from.
     ## @return Serialized KconfigSpace with the symbol inventory and no per-site rows.
-    ## @version 2
+    ## v3: the Kconfig-discovery fact moves to `kconfig_found` and `found` answers what it
+    ## answers on every other corpus — did this reply find anything. A reply serving five
+    ## matching symbols beside `found: false` is what three mbedtls Q1 cells abandoned.
+    ## @version 3
     ## @dg_internal
     def _search_config(
         self, text: str, limit: int, target: str | None, sub_index: str | None = None
@@ -2732,19 +2735,75 @@ class QueryTools:
         filtered. `gates_meaning` says so in the reply, so an empty `gates` list reads as
         "omitted, ask there" rather than as "nothing gates code here".
 
+        `found` IS RENAMED ON THE WIRE and that is the other half of the measurement above. That
+        note records the reply "reporting `found: false` for a symbol named in `configured_macros`
+        in the same reply" — the row count was fixed and the false negative was not.
+
+        `KconfigSpace.found` means "this build located a Kconfig FILE", which the layer needs and
+        `test_kconfig` defends directly ("this fixture has no Kconfig — `found` must stay honest
+        about that"). On a header-configured repository it is correctly False. But `found` means
+        something else everywhere on this surface, and clew's own `_verdict` says so: its negative
+        test is `payload.get("found") is False or payload.get("count") == 0`. One key, two
+        meanings, and the reader cannot tell which it was handed.
+
+        MEASURED COST, replayed from the frozen 1.1.0 grid: mbedtls Q1 asks what runs concurrently
+        in a default build. Three of three `index_only` cells called
+        `search(corpus="config", text="THREADING")`; the index holds 154 `kconfig_gates` rows for
+        `MBEDTLS_THREADING_C`; the reply named five matching symbols beside `found: false`. All
+        three stopped pursuing configuration and the question's central symbol never reached
+        `dossier`.
+
+        So the discovery fact travels as `kconfig_found` and `found` answers the question every
+        other corpus answers with it: did this reply find anything. The library field is untouched.
+
         @brief Enumerate the configuration symbols matching `text`.
-        @return Serialized KconfigSpace.
-        @version 2
+        @return Serialized KconfigSpace, with Kconfig discovery under `kconfig_found`.
+        @version 3
         """
+        payload = wire.one(
+            q.kconfig_space(self.db(target, sub_index), text or None, include_gates=False)
+        )
         return self._answered(
-            wire.one(
-                q.kconfig_space(self.db(target, sub_index), text or None, include_gates=False)
-            ),
+            _config_found_on_the_wire(payload),
             kind="configuration space",
             subject=text or None,
             target=target,
             sub_index=sub_index,
         )
+
+
+## @brief Re-key a config payload so `found` means what it means everywhere else.
+## @param payload The serialized KconfigSpace.
+## @return The same payload with `kconfig_found` added and `found` reflecting the rows served.
+## @version 1
+## @dg_internal
+def _config_found_on_the_wire(payload: dict[str, Any]) -> dict[str, Any]:
+    """Split out of `_search_config` so the re-keying is testable without a tool set, and so the
+    one place the two meanings are reconciled is named rather than inline.
+
+    `found` BECOMES A STATEMENT ABOUT THIS REPLY: did it carry any symbol names. That is what the
+    rest of the surface means by the word and what `_verdict` tests for. A corpus that genuinely
+    matched nothing still reports False, so this trades no false negative for a false positive —
+    which would be the worse direction, because a reader cannot check a false positive.
+
+    THE DISCOVERY FACT IS MOVED, NOT DROPPED. "No Kconfig in this repository" and "a Kconfig that
+    failed to parse" are different facts, `error` carries the second and `kconfig_found` now
+    carries the first. Deleting it to resolve the collision would be fixing a misleading field by
+    removing a true one.
+
+    @brief Reconcile the two meanings of `found` on the config reply.
+    @return The re-keyed payload.
+    @version 1
+    """
+    if "found" not in payload:
+        return payload
+    out = dict(payload)
+    out["kconfig_found"] = out["found"]
+    names = out.get("gate_symbol_names") or ()
+    symbols = out.get("symbols") or ()
+    gates = out.get("gates") or ()
+    out["found"] = bool(names or symbols or gates)
+    return out
 
 
 ## Corpus name -> the method that reads it. A MAPPING and not a branch chain so the tool's

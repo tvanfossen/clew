@@ -324,3 +324,62 @@ def test_the_suffix_must_align_to_a_separator(namespaced: Path) -> None:
     assert q.dossier(namespaced, "Monitor::monitor_loop") is None, (
         "a mid-identifier suffix is not a qualification and must not resolve"
     )
+
+
+# ─── the SELECTOR given a signature, which is what the agents actually passed ──
+
+
+## @brief A signature passed as `qualified` selects the identity it names.
+## @version 1
+@pytest.mark.parametrize(
+    "selector",
+    [
+        pytest.param("void entropic::HealthMonitor::monitor_loop", id="return-type"),
+        pytest.param("void entropic::HealthMonitor::monitor_loop()", id="with-args"),
+        pytest.param("void entropic::HealthMonitor::monitor_loop(int n) const", id="const"),
+        pytest.param("void entropic::HealthMonitor::monitor_loop(int n) const override", id="ovr"),
+    ],
+)
+def test_a_signature_passed_as_the_selector_still_selects(namespaced: Path, selector: str) -> None:
+    """EVERY `qualified` VALUE THE 1.1.0 AGENTS PASSED WAS A SIGNATURE. Twelve distinct
+    (subject, qualified) pairs across the frozen grid, and all twelve carried a return type —
+    `std::vector< int32_t > entropic::LlamaCppTokenizer::tokenize(const std::string &text, bool
+    add_special) const override` is one of them verbatim. Every one resolved to nothing.
+
+    THEY WERE OBEYING THE SERVED TEXT, which said at the time: *"The exact signature from a
+    previous reply's `candidates`."* 655952c corrected that sentence, so a 1.2.0 agent should pass
+    the right thing — but the thirteen wasted calls are already measured, the correction cannot
+    reach a model that learned the old wording, and a selector that rejects the string this
+    surface spent a release advertising is a trap left armed for no benefit.
+
+    RECOVERED WITH `qualified_name_of`, THE SAME RULE THE SELECTOR ACCEPTS, after stripping the
+    argument list — not a second signature parser. That function already scans tokens from the
+    right for one whose tail is `name` at a `::` boundary; it returns the bare name when an
+    argument list is present, which is why the strip comes first.
+    """
+    built = q.dossier(namespaced, "monitor_loop", qualified=selector)
+    assert built is not None, f"a signature selector resolved to nothing: {selector!r}"
+    assert built.function.brief == "the health loop", built.function.brief
+
+
+## @brief A free function's signature resolves to the free function.
+## @version 1
+def test_a_free_functions_signature_resolves(owned: Path) -> None:
+    """`void mbedtls_strerror(int ret, char *buf, size_t buflen)` is one of the twelve, and it
+    names no owner — so recovery yields the bare name, there is nothing to disambiguate, and the
+    right answer is the function rather than a refusal.
+    """
+    built = q.dossier(owned, "monitor_loop", qualified="void HealthMonitor::monitor_loop(void)")
+    assert built is not None
+    assert built.function.brief == "the health loop"
+
+
+## @brief A signature naming an owner the index lacks is still refused.
+## @version 1
+def test_a_signature_for_an_absent_owner_is_still_refused(namespaced: Path) -> None:
+    """THE BOUND. Recovery must not degrade into "ignore the selector and answer the bare name" —
+    that would hand back `HealthMonitor::monitor_loop` to a caller who asked for `Absent`'s, under
+    the name they asked for, which is the confidently-wrong-symbol failure this repository keeps
+    paying for.
+    """
+    assert q.dossier(namespaced, "monitor_loop", qualified="void Absent::monitor_loop(int)") is None
