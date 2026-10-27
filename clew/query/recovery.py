@@ -45,7 +45,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from clew.query._common import connect, qualified_name_of, table_exists
+from clew.query._common import connect, has_columns, qualified_name_of, table_exists
 
 ## How many neighbours to name. Three is enough to be actionable and short enough that the hint
 ## does not become its own wall of text; the count of what was found is always stated, so a
@@ -181,13 +181,63 @@ def _name_exists(conn: sqlite3.Connection, name: str) -> bool:
 
 
 ##
+# @brief Whether any documentation text in this index mentions a name.
+# @param conn Open connection.
+# @param name The bare name that resolved to nothing.
+# @return True when a brief or detailed description contains it.
+# @version 1
+# @dg_internal
+def _documentation_mentions(conn: sqlite3.Connection, name: str) -> bool:
+    """MEASURED on the 1.1.0 entropic cells, replayed against a rebuilt index.
+    `dossier("entropic_free_string")` correctly returns nothing — that checkout declares no such
+    function — while the name appears four times in doc comments, always as "frees with
+    `entropic_free_string`". The agent read the name out of a brief clew had served it, asked for
+    it, and was told the index holds nothing of that name.
+
+    Both facts were true and the reply carried only the discouraging one. "No symbol declares
+    this" and "this repository has never heard of it" are different answers, and the first is
+    itself a finding: the documentation describes an API this build does not contain.
+
+    GUARDED ON COLUMNS, not only on the table, on the graceful-degradation contract the rest of
+    the query layer obeys — this repository's own minimal fixtures omit the description columns.
+
+    SHORT NAMES ARE REFUSED. A `LIKE '%x%'` over every description matches almost everything, and
+    a hint that fires on any three-letter subject is noise. Six characters is the shortest name in
+    the measured set minus a margin, and a bound that excludes a real case is better than a hint
+    the reader learns to skip.
+
+    @brief Does any documentation text mention this name.
+    @param conn Open connection.
+    @param name The name.
+    @return True when it is mentioned.
+    @version 1
+    """
+    if len(name) < 6 or not table_exists(conn, "memberdef"):
+        return False
+    columns = [
+        c for c in ("briefdescription", "detaileddescription") if has_columns(conn, "memberdef", c)
+    ]
+    if not columns:
+        return False
+    clause = " OR ".join(f"{c} LIKE ?" for c in columns)
+    params = [f"%{name}%"] * len(columns)
+    row = conn.execute(
+        f"SELECT 1 FROM memberdef WHERE {clause} LIMIT 1",
+        params,  # noqa: S608
+    ).fetchone()
+    return row is not None
+
+
+##
 # @brief What to try instead, for a subject this index could not answer.
 # @param db The index database, or None when there is none to read.
 # @param subject The subject as the caller passed it.
 # @return One sentence naming a concrete next call, or "" when nothing was found.
 ## Check 1's description changed with C1: an exact indexed path is a `dossier` subject now, so
 ## what reaches this module is the spelling gap, and the hint names the path as stored.
-# @version 2
+## v3: a fourth check — a name documentation mentions and nothing declares is reported as that,
+## rather than as an absence.
+# @version 3
 # @req REQ-DDB-QUERY-013
 def recovery_hint(db: str | Path | None, subject: str | None) -> str:
     """THREE CHECKS, IN THE ORDER THAT MATCHES THE MEASURED FREQUENCIES, and each one returns only
@@ -208,7 +258,7 @@ def recovery_hint(db: str | Path | None, subject: str | None) -> str:
     @param db The index database or None.
     @param subject The subject.
     @return The hint, or "".
-    @version 2
+    @version 3
     """
     if db is None or not subject:
         return ""
@@ -227,7 +277,10 @@ def recovery_hint(db: str | Path | None, subject: str | None) -> str:
 # @return The hint, or "".
 ## C1 made a file path a `dossier` subject, so check 1's destination changed from
 ## `search(corpus="files")` — which serves no documentation — to `dossier` on the path as stored.
-# @version 2
+## v3: a fourth check, last — a name documentation MENTIONS and nothing declares is reported as
+## that rather than as an absence. Measured: `entropic_free_string` appears four times in
+## entropic's doc comments and is declared nowhere in that checkout.
+# @version 3
 # @dg_internal
 def _hint_from(conn: sqlite3.Connection, subject: str) -> str:
     """Split from `recovery_hint` so the failure handling and the logic are separately readable,
@@ -237,7 +290,7 @@ def _hint_from(conn: sqlite3.Connection, subject: str) -> str:
     @param conn Open connection.
     @param subject The subject.
     @return The hint or "".
-    @version 2
+    @version 3
     """
     if looks_like_path(subject):
         found = _indexed_path(conn, subject)
@@ -268,6 +321,17 @@ def _hint_from(conn: sqlite3.Connection, subject: str) -> str:
     ## and tracked separately. The branch is kept because the mechanism is sound and the cost is
     ## one indexed lookup on a path that has already failed; if the next grid also shows zero, it
     ## should be deleted rather than carried as decoration.
+    ## DOCUMENTED BUT NOT DECLARED, which is a FINDING and not a dead end — see
+    ## `_documentation_mentions` for the measurement. Placed after the qualified-form branch so a
+    ## name that genuinely resolves under another spelling still gets the better advice first.
+    if not _name_exists(conn, subject) and _documentation_mentions(conn, subject):
+        return (
+            f" NO SYMBOL DECLARES {subject!r} IN THIS INDEX, BUT ITS DOCUMENTATION MENTIONS IT — "
+            f"so this build does not contain what the docs describe, which is itself the answer "
+            f'to some questions. Read the mention with `search(text="{subject}", '
+            f'corpus="prose")` or on the symbol whose brief names it.'
+        )
+
     forms, total = _qualified_forms(conn, subject)
     if forms:
         named = ", ".join(repr(form) for form in forms)
