@@ -59,6 +59,23 @@ repos:
   ## that way: green `--all-files`, then 1,637 untracked artifacts staged and committed, which
   ## `end-of-file-fixer` had never been shown. Learning that after a 3-minute pytest run wastes
   ## the run; learning it after the release workflow does, wastes the release.
+  ## RUNS AT commit-msg, NOT pre-commit, because the message does not exist until then.
+  ##
+  ## 259 PUSHED COMMITS CARRY A SESSION IDENTIFIER and nobody noticed. The owner's instruction is
+  ## that it can never recur and that the prohibition be mechanical: tooling can be configured to
+  ## append such a trailer, and a tool's own guidance is not this repository's. So the commit is
+  ## refused as it is written, whatever told the author to add the line.
+  ##
+  ## History is deliberately NOT rewritten — the published acceptance evidence pins commit SHAs,
+  ## RESULTS.md records clew_commit, and three release tags point into it.
+  - repo: local
+    hooks:
+      - id: commit-msg-guard
+        name: commit-msg-guard (no session ids, no assistant trailers)
+        entry: .venv/bin/python scripts/commit_msg_guard.py
+        language: system
+        stages: [commit-msg]
+
   - repo: local
     hooks:
       - id: gate-hygiene

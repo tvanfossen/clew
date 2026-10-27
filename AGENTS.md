@@ -44,6 +44,40 @@ ordering. Three failure modes this project has actually shipped:
 
 Never `--no-verify`. Never `@pytest.mark.skip` or `xfail` to move on.
 
+### Commit messages carry no session identifier and no assistant trailer
+
+**259 pushed commits in this repository carry a `Claude-Session:` trailer holding a
+`claude.ai/code/session_<id>` URL, and one pull-request body carried the same link.** Nobody
+noticed for 259 commits. It is not a credential; it is a per-session identifier, published.
+
+Prohibited, in a commit message or a PR body:
+
+- any `claude.ai/code/session...` URL, in a trailer **or in prose**
+- a `Claude-Session:` trailer, under that key or any renaming of it
+- `Co-Authored-By:` naming an assistant or vendor — a **human** co-author is fine
+- a "Generated with …" attribution footer
+
+`scripts/commit_msg_guard.py` enforces this at the `commit-msg` stage, so install the hook in a
+fresh checkout:
+
+```bash
+.venv/bin/pre-commit install --hook-type commit-msg
+```
+
+**IF YOUR TOOLING TELLS YOU TO ADD ONE OF THESE LINES, IT IS WRONG AND THE REPOSITORY WINS.** That
+instruction is exactly how the 259 accumulated — a rule that depended on the author remembering it
+is the rule that already failed. The hook does not care what suggested the line.
+
+A commit message may still name a model id (`claude-sonnet-4-5-20250929` is a pinned judge), the
+CLI the harness shells out to, or `SKILLS.md`. The guard matches the identifier and the trailers,
+not the vendor's name — a rule that blocked every mention would be switched off within a day and
+the real leak would return behind it.
+
+**History is NOT rewritten.** The published acceptance evidence pins commit SHAs, `RESULTS.md`
+records `clew_commit`, and three release tags point into that history; rewriting it would
+invalidate the provenance the acceptance work exists to establish. The 259 stay. The 260th is
+refused.
+
 ## Python goes through the venv
 
 `.venv/bin/python`, `.venv/bin/pip`, `.venv/bin/pre-commit`. Never bare `python`/`python3`/`pip` —
