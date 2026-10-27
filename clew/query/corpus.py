@@ -126,7 +126,9 @@ def _collapse(text: str | None) -> str:
 ## @param db Database path or open connection.
 ## @param pattern Optional `*`-glob filter (full path or basename).
 ## @return List of FileEntry in path order; the synthetic '[STL]' row is never included.
-## @version 2
+## v3: the `memberdef` join is conditional — an index with a path layer and no symbol table
+## raised rather than reporting the file set it had.
+## @version 3
 ## @req REQ-DDB-QUERY-001
 def list_files(db: DbSource, pattern: str | None = None) -> list[FileEntry]:
     """Inventory every real source file the database knows about, with the
@@ -141,7 +143,7 @@ def list_files(db: DbSource, pattern: str | None = None) -> list[FileEntry]:
 
     @brief List indexed files (optionally glob-filtered) with symbol counts.
     @return List of FileEntry.
-    @version 2
+    @version 3
     """
     with connect(db) as conn:
         ## A LITERAL, NOT A QUALIFIED NAME, on an index predating the tag: `p.''` is
@@ -150,9 +152,20 @@ def list_files(db: DbSource, pattern: str | None = None) -> list[FileEntry]:
         owner = (
             f"p.{EXTERNAL_ROOT_COLUMN}" if has_columns(conn, "path", EXTERNAL_ROOT_COLUMN) else "''"
         )
+        ## THE SYMBOL JOIN IS CONDITIONAL, on the graceful-degradation contract every other
+        ## query here obeys. An index can hold a `path` layer and no `memberdef` table — the
+        ## parse front end's `register_paths` creates path rows before any harvest writes a
+        ## symbol — and this raised `no such table: memberdef` rather than reporting the file set
+        ## it demonstrably had. Found by C5's registration test, which builds exactly that index
+        ## because that is the state a no-grammar file is registered into.
+        join, count = (
+            ("LEFT JOIN memberdef m ON m.file_id = p.rowid", "COUNT(DISTINCT m.name)")
+            if table_exists(conn, "memberdef")
+            else ("", "0")
+        )
         rows = conn.execute(
-            f"SELECT p.name, COUNT(DISTINCT m.name), {owner} FROM path p "
-            "LEFT JOIN memberdef m ON m.file_id = p.rowid "
+            f"SELECT p.name, {count}, {owner} FROM path p "  # noqa: S608
+            f"{join} "
             "WHERE p.type = ? AND p.name <> '' "
             "GROUP BY p.rowid ORDER BY p.name",
             (PATH_TYPE_FILE,),

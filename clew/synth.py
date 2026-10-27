@@ -79,8 +79,36 @@ SCRIPT_NAMES = ("cmakelists.txt",)
 ## every coverage figure.
 DATA_EXTS = (".yaml", ".yml", ".json")
 
+## SOURCE TYPES WITH NO GRAMMAR: REGISTERED, NEVER HARVESTED, AND NOT RESOLVED TO CONTENT.
+## The same treatment `DATA_EXTS` gets directly above, for a different reason. A YAML file has no
+## function concept to harvest; a Perl script HAS one and this toolchain cannot read it. Both end
+## up in the file set and out of the namespace, and the difference is recorded where it belongs —
+## `register_paths` writes `found = 0` for these, which is doxygen's own column for "known by
+## name, never resolved to content".
+##
+## MEASURED, ON THE FROZEN mbedtls CHECKOUT (948 files): 6 `.pl` and 8 `Makefile`. mbedtls Q4 is
+## the grid's lowest-scoring cluster and its `set` mark wants `scripts/generate_errors.pl` as a
+## NAME IN A LIST — `claims()` returned False for it, so the index held no `path` row and could
+## not report that the file exists. Seven of that question's eight marks are conclusions about
+## build provenance, not about Perl.
+##
+## DELIBERATELY NOT CLAIMED, from the same census: 140 `.data`, 94 `.function`, 61 `.vcxproj`.
+## The first two are mbedtls's own test-fixture formats rather than a language, and 234 extra rows
+## would move `coverage.indexed_files` and every `DirectoryEntry.indexed_files` for a file format
+## one repository invented. Claiming a type because it exists somewhere is how an inventory
+## becomes noise.
+##
+## NOT IN THE EXTENSION-PARITY TEST, deliberately and for the same reason `DATA_EXTS` is not:
+## that test's subject is what the index READS, so the gate must be able to check it. Nothing
+## reads these.
+UNPARSED_EXTS = (".pl", ".pm", ".mk")
+
+## Claimed by whole FILE NAME, matched as a path component, for the reason `SCRIPT_NAMES` states:
+## `endswith("makefile")` also claims `oldmakefile.txt`.
+UNPARSED_NAMES = ("makefile",)
+
 ## Every file type the front end puts in the file set.
-CLAIMED_EXTS = SYNTH_EXTS + SCRIPT_EXTS + DATA_EXTS
+CLAIMED_EXTS = SYNTH_EXTS + SCRIPT_EXTS + DATA_EXTS + UNPARSED_EXTS
 
 _TYPE_FILE = 1
 
@@ -185,8 +213,10 @@ def script_symbol_harvester() -> Harvester:
 
 ## @brief Whether a repo-relative path is one this front end claims.
 ## @param rel Path, any separator.
-## @return True for any claimed type: JS/TS, shell, CMake, or a YAML/JSON data file.
-## @version 2
+## @return True for any claimed type: JS/TS, shell, CMake, a YAML/JSON data file, or a source type with no grammar.
+## v3 (C5): the no-grammar source types, so a file this toolchain cannot read is still a file it
+## can name. See `UNPARSED_EXTS` for the census that set the list.
+## @version 3
 ## @dg_internal
 def claims(rel: str) -> bool:
     """Every type this front end registers in `path`, whether or not it will carry
@@ -196,7 +226,8 @@ def claims(rel: str) -> bool:
     @brief Claimed-file-type test.
     """
     lower = rel.lower()
-    return lower.endswith(CLAIMED_EXTS) or PurePosixPath(lower).name in SCRIPT_NAMES
+    name = PurePosixPath(lower).name
+    return lower.endswith(CLAIMED_EXTS) or name in SCRIPT_NAMES or name in UNPARSED_NAMES
 
 
 ## @brief Whether a repo-relative path is one of the symbol-bearing script types.
@@ -210,11 +241,29 @@ def script_claims(rel: str) -> bool:
     return lower.endswith(SCRIPT_EXTS) or PurePosixPath(lower).name in SCRIPT_NAMES
 
 
+## @brief Whether a claimed path is one this toolchain has no grammar for.
+## @param rel Path, any separator.
+## @return True for a source type registered by name only.
+## @version 1
+## @dg_internal
+def unparsed_claims(rel: str) -> bool:
+    """Split from `claims` because the two answer different questions and only one of them
+    decides a stored value: `claims` decides whether the file is in the SET, this decides whether
+    the row may say it was READ.
+
+    @brief No-grammar source-type test.
+    """
+    lower = rel.lower()
+    return lower.endswith(UNPARSED_EXTS) or PurePosixPath(lower).name in UNPARSED_NAMES
+
+
 ## @brief Insert `path` rows for the JS/TS files of this build's scanned tree.
 ## @param db_path The database being built.
 ## @param files Repo-relative POSIX paths of every file in scope.
 ## @return How many rows were inserted.
-## @version 2
+## v3 (C5): `found` is written per file rather than always 1, so a no-grammar source type does
+## not claim it was resolved to content.
+## @version 3
 ## @req REQ-DDB-PIPE-012
 def register_paths(db_path: Path, files: list[str]) -> int:
     """Rows already present (a doxygen that somehow saw the file) are left alone, so
@@ -230,9 +279,14 @@ def register_paths(db_path: Path, files: list[str]) -> int:
     try:
         present = {r[0] for r in conn.execute("SELECT name FROM path")}
         new = [f for f in wanted if f not in present]
+        ## `found` IS A MEASUREMENT AND IS WRITTEN AS ONE (C5). doxygen's own column means
+        ## "resolved to content", `query.corpus._was_harvested` reads it, and
+        ## `FileSubject.harvested` serves it — so a Perl script registered with `found = 1` would
+        ## claim this toolchain parsed it, and would be indistinguishable from a C file it did.
+        ## The honest row says: I know this file's name, I did not read it.
         conn.executemany(
-            "INSERT INTO path (type, local, found, name) VALUES (?, 1, 1, ?)",
-            [(_TYPE_FILE, f) for f in new],
+            "INSERT INTO path (type, local, found, name) VALUES (?, 1, ?, ?)",
+            [(_TYPE_FILE, 0 if unparsed_claims(f) else 1, f) for f in new],
         )
         conn.commit()
     finally:
