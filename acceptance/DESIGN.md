@@ -448,9 +448,39 @@ published grid.
 Steps 2 through 5 cost **no judge calls and no generation** — they read frozen transcripts and the
 frozen index. The whole review of six clusters cost less than one grading pass.
 
-`scripts/selector_waste.py` is the counting half and is tested. The call-tracing and
-mark-classification steps were hand-rolled and belong in `scripts/` before the next release, so
-the procedure does not have to be re-derived from this section.
+Four tested scripts carry it, so the procedure does not have to be re-derived from this section:
+
+| step | script | what it answers |
+|---|---|---|
+| 1 | `cluster_review.py rank <run>` | which clusters, ranked by GAP, with the paired per-arm shape |
+| 3 | `cluster_review.py trace <run> <target> <Q>` | the calls AND the replies, per replicate |
+| 5 | `selector_waste.py <run>` | how often a call returned nothing, and the miss MODE |
+| 5 | `served_spelling_audit.py <run>` | whether clew had SERVED the spelling it then refused |
+
+The last one is the step that pays for the rest. Run on the 1.1.0 grid it found that **116 of 129
+missed `dossier` subjects — 89.9% — were strings clew itself had printed in an earlier reply**,
+which moved a whole block of failures out of "the answer was thin" and into clew's own contract.
+A miss the reader invented and a miss we handed them need opposite responses, and nothing before
+that script could tell them apart.
+
+### Two instrument lessons, both learned by being wrong
+
+**Pair WITHIN a cluster.** A correlation taken across all cells says cells with few tool calls
+score HIGHER — true, and confounded by difficulty, since an easy question needs few calls and
+scores well. That reading was used once to refute "agents stop early". Paired within a cluster the
+confound is controlled and the 1.1.0 grid says the opposite: on the worst clusters the index arm
+made FEWER calls than the shell arm (entropic Q4 13.0 -> 5.3, self Q3 9.0 -> 3.7, mbedtls Q3
+11.0 -> 6.3) while scoring 20-28 points lower. `rank` prints both arms side by side for that
+reason.
+
+**The per-call detail is NOT in the run directory.** A run holds the answer, the grade sidecars
+and a usage envelope — no tool blocks. The calls and replies live in the CLI's own session
+transcript under `~/.claude/projects/<slug>/<session_id>.jsonl`, reachable only because
+`.raw.json` records the `session_id`. The most diagnostic artefact of a published run is the one
+artefact the run does not contain, and a culled transcript takes the review with it. All 48
+`index_only` cells of `2026-10-19-n3` still resolved when these scripts were written; that will
+not stay true forever, and every script names the cells it could not read rather than counting
+them clean.
 
 ### What it must not become
 
