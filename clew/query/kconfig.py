@@ -285,8 +285,9 @@ def _gate_columns(conn: sqlite3.Connection) -> str:
 ## @brief The gating sites recorded for the whole repo, or for one symbol.
 ## @param conn Open connection.
 ## @param symbol Bare Kconfig symbol name (no CONFIG_ prefix) to filter to, or None.
-## @return Gate rows in file order.
-## @version 3
+## @return Gate rows in file order, carrying each macro's resolved default where it is known.
+## v4 (C3): routed through `_with_defaults`, which only the function route was using.
+## @version 4
 ## @dg_internal
 def _gates(conn: sqlite3.Connection, symbol: str | None) -> tuple[KconfigGate, ...]:
     """Accepts the symbol either bare or `CONFIG_`-prefixed, because a caller reading
@@ -301,7 +302,7 @@ def _gates(conn: sqlite3.Connection, symbol: str | None) -> tuple[KconfigGate, .
 
     @brief Read kconfig_gates, optionally for one symbol.
     @return Gate rows.
-    @version 3
+    @version 4
     """
     if not table_exists(conn, "kconfig_gates"):
         return ()
@@ -311,7 +312,14 @@ def _gates(conn: sqlite3.Connection, symbol: str | None) -> tuple[KconfigGate, .
         sql += " WHERE symbol = ?"
         params = (symbol.removeprefix("CONFIG_"),)
     rows = conn.execute(sql + " ORDER BY file_path, line", params).fetchall()
-    return tuple(KconfigGate(*row) for row in rows)
+    ## C3 of the 1.1.0 acceptance review: THE SAME JOIN THE FUNCTION ROUTE ALREADY USED.
+    ## `_with_defaults` was wired into `gates_covering` only, so `dossier("mbedtls_calloc")`
+    ## learned which preprocessor arm the default build takes and
+    ## `dossier("MBEDTLS_PLATFORM_MEMORY")` — the more direct question, and where a
+    ## `search(corpus="config")` row points — got sites with no way to tell. One join, two
+    ## callers; a second implementation for the second caller is how two surfaces come to
+    ## disagree about one macro.
+    return _with_defaults(conn, tuple(KconfigGate(*row) for row in rows))
 
 
 ## How many gating SYMBOL NAMES an inventory reply carries before it says it stopped.
@@ -554,6 +562,46 @@ def gates_covering(
     return _with_defaults(conn, gates), unknown
 
 
+## How many macros go into one `macro IN (...)` clause.
+##
+## `SQLITE_MAX_VARIABLE_NUMBER` is a COMPILE-TIME option, and its default was **999 before SQLite
+## 3.32**. The macro count is the measured half: RIOT's gate layer holds 2,029 distinct gating
+## macros and sassafras-class 503, so an unfiltered whole-repo resolution binds one parameter per
+## macro and goes over that historical default by a factor of two on a real target.
+##
+## NOT A FAILURE REPRODUCED HERE — this interpreter links SQLite 3.37.2, which accepts 32,766, and
+## claiming a crash we have not seen would be a figure without a method. What IS claimed: the
+## count is over a documented default, the ceiling is set by the build rather than by us, and the
+## chunk costs one extra query per 500 macros.
+_MACRO_CHUNK = 500
+
+
+## @brief Read `config_defaults` rows for a macro list, in bounded chunks.
+## @param conn Open connection.
+## @param macros The distinct gating macros to resolve.
+## @return Rows of (macro, state, file_path, line, origin) across every chunk.
+## @version 1
+## @dg_internal
+def _defaults_for_macros(conn: sqlite3.Connection, macros: list[str]) -> list[tuple]:
+    """Split out of `_with_defaults` so the resolution RULE and the parameter bound are
+    separately readable; the rule is what `test_shipped_config_tiebreak` pins and it should not
+    have to be re-read to change a chunk size.
+
+    @brief Chunked read of the shipped-defaults corpus.
+    @return The rows.
+    @version 1
+    """
+    rows: list[tuple] = []
+    for start in range(0, len(macros), _MACRO_CHUNK):
+        batch = macros[start : start + _MACRO_CHUNK]
+        rows += conn.execute(
+            f"SELECT macro, state, file_path, line, origin FROM config_defaults "  # noqa: S608
+            f"WHERE macro IN ({','.join('?' * len(batch))})",
+            batch,
+        ).fetchall()
+    return rows
+
+
 ## @brief Attach each gating macro's shipped default to its gate.
 ## @param conn Open connection.
 ## @param gates The covering gates.
@@ -568,7 +616,10 @@ def gates_covering(
 ## when the default build maps straight onto calloc/free. An alternate profile and a test
 ## fixture are not peers of the repository's own header. A DECLARED header still wins, and a
 ## disagreement with no shipped site is still dropped — inventing one is worse than silence.
-## @version 2
+##
+## v3: the parameter bound moved to `_defaults_for_macros`, because C3 made the whole-repo gate
+## list a caller and RIOT's 2,029 distinct gating macros bind one parameter each.
+## @version 3
 ## @dg_internal
 def _with_defaults(
     conn: sqlite3.Connection, gates: tuple[KconfigGate, ...]
@@ -586,17 +637,12 @@ def _with_defaults(
 
     @brief Join shipped defaults onto gates.
     @return Gates with defaults where they are unambiguous.
-    @version 1
+    @version 3
     """
     if not gates or not table_exists(conn, "config_defaults"):
         return gates
     macros = sorted({gate.macro for gate in gates})
-    placeholders = ",".join("?" * len(macros))
-    rows = conn.execute(
-        f"SELECT macro, state, file_path, line, origin FROM config_defaults "  # noqa: S608
-        f"WHERE macro IN ({placeholders})",
-        macros,
-    ).fetchall()
+    rows = _defaults_for_macros(conn, macros)
     decided: dict[str, tuple[str, str]] = {}
     seen: dict[str, set[str]] = {}
     for macro, state, path, line_no, origin in rows:
