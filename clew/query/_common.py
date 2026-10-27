@@ -797,3 +797,39 @@ def is_shipped_config(path: str) -> bool:
     """
     lower = path.lower()
     return not any(part in lower for part in _NOT_SHIPPED_DIRS)
+
+
+## How much free prose a dossier carries before it says it stopped.
+##
+## MEASURED RATHER THAN GUESSED, on mbedtls: 4,268 rows carry detail, averaging 1,052 characters,
+## and 4,195 of them (98%) are under 6,000. A dossier describes ONE subject and already returns a
+## full function body, so ~1 KB of prose is not the cost risk; the 14,804-character tail is.
+##
+## SHARED BY TWO SUBJECTS SINCE C1, which is why it lives here rather than in `dossier.py` where
+## it was written. A function's `@details` and a file's file-level comment are the same hazard —
+## an unbounded SCALAR inside a payload whose budget only trims LISTS — and a cap that was nearly
+## the same in two places is the cap that drifts into two different promises. The same reason
+## `is_shipped_config` moved here.
+DETAIL_CAP = 4000
+
+## What a truncated document says, with the length it stopped at. NEVER a silent cut: this repo's
+## standing rule is that a bounded answer must say what was dropped, because a silently truncated
+## reply reads as a complete one — the failure mode that makes "covered everything" a lie.
+DETAIL_CUT = (
+    "… [detail truncated at {cap} of {total} characters — read the declaration for the rest]"
+)
+
+
+## @brief Bound free prose, saying so when it is cut.
+## @param text The prose to bound.
+## @return The prose, or its first `DETAIL_CAP` characters plus an explicit notice.
+## @version 1
+## @utility
+def capped_detail(text: str) -> str:
+    """@brief Cap prose with an explicit truncation notice.
+    @return Possibly-truncated prose; never silently cut.
+    @version 1
+    """
+    if len(text) <= DETAIL_CAP:
+        return text
+    return text[:DETAIL_CAP] + DETAIL_CUT.format(cap=DETAIL_CAP, total=len(text))

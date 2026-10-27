@@ -174,7 +174,7 @@ class CallEdge:
     evidence found for the endpoint.
 
     @brief Name-resolved causal neighbour (call edge or shared-key dataflow).
-    @version 5
+    @version 6
     """
 
     name: str
@@ -182,6 +182,28 @@ class CallEdge:
     source: str
     confidence: str | None
     edge_class: str
+    ## THE IDENTITY THAT MAKES THE ROW FOLLOWABLE (C2 of the 1.1.0 acceptance review), and it
+    ## was already being computed. `_endpoint_identities` groups endpoint rows by
+    ## `(bare name, qualified name)`; `_call_edges` read the first and dropped the second, so a
+    ## `callers` row naming `execute` against an index holding `ServerManager::execute` and
+    ## `ClientSession::execute` could not be told from its namesake. MEASURED: `dossier('execute')`
+    ## called four times in one graded cell, 5 of its 16 calls spent re-asking a name the reply
+    ## had already resolved.
+    ##
+    ## `rowid` does not substitute for it. A rowid is a perfectly good identity for a caller that
+    ## can address one, and nothing on the served surface can — `dossier` takes `subject` and
+    ## `qualified`, deliberately, because a rowid is not stable across builds. An identity carried
+    ## in a form no tool accepts is not reachable.
+    ##
+    ## DERIVED BY `qualified_name_of`, which is the function the `qualified` selector compares
+    ## against. Deriving what we advertise from one rule and what we accept from another is
+    ## exactly how the served text came to advertise `signature` for a parameter that rejects it.
+    ##
+    ## `''` FOR A FREE FUNCTION, not the bare name repeated. A field echoing `name` would read as
+    ## "this is the qualified form" and send a caller to pass a selector value the index does not
+    ## hold — a refusal where there was no ambiguity. A function with no owner HAS no qualified
+    ## name, and saying so by absence costs nothing while guessing costs a call.
+    qualified: str = ""
     strength: str | None = None
     key_name: str | None = None
     edge_kind: str | None = None
@@ -1990,6 +2012,71 @@ class LockSubject:
     siblings: tuple[LockEntry, ...] = ()
 
 
+## @brief One symbol a file defines, as the file subject lists it.
+## @version 1
+@dataclass(frozen=True)
+class FileMember:
+    """Deliberately THINNER than `ClassEntry`'s member: a name, doxygen's kind and the line.
+    The file subject answers "what is in here", and a caller that wants one of these in full
+    passes its name straight back to `dossier` — which is the whole point of listing the name
+    rather than summarising the file's contents in prose.
+
+    @brief A symbol defined in a file (name + kind + line).
+    @version 1
+    """
+
+    name: str
+    kind: str
+    line: int = 0
+
+
+## @brief What the index holds about ONE file, as a dossier subject.
+## @version 1
+@dataclass(frozen=True)
+class FileSubject:
+    """THE SUBJECT THAT DID NOT EXIST, and the measurement that says it should (C1 of the
+    1.1.0 acceptance review). 48 of the 237 subjects `dossier` was asked for and missed —
+    20.3% — were file paths, and five graded clusters carrying 31 weight lost marks that are
+    file-level claims: what a file is for, what it contains, whether it is generated.
+
+    The surface's answer was a refusal naming `search(corpus='prose')`, which is a token
+    conjunction ranking a file hit against member and markdown hits, and a recovery hint
+    naming `search(corpus='files')`, which returns a path and a count and NO DOCUMENTATION
+    FIELD AT ALL. The text was in `file_docs` the whole time — 2,794 characters of it for
+    `clew/tiers.py` — reachable only by guessing tokens that happened to appear in it.
+
+    `harvested` IS THE FIELD THIS SUBJECT EXISTS FOR, and it is not `symbol_count > 0`.
+    A `path` row doxygen recorded from an unresolved `#include` carries zero symbols and no
+    documentation, and so does a file that was read and genuinely declares nothing. Those are
+    "I know of this file and could not read it" and "I read this file and it defines nothing"
+    — different facts, and the first is `DirectoryEntry.unresolved_files` at one-file
+    granularity. Reporting only the count would collapse them into the flattering reading,
+    which is the rule this codebase returns to most.
+
+    `documentation` is `''` for a file carrying no file-level comment. That is a measurement
+    — the file was read — and is distinct from the corpus being absent, which `has_file_docs`
+    reports once for the whole index rather than per file.
+
+    @brief One file: its documentation, its symbols, and whether anything was harvested.
+    @version 1
+    """
+
+    path: str
+    documentation: str = ""
+    symbol_count: int = 0
+    members: tuple[FileMember, ...] = ()
+    ## Whether this index holds any harvested content for the file at all. See the class
+    ## docstring: NOT derivable from `symbol_count`, and the reason the subject is honest.
+    harvested: bool = False
+    ## The nested git tree that owns this file, or `''` when this repo owns it. An ANNOTATION
+    ## and never a filter, for the reason `FileEntry.external_root` documents.
+    external_root: str = ""
+    ## True when `members` was cut to the cap. Named rather than implied, because a truncated
+    ## list presented as complete is the silent degradation every `_limited` on this surface
+    ## exists to convert into a measurement.
+    members_truncated: bool = False
+
+
 ## The subject kinds `resolve_subject` can classify a name as, in PROBE ORDER. The order
 ## decides which section a BARE name gets, and `SubjectDossier.also` names the ones it did
 ## not get — so the order is a default, never a silent pick.
@@ -2027,6 +2114,12 @@ SUBJECT_KINDS: tuple[str, ...] = (
     "enumeration",
     "requirement",
     "config",
+    ## C1 of the 1.1.0 acceptance review. LAST, and the position costs nothing for the reason
+    ## `requirement` and `config` are last: a repo-relative path is not a spelling an ordinary
+    ## identifier can collide with, so no bare name's resolution changes by adding it. It is
+    ## also the only kind whose name is not an identifier, which is why its probe cannot be one
+    ## of the `memberdef` probes above.
+    "file",
 )
 
 
@@ -2073,6 +2166,7 @@ class SubjectDossier:
     thread: Thread | None = None
     config: KconfigSpace | None = None
     enumeration: EnumSubject | None = None
+    file: FileSubject | None = None
     chain: Chain | None = None
 
     ## @brief The one populated section, whatever kind it is.

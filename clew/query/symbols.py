@@ -385,7 +385,10 @@ def unresolved_inbound_for_rowids(conn: sqlite3.Connection, ids: Iterable[int]) 
 ## @param want_callers True for the functions that call `fn`; False for the ones it calls.
 ## @param qualified Optional identity selector for the FOCAL side (gh#37).
 ## @return List of CallEdge tagged `edge_class='call'`, ONE per distinct endpoint identity, each annotated with its known implementors.
-## @version 13
+## C2 of the 1.1.0 acceptance review: the row now PUBLISHES the identity this loop already
+## computed, so a colliding `callers`/`callees` row can be followed in one call instead of
+## costing an ambiguity round trip. No new lookup — `identity[1]` was being discarded.
+## @version 14
 ## @dg_internal
 def _direct_call_edges(
     conn: sqlite3.Connection, fn: str, want_callers: bool, qualified: str | None = None
@@ -469,6 +472,13 @@ def _direct_call_edges(
         edges.append(
             CallEdge(
                 name=identity[0],
+                ## `identity[1]`, which this loop has held since gh#26 and discarded until C2.
+                ## EMPTY WHEN IT EQUALS THE BARE NAME, because `qualified_name_of` falls back to
+                ## the bare name rather than inventing an identity — right for a grouping key,
+                ## wrong for a published selector value: it would advertise `qualified="app_run"`
+                ## for a free function, which selects nothing and refuses a call that had no
+                ## ambiguity to resolve.
+                qualified=identity[1] if identity[1] != identity[0] else "",
                 rowid=rowid,
                 source=source,
                 confidence=conf,

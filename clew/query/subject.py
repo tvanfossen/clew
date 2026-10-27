@@ -40,7 +40,7 @@ from ._common import (
     symbol_provenance,
     table_exists,
 )
-from .corpus import CLASS_KINDS, lookup_class
+from .corpus import CLASS_KINDS, file_subject, is_indexed_file, lookup_class
 from .dossier import _dossier_conn, _macro_dossier
 from .kconfig import kconfig_space
 from .locks import lock_roster, runs_under_lock
@@ -324,6 +324,10 @@ _PROBES = {
     "lock": _is_lock,
     "thread": _is_thread,
     "config": _is_config,
+    ## C1. `is_indexed_file` is an EXACT match on `path.name`, so no identifier can reach it
+    ## and no bare name's existing resolution changes — see its own docstring for why a
+    ## suffix match would have.
+    "file": is_indexed_file,
 }
 
 
@@ -670,17 +674,24 @@ _KIND_ALIASES: dict[str, tuple[str, ...]] = {
 }
 
 ## Search kinds that name no subject at all, with what to do instead. These are NOT aliasable —
-## there is no typedef subject and no file subject to build — so the honest fix is a refusal
-## that names the route rather than a mapping that pretends.
+## there is no typedef subject to build — so the honest fix is a refusal that names the route
+## rather than a mapping that pretends.
 ##
 ## `enumeration` WAS HERE AND IS NOT ANY MORE (gh#6). The refusal was accurate when written and
 ## became false when the subject was built; a vocabulary that says a kind is unbuildable, kept
 ## beside a builder for it, refuses the thing it can now answer.
 ##
+## `file` WAS HERE AND IS NOT ANY MORE, for exactly the same reason one release later (C1 of the
+## 1.1.0 acceptance review). Its refusal named `search(corpus='prose')`, and that route was real
+## but wrong-shaped: a token conjunction, ranking a file hit against member and markdown hits,
+## reached by guessing words that appear in the prose the caller is trying to read. MEASURED: 48
+## of 237 missed `dossier` subjects were file paths, and five graded clusters carrying 31 weight
+## lost marks that are file-level claims. The lesson the `enumeration` entry above records is
+## that a refusal ages into a lie; this one aged into a lie that was also being measured.
+##
 ## SAYING "unknown kind" AND STOPPING IS WHAT COST THE ROUND TRIP. A refusal that names the
 ## alternative costs the same message and ends the search.
 _KIND_NO_SUBJECT: dict[str, str] = {
-    "file": "a file has no dossier — its documentation is `search(corpus='prose')`",
     "typedef": "a typedef has no dossier — the `search` row already carries all the index holds",
 }
 
@@ -1100,6 +1111,7 @@ _BUILDERS = {
     "enumeration": lambda ctx: {
         "enumeration": _enum_subject(ctx.conn, ctx.subject, ctx.repo_root, ctx.max_body_lines)
     },
+    "file": lambda ctx: {"file": file_subject(ctx.conn, ctx.subject)},
 }
 
 

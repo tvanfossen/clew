@@ -2065,7 +2065,7 @@ class QueryTools:
         return self._answered(out, kind="dossiers", target=target, sub_index=sub_index)
 
     ## @brief Full multi-layer dossier for one subject of ANY kind, or for several at once.
-    ## @param subject ONE bare name, or a LIST of them for a batched reply.
+    ## @param subject ONE bare name or repo-relative file path, or a LIST of them for a batched reply.
     ## @param kind Restrict resolution to one subject kind (see SUBJECT_KINDS), or omit for the best-first pick.
     ## @param depth Hops of adjacency to traverse; 1 is the subject and its neighbours, up to MAX_SUBJECT_DEPTH.
     ## @param direction Traversal direction when depth > 1 — 'forward' (downstream) or 'backward' (upstream).
@@ -2074,7 +2074,10 @@ class QueryTools:
     ## @param target Repo root or slug to answer from; omit for the server's derived target.
     ## @param max_body_lines Cap on the verbatim `body` excerpt; raise it to read past a `truncated` body.
     ## @return The resolved subject's payload, a batch envelope, or a miss envelope when nothing of that name is indexed.
-    ## @version 13
+    ## C1 of the 1.1.0 acceptance review: `subject` now accepts a repo-relative FILE PATH, which
+    ## 48 of 237 missed subjects already were. The served description said a file could never be
+    ## one; it can, and five graded clusters carrying 31 weight were losing file-level marks.
+    ## @version 14
     ## @req REQ-DDB-MCP-003
     ## @req REQ-DDB-QUERY-010
     def dossier(
@@ -2083,8 +2086,11 @@ class QueryTools:
             str | list[str],
             Field(
                 description=(
-                    "One symbol name, or a list of up to 8 for one reply. A function, variable, "
-                    "macro, class, enumeration, lock, thread, requirement id or config symbol."
+                    "One name, or a list of up to 8 for one reply. A function, variable, macro, "
+                    "class, enumeration, lock, thread, requirement id, config symbol — or a "
+                    "repo-relative FILE PATH, which returns that file's documentation and the "
+                    "symbols it defines — with `harvested: false` when the index knows the "
+                    "file's name but could not read it."
                 )
             ),
         ],
@@ -2223,7 +2229,7 @@ class QueryTools:
 
         @brief Composite dossier for one or several subjects of any kind.
         @return The subject payload, a batch envelope, or a miss envelope.
-        @version 13
+        @version 14
         """
         if not isinstance(subject, str):
             names = _accepted_batch(list(subject), qualified)

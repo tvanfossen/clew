@@ -1,14 +1,14 @@
 {
-  "tool": "dossier",
-  "priority": 10,
-  "include": [
-    "rows",
-    "provenance",
-    "ambiguous"
-  ],
-  "description": [
-    "CALL THIS FIRST for any question about a NAMED THING \u2014 everything the index knows about it, in one call, INCLUDING ITS VERBATIM SOURCE BODY AND INLINE COMMENTS. You do not need to open the file. `subject_kind` on the reply says which kind resolved, and `also` names the other kinds that same name resolves to.",
-    "THE PAYLOAD IS SHAPED BY THE KIND, and a field that does not apply is ABSENT rather than empty. A function carries signature, file/lines, brief, liveness, threads, terminus, requirements + covering tests, callers/callees, writes/reads, `body`, `sections`, `locks_held`, and `external_callees` \u2014 call sites not resolvable to an indexed function, which is why `callees` can legitimately be empty. `anchor_mismatch: true` means the file changed since the build and those lines are no longer that function's. A variable carries its type and every declaration `site` with the source line \u2014 where a function pointer's binding is written \u2014 and has no body or neighbours, because a variable has none. A lock carries its identity and every critical section under it; a requirement its implementers and tests; a class its members and hierarchy.",
-    "PASS A LIST WHEN YOU WANT SEVERAL \u2014 `subject: [\"a\", \"b\", \"c\"]` returns one entry per name, in order, in ONE call, and they may be of different kinds. Up to 8; more is refused, not truncated. They share one response budget, so a large fan-out may be trimmed and `_limited` then names which symbol lost which panel."
-  ]
+ "tool": "dossier",
+ "priority": 10,
+ "include": [
+  "rows",
+  "provenance",
+  "ambiguous"
+ ],
+ "description": [
+  "CALL THIS FIRST for any question about a NAMED THING — everything the index knows about it, in one call, INCLUDING ITS VERBATIM SOURCE BODY AND INLINE COMMENTS. You do not need to open the file. `subject_kind` on the reply says which kind resolved, and `also` names the other kinds that same name resolves to.",
+  "THE PAYLOAD IS SHAPED BY THE KIND, and a field that does not apply is ABSENT rather than empty. A function carries signature, file/lines, brief, liveness, threads, terminus, requirements + covering tests, callers/callees, writes/reads, `body`, `sections`, `locks_held`, and `external_callees` — call sites not resolvable to an indexed function, which is why `callees` can legitimately be empty. `anchor_mismatch: true` means the file changed since the build and those lines are no longer that function's. A variable carries its type and every declaration `site` with the source line — where a function pointer's binding is written — and has no body or neighbours, because a variable has none. A lock carries its identity and every critical section under it; a requirement its implementers and tests; a class its members and hierarchy. A REPO-RELATIVE FILE PATH is a subject too, carrying its documentation and its symbols.",
+  "PASS A LIST WHEN YOU WANT SEVERAL — `subject: [\"a\", \"b\", \"c\"]` returns one entry per name, in order, in ONE call, and they may be of different kinds. Up to 8; more is refused, not truncated. They share one response budget, so a large fan-out may be trimmed and `_limited` then names which symbol lost which panel."
+ ]
 }

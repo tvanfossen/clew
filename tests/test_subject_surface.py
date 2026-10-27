@@ -343,22 +343,33 @@ def test_every_kind_search_emits_is_followable_or_names_its_route() -> None:
 
 
 def test_a_kind_with_no_subject_refuses_by_naming_the_route(tools: QueryTools) -> None:
-    """THREE KINDS CANNOT BE ALIASED and pretending otherwise would be worse than refusing: there
-    is no typedef subject, no enumeration subject and no file subject to build. What made the
-    original refusal expensive was not that it refused — it was that it stopped there, so the
-    caller had to guess where to go next and guessed `grep`.
+    """ONE KIND CANNOT BE ALIASED and pretending otherwise would be worse than refusing: there is
+    no typedef subject to build. What made the original refusal expensive was not that it refused
+    — it was that it stopped there, so the caller had to guess where to go next and guessed
+    `grep`.
 
     So the refusal names the route. Asserted on the ROUTE, not just on the exception, because a
     bare "unknown kind" is what already existed.
 
+    THIS TEST SAID "THREE KINDS" AND NOW SAYS ONE, and both corrections are the same correction
+    made twice. `enumeration` left this list in gh#6 when its subject was built. `file` left it
+    in C1 of the 1.1.0 acceptance review, where its refusal was not merely stale but measured:
+    48 of 237 unanswered `dossier` subjects were file paths, and the route this list named —
+    `search(corpus='prose')` — is a token conjunction over every corpus at once.
+
+    The remaining entry is kept rather than the test being deleted, because the PROPERTY is what
+    this guards: a kind `search` can emit must either follow or explain itself, and the day
+    typedefs get a subject this test should fail again.
+
     @brief An unfollowable kind refuses with the alternative named.
     @return None.
-    @version 1
+    @version 2
     """
-    with pytest.raises(ValueError, match="corpus='prose'"):
-        tools.dossier("app_run", kind="file")
     with pytest.raises(ValueError, match="no dossier subject"):
         tools.dossier("app_run", kind="typedef")
+    ## The one that LEFT the list, asserted here so the correction cannot be silently undone:
+    ## `kind='file'` must be a filter now, which on a function name means None rather than a raise.
+    assert tools.dossier("app_run", kind="file")["found"] is False
 
 
 # ─── depth: chain_trace, folded in and bounded ───────────────────────────────

@@ -1588,6 +1588,11 @@ def test_wrapper_content_reaches_the_r1_richness(tools: QueryTools) -> None:
 _NEIGHBOUR_KEYS = frozenset(
     {
         "name",
+        # C2 of the 1.1.0 acceptance review: the endpoint's qualified identity, so a colliding
+        # neighbour row is followable in one call. Added deliberately, same gate. NOT an
+        # annotation like the two below — it is the row's own identity, which
+        # `_endpoint_identities` had computed and `_direct_call_edges` was discarding.
+        "qualified",
         "rowid",
         "source",
         "confidence",

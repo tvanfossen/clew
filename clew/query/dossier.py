@@ -28,6 +28,7 @@ from pathlib import Path
 from ._common import (
     DbSource,
     candidate_rows,
+    capped_detail,
     connect,
     extract_version,
     function_candidates,
@@ -100,39 +101,16 @@ def _sibling_prose(conn: sqlite3.Connection, fn: str) -> tuple[str, str]:
     return "", ""
 
 
-## How much `@details` prose a dossier carries before it says it stopped.
-##
-## MEASURED RATHER THAN GUESSED, on mbedtls: 4,268 rows carry detail, averaging 1,052 characters,
-## and 4,195 of them (98%) are under 6,000. A dossier describes ONE subject and already returns a
-## full function body, so ~1 KB of prose is not the cost risk; the 14,804-character tail is.
-_DETAIL_CAP = 4000
-
-## What a truncated detail says, with the length it stopped at. NEVER a silent cut: this repo's
-## standing rule is that a bounded answer must say what was dropped, because a silently truncated
-## reply reads as a complete one — the failure mode that makes "covered everything" a lie.
-_DETAIL_CUT = (
-    "… [detail truncated at {cap} of {total} characters — read the declaration for the rest]"
-)
-
-
-## @brief Bound the detail prose, saying so when it is cut.
-## @param text The stripped detail prose.
-## @return The prose, or its first `_DETAIL_CAP` characters plus an explicit notice.
-## @version 1
-## @dg_internal
-def _capped_detail(text: str) -> str:
-    """@brief Cap detail prose with an explicit truncation notice.
-    @return Possibly-truncated prose; never silently cut.
-    @version 1
-    """
-    if len(text) <= _DETAIL_CAP:
-        return text
-    return text[:_DETAIL_CAP] + _DETAIL_CUT.format(cap=_DETAIL_CAP, total=len(text))
+## The cap, the notice and the capping function MOVED TO `_common.py` in C1, when the file subject
+## needed the identical bound on its file-level documentation. Both are an unbounded SCALAR inside
+## a payload whose budget trims only LISTS, so they are one hazard and want one implementation —
+## see `_common.capped_detail` for the measurement that set the number.
 
 
 ## @brief Fetch identity fields (name/signature/file/lines/brief/detail/version/static).
 ## @return A dict of the function's identity columns, or None if the rowid has no memberdef row.
-## @version 3
+## Calls the shared `_common.capped_detail` since C1; the cap and the notice are unchanged.
+## @version 4
 ## @dg_internal
 def _identity(conn: sqlite3.Connection, rowid: int) -> dict | None:
     """@brief Read one function's identity columns (definition row already chosen).
@@ -156,7 +134,7 @@ def _identity(conn: sqlite3.Connection, rowid: int) -> dict | None:
     ## `mbedtls_ssl_handshake_step`'s detaileddescription, two graded Q2 marks turn on it, and the
     ## agent found it by grepping and then READING `include/mbedtls/ssl.h` — twice — because the
     ## dossier returned one sentence of brief.
-    detail = _capped_detail(strip_xml(row[7]))
+    detail = capped_detail(strip_xml(row[7]))
     if not brief and not version:
         # The chosen row has no prose. Fall back to a sibling declaration row of the
         # SAME function before concluding the function is undocumented — see

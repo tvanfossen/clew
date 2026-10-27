@@ -488,7 +488,10 @@ def test_the_dossier_returns_detail_prose_and_caps_it_loudly(tmp_path: Path) -> 
     reply reads as a complete one, which is the failure this project keeps paying for — so the
     notice names both the cap and the true length.
     """
-    from clew.query.dossier import _DETAIL_CAP, _capped_detail
+    ## The cap and the capper MOVED to `_common` in C1, when the file subject needed the same
+    ## bound on its file-level documentation. Same constant, same notice, one implementation.
+    from clew.query._common import DETAIL_CAP as _DETAIL_CAP
+    from clew.query._common import capped_detail as _capped_detail
 
     db = tmp_path / "clew.db"
     conn = sqlite3.connect(str(db))

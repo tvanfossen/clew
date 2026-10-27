@@ -16,6 +16,16 @@ index already held**:
 The file-path row is the starkest: every path the model passed was a file this index had scanned,
 and the reply said "not found". The information to redirect it was one query away.
 
+**THAT ROW IS NOW MOSTLY ANSWERED RATHER THAN REDIRECTED.** C1 made a file path a `dossier`
+subject, so an exact indexed path resolves and never reaches this module at all. What survives
+here is the spelling gap — a basename or a partial prefix where the index stores a full
+repo-relative path — and the hint names the path AS STORED so the next call can be made verbatim.
+The first version of this hint sent the reader to `search(corpus="files")`, which returns a path,
+a symbol count and an owning tree and carries NO DOCUMENTATION FIELD: advice written in this
+repository, pointing at a surface that could not answer the question it was given. Deriving the
+destination from what a corpus actually serves, rather than from which corpus sounds right, is the
+same discipline the `signature` defect taught one module over.
+
 THIS MODULE ONLY EVER NAMES WHAT IT FOUND. It returns an empty hint rather than a speculative
 one — 29 of those 121 bare names genuinely have no neighbour, and inventing advice for them would
 make the hint untrustworthy everywhere else. A hint that is sometimes fabricated is worse than no
@@ -175,14 +185,17 @@ def _name_exists(conn: sqlite3.Connection, name: str) -> bool:
 # @param db The index database, or None when there is none to read.
 # @param subject The subject as the caller passed it.
 # @return One sentence naming a concrete next call, or "" when nothing was found.
-# @version 1
+## Check 1's description changed with C1: an exact indexed path is a `dossier` subject now, so
+## what reaches this module is the spelling gap, and the hint names the path as stored.
+# @version 2
 # @req REQ-DDB-QUERY-013
 def recovery_hint(db: str | Path | None, subject: str | None) -> str:
     """THREE CHECKS, IN THE ORDER THAT MATCHES THE MEASURED FREQUENCIES, and each one returns only
     what it actually found in the index:
 
-      1. the subject is a FILE this index holds -> `dossier` describes symbols; name the tool that
-         answers about files instead. 48 of 48 such subjects were indexed paths.
+      1. the subject is a FILE this index holds UNDER ANOTHER SPELLING -> name the path as stored,
+         for `dossier` itself, which has answered about files since C1. 48 of 48 such subjects
+         were indexed paths; the exact-spelling majority now resolves and never arrives here.
       2. the subject is QUALIFIED and its bare tail resolves -> the selector wants a bare `subject`
          plus `qualified=`, which the served parameter text says and the model did not do. 51 of 54.
       3. the subject is BARE and a qualified form exists -> name it. 92 of 121.
@@ -195,7 +208,7 @@ def recovery_hint(db: str | Path | None, subject: str | None) -> str:
     @param db The index database or None.
     @param subject The subject.
     @return The hint, or "".
-    @version 1
+    @version 2
     """
     if db is None or not subject:
         return ""
@@ -212,7 +225,9 @@ def recovery_hint(db: str | Path | None, subject: str | None) -> str:
 # @param conn Open connection.
 # @param subject The subject as the caller passed it.
 # @return The hint, or "".
-# @version 1
+## C1 made a file path a `dossier` subject, so check 1's destination changed from
+## `search(corpus="files")` — which serves no documentation — to `dossier` on the path as stored.
+# @version 2
 # @dg_internal
 def _hint_from(conn: sqlite3.Connection, subject: str) -> str:
     """Split from `recovery_hint` so the failure handling and the logic are separately readable,
@@ -222,16 +237,19 @@ def _hint_from(conn: sqlite3.Connection, subject: str) -> str:
     @param conn Open connection.
     @param subject The subject.
     @return The hint or "".
-    @version 1
+    @version 2
     """
     if looks_like_path(subject):
         found = _indexed_path(conn, subject)
-        if found:
+        ## `found == subject` CANNOT REACH HERE on a current index — an exact path resolves as a
+        ## file subject and never misses — but the guard stays, because this module is called from
+        ## a reply that has already failed and must not advise re-making the call that just failed.
+        if found and found != subject:
             return (
-                f" THIS INDEX HOLDS THE FILE {found!r}, but `dossier` describes SYMBOLS, not "
-                f"files — a path can never be a `subject`. Use "
-                f'`search(corpus="files", text="{Path(found).name}")` to enumerate it, or '
-                f"`dossier` on a symbol defined in it."
+                f" THIS INDEX HOLDS THE FILE {found!r}, under that spelling and not the one you "
+                f"passed. A FILE IS A SUBJECT: call "
+                f'`dossier(subject="{found}")` for its file-level documentation, its symbol count '
+                f"and the symbols it defines."
             )
         return ""
 

@@ -25,8 +25,16 @@ import fnmatch
 import re
 import sqlite3
 
-from ..vocabulary import EXTERNAL_ROOT_COLUMN
-from ._common import MAX_CANDIDATES, DbSource, connect, has_columns, strip_xml, table_exists
+from ..vocabulary import EXTERNAL_ROOT_COLUMN, UNRESOLVED_PATH_COLUMN
+from ._common import (
+    MAX_CANDIDATES,
+    DbSource,
+    capped_detail,
+    connect,
+    has_columns,
+    strip_xml,
+    table_exists,
+)
 from .models import (
     ClassCandidate,
     ClassEntry,
@@ -34,6 +42,8 @@ from .models import (
     DirectoryEntry,
     DirectoryInventory,
     FileEntry,
+    FileMember,
+    FileSubject,
     IndexScope,
     ProseHit,
     ProseSearch,
@@ -152,6 +162,215 @@ def list_files(db: DbSource, pattern: str | None = None) -> list[FileEntry]:
         for name, count, owner_root in rows
         if not SYNTHETIC_PATH.match(name) and (pattern is None or _matches(name, pattern))
     ]
+
+
+## The file subject's member cap. Generous next to the `search` corpora's caps because the
+## rows are three short columns and the question this subject answers — "what is in this
+## file" — is answered badly by a sample. mbedtls's largest indexed file declares 312
+## symbols, so this reaches every file in the acceptance targets and `members_truncated`
+## names the cut when some repository exceeds it.
+_FILE_MEMBER_CAP = 400
+
+
+## @brief The `path` predicate that selects one file row, degrading when `type` is absent.
+## @param conn Open connection.
+## @param name The repo-relative path.
+## @return An SQL fragment and its parameters, for use after `WHERE`.
+## @version 1
+## @dg_internal
+def _one_file_clause(conn: sqlite3.Connection, name: str) -> tuple[str, list[object]]:
+    """THE GRACEFUL-DEGRADATION CONTRACT, and it caught this function's first draft. This
+    repository's minimal test indexes create `path (rowid, name)` and nothing more, so a query
+    naming `type` raises `no such column` rather than answering thinly — which is the failure
+    `has_columns` exists to prevent and which 14 existing tests reported the moment the file
+    probe started running against every bare name.
+
+    Without `type` the name alone selects the row. That is no less correct here than elsewhere:
+    `type` separates doxygen's file rows from its directory rows, and an index with neither
+    column has no directory rows to confuse a path with.
+
+    @brief Build the one-file WHERE predicate for whatever columns this index has.
+    @return The fragment and its parameters.
+    @version 1
+    """
+    if has_columns(conn, "path", "type"):
+        return "p.type = ? AND p.name = ?", [PATH_TYPE_FILE, name]
+    return "p.name = ?", [name]
+
+
+## @brief True when this index holds a non-synthetic `path` row for exactly this name.
+## @param conn Open connection.
+## @param name The candidate repo-relative path.
+## @return True when the index knows of a file by that name.
+## @version 1
+## @req REQ-DDB-QUERY-004
+def is_indexed_file(conn: sqlite3.Connection, name: str) -> bool:
+    """EXACT MATCH, NOT A SUFFIX MATCH, and that is the whole reason this probe is safe to
+    run against every bare name `dossier` is given. `path.name` holds repo-relative paths, so
+    no ordinary identifier equals one and adding this probe cannot change what any existing
+    bare name resolves to. A suffix match would: `dm.c` would resolve as a file and shadow
+    whatever symbol spells itself that way.
+
+    The synthetic row is excluded for the reason `list_files` excludes it — `[STL]` is
+    doxygen's placeholder owner for standard-library symbols, not a file anyone can open, and
+    a subject whose purpose is naming a readable file must not serve one that is not.
+
+    @brief Probe the file corpus for an exact path.
+    @return Whether the path is an indexed file.
+    @version 1
+    """
+    if not name or SYNTHETIC_PATH.match(name) or not table_exists(conn, "path"):
+        return False
+    where, params = _one_file_clause(conn, name)
+    row = conn.execute(
+        f"SELECT 1 FROM path p WHERE {where} LIMIT 1",
+        params,  # noqa: S608
+    ).fetchone()
+    return row is not None
+
+
+## @brief Whether this index holds harvested content for a file, as opposed to merely its name.
+## @param conn Open connection.
+## @param name The repo-relative path.
+## @return True when the file resolved to content; False when it is a name the index could not read.
+## @version 1
+## @dg_internal
+def _was_harvested(conn: sqlite3.Connection, name: str) -> bool:
+    """NOT `symbol_count > 0`, and the distinction is the reason `FileSubject` exists in the
+    shape it does. A header recorded from an `#include` doxygen never resolved carries zero
+    symbols; so does a file that was read and declares nothing. The first is "I know of this
+    file and could not read it" and the second is "I read it and it defines nothing".
+
+    `dg_unresolved` is preferred and `found` is the fallback, which is the same order
+    `graph.py`'s real-file filter uses: clew's column is derived from whether the path exists
+    on disk, doxygen's from whether it resolved the include, and an index built before the
+    first still carries the second. Neither column is invented when absent — an index with
+    neither cannot measure this, and reports the file as harvested only because a `path` row
+    with no disclosure of unresolvedness is a row doxygen wrote about a file it read.
+
+    @brief Read whichever unresolved-path signal this index carries.
+    @return Whether the file resolved to content.
+    @version 1
+    """
+    where, params = _one_file_clause(conn, name)
+    if has_columns(conn, "path", UNRESOLVED_PATH_COLUMN):
+        row = conn.execute(
+            f"SELECT COALESCE(p.{UNRESOLVED_PATH_COLUMN}, 0) FROM path p "  # noqa: S608
+            f"WHERE {where} LIMIT 1",
+            params,
+        ).fetchone()
+        if row is not None and row[0]:
+            return False
+    if not has_columns(conn, "path", "found"):
+        return True
+    row = conn.execute(
+        f"SELECT COALESCE(p.found, 1) FROM path p WHERE {where} LIMIT 1",
+        params,  # noqa: S608
+    ).fetchone()
+    return bool(row[0]) if row is not None else True
+
+
+## @brief Everything this index holds about ONE file, as a dossier subject.
+## @param conn Open connection.
+## @param name The repo-relative path, exactly as `path.name` spells it.
+## @return The FileSubject, or None when the index knows of no such file.
+## @version 1
+## @req REQ-DDB-QUERY-004
+def file_subject(conn: sqlite3.Connection, name: str) -> FileSubject | None:
+    """C1 of the 1.1.0 acceptance review, and the single largest item in it: 48 of 237 missed
+    `dossier` subjects were file paths, and five graded clusters carrying 31 weight lost marks
+    that are file-level claims.
+
+    THE DOCUMENTATION IS THE POINT. `file_docs` held 2,794 characters about `clew/tiers.py`
+    and the only route to it was `search`, whose file half is a token CONJUNCTION — a caller
+    had to guess words appearing in the prose it was trying to read, and its hit was ranked
+    against member and markdown hits. Read HERE by exact path, which is the lookup the caller
+    was actually trying to express.
+
+    `file_docs` IS OPTIONAL and its absence is not an empty document. An index built before
+    gh#10 has no such table, so `documentation` is `''` — and `has_file_docs` is what
+    distinguishes that from a file carrying no comment. Reported once for the index rather
+    than repeated on every file, because it is a fact about the build.
+
+    @brief Build the file subject by exact path.
+    @return FileSubject or None.
+    @version 1
+    """
+    if not is_indexed_file(conn, name):
+        return None
+    owner = f"p.{EXTERNAL_ROOT_COLUMN}" if has_columns(conn, "path", EXTERNAL_ROOT_COLUMN) else "''"
+    where, params = _one_file_clause(conn, name)
+    root = conn.execute(
+        f"SELECT COALESCE({owner}, '') FROM path p WHERE {where} LIMIT 1",  # noqa: S608
+        params,
+    ).fetchone()
+    members = _file_members(conn, name)
+    return FileSubject(
+        path=name,
+        documentation=_file_documentation(conn, name),
+        ## COUNTED OFF THE SAME ROWS THE LIST IS BUILT FROM, so the two cannot disagree —
+        ## and counted before the cap, so a truncated list still reports the true total.
+        symbol_count=len(members),
+        members=tuple(members[:_FILE_MEMBER_CAP]),
+        harvested=_was_harvested(conn, name),
+        external_root=(root[0] if root else "") or "",
+        members_truncated=len(members) > _FILE_MEMBER_CAP,
+    )
+
+
+## @brief This file's file-level documentation, or '' when it carries none.
+## @param conn Open connection.
+## @param name The repo-relative path.
+## @return The documentation text, or '' when absent or the corpus is not in this index.
+## @version 1
+## @dg_internal
+def _file_documentation(conn: sqlite3.Connection, name: str) -> str:
+    """@brief Read one `file_docs` row by exact path.
+    @return The documentation, or ''.
+    @version 1
+    """
+    if not table_exists(conn, "file_docs"):
+        return ""
+    row = conn.execute("SELECT doc FROM file_docs WHERE file_path = ? LIMIT 1", (name,)).fetchone()
+    ## CAPPED with the shared bound, for the reason `capped_detail` documents: `documentation` is
+    ## a scalar, so `_shrink_to_budget` — which trims lists — cannot see it, and a 2,794-character
+    ## module docstring is the small end of what this field can hold.
+    return capped_detail((row[0] if row else "") or "")
+
+
+## @brief The symbols this file defines, name-ordered.
+## @param conn Open connection.
+## @param name The repo-relative path.
+## @return One FileMember per DISTINCT symbol name, in name order.
+## @version 1
+## @dg_internal
+def _file_members(conn: sqlite3.Connection, name: str) -> list[FileMember]:
+    """DISTINCT BY NAME, to match what `FileEntry.symbol_count` counts. doxygen writes
+    several `memberdef` rows for one name — a declaration in a header and a definition in the
+    body file both land under their own `file_id`, and a function-like macro's wrapped struct
+    fields share the macro's name — so counting rows would report a figure `list_files` and
+    `DirectoryEntry` contradict for the same file.
+
+    The lowest line among a name's rows is reported, because that is where a reader looking
+    for the symbol in this file should start.
+
+    @brief Read the file's distinct symbols with kind and line.
+    @return The members, name-ordered.
+    @version 1
+    """
+    if not table_exists(conn, "memberdef") or not has_columns(conn, "memberdef", "file_id"):
+        return []
+    line = "MIN(COALESCE(m.line, 0))" if has_columns(conn, "memberdef", "line") else "0"
+    kind = "MIN(m.kind)" if has_columns(conn, "memberdef", "kind") else "''"
+    where, params = _one_file_clause(conn, name)
+    rows = conn.execute(
+        f"SELECT m.name, {kind}, {line} FROM memberdef m "  # noqa: S608
+        f"JOIN path p ON p.rowid = m.file_id "
+        f"WHERE {where} AND m.name <> '' "
+        f"GROUP BY m.name ORDER BY m.name",
+        params,
+    ).fetchall()
+    return [FileMember(name=n, kind=k or "", line=ln or 0) for n, k, ln in rows]
 
 
 ## @brief File-level documentation rows matching EVERY token, or [] when unindexed.

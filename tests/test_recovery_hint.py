@@ -168,25 +168,82 @@ def test_a_qualified_subject_is_told_to_split_it(index: Path) -> None:
 @pytest.mark.parametrize(
     "subject",
     [
-        pytest.param("src/inference/llama_cpp_tokenizer.cpp", id="exact"),
         pytest.param("./src/inference/llama_cpp_tokenizer.cpp", id="dot-prefixed"),
         pytest.param("llama_cpp_tokenizer.cpp", id="basename-only"),
+        pytest.param("inference/llama_cpp_tokenizer.cpp", id="partial-prefix"),
     ],
 )
 def test_a_file_path_subject_is_redirected(index: Path, subject: str) -> None:
     """**48 OF 48 — THE ONLY MODE THAT WAS FULLY RECOVERABLE.** Every path the model passed was a
-    file this index had scanned. All three spellings are tested because the model passed all three
-    and the index stores one.
+    file this index had scanned.
 
-    @brief A path subject is redirected.
+    THE DESTINATION CHANGED AND THE PROPERTY DID NOT. This hint used to redirect to
+    `search(corpus="files")` and to assert that `search(` appeared in it. That was the best
+    available route when it was written and it was a poor one: the `files` corpus returns a path,
+    a symbol count and an owning tree, and **no documentation field at all** — so a model sent
+    there to find out what a file is for arrived somewhere that cannot say. C1 built the file
+    subject, so the hint now names `dossier` on the path the index actually stores, which answers
+    in the one call the hint is spent on.
+
+    THE `exact` CASE IS GONE FROM THIS LIST because it no longer reaches a hint: an exact indexed
+    path RESOLVES, which is what
+    `test_an_exact_indexed_path_resolves_rather_than_being_hinted_at` pins. `partial-prefix`
+    replaces it so the suffix leg of `_indexed_path` is still covered — the three spellings here
+    are the three the model actually passed, minus the one the index now answers outright.
+
+    @brief A path subject the index holds under a different spelling is redirected.
     @param subject The path.
     @return None.
     @version 1
     """
     hint = recovery_hint(index, subject)
 
-    assert "llama_cpp_tokenizer.cpp" in hint, f"the hint did not name the file: {hint!r}"
-    assert "search(" in hint, f"the hint did not name the tool that answers about files: {hint!r}"
+    assert "src/inference/llama_cpp_tokenizer.cpp" in hint, (
+        f"the hint must name the path AS THE INDEX STORES IT, so the next call can be made "
+        f"verbatim: {hint!r}"
+    )
+    assert "dossier(" in hint, f"the hint did not name the tool that now answers: {hint!r}"
+    assert "search(corpus=" not in hint, (
+        f"the `files` corpus carries no documentation field; sending a reader there to learn "
+        f"what a file is for is the dead end C1 replaced: {hint!r}"
+    )
+
+
+##
+# @brief An exact indexed path is a subject now, so it must not be hinted at.
+# @param index The seeded database.
+# @param tmp_path Per-test temporary directory.
+# @return None.
+# @version 1
+def test_an_exact_indexed_path_resolves_rather_than_being_hinted_at(
+    index: Path, tmp_path: Path
+) -> None:
+    """THE HINT WAS A STOPGAP AND THIS IS THE FIX IT WAS STANDING IN FOR. 48 of 237 unanswered
+    subjects were file paths and every one was a file the index had scanned; a hint turned that
+    into two calls, and a subject turns it into none.
+
+    So the correct assertion on an exact path is no longer "the note names the file" — it is that
+    there is no note, because there was no miss. A hint still served here would mean the subject
+    did not resolve.
+
+    @brief An indexed path answers rather than advising.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server.tools_query import QueryTools
+
+    tools = QueryTools(lambda: index, lambda: tmp_path)
+
+    reply = tools.dossier("src/inference/llama_cpp_tokenizer.cpp")
+
+    assert reply.get("found") is not False, (
+        f"an exact indexed path must resolve as a file subject, not carry a hint: {reply!r}"
+    )
+    assert reply["subject_kind"] == "file"
+    assert recovery_hint(index, "src/inference/llama_cpp_tokenizer.cpp") == "", (
+        "a path that resolves must produce no hint — a hint is for a miss, and advertising one "
+        "beside a hit is how a reader learns to distrust both"
+    )
 
 
 ##
@@ -277,6 +334,13 @@ def test_the_hint_reaches_the_mcp_surface_on_a_single_miss(index: Path, tmp_path
     attribution, that is the LARGEST mode — 48 of 129 unanswered subjects, and the only one that
     was 100% recoverable: every path the model passed was a file the index had scanned.
 
+    THE SPELLING IS NOW A BASENAME, not the exact path this test used to pass. An exact path
+    resolves as a file subject since C1, so it is no longer a miss and can no longer carry a miss
+    note — `test_an_exact_indexed_path_resolves_rather_than_being_hinted_at` asserts that
+    directly. A basename is still a miss (the probe is an exact match on `path.name`, deliberately,
+    so no identifier can collide with it) and is still a spelling the model produced, so the wire
+    property this test exists for is unchanged and still has a subject to hold it.
+
     `found` is asserted still False in the same breath: a hint is an extra field on a negative,
     and turning near misses into hits would be far worse than the silence it replaces.
 
@@ -288,13 +352,14 @@ def test_the_hint_reaches_the_mcp_surface_on_a_single_miss(index: Path, tmp_path
 
     tools = QueryTools(lambda: index, lambda: tmp_path)
 
-    missed = tools.dossier("src/inference/llama_cpp_tokenizer.cpp")
+    missed = tools.dossier("llama_cpp_tokenizer.cpp")
 
     assert missed["found"] is False, "a hint must not turn a miss into a hit"
-    assert "llama_cpp_tokenizer.cpp" in missed["note"], (
-        f"the served miss note does not name the file the index holds: {missed['note']!r}"
+    assert "src/inference/llama_cpp_tokenizer.cpp" in missed["note"], (
+        f"the served miss note does not name the file the index holds, as it holds it: "
+        f"{missed['note']!r}"
     )
-    assert "search(" in missed["note"], (
+    assert "dossier(" in missed["note"], (
         f"the note does not name the tool that answers about files: {missed['note']!r}"
     )
 
