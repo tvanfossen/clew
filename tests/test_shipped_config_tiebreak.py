@@ -175,3 +175,80 @@ def test_a_disagreement_with_no_shipped_site_is_still_dropped(tmp_path: Path) ->
     assert not gate.default_state, (
         f"an unresolvable disagreement invented a default: {gate.default_state!r}"
     )
+
+
+##
+# @brief When every site AGREES, the shipped config is still the one to cite.
+# @param tmp_path Per-test temporary directory.
+# @return None.
+# @version 1
+def test_agreeing_sites_still_cite_the_shipped_config(tmp_path: Path) -> None:
+    """THE OTHER HALF OF THE SAME EVIDENCE PROBLEM, found by replaying the frozen mbedtls index.
+    `dossier("MBEDTLS_THREADING_C")` now reports `default_state: 'off'` correctly — all three
+    `config_defaults` rows agree — and cites
+    `default_site: 'configs/config-symmetric-only.h:73'`.
+
+    That is an ALTERNATE BUILD PROFILE. The repository's own shipped header says the same thing at
+    `include/mbedtls/mbedtls_config.h:3787`, and it is the file a default build actually reads.
+    With no disagreement to settle, `_with_defaults` kept the first row it encountered, which is
+    whichever file path sorted first — `configs/` before `include/`.
+
+    THE STATE WAS NEVER WRONG; THE CITATION WAS. mbedtls Q3's marks are about what the DEFAULT
+    build does, and `default_site` is the field a reader follows to check the claim. Sending them
+    to a non-default profile invites them to doubt a correct answer — and `default_site` exists
+    precisely "so a reader can disagree with the choice", which it cannot do usefully against a
+    file that is not in play.
+
+    `is_shipped_config` is already the rule for the disagreement case one function up, so this
+    adds no new judgement about which file is authoritative — it applies the existing one when
+    the states happen to match.
+
+    @brief An agreeing set cites the repository's own header.
+    @return None.
+    @version 1
+    """
+    conn = _conn(
+        tmp_path,
+        [
+            ("off", "configs/config-symmetric-only.h", "heuristic"),
+            ("off", "include/mbedtls/mbedtls_config.h", "heuristic"),
+            ("off", "tests/configs/config_test_driver.h", "heuristic"),
+        ],
+    )
+
+    gate = _with_defaults(conn, (_gate(),))[0]
+
+    assert gate.default_state == "off", "the state was already right and must stay right"
+    assert "mbedtls_config.h" in gate.default_site, (
+        f"with every site agreeing, the citation must still be the repository's own shipped "
+        f"header rather than whichever path sorted first: {gate.default_site!r}"
+    )
+
+
+##
+# @brief A declared header still outranks the shipped-path heuristic when they agree.
+# @param tmp_path Per-test temporary directory.
+# @return None.
+# @version 1
+def test_a_declared_header_still_wins_an_agreeing_set(tmp_path: Path) -> None:
+    """THE PRECEDENCE MUST NOT INVERT. An operator naming a config header is better evidence than
+    a filename pattern, and that holds whether or not the states agree — so the agreeing-set rule
+    is a tie-break among HEURISTIC rows, never a promotion over a declared one.
+
+    @brief Declared beats shipped-path even with no disagreement.
+    @return None.
+    @version 1
+    """
+    conn = _conn(
+        tmp_path,
+        [
+            ("off", "include/mbedtls/mbedtls_config.h", "heuristic"),
+            ("off", "custom/operator_declared.h", "declared"),
+        ],
+    )
+
+    gate = _with_defaults(conn, (_gate(),))[0]
+
+    assert "operator_declared.h" in gate.default_site, (
+        f"a declared header must outrank the shipped-path heuristic: {gate.default_site!r}"
+    )

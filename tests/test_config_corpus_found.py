@@ -150,3 +150,36 @@ def test_an_empty_config_corpus_still_reads_as_empty(tmp_path: Path) -> None:
         "a corpus that matched nothing must still report a negative; the fix is about replies "
         "that DO carry rows"
     )
+
+
+# ─── the same collision on the dossier route ─────────────────────────────────
+
+
+## @brief A config SUBJECT serving gate rows must not report a negative either.
+## @version 1
+def test_the_config_subject_reply_is_not_a_negative(header_configured: Path) -> None:
+    """THE SAME DEFECT IN THE SECOND PLACE, and the reason the fix is a shared helper rather
+    than a line in `_search_config`.
+
+    Replayed against the frozen mbedtls index: `dossier("MBEDTLS_THREADING_C")` returns
+    `subject_kind: "config"`, **154 gate rows**, `gate_symbols: 1107` — and `found: false`. The
+    search route was corrected and the subject route served the same contradiction, which is how
+    `dossier("MBEDTLS_THREADING_C")` stayed in the still-empty list after the first fix landed.
+
+    Both routes serialize the same `KconfigSpace`, so both inherit the collision between
+    "a Kconfig file was located" and the surface-wide "this reply found something". One
+    reconciliation, applied wherever that dataclass reaches the wire.
+    """
+    reply = _tools(header_configured).dossier("MBEDTLS_THREADING_C")
+
+    assert reply.get("subject_kind") == "config", (
+        f"precondition failed: {reply.get('subject_kind')}"
+    )
+    assert reply.get("gates"), "precondition: the subject must carry its gate sites"
+    assert reply.get("found") is not False, (
+        f"the reply serves {len(reply['gates'])} gate row(s) for this symbol and reports "
+        f"found={reply.get('found')!r}"
+    )
+    assert reply.get("kconfig_found") is False, (
+        "the Kconfig-discovery fact must survive on the subject route too"
+    )

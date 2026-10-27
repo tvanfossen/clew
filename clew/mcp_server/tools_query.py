@@ -823,7 +823,9 @@ def _candidates_capped(db: Path | None, payload: dict[str, Any]) -> dict[str, An
 ## @param db Active database path, for the function-subject ambiguity probe; omit to skip it.
 ## @param depth The depth the CALLER asked for, so an unhonoured one can be disclosed.
 ## @return The flat payload, or None when nothing resolved.
-## @version 5
+## v6: a `config` section's `found` is reconciled on the way out — it means "a Kconfig FILE was
+## located", which collides with what `found` means on every other reply this surface sends.
+## @version 6
 ## @dg_internal
 def _flatten_subject(built: Any, db: Path | None = None, depth: int = 1) -> dict[str, Any] | None:
     """FLAT, NOT NESTED, and the reason is the budget rather than taste. Every trimmer on
@@ -850,6 +852,14 @@ def _flatten_subject(built: Any, db: Path | None = None, depth: int = 1) -> dict
     if section is None:
         return None
     payload: dict[str, Any] = {"subject": built.subject, "subject_kind": built.kind, **section}
+    ## THE CONFIG SECTION BRINGS ITS OWN `found`, meaning "a Kconfig FILE was located", which
+    ## collides with what `found` means everywhere else on this surface. Replayed against the
+    ## frozen mbedtls index: `dossier("MBEDTLS_THREADING_C")` served 154 gate rows,
+    ## `gate_symbols: 1107` and `found: false` in one reply. Reconciled by the same helper
+    ## `_search_config` uses — one rule wherever that dataclass reaches the wire, because fixing
+    ## the search route alone is exactly how this one stayed broken.
+    if built.kind == "config":
+        payload = _config_found_on_the_wire(payload)
     if built.also:
         payload["also"] = list(built.also)
     if built.chain is not None:
@@ -2312,7 +2322,9 @@ class QueryTools:
     ## @param symbol Restrict the gating-site list to one CONFIG symbol, or None for all.
     ## @param target Repo root or slug to answer from; omit for the server's derived target.
     ## @return Serialized KconfigSpace, always present so an empty space says why it is empty.
-    ## @version 3
+    ## v4: the Kconfig-discovery fact travels as `kconfig_found` here too, so all three routes
+    ## that serialize this dataclass reconcile the two meanings of `found` the same way.
+    ## @version 4
     ## @req REQ-DDB-MCP-003
     ## @dg_internal
     def _config_space(
@@ -2333,7 +2345,9 @@ class QueryTools:
         @version 2
         """
         return self._answered(
-            wire.one(q.kconfig_space(self.db(target, sub_index), symbol)),
+            _config_found_on_the_wire(
+                wire.one(q.kconfig_space(self.db(target, sub_index), symbol))
+            ),
             kind="configuration space",
             subject=symbol,
             target=target,

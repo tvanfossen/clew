@@ -57,7 +57,13 @@ from ._common import (
     table_exists,
     to_bool,
 )
-from .corpus import CLASS_KINDS, class_rows, file_doc_rows, gate_symbol_rows
+from .corpus import (
+    CLASS_KINDS,
+    class_rows,
+    file_doc_rows,
+    gate_symbol_rows,
+    undocumented_path_rows,
+)
 from .macros import MACRO_KIND
 from .models import (
     CallEdge,
@@ -1520,7 +1526,9 @@ def _memberdef_corpora(conn: sqlite3.Connection, query: str, tokens: list[str]) 
 ## @param query Whole lower-cased query string.
 ## @param tokens Lower-cased query tokens.
 ## @return Ranked candidate tuples with kind 'file'.
-## @version 1
+## v2: also reads `undocumented_path_rows`, so a file the index knows only BY NAME — the class C5
+## registers — is reachable in the DEFAULT corpus and not only through `corpus="files"`.
+## @version 2
 ## @dg_internal
 def _file_candidates(conn: sqlite3.Connection, query: str, tokens: list[str]) -> list[_Candidate]:
     """gh#10. The file's PATH is scored where a symbol's name is scored and its
@@ -1531,9 +1539,18 @@ def _file_candidates(conn: sqlite3.Connection, query: str, tokens: list[str]) ->
     `provenance` is `'file_doc'` so a consumer can tell at a glance that this row
     came from prose the author wrote about the FILE, not from a symbol record.
 
-    @brief Match and rank file-level documentation.
+    TWO READERS, ONE RANKING. `file_doc_rows` finds DOCUMENTED files; `undocumented_path_rows`
+    finds the ones the index knows only by name — the class C5 registers, which had no row here
+    at all and so could not appear in the DEFAULT corpus however the caller spelled the query.
+    Measured on an index rebuilt with C5 against the 1.1.0 transcripts: the agent asked for
+    `generate_errors` three ways and only `corpus="files"` answered, the default first and
+    emptiest. The two readers are disjoint by construction, so no path is doubled, and both go
+    through `_search_rank` — a documentation match outranks a bare path match because that table
+    scores prose below an identifier, not because anything here says so.
+
+    @brief Match and rank file-level documentation, and files known only by name.
     @return Ranked candidates.
-    @version 1
+    @version 2
     """
     return [
         (
@@ -1548,7 +1565,7 @@ def _file_candidates(conn: sqlite3.Connection, query: str, tokens: list[str]) ->
                 provenance="file_doc",
             ),
         )
-        for path, doc in file_doc_rows(conn, tokens)
+        for path, doc in [*file_doc_rows(conn, tokens), *undocumented_path_rows(conn, tokens)]
     ]
 
 

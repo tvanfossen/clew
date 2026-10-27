@@ -422,6 +422,57 @@ def file_doc_rows(conn: sqlite3.Connection, tokens: list[str]) -> list[tuple[str
     ).fetchall()
 
 
+## @brief Registered paths matching EVERY token that carry no file-level documentation.
+## @param conn Open connection.
+## @param tokens Lower-cased query tokens; all must appear in the path.
+## @return List of (repo-relative path, "") pairs in path order.
+## @version 1
+## @req REQ-DDB-QUERY-007
+def undocumented_path_rows(conn: sqlite3.Connection, tokens: list[str]) -> list[tuple[str, str]]:
+    """THE OTHER HALF OF `file_doc_rows`, and the half a C5-registered file falls into.
+
+    `symbols._file_candidates` built the default corpus's file rows from `file_doc_rows` alone, so
+    only a DOCUMENTED file could appear there. A file the index knows by name and harvested
+    nothing from has no `file_docs` row by construction — which is exactly the class C5 exists to
+    make nameable, so registration reached `corpus="files"` and not the corpus a reader tries
+    first. Measured on an index rebuilt with C5: of the three ways the 1.1.0 agent asked for
+    `generate_errors`, only `corpus="files"` answered.
+
+    DOCUMENTED FILES ARE EXCLUDED HERE rather than merged, so the two readers cannot both emit a
+    row for one path and double it in the reply. `file_doc_rows` keeps the documented ones and
+    this adds only what it cannot see.
+
+    THE DOCUMENTATION IS `""` AND THAT IS A MEASUREMENT: the file was registered and nothing was
+    harvested from it. `_search_rank` scores a path where it scores a symbol's name and
+    documentation where it scores a brief, so a bare path match is ranked below a documentation
+    match by the same table rather than by a rule written here.
+
+    @brief Match registered paths with no documentation against all query tokens.
+    @return List of (path, "") pairs.
+    @version 1
+    """
+    if not tokens or not table_exists(conn, "path"):
+        return []
+    where, params = ["p.name <> ''"], []
+    if has_columns(conn, "path", "type"):
+        where.append("p.type = ?")
+        params.append(PATH_TYPE_FILE)
+    for token in tokens:
+        where.append("LOWER(p.name) LIKE ?")
+        params.append(f"%{token}%")
+    documented = (
+        "AND NOT EXISTS (SELECT 1 FROM file_docs d WHERE d.file_path = p.name)"
+        if table_exists(conn, "file_docs")
+        else ""
+    )
+    rows = conn.execute(
+        f"SELECT p.name FROM path p WHERE {' AND '.join(where)} {documented} "  # noqa: S608
+        f"ORDER BY p.name",
+        params,
+    ).fetchall()
+    return [(name, "") for (name,) in rows if not SYNTHETIC_PATH.match(name)]
+
+
 ## @brief Member documentation rows matching EVERY token, or [] when unavailable.
 ## @param conn Open connection.
 ## @param tokens Lower-cased query tokens; all must appear in the name or either description.

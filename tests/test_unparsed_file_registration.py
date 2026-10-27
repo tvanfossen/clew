@@ -189,3 +189,96 @@ def test_no_harvester_claims_the_unparsed_types() -> None:
     for filename in UNPARSED_NAMES:
         assert not script_claims(filename), f"{filename} must not reach the script harvester"
         assert filename not in SCRIPT_NAMES, f"{filename} is claimed for harvest by SCRIPT_NAMES"
+
+
+# ─── the default corpus must find it too ─────────────────────────────────────
+
+
+## @brief A file registered by name is findable in the DEFAULT corpus.
+## @version 1
+def test_a_registered_file_is_findable_in_the_default_corpus(tmp_path: Path) -> None:
+    """REGISTRATION IS NOT REACH, AND THE 1.1.0 TRANSCRIPTS SHOW THE DIFFERENCE. mbedtls Q4's
+    `set` mark wants `scripts/generate_errors.pl` as a name in a list. The agent asked for it
+    three ways, in this order:
+
+        search("generate_errors")                   <- the DEFAULT corpus, tried FIRST
+        search("generate_errors", corpus="files")
+        search("generate_errors", corpus="prose")
+
+    Replayed against an index rebuilt with C5 in place, the middle one answers and the other two
+    return nothing. So the file is registered, and the corpus a reader reaches for first still
+    says there is no such thing.
+
+    THE CAUSE IS NARROW. `symbols._file_candidates` builds its file rows from
+    `corpus.file_doc_rows`, which reads `file_docs` — so only a DOCUMENTED file can appear in the
+    default corpus. A file the index knows by name and harvested nothing from has no such row by
+    construction, which is exactly the class of file C5 exists to make nameable.
+
+    The path is already the searchable unit here: `_search_rank(path, doc, ...)` scores a file's
+    PATH where a symbol's name is scored. Only the row's source was too narrow.
+
+    @brief The default corpus matches a registered path with no documentation.
+    @return None.
+    @version 1
+    """
+    import sqlite3
+
+    from clew.query.symbols import search
+
+    db = tmp_path / "clew.db"
+    conn = sqlite3.connect(str(db))
+    conn.execute(
+        "CREATE TABLE path (rowid INTEGER PRIMARY KEY, type INTEGER, local INTEGER, "
+        "found INTEGER, name TEXT)"
+    )
+    conn.commit()
+    conn.close()
+    register_paths(db, ["scripts/generate_errors.pl", "src/app.ts"])
+
+    names = [h.name for h in search(db, "generate_errors", limit=25)]
+    assert "scripts/generate_errors.pl" in names, (
+        f"the default corpus cannot find a file the index holds a path row for: {names}"
+    )
+
+
+## @brief Widening the corpus does not displace documented files.
+## @version 2
+def test_a_documented_file_is_not_displaced_by_a_name_only_match(tmp_path: Path) -> None:
+    """THE BOUND ON WIDENING THE CORPUS: the new rows must not push out the ones that already
+    carried evidence. Both files must be returned.
+
+    THIS TEST FIRST ASSERTED THE OPPOSITE RANKING AND WAS WRONG. It required a documentation
+    match to outrank a bare path match, which contradicts a rule this module states and enforces
+    deliberately: `_file_candidates`' own docstring says the path is scored where a symbol's name
+    is scored "so a conceptual token in prose stays weaker evidence than the same token in an
+    identifier — the property `_search_rank` exists to enforce." A token in a PATH is therefore
+    stronger evidence than the same token in prose, by design and by one shared weight table.
+
+    The preference I had written in was invented here rather than taken from that table, so the
+    assertion is now on what the widening must not break — presence — and the ordering is left to
+    the function that owns it.
+    """
+    import sqlite3
+
+    from clew.query.symbols import search
+
+    db = tmp_path / "clew.db"
+    conn = sqlite3.connect(str(db))
+    conn.execute(
+        "CREATE TABLE path (rowid INTEGER PRIMARY KEY, type INTEGER, local INTEGER, "
+        "found INTEGER, name TEXT)"
+    )
+    conn.execute("CREATE TABLE file_docs (file_path TEXT NOT NULL, doc TEXT NOT NULL)")
+    conn.execute(
+        "INSERT INTO file_docs VALUES ('src/errors.c', "
+        "'Generates the error table. See generate_errors for the generator.')"
+    )
+    conn.commit()
+    conn.close()
+    register_paths(db, ["scripts/generate_errors.pl"])
+
+    names = [h.name for h in search(db, "generate_errors", limit=25)]
+    assert "scripts/generate_errors.pl" in names, names
+    assert "src/errors.c" in names, (
+        f"widening the corpus must not displace a file whose DOCUMENTATION matches: {names}"
+    )
