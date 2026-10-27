@@ -60,17 +60,35 @@ CLASS_KINDS = ("class", "struct", "union", "interface", "enum")
 ## @param path Repo-relative path from the `path` table.
 ## @param pattern fnmatch pattern; matched against the full path and the basename.
 ## @return True when either the whole path or its basename matches.
-## @version 1
+## @version 2
 ## @dg_internal
 def _matches(path: str, pattern: str) -> bool:
     """Match the FULL repo-relative path first (so `app/src/*` and `*.cpp`
     both work), then fall back to the basename (so a bare `Battery*` finds a
     nested file). Case-sensitive, like the paths themselves.
 
-    @brief Glob-match a path or its basename.
+    **v2: A PATTERN WITH NO GLOB METACHARACTER IS TREATED AS A SUBSTRING.** This corpus takes a
+    glob while `symbols`, `prose` and `config` all take substrings, so a caller passes a bare term
+    here too and gets a confident empty. Measured on a graded cell:
+    `search(corpus="files", text="llama")` returned **count=0** against a repository holding seven
+    indexed `llama_cpp_*` source files, and the answer went on to conclude the dependency was
+    contained in one directory — the exact error the question was built to catch.
+
+    The reply made it worse by leading with the wrong reason: *"This corpus holds INDEXED SOURCE
+    FILES only, so a build script ... is absent here BY CONSTRUCTION"*, true in general and false
+    here, with "Re-glob more broadly" buried last.
+
+    **NOTHING THAT MATCHED BEFORE CAN CHANGE.** A bare word is never a valid repo-relative path,
+    so a metacharacter-free pattern previously matched a whole path or a whole basename or
+    nothing; substring matching is a strict superset of those two. A pattern containing `*`, `?`
+    or `[` is taken at its word and globs exactly as before.
+
+    @brief Glob-match a path or its basename, or substring-match a bare term.
     @return Whether the pattern matches.
-    @version 1
+    @version 2
     """
+    if not any(ch in pattern for ch in "*?["):
+        return pattern in path
     return fnmatch.fnmatchcase(path, pattern) or fnmatch.fnmatchcase(
         path.rsplit("/", 1)[-1], pattern
     )

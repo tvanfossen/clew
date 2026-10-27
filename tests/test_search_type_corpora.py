@@ -251,12 +251,21 @@ def test_an_undocumented_file_is_not_assumed_searchable(db: Path) -> None:
     coverage the searcher does not have, which is this defect one table over.
 
     The documented control is `src/pump.c`: it has a `file_docs` row, so it is FOUND
-    and never reaches the grader at all."""
+    and never reaches the grader at all.
+
+    THE CONTROL IS NOW "FOUND AND FIRST", NOT "FOUND AND ALONE". Symbol search gained the
+    containing file path as a match target, so a query naming a file also returns the symbols
+    defined in it — deliberately: a symbol whose file was named for the query used to be
+    reachable by no query at all (`search("loader")` returned 24 rows and none was
+    `_candidate_paths`, defined in `_loader.py`). The property this test guards is unchanged:
+    the documented file is found, the undocumented one is not. Only the incidental
+    exact-equality moved, and the file still ranks ahead of its own contents."""
     assert search(db, "legacy_shim") == []
     note, extra = search_emptiness(db, "legacy_shim")
     assert extra["unsearched_corpus_hits"] == {"file": 1}
     assert "NOT DEFINITIVE" in note
-    assert [h.name for h in search(db, "pump.c")] == ["src/pump.c"]
+    hits = [h.name for h in search(db, "pump.c")]
+    assert hits and hits[0] == "src/pump.c", f"the documented file is not the first hit: {hits}"
 
 
 ## @brief A multi-token miss keeps its per-token diagnosis and gains the unread finding.

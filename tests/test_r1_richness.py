@@ -310,7 +310,23 @@ def test_extract_threads_std_thread_single_call_lambda(tmp_path: Path) -> None:
 
 def test_extract_threads_std_thread_multicall_lambda_fail_closed(tmp_path: Path) -> None:
     """A lambda body with MORE THAN ONE call is ambiguous (which is the loop?)
-    and must fail closed — no thread attributed to an arbitrary helper."""
+    and must fail closed — no thread attributed to an arbitrary helper.
+
+    **THE ASSERTION USED TO BE `count == 0` AND THAT OVERREACHED ITS OWN RATIONALE.** Failing
+    closed on WHICH FUNCTION the thread runs is right, and this test still enforces it: the row
+    below carries `entry_memberdef_rowid IS NULL` and does not borrow `setup` or `serve` as a
+    name. Refusing the ROW ENTIRELY is a different claim — it says no thread exists — and that
+    was measured wrong: the entropic index held 5 of 9 thread sites, all four missing ones were
+    multi-statement lambdas, and the graded answer reported 5 threads and was scored against 9.
+    Its own caveat named the cause.
+
+    `insert_threads` has always documented a NULL entry as "thread present, no closure", so the
+    row had somewhere to go the whole time. The name comes from the assignment target (`t_`),
+    which is also what keeps several such spawns from collapsing into one row under
+    UNIQUE(name, entry, kind).
+
+    So the specification narrowed from "no row" to "a row with no entry", on evidence. The
+    ambiguity itself is still refused."""
     src = tmp_path / "src"
     src.mkdir()
     (src / "foo.cpp").write_text(
@@ -328,9 +344,17 @@ def test_extract_threads_std_thread_multicall_lambda_fail_closed(tmp_path: Path)
     )
     extract_threads(db, tmp_path, None)
     conn = sqlite3.connect(str(db))
-    n = conn.execute("SELECT count(*) FROM threads").fetchone()[0]
+    rows = conn.execute("SELECT name, entry_memberdef_rowid FROM threads").fetchall()
     conn.close()
-    assert n == 0, "a multi-call lambda body is ambiguous and must not spawn a thread row"
+    assert len(rows) == 1, f"the thread exists and must be recorded: {rows}"
+    name, entry = rows[0]
+    assert entry is None, (
+        f"an ambiguous lambda body attributed an entry ({entry}) — that is the arbitrary-helper "
+        f"attribution this test exists to refuse"
+    )
+    assert name not in ("setup", "serve"), (
+        f"the row borrowed a helper's name ({name!r}) instead of the assignment target"
+    )
 
 
 def test_extract_threads_std_thread_member_pointer_qualified(tmp_path: Path) -> None:

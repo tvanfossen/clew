@@ -36,6 +36,7 @@ from ..vocabulary import (
     SEARCH_WEIGHT_NAME_SUBSTRING,
     SEARCH_WEIGHT_TOKEN_IN_BRIEF,
     SEARCH_WEIGHT_TOKEN_IN_NAME,
+    SEARCH_WEIGHT_TOKEN_IN_PATH,
 )
 from ._common import (
     DbSource,
@@ -1174,14 +1175,19 @@ DEFAULT_SEARCH_LIMIT = 25
 ## @return Sort score; larger means a better match.
 ## @version 2
 ## @dg_internal
-def _search_rank(name: str, brief: str, query: str, tokens: list[str]) -> int:
+def _search_rank(name: str, brief: str, query: str, tokens: list[str], path: str = "") -> int:
     """Order by how much of the match landed in the NAME, which is what a
     caller actually asked about — a token found only in prose is weaker
     evidence than the same token in the identifier.
 
+    v3 scores the CONTAINING FILE, last and least. A symbol whose file is named for the query was
+    previously unreachable by any natural query: measured on a graded cell, `search("loader")`
+    returned 24 rows and none was `_candidate_paths`, defined in `_loader.py` — the symbol an
+    agent needed and never saw. Ranked below a brief so a path match cannot bury a named one.
+
     @brief Score a search candidate.
     @return Relevance score.
-    @version 2
+    @version 3
     """
     lname = name.lower()
     score = 0
@@ -1191,6 +1197,7 @@ def _search_rank(name: str, brief: str, query: str, tokens: list[str]) -> int:
         score += SEARCH_WEIGHT_NAME_SUBSTRING
     score += SEARCH_WEIGHT_TOKEN_IN_NAME * sum(1 for t in tokens if t in lname)
     score += SEARCH_WEIGHT_TOKEN_IN_BRIEF * sum(1 for t in tokens if t in brief.lower())
+    score += SEARCH_WEIGHT_TOKEN_IN_PATH * sum(1 for t in tokens if t in path.lower())
     return score
 
 
@@ -1326,7 +1333,7 @@ def _one_line(text: str | None) -> str:
     return _doc_brief(flat)
 
 
-## @brief Ranked memberdef candidates of one kind whose name or brief carries every token.
+## @brief Ranked memberdef candidates of one kind whose name, brief, prose or FILE PATH carries every token.
 ## @param conn Open connection.
 ## @param query Whole lower-cased query string.
 ## @param tokens Lower-cased query tokens.
@@ -1334,7 +1341,13 @@ def _one_line(text: str | None) -> str:
 ## @param tier Tie-break tier for the hits produced.
 ## @param extra_prose SQL expression for a NON-XML prose column to match and to fall back to when the brief is empty; `''` for none.
 ## @return Ranked candidate tuples, one per distinct name, each disclosing a provenance-crossing drop.
-## @version 3
+##
+## v4: the clause also matches the CONTAINING FILE PATH, which was already joined and selected
+## and simply never matched on. Measured on a graded cell: `search("loader")` returned 24 rows
+## and none was `_candidate_paths`, defined in `_loader.py` — the symbol an agent needed, held by
+## the index, reachable by no natural query. Ranked at `SEARCH_WEIGHT_TOKEN_IN_PATH`, the lowest
+## of the four, so a path match cannot bury a named one.
+## @version 4
 ## @dg_internal
 def _memberdef_candidates(
     conn: sqlite3.Connection,
@@ -1370,14 +1383,16 @@ def _memberdef_candidates(
         return []
     clause = " AND ".join(
         [
+            ## THE PATH IS ALREADY JOINED AND SELECTED BELOW — it was simply never matched on.
+            ## That omission made a symbol unreachable by the name of the file holding it.
             "(LOWER(m.name) LIKE ? OR LOWER(COALESCE(m.briefdescription,'')) LIKE ? "
-            f"OR LOWER({extra_prose}) LIKE ?)"
+            f"OR LOWER({extra_prose}) LIKE ? OR LOWER(COALESCE(p.name,'')) LIKE ?)"
         ]
         * len(tokens)
     )
     params: list[str] = []
     for token in tokens:
-        params += [f"%{token}%"] * 3
+        params += [f"%{token}%"] * 4
     # `documented_first` makes doxygen's own row win the per-name collapse
     # below, so a parser-recovered row can never displace a documented one and
     # take its brief off this surface. See `_common.documented_first`.
@@ -1420,7 +1435,7 @@ def _memberdef_candidates(
         clean = strip_xml(brief) or _one_line(extra)
         candidates.append(
             (
-                -_search_rank(name, clean, query, tokens),
+                -_search_rank(name, clean, query, tokens, file),
                 tier,
                 name,
                 SymbolHit(
