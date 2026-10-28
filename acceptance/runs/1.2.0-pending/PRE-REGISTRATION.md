@@ -57,21 +57,42 @@ so that this run is comparable to the last on the one axis that matters.
 
 ## The criteria, fixed now
 
-### 1. Quality — the primary claim
+### 1. Quality — the primary claim, and what it is NOT
 
-**The `index_only` arm's mean per-cluster separation from `baseline` improves on −13.92 pt by
-more than the measured noise floor.**
+**The `index_only` arm's mean per-cluster separation from `baseline`, measured inside this run,
+by one grader, over 16 clusters.** That is the whole claim. One grading pass.
 
-The floor is measured on this grid, not carried over: `grade` runs at least twice over the
-identical frozen answers at one `(rubric_digest, grader_fingerprint)` pair, and the floor is the
-observed pass-to-pass spread. A movement inside the floor is **unresolved** — not a win, not a
-loss. The 1.1.0 floor was 8.95 pt mean absolute over 21 re-graded cells; if this run's floor
-lands near that, a movement under ~6.6 pt cannot be claimed either way, and that is the expected
-outcome rather than a surprise.
+**IT IS NOT A DELTA ON −13.92 pt, AND THAT NUMBER IS VOID AS A COMPARATOR.** `5b14197` found
+the grader's `_key` dropped a trailing `:LINE`, so an answer citing `path:line` could not match
+the member it named — one cell lost 18.5 points. That bug was DETERMINISTIC and it was
+ASYMMETRIC: it punished whichever arm cites line numbers, which is the citation style a code
+index encourages, so the arm under test was the one more likely to be penalised. Its own commit
+says every quality figure measured before it is void. A 1.2.0 number that "beats −13.92" would
+therefore be crediting a grader repair to the tool, which is this document's whole subject.
 
-**Pre-registered expectation: +3 pt, which is BELOW that floor.** This is written down so the
-likely result — "moved in the right direction, unresolved" — is recorded in advance as the
-expected one, and cannot later be presented as either a disappointment or a win.
+So −13.92 appears in the report as **history, labelled void, and nothing is subtracted from
+it.** The owner's ruling, 2026-10-28: the 1.1.0 answers are NOT re-graded — that is a different
+version of the tool and re-grading it to manufacture a comparator is backwards. The honest
+report is the within-run separation plus a plain statement that the cross-version comparison is
+unavailable. That is a weaker claim than 1.1.0 implied it would make, and it is the one the
+evidence supports.
+
+**NO NOISE FLOOR IS MEASURED ON THIS GRID.** A floor needs a second grading of identical
+answers with `--no-judge-cache` — with the cache on, pass two replays pass one and reports a
+floor of zero — and the ruling is one pass. Consequences, stated rather than left for a reader
+to notice:
+
+- **No movement may be called resolved or unresolved by a floor**, because there is no floor
+  from this instrument. 1.1.0's 8.95 pt is NOT reused: it was measured through the buggy grader
+  and so describes a different instrument.
+- What IS reported instead is the **spread across the 16 cluster gaps** — available from a
+  single pass and genuinely informative about the grid. It measures cluster-to-cluster variation
+  and **NOT judge variance**, and the report must say so in those words. Treating it as a judge
+  floor would be the same category error as reading an empty table as "nothing is there".
+
+**Pre-registered expectation: a separation still negative, in the −14 to −8 pt band.** Written
+down so the likely outcome — clew answers less completely than a shell agent on these questions,
+by somewhat less than before — is on record in advance as the EXPECTED one. It is not a win.
 
 ### 2. Retrieval — the secondary claim, and the one with evidence behind it
 
@@ -107,8 +128,9 @@ footnote.
 
 ## What would falsify the work
 
-- quality moves *against* clew outside the floor → published with its sign, and the retrieval
-  fixes did not buy what they were built for
+- the separation is more negative than −14 pt → published with its sign, and the retrieval
+  fixes did not buy what they were built for. No floor exists to appeal to, so a bad number is
+  reported as the number rather than as noise
 - retrieval improves and quality does not move → the ceiling is answer construction, not
   reachability, and the next release targets that instead
 - judge error rate above 2% → no quality figure from this run at all
