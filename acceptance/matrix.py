@@ -65,20 +65,37 @@ class TargetOutcome:
     detail: str = ""
 
 
-## @brief Every rubric under a targets root, one level deep.
+## @brief Every rubric under a targets root, one level deep, optionally a named subset.
 ## @param targets_root Directory holding one subdirectory per target.
+## @param only Target directory names to keep; None keeps every one.
 ## @return Sorted rubric paths.
-## @version 1
-def discover(targets_root: Path) -> list[Path]:
+## @version 2
+def discover(targets_root: Path, only: list[str] | None = None) -> list[Path]:
     """ONE LEVEL DEEP, which structurally excludes the private tree — it nests a repository
     directory under `internal/` — without this module naming it. `internal` is skipped by name
     as well, so a future flat layout there is still excluded rather than accidentally included.
 
+    A NAME THAT MATCHES NOTHING RAISES. Seven targets are authored and the published grid holds
+    three, so a subset selector is how a comparable run is reproducible from a recorded command
+    — and a typo that silently shrinks the grid would produce a run that looks like the one that
+    was asked for. The refusal names the unknown AND the available set, because "unknown target"
+    on its own sends the operator back to `ls`.
+
     @brief Find the shipped rubrics.
     @return Rubric paths.
-    @version 1
+    @version 2
     """
-    return sorted(p for p in targets_root.glob("*/questions.yaml") if p.parent.name != "internal")
+    found = sorted(p for p in targets_root.glob("*/questions.yaml") if p.parent.name != "internal")
+    if only is None:
+        return found
+    available = {p.parent.name for p in found}
+    unknown = sorted(set(only) - available)
+    if unknown:
+        raise ValueError(
+            f"no target named {', '.join(unknown)} under {targets_root} — "
+            f"available: {', '.join(sorted(available))}"
+        )
+    return [p for p in found if p.parent.name in set(only)]
 
 
 ## @brief Provision one target and return its rubric and root.
@@ -191,7 +208,11 @@ def run_phase(phase: str, argv: list[str]) -> bool:
 ## @brief Run every phase for every target.
 ## @param args Parsed driver arguments.
 ## @return Exit code — the number of targets that failed.
-## @version 1
+##
+## v2: a bad `--only` must refuse here rather than raise through the operator's terminal as a
+## traceback, and it must refuse BEFORE provisioning — provisioning clones and builds, so a typo
+## that reached it would cost a repository fetch before saying the name was wrong.
+## @version 2
 def drive(args) -> int:
     """PHASE-MAJOR, NOT TARGET-MAJOR, for generation and grading: every target generates before
     any target grades. A stop midway then leaves whole targets ungenerated rather than every
@@ -201,7 +222,11 @@ def drive(args) -> int:
     @return Number of failed targets.
     @version 1
     """
-    rubrics = discover(args.targets)
+    try:
+        rubrics = discover(args.targets, getattr(args, "only", None))
+    except ValueError as exc:
+        print(f"REFUSED — {exc}", file=sys.stderr)
+        return 1
     if not rubrics:
         print(f"REFUSED — no rubrics under {args.targets}", file=sys.stderr)
         return 1
@@ -255,16 +280,26 @@ def drive(args) -> int:
 
 ## @brief CLI entry point.
 ## @return Exit code.
-## @version 1
+##
+## v2: `--only` joins the flags, because the authored target set outgrew the published grid and a
+## comparable run has to be reproducible from the command that is recorded beside it.
+## @version 2
 def main() -> int:
     """@brief Drive a grid from one invocation.
     @return Exit code.
-    @version 1
+    @version 2
     """
     here = Path(__file__).resolve().parent
     parser = argparse.ArgumentParser(prog="acceptance.matrix", description=__doc__)
     parser.add_argument("--out", type=Path, required=True, help="grid output root")
     parser.add_argument("--targets", type=Path, default=here / "targets")
+    parser.add_argument(
+        "--only",
+        nargs="+",
+        default=None,
+        metavar="NAME",
+        help="run only these targets by directory name; an unknown name refuses the grid",
+    )
     parser.add_argument("--models", nargs="+", required=True)
     parser.add_argument("--replicates", type=int, default=1)
     parser.add_argument("--seed", type=int, default=7)
