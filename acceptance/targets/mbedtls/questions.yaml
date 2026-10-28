@@ -19,7 +19,7 @@ ground_truth: |
   a working tree at that commit with no modifications.
 
 judge:
-  model: claude-haiku-5-5
+  model: claude-sonnet-5-5
   samples_when_weight_at_least: 1
 
 index:

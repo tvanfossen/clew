@@ -54,13 +54,16 @@ def tally(root: Path) -> tuple[int, int, int, list[Path]]:
 ## @brief How many voted decisions had their samples disagree.
 ## @param root Run directory holding one subdirectory per target.
 ## @return (voted decisions, split decisions).
-## @version 1
+##
+## v2: the judge it compares against is `claude-sonnet-5-5`, not the answering model — the
+## comparison figure is unchanged because it still describes the 1.1.0 Sonnet 4.5 grid.
+## @version 2
 def splits(root: Path) -> tuple[int, int]:
     """THE ONE NOISE INDICATOR A SINGLE GRADING PASS CAN GIVE. A floor needs two passes over
     identical answers; the 1.2.0 run has one, and it changed the judge from
-    `claude-sonnet-4-5-20250929` to `claude-haiku-5-5`. Whether the cheaper judge disagrees with
-    ITSELF more often is visible without a second pass: on the Sonnet-graded 1.1.0 grid, 146 of
-    936 voted decisions split, 15.6%.
+    `claude-sonnet-4-5-20250929` to `claude-sonnet-5-5`. Whether the new judge disagrees with
+    ITSELF more often is visible without a second pass: on the 1.1.0 grid, 146 of 936 voted
+    decisions split, 15.6%.
 
     VOTED DECISIONS ONLY. A single-sample decision cannot split, so including it would dilute
     the rate by however many marks the rubric left unvoted — turning a fact about the judge into
@@ -71,7 +74,7 @@ def splits(root: Path) -> tuple[int, int]:
 
     @brief Voted and split decision counts.
     @return Voted, split.
-    @version 1
+    @version 2
     """
     voted = split = 0
     for path in sorted(root.glob("*/answers/*.grade.json")):

@@ -16,10 +16,10 @@ reading the clusters where clew lost.** That is the same shape. Stating it plain
 | what changed | from → to |
 |---|---|
 | `grader_fingerprint` | `9cc2b15baf93` → `5489758d9a50`, four moves |
-| `rubric_digest`, mbedtls | `43aae606077ca386` → `d05822f1233ad005` |
-| `rubric_digest`, entropic | `9c6dc8800d760d1e` → `f908046b6fa97f44` |
-| `rubric_digest`, self | `47cdb1e6a8e6c4bb` → `237ee289ee1b5023` |
-| judge model | `claude-sonnet-4-5-20250929` → `claude-haiku-5-5` |
+| `rubric_digest`, mbedtls | `43aae606077ca386` → `bbf6195f605be452` |
+| `rubric_digest`, entropic | `9c6dc8800d760d1e` → `705c131e354e5c22` |
+| `rubric_digest`, self | `47cdb1e6a8e6c4bb` → `d8447c7b18eafbf5` |
+| judge model | `claude-sonnet-4-5-20250929` → `claude-sonnet-5-5` |
 | tool code paths | 16 |
 
 **The grader change moved a published number in clew's favour, and that is the one to distrust
@@ -36,45 +36,73 @@ disclosure is not by itself a defence.
 
 **The rubric digests moved for TWO reasons, both in the `judge:` block and neither in a mark.**
 `samples_when_weight_at_least` went 2 → 1, so every mark is judged three times instead of
-single-sampled; and the judge model went `claude-sonnet-4-5-20250929` → `claude-haiku-5-5`. No
+single-sampled; and the judge model went `claude-sonnet-4-5-20250929` → `claude-sonnet-5-5`. No
 mark text, weight, `refs` or question was edited. That is checkable against
 `git log acceptance/targets/`, and a reader who does not trust this sentence should check it.
 
-### The judge is now the same model as the answering model, and that is a real cost
+### The judge, and why it is not the answering model
 
-Owner ruling, 2026-10-28: grade with `claude-haiku-5-5`. Sonnet 4.5 lists at $3/$15 per MTok
-against Haiku 5.5's $0.10/$0.50 — roughly 30× per token — and the judge and the model under
-test will both move over time regardless, so pinning the expensive one buys less than it looks.
-Three consequences, stated here rather than left for a reader to find:
+Owner decision, 2026-10-28, after the alternatives were priced rather than argued. The judge is
+`claude-sonnet-5-5`; the answering model stays `claude-haiku-5-5`.
 
-- **SELF-GRADING, AND THE TASKS DIFFER — WHICH COVERS MOST OF IT.** `judge.py` shows the judge
-  no arm, no model, no transcript and no other mark; it extracts and verifies ONE atomic mark
-  rather than generating an answer. So it cannot recognise its own output, and a style
-  self-preference would apply to BOTH arms' answers equally — the reported quantity is a
-  DIFFERENCE between arms, so that part cancels to first order.
-- **WHAT THE DIFFERENT TASK DOES NOT COVER, and it points clew's way.** Shared weights mean
-  shared blind spots. A judge that misreads what a mark ASKS can rule `hit` on an answer wrong
-  in the same way the judge is wrong — correlated error, not style preference. Correlated error
-  does NOT cancel in a difference: it lifts both arms and COMPRESSES THE SEPARATION TOWARD ZERO,
-  which makes clew's deficit read smaller than it is. The direction is therefore FLATTERING, and
-  nothing in this run measures it — the split rate below catches a judge disagreeing with
-  itself, not a judge and an answerer being wrong together. A separation closer to zero than
-  1.1.0's is consistent with this effect and with a real improvement, and this run cannot
-  distinguish them. Separating them needs a judge from a different family, which is 1.3.0's
-  problem and is recorded as such rather than claimed as handled.
-- **CAPABILITY IS NOT ASSUMED EITHER WAY.** Sonnet 4.5 is marked deprecated in current docs and
-  Haiku 5.5 is a later generation, so "cheaper" is not evidence of "weaker" — but no benchmark
-  of either model on THIS task exists here, so neither direction is claimed.
-- **THE JUDGE NOW FLOATS, where before it was dated.** `modelpin.floats()` reports True for
-  `claude-haiku-5-5` — no dated id exists for that family — so two runs months apart may not be
-  judged by the same weights, and nothing in the record will say so. 1.1.0's dated judge did not
-  have that gap. This is a reproducibility loss accepted deliberately, not an oversight.
-- **A CHEAPER JUDGE MAY SIMPLY BE NOISIER, and there is one pass to detect it with.** The
-  measurable indicator is the SPLIT RATE — how often three samples of one mark disagree. Under
-  the Sonnet judge, 146 of 936 voted decisions split: **15.6%**, reproducible with
-  `scripts/judge_error_rate.py`. That figure is pre-registered as the comparison point, and the
-  run reports its own beside it. **It is not a noise floor** and may not be presented as one: it
-  measures within-call-set disagreement on one pass, not pass-to-pass movement in a score.
+**THE DECIDING FACT WAS A PRICE, AND IT POINTED THE OTHER WAY FROM THE INTUITION.** Sonnet 5.5
+lists at $2/$10 per MTok against Sonnet 4.5's $3/$15 — the judge this grid was ALREADY pinned to.
+Decorrelating the judge is therefore **33% cheaper than the pin it replaces**, not an added cost.
+Priced against the ~3.1M judge input tokens one pass consumes (`grader/judge.py:224`):
+
+| configuration | generation | judging | total |
+|---|---:|---:|---:|
+| haiku answers, haiku judges | $1.71 | ~$0.50 | ~$2.20 |
+| **haiku answers, sonnet 5.5 judges** | **$1.71** | **~$9.50** | **~$11** |
+| sonnet answers, haiku judges | ~$27 | ~$0.50 | ~$28 |
+
+Generation is modelled from the MEASURED 1.1.0 usage — 42.5M cache-read, 4.6M cache-write, 722K
+output across 144 cells — and the model reproduces the recorded $1.71 within 20%, so the ordering
+is sound even though the figures are not exact.
+
+**"JUDGING IS LARGELY MECHANICAL" WAS TESTED AND DOES NOT HOLD FOR THIS RUBRIC.** It was the
+reason to consider putting the cheap model on the judge side, so it was measured rather than
+accepted:
+
+| mark type | marks | weight | % of grid weight |
+|---|---:|---:|---:|
+| `conclusion` — does the answer CONVEY a nuanced claim | 104 | 278 | **87.4%** |
+| `set` — extract and match members | 14 | 22 | 6.9% |
+| `retrieval` — name this symbol | 18 | 18 | 5.7% |
+
+87.4% of the weight is reading comprehension, not string matching. The split rate agrees and
+points the same way: 16.0% at weight 3 against 14.7% at weight 2 — the samples disagree MOST
+where judgment is required. Judging one atomic mark is a NARROWER task than answering, which is
+true and is not the same as a mechanical one.
+
+**WHAT THIS BUYS: the judge is no longer the model it grades.** A judge sharing the answerer's
+weights shares its blind spots — it can rule `hit` on an answer wrong in the same way the judge
+is wrong. That is correlated error, not style preference, and it does NOT cancel in a difference
+between arms: it lifts both and COMPRESSES THE SEPARATION TOWARD ZERO, making clew's deficit read
+smaller than it is. The direction is flattering, which is why it was worth $9 to reduce.
+
+**WHAT IT DOES NOT BUY, stated so it is not mistaken for solved.** Sonnet 5.5 and Haiku 5.5 are
+the same vendor with overlapping pretraining lineage, so the correlation is REDUCED, not removed,
+and by an amount this run cannot measure. The residual still points in clew's favour.
+
+**THE JUDGE FLOATS, where 1.1.0's was dated.** `modelpin.floats()` is True for
+`claude-sonnet-5-5` — no dated id exists for the current families, which `modelpin.py` documents
+at length — so two runs months apart may not be judged by the same weights with nothing in the
+record saying so. Accepted deliberately. Sonnet 4.5 would have been dated, and is also deprecated.
+
+**ONE NOISE INDICATOR IS AVAILABLE FROM A SINGLE PASS, and it is reported.** The split rate — how
+often three samples of one mark disagree — needs no second grading. Under Sonnet 4.5: **146 of
+936 voted decisions, 15.6%**, reproducible with `scripts/judge_error_rate.py` and pinned by a test
+against the real sidecars. Pre-registered as the comparison point. **It is not a noise floor** and
+may not be presented as one: it measures within-call-set disagreement on one pass, not
+pass-to-pass movement in a score.
+
+**AND WHAT WAS DELIBERATELY NOT DONE.** Moving the ANSWERING model to Sonnet 5.5 was considered
+and rejected for this cut. `modelpin.py` argues the question is about "the agent people actually
+have", and Sonnet is the workhorse tier — so *does clew help a capable agent* is arguably the
+better question. But it is a DIFFERENT experiment: it would void criterion 3, the last live
+cross-version comparison, spend 16× on the half that cannot be re-run, and need its own baseline.
+It belongs to its own pre-registration, not folded into this one.
 
 ## What is pinned
 
@@ -85,8 +113,8 @@ Three consequences, stated here rather than left for a reader to find:
 | arms | `baseline`, `index_only`, `index` |
 | replicates | 3 → 144 cells |
 | answering model | `claude-haiku-5-5` |
-| judge | `claude-haiku-5-5` — same model, floating, disclosed above |
-| `rubric_digest` | mbedtls `d05822f1233ad005`, entropic `f908046b6fa97f44`, self `237ee289ee1b5023` |
+| judge | `claude-sonnet-5-5` — not the answering model; floating, disclosed above |
+| `rubric_digest` | mbedtls `bbf6195f605be452`, entropic `705c131e354e5c22`, self `d8447c7b18eafbf5` |
 | `grader_fingerprint` | `5489758d9a50` |
 | seed | 7 |
 

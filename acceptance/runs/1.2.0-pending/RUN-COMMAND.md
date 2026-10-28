@@ -41,6 +41,7 @@ One invocation. It provisions all three, generates every cell, grades once, repo
 |---|---|
 | cells generated | **144** |
 | judge samples, one pass | **~3,300**, upper bound 3,672 |
+| judging cost, one pass | **~$9.50** at Sonnet 5.5's $2/$10 per MTok, against ~$14 at the Sonnet 4.5 it replaces |
 
 **THE FORMULA OVER-COUNTS AND THE MEASUREMENT IS THE ONE TO TRUST.** The rubric formula — 3
 calls per mark where `weight >= samples_when_weight_at_least`, else 1, times 9 cells per
@@ -98,10 +99,10 @@ two disagree.
 | | |
 |---|---|
 | questions / marks / weight | 16 / 136 / 318 |
-| mbedtls | 5 / 41 / 97, digest `d05822f1233ad005` |
-| entropic | 5 / 41 / 96, digest `f908046b6fa97f44` |
-| self | 6 / 54 / 125, digest `237ee289ee1b5023` |
-| judge | `claude-haiku-5-5` — the same model that answers; floating, and `PRE-REGISTRATION.md` states what that costs |
+| mbedtls | 5 / 41 / 97, digest `bbf6195f605be452` |
+| entropic | 5 / 41 / 96, digest `705c131e354e5c22` |
+| self | 6 / 54 / 125, digest `d8447c7b18eafbf5` |
+| judge | `claude-sonnet-5-5` — NOT the answering model, and 33% cheaper than the Sonnet 4.5 it replaces; floating |
 | `grader_fingerprint` | `5489758d9a50` |
 
 ## Before starting, and after
@@ -127,7 +128,7 @@ The counter is verified against committed evidence rather than trusted: run agai
 command computed it, so no reader saw it.
 
 The same command prints the **split rate** — how often three samples of one mark disagreed. The
-judge changed from `claude-sonnet-4-5-20250929` to `claude-haiku-5-5` this round and there is no
-floor pass, so this is the only indicator available of whether the cheaper judge is noisier.
+judge changed from `claude-sonnet-4-5-20250929` to `claude-sonnet-5-5` this round and there is no
+floor pass, so this is the only indicator available of whether the new judge is noisier.
 Sonnet's figure was **146/936 voted = 15.6%**, printed alongside for comparison. It is NOT a
 noise floor.

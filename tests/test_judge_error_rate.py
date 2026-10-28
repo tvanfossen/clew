@@ -156,9 +156,9 @@ def test_the_published_1_1_0_rate_is_reproducible() -> None:
 ## @return None.
 ## @version 1
 def test_split_rate_counts_only_voted_decisions(tmp_path: Path) -> None:
-    """WHY THIS NUMBER, AND WHY NOW. The 1.2.0 run grades with `claude-haiku-5-5` rather than
+    """WHY THIS NUMBER, AND WHY NOW. The 1.2.0 run grades with `claude-sonnet-5-5` rather than
     `claude-sonnet-4-5-20250929`, and it runs ONE pass, so there is no floor to measure whether
-    the cheaper judge disagrees with itself more often. The split rate is the one indicator of
+    the new judge disagrees with itself more often. The split rate is the one indicator of
     that available from a single pass: on the Sonnet-graded 1.1.0 grid, 146 of 936 voted
     decisions — 15.6% — had the three samples disagree. A materially higher figure here means
     the instrument got noisier, and saying so costs nothing.
