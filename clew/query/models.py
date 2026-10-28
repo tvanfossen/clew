@@ -174,7 +174,7 @@ class CallEdge:
     evidence found for the endpoint.
 
     @brief Name-resolved causal neighbour (call edge or shared-key dataflow).
-    @version 6
+    @version 7
     """
 
     name: str
@@ -204,6 +204,20 @@ class CallEdge:
     ## hold — a refusal where there was no ambiguity. A function with no owner HAS no qualified
     ## name, and saying so by absence costs nothing while guessing costs a call.
     qualified: str = ""
+    ## WHICH FILE THE ENDPOINT LIVES IN, so "how broadly is this consumed" is one reply rather
+    ## than one `dossier` per neighbour. The last unfixed capability item in the negative-gap set:
+    ## mbedtls Q5 has a mark asking whether the constant-time primitives are used "on the order of
+    ## twenty modules", the index answers it in one SQL join over rows this surface is already
+    ## reading, and the row carried no file — so the count cost 62 calls for `table_exists` on
+    ## clew's own index, measured.
+    ##
+    ## DISTINCT FILES IS NOT A CALLER COUNT, which is why the file belongs on the row rather than
+    ## a number belonging on the envelope: two callers in one module are one module, and only the
+    ## caller can collapse them.
+    ##
+    ## `''` WHEN THE FILE DOES NOT RESOLVE, never a guess. A path nobody can open in a reply whose
+    ## value is that its paths are real is worse than an absent field.
+    file: str = ""
     strength: str | None = None
     key_name: str | None = None
     edge_kind: str | None = None

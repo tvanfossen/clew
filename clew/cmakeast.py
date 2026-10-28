@@ -47,24 +47,51 @@ _DEFINITIONS: dict[str, tuple[str, str]] = {
 
 _ARGUMENT_LIST = "argument_list"
 _ARGUMENT = "argument"
+_COMMAND = "normal_command"
+_IDENTIFIER = "identifier"
+
+## The commands that say a file is GENERATED, and what each one produces. `add_custom_target`
+## names no OUTPUT — it is the aggregate that forces the rules above it to run, and recording it
+## as a command would claim the target is a generated file.
+_GENERATORS: dict[str, str] = {
+    "add_custom_command": "custom_command",
+    "add_custom_target": "custom_target",
+    "configure_file": "configure_file",
+}
+
+## The keywords `add_custom_command` groups its flat argument list under. The grammar gives no
+## structure here — `argument_list` is a flat run of `argument` nodes — so the split is on these
+## words, upper-cased as CMake requires them.
+_SECTIONS = ("OUTPUT", "COMMAND", "DEPENDS")
 
 
 ## @brief Whether a tree holds CMake definitions this module can harvest.
 ## @param tree A parsed tree.
-## @return True for a `source_file`-rooted tree containing a definition node.
-## @version 1
+## @return True for a `source_file`-rooted tree containing a definition OR command node.
+## v2: a command-only CMakeLists is a CMake tree now, because `add_custom_command` says which
+## files are GENERATED — `library/CMakeLists.txt` defines no function and was wholly invisible.
+## @version 2
 ## @dg_internal
 def is_cmake_tree(tree: Any) -> bool:
-    """A Rust tree is also `source_file`-rooted, so the root alone decides nothing. A
-    `CMakeLists.txt` that defines no function is therefore not a "CMake tree" by this
-    test — correct, because there is nothing in it for this module to harvest either way,
-    and the file is registered and searchable regardless.
+    """A Rust tree is also `source_file`-rooted, so the root alone decides nothing.
 
-    @brief A CMake definition node is present.
+    THIS DOCSTRING USED TO SAY a `CMakeLists.txt` defining no function "is therefore not a CMake
+    tree by this test — correct, because there is nothing in it for this module to harvest either
+    way." That was true when written and is now false: a file of plain commands can hold
+    `add_custom_command`, which says which files are GENERATED and by what. mbedtls Q4's
+    weight-3 conclusion mark and three of its `set` members all cite one such block, and
+    `library/CMakeLists.txt` defines no function — so the whole file was invisible.
+
+    `normal_command` IS THE ADDED SIGNAL and it has to be a node type rather than the root: Rust
+    trees carry no `normal_command`, verified against the real node-type set of that file.
+
+    @brief A CMake definition or command node is present.
+    @version 2
     """
     if tree.root_node.type != CMAKE_ROOT:
         return False
-    return any(node.type in _DEFINITIONS for node in walk_nodes(tree.root_node))
+    wanted = {*_DEFINITIONS, _COMMAND}
+    return any(node.type in wanted for node in walk_nodes(tree.root_node))
 
 
 ## @brief Harvest one CMake file's function and macro definitions.
@@ -150,3 +177,120 @@ def _command_arguments(node: Any, command_type: str) -> list[str]:
     if arg_list is None:
         return []
     return [node_text(arg) for arg in arg_list.children if arg.type == _ARGUMENT]
+
+
+## @brief One argument as a record: the literal text, and a filename when it has one.
+## @param literal The argument text exactly as written.
+## @return The record.
+## @version 1
+## @dg_internal
+def _argument_record(literal: str) -> dict[str, Any]:
+    """VARIABLES ARE RECORDED, NEVER RESOLVED. `${CMAKE_CURRENT_BINARY_DIR}/error.c` depends on a
+    configure step this harvest never ran, so resolving it would publish a path that may not
+    exist. Dropping it would lose `error.c`, which is the only name a reader or a graded mark
+    actually uses. Both are kept.
+
+    A BARE VARIABLE HAS NO FILENAME. `${error_headers}` is a glob expanded at configure time;
+    `name` is empty and `unresolved` says so, rather than handing back `error_headers` as though
+    a file were called that. The `absence is not emptiness` rule, applied to a build variable.
+
+    @brief Describe one command argument.
+    @return The record.
+    @version 1
+    """
+    stripped = literal.strip()
+    ## A trailing path segment outside `${...}` is the filename; a literal that is nothing but a
+    ## variable reference has none.
+    tail = stripped.rsplit("/", 1)[-1]
+    name = "" if ("${" in tail or not tail) else tail
+    return {
+        "literal": stripped,
+        "name": name,
+        "unresolved": "${" in stripped,
+    }
+
+
+## @brief Split a flat CMake argument list into its OUTPUT / COMMAND / DEPENDS sections.
+## @param args The argument texts, in order.
+## @param first_is_name True when the command's first argument is a target name, not a section.
+## @return Section name -> argument records, for the sections present.
+## @version 1
+## @dg_internal
+def _sections(args: list[str], *, first_is_name: bool) -> dict[str, list[dict[str, Any]]]:
+    """THE GRAMMAR GIVES NO STRUCTURE, so this is a keyword split and nothing cleverer. An
+    argument before any keyword belongs to no section and is dropped — except
+    `add_custom_target`'s first, which is the target's own name.
+
+    @brief Group arguments by keyword.
+    @return The sections present.
+    @version 1
+    """
+    out: dict[str, list[dict[str, Any]]] = {}
+    current = "NAME" if first_is_name else ""
+    for arg in args:
+        upper = arg.strip().upper()
+        if upper in _SECTIONS:
+            current = upper
+            out.setdefault(current, [])
+            continue
+        if current and current != "NAME":
+            out.setdefault(current, []).append(_argument_record(arg))
+        elif current == "NAME":
+            ## The name is consumed and the next keyword opens the first real section.
+            current = ""
+    return out
+
+
+## @brief Harvest one CMake file's generation rules.
+## @param tree The parsed tree.
+## @param src_bytes The file's bytes.
+## @return `{"generated": [...]}`, or `{}` when the file holds no generation rule.
+## @version 1
+## @req REQ-DDB-PIPE-012
+def harvest_generation(tree: Any, src_bytes: bytes) -> dict[str, list[dict[str, Any]]]:
+    """WHAT A BUILD FILE SAYS THAT NO OTHER LAYER DOES: which files do not exist until something
+    produces them, and what produces them. `library/error.c` in mbedtls is generated by
+    `scripts/generate_errors.pl` from the public headers and `scripts/data_files/error.fmt`, and
+    an answer that reads `error.c` top to bottom describes a hand-written table and is wrong —
+    which is exactly what mbedtls Q4's rubric says about it.
+
+    `{}` AND NOT `{"generated": []}` for a file with no rules, for the reason
+    `_ScriptSymbolHarvester` gives about partitions: a row per file recording that a C file
+    generates nothing is forty thousand rows of nothing on a large target.
+
+    FOUR RULES IN THE REAL FILE, not one. Parsed from the frozen checkout: `error.c`,
+    `version_features.c`, `ssl_debug_helpers_generated.c` and the `psa_crypto_driver_wrappers`
+    pair, across three generators in two languages. A harvest written for the one graded mark
+    would have missed three quarters of what that file states.
+
+    @brief Harvest CMake generation rules.
+    @return The generation payload, or {}.
+    @version 1
+    """
+    if tree.root_node.type != CMAKE_ROOT:
+        return {}
+    rules: list[dict[str, Any]] = []
+    for node in walk_nodes(tree.root_node):
+        if node.type != _COMMAND:
+            continue
+        ident = next((c for c in node.children if c.type == _IDENTIFIER), None)
+        kind = _GENERATORS.get(node_text(ident).strip().lower()) if ident is not None else None
+        if kind is None:
+            continue
+        arg_list = next((c for c in node.children if c.type == _ARGUMENT_LIST), None)
+        args = (
+            [node_text(a) for a in arg_list.children if a.type == _ARGUMENT]
+            if arg_list is not None
+            else []
+        )
+        sections = _sections(args, first_is_name=(kind == "custom_target"))
+        rules.append(
+            {
+                "kind": kind,
+                "line": node.start_point[0] + 1,
+                "outputs": sections.get("OUTPUT", []),
+                "command": sections.get("COMMAND", []),
+                "depends": sections.get("DEPENDS", []),
+            }
+        )
+    return {"generated": rules} if rules else {}

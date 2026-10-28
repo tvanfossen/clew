@@ -8,7 +8,7 @@
     {
       "name": "clew",
       "source": "./",
-      "description": "Index a C, C++, Rust or Python repository into a queryable graph — symbols, call edges, callbacks, threads, locks, dataflow, requirement links and prose — and serve it over MCP. Requires the clew-trace package on PATH and the doxygen binary.",
+      "description": "Index a C, C++, Rust or Python repository into a queryable graph \u2014 symbols, call edges, callbacks, threads, locks, dataflow, requirement links and prose \u2014 and serve it over MCP. Requires the clew-trace package on PATH and the doxygen binary. Harvests symbols from C, C++, Rust, Python, JavaScript, TypeScript, shell and CMake; registers YAML, JSON, Perl and Make files by name without parsing them.",
       "author": {
         "name": "tvanfossen",
         "url": "https://github.com/tvanfossen"

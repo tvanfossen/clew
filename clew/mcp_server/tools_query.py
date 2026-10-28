@@ -2786,10 +2786,72 @@ class QueryTools:
         )
 
 
+## The gate-row fields worth hoisting when every row agrees. Each identifies the SYMBOL or its
+## resolved default rather than the SITE, so a panel of N sites repeats them N times for one
+## fact. `file_path`, `line` and `end_line` are deliberately absent: they are what varies, and
+## they are the reason the rows exist.
+_GATE_INVARIANTS = ("symbol", "macro", "form", "default_state", "default_site", "origin")
+
+
+## @brief State a gate panel's invariant fields once instead of once per row.
+## @param payload A serialized config reply.
+## @return The same payload with shared gate fields hoisted to `gates_shared`.
+## @version 1
+## @dg_internal
+def _compact_gate_panel(payload: dict[str, Any]) -> dict[str, Any]:
+    """MEASURED on the rebuilt mbedtls index: `dossier("MBEDTLS_THREADING_C")` serves 154 gate
+    rows at 39,884 bytes, and `symbol`, `macro`, `form`, `default_state` and `default_site` each
+    hold ONE distinct value across all 154. Only `file_path` varies, over 31 files. The panel
+    repeats ~185 bytes of invariant text 154 times.
+
+    WHY BYTES HERE COST MORE THAN THEY LOOK. `cache_read` is 98% of the tokens this harness
+    spends — 3,470,671 against 62,559 output on the `index_only` arm — because every byte served
+    sits in the context and is re-read on each later turn. A 40 KB reply at turn 3 of 20 costs
+    roughly 800 KB of `cache_read` by itself. Gate panels are 11.8% of all `dossier` reply bytes
+    across the grid.
+
+    NOTHING IS REMOVED, WHICH IS THE WHOLE POINT. A cost win that drops evidence trades one axis
+    for the other, and a gain on one axis only counts if the other holds. Every value a reader
+    could have read off a row is still in the reply — once rather than N times.
+
+    PER FIELD, NOT ALL-OR-NOTHING, AND NEVER A FIELD THAT VARIES. Two sites of one symbol can
+    genuinely disagree — a macro defined in one profile and undefined in another — and hoisting
+    the majority value would state as settled a thing the index reports as varying. A field is
+    hoisted only when every row carries the identical value.
+
+    THE WIRE ONLY. `KconfigGate` keeps every field, so the library API and the tests reading
+    `gates[0].default_state` are untouched. Same placement as the `found`/`kconfig_found`
+    reconciliation above, for the same reason: the dataclass is right, the serialization was
+    wasteful.
+
+    @brief Hoist invariant gate fields to the panel.
+    @return The compacted payload.
+    @version 1
+    """
+    rows = payload.get("gates")
+    if not isinstance(rows, list) or not rows:
+        return payload
+    shared = {}
+    for field in _GATE_INVARIANTS:
+        values = {json.dumps(r.get(field)) for r in rows if isinstance(r, dict)}
+        if len(values) == 1 and field in rows[0]:
+            shared[field] = rows[0][field]
+    if not shared:
+        return payload
+    out = dict(payload)
+    out["gates_shared"] = shared
+    out["gates"] = [
+        {k: v for k, v in r.items() if k not in shared} if isinstance(r, dict) else r for r in rows
+    ]
+    return out
+
+
 ## @brief Re-key a config payload so `found` means what it means everywhere else.
 ## @param payload The serialized KconfigSpace.
-## @return The same payload with `kconfig_found` added and `found` reflecting the rows served.
-## @version 1
+## @return The same payload with `kconfig_found` added, `found` reflecting the rows served, and the gate panel compacted.
+## v2: chains `_compact_gate_panel`, so all three routes that serialize a `KconfigSpace` inherit
+## the compaction — the lesson of the `found` collision, where fixing one route left two broken.
+## @version 2
 ## @dg_internal
 def _config_found_on_the_wire(payload: dict[str, Any]) -> dict[str, Any]:
     """Split out of `_search_config` so the re-keying is testable without a tool set, and so the
@@ -2817,7 +2879,9 @@ def _config_found_on_the_wire(payload: dict[str, Any]) -> dict[str, Any]:
     symbols = out.get("symbols") or ()
     gates = out.get("gates") or ()
     out["found"] = bool(names or symbols or gates)
-    return out
+    ## COMPACTED HERE so all three routes that serialize a `KconfigSpace` inherit it, which is the
+    ## lesson of the `found` collision one function up: fixing one route left two broken.
+    return _compact_gate_panel(out)
 
 
 ## Corpus name -> the method that reads it. A MAPPING and not a branch chain so the tool's
