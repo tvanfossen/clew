@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer's only file path that takes part in stating build options is `.clew.yaml`. It also mentions `clew/tiers.py`, but only in the closing caveat about line numbers, not as part of stating, discovering, combining or recording an option.\n\nThe `Doxyfile` is named without a path, in the \"Doxyfile location\" and \"Scope\" bullets.\n\nITEMS:\n.clew.yaml\nDoxyfile\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the macro is applied at many hundreds of sites or that those sites are overwhelmingly in the public headers; it gives only one example (aes.h:64)."
+}

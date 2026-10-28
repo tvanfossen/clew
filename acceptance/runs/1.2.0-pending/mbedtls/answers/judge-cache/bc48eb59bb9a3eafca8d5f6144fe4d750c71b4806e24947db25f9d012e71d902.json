@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PRIVATE(member)` expand to `private_##member` by default, and to plain `member` only when `MBEDTLS_ALLOW_PRIVATE_ACCESS` is defined.\nVERDICT: HIT\nWHY: The answer states that code defining the macro sees plain member names while the default consumer sees `private_`-renamed ones, and it covers who gets each view."
+}

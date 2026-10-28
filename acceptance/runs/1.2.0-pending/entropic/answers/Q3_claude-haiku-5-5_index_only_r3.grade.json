@@ -1,0 +1,143 @@
+{
+  "cell": "Q3_claude-haiku-5-5_index_only_r3",
+  "arm": "index_only",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.4,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "5489758d9a50",
+  "decisions": [
+    {
+      "mark": "names PermissionManager and locates the allow and deny lists as coming from the PermissionsConfig the ServerManager is constructed with",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: Patterns come from `permissions.allow` and `permissions.deny` (`PermissionsConfig`, `config.h:589`), are parsed by `parse_permissions_config` (`loader.cpp:365`), and are held by `PermissionManager`. | WHY: The answer names PermissionManager and PermissionsConfig, but it never says the ServerManager is constructed with that config, which is the link the item requires.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the DENY list is the only one that blocks execution \u2014 ServerManager's execute path consults is_denied and nothing else before routing the call",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says the deny check in ServerManager::execute runs after approval, but it also lists a chain of other blockers (anti-spiral, schema, MCP authorization, tier, duplicate, and \"Permission denied\" at approval). So it does not conclude that the deny list is the only thing that blocks execution.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the ALLOW list does not grant execution but suppresses the approval step \u2014 it is consulted only from ToolExecutor::check_approval, in a different file",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Allow list: a match skips the prompt and passes approval. | WHY: The answer says an allow match skips the prompt and that `is_explicitly_allowed` is called inside `check_approval`. It never says that allow doesn't grant execution, and it never says the allow list is consulted only from `check_approval` in a different file. It also says deny can still block after approval, but that isn't the item's claim.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the effective posture is default-ALLOW at the blocking gate \u2014 a tool matching neither list is not denied and runs",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes the allow/deny gates but never concludes that a tool matching neither list is not denied and runs (default-allow).",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the approval callback CANNOT refuse \u2014 it returns void, and the code sets approved to true unconditionally after firing it",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: In `check_approval`, a registered callback sets `approved = true` unconditionally. The \"no callback \u2192 deny\" branch only applies when no callback is registered. | WHY: The answer states the callback is `void(*)(...)` and that approval is set to true unconditionally after it fires, so it cannot deny.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a pattern is matched with fnmatch, split at the first colon into a tool part and an argument part, and that a pattern with no colon matches on the tool name alone",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: Form: `tool` or `tool:argpattern`. Both halves are `fnmatch` globs with no `FNM_PATHNAME`... Tool-only (no colon): matches the tool name alone, so it covers every call to that tool. With a colon: the tool part must match the tool name. The full pattern must then match `tool:<arg>` | WHY: The answer states fnmatch globbing, the tool/argument split on a colon, and that a colon-less pattern matches the tool name alone. It never says \"split at the first colon\" in those words, but the tool-part/arg-part split is clear.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that only ONE argument value ever reaches the pattern \u2014 the rest of the call's arguments are invisible to permission matching, and a non-string or unparseable argument collapses to a wildcard",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: the value of the first string-valued argument in the JSON object. It is `*` when the args are empty, unparseable, or the first value is not a string. | WHY: The answer says only the first string argument reaches the pattern and that unparseable or non-string args collapse to `*`. It doesn't say outright that the other arguments are invisible to matching, but that follows from it.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that a decision can be PERSISTED for future sessions by appending to config.local.yaml, separately from the in-memory add_permission call",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: `save_permission` (`permission_persister.cpp:227`) writes a pattern into the project YAML under `permissions.allow` or `permissions.deny`. It is a no-op if the pattern is already present. | WHY: The answer describes persisting a pattern to the project YAML, but it never names config.local.yaml. It also never contrasts that with an in-memory add_permission call.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/permission_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/server_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/tool_executor.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 include/entropic/types/config.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": false,
+      "detail": "named 5 not in the set: ['bash.cpp', 'engine_types.h', 'loader.cpp', 'permission_persister.cpp', 'server_manager.h']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

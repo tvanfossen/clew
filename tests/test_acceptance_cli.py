@@ -1199,3 +1199,48 @@ def test_an_unknown_arm_is_refused_by_name(tmp_path: Path) -> None:
     )
 
     assert cli.cmd_generate(args) == 1, "a misspelled arm was accepted"
+
+
+## @brief A question nothing was ruled on prints as unruled, not as a crash.
+## @return None.
+## @version 1
+def test_grade_line_handles_an_unruled_question() -> None:
+    """FOUND BY THE 1.2.0 RUN, 90 cells in. `QuestionResult.score()` returns `float | None` by
+    design — None means NOTHING WAS RULED, which is the fix that stopped an unruled question
+    scoring a confident 0.0. The progress line was never taught about it and formatted the value
+    with `:6.1%`, so the first fully-unruled cell killed the whole grading phase with
+    `TypeError: unsupported format string passed to NoneType.__format__`.
+
+    THE SIDECAR IS WRITTEN BEFORE THE LINE IS FORMATTED, so no score was lost or changed — this
+    is a reporting crash, not a scoring one, and it lives outside `acceptance/grader/` so
+    `grader_fingerprint()` does not move.
+
+    IT MUST NOT PRINT 0.0%. That is the exact confusion the None was introduced to end: a reader
+    scanning the log for weak cells would see a zero and treat an unmeasured question as a
+    failed one.
+
+    @brief An unruled score formats as UNRULED.
+    @return None.
+    @version 1
+    """
+    line = cli._grade_line("Q6_claude-haiku-5-5_index_r1", None, 1.0)
+    assert "score UNRULED" in line
+    ## ANCHORED TO THE SCORE FIELD, not a bare substring: `unmarked 100.0%` CONTAINS "0.0%", so
+    ## the obvious assertion passes on correct output and fails on nothing. A test that cannot
+    ## fail for the reason it names is the liability this repository keeps finding.
+    assert "score   0.0%" not in line
+    assert "Q6_claude-haiku-5-5_index_r1" in line
+    assert "unmarked 100.0%" in line
+
+
+## @brief A ruled question still prints its score as a percentage.
+## @return None.
+## @version 1
+def test_grade_line_still_prints_a_real_score() -> None:
+    """@brief The ordinary path is unchanged.
+    @return None.
+    @version 1
+    """
+    line = cli._grade_line("Q1_claude-haiku-5-5_baseline_r1", 0.6875, 0.0)
+    assert "68.8%" in line
+    assert "UNRULED" not in line

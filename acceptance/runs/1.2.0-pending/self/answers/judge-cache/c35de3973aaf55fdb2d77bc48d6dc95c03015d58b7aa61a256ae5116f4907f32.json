@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **How the grading works** (`clew/mcp_server/emptiness.py`, `search_emptiness`)\nVERDICT: HIT\nWHY: The answer explicitly names clew/mcp_server/emptiness.py as the location of the grading logic (search_emptiness, _verdict)."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python reaches the engine through plain `ctypes` over the C ABI. There is no pybind11, no Cython, and no C++ crossing.\nVERDICT: HIT\nWHY: The answer names ctypes over the C ABI (`ctypes.CDLL(librentropic.so)`) and explicitly rules out pybind11 and Cython, so no compiled extension module is involved."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A real failure and legitimately empty input look the same to the caller. The error log is the only signal.\nVERDICT: HIT\nWHY: The answer says failure and empty input are indistinguishable, and its caller table shows each one turning the empty result into 0 or an empty prompt. It also notes there is no `tokens.empty()` guard in the generation paths. That covers \"no caller checks\"."
+}

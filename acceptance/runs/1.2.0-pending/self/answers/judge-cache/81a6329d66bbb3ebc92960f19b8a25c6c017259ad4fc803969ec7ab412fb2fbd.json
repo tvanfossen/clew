@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists `.sh`, `.bash`, `CMakeLists.txt` and `.cmake` in a table. But it doesn't say that CMakeLists.txt is matched by file name rather than by extension, and the item needs that mechanism."
+}

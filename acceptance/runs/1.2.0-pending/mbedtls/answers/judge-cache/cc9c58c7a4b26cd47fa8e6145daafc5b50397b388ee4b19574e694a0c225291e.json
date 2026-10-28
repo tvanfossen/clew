@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | Defines the opt-out unconditionally. Library `.c` files that include `common.h` first (for example `library/ssl_tls.c:12`, ...) read and write struct members by their plain names.\nVERDICT: HIT\nWHY: The answer states that the shared header common.h defines MBEDTLS_ALLOW_PRIVATE_ACCESS, so library translation units see plain member names."
+}

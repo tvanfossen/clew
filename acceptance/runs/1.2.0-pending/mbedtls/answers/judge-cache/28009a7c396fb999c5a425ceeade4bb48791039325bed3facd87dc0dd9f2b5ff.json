@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Library threads:** none. The index found four spawn sites, all in `programs/`... `library/` has none.\" and \"The mutex type is `mbedtls_threading_mutex_t`. Lock and unlock go through function-pointer variables (`threading.c:103`) that default to pthread implementations, and `MBEDTLS_THREADING_ALT` lets you substitute your own.\"\nVERDICT: HIT\nWHY: The answer states that library/ spawns no threads and that the library supplies the mutex abstraction (`mbedtls_threading_mutex_t`, pluggable lock functions) used when threading is enabled."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: YAML and JSON get only a file-set entry, with no symbols.\nVERDICT: HIT\nWHY: The answer states YAML/JSON are in the file set (path row only) with no symbols, contrasted with shell and CMake which get symbols."
+}

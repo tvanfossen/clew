@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 20980,
+  "stop_reason": "end_turn",
+  "session_id": "f4c11ca1-84df-45d9-a8fa-ed5e838e7df3",
+  "total_cost_usd": 0.009360400000000001,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 27039,
+    "cache_read_input_tokens": 233060,
+    "output_tokens": 3242,
+    "output_tokens_details": {
+      "thinking_tokens": 1112
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 27039,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1688,
+        "cache_read_input_tokens": 58956,
+        "cache_creation_input_tokens": 7216,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7216
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3242,
+      "cacheReadInputTokens": 233060,
+      "cacheCreationInputTokens": 27039,
+      "webSearchRequests": 0,
+      "costUSD": 0.009360400000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1112,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 27039,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "There are three ways to say so, and they stack by a fixed rule. The one real conflict case is a flag against a declaration, and it resolves in the flag's favour.\n\n**The three ways**\n\n| Tier | Where it lives | Role |\n|---|---|---|\n| 1 (explicit) | CLI flags, or the `options` argument for embedding callers | Replaces the stated layer for that option. Also the only tier an MCP caller can reach for a build-time choice, via `buildoptions.py`. |\n| 2 (declared) | `<repo>/.clew.yaml`, one section per option | Replaces the stated layer. This is the standing, in-tree statement of conventions. |\n| 3\u20135 | Target facts, ecosystem signatures, name-pattern heuristics | Facts and ecosystem entries accumulate. Heuristics are the provisional floor that any stated tier displaces. |\n\nThe documented `.clew.yaml` sections map one-to-one onto the CLI options. Examples are `shared_key_patterns`, `thread_patterns`, `mqtt_dispatch`, `index_scope`, `doxyfile`, `kconfig`, and `preprocessor`. `guard:` is the exception: it configures the doxygen gate, and the index reads only its `@req` pattern and requirements mapping from it.\n\n**When two of them disagree**\n\n- **Flag vs. declaration, same option:** the flag wins. `resolve_layered` in `clew/tiers.py` computes `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. The winning tier is recorded in `build_meta`. An empty flag list (`[]`) is a withdrawal, so it falls through to the declaration and then the heuristics.\n- **Facts are never discarded.** A stated tier only displaces the guesses. A Doxyfile's aliases or predefines survive a declaration, and so does `main` under `--entry-patterns`.\n- **Declaration vs. built-in defaults:** the declaration replaces the heuristics for that option.\n- **Malformed or unreadable `.clew.yaml`:** a warning is logged and the file is treated as absent. The build degrades to defaults.\n- **Unknown section name:** the load refuses with `DeclarationError` and lists the allowed sections. A misspelled section would otherwise be ignored while the build reports the declaration as honoured. Keys with the experimental prefix are tolerated but ignored, with a warning.\n- **Rejected `index_scope`:** the internal `derive_scope` falls back to the whole repo and logs the rejection. The build-time guard `declared_scope_rejection` is what the CLI and the MCP refresh path use to refuse instead. This is the one place where two entry points deliberately behave differently.\n- **Scope is not a declaration:** `--scope`, `--index-cache` and `--rebuild` are per-run mechanics and have no `.clew.yaml` section by design. A Doxyfile's `INPUT` is no longer a scope source (gh#333); the Doxyfile is used only for aliases, predefines and filters.\n\nCaveat: the index flagged `load_declaration_located` as anchored to a file that has since changed, so its line numbers may be stale. The semantics I quoted come from its docstring and were consistent with the rest of the index. `docs/GUARD.md`, `docs/languages/C_INTEGRATION.md` and the `clew/tiers.py` docstring are the authoritative prose if you want to check the details against the source.",
+  "ttft_ms": 2930,
+  "type": "result",
+  "duration_ms": 21758,
+  "uuid": "98ac554c-14c4-4d23-833e-5a2f02ebf3e0",
+  "ttft_stream_ms": 2534,
+  "time_to_request_ms": 75,
+  "first_content_frame_ms": 2534,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

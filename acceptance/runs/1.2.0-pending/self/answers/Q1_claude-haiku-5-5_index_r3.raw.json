@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 22135,
+  "stop_reason": "end_turn",
+  "session_id": "aad08bb1-875c-43f9-b495-7db0ade8b785",
+  "total_cost_usd": 0.01272887,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 33003,
+    "cache_read_input_tokens": 369187,
+    "output_tokens": 4870,
+    "output_tokens_details": {
+      "thinking_tokens": 1481
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 33003,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2220,
+        "cache_read_input_tokens": 69389,
+        "cache_creation_input_tokens": 2752,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2752
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 4870,
+      "cacheReadInputTokens": 369187,
+      "cacheCreationInputTokens": 33003,
+      "webSearchRequests": 0,
+      "costUSD": 0.01272887,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1481,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 33003,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 19,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index's file set is decided by one resolver, `derive_scope` in `clew/scope.py`. It returns a root list plus an exclude list. A repo can declare `index_scope` in `.clew.yaml` to set those itself. If it doesn't, the default is the whole repository minus what git ignores and minus dot and cache directories. The Doxyfile does not decide scope anymore.\n\n## The decision\n\n```\nderive_scope(repo_root, stated?)\n \u251c\u2500 _declared_index_scope()             tier 1 (stated via MCP options) or tier 2 (.clew.yaml)\n \u2502   \u251c\u2500 no index_scope section     -> None\n \u2502   \u251c\u2500 bad shape / unknown key / no usable roots -> _Rejected (logged)\n \u2502   \u2514\u2500 usable                     -> DerivedScope(source=declared, roots, excludes)\n \u2514\u2500 otherwise  whole_repo_scope()       source=whole_repo\n```\n\n**Declared scope** (`clew/scope.py` `_declared_index_scope`, around line 991):\n- `roots:` is required and REPLACES the scope. `excludes:` is optional and alone does nothing.\n- Roots are repo-relative. A root that doesn't exist on disk is dropped with a warning.\n- Unknown keys under `index_scope:` are rejected by name. An accepted-but-unread key was called out as the project's most repeated defect.\n- A declared root is taken at its word and never walked. Nested clones under it are indexed without any check.\n\n**Whole-repo default** (`whole_repo_scope`, around line 683):\n- The single root is the repository. Nested git trees are included, not excluded (gh#333). `external.py` tags their rows afterward so you can still tell codebases apart.\n- Excluded: whatever git ignores (`git ls-files --ignored --exclude-standard --directory`, run through `git_argv`/`git_env` so a target's own `.git/config` can't execute code). Each nested tree's own ignores are collected separately, because the parent's git can't see inside a submodule.\n- Excluded: dot-directories at any depth, plus `__pycache__` and `node_modules` (`_skip_dir`, `_pruned_dirs`). Inside a nested tree only that tree's top-level dot-directories are kept, and the walk stops there.\n- Depth is capped at 16. Directories past the cap are taken whole and recorded, not silently pruned.\n- The `doxygen-guard` `files:` pattern is deliberately not read. That pattern answers what must be documented, not what should be indexed.\n- If git is missing or the tree isn't a repository, the scope gets a warning and nothing is excluded. The result is wider, not empty.\n\n**What happens with nothing declared:** `derive_scope` returns the whole-repo tier, and the reason string says so: \"no index_scope is declared \u2026 so the whole repository is the index scope.\" The Doxyfile is not consulted for `INPUT`. It still supplies `ALIASES` and `PREDEFINED`.\n\n**From scope to file set:** the doxygen stage enumerates the resolved roots. A Rust or JS/TS-only target has no Doxyfile, so `_scanned_files` in `clew/cli.py` (around line 2483) reads the exact `scope_result` the build applied. If nothing was declared, it falls back to `[repo_root]` with the same excludes.\n\n**Refusal vs. fallback:** `derive_scope` absorbs a rejected declaration into the whole-repo tier so internal callers always get a scope. The CLI and the MCP refresh path call `declared_scope_rejection` first and refuse instead. The gh#5 and B12 incidents are why this split exists.\n\n## This repository\n\n`.clew.yaml` here has only a `guard:` section and no `index_scope:`, so the build uses the whole-repo tier.\n\n## Discrepancies and gaps\n\n- `docs/languages/C_INTEGRATION.md` (section \"The three things that decide what gets indexed\") still says `INPUT`, `EXCLUDE` and `FILE_PATTERNS` decide scope. That contradicts gh#333 and the code. The later paragraph in the same doc is correct.\n- I did not trace `toolchain.toml` skips or operator excludes (`extra_exclude`) in detail. I only saw that `_scanned_files` applies `extra_exclude`.\n- I did not read `doxygen_input_roots` or the exact Doxyfile-stage code, so I can't speak to how that stage filters beyond the scope roots and excludes.",
+  "ttft_ms": 1243,
+  "type": "result",
+  "duration_ms": 23847,
+  "uuid": "2243258a-afe4-4db3-895f-6cc7ac20dcdb",
+  "ttft_stream_ms": 702,
+  "time_to_request_ms": 84,
+  "first_content_frame_ms": 702,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

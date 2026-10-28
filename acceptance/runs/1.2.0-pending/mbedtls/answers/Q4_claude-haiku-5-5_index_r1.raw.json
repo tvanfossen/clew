@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 26070,
+  "stop_reason": "end_turn",
+  "session_id": "1642f93e-574e-44d1-b004-1a1d2ced50d7",
+  "total_cost_usd": 0.01151448,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 34886,
+    "cache_read_input_tokens": 254858,
+    "output_tokens": 3975,
+    "output_tokens_details": {
+      "thinking_tokens": 1329
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 34886,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1901,
+        "cache_read_input_tokens": 53895,
+        "cache_creation_input_tokens": 1150,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1150
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3975,
+      "cacheReadInputTokens": 254858,
+      "cacheCreationInputTokens": 34886,
+      "webSearchRequests": 0,
+      "costUSD": 0.01151448,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1329,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 34886,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**The path from integer to string**\n\n1. The caller passes the negative return value and a buffer to `mbedtls_strerror(ret, buf, buflen)` (`library/error.c:792`, declared in `include/mbedtls/error.h:165`). The function returns `void`. It zeroes the buffer, returns early if `buflen` is 0, and truncates to fit.\n2. It takes the magnitude (`ret = -ret`) and splits it with two masks. Bits in `0xFF80` are the high-level module, and bits in `~0xFF80` are the low-level code.\n3. The high-level part goes to `mbedtls_high_level_strerr()` (`error.c:174`). The low-level part goes to `mbedtls_low_level_strerr()` (`error.c:537`). Each is a `switch` over the code. Each `case` returns a string of the form `\"MODULE - description\"`.\n4. If both parts are present, they are joined as `\"HIGH : LOW\"`. The one exception is a fatal SSL alert, where the function returns after the high-level text and skips the low-level part.\n5. A code with no matching `case` gives `\"UNKNOWN ERROR CODE (XXXX)\"`.\n\n```\ncaller \u2500\u2500 mbedtls_strerror(ret, buf, n)\n             \u2502 ret = -ret; split mask 0xFF80\n     \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\nmbedtls_high_level_strerr   mbedtls_low_level_strerr\n  (switch on high bits)       (switch on low bits)\n     \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\n      \"HIGH : LOW\" into buf (truncated to buflen)\n```\n\nThe `switch` bodies are between `/* Begin Auto-Generated Code. */` markers and are guarded by `#if defined(MBEDTLS_<MODULE>_C)`, so a module that is compiled out contributes no strings.\n\n**Where the strings come from**\n\n`library/error.c` is generated, not hand-written. `scripts/generate_errors.pl` scans `include/mbedtls/*.h` for `#define MBEDTLS_ERR_* -0xNNNN` lines and writes one `case` per code, using the Doxygen comment next to the define as the description. It is run by `library/Makefile:355-360` and by the CMake `GEN_FILES` rule in `library/CMakeLists.txt:139`. `library/error.c` is also tracked in git.\n\n**What a contributor has to do to add a new error code**\n\n1. Add the define to the module's header, for example `include/mbedtls/aes.h`, in an existing or new range. The value must be written as `-0xNNNN` with a leading minus and hex literal, because the script's regex requires it.\n2. Give it exactly one Doxygen description, either a `/** ... */` before the define or a `/**< ... */` after it. The script dies if it has neither or both.\n3. If the code belongs to a new module, add the module name to `@low_level_modules` or `@high_level_modules` in `scripts/generate_errors.pl`. An unknown module makes the script exit with \"Do not know how to handle\". Also add the header to the include mapping if its name does not follow the default.\n4. Regenerate with `make` in `library/` or the CMake build, not by hand. The generator rejects duplicate values, and it fails if a header defines codes but is not included in the generator's list.\n5. Commit the header change and the regenerated `library/error.c` together. Hand edits to `error.c` will be overwritten on the next build.\n6. Per the repo's rules, add or update a test that asserts the new string. I did not check which test suite covers `mbedtls_strerror` output, so I cannot point to the exact place.\n\nI did not run the generator or the build, so the steps above come from reading the script and build files.",
+  "ttft_ms": 1658,
+  "type": "result",
+  "duration_ms": 26767,
+  "uuid": "b12cfc89-a6b1-4dd9-92f4-2dee663dfe63",
+  "ttft_stream_ms": 1358,
+  "time_to_request_ms": 82,
+  "first_content_frame_ms": 1358,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

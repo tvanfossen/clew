@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Nested git trees are included, not excluded (gh#333). `external.py` tags their rows afterward so you can still tell codebases apart.\"\nVERDICT: HIT\nWHY: The answer states nested git trees are included in scope and tagged afterward by external.py, matching the item."
+}

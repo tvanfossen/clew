@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It uses `buffer_alloc_calloc_mutexed` and `buffer_alloc_free_mutexed` when `MBEDTLS_THREADING_C` is on, and the unlocked pair otherwise.\nVERDICT: HIT\nWHY: The answer says the buffer allocator's init function installs the mutexed pair when MBEDTLS_THREADING_C is on and the unlocked pair otherwise, which matches the item. The compile-time choice is implied by the config macro."
+}

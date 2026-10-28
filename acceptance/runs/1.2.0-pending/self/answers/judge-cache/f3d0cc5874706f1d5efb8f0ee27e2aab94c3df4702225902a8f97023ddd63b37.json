@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A payload that is already large gets a compacted notice rather than none, through three size tiers in `_staleness_within_budget`.\nVERDICT: HIT\nWHY: States the notice is compacted (degraded wording) to fit the budget instead of being dropped, via size tiers."
+}

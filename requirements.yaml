@@ -1,6 +1,6 @@
 # clew requirements catalog (dogfooding).
 #
-# Flat schema doxygen-guard reads: {id, block, title, acceptance, priority}.
+# Flat schema clew guard reads: {id, block, title, acceptance, priority}.
 # Extra keys {status, evidence} are clew's own live implementation-tracking
 # view (the guard ignores unknown keys; @req COVERAGE is NOT gated yet — see
 # REQ-DDB-CONFIG-002). clew controls its OWN flat format here; arbitrary
@@ -10,7 +10,7 @@
 # @req id shape (declared in .clew.yaml `guard:`):
 #   ^REQ-DDB-[A-Z]+-[0-9]{3}( \[inferred\])?$
 # The optional suffix is a CONFIDENCE marker, not part of the id. It is in the
-# pattern because doxygen-guard validates the whole `@req` line while clew
+# pattern because clew guard validates the whole `@req` line while clew
 # splits id from marker — see the comment on that key for why declaring it was the
 # honest fix rather than deleting the marker.
 # Product domains only: PIPE, SCHEMA, QUERY, MCP, CONFIG, INDEX, CLI, GUARD.
@@ -89,7 +89,7 @@ requirements:
       .clew.yaml, because with one location there is nothing to discover.
   REQ-DDB-CONFIG-002:
     subsystem: config
-    name: Dogfooding - clew enforces doxygen-guard + ruff + pytest on itself
+    name: Dogfooding - clew enforces clew guard + ruff + pytest on itself
     acceptance_criteria: clew carries .clew.yaml (its guard section), requirements.yaml, and .pre-commit-config.yaml;
       pre-commit runs ruff, doxygen-guard (presence/@version/@return), and the full pytest suite green
       on the package code.

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Tier 2, the repo's standing declaration** | `<repo>/.clew.yaml`, same section names as the flags | Every build of that repo, CLI and MCP alike\nVERDICT: HIT\nWHY: The answer names `.clew.yaml` as the tier 2 standing declaration at the repo root, applied to every build by both CLI and MCP."
+}

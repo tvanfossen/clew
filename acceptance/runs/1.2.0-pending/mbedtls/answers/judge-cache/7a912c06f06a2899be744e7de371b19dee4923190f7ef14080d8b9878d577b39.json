@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says nothing about `mbedtls_platform_set_calloc_free` being absent (undeclared and uncompiled) on the macro path. It describes the function only as the run-time route and says macro-path calls bypass the pointer hop."
+}

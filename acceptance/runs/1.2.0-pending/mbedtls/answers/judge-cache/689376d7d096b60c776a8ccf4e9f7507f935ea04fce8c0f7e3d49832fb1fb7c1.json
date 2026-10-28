@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise it XORs with a `volatile` zero global (`library/constant_time.c:29`), so the compiler cannot prove a value at compile time and cannot turn masks back into branches.\nVERDICT: MISS\nWHY: The answer says the fallback XORs with a volatile zero global, but it never names the global, which the item requires."
+}

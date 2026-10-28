@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_baseline_r3",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.25,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "5489758d9a50",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: derive_scope(repo_root) | WHY: The answer names `derive_scope` as the entry of the decision flow, and it cites `clew/scope.py` as the module for `_declared_index_scope` and `whole_repo_scope`. That puts the resolution in `derive_scope` in `scope.py`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"A present-but-unusable section is refused at the CLI, not quietly widened to the whole repo.\" | WHY: The answer says the declaration wins and that the default is whole-repo when nothing is declared, but it says an unusable declaration is refused rather than widened to the whole repo. That contradicts the item's claim that every failure to find one falls through to whole-repo indexing.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says the fallback carries a reason/provenance explaining which scope was used and why; it only mentions a recorded depth limit \"for provenance\" and a SOURCE_DECLARED label, which is not a stated reason on the fallback.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: A repo's own Doxyfile still supplies ALIASES and PREDEFINED, but its INPUT is ignored. | WHY: The answer says the Doxyfile's INPUT is ignored but never explains why (a repo shipping a Doxyfile would get only its documented subset, while one without gets the whole tree).",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Its root is the repository itself, and nested git trees are included and tagged rather than cut out. | WHY: The answer explicitly states that, under the default whole-repo scope, nested git trees are included and tagged rather than cut out.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes how scope is determined and never says that a containment call was removed or that callers were dropped while the call stayed in place.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: Binary files are dropped by `lang_parsing_substrate.classify_file` (`filetypes.py`), both from the scanned tree and before every harvest read. | WHY: The answer names binary classification, but it doesn't state that it drops files whose extension lies about them. It also doesn't say the scope is only part of the answer, because a file reaches the index only if something can read it. It says \"Symbol parsing is by extension,\" which isn't the parse-built front end claiming file types doxygen can't read.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

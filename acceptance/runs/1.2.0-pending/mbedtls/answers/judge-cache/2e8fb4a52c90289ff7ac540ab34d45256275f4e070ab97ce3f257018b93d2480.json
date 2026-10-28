@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says \"Public surface: none\" and lists the public `mbedtls_mpi_lt_mpi_ct`, never concluding that `mbedtls_ct_memcmp` is the single public function."
+}

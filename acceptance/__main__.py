@@ -390,6 +390,36 @@ def passes_recorded(answers: Path, stem: str, digest: str, fingerprint: str) -> 
     return count
 
 
+## @brief One cell's progress line, with an unruled question named rather than numbered.
+## @param stem The cell stem.
+## @param got The question's score, or None when nothing was ruled.
+## @param unmarked Share of weight the judge did not reach.
+## @return The line to print.
+## @version 1
+def _grade_line(stem: str, got: float | None, unmarked: float) -> str:
+    """SPLIT OUT OF `_grade_one` BECAUSE IT CRASHED A RUN 90 CELLS IN. `score()` returns
+    `float | None` by design — None means NOTHING WAS RULED, which is what stopped an unruled
+    question being published as a confident 0.0 — and this line formatted it with `:6.1%`, so
+    the first fully-unruled cell killed the whole grading phase with a TypeError. The sidecar is
+    written BEFORE this runs, so no score was lost; the phase died reporting one.
+
+    IT PRINTS `UNRULED`, NOT `0.0%`, and that is the whole point of the fix. A reader scanning a
+    grading log for weak cells must not see a zero where the measurement is absent — that is the
+    confusion the None exists to end, and printing it as zero would reintroduce it in the one
+    place a human actually looks.
+
+    A FUNCTION SO IT CAN BE TESTED. Inline in a closure it was unreachable from a test, which is
+    why a format string survived a change to the type it formats.
+
+    @brief Format one graded cell for the log.
+    @return Progress line.
+    @version 1
+    """
+    if got is None:
+        return f"{stem:<34} score UNRULED  unmarked {unmarked:5.1%}"
+    return f"{stem:<34} score {got:6.1%}  unmarked {unmarked:5.1%}"
+
+
 ## @brief Grade every frozen answer against the rubric.
 ## @param args Parsed arguments.
 ## @return Exit code.
@@ -466,7 +496,7 @@ def cmd_grade(args) -> int:
         ## judge noise.
         with (args.answers / f"{path.stem}.grades.jsonl").open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(record) + "\n")
-        return f"{path.stem:<34} score {got:6.1%}  unmarked {unmarked:5.1%}"
+        return _grade_line(path.stem, got, unmarked)
 
     ## CONCURRENT ONLY WHEN ASKED, AND THE ORDER OF THE LOG NEVER MOVES. The answers are graded
     ## in whatever order slots free up, but `map` yields results in submission order, so the
@@ -628,7 +658,11 @@ def _print_variance(answers: Path) -> None:
     print("-" * len(head))
     by_arm: dict[str, list[float]] = {}
     for cell, passes in rows:
-        scores = [float(p.get("score", 0.0)) for p in passes]
+        ## UNMEASURED PASSES DROPPED, NOT ZEROED — see `_scored_passes`.
+        measured = _scored_passes(passes)
+        if len(measured) < 2:
+            continue
+        scores = [float(p["score"]) for p in measured]
         low, high = min(scores), max(scores)
         by_arm.setdefault(str(passes[-1].get("arm", "?")), []).append((high - low) * 100)
         moved = sorted(
@@ -695,7 +729,16 @@ def _print_cells(rows: list) -> None:
     print(head)
     print("-" * len(head))
     for meta, grade in rows:
-        score = f"{grade['score']:6.1%}" if grade else "     —"
+        ## `unruled` IS NOT A DASH AND NOT A ZERO. A missing grade prints `—`; a grade whose
+        ## score is null is a cell the judge ruled NOTHING on, which is a different fact and the
+        ## one that was published as 0.0. Found by running the report over synthetic null-score
+        ## sidecars — grepping the read sites missed this one, because the crash is in a format
+        ## string rather than in arithmetic.
+        score = (
+            "unruled"
+            if grade and grade.get("score") is None
+            else (f"{grade['score']:6.1%}" if grade else "     —")
+        )
         unmarked = f"{grade['unmarked_pct']:5.1%}" if grade else "    —"
         split = str(grade.get("split_decisions", "—")) if grade else "—"
         print(
@@ -784,6 +827,44 @@ def cmd_report(args) -> int:
         "prints the pair; it does not rule on it."
     )
     return 0
+
+
+##
+# @brief Grade passes that carry a score, dropping the ones nothing was ruled on.
+# @param passes Grade records for one cell, oldest first.
+# @return The subset whose `score` is not null.
+# @version 1
+def _scored_passes(passes: list[dict]) -> list[dict]:
+    """A PASS WITH NO SCORE HAS NO SPREAD, and coercing it to zero is the defect
+    `QuestionResult.score` was just fixed for, moved one file over. `float(p.get("score", 0.0))`
+    raises `TypeError` on the `null` a fully-unruled cell records — a crash the test suite did not
+    catch, because no test fed a null score through the report.
+
+    @brief Keep only passes the judge ruled something on.
+    @return The scored passes.
+    @version 1
+    """
+    return [p for p in passes if p.get("score") is not None]
+
+
+##
+# @brief Whether two cells scored the same.
+# @param ref The reference arm's grade record.
+# @param other The compared arm's grade record.
+# @return True only when BOTH carry a score and the two are equal.
+# @version 1
+def _is_tie(ref: dict, other: dict) -> bool:
+    """TWO ABSENCES ARE NOT A TIE. `abs(ref["score"] - other["score"])` raises on a null, and the
+    obvious repair — treating two nulls as equal — is worse than the crash: a tie means two arms
+    SCORED the same, and the report reads a tie at the ceiling as a saturated question that should
+    be replaced. Two cells nobody ruled on would argue for replacing a question on no evidence.
+
+    @brief Equal scores, both measured.
+    @return True when both scored and the scores match.
+    @version 1
+    """
+    a, b = ref.get("score"), other.get("score")
+    return a is not None and b is not None and abs(a - b) < 1e-9
 
 
 ## @brief Per-question arm comparison: separation and shell displacement.
@@ -957,7 +1038,7 @@ def _name_incomplete(paired: dict, complete: dict, reference: str, compared: lis
             continue
         for arm in compared:
             other = cells[arm][1]
-            if other and abs(ref["score"] - other["score"]) < 1e-9:
+            if other and _is_tie(ref, other):
                 tied += 1
     if tied:
         print(

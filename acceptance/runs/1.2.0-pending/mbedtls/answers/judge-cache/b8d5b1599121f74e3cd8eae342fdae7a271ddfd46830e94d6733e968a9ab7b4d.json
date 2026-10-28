@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/CMakeLists.txt:134` runs `scripts/generate_errors.pl` at build time over the headers in `include/mbedtls` and `scripts/data_files/error.fmt`, producing the build-dir `error.c`.\nVERDICT: HIT\nWHY: The answer states error.c is generated from the public headers by generate_errors.pl using error.fmt as its template."
+}

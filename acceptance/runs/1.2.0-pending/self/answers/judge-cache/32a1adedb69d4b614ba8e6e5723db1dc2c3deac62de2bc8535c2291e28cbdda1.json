@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Unknown section name:** the load refuses with `DeclarationError` and lists the allowed sections. A misspelled section would otherwise be ignored while the build reports the declaration as honoured.\nVERDICT: HIT\nWHY: The answer states that an unknown section is refused by name against the allowed sections, and that ignoring it would let the build report the declaration as honoured."
+}

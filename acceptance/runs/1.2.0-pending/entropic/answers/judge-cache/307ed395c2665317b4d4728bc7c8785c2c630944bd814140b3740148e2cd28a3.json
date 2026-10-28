@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The Python wrapper keeps the trampoline alive on the engine side and catches exceptions in each trampoline so they never unwind into C.\nVERDICT: MISS\nWHY: The answer says trampolines catch exceptions so they never unwind into C, but it never says a failed hook is treated as a pass-through. It only notes that `_trampoline` returns `rc=1` on OOM, and that is a different matter."
+}

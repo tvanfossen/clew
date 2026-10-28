@@ -1,0 +1,40 @@
+{
+  "stem": "Q3_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "skills": "",
+  "answered_by": "claude-haiku-5-5",
+  "seconds": 41.677672847989015,
+  "input_tokens": 18,
+  "output_tokens": 6529,
+  "cache_read_tokens": 520529,
+  "cache_creation_tokens": 44744,
+  "cost_usd": 0.01742039,
+  "result_bytes": 4030,
+  "turns": 13,
+  "tool_calls": 12,
+  "non_index_tool_calls": 12,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/1.2.0-pending/entropic/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nA tool call arrives in entropic and the user has configured permissions. Trace what\nactually decides whether that call runs, and say what a pattern in each list does.\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "tvanfossen/entropic",
+    "question_id": "Q3",
+    "arm": "baseline",
+    "model": "claude-haiku-5-5",
+    "replicate": 2,
+    "order": 32
+  }
+}

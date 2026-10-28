@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`.clew.yaml` in the repo root** (tier 2, \"declared\"). Each section holds the same content as the standalone manifest... **Discovery is limited to the repo root.** Sub-index declarations are read only from the root, so a nested `.clew.yaml` is never read.\nVERDICT: MISS\nWHY: The answer identifies `.clew.yaml` as tier 2 in the repo root, but it never says both entry points (CLI and MCP) discover it. The item requires that mechanism, so it is not stated."
+}

@@ -473,3 +473,75 @@ def test_the_hint_reaches_each_entry_of_a_batched_miss(index: Path, tmp_path: Pa
     assert "execute" not in entries["no_such_symbol_anywhere"]["note"], (
         "a name with no neighbour was given another subject's hint"
     )
+
+
+##
+# @brief A name that documentation MENTIONS but nothing declares says so.
+# @param tmp_path Per-test temporary directory.
+# @return None.
+# @version 1
+def test_a_name_only_documentation_mentions_is_reported_as_such(tmp_path: Path) -> None:
+    """MEASURED, replaying the 1.1.0 entropic cells against a rebuilt index.
+    `dossier("entropic_free_string")` returns nothing, and that is CORRECT — that checkout
+    declares no such function. The name appears four times in doc comments
+    (`include/entropic/entropic.h:701`, `:812`, `src/facade/entropic.cpp:4022`, `:4099`), always
+    as "frees with `entropic_free_string`", and nowhere as a definition.
+
+    So the agent read the name out of a brief clew served it, asked for it, and was told the index
+    holds nothing of that name. Both facts are true and the reply carried only the discouraging
+    one. "No symbol declares this" and "this repository has never heard of it" are different
+    answers: the first says the documentation is describing an API this build does not contain,
+    which is itself the finding.
+
+    `_name_exists` probes `memberdef.name` only, so documentation text was invisible to the hint
+    chain. This is the `absence is not emptiness` rule applied to the hint: the index knew the
+    name occurred and could not say so.
+
+    ASSERTED ON THE ROUTE, not the wording, like every other hint here — the reply must name the
+    corpus that holds the mention, or the reader is told a dead end politely.
+
+    @brief A documented-but-undeclared name is distinguished from an unknown one.
+    @return None.
+    @version 1
+    """
+    db = tmp_path / "clew.db"
+    conn = sqlite3.connect(str(db))
+    conn.executescript(
+        """
+        CREATE TABLE path (rowid INTEGER PRIMARY KEY, name TEXT);
+        CREATE TABLE memberdef (
+            rowid INTEGER PRIMARY KEY,
+            kind TEXT, name TEXT, file_id INTEGER, bodyfile_id INTEGER,
+            bodystart INTEGER, bodyend INTEGER, definition TEXT, argsstring TEXT,
+            briefdescription TEXT, detaileddescription TEXT, static INTEGER
+        );
+        """
+    )
+    conn.execute("INSERT INTO path (rowid, name) VALUES (1, 'include/entropic/entropic.h')")
+    conn.execute(
+        "INSERT INTO memberdef (rowid, kind, name, file_id, bodyfile_id, bodystart, bodyend, "
+        "definition, argsstring, briefdescription, detaileddescription, static) "
+        "VALUES (1, 'function', 'entropic_ask', 1, 1, 10, 20, 'char *entropic_ask', '()', "
+        "'Ask the engine.', 'The caller frees with entropic_free_string.', 0)"
+    )
+    conn.commit()
+    conn.close()
+
+    hint = recovery_hint(db, "entropic_free_string")
+
+    assert hint, "a name the documentation mentions must not produce a bare negative"
+    assert "entropic_free_string" in hint, hint
+    assert "search(" in hint, f"the hint must name the corpus holding the mention: {hint!r}"
+
+
+##
+# @brief A name nothing mentions anywhere still gets no hint.
+# @param index The seeded database.
+# @return None.
+# @version 1
+def test_a_name_no_documentation_mentions_still_gets_nothing(index: Path) -> None:
+    """THE NEGATIVE HALF, and the one that keeps the new branch from firing on everything. A name
+    absent from the symbol table AND from every documentation field has nothing to report, and
+    this module's standing rule is that a fabricated suggestion makes every real hint suspect.
+    """
+    assert recovery_hint(index, "totally_absent_identifier_xyz") == ""

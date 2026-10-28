@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 12322,
+  "stop_reason": "end_turn",
+  "session_id": "a5007670-4e23-43d8-a309-e76c462c8e7b",
+  "total_cost_usd": 0.0019002600000000002,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 1285,
+    "cache_read_input_tokens": 75086,
+    "output_tokens": 1784,
+    "output_tokens_details": {
+      "thinking_tokens": 858
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 1285,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1379,
+        "cache_read_input_tokens": 37543,
+        "cache_creation_input_tokens": 1285,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1285
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 1784,
+      "cacheReadInputTokens": 75086,
+      "cacheCreationInputTokens": 1285,
+      "webSearchRequests": 0,
+      "costUSD": 0.0019002600000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 858,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 1285,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply separates the two cases by what it says it searched, not by a single \"not found\" flag. Each empty result carries three things:\n\n- **A scope block.** It names the target, the file count (426 here), the extensions indexed, and `not_indexed` for extensions the index never reads (here `.rs`, `.toml`, `.csv`, `.sql`, extensionless files and so on).\n- **A \"NOT searched\" line.** It lists the corpora the query did not touch. For `symbols`, that is markdown and Kconfig prose, which `search(corpus='prose')` covers.\n- **Per-token hits, plus a staleness marker.** A multi-token miss names the token that emptied the conjunction. `staleness` appears only when the index is stale. Here it is absent, and `index(action='targets')` reports `stale: false` with 0 changed source files.\n\nThe reply is explicit that an empty result is \"NOT an error\" and \"NOT a definitive negative either\". It tells you to retry with fewer tokens, because a conjunction of two words can fail on one of them alone.\n\nConfidence, roughly:\n\n| Case | What an empty result supports |\n|---|---|\n| Symbol corpus, index current, one distinctive token retried, file in the 426 indexed files | Strong evidence the repo has no function, variable, macro, type or config symbol with that name. Not proof: a name that only appears in a comment or body text is not in the symbol corpus. |\n| Same query against markdown or Kconfig prose | Not covered by the symbol search. Run `corpus='prose'` before concluding anything about docs. |\n| Name that would live in a file with an unindexed extension (`.rs`, `.toml`, `.sql`, \u2026) | No evidence either way. The index never read those files, so this is the \"did not look there\" case. Read or grep those files directly. |\n| Index stale (a `staleness` block present) | Treat as unreliable until `index(action='refresh')` runs. Not the case in this session. |\n\nSo \"the repository does not contain that\" is only supported for symbols in the indexed extensions, from a current index, after a retry. \"I did not look there\" is what the reply says for everything else. Its word for the distinction is the scope and \"NOT searched\" fields, not an `absent` flag. I checked this with a nonsense query on the live index, so the field names and the behaviour above are observed, not recalled. I did not test a real symbol that happens to live in an unindexed file type, so the claim about those rests on the scope field's contents.",
+  "ttft_ms": 3074,
+  "type": "result",
+  "duration_ms": 12566,
+  "uuid": "4d609408-0f99-4d9a-bd28-8c8741e0f77b",
+  "ttft_stream_ms": 1713,
+  "time_to_request_ms": 81,
+  "first_content_frame_ms": 1713,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

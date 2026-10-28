@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` is commented out in `include/mbedtls/mbedtls_config.h:3787`, and `MBEDTLS_THREADING_PTHREAD` is commented out at `:2196`. So `threading.c` compiles to nothing useful, and every lock site in the library sits behind `#if defined(MBEDTLS_THREADING_C)`.\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD and says lock sites are gated behind MBEDTLS_THREADING_C."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 34791,
+  "stop_reason": "end_turn",
+  "session_id": "39880381-d466-49dd-953e-556664f553f7",
+  "total_cost_usd": 0.014130130000000001,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 43753,
+    "cache_read_input_tokens": 313143,
+    "output_tokens": 4493,
+    "output_tokens_details": {
+      "thinking_tokens": 1559
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 43753,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2316,
+        "cache_read_input_tokens": 53250,
+        "cache_creation_input_tokens": 3448,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3448
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 4493,
+      "cacheReadInputTokens": 313143,
+      "cacheCreationInputTokens": 43753,
+      "webSearchRequests": 0,
+      "costUSD": 0.014130130000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1559,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 43753,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply separates the two cases by grading its own empty result. It does not report a flat \"no results.\" The grading lives in `clew/mcp_server/emptiness.py`, and I read it from the code without running a query or the tests.\n\n**What the reply carries when a search is empty**\n\n- **A scope block (`scope` key).** This states what the index covers: file count, whether the scope was declared or derived from the whole repo, the extensions and top-level directories, and excludes. `not_indexed` appears only if the build recorded that report. An absent key means \"not recorded,\" not \"nothing was missed.\" Scope is the only part of the reply that says where the search could have looked, so it's the first thing to read.\n- **A verdict sentence.** Its wording depends on what was checked:\n\n| Condition | Wording |\n|---|---|\n| Single token, no match in any corpus `search` skips, file-docs corpus present | `_DEFINITIVE`: \"This IS a definitive empty result\u2026 Do not retry\" |\n| Single token, but a match exists in a corpus `search` does not read | `_UNREAD_CORPUS`: \"NOT DEFINITIVE\u2026 this index HOLDS matching rows that search does not read: {n} {kind}\" with the hit counts also in `unsearched_corpus_hits` |\n| Single token, file-docs corpus absent | `_NO_FILE_DOCS`: \"NOT definitive\u2026 rebuild\" |\n| Multi-token | Conjunction note naming the token that emptied the match, with per-token counts in `token_hits` |\n| `search(corpus='prose')` with the token in symbols | `_PROSE_ELSEWHERE`: \"NOT DEFINITIVE\u2026 this repository DOES use these terms\" |\n| `search(corpus='prose')` with no markdown corpus | `_NO_PROSE_CORPUS`: \"NOT definitive\" |\n\nThe \"definitive\" claim is made only after the database has been asked whether any unread corpus holds the token (`q.unsearched_corpora`). Comments in the code record that an earlier version used the strong wording without this check and was wrong four times.\n\n**How much confidence each answer deserves**\n\n- **\"Definitive, nothing in the index.\"** This is the strongest claim the reply makes, and it is still bounded. It means no kind of row the index holds matched. It does not mean the repository lacks the name. A file outside the declared or derived scope, or matching an exclude, produces the same empty result, and only the scope block shows that. Treat it as \"not in the indexed scope,\" then check `scope` before trusting it.\n- **\"Not definitive, but present elsewhere.\"** This is a finding about location, not existence. The name is in the index under a corpus this search didn't read. Ask `dossier` by name, or `search(corpus='symbols')`.\n- **\"Not definitive, no corpus.\"** The index can't look at that layer, so it can't report a negative. Rebuild, or use the other corpus.\n- **Known gap.** A layer that was never built does not downgrade a single-token verdict. The code says this was tried and reverted, because most indexes lacking a layer were built without one and the hedge would fire on nearly every reply. The file-docs check is the one exception. For layer state, `graph_stats.layer_states` distinguishes `absent` from `empty`, so an older index can still yield a \"definitive\" note and be wrong about a layer it never built.\n\n**Short version:** a definitive empty result means \"nothing in the indexed scope, across every corpus this build recorded.\" Anything wider needs the scope block, and anything the index can't check is labeled as not definitive.",
+  "ttft_ms": 3854,
+  "type": "result",
+  "duration_ms": 35248,
+  "uuid": "7e027e0f-ba36-48a7-9455-b56499bc4fd8",
+  "ttft_stream_ms": 3355,
+  "time_to_request_ms": 137,
+  "first_content_frame_ms": 3355,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

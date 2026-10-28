@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library starts no threads and that `library/threading.c` compiles to nothing, but it never says the pthread example (`ssl_pthread_server.c`) compiles to a stub main. It only calls the sample \"application code that depends on THREADING_C\"."
+}

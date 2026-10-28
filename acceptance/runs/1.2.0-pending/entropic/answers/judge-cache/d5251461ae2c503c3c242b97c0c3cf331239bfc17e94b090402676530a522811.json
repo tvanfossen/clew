@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"In `check_approval`, though, a non-null `on_tool_call` sets `approved = true` unconditionally after the callback fires. The callback therefore acts as a notification, not a gate.\"\nVERDICT: HIT\nWHY: The answer states that the code sets approved to true unconditionally after the callback fires, so the callback cannot refuse. It never says the callback returns void, but the unconditional approval and the notification-only role carry the substance."
+}

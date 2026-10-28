@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Python does not embed or wrap the engine in an object model. It loads `librentropic.so` with `ctypes` and calls the C ABI\"; \"The package is pure Python and holds no native code.\"\nVERDICT: HIT\nWHY: The answer names ctypes over librentropic.so and states the package is pure Python with no native code, so no compiled extension module is involved."
+}

@@ -129,6 +129,7 @@ import anyio
 from .._common import captured_output, logger
 from ..buildlock import build_lock
 from ..declaration import SECTION_SUB_INDEXES
+from ..languages import harvested_phrase
 from ..scope import (
     FIRST_PARTY_INDEX,
     SCOPE_FROM_GUARD,
@@ -463,7 +464,7 @@ def _listing_row(status: dict[str, Any]) -> dict[str, Any]:
 ## past the cut and only "the index is not a substitute for reading source" arriving — and a
 ## session then spent twenty turns on grep asserting exactly that. `test_no_served_text_is_ever_
 ## truncated` holds the length and names the sentences that may not be dropped to achieve it.
-INSTRUCTIONS = """Queryable index over a C, C++, Rust or Python repository.
+INSTRUCTIONS = f"""Queryable index over a {harvested_phrase()} repository.
 
 START AT `dossier` FOR ANY QUESTION ABOUT A NAMED THING. It returns that symbol's VERBATIM SOURCE
 BODY INCLUDING INLINE COMMENTS, plus its file and line span, both neighbour directions, the thread

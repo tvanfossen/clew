@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its `INPUT` is ignored (gh#333), because treating a documentation target as a reasoning boundary made repos that shipped a Doxyfile get narrower indexes than repos that didn't.\nVERDICT: HIT\nWHY: The answer says the Doxyfile's INPUT is ignored and explains that repos shipping a Doxyfile would otherwise get narrower indexes than repos without one."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`scope` lists what was covered: 426 files, whole-repo, with extensions and top-level directories. It also lists `not_indexed`, the extensions the index skipped here\"\nVERDICT: MISS\nWHY: The answer names the extensions that were skipped (`not_indexed`) and says `scope` lists covered extensions. It never says the reply names in-scope file types that were searched and produced zero rows."
+}

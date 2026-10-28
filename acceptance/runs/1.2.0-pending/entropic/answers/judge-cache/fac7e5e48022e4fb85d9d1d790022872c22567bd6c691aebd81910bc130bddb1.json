@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`do_count_tokens` / `entropic_inference_count_tokens` | Returns 0. The C API documents 0 as the answer for empty text, so a failed tokenization is indistinguishable from empty input.\"\nVERDICT: MISS\nWHY: The answer says failure is indistinguishable from empty input only for the count API. It also reports that `generate_speculative_with_draft` checks for the empty case, so it does not conclude that no caller checks."
+}

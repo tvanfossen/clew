@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: For a routed query, the notice describes the repository that was actually read, never the default one.\nVERDICT: HIT\nWHY: The answer directly states that a routed query's staleness notice describes the repository actually read, not the default."
+}

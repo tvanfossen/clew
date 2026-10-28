@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Enabling `MBEDTLS_THREADING_C` with `MBEDTLS_THREADING_PTHREAD` (or your own `MBEDTLS_THREADING_ALT`) is what switches the library's internal locks on.\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros that gate the library's locking."
+}

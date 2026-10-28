@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Embedding callers, including the MCP `index` tool, pass one structured `options` mapping to `index(action='refresh')`. Its keys are the same section names as the declaration file, and an unknown key is refused by name.\nVERDICT: MISS\nWHY: The answer says the options keys match the declaration file's section names, but it never says they are the same words the diagnostics use, so the item's second half is absent."
+}

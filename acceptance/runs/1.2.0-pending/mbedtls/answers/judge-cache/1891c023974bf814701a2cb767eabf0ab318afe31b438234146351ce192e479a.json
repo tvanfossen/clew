@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_PLATFORM_MEMORY` off (the default, per `include/mbedtls/mbedtls_config.h:208`), `platform.h:163-167` makes `mbedtls_calloc` a macro for `calloc` and `mbedtls_free` a macro for `free`. There is no indirection.\nVERDICT: HIT\nWHY: The answer states that in the default build (PLATFORM_MEMORY off) the two names are macros expanding directly to calloc and free, with no indirection."
+}

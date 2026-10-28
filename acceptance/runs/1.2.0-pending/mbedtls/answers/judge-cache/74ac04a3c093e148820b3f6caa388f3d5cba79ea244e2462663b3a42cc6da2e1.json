@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The effect is that plain `ctx->m` fails to compile for anyone outside the library. The name is the only thing that changes. The layout does not, so the mangling is not an ABI change.\nVERDICT: HIT\nWHY: The answer says the compile-time barrier comes from renaming the member (`private_m`) while the layout stays unchanged, so the fields remain visible."
+}

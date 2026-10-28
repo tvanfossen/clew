@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nsrc/mcp/tool_executor.cpp\ninclude/entropic/types/config.h\nconfig.local.yaml\nEND"
+}

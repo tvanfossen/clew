@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `entropic/_bindings.py` \u2190 generated from entropic.h by scripts/gen_bindings.py\nVERDICT: HIT\nWHY: The answer's diagram and bullets state the bindings are auto-generated from the C header by scripts/gen_bindings.py, marked \"do not edit\", with a pre-commit `gen-bindings --check`."
+}

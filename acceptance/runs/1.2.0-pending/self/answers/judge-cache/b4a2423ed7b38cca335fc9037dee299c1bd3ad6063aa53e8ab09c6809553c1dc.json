@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `source`: which doxygen or AST layer found the edge. Edges are stored once per layer, and the row reports the strongest evidence.\nVERDICT: MISS\nWHY: The answer says the row reports the strongest layer's evidence, but never says a ranking in the vocabulary module (rather than SQL) decides which layer wins."
+}

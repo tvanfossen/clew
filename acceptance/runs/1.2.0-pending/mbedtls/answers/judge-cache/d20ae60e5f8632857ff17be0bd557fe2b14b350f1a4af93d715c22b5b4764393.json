@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If the symbol is not defined, `MBEDTLS_PRIVATE` renames the member. If it is defined, the macro expands to the bare member name.\" and \"The guard only constrains outside users. Any external code that defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` before including the headers gets the same access\"\nVERDICT: HIT\nWHY: The answer states that defining the symbol yields bare member names (library, sample programs, external code that defines it), while ordinary consumers of the public headers get `private_`-renamed names."
+}

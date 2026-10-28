@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Deep, but contained, in `src/inference/`. Direct llama/ggml/common/mtmd calls are confined to about 20 files.\nVERDICT: MISS\nWHY: The answer says the dependency is contained in src/inference and treats outside files (facade, tests) as indirect, so it never concludes that a minority of reaching files sit outside that layer."
+}

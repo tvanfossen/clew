@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Binary files are detected and dropped (`_drop_binary_files`, `filetypes.binary_files`).\nVERDICT: HIT\nWHY: The answer says that within the scope, binary files are detected and dropped, which is one of the two named filters (binary classification). The answer doesn't mention that this catches files whose extension lies about them, but it does name the filter and the mechanism."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: (default: MBEDTLS_PLATFORM_STD_* = calloc/free, or platform_calloc_uninit \u2192 always NULL)\nVERDICT: MISS\nWHY: The answer only notes that an uninit calloc always returns NULL. It never says the uninitialised free does nothing, and it doesn't frame the defaults as failing instead of falling back."
+}

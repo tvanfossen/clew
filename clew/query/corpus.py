@@ -44,6 +44,8 @@ from .models import (
     FileEntry,
     FileMember,
     FileSubject,
+    GenerationArg,
+    GenerationRule,
     IndexScope,
     ProseHit,
     ProseSearch,
@@ -287,7 +289,9 @@ def _was_harvested(conn: sqlite3.Connection, name: str) -> bool:
 ## @param conn Open connection.
 ## @param name The repo-relative path, exactly as `path.name` spells it.
 ## @return The FileSubject, or None when the index knows of no such file.
-## @version 1
+## v2: carries the build rule that produces this file and the files it produces — the fact an
+## index of what EXISTS structurally cannot hold, and the one mbedtls Q4's rubric calls decisive.
+## @version 2
 ## @req REQ-DDB-QUERY-004
 def file_subject(conn: sqlite3.Connection, name: str) -> FileSubject | None:
     """C1 of the 1.1.0 acceptance review, and the single largest item in it: 48 of 237 missed
@@ -307,7 +311,7 @@ def file_subject(conn: sqlite3.Connection, name: str) -> FileSubject | None:
 
     @brief Build the file subject by exact path.
     @return FileSubject or None.
-    @version 1
+    @version 2
     """
     if not is_indexed_file(conn, name):
         return None
@@ -327,6 +331,9 @@ def file_subject(conn: sqlite3.Connection, name: str) -> FileSubject | None:
         members=tuple(members[:_FILE_MEMBER_CAP]),
         harvested=_was_harvested(conn, name),
         external_root=(root[0] if root else "") or "",
+        ## BOTH DIRECTIONS, because both are asked of a file and neither answers the other.
+        generated_by=generation_rule(conn, name),
+        generates=generates_files(conn, name),
         members_truncated=len(members) > _FILE_MEMBER_CAP,
     )
 
@@ -386,6 +393,88 @@ def _file_members(conn: sqlite3.Connection, name: str) -> list[FileMember]:
     return [FileMember(name=n, kind=k or "", line=ln or 0) for n, k, ln in rows]
 
 
+## @brief The build rule that produces a file, by BASENAME, or None when nothing produces it.
+## @param conn Open connection.
+## @param name The repo-relative path of the candidate generated file.
+## @return The rule, or None.
+## @version 1
+## @req REQ-DDB-QUERY-004
+def generation_rule(conn: sqlite3.Connection, name: str) -> GenerationRule | None:
+    """MATCHED ON BASENAME, AND THAT IS A STATED LIMIT RATHER THAN A SHORTCUT. A build file writes
+    `${CMAKE_CURRENT_BINARY_DIR}/error.c` and the index holds `library/error.c`; neither string
+    contains the other, and resolving the variable needs a configure step the index never ran.
+    The basename is the only honest join available.
+
+    ITS FAILURE MODE IS NAMED: two files of the same basename in different directories, where one
+    is generated, would both match. That is a real ambiguity and it is better than the
+    alternatives — resolving the variable would invent a path, and refusing to join at all leaves
+    the fact mbedtls Q4's rubric calls decisive unreachable. A reader who doubts it has
+    `source_file` and `source_line` to go read the rule.
+
+    @brief Look up the rule producing this file.
+    @return The GenerationRule, or None.
+    @version 1
+    """
+    if not table_exists(conn, "generated_files"):
+        return None
+    base = name.rsplit("/", 1)[-1]
+    rows = conn.execute(
+        "SELECT output_name, output_literal, kind, source_file, source_line, "
+        "role, arg_name, arg_literal, unresolved FROM generated_files "
+        "WHERE output_name = ? AND output_name <> '' ORDER BY rowid",
+        (base,),
+    ).fetchall()
+    if not rows:
+        return None
+    head = rows[0]
+    args: dict[str, list[GenerationArg]] = {"command": [], "depends": []}
+    for row in rows:
+        role = str(row[5])
+        if role in args:
+            args[role].append(
+                GenerationArg(literal=str(row[7]), name=str(row[6]), unresolved=bool(row[8]))
+            )
+    return GenerationRule(
+        output_name=str(head[0]),
+        output_literal=str(head[1]),
+        kind=str(head[2]),
+        source_file=str(head[3]),
+        source_line=int(head[4] or 0),
+        command=tuple(args["command"]),
+        depends=tuple(args["depends"]),
+    )
+
+
+## @brief The files this file produces, by basename.
+## @param conn Open connection.
+## @param name The repo-relative path of the candidate generator.
+## @return Output basenames, sorted; empty when this file produces nothing.
+## @version 1
+## @req REQ-DDB-QUERY-004
+def generates_files(conn: sqlite3.Connection, name: str) -> tuple[str, ...]:
+    """THE OTHER DIRECTION, asked by a different reader. mbedtls Q4 asks "what a contributor has
+    to do to add a new one", and a contributor editing `generate_errors.pl` needs to know what
+    regenerates — which is how they check they edited the right input rather than the output.
+
+    A file named in a rule's COMMAND is a producer; one named only in DEPENDS is an input, and
+    `error.fmt` must not be reported as generating `error.c`. The role distinction is the whole
+    reason it is stored.
+
+    @brief What this file produces.
+    @return Output basenames.
+    @version 1
+    """
+    if not table_exists(conn, "generated_files"):
+        return ()
+    base = name.rsplit("/", 1)[-1]
+    rows = conn.execute(
+        "SELECT DISTINCT output_name FROM generated_files "
+        "WHERE role = 'command' AND arg_name = ? AND output_name <> '' ORDER BY output_name",
+        (base,),
+    ).fetchall()
+    return tuple(str(n) for (n,) in rows)
+
+
 ## @brief File-level documentation rows matching EVERY token, or [] when unindexed.
 ## @param conn Open connection.
 ## @param tokens Lower-cased query tokens; all must appear in the path or the documentation.
@@ -420,6 +509,57 @@ def file_doc_rows(conn: sqlite3.Connection, tokens: list[str]) -> list[tuple[str
         f"SELECT file_path, doc FROM file_docs WHERE {clause} ORDER BY file_path",
         params,
     ).fetchall()
+
+
+## @brief Registered paths matching EVERY token that carry no file-level documentation.
+## @param conn Open connection.
+## @param tokens Lower-cased query tokens; all must appear in the path.
+## @return List of (repo-relative path, "") pairs in path order.
+## @version 1
+## @req REQ-DDB-QUERY-007
+def undocumented_path_rows(conn: sqlite3.Connection, tokens: list[str]) -> list[tuple[str, str]]:
+    """THE OTHER HALF OF `file_doc_rows`, and the half a C5-registered file falls into.
+
+    `symbols._file_candidates` built the default corpus's file rows from `file_doc_rows` alone, so
+    only a DOCUMENTED file could appear there. A file the index knows by name and harvested
+    nothing from has no `file_docs` row by construction — which is exactly the class C5 exists to
+    make nameable, so registration reached `corpus="files"` and not the corpus a reader tries
+    first. Measured on an index rebuilt with C5: of the three ways the 1.1.0 agent asked for
+    `generate_errors`, only `corpus="files"` answered.
+
+    DOCUMENTED FILES ARE EXCLUDED HERE rather than merged, so the two readers cannot both emit a
+    row for one path and double it in the reply. `file_doc_rows` keeps the documented ones and
+    this adds only what it cannot see.
+
+    THE DOCUMENTATION IS `""` AND THAT IS A MEASUREMENT: the file was registered and nothing was
+    harvested from it. `_search_rank` scores a path where it scores a symbol's name and
+    documentation where it scores a brief, so a bare path match is ranked below a documentation
+    match by the same table rather than by a rule written here.
+
+    @brief Match registered paths with no documentation against all query tokens.
+    @return List of (path, "") pairs.
+    @version 1
+    """
+    if not tokens or not table_exists(conn, "path"):
+        return []
+    where, params = ["p.name <> ''"], []
+    if has_columns(conn, "path", "type"):
+        where.append("p.type = ?")
+        params.append(PATH_TYPE_FILE)
+    for token in tokens:
+        where.append("LOWER(p.name) LIKE ?")
+        params.append(f"%{token}%")
+    documented = (
+        "AND NOT EXISTS (SELECT 1 FROM file_docs d WHERE d.file_path = p.name)"
+        if table_exists(conn, "file_docs")
+        else ""
+    )
+    rows = conn.execute(
+        f"SELECT p.name FROM path p WHERE {' AND '.join(where)} {documented} "  # noqa: S608
+        f"ORDER BY p.name",
+        params,
+    ).fetchall()
+    return [(name, "") for (name,) in rows if not SYNTHETIC_PATH.match(name)]
 
 
 ## @brief Member documentation rows matching EVERY token, or [] when unavailable.

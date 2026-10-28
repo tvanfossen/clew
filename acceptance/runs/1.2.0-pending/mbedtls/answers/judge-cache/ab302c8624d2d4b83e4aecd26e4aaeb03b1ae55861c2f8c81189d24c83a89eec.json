@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions MBEDTLS_ERROR_ADD / mbedtls_error_add or __FILE__/__LINE__ capture; it describes only strerror decoding and generation."
+}

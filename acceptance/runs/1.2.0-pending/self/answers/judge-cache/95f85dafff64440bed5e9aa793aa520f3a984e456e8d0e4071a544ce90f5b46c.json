@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If the refresh fails or times out, the query still answers from the stale index and the reply carries the `staleness` notice.\nVERDICT: MISS\nWHY: The answer describes refresh failure degrading gracefully, but never says that the staleness measurement itself never raises and degrades to no annotation."
+}

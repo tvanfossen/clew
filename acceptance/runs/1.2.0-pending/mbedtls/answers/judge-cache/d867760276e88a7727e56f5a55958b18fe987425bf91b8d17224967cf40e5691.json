@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: with asm it is `asm volatile(\"\" : [x] \"+r\"(x) :)`, which hides the value from the optimiser.\nVERDICT: HIT\nWHY: The answer gives the empty asm volatile with a \"+r\" input-output operand and says it hides the value from the optimiser, which covers the item's substance."
+}

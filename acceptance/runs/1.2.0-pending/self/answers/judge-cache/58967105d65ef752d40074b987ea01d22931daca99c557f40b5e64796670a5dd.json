@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The notices are attached to every query reply through `staleness_notices()` in `clew/mcp_server/server.py` and the `_staleness` method in `tools_query.py`. The block is absent when the index is current, so its presence is a signal.\n\nVERDICT: HIT\nWHY: The answer says notices are attached to every query reply and that the block is absent when the index is current."
+}

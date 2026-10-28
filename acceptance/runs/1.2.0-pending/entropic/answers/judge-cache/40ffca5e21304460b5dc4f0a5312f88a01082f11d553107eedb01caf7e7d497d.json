@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: search order: $ENTROPIC_LIB, $ENTROPIC_HOME/{entropic/,}lib, ~/.entropic/{entropic/,}lib, then ldconfig\nVERDICT: HIT\nWHY: The answer gives the order as env overrides, then the default user directory, then the ldconfig system cache. The `{entropic/,}lib` pattern shows two layouts tried per root."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions the embedding caller's `options` argument and the declaration file's sections. It never says that the option names match the section names or the words the diagnostics use."
+}

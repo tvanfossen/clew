@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the whole options mapping is validated and one bad entry refuses it, but it never describes an unknown key inside a valid section, or a correctly-spelled derived key being refused with its reason."
+}

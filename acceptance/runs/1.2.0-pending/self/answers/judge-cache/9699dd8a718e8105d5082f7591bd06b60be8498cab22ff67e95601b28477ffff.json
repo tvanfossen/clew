@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A routed reply is annotated only for the repository it actually read.\nVERDICT: HIT\nWHY: The answer states that a routed reply is annotated only for the repository it actually read, which is the item's substance. It doesn't name the contrast with the server's default target, but the claim is there."
+}

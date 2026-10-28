@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says replies carry `target` and `staleness` but never says a routed reply is annotated for the repository it actually read rather than the server's default target."
+}

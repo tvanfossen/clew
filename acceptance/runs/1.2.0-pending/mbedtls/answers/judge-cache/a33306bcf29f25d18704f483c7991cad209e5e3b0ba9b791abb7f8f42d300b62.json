@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If you define `MBEDTLS_PLATFORM_STD_CALLOC` yourself without a replacement, the library substitutes `platform_calloc_uninit`, which always returns NULL\"\nVERDICT: MISS\nWHY: The answer says the uninitialised calloc stub returns NULL, but it never says the uninitialised free does nothing. It also presents the stub only as a side case, not as the pointers' failing default."
+}

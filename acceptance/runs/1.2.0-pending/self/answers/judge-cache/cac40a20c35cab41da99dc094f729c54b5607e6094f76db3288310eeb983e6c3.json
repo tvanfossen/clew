@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"YAML and JSON never get symbols.\" / \"`.yaml`, `.yml`, `.json` | Yes, always | Never, by design | None\" / \"clew registers them and never harvests them. They are findable by name, and that is all.\"\nVERDICT: HIT\nWHY: The answer states YAML/JSON are registered in the file set (path rows) but carry no symbols, contrasted with shell/CMake which get function rows when grammars exist."
+}

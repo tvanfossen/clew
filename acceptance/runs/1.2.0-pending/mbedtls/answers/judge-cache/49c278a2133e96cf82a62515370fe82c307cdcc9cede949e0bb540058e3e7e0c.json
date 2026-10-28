@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Add a `#define MBEDTLS_ERR_<MODULE>_<NAME> -0x....` in the module's public header under `include/mbedtls/`, with its doc comment. ... Rebuild. The custom command regenerates `error.c` ... Do not hand-edit `library/error.c`; the next build overwrites it.\nVERDICT: HIT\nWHY: The answer says to add the documented #define to the public header, regenerate error.c via the generator, and not hand-edit error.c."
+}

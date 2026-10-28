@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The Doxyfile is not a tier. Its `INPUT` is treated as a documentation target, not a reasoning boundary. The repo's Doxyfile is still read for `ALIASES` and `PREDEFINED`, but its `INPUT` is replaced.\"\nVERDICT: MISS\nWHY: The answer says Doxyfile INPUT is not used and that it's a documentation target, but never explains the reason (a repo with a Doxyfile would get only its documented subset while one without gets the whole tree)."
+}

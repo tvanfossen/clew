@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 40491,
+  "stop_reason": "end_turn",
+  "session_id": "e107e741-4786-4501-9287-055511a0c6a4",
+  "total_cost_usd": 0.01742039,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 44744,
+    "cache_read_input_tokens": 520529,
+    "output_tokens": 6529,
+    "output_tokens_details": {
+      "thinking_tokens": 3047
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 44744,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3900,
+        "cache_read_input_tokens": 75147,
+        "cache_creation_input_tokens": 2466,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2466
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 6529,
+      "cacheReadInputTokens": 520529,
+      "cacheCreationInputTokens": 44744,
+      "webSearchRequests": 0,
+      "costUSD": 0.01742039,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3047,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 44744,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A tool call is decided in two places. Approval happens in the executor before dispatch, and the deny list is checked later, inside `ServerManager::execute`. The allow list only affects approval; it never overrides the deny list.\n\n**Trace for one call** (`src/mcp/tool_executor.cpp:729` `process_single_call`)\n\n1. **PRE_TOOL_CALL hook** (`:857`). A plugin hook returning nonzero cancels the call with \"Cancelled by hook\". This runs before everything else.\n2. **Precondition chain** (`:667` `check_call_preconditions`), first rejection wins:\n   - Anti-spiral hard block (`:938`): too many consecutive calls to the same tool.\n   - Schema check (`:640`): args validated against the tool's `input_schema`.\n   - MCP key authorization (`:575`): only enforced when the identity (locked tier, or `lead`) has a key set.\n   - Tier `allowed_tools` (`:198`, gh#83).\n   - Duplicate check (`:117`): a repeat of a cached call returns the old result without approval.\n   - **Approval** (`:161` `check_approval`, via `:705`):\n     - Approved if `auto_approve_tools` is set, or the call matches the allow list (`ServerManager::is_explicitly_allowed` \u2192 `PermissionManager::is_allowed`).\n     - Otherwise, if the host registered `on_tool_call`, that callback is invoked and the call is approved anyway (`:168-172`). The callback is a notification, not a gate.\n     - Otherwise it is denied with \"Permission denied\" (`:185`).\n3. **Execute** (`src/mcp/server_manager.cpp:153`). `is_denied()` is checked on the deny list. A match returns `Error: Permission denied for <tool>` as a tool result. This runs even when approval passed via `auto_approve` or the allow list.\n4. Route to the in-process server or external MCP client.\n\n**What a pattern is**\n\nA pattern is `tool` or `tool:argpattern` (`permission_manager.cpp:101`).\n- The part before the first `:` is matched with `fnmatch` against the tool name.\n- If there is no `:`, that match is enough, so the rule covers every argument set.\n- If there is a `:`, the full `tool:argpattern` is `fnmatch`ed against `tool_name + \":\" + args_to_pattern(args)`.\n\n`args_to_pattern` (`server_manager.cpp:426`) does not look at all arguments. It takes the value of the first key in the parsed JSON object, and only if that value is a string. Otherwise it uses `*`. nlohmann's object iteration is key-sorted, so \"first\" means alphabetically first. Under the arg-pattern case, `*` also matches `/` and `:`.\n\n| Pattern | Effect |\n|---|---|\n| `filesystem.*` | Any filesystem tool, any args |\n| `bash.execute` | `bash.execute` with any args |\n| `bash.execute:python*` | Only when the alphabetically-first string arg starts with `python` |\n| `bash.execute:*` or `tool:*` | Any args, same as no suffix (empty args also become `*`) |\n\nBecause only one argument is checked, a pattern like `filesystem.write:/safe/*` can be bypassed or misfire if the alphabetically-first string arg is not the path. I did not check which argument names the built-in tools use, so I have not confirmed that case.\n\n**Where the lists come from**\n\n- `permissions.allow`, `permissions.deny`, `permissions.auto_approve` in YAML (`src/config/loader.cpp:365`).\n- Runtime `add_permission` (`permission_manager.cpp:79`), which skips exact duplicates.\n- Stored lists are written back by the permission persister (`src/storage/permission_persister.cpp`). I did not trace what it writes.\n\n**Problems I noticed**\n\n- The header says default-deny with \"approved via callback\" (`include/entropic/mcp/permission_manager.h:6`). The code is default-deny only when no `on_tool_call` callback is registered. With a callback, every non-allow-listed call is approved (`tool_executor.cpp:168-172`). If the host expects the callback to be able to refuse, that is not what happens. I did not check whether the facade's callback blocks for a user decision, so whether this is exploitable depends on the host.\n- Deny is enforced only at execute time, so a denied call still goes through the approval callback first. A user may be prompted for a call that is then refused.",
+  "ttft_ms": 2934,
+  "type": "result",
+  "duration_ms": 41021,
+  "uuid": "14f62d3d-3c7a-421c-84d9-69525bb9c61f",
+  "ttft_stream_ms": 2538,
+  "time_to_request_ms": 116,
+  "first_content_frame_ms": 2538,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

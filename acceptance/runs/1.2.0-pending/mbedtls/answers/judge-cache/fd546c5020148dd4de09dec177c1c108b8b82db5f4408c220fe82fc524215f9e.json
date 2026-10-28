@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"it expands to `private_##member`, so the field is renamed in the public header... It is a source-level guard, not a security boundary: the struct definitions are still in the public headers, `sizeof` is still visible\"\nVERDICT: HIT\nWHY: The answer says opacity is enforced at compile time by renaming the member (breaking the name), and that the struct layout stays visible and sized."
+}

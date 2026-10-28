@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The only dynamic check the index shows is `test_with_valgrind_constant_time` (`tests/scripts/components-configuration-crypto.sh:25`). It runs the `tests/suites/*constant_time*.data` suites under Valgrind... The index does not show how Valgrind is made to detect secret-dependent behaviour, so I cannot say more about the mechanism.\nVERDICT: MISS\nWHY: The answer mentions a valgrind test component but doesn't say the verification is a separate, off-by-default facility (built on MSan/valgrind) that is explicitly not part of the library API; it only says the headers are internal."
+}

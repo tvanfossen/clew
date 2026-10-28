@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \".yaml` `.yml` `.json` | `path` row only, in every case | `path` row only\" and \"YAML/JSON: ... Nothing is harvested from those files at all.\" / \"Any symbol from YAML or JSON, so they never answer a function question.\"\nVERDICT: HIT\nWHY: The answer states YAML/JSON are registered as path rows in the file set but carry no symbols, and contrasts them with shell/CMake, which do get symbols."
+}

@@ -120,8 +120,28 @@ tagged tree that produced them, which is where a third party reproducing this mu
 
 | key | here | now | why it moved |
 |---|---|---|---|
-| `grader_fingerprint` | `9cc2b15baf93` | `274b0d72688b` | a verdict cache was added to `judge.ask` |
+| `grader_fingerprint` | `9cc2b15baf93` | `5489758d9a50` | four moves; see below |
 | `rubric_digest` (all targets) | as recorded per sidecar | changed | `samples_when_weight_at_least` 2 → 1 |
+
+`grader_fingerprint` has moved four times since this run, each deliberately:
+
+| to | why |
+|---|---|
+| `274b0d72688b` | a verdict cache was added to `judge.ask`, so a re-grade is exact and free |
+| `0e7ad2bdb67d` | `_key` now strips a trailing `:LINE`; `score_set` refuses when extraction matched no member; the judge's own QUOTE/WHY are recorded |
+| `5489758d9a50` | a question the judge ruled NOTHING on no longer scores `0.0` |
+
+**The last one is a correction to figures in this file.** `self` Q6's three blended cells recorded
+`samples=18, errors=18`, every decision unruled, and were scored `0.0`. Across this grid 152 of
+2,970 judge samples errored over 14 cells, and 4 were 100% unruled and scored anyway — all `self`
+Q6. Excluding only the cells where nothing was ruled, `self`'s blended arm reads 45.4 rather than
+37.9, which turns a 6.1-point loss against baseline into a 1.4-point win, and the blended headline
+reads +1.54 rather than +0.25. The `index_only` headline is almost unaffected: −13.67 rather than
+−13.92.
+
+**The figures above are left as published.** They are what this run measured under the keys it
+records, and editing them would make the file disagree with its own sidecars. This note is the
+correction, and the blended figure in particular should be read as understating the tool.
 
 **Both changes answer a defect this run disclosed rather than adding a feature.** Gap 1 above was
 closed by replacing the dated-id requirement with a canonical-id requirement plus recorded

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 29226,
+  "stop_reason": "end_turn",
+  "session_id": "77ce1840-da3c-46ed-bddb-073fc7fbe646",
+  "total_cost_usd": 0.014741320000000002,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 45066,
+    "cache_read_input_tokens": 306072,
+    "output_tokens": 5332,
+    "output_tokens_details": {
+      "thinking_tokens": 2161
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 45066,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2061,
+        "cache_read_input_tokens": 62069,
+        "cache_creation_input_tokens": 1592,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1592
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 5332,
+      "cacheReadInputTokens": 306072,
+      "cacheCreationInputTokens": 45066,
+      "webSearchRequests": 0,
+      "costUSD": 0.014741320000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2161,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 45066,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 22,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The decision runs in two places: `ToolExecutor` decides whether the call is approved, and `ServerManager::execute` decides whether a denied call is dropped. The deny list is only checked in the second.\n\n```\ntool call\n \u2514\u2500 ToolExecutor::process_single_call\n     \u251c\u2500 PRE_TOOL_CALL hook: may cancel\n     \u2514\u2500 check_call_preconditions, in order:\n         1. anti-spiral hard block\n         2. schema check\n         3. MCP authorization\n         4. tier check\n         5. duplicate check\n         6. check_approval_pc \u2192 check_approval\n             \u251c\u2500 auto_approve_tools  OR  is_explicitly_allowed(allow list)  \u2192 approved\n             \u251c\u2500 else, if on_tool_call callback is set                      \u2192 approved = true\n             \u2514\u2500 else                                                       \u2192 denied\n     \u2514\u2500 execute_tool \u2192 ServerManager::execute\n         \u251c\u2500 is_denied(deny list)  \u2192 \"Permission denied\" JSON, call never routed\n         \u2514\u2500 route_tool_call       \u2192 server runs\n```\n\n**What each list does**\n\n- **`allow`** is consulted in `check_approval` through `is_explicitly_allowed`. A match skips the approval prompt. It does not override the deny list, because `execute` checks deny afterward.\n- **`deny`** is consulted only in `ServerManager::execute`, after approval. A match blocks the call, even if the allow list or `auto_approve` already approved it.\n- **`auto_approve`** (`PermissionsConfig`, `include/entropic/types/config.h:592`) skips the allow check. Deny still applies. I did not confirm that this config field is the same one `check_approval` reads as `loop_config_.auto_approve_tools`.\n\n**How a pattern matches** (`PermissionManager::pattern_matches`, `src/mcp/permission_manager.cpp:101`)\n\n- The pattern is split at the first `:`. The left side is fnmatch-ed against the fully-qualified tool name, for example `filesystem.*` or `git.commit`.\n- With no `:`, the tool-name match is enough, so the pattern covers every argument set for that tool.\n- With a `:`, the right side is fnmatch-ed against `tool:<first string argument>`. `ServerManager::args_to_pattern` takes the first string value of the arguments, and returns `*` when there is none.\n- Matching uses `fnmatch` with flags 0, so `*` also crosses `/` and `:`.\n- Example: `bash.execute:git *` matches a bash call whose first argument starts with `git `.\n- `BashServer::get_permission_pattern` builds the pattern written by \"Always Allow\" as `tool:base_cmd *`. The matching step compares against the full first argument, so that pattern still matches a command like `git status -s`.\n- Deny patterns use the same matcher.\n\n**Two things in the code I'd flag**\n\n1. **The approval callback cannot deny.** `EngineCallbacks::on_tool_call` is declared `void(*)(const char*, void*)` (`include/entropic/core/engine_types.h:370`). In `check_approval`, if the callback is set, the code calls it and then sets `approved = true` without checking anything. So with a callback registered, any call not on the allow list is approved, and the only gate left is the deny list. The header comment for `permission_manager.h` describes a default-deny model where tools \"must be explicitly allowed or approved via callback\". That matches the no-callback path only. I read this from the index without running it, so a test would confirm it.\n2. **Deny is a second check, not a precondition.** A denied call still goes through approval first and only fails in `execute`. If an approval hook or a logging hook fires in between, it sees the call as approved. The `ON_PERMISSION_CHECK` hook reports `allowed` based on the approval result, so it can report `allowed` for a call the deny list then blocks.\n\nConfig is loaded from the `permissions` section by `parse_permissions_config` (`src/config/loader.cpp:365`), which reads `allow`, `deny` and `auto_approve`. \"Always Allow/Deny\" writes new patterns back to project config through `PermissionPersister`. I did not trace the persister's write path in depth.",
+  "ttft_ms": 1345,
+  "type": "result",
+  "duration_ms": 30650,
+  "uuid": "8ba5b686-1181-4237-aa60-989e8897bfda",
+  "ttft_stream_ms": 1090,
+  "time_to_request_ms": 66,
+  "first_content_frame_ms": 1090,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

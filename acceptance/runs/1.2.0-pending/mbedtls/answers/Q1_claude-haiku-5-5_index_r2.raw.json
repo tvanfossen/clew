@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 37776,
+  "stop_reason": "end_turn",
+  "session_id": "8a814be8-c327-4d79-bb5f-816ad393d42e",
+  "total_cost_usd": 0.012030859999999999,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 27093,
+    "cache_read_input_tokens": 297806,
+    "output_tokens": 7266,
+    "output_tokens_details": {
+      "thinking_tokens": 3492
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 27093,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2129,
+        "cache_read_input_tokens": 63419,
+        "cache_creation_input_tokens": 2809,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2809
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 7266,
+      "cacheReadInputTokens": 297806,
+      "cacheCreationInputTokens": 27093,
+      "webSearchRequests": 0,
+      "costUSD": 0.012030859999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3492,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 27093,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 16,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** With the default `mbedtls_config.h`, the library runs no threads and takes no locks. Any concurrency comes from the application calling into it. Mutexes exist only when `MBEDTLS_THREADING_C` is enabled, and even then they protect a small set of globals and per-context state.\n\n**Default build**\n\n- `MBEDTLS_THREADING_C` is commented out at `include/mbedtls/mbedtls_config.h:3787` (`//#define MBEDTLS_THREADING_C`). `MBEDTLS_THREADING_ALT` and `MBEDTLS_THREADING_PTHREAD` are also commented out (lines 2185, 2196).\n- `library/threading.c` compiles to nothing without that macro. Every mutex use in the library is inside an `#if defined(MBEDTLS_THREADING_C)` block, so none of them is compiled in.\n- The four thread-spawn sites the index finds are all in `programs/` (`ssl_pthread_server.c:277`, `benchmark.c:430/444`, `ssl_server2.c:1699`). The library spawns nothing.\n- Unprotected shared state exists by default. The PSA subsystem keeps implicit global state: `global_data` and the key-slot table in `psa_crypto_slot_management.c`, and the RNG context in `psa_crypto_random.c`. The config's own doc comment says PSA \"has an implicit shared context\" and requires `MBEDTLS_THREADING_C` if more than one thread calls PSA. So PSA calls from multiple threads in a default build are data races. The fork-reseed path in `psa_crypto_random.c:146` (`pid != rng->pid`) is also unlocked.\n- Per-context state is also unlocked by default. `ssl_cache.h:72`, `ssl_ticket.h:82`, `rsa.h:120` and `memory_buffer_alloc.c:63` carry mutex fields only under the same macro. Sharing a context between threads is the application's problem.\n\n**With `MBEDTLS_THREADING_C` + `MBEDTLS_THREADING_PTHREAD`**\n\n| Mutex (`threading.h`) | Protects | Where it is taken |\n|---|---|---|\n| `mbedtls_threading_key_slot_mutex` | PSA key-slot table | `psa_crypto_slot_management.c` (about 15 sites, e.g. 823\u20131091), `psa_crypto.c` 1311\u20132045, `psa_unregister_read_under_mutex` (931) |\n| `mbedtls_threading_psa_globaldata_mutex` | `global_data`, `key_slots_initialized` | `psa_crypto_slot_management.c:200`, `psa_crypto.c` init/free paths (141\u2013165, 8407\u20138594) |\n| `mbedtls_threading_psa_rngdata_mutex` | PSA RNG state | `psa_crypto_random.c:147` (fork reseed), `psa_crypto.c` 8030\u20138561 |\n| `mbedtls_threading_readdir_mutex` | non-reentrant `readdir` | `x509_crt.c:1611/1660` (directory loading), only with `MBEDTLS_FS_IO` |\n| `mbedtls_threading_gmtime_mutex` | non-reentrant `gmtime` | `platform_util.c:189`, only on the fallback path where `gmtime_r` is unavailable |\n| `heap.mutex` (per heap) | allocator state | `memory_buffer_alloc.c:541` `calloc_mutexed`/free wrappers |\n| per-context mutexes | one SSL cache, ticket context, or RSA context | `ssl_cache.c`, `ssl_ticket.c`, `rsa.c` (blinding) |\n\nPer-context mutexes protect only that context. They do not make two threads using the same TLS session safe.\n\n**Caveats**\n\n- The index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` set as flags (`configured_macros`), so its gate data reflects that build. The default-off state comes from reading the header directly, and the index also reports `default_state: off` for the macro.\n- The index's lock layer sees one identity (`mutex->mutex` in `threading.c`) and no nested holdings. It does not model the global mutexes above, so the table comes from grep and reading source, not from the lock corpus.\n- With `MBEDTLS_THREADING_ALT`, the globals are initialised only inside `mbedtls_threading_set_alt()`. Until that runs, the default ALT callbacks are dummies (`threading_mutex_dummy`) or failures (`threading_mutex_fail`). Locking would then error, or silently not lock. I did not trace that path further.",
+  "ttft_ms": 2802,
+  "type": "result",
+  "duration_ms": 38463,
+  "uuid": "65de6aa8-4529-4a70-9beb-c298e268b7b6",
+  "ttft_stream_ms": 2691,
+  "time_to_request_ms": 80,
+  "first_content_frame_ms": 2691,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The caller passes the negative return value and a buffer to `mbedtls_strerror(ret, buf, buflen)` (`library/error.c:792`, declared in `include/mbedtls/error.h:165`).\nVERDICT: HIT\nWHY: The answer names mbedtls_strerror as the entry point and locates it in library/error.c."
+}

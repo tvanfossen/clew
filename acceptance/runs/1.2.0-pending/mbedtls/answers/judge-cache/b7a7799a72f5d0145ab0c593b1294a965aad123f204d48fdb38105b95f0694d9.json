@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Suites annotated with `TEST_CF_SECRET` and `TEST_CF_PUBLIC` are run under Valgrind (`MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND`) or MSan. Any branch or address that depends on a marked secret shows up as an uninitialized-value error\nVERDICT: MISS\nWHY: The answer describes Valgrind/MSan verification but never says the facility is off-by-default or explicitly not part of the library API."
+}

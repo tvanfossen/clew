@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"returns a list of `CallEdge` rows, one per neighbouring function, not one per call site\" and \"`confidence`: ... describing the strongest evidence for that endpoint\"\nVERDICT: HIT\nWHY: The answer states rows are one per neighbouring function (not per layer/site) with confidence reflecting the strongest evidence for that endpoint, which matches the collapse-to-strongest-evidence item."
+}

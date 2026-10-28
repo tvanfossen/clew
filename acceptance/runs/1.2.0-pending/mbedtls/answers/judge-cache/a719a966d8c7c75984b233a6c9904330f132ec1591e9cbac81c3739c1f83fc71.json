@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_memcmp` shows as orphan within the library, which fits a public API function called by applications. | Public API | `mbedtls_ct_memcmp` in `include/mbedtls/constant_time.h`\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_memcmp as the Public API entry in the public header, with the other helpers listed as library-internal usage, which matches the item's substance."
+}

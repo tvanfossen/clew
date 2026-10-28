@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"So with a callback registered, any call not on the allow list is approved, and the only gate left is the deny list.\"\nVERDICT: HIT\nWHY: The answer concludes that a tool matching neither list is approved when a callback is registered, so it runs. It does not frame this as a general default-allow, but the substance is there."
+}

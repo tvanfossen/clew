@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Log routing uses `HandleLogScope(log_id)` captured by value at spawn time.\nVERDICT: MISS\nWHY: The answer mentions HandleLogScope only for the detached async worker, not that every thread body installs a per-handle logging scope as its first statement."
+}

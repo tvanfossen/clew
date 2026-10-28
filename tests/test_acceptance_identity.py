@@ -466,3 +466,53 @@ def test_a_dated_model_is_not_recorded_as_floating(tmp_path: Path, monkeypatch) 
     assert cli.cmd_generate(args) == 0
     window = json.loads((out / "run.json").read_text())["windows"][-1]
     assert "models_floating" not in window, f"a dated id was reported as floating: {window}"
+
+
+## @brief The recorded version is the checkout's, and a stale install is disclosed not hidden.
+## @param tmp_path Pytest temporary directory.
+## @param monkeypatch Pytest monkeypatch fixture.
+## @return None.
+## @version 1
+def test_a_stale_editable_install_does_not_silently_misstate_the_version(
+    tmp_path, monkeypatch
+) -> None:
+    """FOUND ON A REAL PRE-FLIGHT, NOT IMAGINED. `pip install -e .` writes the version into
+    `.dist-info` ONCE; bumping `pyproject.toml` afterwards does not rewrite it. Three
+    `provision.json` files for the 1.2.0 grid therefore stamped `clew_version: 1.1.0` onto a
+    1.1.3 tree, and nothing said so — a wrong measurement presented as a fact, which is worse
+    than an absent one.
+
+    THE CHECKOUT WINS, because the pyproject in the tree describes the code that will run; the
+    installed metadata describes an install event that is over. The stale value is KEPT under
+    its own key rather than dropped, since "the operator's environment disagrees with the tree"
+    is itself evidence a reader of a published number wants.
+
+    @brief The checkout's version is recorded, and disagreement is disclosed.
+    @return None.
+    @version 1
+    """
+    (tmp_path / "pyproject.toml").write_text('[project]\nname = "clew-trace"\nversion = "9.9.9"\n')
+    monkeypatch.setattr(identity, "_installed_version", lambda: "1.1.0")
+    out = identity.tool_identity(tmp_path)
+    assert out["clew_version"] == "9.9.9"
+    assert out["clew_version_installed"] == "1.1.0"
+
+
+## @brief When install and checkout agree, no disagreement key is invented.
+## @param tmp_path Pytest temporary directory.
+## @param monkeypatch Pytest monkeypatch fixture.
+## @return None.
+## @version 1
+def test_agreement_records_one_version_and_no_disagreement_key(tmp_path, monkeypatch) -> None:
+    """A FIELD THAT DOES NOT APPLY IS ABSENT. `clew_version_installed` present and equal would
+    read as a flag raised on every record, which is how a real flag stops being noticed.
+
+    @brief No spurious disagreement field.
+    @return None.
+    @version 1
+    """
+    (tmp_path / "pyproject.toml").write_text('[project]\nname = "clew-trace"\nversion = "9.9.9"\n')
+    monkeypatch.setattr(identity, "_installed_version", lambda: "9.9.9")
+    out = identity.tool_identity(tmp_path)
+    assert out["clew_version"] == "9.9.9"
+    assert "clew_version_installed" not in out

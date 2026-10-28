@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 20638,
+  "stop_reason": "end_turn",
+  "session_id": "5600767c-61b0-4580-a80a-87d42c810dd5",
+  "total_cost_usd": 0.014499890000000001,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 54278,
+    "cache_read_input_tokens": 229629,
+    "output_tokens": 2694,
+    "output_tokens_details": {
+      "thinking_tokens": 955
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 54278,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1494,
+        "cache_read_input_tokens": 68906,
+        "cache_creation_input_tokens": 5527,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5527
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 2694,
+      "cacheReadInputTokens": 229629,
+      "cacheCreationInputTokens": 54278,
+      "webSearchRequests": 0,
+      "costUSD": 0.014499890000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 955,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 54278,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index checks itself on every query, using three separate axes. Each axis reports a different remedy, and the tool refuses to rebuild in the cases where a rebuild would make things worse.\n\n**How it knows** (`clew/mcp_server/state.py` `db_status`, `freshness.py`)\n\n| Axis | Detected by | Cleared by |\n|---|---|---|\n| `data` | `_source_drift` stats each indexed file's mtime against the database's mtime. Files dated in the future are ignored and logged. | `index(action='refresh')` |\n| `schema` | The stamped `build_version` differs from `CLEW_BUILD_VERSION`. | Rebuild if the index is older. If the index is newer, only restarting the client helps. |\n| `code` | The running process's `PROCESS_SOURCE_FINGERPRINT` (taken at import) differs from the fingerprint of the source tree now. | Restarting the MCP client only. A rebuild runs the old logic. |\n\nThe stamp check alone was not enough. The `db_status` docstring records that a database built before any number of source edits still reported `stale: false`, so `data` was added as a second term.\n\n**What it tells the caller**\n\n- `db_status` returns the raw fields: `build_version`, `expected_build_version`, `source_changed_files`, `newest_changed_source`, `stale`, `age_days`, plus `refresh` cost and `coverage`. `stale` is true if the stamp differs, the sources have drifted, or the database is missing.\n- `freshness.notices()` turns those into `{axis, message}` entries in the order data, schema, code. Each message names the action that clears it. It returns an empty list when the tool is current.\n- Query replies carry a `staleness` block only when something is stale, so a current index adds no noise. The block is computed by `_staleness` for the repository the reply actually read, never the derived default.\n\n**What the caller does**\n\n1. **Reads the notice.** For `data`, the message says to call `index(action='refresh')` and includes the measured cost. For `schema` and `code`, the message says a rebuild cannot clear it. For `code` it also says that reads are still current but writes are not safe.\n2. **Refresh path** (`build_or_refresh` \u2192 `_build_once`). The freshness check runs inside the per-target lock, so concurrent refreshes produce one build. Two gates come before the build:\n   - `stale_code_refusal` refuses any write when the process predates its source. `force` does not override this, because the refusal sits ahead of the build decision.\n   - The refusal reply tells the caller to restart the client, then run `index(action='refresh', force=True)`.\n3. **Automatic refresh.** `_data_stale` only permits an auto-refresh when the `data` axis is stale and the process matches its source. It is non-raising, so a failed measurement degrades to \"do not refresh\" and never breaks a query.\n4. **Acting on the answer.** The `schema` case where the index is newer than the server has no fix a consumer can take except restarting the client. The `code` case is the same. Only `data` is worth a refresh.\n\n**What I did not settle**\n\n- I did not confirm the `keep_current` background loop's cadence or whether anything starts it. The index shows no callers for `keep_current`, so its wiring is unverified.\n- I did not run the tools against this repository. Everything above comes from the indexed docstrings and bodies, which were current in their `target` reply. I did not check the freshness of the repository's own index.",
+  "ttft_ms": 2962,
+  "type": "result",
+  "duration_ms": 24035,
+  "uuid": "488fd4a1-b280-4700-8e3a-f1b34dfb28e7",
+  "ttft_stream_ms": 2402,
+  "time_to_request_ms": 204,
+  "first_content_frame_ms": 2402,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

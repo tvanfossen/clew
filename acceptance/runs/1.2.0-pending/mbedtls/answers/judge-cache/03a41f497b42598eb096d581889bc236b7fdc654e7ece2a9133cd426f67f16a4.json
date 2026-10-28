@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nlibrary/error.c\nscripts/generate_errors.pl\nscripts/data_files/error.fmt\ninclude/mbedtls/<module>.h\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never describes the monitor's shutdown as an atomic flag exchange plus a condition variable wake. It mentions only that HealthMonitor has an `event_mutex_` and a queue swap, and says nothing about `stop()` joining the monitor thread."
+}

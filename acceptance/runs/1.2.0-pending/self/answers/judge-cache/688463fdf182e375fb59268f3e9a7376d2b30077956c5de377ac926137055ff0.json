@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The reply separates the two cases by describing what the search covered, not by a yes/no flag.\"\nVERDICT: MISS\nWHY: The answer frames the reply as two cases and never presents a distinct \"definitive for a reason that is not absence\" grade; the nearest material, files-corpus \"absent by construction\", is not laid out as one of three grades."
+}

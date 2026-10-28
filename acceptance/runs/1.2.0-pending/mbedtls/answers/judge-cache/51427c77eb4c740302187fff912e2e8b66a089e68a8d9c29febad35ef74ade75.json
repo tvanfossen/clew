@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer only mentions MBEDTLS_ERROR_STRERROR_DUMMY as gating eight sites in error.c. It never says the symbol keeps mbedtls_strerror linkable while the string table is compiled out, and it never says the symbol is enabled by default."
+}

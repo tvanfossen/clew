@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The sampler, tokenizer, `orchestrator.cpp`, `adapter_manager.cpp`, `speculative_compat.cpp`, `grammar_registry.cpp`, `inference_c_api.cpp`, and `tool_call_markers.h` also include llama headers.\nVERDICT: HIT\nWHY: The answer lists llama_cpp_backend plus about eight other entropic source files, plus facade/entropic.cpp and public headers, which conveys a dozen-ish file reach rather than a single wrapper."
+}

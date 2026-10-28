@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 37086,
+  "stop_reason": "end_turn",
+  "session_id": "6e16e53b-a9b4-46eb-b75c-9a02512d48dc",
+  "total_cost_usd": 0.01512268,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 32387,
+    "cache_read_input_tokens": 548908,
+    "output_tokens": 6308,
+    "output_tokens_details": {
+      "thinking_tokens": 2593
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 32387,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1388,
+        "cache_read_input_tokens": 64222,
+        "cache_creation_input_tokens": 1699,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1699
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 6308,
+      "cacheReadInputTokens": 548908,
+      "cacheCreationInputTokens": 32387,
+      "webSearchRequests": 0,
+      "costUSD": 0.01512268,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2593,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 32387,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A repository can steer the index in four ways. They are not equal: they sit in tiers, and a higher tier replaces a lower one for the same option. Nothing in the indexing path reads an environment variable for this; the only env vars (`STATE_HOME_ENV`, `CLAUDE_CONFIG_DIR_ENV`) locate state and MCP config, not index policy. This is from reading `clew/tiers.py`, `clew/declaration.py`, `clew/cli.py`, `clew/requirements.py`, `clew/toolchain.py` and the README. I did not run a build to confirm it.\n\n## The ways to say so\n\n| Route | Tier | Combines by | Notes |\n|---|---|---|---|\n| CLI flag, e.g. `--thread-patterns`, `--shared-key-patterns`, `--mqtt-dispatch`, `--requirements`, `--entry-patterns` | 1 `explicit` | **Replaces** the stated layer | One-off for one build. `--declare FILE` is the same route for a whole document. |\n| `--declare FILE`, or `options=` on `build_index()` / MCP `index(action=\"refresh\")` | 1 `explicit` | **Replaces** | All three go through `apply_options`, so they are validated the same way. |\n| `<repo>/.clew.yaml` | 2 `declared` | **Replaces** | The repo's standing statement. Same section format as `--declare`. Its `guard:` section configures the gate, not the index. |\n| Target facts: Doxyfile, generator manifests, language/platform entry points | 3 `target-fact` | **Accumulates** | Survives every stated tier. |\n| Ecosystem signatures (UDM, ingot) | 4 `ecosystem` | **Accumulates** | Same as tier 3. |\n| Built-in name-pattern guesses | 5 `heuristic` | **Replaced** by any stated tier | The floor. |\n\nTwo routes do not fit the tier model:\n\n- **`toolchain.toml` `[ignore].paths` and `suppress.toml`** are exclusions, not layered options. They are unioned into the exclusion list, and only the all-tools statements apply to the index.\n- **`--exclude`** is recorded into the index and replayed by later builds. It is also unioned with the toolchain exclusions.\n\n## When two disagree\n\n- **Flag vs `.clew.yaml`, same option:** the flag wins outright. It replaces the declaration; it does not merge with it. A flag set to an empty value (`{}` or `[]`) is a withdrawal, so the declaration applies again.\n- **`--declare` vs `.clew.yaml`:** `--declare` is tier 1, so it wins over the file.\n- **Within one document:** validation is all-or-nothing. One bad entry or unknown key refuses the whole document and changes nothing.\n- **Declaration vs target facts or ecosystem:** no conflict. Tiers 3 and 4 accumulate, so a declared `entry_patterns` replaces only the built-in guesses and leaves Doxyfile-derived facts in place. A declaration can correct a guess but cannot remove a fact.\n- **Requirements catalog:** explicit flag > declaration > the guard's `impact.requirements.file` > convention (`requirements.yaml` at the root) > nothing. This order is enforced by one resolver so the CLI and MCP cannot diverge.\n- **Malformed `.clew.yaml`:** the whole file is ignored with a warning, and the build uses built-in defaults. A typo therefore degrades silently into a different index.\n- **Experimental-prefix sections** are ignored with a warning, so nothing in them reaches the build.\n\nOverrides are not reported as conflicts. A flag beats the declaration with only an INFO log line. The winning tier is stamped per option into `build_meta` (`explicit`, `declared`, `target-fact`, `ecosystem` or `heuristic`), and that stamp is how a reader can tell afterward who decided. The code's own comments say they want replayed statements recorded \"so they may differ, but never silently.\"",
+  "ttft_ms": 1886,
+  "type": "result",
+  "duration_ms": 37681,
+  "uuid": "9a4e5eda-bff2-432d-a127-4d9fed31fdfd",
+  "ttft_stream_ms": 1446,
+  "time_to_request_ms": 155,
+  "first_content_frame_ms": 1446,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

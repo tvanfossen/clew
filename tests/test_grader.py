@@ -565,14 +565,29 @@ def test_grader_fingerprint_is_the_value_published_runs_recorded() -> None:
     ##     published one while printing four member paths as "not in the set".
     ##   - the judge's own `QUOTE:`/`WHY:` are recorded. They were requested by the prompt and
     ##     discarded, leaving 11 of 26 audited failures with no stated reason to dispute.
-    published = "0e7ad2bdb67d"
+    ## MOVED AGAIN, 2026-10-27, from `0e7ad2bdb67d`. `QuestionResult.score` returned `0.0` for a
+    ## question the judge ruled NOTHING on, which is absence published as a measurement — the rule
+    ## this repository returns to most, in the grader's own output. Measured on this very run:
+    ## `self` Q6's three blended cells recorded samples=18, errors=18, every decision `hit=None`,
+    ## and scored 0.0. Across the grid 152 of 2,970 judge samples errored over 14 cells, 4 of them
+    ## 100% unruled and scored anyway. Excluding only those, `self`'s blended arm goes from 37.9
+    ## — LOSING to baseline's 44.0 with a strict superset of its tools — to 45.4, and the blended
+    ## headline from +0.25 to +1.54. A fully unruled question now returns None.
+    published = "5489758d9a50"
 
+    ## THE MESSAGE USED TO STATE A FALSEHOOD, and it is worth more than a wording fix: it said
+    ## "every graded cell ... recorded {published}", which was never true of any value this
+    ## constant held after the first move. All 144 sidecars of that run record `9cc2b15baf93`.
+    ## The constant tracks THIS TREE, as a record of each deliberate move; the run's own
+    ## fingerprint is fixed in its sidecars and does not change. A guard whose failure text
+    ## misdescribes the artifact it guards teaches the reader the wrong model of what moved.
     assert score.grader_fingerprint() == published, (
-        f"grader_fingerprint() is {score.grader_fingerprint()!r}, but every graded cell under "
-        f"acceptance/runs/2026-10-19-n3/ recorded {published!r}. Those answers can no longer be "
-        f"re-graded at the keys their run was published with. If the change under "
-        f"acceptance/grader/ was intended, update this constant AND say in that run's RESULTS.md "
-        f"that it is no longer re-gradable; if it was incidental, move the change out of "
+        f"grader_fingerprint() is {score.grader_fingerprint()!r}; this constant records "
+        f"{published!r} as the fingerprint of the current tree. The 144 graded cells under "
+        f"acceptance/runs/2026-10-19-n3/ were graded at '9cc2b15baf93' and are already "
+        f"un-re-gradable from here; any further change moves the tree further from them. If the "
+        f"change under acceptance/grader/ was intended, update this constant AND record the move "
+        f"in that run's RESULTS.md; if it was incidental, move the change out of "
         f"acceptance/grader/ instead — input validation, for one, does not belong in the scorer."
     )
 

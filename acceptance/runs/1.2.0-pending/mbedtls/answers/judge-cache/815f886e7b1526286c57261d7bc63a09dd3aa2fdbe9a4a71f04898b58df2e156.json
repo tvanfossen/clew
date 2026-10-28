@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It needs `MBEDTLS_MEMORY_BUFFER_ALLOC_C` plus the platform layer.\"\nVERDICT: MISS\nWHY: The answer says the buffer allocator needs the platform layer, but it never says it requires MBEDTLS_PLATFORM_MEMORY or that enabling the buffer allocator alone won't route the library's allocations through it."
+}

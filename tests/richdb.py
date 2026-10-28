@@ -1097,6 +1097,7 @@ def run_real_stages(db: Path, repo_root: Path) -> None:
     from clew.callback_edges import import_callback_registration_edges
     from clew.datamodel import import_data_model_keys
     from clew.filedocs import ingest_file_docs
+    from clew.synth import emit_definitions, register_paths
     from clew.config_defaults import import_config_defaults
     from clew.kconfig_gates import import_kconfig_gates
     from clew.blocking import extract_blocking_calls
@@ -1129,6 +1130,14 @@ def run_real_stages(db: Path, repo_root: Path) -> None:
     import_config_defaults(db, repo_root)
     recover_ast_symbols(db, repo_root)
     ingest_file_docs(db, repo_root)
+    ## THE PARSE FRONT END, which this fixture never ran. `test_fixture_fidelity` caught it the
+    ## moment that stage gained a table: `generated_files` is emitted by every real build and by
+    ## no fixture, which is precisely the "licence to assert over a schema that does not exist"
+    ## this file's own docstring warns about three stages earlier. `csample` is C-only, so
+    ## `register_paths` claims nothing and `emit_definitions` writes no symbols — but the table
+    ## is created, which is the fact under test.
+    register_paths(db, [str(p.relative_to(repo_root)) for p in repo_root.rglob("*") if p.is_file()])
+    emit_definitions(db, repo_root)
     build_call_edges(db)
     import_ast_call_edges(db, repo_root)
     import_callback_registration_edges(db, repo_root)

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the tiered scope resolution and WARNING on internal fallback, but never says the fallback carries a reason explaining which scope was used and why."
+}

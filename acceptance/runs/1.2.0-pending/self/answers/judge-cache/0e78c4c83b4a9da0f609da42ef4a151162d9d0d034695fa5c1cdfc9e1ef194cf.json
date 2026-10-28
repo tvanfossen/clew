@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Shell functions get empty `args` and `ret`, because the language has no parameter list.\nVERDICT: HIT\nWHY: The answer states shell functions are recorded with empty args and ret because the language has no parameter list; it doesn't mention a missing return, but the substance of the fact is there."
+}

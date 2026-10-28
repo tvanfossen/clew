@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"with the default configuration, the library starts no threads and takes no locks.\"\nVERDICT: MISS\nWHY: The answer says the library creates no threads by default, but it never says the pthread example compiles to a stub main under that condition."
+}

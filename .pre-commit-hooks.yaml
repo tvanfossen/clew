@@ -1,8 +1,11 @@
-## The doxygen gate, absorbed from doxygen-guard (clew/guard/). The hook ID is doxygen-guard's.
+## The doxygen gate, absorbed from the separate doxygen-guard project into clew/guard/. The ID is
+## `clew-guard`: the tool is one repository now and the hook name says so. An adopting repo
+## pinning the old `doxygen-guard` id must rename it, which is a deliberate break — the owner's
+## call, on the grounds that the user base is small and one tool beats two.
 ## Its config is the `guard:` section of the repo's `.clew.yaml`; `args: [--config, <file>]`
 ## points it at a different file of the same shape.
-- id: doxygen-guard
-  name: Doxygen Guard (clew)
+- id: clew-guard
+  name: clew guard
   description: Validate doxygen comments for presence, version staleness, and custom tag syntax
   entry: clew-guard
   language: python

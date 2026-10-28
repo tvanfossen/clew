@@ -1,0 +1,40 @@
+{
+  "stem": "Q2_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "skills": "",
+  "answered_by": "claude-haiku-5-5",
+  "seconds": 35.52053640503436,
+  "input_tokens": 16,
+  "output_tokens": 5783,
+  "cache_read_tokens": 294825,
+  "cache_creation_tokens": 33288,
+  "cost_usd": 0.012498950000000002,
+  "result_bytes": 2703,
+  "turns": 9,
+  "tool_calls": 8,
+  "non_index_tool_calls": 8,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/1.2.0-pending/mbedtls/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nmbedtls wraps struct members in MBEDTLS_PRIVATE. What does that accomplish, and for whom?\n\nBe concrete about the \"for whom\": find where the opt-out is actually turned on in this\ntree, and say what that means for the code in those places.\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "Mbed-TLS/mbedtls",
+    "question_id": "Q2",
+    "arm": "baseline",
+    "model": "claude-haiku-5-5",
+    "replicate": 1,
+    "order": 0
+  }
+}

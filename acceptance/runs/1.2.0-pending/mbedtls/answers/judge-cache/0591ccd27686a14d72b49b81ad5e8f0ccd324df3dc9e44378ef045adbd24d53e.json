@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explicitly says it did not verify that MBEDTLS_MEMORY_BUFFER_ALLOC_C is gated on MBEDTLS_PLATFORM_MEMORY, so it never states the buffer allocator requires that option."
+}

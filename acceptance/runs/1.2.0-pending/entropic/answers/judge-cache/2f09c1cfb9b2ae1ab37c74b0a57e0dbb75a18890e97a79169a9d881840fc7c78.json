@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `permissions.allow`, `permissions.deny`, `permissions.auto_approve` in YAML (`src/config/loader.cpp:365`).\nVERDICT: MISS\nWHY: The answer mentions PermissionManager and says the lists come from YAML config and runtime add_permission. It never says they come from a PermissionsConfig that the ServerManager is constructed with."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Clew takes indexing overrides from five layers, plus a few environment variables. ... | 1, explicit | ... | 2, declared | ... | 3, target-fact | ... | 4, ecosystem | ... | 5, heuristic |\nVERDICT: HIT\nWHY: The answer names five precedence tiers (explicit, declared, target-fact, ecosystem, heuristic) and explains how they resolve, rather than describing a single override."
+}

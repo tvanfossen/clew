@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses build integration and which files call llama/ggml, but never identifies the seam as llama.cpp's C API of free `llama_`-prefixed functions versus C++ classes/inheritance."
+}

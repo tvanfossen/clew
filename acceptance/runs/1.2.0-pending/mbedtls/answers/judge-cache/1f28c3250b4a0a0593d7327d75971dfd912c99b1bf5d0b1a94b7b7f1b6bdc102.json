@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says `mbedtls_memory_buffer_alloc_init` calls `mbedtls_platform_set_calloc_free`. It never says the buffer allocator requires `MBEDTLS_PLATFORM_MEMORY` in the configuration."
+}

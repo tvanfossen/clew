@@ -619,7 +619,9 @@ def _defaults_for_macros(conn: sqlite3.Connection, macros: list[str]) -> list[tu
 ##
 ## v3: the parameter bound moved to `_defaults_for_macros`, because C3 made the whole-repo gate
 ## list a caller and RIOT's 2,029 distinct gating macros bind one parameter each.
-## @version 3
+## v4: an AGREEING set cites the shipped header too, not whichever path sorted first — the state
+## was right and the citation pointed at an alternate profile.
+## @version 4
 ## @dg_internal
 def _with_defaults(
     conn: sqlite3.Connection, gates: tuple[KconfigGate, ...]
@@ -637,7 +639,7 @@ def _with_defaults(
 
     @brief Join shipped defaults onto gates.
     @return Gates with defaults where they are unambiguous.
-    @version 3
+    @version 4
     """
     if not gates or not table_exists(conn, "config_defaults"):
         return gates
@@ -674,7 +676,23 @@ def _with_defaults(
         if row[4] != "declared" and is_shipped_config(str(row[2]))
     }
     for macro, states in seen.items():
-        if len(states) <= 1 or macro in settled:
+        if macro in settled:
+            continue
+        ## AGREEING SITES STILL CITE THE SHIPPED HEADER. The state was never wrong here — every
+        ## row says the same thing — but `default_site` is the field a reader FOLLOWS to check
+        ## the claim, and with nothing to settle this kept whichever row it met first, which is
+        ## whichever file path sorted first. Replayed on the frozen mbedtls index:
+        ## `MBEDTLS_THREADING_C` is `off` in three places and cited
+        ## `configs/config-symmetric-only.h:73` — an alternate build profile — while the
+        ## repository's own `include/mbedtls/mbedtls_config.h:3787` says the same thing and is
+        ## the file a default build actually reads. `default_site` exists "so a reader can
+        ## disagree with the choice", and they cannot do that usefully against a file not in play.
+        ##
+        ## NO NEW JUDGEMENT ABOUT WHICH FILE IS AUTHORITATIVE: `is_shipped_config` is already the
+        ## rule for the disagreement case below. This applies the same rule when the states match.
+        if len(states) <= 1:
+            if macro in shipped:
+                decided[macro] = shipped[macro]
             continue
         if macro in shipped:
             ## The shipped header's own state, not the first row encountered.

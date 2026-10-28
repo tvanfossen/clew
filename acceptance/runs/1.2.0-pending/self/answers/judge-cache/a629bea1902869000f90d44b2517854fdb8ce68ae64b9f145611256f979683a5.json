@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: cli._apply_scope \u2500\u2500\u25ba scope.derive_scope(repo_root)\nVERDICT: HIT\nWHY: The answer names derive_scope in the scope module as where the scope decision is resolved, and says \"Scope is still decided by `derive_scope`\"."
+}

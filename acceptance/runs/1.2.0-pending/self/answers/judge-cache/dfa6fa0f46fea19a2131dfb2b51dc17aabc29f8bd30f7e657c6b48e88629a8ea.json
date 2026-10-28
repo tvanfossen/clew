@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: CMake: named parameters are recorded in `argsstring`.\nVERDICT: MISS\nWHY: The answer never says that CMake's definition name is an argument of the command rather than a named field of the node; it only mentions recorded parameters."
+}

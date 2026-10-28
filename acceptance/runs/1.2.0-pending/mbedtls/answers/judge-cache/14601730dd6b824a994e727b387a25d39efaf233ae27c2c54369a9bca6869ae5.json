@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | Every library `.c` that includes `common.h` | `MBEDTLS_PRIVATE(x)` becomes plain `x`; the library reads and writes fields directly\nVERDICT: HIT\nWHY: The answer states that library/common.h turns on the opt-out, so every library .c file that includes it sees plain member names."
+}

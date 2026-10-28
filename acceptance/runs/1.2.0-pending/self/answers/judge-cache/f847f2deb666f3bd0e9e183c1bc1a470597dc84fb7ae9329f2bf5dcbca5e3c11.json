@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Schema, index older than server:** call `index(action='refresh', force=True)`. - **Schema, index newer than server, or code stale:** restart the MCP client. A rebuild cannot clear these, because it re-stamps the same newer version or the running process still holds old logic.\"\nVERDICT: MISS\nWHY: The answer says rebuild clears data and restart clears code, but it never says this is why one flag would not have been enough."
+}

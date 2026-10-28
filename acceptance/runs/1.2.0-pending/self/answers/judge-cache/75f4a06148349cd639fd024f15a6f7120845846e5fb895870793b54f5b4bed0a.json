@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`data` ... Cleared by: Rebuild (`index(action='refresh')`)\" and \"`code` ... Client restart only. The running process holds old logic.\" Also: \"`schema`, server older than index, or `code`: restart the MCP client. Rebuilding does nothing for these.\"\nVERDICT: HIT\nWHY: The answer says the axes are cleared by different actions (a rebuild for data, a client restart for code, because rebuilding can't fix them). That is why a single stale flag wouldn't tell the caller what to do. It never says that last point in so many words."
+}

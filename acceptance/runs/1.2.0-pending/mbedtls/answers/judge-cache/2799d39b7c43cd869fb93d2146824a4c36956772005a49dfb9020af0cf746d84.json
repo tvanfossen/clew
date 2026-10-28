@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"MBEDTLS_PLATFORM_CALLOC_MACRO=my_calloc and MBEDTLS_PLATFORM_FREE_MACRO=my_free. Both macros must be set together.\" and \"Runtime: define only MBEDTLS_PLATFORM_MEMORY, then call mbedtls_platform_set_calloc_free(calloc_fn, free_fn)\" and \"`mbedtls_platform_set_calloc_free` is compiled out.\"\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer pair and says the runtime setter is compiled out when the macros are defined, which is the mutual exclusivity."
+}

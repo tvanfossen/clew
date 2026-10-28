@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions markdown or the decision to withhold a path row from it to avoid counting prose as indexed source in coverage figures."
+}

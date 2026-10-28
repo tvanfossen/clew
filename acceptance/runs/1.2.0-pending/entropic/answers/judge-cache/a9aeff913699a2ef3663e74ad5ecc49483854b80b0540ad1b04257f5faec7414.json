@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise, if the host registered `on_tool_call`, that callback is invoked and the call is approved anyway (`:168-172`). The callback is a notification, not a gate.\nVERDICT: HIT\nWHY: The answer states the callback is invoked and the call is approved regardless, so it cannot refuse. It doesn't mention the void return type, but the mechanism (approved unconditionally after firing) is stated."
+}

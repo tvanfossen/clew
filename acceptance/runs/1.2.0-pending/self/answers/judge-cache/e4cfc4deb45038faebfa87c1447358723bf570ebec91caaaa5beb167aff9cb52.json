@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Ecosystem signatures** (tier 4) and **name-pattern heuristics** (tier 5). ... **CLI flags** (tier 1, \"explicit\") ... **`.clew.yaml` in the repo root** (tier 2, \"declared\") ... **Facts the target already contains** (tier 3, \"target-fact\")\nVERDICT: HIT\nWHY: The answer enumerates five named precedence tiers (explicit, declared, target-fact, ecosystem signatures, name-pattern heuristics) and gives a resolution formula across them, not a single override."
+}

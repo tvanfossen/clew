@@ -180,14 +180,20 @@ class _ScriptSymbolHarvester(Harvester):
     """
 
     stage = STAGE_SCRIPT_SYMBOLS
-    stage_version = 1
-    label = "shell/cmake definitions"
+    ## v2: the CMake branch now also returns `generated` — the `add_custom_command` rules saying
+    ## which files do not exist until something produces them. A cached v1 payload holds
+    ## definitions and no rules, so reusing one would leave a rebuilt index silently without
+    ## them, which is why the version is part of the cache key.
+    stage_version = 2
+    label = "shell/cmake definitions and generation rules"
 
-    ## @brief Harvest one file's definitions.
+    ## @brief Harvest one file's definitions, and a CMake file's generation rules.
     ## @param tree The parsed tree.
     ## @param src_bytes The file's bytes.
-    ## @return The definitions payload, or {} for a file of neither language.
-    ## @version 1
+    ## @return The payload, or {} for a file of neither language.
+    ## v2: the CMake branch merges `harvest_generation` — the `add_custom_command` rules naming
+    ## which files do not exist until something produces them.
+    ## @version 2
     ## @req REQ-DDB-PIPE-012
     def harvest(self, tree: Any, src_bytes: bytes) -> Any:
         from .cmakeast import harvest_definitions as cmake_definitions
@@ -198,7 +204,15 @@ class _ScriptSymbolHarvester(Harvester):
         if is_sh_tree(tree):
             return sh_definitions(tree, src_bytes)
         if is_cmake_tree(tree):
-            return cmake_definitions(tree, src_bytes)
+            from .cmakeast import harvest_generation
+
+            ## GENERATION RULES RIDE IN THIS PAYLOAD rather than in a stage of their own, and the
+            ## vocabulary argues it: `STAGE_SCRIPT_SYMBOLS` covers two languages in one partition
+            ## because "every stage in this vocabulary is harvested over every indexed file, so a
+            ## second partition would add an empty payload row per file per index — on a
+            ## 40,000-file target that is 40,000 rows". Generation rules live only in CMake files,
+            ## so a `generation` stage would store precisely that.
+            return {**cmake_definitions(tree, src_bytes), **harvest_generation(tree, src_bytes)}
         return {}
 
 
@@ -296,12 +310,90 @@ def register_paths(db_path: Path, files: list[str]) -> int:
     return len(new)
 
 
+## @brief Create the `generated_files` table if it is absent.
+## @param conn Open connection to the index.
+## @return None.
+## @version 1
+## @req REQ-DDB-SCHEMA-014
+def ensure_generated_files_table(conn: sqlite3.Connection) -> None:
+    """CREATED UNCONDITIONALLY, EVEN AT ZERO ROWS — the rule this codebase returns to most. An
+    EMPTY table means the layer ran and this repository declares no generation rules; an ABSENT
+    one means the layer never ran, and `query.corpus.generation_rule` reports None for both
+    unless the table exists to tell them apart.
+
+    ONE ROW PER (output, argument), not per rule, so a rule's arguments are queryable without
+    parsing a packed column. The rule's own identity repeats across its rows, which is the shape
+    `kconfig_gates` already uses and which `_compact_gate_panel` compacts on the wire rather than
+    in storage.
+
+    @brief Ensure the generation table exists.
+    @version 1
+    """
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS generated_files ("
+        "  output_name    TEXT NOT NULL,"
+        "  output_literal TEXT NOT NULL,"
+        "  kind           TEXT NOT NULL,"
+        "  source_file    TEXT NOT NULL,"
+        "  source_line    INTEGER NOT NULL,"
+        "  role           TEXT NOT NULL,"
+        "  arg_name       TEXT NOT NULL,"
+        "  arg_literal    TEXT NOT NULL,"
+        "  unresolved     INTEGER NOT NULL DEFAULT 0)"
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_generated_output ON generated_files(output_name)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_generated_arg ON generated_files(arg_name)")
+
+
+## @brief Write one CMake file's generation rules into `generated_files`.
+## @param conn Open connection.
+## @param source_file The repo-relative path of the build file holding the rules.
+## @param rules The `generated` records from the harvest payload.
+## @return Rows written.
+## @version 1
+## @req REQ-DDB-PIPE-012
+def _write_generation(conn: sqlite3.Connection, source_file: str, rules: list) -> int:
+    """A RULE WITH NO OUTPUT STILL WRITES ITS ROWS. `add_custom_target` names no OUTPUT — it is
+    the aggregate forcing the rules above it to run — and its row carries `output_name = ''` so
+    the target's DEPENDS are still readable while `generation_rule`'s lookup, which requires a
+    non-empty name, cannot mistake it for a generated file.
+
+    @brief Insert a file's generation rows.
+    @return Rows written.
+    @version 1
+    """
+    rows = []
+    for rule in rules:
+        outputs = rule.get("outputs") or [{"literal": "", "name": ""}]
+        for out in outputs:
+            for role in ("command", "depends"):
+                for arg in rule.get(role) or []:
+                    rows.append(
+                        (
+                            out.get("name", ""),
+                            out.get("literal", ""),
+                            rule.get("kind", ""),
+                            source_file,
+                            int(rule.get("line") or 0),
+                            role,
+                            arg.get("name", ""),
+                            arg.get("literal", ""),
+                            1 if arg.get("unresolved") else 0,
+                        )
+                    )
+    if rows:
+        conn.executemany("INSERT INTO generated_files VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", rows)
+    return len(rows)
+
+
 ## @brief Write every harvested JS/TS definition into the index.
 ## @param db_path The database being built.
 ## @param repo_root Repository root.
 ## @param cache The index cache (the shared parse warmed it), or None.
 ## @return (functions written, classes written).
-## @version 3
+## v4: also writes `generated_files` from the CMake branch's `generated` records, and creates
+## that table unconditionally so an empty layer is distinguishable from an absent one.
+## @version 4
 ## @req REQ-DDB-PIPE-012
 def emit_definitions(db_path: Path, repo_root: Path, cache: Any = None) -> tuple[int, int]:
     """@brief Turn the cached js_symbols payloads into rows."""
@@ -309,9 +401,18 @@ def emit_definitions(db_path: Path, repo_root: Path, cache: Any = None) -> tuple
 
     conn = sqlite3.connect(str(db_path))
     try:
+        ## BEFORE THE EARLY RETURN, and that placement is the whole point. An index of a repo
+        ## with no claimed file type still ran this layer and found nothing, which is a different
+        ## fact from the layer never having run — and the first version of this created the table
+        ## AFTER the guard, so a C-only repository got no table and `generation_rule` could not
+        ## tell the two apart. `test_fixture_fidelity` caught it.
+        ensure_generated_files_table(conn)
+        conn.execute("DELETE FROM generated_files")
         if not _has_claimed_path(conn):
+            conn.commit()
             return 0, 0
         ensure_symbol_provenance(conn)
+        generated_rows = 0
         writer = _Writer(conn)
         ## TWO STAGES, ONE WRITER. The refid key prefix differs per stage so a shell
         ## function and a JS function at the same line of two files cannot collide on the
@@ -321,13 +422,26 @@ def emit_definitions(db_path: Path, repo_root: Path, cache: Any = None) -> tuple
             (script_symbol_harvester(), "script"),
         ):
             for path_rowid, payload in run_harvest(conn, repo_root, harvester, cache):
-                if payload:
-                    writer.file(path_rowid, payload, prefix)
+                if not payload:
+                    continue
+                writer.file(path_rowid, payload, prefix)
+                if payload.get("generated"):
+                    row = conn.execute(
+                        "SELECT name FROM path WHERE rowid = ?", (path_rowid,)
+                    ).fetchone()
+                    generated_rows += _write_generation(
+                        conn, str(row[0]) if row else "", payload["generated"]
+                    )
         writer.inheritance()
         conn.commit()
     finally:
         conn.close()
-    logger.info("parse front end: %d function(s), %d class(es)", writer.functions, writer.classes)
+    logger.info(
+        "parse front end: %d function(s), %d class(es), %d generation row(s)",
+        writer.functions,
+        writer.classes,
+        generated_rows,
+    )
     return writer.functions, writer.classes
 
 

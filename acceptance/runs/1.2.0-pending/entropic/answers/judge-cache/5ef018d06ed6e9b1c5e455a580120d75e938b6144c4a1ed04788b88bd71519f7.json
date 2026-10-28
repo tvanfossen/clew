@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Includes, `src/inference/` only: `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler`, `llama_cpp_tokenizer`, `orchestrator.cpp`, `adapter_manager.cpp`, `grammar_registry.cpp`, `speculative_compat.cpp`, `tool_call_markers.h`.\nVERDICT: HIT\nWHY: The answer lists about a dozen entropic source files across inference and facade that touch llama.cpp, conveying it reaches well beyond a single wrapper."
+}

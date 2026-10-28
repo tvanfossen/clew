@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`fuzzy` is included, not filtered.** The surface does not drop fuzzy edges. The descriptions tell a reader to weigh `confidence`, and `ast_member` edges are mostly fuzzy... so dropping it would remove most of the graph.\nVERDICT: MISS\nWHY: The answer says the flat surface keeps fuzzy edges, but it never contrasts this with a traversal surface that excludes them. It also never gives the reason that a walk multiplies one fuzzy edge into a wrong subtree."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `mbedtls_ct_` API is used across roughly 25 library files.\nVERDICT: HIT\nWHY: The answer states the ct primitives are used across roughly 25 library files, which is about twenty modules and not confined to one or two."
+}

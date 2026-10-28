@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`ExternalBridge::accept_loop` | `external_bridge.cpp:796` in `start()` | Polls the listen socket every 500 ms, checks peer uid, spawns one serve thread per client\" and \"Per-client `serve_client` threads | `external_bridge.cpp:945` in `accept_loop`\"\nVERDICT: HIT\nWHY: The answer names the accept thread spawned in start() and the per-client serve threads it spawns, which is the two-level structure."
+}

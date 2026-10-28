@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `scope` (`_scope_payload`): covered file count, source tier (whole-repo vs declared), extensions, top levels. This is what separates \"outside the indexed scope\" from \"not in the repo\". `not_indexed` and `not_indexed_count` are present only when the build recorded them.\nVERDICT: MISS\nWHY: The answer describes scope and not_indexed fields, but never says the reply names in-scope file types that produced zero rows; that specific mechanism is absent."
+}

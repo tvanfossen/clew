@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer claims llama.cpp use is confined to src/inference/ (\"it stops there\"), and states no files outside that layer reach it, which contradicts the item's conclusion that it is concentrated but not contained."
+}

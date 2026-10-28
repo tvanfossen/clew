@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that `MBEDTLS_PRIVATE` is used at many hundreds of sites, mostly in public headers; it only cites a few example use sites and the opt-out locations."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unknown section name is refused by name, because a misspelled section would otherwise run on defaults while reporting the declaration was honoured.\nVERDICT: MISS\nWHY: The answer only covers refusal of unknown top-level sections; it never mentions a second refusal for an unknown key inside a valid section, or a derived key refused with its reason."
+}

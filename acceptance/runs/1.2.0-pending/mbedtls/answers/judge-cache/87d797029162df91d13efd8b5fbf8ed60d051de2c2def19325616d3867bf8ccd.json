@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"By default it expands to `private_##member`, so a field such as `mbedtls_aes_context::MBEDTLS_PRIVATE(nr)` ... is declared as `private_nr`.\" and \"If it is defined, the macro expands to the bare member name.\"\nVERDICT: HIT\nWHY: The answer states both the default rename to private_<member> and the unchanged member name when MBEDTLS_ALLOW_PRIVATE_ACCESS is defined."
+}

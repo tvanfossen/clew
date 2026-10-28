@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The code notice says the query tools are still reading live data, so data changes appear immediately. What is stale is the process's logic and module constants... Rebuilding is refused in that state. `stale_code_refusal()` returns a refusal message, and `build_or_refresh` calls it before touching an index.\n\nVERDICT: MISS\n\nWHY: The answer says reads stay live and that rebuilds are refused, but it never says that the reason is that query tools open the database per call, or that a build through a stale process would write old pipeline logic into the index."
+}

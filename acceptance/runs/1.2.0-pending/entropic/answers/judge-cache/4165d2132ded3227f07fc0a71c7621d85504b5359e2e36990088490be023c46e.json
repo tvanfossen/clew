@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Thread-local log routing uses a `HandleLogScope` installed at the top of each thread body, so logs from these threads go to the right handle's session log.\nVERDICT: HIT\nWHY: The answer states that a HandleLogScope is installed at the top of each thread body so logs route to the owning handle's session log."
+}

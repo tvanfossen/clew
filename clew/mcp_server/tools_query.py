@@ -823,7 +823,9 @@ def _candidates_capped(db: Path | None, payload: dict[str, Any]) -> dict[str, An
 ## @param db Active database path, for the function-subject ambiguity probe; omit to skip it.
 ## @param depth The depth the CALLER asked for, so an unhonoured one can be disclosed.
 ## @return The flat payload, or None when nothing resolved.
-## @version 5
+## v6: a `config` section's `found` is reconciled on the way out — it means "a Kconfig FILE was
+## located", which collides with what `found` means on every other reply this surface sends.
+## @version 6
 ## @dg_internal
 def _flatten_subject(built: Any, db: Path | None = None, depth: int = 1) -> dict[str, Any] | None:
     """FLAT, NOT NESTED, and the reason is the budget rather than taste. Every trimmer on
@@ -850,6 +852,14 @@ def _flatten_subject(built: Any, db: Path | None = None, depth: int = 1) -> dict
     if section is None:
         return None
     payload: dict[str, Any] = {"subject": built.subject, "subject_kind": built.kind, **section}
+    ## THE CONFIG SECTION BRINGS ITS OWN `found`, meaning "a Kconfig FILE was located", which
+    ## collides with what `found` means everywhere else on this surface. Replayed against the
+    ## frozen mbedtls index: `dossier("MBEDTLS_THREADING_C")` served 154 gate rows,
+    ## `gate_symbols: 1107` and `found: false` in one reply. Reconciled by the same helper
+    ## `_search_config` uses — one rule wherever that dataclass reaches the wire, because fixing
+    ## the search route alone is exactly how this one stayed broken.
+    if built.kind == "config":
+        payload = _config_found_on_the_wire(payload)
     if built.also:
         payload["also"] = list(built.also)
     if built.chain is not None:
@@ -1093,6 +1103,11 @@ _DOSSIER_LISTS = (
     ## reintroduces the unbounded payload one kind at a time. Named here rather than
     ## derived, because deriving them would mean trimming any list-shaped key including
     ## ones whose truncation is meaningless (`also`, `bases`).
+    ## The files one generator produces. Bounded by the repository rather than by clew — mbedtls
+    ## has 13 generated outputs and one script could plausibly produce many — so it is budgeted
+    ## like every other list. Trimming is safe here because the entries are bare basenames and
+    ## `generated_by` on each produced file carries the detail.
+    "generates",
     "sites",
     "siblings",
     "implementers",
@@ -2312,7 +2327,9 @@ class QueryTools:
     ## @param symbol Restrict the gating-site list to one CONFIG symbol, or None for all.
     ## @param target Repo root or slug to answer from; omit for the server's derived target.
     ## @return Serialized KconfigSpace, always present so an empty space says why it is empty.
-    ## @version 3
+    ## v4: the Kconfig-discovery fact travels as `kconfig_found` here too, so all three routes
+    ## that serialize this dataclass reconcile the two meanings of `found` the same way.
+    ## @version 4
     ## @req REQ-DDB-MCP-003
     ## @dg_internal
     def _config_space(
@@ -2333,7 +2350,9 @@ class QueryTools:
         @version 2
         """
         return self._answered(
-            wire.one(q.kconfig_space(self.db(target, sub_index), symbol)),
+            _config_found_on_the_wire(
+                wire.one(q.kconfig_space(self.db(target, sub_index), symbol))
+            ),
             kind="configuration space",
             subject=symbol,
             target=target,
@@ -2710,7 +2729,10 @@ class QueryTools:
     ## @param limit Ignored — the name list has its own cap, and it reports when it applies.
     ## @param target Repo root or slug to answer from.
     ## @return Serialized KconfigSpace with the symbol inventory and no per-site rows.
-    ## @version 2
+    ## v3: the Kconfig-discovery fact moves to `kconfig_found` and `found` answers what it
+    ## answers on every other corpus — did this reply find anything. A reply serving five
+    ## matching symbols beside `found: false` is what three mbedtls Q1 cells abandoned.
+    ## @version 3
     ## @dg_internal
     def _search_config(
         self, text: str, limit: int, target: str | None, sub_index: str | None = None
@@ -2732,19 +2754,139 @@ class QueryTools:
         filtered. `gates_meaning` says so in the reply, so an empty `gates` list reads as
         "omitted, ask there" rather than as "nothing gates code here".
 
+        `found` IS RENAMED ON THE WIRE and that is the other half of the measurement above. That
+        note records the reply "reporting `found: false` for a symbol named in `configured_macros`
+        in the same reply" — the row count was fixed and the false negative was not.
+
+        `KconfigSpace.found` means "this build located a Kconfig FILE", which the layer needs and
+        `test_kconfig` defends directly ("this fixture has no Kconfig — `found` must stay honest
+        about that"). On a header-configured repository it is correctly False. But `found` means
+        something else everywhere on this surface, and clew's own `_verdict` says so: its negative
+        test is `payload.get("found") is False or payload.get("count") == 0`. One key, two
+        meanings, and the reader cannot tell which it was handed.
+
+        MEASURED COST, replayed from the frozen 1.1.0 grid: mbedtls Q1 asks what runs concurrently
+        in a default build. Three of three `index_only` cells called
+        `search(corpus="config", text="THREADING")`; the index holds 154 `kconfig_gates` rows for
+        `MBEDTLS_THREADING_C`; the reply named five matching symbols beside `found: false`. All
+        three stopped pursuing configuration and the question's central symbol never reached
+        `dossier`.
+
+        So the discovery fact travels as `kconfig_found` and `found` answers the question every
+        other corpus answers with it: did this reply find anything. The library field is untouched.
+
         @brief Enumerate the configuration symbols matching `text`.
-        @return Serialized KconfigSpace.
-        @version 2
+        @return Serialized KconfigSpace, with Kconfig discovery under `kconfig_found`.
+        @version 3
         """
+        payload = wire.one(
+            q.kconfig_space(self.db(target, sub_index), text or None, include_gates=False)
+        )
         return self._answered(
-            wire.one(
-                q.kconfig_space(self.db(target, sub_index), text or None, include_gates=False)
-            ),
+            _config_found_on_the_wire(payload),
             kind="configuration space",
             subject=text or None,
             target=target,
             sub_index=sub_index,
         )
+
+
+## The gate-row fields worth hoisting when every row agrees. Each identifies the SYMBOL or its
+## resolved default rather than the SITE, so a panel of N sites repeats them N times for one
+## fact. `file_path`, `line` and `end_line` are deliberately absent: they are what varies, and
+## they are the reason the rows exist.
+_GATE_INVARIANTS = ("symbol", "macro", "form", "default_state", "default_site", "origin")
+
+
+## @brief State a gate panel's invariant fields once instead of once per row.
+## @param payload A serialized config reply.
+## @return The same payload with shared gate fields hoisted to `gates_shared`.
+## @version 1
+## @dg_internal
+def _compact_gate_panel(payload: dict[str, Any]) -> dict[str, Any]:
+    """MEASURED on the rebuilt mbedtls index: `dossier("MBEDTLS_THREADING_C")` serves 154 gate
+    rows at 39,884 bytes, and `symbol`, `macro`, `form`, `default_state` and `default_site` each
+    hold ONE distinct value across all 154. Only `file_path` varies, over 31 files. The panel
+    repeats ~185 bytes of invariant text 154 times.
+
+    WHY BYTES HERE COST MORE THAN THEY LOOK. `cache_read` is 98% of the tokens this harness
+    spends — 3,470,671 against 62,559 output on the `index_only` arm — because every byte served
+    sits in the context and is re-read on each later turn. A 40 KB reply at turn 3 of 20 costs
+    roughly 800 KB of `cache_read` by itself. Gate panels are 11.8% of all `dossier` reply bytes
+    across the grid.
+
+    NOTHING IS REMOVED, WHICH IS THE WHOLE POINT. A cost win that drops evidence trades one axis
+    for the other, and a gain on one axis only counts if the other holds. Every value a reader
+    could have read off a row is still in the reply — once rather than N times.
+
+    PER FIELD, NOT ALL-OR-NOTHING, AND NEVER A FIELD THAT VARIES. Two sites of one symbol can
+    genuinely disagree — a macro defined in one profile and undefined in another — and hoisting
+    the majority value would state as settled a thing the index reports as varying. A field is
+    hoisted only when every row carries the identical value.
+
+    THE WIRE ONLY. `KconfigGate` keeps every field, so the library API and the tests reading
+    `gates[0].default_state` are untouched. Same placement as the `found`/`kconfig_found`
+    reconciliation above, for the same reason: the dataclass is right, the serialization was
+    wasteful.
+
+    @brief Hoist invariant gate fields to the panel.
+    @return The compacted payload.
+    @version 1
+    """
+    rows = payload.get("gates")
+    if not isinstance(rows, list) or not rows:
+        return payload
+    shared = {}
+    for field in _GATE_INVARIANTS:
+        values = {json.dumps(r.get(field)) for r in rows if isinstance(r, dict)}
+        if len(values) == 1 and field in rows[0]:
+            shared[field] = rows[0][field]
+    if not shared:
+        return payload
+    out = dict(payload)
+    out["gates_shared"] = shared
+    out["gates"] = [
+        {k: v for k, v in r.items() if k not in shared} if isinstance(r, dict) else r for r in rows
+    ]
+    return out
+
+
+## @brief Re-key a config payload so `found` means what it means everywhere else.
+## @param payload The serialized KconfigSpace.
+## @return The same payload with `kconfig_found` added, `found` reflecting the rows served, and the gate panel compacted.
+## v2: chains `_compact_gate_panel`, so all three routes that serialize a `KconfigSpace` inherit
+## the compaction — the lesson of the `found` collision, where fixing one route left two broken.
+## @version 2
+## @dg_internal
+def _config_found_on_the_wire(payload: dict[str, Any]) -> dict[str, Any]:
+    """Split out of `_search_config` so the re-keying is testable without a tool set, and so the
+    one place the two meanings are reconciled is named rather than inline.
+
+    `found` BECOMES A STATEMENT ABOUT THIS REPLY: did it carry any symbol names. That is what the
+    rest of the surface means by the word and what `_verdict` tests for. A corpus that genuinely
+    matched nothing still reports False, so this trades no false negative for a false positive —
+    which would be the worse direction, because a reader cannot check a false positive.
+
+    THE DISCOVERY FACT IS MOVED, NOT DROPPED. "No Kconfig in this repository" and "a Kconfig that
+    failed to parse" are different facts, `error` carries the second and `kconfig_found` now
+    carries the first. Deleting it to resolve the collision would be fixing a misleading field by
+    removing a true one.
+
+    @brief Reconcile the two meanings of `found` on the config reply.
+    @return The re-keyed payload.
+    @version 1
+    """
+    if "found" not in payload:
+        return payload
+    out = dict(payload)
+    out["kconfig_found"] = out["found"]
+    names = out.get("gate_symbol_names") or ()
+    symbols = out.get("symbols") or ()
+    gates = out.get("gates") or ()
+    out["found"] = bool(names or symbols or gates)
+    ## COMPACTED HERE so all three routes that serialize a `KconfigSpace` inherit it, which is the
+    ## lesson of the `found` collision one function up: fixing one route left two broken.
+    return _compact_gate_panel(out)
 
 
 ## Corpus name -> the method that reads it. A MAPPING and not a branch chain so the tool's

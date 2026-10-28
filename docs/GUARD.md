@@ -6,9 +6,9 @@ release. It **enforces** doxygen documentation and reports the **change impact**
 It is optional: nothing in the index pipeline runs it, and a repo that does not declare the
 hook is unaffected.
 
-What did not change: the config schema, the tag vocabulary, the pre-commit hook id
-(`doxygen-guard`), and every subcommand. What changed: the command is `clew guard` (console
-script `clew-guard`), the package is `clew.guard`, Rust is supported on request — see
+What did not change: the config schema, the tag vocabulary, and every subcommand. What changed:
+the command is `clew guard` (console script `clew-guard`), the package is `clew.guard`, **the
+pre-commit hook id is now `clew-guard`** rather than `doxygen-guard`, Rust is supported on request — see
 [Rust](#rust) — and **the config is the `guard:` section of the repo's `.clew.yaml`**, the
 same file that carries clew's index declarations. `.doxygen-guard.yaml` is no longer read;
 see [Migrating from doxygen-guard](#migrating-from-doxygen-guard).
@@ -33,7 +33,7 @@ repos:
   - repo: https://github.com/tvanfossen/clew
     rev: <clew release tag>
     hooks:
-      - id: doxygen-guard
+      - id: clew-guard
         types_or: [c, c++, python]   # add rust / javascript / ts once declared — see below
 ```
 
@@ -85,7 +85,10 @@ int Sensor_ReadTemperature(void) {
 
 ## Migrating from doxygen-guard
 
-1. Change the hook's `repo:` and `rev:` lines to point here. The hook id stays `doxygen-guard`.
+1. Change the hook's `repo:` and `rev:` lines to point here, and the id from
+   `doxygen-guard` to `clew-guard`. This IS a breaking change and it is deliberate: the
+   old id was being held in place by a code comment naming a file that no longer exists,
+   and nothing resolves the string programmatically. One tool, one name.
 2. Move the contents of `.doxygen-guard.yaml` under a `guard:` key in `.clew.yaml`, indented
    one level, and delete `.doxygen-guard.yaml`. clew does not read it.
 3. If the old file carried an `x-clew:` section, move its sections to the top level of

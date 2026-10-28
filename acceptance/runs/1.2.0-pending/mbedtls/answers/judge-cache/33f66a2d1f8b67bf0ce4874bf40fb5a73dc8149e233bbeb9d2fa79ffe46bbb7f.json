@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` not defined (the shipped default; `mbedtls_config.h:208` is `//#define`) | the libc `calloc` / `free` directly, via macros (`platform.h:~170`)\nVERDICT: HIT\nWHY: The answer states that in the default build (PLATFORM_MEMORY undefined), mbedtls_calloc/free resolve directly to libc calloc/free via macros, with no indirection."
+}

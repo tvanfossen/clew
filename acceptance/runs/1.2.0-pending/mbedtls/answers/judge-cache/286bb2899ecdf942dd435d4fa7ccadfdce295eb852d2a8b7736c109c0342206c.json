@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN` (clang MemorySanitizer) or `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` (memcheck), a branch or address that depends on a secret is reported.\nVERDICT: MISS\nWHY: The answer names the MemSan/valgrind verification, but it never says the facility is off-by-default or that it is explicitly not part of the library API."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: lazy (PEP 562) attribute lookup, so install-engine works before the .so exists\nVERDICT: HIT\nWHY: The answer states the lazy attribute lookup exists so install-engine works before the engine .so is on disk, and it adds that the package is pure Python with the engine installed via `entropic install-engine`."
+}

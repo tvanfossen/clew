@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never discusses CMake's definition name being an argument of the command node rather than a named field; it only lists function/macro harvesting."
+}

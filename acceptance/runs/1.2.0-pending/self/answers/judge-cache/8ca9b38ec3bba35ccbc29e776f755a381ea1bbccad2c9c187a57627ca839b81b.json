@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `--declare FILE` on the CLI, or the `options` argument to `build_index` / `index(action='refresh')` over MCP. Same keys as `.clew.yaml`.\nVERDICT: HIT\nWHY: The answer places tier 1 explicit in both a CLI flag (`--declare`) and a structured `options` argument, which covers both entry points."
+}

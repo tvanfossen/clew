@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every query reply gets a `staleness` block when any axis fires, and it is absent when the index is current\nVERDICT: MISS\nWHY: The answer never says that a routed reply's annotation is computed for the repository actually read (the target) rather than the server's default target."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Token counting** (`do_count_tokens` \u2192 C API `entropic_inference_count_tokens`): returns 0. Callers cannot distinguish this from an empty string.\nVERDICT: HIT\nWHY: The answer states that the token-counting path returns 0 on tokenizer failure, indistinguishable from an empty string, with no error signalled."
+}

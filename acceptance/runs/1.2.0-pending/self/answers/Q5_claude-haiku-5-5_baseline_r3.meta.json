@@ -1,0 +1,40 @@
+{
+  "stem": "Q5_claude-haiku-5-5_baseline_r3",
+  "arm": "baseline",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "skills": "",
+  "answered_by": "claude-haiku-5-5",
+  "seconds": 44.535179347964004,
+  "input_tokens": 20,
+  "output_tokens": 5573,
+  "cache_read_tokens": 506404,
+  "cache_creation_tokens": 32797,
+  "cost_usd": 0.01441194,
+  "result_bytes": 2861,
+  "turns": 11,
+  "tool_calls": 10,
+  "non_index_tool_calls": 10,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/1.2.0-pending/self/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nA repository wants clew to index it differently from the defaults. What are the ways to\nsay so, and what happens when two of them disagree?\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "tvanfossen/clew",
+    "question_id": "Q5",
+    "arm": "baseline",
+    "model": "claude-haiku-5-5",
+    "replicate": 3,
+    "order": 43
+  }
+}

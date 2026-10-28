@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses caveats of a dossier on git_argv but never mentions that the flat surface keeps fuzzy-confidence edges while the traversal surface excludes them, nor the multiplication-of-wrong-subtree reasoning."
+}

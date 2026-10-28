@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"NOT an error and NOT a malformed call, and it is NOT a definitive negative either.\"\nVERDICT: MISS\nWHY: The answer describes how empty results should be interpreted now, but never says that a single non-matching token was previously treated as proof of absence, nor the old-behavior contrast."
+}

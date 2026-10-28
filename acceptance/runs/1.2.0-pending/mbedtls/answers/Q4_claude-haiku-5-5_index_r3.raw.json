@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 24264,
+  "stop_reason": "end_turn",
+  "session_id": "fdd84470-fec8-4f8e-bb0a-1c4b956082b3",
+  "total_cost_usd": 0.009722449999999999,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 24501,
+    "cache_read_input_tokens": 294855,
+    "output_tokens": 3745,
+    "output_tokens_details": {
+      "thinking_tokens": 810
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24501,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2037,
+        "cache_read_input_tokens": 62230,
+        "cache_creation_input_tokens": 1418,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1418
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3745,
+      "cacheReadInputTokens": 294855,
+      "cacheCreationInputTokens": 24501,
+      "webSearchRequests": 0,
+      "costUSD": 0.009722449999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 810,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 24501,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nA negative return is never turned into text at runtime by a table you maintain by hand. The string lookup lives in `library/error.c`, which is generated from the `MBEDTLS_ERR_*` defines in `include/mbedtls/*.h` by `scripts/generate_errors.pl`. To add a new string, you add a documented `#define` to the right header and regenerate. Don't edit `error.c` directly.\n\n## The runtime path\n\n```\nret = -0x0020  (MBEDTLS_ERR_AES_INVALID_KEY_LENGTH)\n   \u2502\n   \u25bc\nmbedtls_strerror(ret, buf, buflen)          library/error.c:792\n   \u2502  buflen==0 \u2192 return; memset(buf,0)\n   \u2502  ret = -ret  (sign stripped)\n   \u2502\n   \u251c\u2500 high = ret & 0xFF80   (module part)\n   \u2502     \u2514\u2500 mbedtls_high_level_strerr(ret)   error.c:174\n   \u2502          switch on module code \u2192 \"CIPHER - ...\" / \"DHM - ...\" etc.\n   \u2502     (skipped for low-only codes; SSL fatal alert returns early)\n   \u2502\n   \u251c\u2500 low  = ret & ~0xFF80  (detail part)\n   \u2502     \u2514\u2500 mbedtls_low_level_strerr(ret)    error.c:537\n   \u2502          switch on detail code \u2192 \"AES - Invalid key length\" etc.\n   \u2502\n   \u2514\u2500 joined as \"HIGH : LOW\" into buf;\n      unknown code \u2192 \"UNKNOWN ERROR CODE (XXXX)\"\n```\n\nKey points from the code:\n\n- **Two-level split.** Codes are split by the `0xFF80` mask. The high part identifies the module (`CIPHER`, `PK`, `X509`), the low part identifies the specific failure inside it. A caller can get both halves, which is why `mbedtls_strerror` concatenates them.\n- **Two lookup tables, not one.** High-level modules (`CIPHER DHM ECP MD PEM PK PKCS12 PKCS5 RSA SSL X509 PKCS7`) and low-level modules (`AES ARIA ASN1 \u2026 SHA3 THREADING`) are listed separately in the generator. A new code goes into whichever switch matches its module.\n- **Public API.** `mbedtls_strerror` is declared in `include/mbedtls/error.h:165`. The two helpers are declared at `error.h:180` and `error.h:195`.\n- **Gating.** Each `case` block sits under `#if defined(MBEDTLS_<MODULE>_C)`, so a string only exists when its module is compiled in.\n\n## What a contributor does to add a new code\n\n1. **Add the define** in the module's header, e.g. `include/mbedtls/aes.h`, in the range the header already uses:\n   ```c\n   /** Invalid key length. */\n   #define MBEDTLS_ERR_AES_INVALID_KEY_LENGTH   -0x0020\n   ```\n   The generator's regex requires `-0x\u2026` with a leading minus.\n2. **Write exactly one doxygen description**, either a `/** \u2026 */` block above the define or a `/**< \u2026 */` after it. Having both is a generator error, and having neither is also an error. A `\\name` block is discarded, so don't use one for this.\n3. **Use a unique value.** A duplicate value is a hard error (`Duplicated error code`).\n4. **Make sure the module is known.** The module prefix must already be in `@low_level_modules` or `@high_level_modules` in `scripts/generate_errors.pl`, otherwise the script exits with `Do not know how to handle`. A brand-new module must be added there, and its `MBEDTLS_<MODULE>_C` config symbol must exist for the gating to work.\n5. **Make sure the header is included by the generator's scan.** The script only emits `#include \"mbedtls/<module>.h\"` for headers it matched, and it errors if a header has codes but is not included by the library.\n6. **Regenerate.** Run through the build, which invokes `library/Makefile:355-360` or the CMake rule in `library/CMakeLists.txt:136-144`. Running the script directly is equivalent but the build owns the flags, so route through the build for the same reason the repo's CLAUDE rules give for pre-commit.\n7. **Commit the regenerated `library/error.c` too.** It is tracked in git (`git ls-files` lists it). The `.gitignore` entry for it is commented out, so it is not ignored.\n\nTwo things I did not verify: I did not check whether a test in the test suite specifically exercises every new string, and I did not run the generator here. The regeneration steps above are from reading `generate_errors.pl` and the Makefile, not from running them.",
+  "ttft_ms": 1997,
+  "type": "result",
+  "duration_ms": 25128,
+  "uuid": "fe9afe01-c8d7-4e2f-8512-6fa605990052",
+  "ttft_stream_ms": 1659,
+  "time_to_request_ms": 81,
+  "first_content_frame_ms": 1659,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

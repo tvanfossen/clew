@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each entry is `tool_pattern` or `tool_pattern:arg_pattern`, matched with `fnmatch` (`permission_manager.cpp:101`): 1. The part before the first `:` is matched against the fully-qualified tool name... 2. With no `:`, a tool match is enough. `filesystem.*` covers every filesystem tool regardless of arguments.\nVERDICT: HIT\nWHY: The answer states fnmatch matching, a split at the first colon into tool and argument parts, and that a pattern with no colon matches on the tool name alone."
+}

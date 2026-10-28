@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: a `not_indexed` list with counts per extension (here `.rs=2`, `.toml=2`, no-extension=3, `.csv=3`, and others)\nVERDICT: MISS\nWHY: The item asks for a reply that names file types that were in scope but produced no rows. The answer describes `not_indexed` as file types that were not indexed, which is the opposite case. It never says the reply lists in-scope types with zero rows."
+}

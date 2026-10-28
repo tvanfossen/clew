@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nbuildoptions.py\n.clew.yaml\nclew/tiers.py\ndocs/GUARD.md\ndocs/languages/C_INTEGRATION.md\nEND"
+}

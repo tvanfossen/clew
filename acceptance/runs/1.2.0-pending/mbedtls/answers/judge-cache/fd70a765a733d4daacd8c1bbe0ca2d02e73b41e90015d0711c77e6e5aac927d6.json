@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It never creates threads, so it runs concurrently only when your application calls it from several threads.\"\nVERDICT: MISS\nWHY: The answer says the library creates no threads, but it never says library/ supplies the mutex abstraction for threaded callers. It says threading.c compiles to nothing by default and that locks are compiled out, which is the opposite emphasis."
+}

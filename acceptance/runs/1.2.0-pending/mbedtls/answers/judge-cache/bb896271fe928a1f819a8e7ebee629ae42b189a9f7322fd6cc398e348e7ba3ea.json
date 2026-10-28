@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: There is no runtime setter. The library's own `mbedtls_calloc` call sites just become direct calls to the project's functions.\nVERDICT: MISS\nWHY: The answer says there's no runtime setter on the macro path, but never says the function is neither declared nor compiled. It also notes `platform.c:20` omits the runtime machinery, which doesn't state that fact about `mbedtls_platform_set_calloc_free` specifically."
+}

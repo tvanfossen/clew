@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says it reaches only code that opts in, mostly bignum, PKCS#7 padding and MAC comparison, and gives a sample rather than a census. It never says the primitives are used across about twenty modules."
+}

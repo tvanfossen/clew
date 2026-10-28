@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `PermissionManager::pattern_matches` splits the list entry at the first `:`: The part before the colon is an fnmatch glob on the tool name... Without a colon, the tool-name match is enough.\nVERDICT: HIT\nWHY: The answer states that the pattern is split at the first colon, that the tool part is an fnmatch glob, and that a pattern with no colon matches on the tool name alone."
+}

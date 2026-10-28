@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 29638,
+  "stop_reason": "end_turn",
+  "session_id": "f0dee226-c875-4306-a766-3d748221a27d",
+  "total_cost_usd": 0.01082428,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 22851,
+    "cache_read_input_tokens": 310868,
+    "output_tokens": 6288,
+    "output_tokens_details": {
+      "thinking_tokens": 2265
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 22851,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3238,
+        "cache_read_input_tokens": 55179,
+        "cache_creation_input_tokens": 1215,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1215
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 6288,
+      "cacheReadInputTokens": 310868,
+      "cacheCreationInputTokens": 22851,
+      "webSearchRequests": 0,
+      "costUSD": 0.01082428,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2265,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 22851,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** mbedtls never calls `calloc` or `free` directly in its own code. Every allocation goes through `mbedtls_calloc` and every release through `mbedtls_free`. What those two names resolve to depends on the build configuration: the C library by default, a compile-time macro, or a runtime function pointer that the project sets.\n\n**What gets called**\n\nThe library has 48 files that call `mbedtls_calloc` and 188 `mbedtls_free` call sites. Raw `calloc`/`free` appear only in comments. Resolution depends on three configuration cases:\n\n| Config | What `mbedtls_calloc` / `mbedtls_free` become | Where |\n|---|---|---|\n| `MBEDTLS_PLATFORM_MEMORY` undefined | `#define`d straight to `calloc` / `free` | `include/mbedtls/platform.h`, `#else` branch near line 180 |\n| `MBEDTLS_PLATFORM_MEMORY` plus both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` | `#define`d to your functions at compile time. No runtime indirection, and `mbedtls_platform_set_calloc_free` is compiled out. | `platform.h` (the `#if ... FREE_MACRO && CALLOC_MACRO` branch) and the guard in `library/platform.c:21` |\n| `MBEDTLS_PLATFORM_MEMORY` only | Real functions in `library/platform.c:47-54` that call through two global function pointers. The pointers start at `MBEDTLS_PLATFORM_STD_CALLOC` / `MBEDTLS_PLATFORM_STD_FREE`. | `library/platform.c:44-62` |\n\nThe default for the last row is `calloc`/`free` when `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS` is off. When that option is on, the default is a stub that returns NULL from calloc and does nothing on free, so the project must supply its own functions before the library allocates. (`mbedtls_config.h` around lines 165-202 documents this.)\n\n**How a project substitutes its allocator**\n\n- **Compile-time (preferred for embedded):** in its config, define `MBEDTLS_PLATFORM_MEMORY`, `MBEDTLS_PLATFORM_CALLOC_MACRO=my_calloc` and `MBEDTLS_PLATFORM_FREE_MACRO=my_free`. Both macros must be set together. This has no runtime cost and no registration step.\n- **Compile-time, default-plus-override:** define `MBEDTLS_PLATFORM_MEMORY` and `MBEDTLS_PLATFORM_STD_CALLOC` / `MBEDTLS_PLATFORM_STD_FREE` instead. `tests/configs/user-config-malloc-0-null.h` does this with a `custom_calloc` that returns NULL for zero-size requests.\n- **Runtime:** define only `MBEDTLS_PLATFORM_MEMORY`, then call `mbedtls_platform_set_calloc_free(calloc_fn, free_fn)` before any library call that allocates. It stores the two pointers and returns 0. It does no validation.\n\nThe header comment says the function-pointer choice is made at runtime, but it does not require any locking.\n\n**What the library does with the facility**\n\n- **Its own allocator.** `library/memory_buffer_alloc.c` is a first-fit heap built over a caller-supplied byte buffer. `mbedtls_memory_buffer_alloc_init(buf, len)` calls `mbedtls_platform_set_calloc_free(...)` itself, so initialising it installs the heap as the process-wide allocator. When `MBEDTLS_THREADING_C` is enabled it installs mutex-wrapped variants. The heap is a single static `heap` context, not per-instance.\n- **Wipe-then-free.** 75 call sites use `mbedtls_zeroize_and_free(buf, len)` (`library/platform_util.c`). It zeroizes non-NULL buffers and then calls `mbedtls_free`, so the free function must accept NULL.\n- **Dependency on pairing.** Whatever free function is installed must release what the matching calloc returned. The header states that only pointers from `MBEDTLS_PLATFORM_STD_CALLOC` are passed to `MBEDTLS_PLATFORM_STD_FREE`.\n\n**Caveats I inferred from the code (not tested)**\n\n- The two function pointers are plain globals with no synchronisation. Swapping the allocator while another thread is allocating, or while live blocks from the old allocator exist, is unsafe unless the new free can handle the old pointers. The code gives no guidance on this, so set the allocator once at startup.\n- In the mutex-wrapped heap free, if the lock fails the function returns without freeing (`buffer_alloc_free_mutexed`). The comment says losing memory is preferred to corrupting the heap, so a lock failure leaks.",
+  "ttft_ms": 2267,
+  "type": "result",
+  "duration_ms": 32125,
+  "uuid": "bb502455-b66a-4328-9c91-b9ef15842a00",
+  "ttft_stream_ms": 1974,
+  "time_to_request_ms": 1433,
+  "first_content_frame_ms": 1974,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

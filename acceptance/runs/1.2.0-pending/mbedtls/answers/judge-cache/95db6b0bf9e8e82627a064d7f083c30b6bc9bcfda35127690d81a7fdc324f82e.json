@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions MBEDTLS_ERROR_ADD or mbedtls_error_add, nor that combining high- and low-level codes captures __FILE__ and __LINE__."
+}

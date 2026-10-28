@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the second `llama_tokenize` call runs unconditionally and a negative result returns `{}`, but it never says the second call is terminal or contrasts that with a possible retry. Its only statement about a retry is that `detokenize` resizes and redoes the call."
+}

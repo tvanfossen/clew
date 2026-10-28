@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"For YAML and JSON it holds only a `path` row, so the files are in the file set but have no symbols.\"\nVERDICT: HIT\nWHY: The answer states that YAML/JSON are registered as path rows with no symbols, contrasting them with shell/CMake, which get function-level rows."
+}

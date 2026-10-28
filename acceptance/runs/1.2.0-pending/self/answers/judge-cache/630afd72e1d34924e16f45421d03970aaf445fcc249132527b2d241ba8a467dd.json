@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Notices are built by `DocsDbServer.staleness_notices` (`server.py:1548`), which never raises.\nVERDICT: HIT\nWHY: The answer states that the staleness-notice measurement never raises, which is the item's substance. It also says a failed auto-refresh still lets the query answer from the index."
+}

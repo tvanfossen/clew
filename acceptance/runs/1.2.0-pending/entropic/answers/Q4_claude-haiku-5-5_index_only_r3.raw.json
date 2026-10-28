@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 24875,
+  "stop_reason": "end_turn",
+  "session_id": "13845160-1bba-4445-86fc-5a4554631a0d",
+  "total_cost_usd": 0.010796630000000002,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 30676,
+    "cache_read_input_tokens": 239243,
+    "output_tokens": 4536,
+    "output_tokens_details": {
+      "thinking_tokens": 1932
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 30676,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1729,
+        "cache_read_input_tokens": 62888,
+        "cache_creation_input_tokens": 4622,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4622
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4536,
+      "cacheReadInputTokens": 239243,
+      "cacheCreationInputTokens": 30676,
+      "webSearchRequests": 0,
+      "costUSD": 0.010796630000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1932,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 30676,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Ten thread spawn sites in first-party code were matched by the index. Every one is a spawn the index found; I did not check for spawn primitives it doesn't know about.\n\n| Thread | Spawned from | What it does off-caller |\n|---|---|---|\n| `ExternalBridge::accept_loop` | `ExternalBridge::start` | Polls the listen socket and accepts clients |\n| per-client `serve_client` thread | `accept_loop` (`ct->thread`) | Serves one MCP client until disconnect |\n| `run_async_ask` worker (lambda) | `ExternalBridge::run_async_ask`, detached | Runs `entropic_run` for an async ask |\n| `HealthMonitor::monitor_loop` | `HealthMonitor::start` | Periodic health checks on MCP servers (body not read) |\n| `StdioTransport::stderr_reader_loop` | `StdioTransport::open` | Drains child-process stderr |\n| `SSETransport::sse_reader_loop` | `SSETransport::open` | Reads the SSE event stream |\n| `ResponseGenerator` observer | `dispatch_batch_generate` | Mirrors the engine interrupt flag into the C-ABI int |\n| `iface_generate_with_cancel` poller | `interface_factory.cpp` | Bridges the cancel int to the orchestrator's atomic |\n| `CancelFlagBridge` poller | `inference_c_api.cpp` | Same bridge for the C API cancel path |\n| `ExternalBridge` test/mock threads | tests only | Not runtime |\n\nTwo of the ten are test-only (`MockSSEServer`'s `listen_after_bind` and the `transport_sse_test` mock), so the runtime count is eight. The index doesn't split the rest by target, so I count them all as first-party.\n\n**What keeps them safe**\n\n- **Shared state is behind named mutexes.** The index lists 45 distinct lock identities in this repo, including `tasks_mutex_`, `client_threads_mutex_`, and `s_bound_sockets_mu` in `ExternalBridge`, `event_mutex_`/`watched_mutex_` in `HealthMonitor`, and `io_mutex_`/`pending_mutex_` in the transports.\n- **Lock ordering is recorded.** Three nested pairs were observed: `auth_mutex_` \u2192 `key_mutex_`, `event_mutex_` \u2192 `adapter_mutex_`, and `mu_` \u2192 `adapter_mutex_` in the test mock. None appear in opposite order. However, all three have zero resolved call sites, so this is weak evidence and I wouldn't claim it's deadlock-free.\n- **Task state and the sentinel are written together.** In `run_async_ask`, the terminal status, the result, and `write_sentinel` all happen under `tasks_mutex_`. An external monitor that sees the sentinel can call `ask_status` and get the same state.\n- **Socket ownership is claimed before unlinking.** `start()` inserts the canonical path into the process-wide `s_bound_sockets` set under `s_bound_sockets_mu` before `create_listen_socket` unlinks anything. This blocks two in-process bridges from stealing each other's socket. `stop()` releases the claim.\n- **Clients are gated and drained.** `accept_loop` closes any fd whose peer uid doesn't match (SO_PEERCRED). `stop()` sets `running_` false, closes the listen fd, joins the accept thread, calls `shutdown(SHUT_RDWR)` on each client fd to unblock reads, then joins the client threads.\n- **Per-handle logs stay attributed.** Every spawned body installs a `HandleLogScope` with the owning handle's log id, so logs from background threads go to the right session.\n- **Cancel pollers are joined before the caller returns.** The poller and observer threads in `iface_generate_with_cancel` and `dispatch_batch_generate` use an `atomic<bool>` done flag, and the caller joins them before returning, so their stack captures stay valid.\n- **The async ask is fire-and-forget.** `run_async_ask` ends with `.detach()`, so nothing joins it. Its shared state is the `tasks_` map under `tasks_mutex_`, and its completion notification is a short `notifications/progress` message rather than the result body.\n\n**Caveat:** the cancel path shares a plain `int` through a pointer. The observer thread writes `cancel_int = 1` and the backend poller reads `*cancel` with no atomic or lock. The join makes the lifetime safe, but the concurrent read and write are a C++ data race. The `atomic<bool>` inside the poller is the only synchronized part. I'd make the shared int a `std::atomic<int>` or give the C ABI an atomic, which the code comments say was avoided to keep the boundary `int*`-only.\n\nI did not read the body of `HealthMonitor::monitor_loop`, so its locking is inferred only from the lock index.",
+  "ttft_ms": 1897,
+  "type": "result",
+  "duration_ms": 29685,
+  "uuid": "b352bf0c-9976-44d9-8d5c-4705d1a6f0b8",
+  "ttft_stream_ms": 1496,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1496,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

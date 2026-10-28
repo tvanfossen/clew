@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Pinned against llama.cpp submodule b8420.\"\nVERDICT: MISS\nWHY: The answer calls it a submodule but never gives the location extern/llama.cpp. It also says it is \"vendored\" and doubts how it's built, and it notes a stale comment saying the submodule is not built."
+}

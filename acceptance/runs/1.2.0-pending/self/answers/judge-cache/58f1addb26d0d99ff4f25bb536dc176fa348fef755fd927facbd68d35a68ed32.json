@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The reason is logged: the build says no `index_scope` is declared and names where it looked.\nVERDICT: HIT\nWHY: The answer says the fallback scope comes with a logged reason stating that nothing was declared and where it looked. It also says a rejected declaration's reason is recorded, so the scope isn't silently guessed."
+}

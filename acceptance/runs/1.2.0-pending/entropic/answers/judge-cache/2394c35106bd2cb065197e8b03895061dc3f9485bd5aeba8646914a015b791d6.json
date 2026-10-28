@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp comes in as a git submodule at `extern/llama.cpp`, linked by the inference library's CMake target.\nVERDICT: HIT\nWHY: The answer explicitly states llama.cpp is a git submodule at `extern/llama.cpp`. It also says that external deps are fetched at configure time, which muddies the point, but the submodule claim itself is stated."
+}

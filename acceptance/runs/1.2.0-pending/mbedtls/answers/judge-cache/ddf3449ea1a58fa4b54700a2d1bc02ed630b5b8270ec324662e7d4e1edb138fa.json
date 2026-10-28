@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A negative return code is turned into text in `library/error.c` by `mbedtls_strerror()`, which splits the code into a high-level and a low-level part and looks each part up in a generated switch.\nVERDICT: HIT\nWHY: The answer names mbedtls_strerror() as the entry point and locates it in library/error.c (line 792)."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 21588,
+  "stop_reason": "end_turn",
+  "session_id": "0ecc961b-7f25-441a-b226-62a9d5efa1ec",
+  "total_cost_usd": 0.010366390000000001,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 30936,
+    "cache_read_input_tokens": 283499,
+    "output_tokens": 2686,
+    "output_tokens_details": {
+      "thinking_tokens": 687
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 30936,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1487,
+        "cache_read_input_tokens": 65394,
+        "cache_creation_input_tokens": 4672,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4672
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 2686,
+      "cacheReadInputTokens": 283499,
+      "cacheCreationInputTokens": 30936,
+      "webSearchRequests": 0,
+      "costUSD": 0.010366390000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 687,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 30936,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** clew checks its own currency on every query and attaches the result to the reply. It measures three independent axes and gives a different remedy for each. The index itself also tries to fix the data axis automatically before answering. The caller's job is mostly to read the remedy and act only when the reply says to.\n\n**How it knows.** `db_status` (`clew/mcp_server/state.py:1140`) computes the facts:\n- **Data:** `source_changed_files` counts indexed sources that changed since the build. A missing database also counts as stale.\n- **Schema:** `build_version` (stamped in the index) is compared with `CLEW_BUILD_VERSION` (this process's pipeline version).\n- **Code:** `code_identity()` checks whether this server process still matches the source tree on disk. A running process can predate the working tree after a fix lands.\n\n`stale` is true if any of these fire. The status dict is also the source for each axis's notice.\n\n**What it tells the caller.** `notices()` (`clew/mcp_server/freshness.py:575`) returns a list of `{axis, message}` in the order data, schema, code. Each message carries its own remedy. The list is empty when the index is current, and the `staleness` key is absent from the payload in that case. Every query reply is stamped with `staleness_notices()` (`server.py:1548`), which is non-raising, so a failed measurement cannot turn a good answer into an error.\n\n| Axis | Meaning | Remedy the message gives |\n|---|---|---|\n| `data` | Sources changed since build | `index(action='refresh')`, with the measured cost |\n| `schema`, index older than server | Index predates server; may lack whole layers | `index(action='refresh', force=True)` |\n| `schema`, index newer than server | Server predates index | Restart the MCP client. A rebuild cannot clear it, since it re-stamps the same newer version. |\n| `code` | Process loaded old logic | Restart the MCP client. A rebuild cannot fix it. |\n\nThe code notice also says the data is still current. Queries open the database per call, so the stale part is the process's logic, not the stored rows.\n\n**What the caller does.**\n1. **Automatically, for the data axis.** Before answering, `_auto_refresh` (`server.py:1242`) calls `_data_stale`. If the process matches its source and the data axis is stale, it refreshes the index first, so the caller gets fresh data without asking. Concurrent callers share one build because the re-check happens inside the lock. If the refresh fails, the reply still answers from the old index and keeps its staleness notice.\n2. **Explicitly, for the other axes.** The caller has to act on the notice, and the refusal logic keeps it from doing harm:\n   - `build_or_refresh` (`server.py:2199`) refuses to build when the process predates its source. This check runs before `force` and cannot be overridden. `stale_code_refusal` (`freshness.py:531`) gives the wording.\n   - `_data_stale` also declines an automatic refresh in that situation, so a stale server cannot rebuild the index with old pipeline logic.\n   - For the schema-older-index case, the caller can pass `force=True` to rebuild.\n3. **Otherwise, nothing.** A current index carries no notice, so an agent need not check `status` before using it.\n\n**Caveats.** I verified this by reading the source through the index, not by running a stale index and inspecting a real reply. The design reasoning in the docstrings is the project's own account, and I did not test it against the tests.",
+  "ttft_ms": 2118,
+  "type": "result",
+  "duration_ms": 25218,
+  "uuid": "37c581fb-2ee2-4644-aab9-985b94a7aaef",
+  "ttft_stream_ms": 1374,
+  "time_to_request_ms": 164,
+  "first_content_frame_ms": 1374,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

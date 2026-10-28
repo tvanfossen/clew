@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_memory_buffer_alloc_init(buf, len)` (`memory_buffer_alloc.c:566-600`) ... installs its own `buffer_alloc_calloc` and `buffer_alloc_free` through `mbedtls_platform_set_calloc_free()`.\nVERDICT: MISS\nWHY: The answer says the buffer allocator uses the runtime setter from its init function, but it never says it is the only in-tree user of that setter."
+}

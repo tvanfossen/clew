@@ -1,10 +1,10 @@
 # The scope declaration this fixture exists to be READ, not run. The pipeline
-# derives its index scope from a doxygen-guard hook's `files:` regex, so the
+# derives its index scope from a clew-guard hook's `files:` regex, so the
 # regex is written out explicitly rather than relying on the hook's own default:
-# what this fixture pins is clew's derivation, not doxygen-guard's defaults.
+# what this fixture pins is clew's derivation, not clew-guard's defaults.
 repos:
-  - repo: https://github.com/tvanfossen/doxygen-guard
+  - repo: https://github.com/tvanfossen/clew-guard
     rev: v1.2.9
     hooks:
-      - id: doxygen-guard
+      - id: clew-guard
         files: ^(src|gen|test)/.*\.(c|h)$

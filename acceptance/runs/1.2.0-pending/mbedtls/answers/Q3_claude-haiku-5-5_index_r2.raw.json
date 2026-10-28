@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 38016,
+  "stop_reason": "end_turn",
+  "session_id": "3ae55463-d158-4d05-a171-1c00a688049c",
+  "total_cost_usd": 0.01709778,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 39756,
+    "cache_read_input_tokens": 574728,
+    "output_tokens": 6795,
+    "output_tokens_details": {
+      "thinking_tokens": 2491
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 39756,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1829,
+        "cache_read_input_tokens": 77921,
+        "cache_creation_input_tokens": 977,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 977
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 6795,
+      "cacheReadInputTokens": 574728,
+      "cacheCreationInputTokens": 39756,
+      "webSearchRequests": 0,
+      "costUSD": 0.01709778,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2491,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 39756,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** every allocation in the library goes through `mbedtls_calloc()` and `mbedtls_free()`. What those resolve to depends on build config. By default that is libc `calloc`/`free`. A project can replace them at compile time with two macros, or at runtime with `mbedtls_platform_set_calloc_free()`. The library's own stack-based buffer allocator uses that same runtime hook.\n\n**Call path**\n\n```\nlibrary code: mbedtls_calloc(n, sz) / mbedtls_free(p)\n   \u2502\n   \u251c\u2500 MBEDTLS_PLATFORM_MEMORY off \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba macro \u2192 calloc / free (platform.h:166-167)\n   \u251c\u2500 MEMORY on + CALLOC_MACRO & FREE_MACRO \u2500\u25ba macro \u2192 your functions (platform.h:139-145)\n   \u2514\u2500 MEMORY on, no macros \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba real function (platform.c:47-55)\n                                                  \u2502 calls through static pointers\n                                                  \u25bc\n                          mbedtls_calloc_func / mbedtls_free_func (platform.c:44-45)\n                          default: MBEDTLS_PLATFORM_STD_CALLOC/FREE\n```\n\n- **Default build:** `platform.h:166-167` maps `mbedtls_calloc` to `calloc` and `mbedtls_free` to `free`, so there is no indirection.\n- **Library code is clean.** A grep of `library/` for raw `calloc`/`malloc`/`free` finds nothing outside `platform.c`. The one raw `free` is `memory_buffer_alloc.c:404`, which frees `backtrace_symbols()` output under `MBEDTLS_MEMORY_BACKTRACE`. That memory is libc-allocated, so libc `free` is correct there.\n\n**How a project substitutes its allocator**\n\n1. **Compile time (no runtime layer).** Set `MBEDTLS_PLATFORM_MEMORY`, then define both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` in your `mbedtls_config.h`. The two must be defined together (`check_config.h:572`). The macros win over any runtime setting, and `platform.c`'s pointer block is compiled out (`platform.c:16-20`).\n\n2. **Runtime.** Set only `MBEDTLS_PLATFORM_MEMORY`, leave the macros undefined, and call once during startup, before any allocation:\n   ```c\n   mbedtls_platform_set_calloc_free(my_calloc, my_free);\n   ```\n   The function (`platform.c:57-63`) just stores two global function pointers. It has no locking, so don't swap allocators while other threads are using the library.\n\n   Contract for your functions:\n   - `calloc` must zero the memory and return NULL on failure.\n   - `free` must accept NULL as a no-op.\n   - Every pointer you return must be freeable by your `free`.\n\n**Things that will bite you**\n\n- With `MBEDTLS_PLATFORM_MEMORY` on and no `MBEDTLS_PLATFORM_STD_CALLOC`/`STD_FREE` defined, the default is the stubs in `platform.c:24-42`. `calloc` returns NULL and `free` does nothing until you call the setter. The stubs are only replaced by libc when `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS` is not defined (`platform.h:83-88`).\n- `mbedtls_platform_set_calloc_free` is only declared in the runtime configuration. Calling it when the macros are set is a compile error.\n\n**What the library does with the facility itself**\n\n`mbedtls_memory_buffer_alloc_init(buf, len)` (`memory_buffer_alloc.c:566-600`) is Mbed TLS's own allocator. It needs `MBEDTLS_MEMORY_BUFFER_ALLOC_C` plus the platform layer. It:\n\n- initializes a static global heap `heap` over a caller-supplied buffer,\n- installs its own `buffer_alloc_calloc` and `buffer_alloc_free` through `mbedtls_platform_set_calloc_free()`. If `MBEDTLS_THREADING_C` is on, it installs the mutexed variants and initializes `heap.mutex`.\n\nSo a project that wants a fixed-pool allocator with no libc heap can skip writing one. The trade-off is that the heap is process-global, so only one buffer heap exists at a time.\n\nI did not open the bodies of `buffer_alloc_calloc` or `buffer_alloc_free`, so I haven't checked their fragmentation or failure behaviour.",
+  "ttft_ms": 1784,
+  "type": "result",
+  "duration_ms": 39290,
+  "uuid": "7f3164c1-66fc-4e36-94b8-40ee70ebc4a9",
+  "ttft_stream_ms": 1284,
+  "time_to_request_ms": 76,
+  "first_content_frame_ms": 1284,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| 1 (explicit) | CLI flags... | 2 (declared) | `.clew.yaml`... | 3 (target-fact) | ... | 4 (ecosystem) | ... | 5 (heuristic) |\" and \"the rule is a tier ordering rather than 'last one wins.'\"\nVERDICT: HIT\nWHY: The answer names five precedence tiers (explicit, declared, target-fact, ecosystem, heuristic) and says resolution is by tier ordering, not a single override."
+}

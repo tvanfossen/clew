@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppTokenizer::detokenize` (lines 86\u2013105) calls `llama_token_to_piece` with a 256-byte stack buffer. If that is too small, it resizes to the reported size and calls again.\nVERDICT: HIT\nWHY: The answer states detokenize tries a 256-byte stack buffer first and only resizes when it is too small. It also contrasts this with tokenize's size-first pattern: a null-buffer probe, then an allocation and a fill."
+}

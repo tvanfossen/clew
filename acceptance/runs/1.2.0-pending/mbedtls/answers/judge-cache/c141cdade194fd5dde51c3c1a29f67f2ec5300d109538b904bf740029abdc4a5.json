@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` is commented out in `include/mbedtls/mbedtls_config.h:3787`, and `MBEDTLS_THREADING_PTHREAD` is commented out at `:2196`.\nVERDICT: HIT\nWHY: The answer states that the shipped config leaves both threading macros commented out (undefined), so the default build defines neither."
+}

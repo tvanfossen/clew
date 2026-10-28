@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its keys are the `.clew.yaml` section names, and the index says all 14 declaration sections are statable this way.\nVERDICT: MISS\nWHY: The answer says the options keys are the `.clew.yaml` section names, but it never says the diagnostics use those same words, and the item needs both."
+}

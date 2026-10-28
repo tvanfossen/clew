@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"CLI flag, or the structured `options` argument for an embedding caller or MCP (`clew/buildoptions.py`)\"\nVERDICT: HIT\nWHY: The answer's tier 1 row states it is set by either a CLI flag or the structured options argument for an embedding caller, so both entry points reach the top tier."
+}

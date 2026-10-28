@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The part before the first `:` is matched with `fnmatch` against the tool name. If there is no `:`, that match is enough, so the rule covers every argument set.\nVERDICT: HIT\nWHY: The answer states the split at the first colon, fnmatch on the tool part, and that a colon-less pattern matches on the tool name alone."
+}

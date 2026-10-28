@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Default: `#define MBEDTLS_PRIVATE(member) private_##member`. A field `foo` is spelled `private_foo`, so `ctx.foo` fails to compile. ... With `MBEDTLS_ALLOW_PRIVATE_ACCESS` defined: `#define MBEDTLS_PRIVATE(member) member`, so the real name is used.\nVERDICT: HIT\nWHY: The answer states that defining MBEDTLS_ALLOW_PRIVATE_ACCESS gives plain member names while the default (ordinary consumers) gives the renamed `private_` names."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The Doxyfile's `INPUT` is ignored for scope. ... The code's reasoning is that a documentation target is not a reasoning boundary. On mbedtls, honouring `INPUT = ../include` indexed 1,571 headers and none of the 108 `library/*.c` implementations.\nVERDICT: MISS\nWHY: The answer says INPUT is ignored and gives a different rationale (a documentation target is not a reasoning boundary, with the mbedtls example). It never says that honouring INPUT would give a repo that ships a Doxyfile only its documented subset while a repo with none gets its whole tree."
+}

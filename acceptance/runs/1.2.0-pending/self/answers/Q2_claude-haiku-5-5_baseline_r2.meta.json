@@ -1,0 +1,40 @@
+{
+  "stem": "Q2_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "skills": "",
+  "answered_by": "claude-haiku-5-5",
+  "seconds": 37.38170962606091,
+  "input_tokens": 14,
+  "output_tokens": 4702,
+  "cache_read_tokens": 271654,
+  "cache_creation_tokens": 52708,
+  "cost_usd": 0.015610540000000001,
+  "result_bytes": 3929,
+  "turns": 12,
+  "tool_calls": 11,
+  "non_index_tool_calls": 11,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/1.2.0-pending/self/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nA search against a clew index comes back with no rows. How does the reply distinguish\n\"this repository does not contain that\" from \"I did not look in the place it lives\", and\nhow much confidence is each answer entitled to?\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "tvanfossen/clew",
+    "question_id": "Q2",
+    "arm": "baseline",
+    "model": "claude-haiku-5-5",
+    "replicate": 2,
+    "order": 5
+  }
+}

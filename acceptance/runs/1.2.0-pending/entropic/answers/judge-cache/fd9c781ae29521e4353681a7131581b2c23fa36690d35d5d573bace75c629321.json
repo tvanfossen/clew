@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Deny list: checked in `ServerManager::execute`, after approval. A match returns an error result and the tool never runs. The deny list is therefore enforced even when approval said yes, which makes it the one hard gate.\"\nVERDICT: HIT\nWHY: The answer says ServerManager::execute checks is_denied (deny list) before routing, and calls the deny list \"the one real hard gate\". Its other checks (allow list, approval, anti-spiral, schema, MCP key, tier) only gate approval or feed the approval decision, not the deny list's blocking role, so the substance matches."
+}

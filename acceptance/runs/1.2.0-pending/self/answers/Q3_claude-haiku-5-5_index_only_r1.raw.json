@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 31431,
+  "stop_reason": "end_turn",
+  "session_id": "d6459333-f9fe-4fbc-b025-e0937dcc1231",
+  "total_cost_usd": 0.01024386,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 41483,
+    "cache_read_input_tokens": 99466,
+    "output_tokens": 1904,
+    "output_tokens_details": {
+      "thinking_tokens": 365
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 41483,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1246,
+        "cache_read_input_tokens": 43357,
+        "cache_creation_input_tokens": 16719,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 16719
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 1904,
+      "cacheReadInputTokens": 99466,
+      "cacheCreationInputTokens": 41483,
+      "webSearchRequests": 0,
+      "costUSD": 0.01024386,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 365,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 41483,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** clew checks its own currency on three separate axes, attaches the result to every reply, and by default refreshes the data axis itself before answering. The caller is only left with the code and schema axes, which need a client restart or a rebuild that clew refuses to run.\n\n**How it knows (three axes, `clew/mcp_server/freshness.py`)**\n\n- **`data`:** the database is older than the source. `db_status` reports this as `source_changed_files`. The test notes say a version stamp alone cannot see source drift, so this axis is measured from file modification times.\n- **`code`:** the running server imported its modules at launch, so a committed fix may not be in its logic. Data is read live, so only the process's logic is stale. `code_identity()` compares the process fingerprint with the on-disk source fingerprint (`matches_source`).\n- **`schema`:** `build_version` against `expected_build_version`. An index stamped newer than the server can never be cleared by a rebuild, because the rebuild re-stamps the same newer version.\n\n**What it tells the caller**\n\n- Every query reply carries a `staleness` list of `{axis, message}` notices, but only when something is stale. A current index adds no block, by design. Notices are built by `DocsDbServer.staleness_notices` (`server.py:1548`), which never raises.\n- When the schema axis is stale, a definitive-empty answer is rewritten. `_withdraw_definitive` drops \"do not retry\" and says the result may reflect a missing layer, so the reply stops claiming an empty result is definitive.\n- `status` reports the raw `stale` flag unconditionally. The interpretation appears only when there is something to interpret.\n\n**What the caller does**\n\n- **Data axis:** clew handles it automatically. `_answering_with_refresh` wraps each query tool, and `_auto_refresh` calls `_data_stale`, then `_refresh_stale`. The refresh takes the per-repository build lock with a bounded wait, re-checks staleness inside the lock so concurrent sessions deduplicate to one build, and runs the build in a worker thread. If the build fails or the lock wait times out, the query still answers from the index as it stands and the staleness notice remains. The auto-refresh is skipped entirely when the process code does not match its source.\n- **Code axis:** clew cannot fix it from inside the session. Restart the MCP client so it loads current code, then run `index(action='refresh', force=True)`. Reads are safe in a stale process. Writes are not: `stale_code_refusal` makes write paths refuse, and `force` does not override that. A stale process once rebuilt an index at an older build version and dropped the `external` stage; that is why writes are refused.\n- **Schema axis:** nothing the consumer can do clears it through this process. Use a newer server build, or treat the answers as unearned.\n- **Absent index:** `_auto_refresh` starts a background first build, and `_first_build_refusal` covers the write side.\n\n**Caveat:** this comes from the index alone. `_staleness` is flagged as having an anchor mismatch (its body may not match the current file), so the exact sizing logic may have drifted from what I describe. The rest of the answer rests on the docstrings and the tests they cite, which I did not verify against the source.",
+  "ttft_ms": 2456,
+  "type": "result",
+  "duration_ms": 33853,
+  "uuid": "0fa53e8e-4c00-486a-b7cb-77b7da7b4a46",
+  "ttft_stream_ms": 1910,
+  "time_to_request_ms": 160,
+  "first_content_frame_ms": 1911,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

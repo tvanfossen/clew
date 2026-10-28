@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The second call is unconditional and runs once. There's no loop, no backoff, and no second attempt on the same input, so I wouldn't call it retry logic. It's a two-phase sizing protocol.\"\nVERDICT: HIT\nWHY: The answer concludes it's size negotiation (size probe, then fill), not retry, and notes no loop, no backoff, and exactly one unconditional second call."
+}

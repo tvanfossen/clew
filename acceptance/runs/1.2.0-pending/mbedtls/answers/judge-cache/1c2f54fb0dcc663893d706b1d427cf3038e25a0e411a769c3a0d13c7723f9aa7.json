@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With assembly it is `asm volatile(\"\" : [x] \"+r\" (x))`. Without it, it is `x ^ mbedtls_ct_zero`...\nVERDICT: HIT\nWHY: The answer states the asm path is an empty `asm volatile(\"\")` with x as a \"+r\" in/out operand, and says it hides the value from the optimiser, which covers the optimisation-barrier purpose."
+}

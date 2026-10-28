@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_PLATFORM_MEMORY` off (the default in `mbedtls_config.h:208`), `include/mbedtls/platform.h:167` makes `mbedtls_calloc` expand straight to `calloc`, and `:166` does the same for `mbedtls_free`. Nothing is indirected.\nVERDICT: HIT\nWHY: The answer states that in the default build the macros expand directly to calloc/free with no indirection."
+}

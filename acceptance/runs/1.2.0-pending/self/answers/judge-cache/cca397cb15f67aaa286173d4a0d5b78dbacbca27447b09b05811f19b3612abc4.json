@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `dossier` uses direct calls only (`include_dataflow=False`), with dataflow exposed as separate `writes`/`reads`. The standalone `callers` function merges `key` rows into the same list.\nVERDICT: HIT\nWHY: The answer states dossier takes the call half only, with dataflow composed separately, unlike the merged form. It doesn't give the double-reporting rationale, but the mechanism and the dossier-versus-merged distinction are there."
+}

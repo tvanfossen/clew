@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Macros win over runtime setup (`platform.c:16-19`).\nVERDICT: MISS\nWHY: The answer says macros take precedence over runtime setup but never states that `mbedtls_platform_set_calloc_free` is neither declared nor compiled on the macro path."
+}

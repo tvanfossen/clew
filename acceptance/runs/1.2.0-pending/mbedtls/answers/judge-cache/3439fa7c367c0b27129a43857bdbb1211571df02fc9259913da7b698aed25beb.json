@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `tests/suites/test_suite_constant_time*.function` tests each primitive for values. It uses `TEST_CF_SECRET`/`TEST_CF_PUBLIC` from `framework/tests/include/test/constant_flow.h` to mark memory as secret or public. ... `test_with_valgrind_constant_time` ... This is Valgrind memcheck ... `tests/scripts/components-sanitizers.sh` runs the constant-time suite under Valgrind/MSan\n\nVERDICT: MISS\n\nWHY: The answer describes Valgrind/MSan-based verification in the test suite, but it never says the facility is off-by-default or explicitly not part of the library API, which this item requires."
+}

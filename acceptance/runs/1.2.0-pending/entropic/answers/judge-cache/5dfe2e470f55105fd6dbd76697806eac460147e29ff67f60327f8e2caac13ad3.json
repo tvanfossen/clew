@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: They sit in one function, `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`), at lines 55 and 61\nVERDICT: HIT\nWHY: The answer names the file, the function, and the two-call size-probe-then-fill mechanism with line numbers."
+}

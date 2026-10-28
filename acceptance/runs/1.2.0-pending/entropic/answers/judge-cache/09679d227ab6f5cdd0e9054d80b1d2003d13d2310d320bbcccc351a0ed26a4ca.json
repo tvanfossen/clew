@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says nothing about the monitor's shutdown mechanism (atomic flag exchange plus condition variable wake, with stop() joining); it explicitly says it did not read HealthMonitor::monitor_loop."
+}

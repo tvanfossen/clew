@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 21722,
+  "stop_reason": "end_turn",
+  "session_id": "5242550d-677d-449f-9e25-365553635874",
+  "total_cost_usd": 0.010245510000000001,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 37173,
+    "cache_read_input_tokens": 101531,
+    "output_tokens": 3590,
+    "output_tokens_details": {
+      "thinking_tokens": 1850
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37173,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2568,
+        "cache_read_input_tokens": 45369,
+        "cache_creation_input_tokens": 10397,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 10397
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 3590,
+      "cacheReadInputTokens": 101531,
+      "cacheCreationInputTokens": 37173,
+      "webSearchRequests": 0,
+      "costUSD": 0.010245510000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1850,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 37173,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** for shell, CMake, YAML and JSON, clew indexes only what each file type can honestly give it. Shell and CMake get function-level symbols. YAML and JSON get a file-level row and nothing else. If the installed parser lacks these grammars, the shell and CMake symbols disappear, the files stay findable by name, and the empty-answer report says which file types were not read. I answered from the index alone, so I did not check whether the build that produced this index had the grammars.\n\n**What the index holds**\n\n| File type | Rows written | What you can ask |\n|---|---|---|\n| `.sh`, `.bash` | `path` row plus `memberdef` for each shell function | Function names; docs taken from the `#` block directly above the definition |\n| `CMakeLists.txt`, `.cmake` | `path` row plus `memberdef` for each `function` and `macro` | Function names; macros recorded as macros |\n| `.yaml`, `.yml`, `.json` | `path` row only | Whether the file exists in the index and can be found by name |\n\nShell and CMake definitions are written by `clew/synth.py`, which adds rows after doxygen runs and uses the same table shapes doxygen uses. The definitions stage runs before call resolution, so these rows can be call targets in principle. I did not confirm that shell or CMake call sites produce call edges.\n\n**What the index does not hold**\n\n- **YAML and JSON have no symbols.** Their grammars only offer key/value pair nodes. The design notes say that writing those keys as `memberdef` rows would flood `dossier(\"my_function\")` with every `steps:` key in every workflow file. So they are registered and never harvested.\n- **Shell and CMake are limited to definitions.** The index records functions and macros only. The CMake dialect's own description says `CMakeLists.txt` is where a repo states what it builds, with which flags and dependencies, and doxygen does not read it. Nothing I could see indexes targets, flags, or dependencies, so I cannot say they are captured.\n- **Top-level shell commands and variables** are not mentioned anywhere as indexed.\n\n**What happens without the grammars**\n\nThe published `lang-parsing-substrate` 0.11.2 wheel lacks the bash, cmake, yaml, json and markdown grammars. The fork that has them also reports 0.11.2, so version checks cannot tell them apart. clew therefore asks whether each grammar is compiled in, not which version is installed.\n\nOn the published wheel:\n\n1. **No crash.** The router checks capability before parsing. Without the check, a missing grammar would raise `ValueError: unknown language key` mid-build.\n2. **Shell and CMake degrade to YAML/JSON behaviour.** The file gets a `path` row and no symbols.\n3. **Empty answers are explained.** The build counts in-scope files of each missing type and stamps that count, so a miss can say something like \"14 `.sh` files were in scope and none are in this index.\" The caller then knows to read the file directly rather than conclude the function does not exist. An index built before this release stamps nothing, so its empty answers look like plain absence.\n4. **A broken substrate install is logged, not fatal.** It yields no languages. The pre-commit gate also goes through this path, so it stays up and reports the gap.",
+  "ttft_ms": 2385,
+  "type": "result",
+  "duration_ms": 22324,
+  "uuid": "eac83ab8-330b-4542-b579-f5a2f5cd6207",
+  "ttft_stream_ms": 1619,
+  "time_to_request_ms": 81,
+  "first_content_frame_ms": 1620,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

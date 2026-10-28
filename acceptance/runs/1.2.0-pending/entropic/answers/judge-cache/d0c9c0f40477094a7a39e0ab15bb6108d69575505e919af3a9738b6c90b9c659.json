@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `extern/llama.cpp` is a submodule. `extern/CMakeLists.txt` says it is fetched and pinned\nVERDICT: HIT\nWHY: The answer states that llama.cpp is a submodule at extern/llama.cpp, which is the item's substance. It also says \"fetched and pinned\", which is slightly ambiguous, but the submodule claim is explicit."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A call with no allow match, no `auto_approve`, and a registered callback still runs unless it is on the deny list.\nVERDICT: HIT\nWHY: The answer concludes an unmatched tool isn't denied and runs (when a callback is registered), with deny as the only blocker. That is default-allow at the gate, though it's conditioned on a callback being set."
+}

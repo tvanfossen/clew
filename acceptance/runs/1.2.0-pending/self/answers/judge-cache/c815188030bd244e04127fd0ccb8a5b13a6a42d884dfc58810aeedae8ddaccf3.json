@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says an unknown key refuses the whole document, but it never identifies a second, nested refusal inside a well-named section. It also never says a correctly-spelled derived key is refused with its reason rather than as unknown."
+}

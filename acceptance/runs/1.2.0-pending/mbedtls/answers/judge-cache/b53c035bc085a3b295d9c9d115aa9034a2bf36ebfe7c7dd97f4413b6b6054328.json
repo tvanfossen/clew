@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It then calls `mbedtls_platform_set_calloc_free` with its own `buffer_alloc_calloc` / `buffer_alloc_free`\" and \"It is the same hook the library's own allocator uses.\"\nVERDICT: MISS\nWHY: The answer never says the buffer allocator itself requires MBEDTLS_PLATFORM_MEMORY, so enabling that option alone isn't enough to route allocations through it. It only says the allocator installs its functions via the platform hook."
+}

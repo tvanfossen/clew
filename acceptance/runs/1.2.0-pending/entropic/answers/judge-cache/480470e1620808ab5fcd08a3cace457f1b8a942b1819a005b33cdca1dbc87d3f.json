@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: resolves the `.so` from `$ENTROPIC_LIB`, then `$ENTROPIC_HOME` (nested and flat layouts), then `~/.entropic/`, then `ctypes.util.find_library`.\nVERDICT: MISS\nWHY: The answer gives env overrides, then ~/.entropic, then find_library, but it attaches the two layouts only to `$ENTROPIC_HOME`, not to every root. It also never calls find_library the system library cache."
+}

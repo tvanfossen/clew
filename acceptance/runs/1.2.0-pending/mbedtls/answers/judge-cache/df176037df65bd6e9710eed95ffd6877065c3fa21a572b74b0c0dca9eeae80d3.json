@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_strerror` itself is gated by `MBEDTLS_ERROR_C`.\nVERDICT: MISS\nWHY: The answer says strerror is gated by MBEDTLS_ERROR_C but never states it is enabled in the shipped config or present in a default build."
+}

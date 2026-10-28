@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 16689,
+  "stop_reason": "end_turn",
+  "session_id": "14f991eb-5050-4886-aca6-d49dff85065a",
+  "total_cost_usd": 0.00782156,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 22251,
+    "cache_read_input_tokens": 219536,
+    "output_tokens": 2350,
+    "output_tokens_details": {
+      "thinking_tokens": 357
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 22251,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1188,
+        "cache_read_input_tokens": 55076,
+        "cache_creation_input_tokens": 4699,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4699
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 2350,
+      "cacheReadInputTokens": 219536,
+      "cacheCreationInputTokens": 22251,
+      "webSearchRequests": 0,
+      "costUSD": 0.00782156,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 357,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 22251,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Short answer: a repo's own `index_scope:` declaration is the only thing that decides the scope. If nothing is declared, clew indexes the whole repository minus what git ignores and minus dot and cache directories. The Doxyfile does not decide it.\n\n**The decision, in order** (`derive_scope` in `clew/scope.py:639`)\n\n1. **Declared scope.** `_declared_index_scope` reads `index_scope:` from `.clew.yaml` (or a scope stated by a tool caller). Its `roots:` list is required and `excludes:` is optional. Declared roots are taken at their word and never walked. Roots that don't exist on disk are dropped.\n2. **Rejected declaration.** If a declaration is present but unusable, it is not treated as absent. Examples are a non-mapping section, an unknown key such as `exclude:` for `excludes:`, or no surviving root. The reason is logged as a WARNING and the whole-repo tier is used with that reason attached.\n3. **Whole repository.** If no `index_scope:` section exists, `whole_repo_scope` is used. This is the default since gh#333.\n\n**What \"whole repository\" means when nothing is declared** (`whole_repo_scope`, `clew/scope.py:683`)\n\n- The single root is the repo root. Nested git trees (submodules, vendored clones) are included, not cut out. They are tagged afterwards by `external.py` so answers can tell the codebases apart.\n- Excludes are:\n  - everything `git ls-files --ignored --exclude-standard --directory` reports for the parent and for each nested tree. `.gitignore` is the main source. Git runs through `git_argv`/`git_env`, so a target's own `.git/config` cannot execute commands.\n  - dot and cache directories found by `_pruned_dirs`. The walk stops at nested trees and keeps only their top-level dot directories. It stops at depth 16 and records where it stopped.\n  - `__pycache__` and `node_modules` (`_SKIP_DIR_NAMES`).\n- The Doxyfile's `INPUT` is ignored for scope. A Doxyfile still supplies `ALIASES` and `PREDEFINED`. The `doxygen-guard` `files:` pattern is not read at all. The code's reasoning is that a documentation target is not a reasoning boundary. On mbedtls, honouring `INPUT = ../include` indexed 1,571 headers and none of the 108 `library/*.c` implementations.\n- If git is missing or the tree is not a repository, nothing is excluded. The scope is wider than asked, and a WARNING says so.\n\n**Logging.** The chosen tier and its reason are logged on every derivation. The reason names the file that was read, or says that no `index_scope` was declared and that the whole repo is the scope.\n\n**What I could not verify.** The index gave me the scope resolver and its helpers, but not the body of `_skip_dir`, so I cannot list every directory name it skips beyond `__pycache__`, `node_modules` and dot directories. I also did not read the `.clew.yaml` loader itself, so I cannot confirm where that file is searched for beyond what `_declared_index_scope` shows.",
+  "ttft_ms": 2334,
+  "type": "result",
+  "duration_ms": 17400,
+  "uuid": "8463bef5-d828-48c5-beab-bd61e57a85ae",
+  "ttft_stream_ms": 1738,
+  "time_to_request_ms": 76,
+  "first_content_frame_ms": 1738,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

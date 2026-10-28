@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Add a `#define MBEDTLS_ERR_<MODULE>_<NAME>  -0x00XX` in the module's header, in its range, with a doxygen description on the line before or after... Regenerate through the build... Then commit the regenerated `library/error.c`, since the check script fails if it is stale.\nVERDICT: HIT\nWHY: The answer says to add the documented define to the public header and regenerate `library/error.c` through the build. It also says `error.c` is generated from `error.fmt` by the script, so it isn't edited by hand."
+}

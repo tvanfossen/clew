@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::accept_loop` | `ExternalBridge::start` | Polls the listen socket, rejects other UIDs, starts one thread per client ... Per-client `serve_client` | `accept_loop` | Serves one MCP client | Each gets its own `ClientThread`\nVERDICT: HIT\nWHY: The answer describes an accept thread that spawns a separate serve_client thread for each connected client, which is the two-level structure."
+}

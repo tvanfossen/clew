@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Writes are refused before touching the index when the code axis fires (`stale_code_refusal`, `freshness.py:531`, called at `server.py:2278`). `force=True` does not bypass this.\nVERDICT: HIT\nWHY: The answer states that writes are refused (not warned) before touching the index and that force=True cannot bypass it."
+}

@@ -57,7 +57,13 @@ from ._common import (
     table_exists,
     to_bool,
 )
-from .corpus import CLASS_KINDS, class_rows, file_doc_rows, gate_symbol_rows
+from .corpus import (
+    CLASS_KINDS,
+    class_rows,
+    file_doc_rows,
+    gate_symbol_rows,
+    undocumented_path_rows,
+)
 from .macros import MACRO_KIND
 from .models import (
     CallEdge,
@@ -388,7 +394,9 @@ def unresolved_inbound_for_rowids(conn: sqlite3.Connection, ids: Iterable[int]) 
 ## C2 of the 1.1.0 acceptance review: the row now PUBLISHES the identity this loop already
 ## computed, so a colliding `callers`/`callees` row can be followed in one call instead of
 ## costing an ambiguity round trip. No new lookup — `identity[1]` was being discarded.
-## @version 14
+## v15: and the endpoint's FILE, by LEFT JOIN, so "how broadly is this consumed" is one reply
+## rather than one `dossier` per neighbour — the last unfixed mark in the negative-gap set.
+## @version 15
 ## @dg_internal
 def _direct_call_edges(
     conn: sqlite3.Connection, fn: str, want_callers: bool, qualified: str | None = None
@@ -443,21 +451,32 @@ def _direct_call_edges(
     ## selected as a SEVENTH column and dropped from the row tuple below, keeping `rows` the
     ## shape `_endpoint_identities` and `_implementors_by_identity` already read.
     via = "e.via_macro_rowid" if has_columns(conn, "call_edges", "via_macro_rowid") else "NULL"
+    ## THE ENDPOINT'S FILE, by LEFT JOIN so an unresolvable `file_id` yields NULL rather than
+    ## dropping the edge — an endpoint whose file is unknown is still an endpoint.
     sql = (
         f"SELECT DISTINCT {endpoint}.name, COALESCE({endpoint}.definition,''), "
         f"{endpoint}.rowid, ({endpoint}.file_id = {endpoint}.bodyfile_id), "
-        f"e.source, e.confidence, {via} "
+        f"e.source, e.confidence, {via}, COALESCE(ep.name,'') "
         "FROM call_edges e "
         "JOIN memberdef c ON c.rowid = e.caller_rowid "
         "JOIN memberdef x ON x.rowid = e.callee_rowid "
+        f"LEFT JOIN path ep ON ep.rowid = {endpoint}.file_id "
         f"WHERE {focal}.rowid IN ({marks}) "
         f"ORDER BY {endpoint}.name, {endpoint}.rowid, e.source, e.confidence"
     )
     raw = conn.execute(sql, focal_rowids).fetchall()
     rows = [
         (name, definition, rowid, int(bool(has_body)), source, conf)
-        for name, definition, rowid, has_body, source, conf, _via in raw
+        for name, definition, rowid, has_body, source, conf, _via, _file in raw
     ]
+    ## KEYED ON THE IDENTITY, not appended positionally: `_endpoint_identities` collapses an
+    ## endpoint's declaration and definition rows into one, so the file is looked up the same way
+    ## the macro annotation is.
+    file_by_identity = {
+        (name, qualified_name_of(str(name), str(definition))): str(path)
+        for name, definition, _r, _h, _s, _c, _v, path in raw
+        if path
+    }
     macro_by_identity = _macros_by_identity(conn, raw)
     # Grouped in a dict rather than by SQL aggregation because the collapse rule
     # is a ranking over a vocabulary, not something SQL should encode. Insertion
@@ -472,6 +491,7 @@ def _direct_call_edges(
         edges.append(
             CallEdge(
                 name=identity[0],
+                file=file_by_identity.get(identity, ""),
                 ## `identity[1]`, which this loop has held since gh#26 and discarded until C2.
                 ## EMPTY WHEN IT EQUALS THE BARE NAME, because `qualified_name_of` falls back to
                 ## the bare name rather than inventing an identity — right for a grouping key,
@@ -495,7 +515,10 @@ def _direct_call_edges(
 ## @param conn Open connection.
 ## @param raw Endpoint rows including the trailing via_macro_rowid.
 ## @return (name, qualified) -> (macro name, expansion text).
-## @version 1
+## v2: unpacks the row with a tail. `_direct_call_edges` owns that SELECT and grew a column for
+## the endpoint's file; a fixed-arity unpack here turned that widening into `too many values to
+## unpack` at this line, which is exactly what it did.
+## @version 2
 ## @dg_internal
 def _macros_by_identity(
     conn: sqlite3.Connection,
@@ -522,7 +545,10 @@ def _macros_by_identity(
     @version 1
     """
     wanted: dict[tuple[str, str], int] = {}
-    for name, definition, _rowid, _has_body, _source, _conf, via in raw:
+    ## UNPACKED WITH A TAIL, because `_direct_call_edges` owns the column list and grew one:
+    ## a fixed-arity unpack here turns any widening of that SELECT into `too many values to
+    ## unpack` at this line, which is where it just did.
+    for name, definition, _rowid, _has_body, _source, _conf, via, *_rest in raw:
         if via is None:
             continue
         wanted.setdefault((name, qualified_name_of(name, definition)), via)
@@ -1520,7 +1546,9 @@ def _memberdef_corpora(conn: sqlite3.Connection, query: str, tokens: list[str]) 
 ## @param query Whole lower-cased query string.
 ## @param tokens Lower-cased query tokens.
 ## @return Ranked candidate tuples with kind 'file'.
-## @version 1
+## v2: also reads `undocumented_path_rows`, so a file the index knows only BY NAME — the class C5
+## registers — is reachable in the DEFAULT corpus and not only through `corpus="files"`.
+## @version 2
 ## @dg_internal
 def _file_candidates(conn: sqlite3.Connection, query: str, tokens: list[str]) -> list[_Candidate]:
     """gh#10. The file's PATH is scored where a symbol's name is scored and its
@@ -1531,9 +1559,18 @@ def _file_candidates(conn: sqlite3.Connection, query: str, tokens: list[str]) ->
     `provenance` is `'file_doc'` so a consumer can tell at a glance that this row
     came from prose the author wrote about the FILE, not from a symbol record.
 
-    @brief Match and rank file-level documentation.
+    TWO READERS, ONE RANKING. `file_doc_rows` finds DOCUMENTED files; `undocumented_path_rows`
+    finds the ones the index knows only by name — the class C5 registers, which had no row here
+    at all and so could not appear in the DEFAULT corpus however the caller spelled the query.
+    Measured on an index rebuilt with C5 against the 1.1.0 transcripts: the agent asked for
+    `generate_errors` three ways and only `corpus="files"` answered, the default first and
+    emptiest. The two readers are disjoint by construction, so no path is doubled, and both go
+    through `_search_rank` — a documentation match outranks a bare path match because that table
+    scores prose below an identifier, not because anything here says so.
+
+    @brief Match and rank file-level documentation, and files known only by name.
     @return Ranked candidates.
-    @version 1
+    @version 2
     """
     return [
         (
@@ -1548,7 +1585,7 @@ def _file_candidates(conn: sqlite3.Connection, query: str, tokens: list[str]) ->
                 provenance="file_doc",
             ),
         )
-        for path, doc in file_doc_rows(conn, tokens)
+        for path, doc in [*file_doc_rows(conn, tokens), *undocumented_path_rows(conn, tokens)]
     ]
 
 

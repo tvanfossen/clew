@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"So \"the repository does not contain that\" is only supported for symbols in the indexed extensions, from a current index, after a retry. \"I did not look there\" is what the reply says for everything else.\"\nVERDICT: MISS\nWHY: The answer separates two cases, \"searched and absent\" and \"did not look\". It never states a third grade, an empty reply that is definitive for a reason other than absence."
+}

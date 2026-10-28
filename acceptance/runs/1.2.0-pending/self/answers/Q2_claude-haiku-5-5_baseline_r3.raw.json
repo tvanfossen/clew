@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 37822,
+  "stop_reason": "end_turn",
+  "session_id": "2fdb49ba-774c-471d-9c6c-9005fdb7cbd2",
+  "total_cost_usd": 0.012954269999999999,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 33832,
+    "cache_read_input_tokens": 331297,
+    "output_tokens": 5747,
+    "output_tokens_details": {
+      "thinking_tokens": 2533
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 33832,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3006,
+        "cache_read_input_tokens": 66103,
+        "cache_creation_input_tokens": 1287,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1287
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 5747,
+      "cacheReadInputTokens": 331297,
+      "cacheCreationInputTokens": 33832,
+      "webSearchRequests": 0,
+      "costUSD": 0.012954269999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2533,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 33832,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply separates the two cases by checking the index itself, not by the wording of the note. Each empty answer is graded against what the build recorded and what the query could have matched elsewhere. I read this from the code and did not run a live query or the test suite.\n\n**The verdicts** (`clew/mcp_server/emptiness.py`, `search_emptiness` and `_verdict`)\n\n| Situation | Reply says | Confidence it earns |\n|---|---|---|\n| One token, zero hits in read corpora, zero hits in corpora `search` does not read, file docs present | \"This IS a definitive empty result\u2026\" | Strong, but only about the indexed scope |\n| One token, but rows exist in an unread corpus (e.g. a typedef) | \"NOT DEFINITIVE \u2014 this index HOLDS matching rows\u2026 ask by name with dossier\" with counts | None for `search`; the name exists |\n| No `file_docs` table | \"NOT DEFINITIVE\u2026 Rebuild\" | None; the index cannot look |\n| Multi-token query | Always \"NOT DEFINITIVE\", with per-token hits and the token(s) with zero hits named | Retry without the dead tokens, or with fewer tokens |\n| `search(corpus='prose')`, token present in symbol corpora | \"NOT DEFINITIVE \u2014 this repository DOES use these terms\" | Negative only for prose |\n\nThe strong wording is the exception. The control test `test_an_absent_symbol_keeps_the_definitive_note` (`tests/test_emptiness.py:131`) exists to stop it being hedged away.\n\n**Where \"did not look\" is recorded**\n\n- **Scope on every empty reply.** `_scope_payload` adds `scope` with file count, top-level directories, extensions and the source tier (whole-repo or declared). The `reason` paragraph is dropped from this reply and kept in `status`.\n- **File types the build skipped.** `cli._not_indexed_scope` compares the scanned tree against `path` rows and reports the gap by extension, with an exact count. If the build recorded nothing, the key is absent; an empty list would wrongly claim nothing was missed (`clew/query/corpus.py:255-318`).\n- **Corpora read.** The `Searched:` clause is built from `SEARCHED_MEMBERDEF_KINDS`, so it cannot drift from what the searcher reads. It also states the markdown and Kconfig prose that were not read.\n- **Unread kinds in this database.** `q.unsearched_corpora` subtracts the searched kinds from the kinds the database holds, and any hit downgrades the verdict and is published as `unsearched_corpus_hits`.\n- **Split repositories.** `RepoIndexes`/`Target` carry `sub_index`, `not_searched` and `split` (from `.gitmodules` even when no sibling is built). A negative from one part is rewritten as \"NOT DEFINITIVE FOR THE REPOSITORY\" and points to the other parts (`tools_query.py:354`).\n- **Stale index.** A schema-axis or drift-axis staleness withdraws the definitive wording (`_withdraw_definitive`).\n\n**How much to trust each**\n\n- A definitive negative is trustworthy only for the scope named in `scope` and for the build's measurement time. A file type listed in `not_indexed` is a build-time fact, not a live one. Files edited after the build are visible only through the staleness axes.\n- A missing `not_indexed` key means \"not measured\", not \"nothing skipped\".\n- The check for unread corpora covers only the first `MAX_DIAGNOSED_TOKENS` tokens, and it asks about kinds, not about the working tree.\n- The code grades the index, not the repository. A repository split into parts is graded per part, and the reply says so.\n\nIn short: the reply can tell \"outside the indexed scope or in an unread corpus\" from \"the name is absent from the searched index\", and it grades the second as definitive only when no check in the list above fails.",
+  "ttft_ms": 2987,
+  "type": "result",
+  "duration_ms": 38260,
+  "uuid": "cc10290f-6f70-4151-bdf4-ab945525692a",
+  "ttft_stream_ms": 2491,
+  "time_to_request_ms": 163,
+  "first_content_frame_ms": 2492,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

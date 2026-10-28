@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"With no grammar, it returns None, so there is no tree, no harvest, and no `memberdef` rows. This part matches the docs. Nothing crashes.\" and \"The miss report may not fire.\"\n\nVERDICT: MISS\nWHY: The answer gets the degrade-without-crashing behaviour and the capability gate (`_grammar_available` / `has_language`). But it doubts that those file types are reported as not indexed, saying the miss report \"may not fire\", so it does not conclude the full item."
+}

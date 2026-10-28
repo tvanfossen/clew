@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the `mbedtls_calloc` dispatch function is compiled only when `MBEDTLS_PLATFORM_MEMORY` is on. It never says `mbedtls_platform_set_calloc_free` is undeclared and uncompiled on the macro path."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the runtime setter is compiled out (`platform.c:15-22`)\nVERDICT: HIT\nWHY: The answer says that on the macro path the runtime setter is compiled out. That means it is not compiled. The answer doesn't say it is also undeclared, but \"compiled out\" is close enough to the item's substance."
+}

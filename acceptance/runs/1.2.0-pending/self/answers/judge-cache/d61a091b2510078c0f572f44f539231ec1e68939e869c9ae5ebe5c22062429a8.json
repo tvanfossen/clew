@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index's file set is decided by one scope resolver, `derive_scope` in `clew/scope.py`, and then narrowed by a few later filters.\nVERDICT: HIT\nWHY: The answer explicitly names `derive_scope` in `clew/scope.py` as the single resolver that decides the index's file set."
+}

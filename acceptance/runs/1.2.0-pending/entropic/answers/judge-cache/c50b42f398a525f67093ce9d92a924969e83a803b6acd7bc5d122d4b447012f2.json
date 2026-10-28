@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The argument value comes from `ServerManager::args_to_pattern()`. It takes the first key of the args JSON object, and only if that value is a string. Otherwise it uses `*`.\"\nVERDICT: HIT\nWHY: The answer states that only one argument (the first key's string value) reaches the pattern, and that a non-string value becomes `*`. It leaves out the unparseable-argument case, but the core mechanism is there."
+}

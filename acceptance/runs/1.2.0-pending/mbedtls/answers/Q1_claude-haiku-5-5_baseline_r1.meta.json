@@ -1,0 +1,40 @@
+{
+  "stem": "Q1_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "skills": "",
+  "answered_by": "claude-haiku-5-5",
+  "seconds": 32.24999704002403,
+  "input_tokens": 14,
+  "output_tokens": 6867,
+  "cache_read_tokens": 284955,
+  "cache_creation_tokens": 41160,
+  "cost_usd": 0.014516449999999998,
+  "result_bytes": 3120,
+  "turns": 8,
+  "tool_calls": 7,
+  "non_index_tool_calls": 7,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/1.2.0-pending/mbedtls/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nmbedtls ships mutex and thread code. As the library is configured by default, what\nactually runs concurrently, and what protects what?\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "Mbed-TLS/mbedtls",
+    "question_id": "Q1",
+    "arm": "baseline",
+    "model": "claude-haiku-5-5",
+    "replicate": 1,
+    "order": 9
+  }
+}

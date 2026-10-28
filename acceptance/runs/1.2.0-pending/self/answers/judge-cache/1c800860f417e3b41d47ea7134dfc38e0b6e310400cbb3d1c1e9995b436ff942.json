@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Facts and ecosystem entries accumulate. Heuristics are the provisional floor that any stated tier displaces.\" and \"`(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`\" and \"Facts are never discarded. A stated tier only displaces the guesses.\"\nVERDICT: HIT\nWHY: The answer says stated tiers replace one another while facts and ecosystem layers accumulate and survive any declaration, matching the asymmetric rule."
+}

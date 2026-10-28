@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The test suites use `TEST_CF_SECRET` and `TEST_CF_PUBLIC` markers (`tests/suites/test_suite_constant_time.function`), which mark memory as undefined under Valgrind or MSan.\"\nVERDICT: MISS\nWHY: The answer describes Valgrind/MSan-based verification but never says the facility is off-by-default or explicitly not part of the library API."
+}

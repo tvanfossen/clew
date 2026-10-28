@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists many files and areas using constant-time code (RSA, bignum, TLS, cipher, PSA, ECC), but it never states that the primitives are consumed across roughly twenty modules, and it gives no count."
+}

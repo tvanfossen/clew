@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `--declare FILE`, or `options=` on `build_index()` / MCP `index(action=\"refresh\")` | 1 `explicit` | **Replaces**\nVERDICT: HIT\nWHY: The answer places both the CLI flags and the `options=` structured argument on `build_index()` in tier 1 `explicit`, which covers an embedding caller with no shell."
+}

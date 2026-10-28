@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` undefined | `#define`d straight to `calloc` / `free`\nVERDICT: MISS\nWHY: The answer treats MBEDTLS_PLATFORM_MEMORY as the gate for the allocator indirection. It never says the option is commented out in the shipped mbedtls_config.h."
+}

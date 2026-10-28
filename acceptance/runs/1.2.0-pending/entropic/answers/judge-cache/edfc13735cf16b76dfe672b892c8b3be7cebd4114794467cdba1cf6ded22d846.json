@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists about three `llama_cpp_*` file pairs plus an image preprocessor and says the API is confined to one implementation family behind an interface. It never says the dependency reaches roughly a dozen of entropic's own source files."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS #define MBEDTLS_PRIVATE(member) private_##member #else #define MBEDTLS_PRIVATE(member) member #endif` ... \"by default the field is really named `private_foo`\" ... \"Library code is not the audience. It opts out.\" ... \"`library/common.h:132` ... Every library translation unit gets plain field names.\"\nVERDICT: HIT\nWHY: The answer shows both branches and states that code defining MBEDTLS_ALLOW_PRIVATE_ACCESS (library, some programs) gets plain names, while ordinary application consumers get the `private_`-renamed fields and compile errors."
+}

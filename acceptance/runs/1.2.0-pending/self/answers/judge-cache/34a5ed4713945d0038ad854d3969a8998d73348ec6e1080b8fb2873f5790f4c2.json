@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | `schema`, index newer than server | Server predates the index | Restart the MCP client. A rebuild cannot clear it. | ... | `code` | Running process predates the source tree | Restart the MCP client. A rebuild is unsafe and cannot fix it. | ... \"The caller's job is to read which axis is stale, because only one of them is fixed by a rebuild.\"\nVERDICT: HIT\nWHY: The answer says data is cleared by a refresh and code by a client restart, and that only one axis is fixed by a rebuild. It never says this is why one flag would not have been enough, but the different remedies per axis are stated."
+}

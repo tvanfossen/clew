@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Its init function, `mbedtls_memory_buffer_alloc_init` (`library/memory_buffer_alloc.c:566-600`), zeroes a static heap, then calls `mbedtls_platform_set_calloc_free` with its own functions.\"\nVERDICT: MISS\nWHY: The answer says the buffer allocator's init installs itself via the setter, but it never says it is the only in-tree user. It even says \"the library uses the same hook\" without stating exclusivity."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"YAML and JSON have no symbols. Their grammars only offer key/value pair nodes. ... So they are registered and never harvested.\" and the table row \"`.yaml`, `.yml`, `.json` | `path` row only\" versus shell/CMake getting function-level symbols.\nVERDICT: HIT\nWHY: The answer says YAML and JSON are registered with a file-level row but no symbols, and it contrasts them with shell and CMake, which do get symbols."
+}

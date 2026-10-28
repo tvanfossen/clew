@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: index_scope present but rejected \u2192 log WARNING, fall to whole-repo, reason says why\nVERDICT: HIT\nWHY: The answer's flow diagram says the fallback to whole-repo carries a reason explaining why, so scope isn't silently guessed. This matches the item, though only briefly."
+}

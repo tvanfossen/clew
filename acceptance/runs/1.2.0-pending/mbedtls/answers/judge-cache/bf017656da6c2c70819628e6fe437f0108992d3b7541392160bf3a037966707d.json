@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without `MBEDTLS_ERROR_C` (and `MBEDTLS_ERROR_STRERROR_DUMMY`), the function is a stub that writes an empty string.\nVERDICT: MISS\nWHY: The answer names the macro only in passing as a stub condition. It doesn't say it keeps mbedtls_strerror linkable while the table is compiled out, and it doesn't say it is enabled by default."
+}

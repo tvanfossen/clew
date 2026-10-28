@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"calls `llama_tokenize` once with a null buffer and size 0. llama.cpp answers with a negative number giving the required token count, and the code negates it (`if (n < 0) n = -n;`). It allocates a vector of that size and calls `llama_tokenize` again to fill it.\"\nVERDICT: HIT\nWHY: The answer states that the first call returns a negative required size, which the code negates to size the vector for the second call."
+}

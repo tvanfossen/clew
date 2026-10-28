@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The text before the first `:` is the tool glob. The text after it is an argument glob. ... Matching is plain `fnmatch` with flags 0. ... `filesystem.*` (no `:`) | the fully-qualified tool name matches the fnmatch glob, whatever the args\nVERDICT: HIT\nWHY: The answer states fnmatch matching, splitting at the first colon into tool and argument parts, and that a pattern without a colon matches on the tool name alone."
+}

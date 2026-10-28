@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without asm it returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global (`constant_time.c:29`), so the compiler must load it at runtime.\nVERDICT: HIT\nWHY: The answer says the no-asm version of `mbedtls_ct_compiler_opaque` XORs with the volatile global `mbedtls_ct_zero`. That is the same function, the XOR fallback, and the named global."
+}

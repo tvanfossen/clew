@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Accept loop | `ExternalBridge::start` | Polls the listen socket every 500 ms, checks peer uid, and spawns one serve thread per client. | and \"Per-client serve (`ct->thread`) | `ExternalBridge::accept_loop` | Serves one MCP client until disconnect.\"\nVERDICT: HIT\nWHY: The answer states that the ExternalBridge accept loop thread spawns one serve thread per client, which is the two-level structure."
+}

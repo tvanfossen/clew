@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The four thread-spawn sites the index finds are all in `programs/` (`ssl_pthread_server.c:277`, `benchmark.c:430/444`, `ssl_server2.c:1699`). The library spawns nothing.\nVERDICT: MISS\nWHY: The answer mentions benchmark.c thread-spawn sites but never says the benchmark timer thread is Windows-only or gated on a platform condition."
+}

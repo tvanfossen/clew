@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_THREADING_C` is commented out (`include/mbedtls/mbedtls_config.h:3787`). `MBEDTLS_THREADING_PTHREAD` (line 2196) and `MBEDTLS_THREADING_ALT` (line 2185) are also off.\" and \"Enabling `MBEDTLS_THREADING_C` plus `MBEDTLS_THREADING_PTHREAD` (or an ALT implementation) turns on the locks\"\nVERDICT: HIT\nWHY: The answer names both macros and states that enabling them turns on the locking, which identifies them as the gating macros."
+}

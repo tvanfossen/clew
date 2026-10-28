@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 60103,
+  "stop_reason": "end_turn",
+  "session_id": "d3352302-ba01-4ab0-a998-a315146127c6",
+  "total_cost_usd": 0.01834944,
+  "usage": {
+    "input_tokens": 24,
+    "cache_creation_input_tokens": 38351,
+    "cache_read_input_tokens": 485984,
+    "output_tokens": 11634,
+    "output_tokens_details": {
+      "thinking_tokens": 6575
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 38351,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3556,
+        "cache_read_input_tokens": 50336,
+        "cache_creation_input_tokens": 960,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 960
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 24,
+      "outputTokens": 11634,
+      "cacheReadInputTokens": 485984,
+      "cacheCreationInputTokens": 38351,
+      "webSearchRequests": 0,
+      "costUSD": 0.01834944,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 6575,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 38351,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it accomplishes.** `MBEDTLS_PRIVATE(m)` is defined in `include/mbedtls/private_access.h:14-17`. By default it expands to `private_##m`, so the member is declared as `private_m` in the public header. The effect is that plain `ctx->m` fails to compile for anyone outside the library. The name is the only thing that changes. The layout does not, so the mangling is not an ABI change. What it does is make the member name a visible, greppable signal that the member has no stability promise. The 3.0 migration guide says so directly: accessing `bar.MBEDTLS_PRIVATE(foo)` is \"a last resort\u2026 at your own risk\" and \"likely to break in a future minor version\" (`docs/3.0-migration-guide.md:74`).\n\n**It is a naming barrier, not an access control.** Both the declaration and the use go through the same macro, so `ctx->MBEDTLS_PRIVATE(foo)` resolves to `ctx->private_foo` and compiles. The header's own warning on `mbedtls_ssl_handshake_step`-style APIs says this explicitly: `ssl->MBEDTLS_PRIVATE(state)` still works (`include/mbedtls/ssl.h:5163`). Downstream code can reach any member; it just has to spell the access out.\n\n**Where the opt-out is turned on.** `MBEDTLS_ALLOW_PRIVATE_ACCESS` is defined in exactly three kinds of place (verified by grep over the whole tree):\n\n| Where | What it does |\n|---|---|\n| `library/common.h:132` | Defined for every library translation unit that includes it. 129 of the library's files include it. |\n| `programs/ssl/ssl_server2.c:8`, `programs/ssl/ssl_client2.c:8` | Defined at the top, before `ssl_test_lib.h`. |\n| Nothing else | No CMake, Makefile, or `-D` flag sets it. |\n\n**What that means for the code in those places.** Inside those translation units `MBEDTLS_PRIVATE(m)` becomes plain `m`, so the code can write `ctx->grp.id` directly (`library/ecdh.c:150`) or `crt->ca_istrue` (`library/x509_crt.c:3306`). Two things follow:\n\n- **The define has an ordering requirement.** `private_access.h` is guarded, so the first inclusion decides the expansion. Struct members are expanded when the public header is parsed. `common.h` must therefore come before any public header that declares these structs. The library files I checked do this. `ecdh.c` includes `common.h` at line 15, its first `#include`, and `ssl_tls.c` includes it at line 12, before `mbedtls/ssl.h` at line 18. A `.c` file that included a public header first would silently get the mangled names, and then its plain accesses would fail to compile. Two library files do not include `common.h` at all (`ecp_curves_new.c`, `ssl_debug_helpers_generated.c`). I did not check whether they touch these members.\n- **The example programs get full access.** `ssl_server2.c` and `ssl_client2.c` read internal state without the explicit spelling.\n\n**The other in-tree users do not get the opt-out.** The rest of the tree uses the explicit spelling, which compiles under the default setting:\n\n- `programs/ssl/ssl_context_info.c:553-568` uses `ciphersuite_info->MBEDTLS_PRIVATE(flags)` and does not define the opt-out. I confirmed by preprocessing that the `#else` branch is active, and that the access becomes `private_flags`, which matches the struct's `private_flags`.\n- `programs/fuzz/fuzz_dtlsserver.c:138` uses `ssl.MBEDTLS_PRIVATE(next_record_offset)`.\n- `tests/suites/test_suite_x509write.function:763` uses `ctx.MBEDTLS_PRIVATE(extensions)`.\n\nSo the convention is that library internals and two example programs use the plain names, and everything else must use the explicit spelling, which the project treats as the deprecated route. The `ssl.h` warning and the migration guide both say the same thing.\n\n**Caveats.** I did not build the programs; the `gcc -E` check only confirmed the preprocessing of `ssl_context_info.c`. I also did not trace how the x509write test translation unit ends up with the names it uses, beyond the explicit spelling.",
+  "ttft_ms": 1454,
+  "type": "result",
+  "duration_ms": 61025,
+  "uuid": "98cb8bb3-42c6-43af-92f5-0e8bbefe2da4",
+  "ttft_stream_ms": 1297,
+  "time_to_request_ms": 130,
+  "first_content_frame_ms": 1297,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

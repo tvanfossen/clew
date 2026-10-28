@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `derive_scope` in `clew/scope.py:639`\nVERDICT: HIT\nWHY: The answer explicitly names derive_scope in clew/scope.py as where the scope decision is made, listing the resolution tiers beneath it."
+}

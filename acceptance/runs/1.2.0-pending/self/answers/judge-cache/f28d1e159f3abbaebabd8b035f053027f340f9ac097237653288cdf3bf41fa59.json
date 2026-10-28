@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Root: the whole repository, with nested git trees included. Nested trees are tagged, not excluded (gh#333).\"\nVERDICT: HIT\nWHY: The answer explicitly states nested git trees are included in the default scope and tagged rather than excluded."
+}

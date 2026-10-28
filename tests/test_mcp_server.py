@@ -1593,6 +1593,11 @@ _NEIGHBOUR_KEYS = frozenset(
         # annotation like the two below — it is the row's own identity, which
         # `_endpoint_identities` had computed and `_direct_call_edges` was discarding.
         "qualified",
+        # The endpoint's FILE. Added deliberately, same gate. "How broadly is this consumed" cost
+        # one `dossier` per caller — 62 of them for `table_exists` on clew's own index, measured —
+        # and the file is one LEFT JOIN over rows already selected. DISTINCT FILES is not a caller
+        # count, which is why it belongs on the row rather than as a number on the envelope.
+        "file",
         "rowid",
         "source",
         "confidence",

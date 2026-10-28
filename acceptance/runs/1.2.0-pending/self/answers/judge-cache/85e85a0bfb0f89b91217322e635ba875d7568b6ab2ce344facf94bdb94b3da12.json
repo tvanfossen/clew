@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how empty results are now scoped and reported. It never says that a single token matching nothing was previously treated as proof of absence."
+}

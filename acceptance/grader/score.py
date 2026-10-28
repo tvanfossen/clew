@@ -107,19 +107,51 @@ class QuestionResult:
     decisions: list[Decision] = field(default_factory=list)
 
     ## @brief Weighted score over ruled decisions, with unruled left in the denominator.
-    ## @return (score, unmarked_pct).
-    ## @version 1
-    def score(self) -> tuple[float, float]:
-        """@brief Weighted score and the share of weight the judge never ruled on.
-        @return (score, unmarked_pct).
-        @version 1
+    ## @return (score or None when NOTHING was ruled, unmarked_pct).
+    ##
+    ## v2: a question with NO ruled weight returns `None` instead of `0.0`. Measured on the frozen
+    ## 1.1.0 grid: `self` Q6's blended cells recorded samples=18, errors=18, every decision
+    ## `hit=None`, and scored 0.0 — a number indistinguishable from an answer the judge rejected
+    ## at every mark. Excluding only those cells, `self`'s blended arm goes from 37.9 (losing to
+    ## baseline's 44.0) to 45.4 (winning), and the blended headline from +0.25 to +1.54.
+    ## @version 2
+    def score(self) -> tuple[float | None, float]:
+        """ZERO EARNED OF ZERO RULED IS NOT ZERO, IT IS UNMEASURED — the rule this repository
+        returns to most, applied to the grader's own output. `tool_calls = -1` means unknown and
+        must never be counted as zero; an absent table means the layer never ran. A question
+        nothing was ruled on is the same shape, on the one axis the whole harness exists to
+        measure.
+
+        MEASURED, NOT ANTICIPATED. 152 of 2,970 judge samples on the 1.1.0 grid errored (5.1%)
+        across 14 cells, and 4 of those were 100% unruled and scored anyway — all `self` Q6. The
+        blended arm holds a strict superset of the baseline arm's tools, so it cannot lose on
+        capability grounds; that it appeared to lose on `self` by 6.1 points is what sent anyone
+        looking, and the answer is that three cells were scored zero after the judge failed
+        eighteen times out of eighteen.
+
+        ONLY THE TOTAL CASE REFUSES, and the bound is load-bearing. `self` Q6's baseline cells
+        were 33-81% unruled and still score, which is what the unruled-stays-in-the-denominator
+        rule is for: a judge that could not rule must not be mistaken for a mark that was missed.
+        Refusing on ANY unruled weight would void 14 cells and move the published figure far
+        beyond the defect.
+
+        AN ALL-MISS QUESTION STILL SCORES 0.0, because that is a measurement. Returning `None`
+        there would trade one indistinguishable pair for another, in the direction that flatters
+        the tool.
+
+        @brief Weighted score, or None when the judge ruled on nothing.
+        @return (score or None, unmarked_pct).
+        @version 2
         """
         total = sum(d.weight for d in self.decisions)
         if not total:
-            return 0.0, 0.0
+            ## NO DECISIONS AT ALL is the same absence one step earlier, and it used to return
+            ## `(0.0, 0.0)` — a zero score beside a claim that nothing was unmarked, which reads
+            ## as "measured, scored nothing". `acceptance/DESIGN.md` records it as defect 4c.
+            return None, 0.0
         earned = sum(d.weight for d in self.decisions if d.hit)
         unruled = sum(d.weight for d in self.decisions if d.hit is None)
-        return earned / total, unruled / total
+        return (None if unruled == total else earned / total), unruled / total
 
     ## @brief Decisions where the judge's samples did not agree.
     ## @return Count of split verdicts.

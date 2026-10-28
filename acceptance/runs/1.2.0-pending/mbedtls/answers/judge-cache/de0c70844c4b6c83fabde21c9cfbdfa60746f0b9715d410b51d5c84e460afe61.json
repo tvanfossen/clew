@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nconstant_time_impl.h\nconstant_time.c\ninclude/mbedtls/constant_time.h\nEND"
+}

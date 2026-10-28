@@ -381,3 +381,52 @@ def test_skip_graded_reaches_grade_and_nothing_else() -> None:
     ## The default adds nothing, so a grid driven without it produces the argv every past
     ## measurement used.
     assert "--skip-graded" not in matrix.phase_argv("grade", rubric, root, _args())
+
+
+## @brief A named subset selects exactly those targets and no other.
+## @return None.
+## @version 1
+def test_only_selects_exactly_the_named_targets() -> None:
+    """THE 1.2.0 RUN MUST COMPARE AGAINST 1.1.0's GRID, which held three targets; four more have
+    been authored since. Without a selector the operator's choices are "run seven" or "move
+    directories around before the run", and the second is how a grid stops being reproducible
+    from a recorded command.
+
+    @brief `only` restricts discovery.
+    @return None.
+    @version 1
+    """
+    found = matrix.discover(TARGETS, only=["mbedtls", "self", "entropic"])
+    assert [p.parent.name for p in found] == ["entropic", "mbedtls", "self"]
+
+
+## @brief A name that matches no target REFUSES rather than selecting nothing.
+## @return None.
+## @version 1
+def test_only_refuses_a_name_no_target_carries() -> None:
+    """A TYPO MUST NOT SILENTLY SHRINK THE GRID. `--only mbedlts self` selecting one target and
+    reporting success is the same class of defect as a gate that checks nothing: the run looks
+    like it did what was asked. The refusal names the unknown AND what was available, because
+    "unknown target" without the list sends the operator back to `ls`.
+
+    @brief An unknown name is named, not dropped.
+    @return None.
+    @version 1
+    """
+    with pytest.raises(ValueError) as exc:
+        matrix.discover(TARGETS, only=["mbedlts"])
+    assert "mbedlts" in str(exc.value)
+    assert "mbedtls" in str(exc.value)
+
+
+## @brief The driver turns a bad selection into a refusal, not a traceback.
+## @return None.
+## @version 1
+def test_drive_refuses_an_unknown_selection(capsys: pytest.CaptureFixture) -> None:
+    """@brief An unknown `--only` exits non-zero before provisioning.
+    @return None.
+    @version 1
+    """
+    rc = matrix.drive(_args(only=["nosuchtarget"], provision_only=True))
+    assert rc != 0
+    assert "nosuchtarget" in capsys.readouterr().err

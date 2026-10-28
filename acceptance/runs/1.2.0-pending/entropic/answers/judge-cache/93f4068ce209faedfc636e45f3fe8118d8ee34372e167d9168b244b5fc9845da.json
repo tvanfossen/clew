@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers only tokenize's two-call size-query idiom and never mentions detokenize or its 256-byte stack buffer with heap fallback."
+}

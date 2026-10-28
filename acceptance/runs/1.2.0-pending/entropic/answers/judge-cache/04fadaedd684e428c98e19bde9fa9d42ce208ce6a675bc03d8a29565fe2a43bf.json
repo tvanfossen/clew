@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Allow** entries are checked in `check_approval` and only let a call skip the prompt. They do not bypass the later deny check.\"\nVERDICT: HIT\nWHY: The answer says allow entries are consulted in `check_approval` (tool_executor.cpp) and only skip the prompt rather than granting execution. The deny check sits separately in server_manager.cpp."
+}

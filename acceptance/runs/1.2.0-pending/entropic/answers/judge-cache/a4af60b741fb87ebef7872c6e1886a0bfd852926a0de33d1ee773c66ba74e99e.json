@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Returned `char*` out-params are caller-owned.** `entropic_run(h, input, char** result_json)` and similar calls must be freed with `entropic_free()`.\" and \"**Returned `const char*` is handle-owned** and valid only until the next call on that handle.\"\nVERDICT: HIT\nWHY: The answer states both halves: a returned `char*` is caller-owned and freed with `entropic_free`, and a returned `const char*` is handle-owned and valid only until the next call on that handle."
+}
