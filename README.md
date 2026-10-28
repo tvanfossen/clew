@@ -431,7 +431,9 @@ catalog lives in `requirements.yaml`.
 doxygen-guard was a separate tool that clew consumed as a pip dependency. It is now part of
 clew (`clew/guard/`, absorbed at its 1.4.2 release). Its config is the `guard:` section of the
 repo's `.clew.yaml`, so the gate and the index read one file with one schema;
-`.doxygen-guard.yaml` is no longer read. The tags and the hook id are unchanged. Adopting repos
+`.doxygen-guard.yaml` is no longer read. The tags are unchanged; THE HOOK ID IS NOT — it is
+`clew-guard` now, because one tool in one repository should not answer to the name of the
+two it replaced. Adopting repos
 switch the hook's `repo:` and `rev:` to this repository and move their config — see
 [Migrating from doxygen-guard](docs/GUARD.md#migrating-from-doxygen-guard). The gate
 also checks Rust (rustdoc `///` comments) when a repo declares it. Its scope is unchanged:

@@ -21,11 +21,15 @@ repos:
   ## The gate is clew's own code now (clew/guard/), so this repo runs it from its own tree
   ## rather than a published rev: a change to the gate is exercised by the very commit that
   ## makes it. Adopting repos use the published hook in .pre-commit-hooks.yaml instead.
-  ## The ID stays `doxygen-guard` — clew/precommit.py finds the hook by that ID.
+  ## RENAMED FROM `doxygen-guard` to `clew-guard`. The old ID was held in place by a comment
+  ## saying "clew/precommit.py finds the hook by that ID" — and that file does not exist
+  ## anywhere in the tree, so the name was being defended by a reason that had evaporated.
+  ## Nothing resolves this string programmatically. The owner has waived adopter compatibility:
+  ## the user base is small and collapsing two tools into one repository is the point.
   - repo: local
     hooks:
-      - id: doxygen-guard
-        name: doxygen-guard (clew guard)
+      - id: clew-guard
+        name: clew guard
         entry: .venv/bin/python -m clew guard
         language: system
         args: [validate]
