@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A failure on the second call returns `{}` at line 67. The header comment at line 45 calls this a \"sized retry\", which is a misleading name for it.\nVERDICT: HIT\nWHY: The answer states that a failed second call returns an empty vector with no further attempt, and that nothing is retried."
+}

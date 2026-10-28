@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 34031,
+  "stop_reason": "end_turn",
+  "session_id": "5f92767b-21b5-40b0-a92f-8531fc503147",
+  "total_cost_usd": 0.00995716,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 21414,
+    "cache_read_input_tokens": 246316,
+    "output_tokens": 6420,
+    "output_tokens_details": {
+      "thinking_tokens": 2329
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 21414,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2538,
+        "cache_read_input_tokens": 51097,
+        "cache_creation_input_tokens": 3166,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3166
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 6420,
+      "cacheReadInputTokens": 246316,
+      "cacheCreationInputTokens": 21414,
+      "webSearchRequests": 0,
+      "costUSD": 0.00995716,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2329,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 21414,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The threads that outlive a single call are all in the MCP bridge, the health monitor, the transports, and short-lived cancel pollers. Safety comes from mutexes around shared registries, atomics for flags, join-on-stop, and one unbounded case I'd flag.\n\n**Long-lived threads**\n\n| Thread | Where | Lifetime and shutdown |\n|---|---|---|\n| External bridge accept loop | `src/facade/external_bridge.cpp:796` | Started in `start()`. `stop()` closes the listen fd and joins it (`:826-834`). |\n| Per-client serve threads | `external_bridge.cpp:945`, tracked in `client_threads_` | `stop()` drains the vector, calls `shutdown(SHUT_RDWR)` to wake blocked reads, then joins each one (`:840-851`). Finished ones are reaped during accept (`:956`). |\n| Health monitor | `src/mcp/health_monitor.cpp:92` | `stop()` sets `running_` false, notifies the CV, and joins (`:102-111`). Events are queued under `event_mutex_` and callbacks run on the engine thread in `process_events()` (`:118-129`). |\n| SSE reader | `src/mcp/transport_sse.cpp:107` | Started in `open()`. I read the start path and the `running_` flag, but not the join in `close()`. |\n| Stdio stderr forwarder | `src/mcp/transport_stdio.cpp:164` | Not checked. |\n\n**Short-lived pollers (batch cancel bridges)**\n\nThese exist because the C ABI takes an `int*` cancel flag and the backend wants an atomic. Each one polls every 10 ms and is joined before the function returns:\n- `CancelFlagBridge` (`src/inference/inference_c_api.cpp:376-420`), joined in its destructor.\n- The streaming observer in `src/core/response_generator.cpp:409-429`. It captures stack references, which is safe only because it is joined on the same path.\n- `iface_generate_with_cancel` in `src/inference/interface_factory.cpp:242-262`.\n\n**The unbounded one: async ask workers**\n\n`ExternalBridge::run_async_ask` spawns `std::thread(...).detach()` per `entropic.ask` (`external_bridge.cpp:1158-1222`). The thread captures `this` and `handle_`, and nothing joins it. `stop()` and the destructor (`:612-614`) do not wait for it. `handle_clear` cancels in-flight tasks but polls for only about 1 s (`:434-443`), and its own comment says detached workers \"may still be in flight when this returns.\" If the bridge or engine is destroyed while a worker is still running, the worker dereferences freed state. The backlog proposal `.claude/proposals/BACKLOG/P2-20260429-001-async-bridge-io-architecture.md` describes this same problem, with no bound on concurrent workers. I did not find a test that exercises it.\n\n**What keeps the rest safe**\n\n- Shared registries are mutex-guarded: `tasks_mutex_` for `tasks_`, `subscribers_mutex_`, `client_threads_mutex_`, and `s_bound_sockets_mu` for the process-wide socket registry.\n- The completion sentinel is written under `tasks_mutex_` before the progress notification goes out, so a poller that reacts to the notification sees the same state (`:1171-1183`).\n- Stale phase-observer callbacks are discarded with a generation counter (`attached_gen_`, `:1092`, `:1120`).\n- Thread-local log routing uses a `HandleLogScope` installed at the top of each thread body, so logs from these threads go to the right handle's session log.\n- Flags are `std::atomic` (`running_`, the cancel atomics), and the socket-level wakeups are explicit `shutdown()` calls, not just flag checks.\n\n**Gaps I'd raise**\n\n1. Detached async-ask workers have no join or lifetime guard. This is the real hazard. A fix would track workers and join them in `stop()`, or hold them in a bounded pool, as the P2 proposal suggests.\n2. The pollers share a plain `int` across threads with no atomic. The `int*` is forced by the C ABI, so the poller's writes and the backend's reads are a data race under the C++ memory model. I did not trace how the backend reads the flag, so I can't say whether it is a practical problem.",
+  "ttft_ms": 1733,
+  "type": "result",
+  "duration_ms": 34312,
+  "uuid": "d175a54b-7a96-4186-8abc-63ee52242a3b",
+  "ttft_stream_ms": 1288,
+  "time_to_request_ms": 123,
+  "first_content_frame_ms": 1288,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

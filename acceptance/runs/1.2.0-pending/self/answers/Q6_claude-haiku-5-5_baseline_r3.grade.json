@@ -1,0 +1,143 @@
+{
+  "cell": "Q6_claude-haiku-5-5_baseline_r3",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.23809523809523808,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "5489758d9a50",
+  "decisions": [
+    {
+      "mark": "names the shell and CMake extensions, including CMakeLists.txt matched by file name rather than by extension",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `.sh` `.bash` ... `CMakeLists.txt` `.cmake` | WHY: The answer's table names the shell extensions (`.sh`, `.bash`) and the CMake extension (`.cmake`). It also lists `CMakeLists.txt` as a file name alongside them, so the file-name match is stated.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that YAML and JSON are registered in the file set but carry NO symbols, so the two file groups are treated differently rather than alike",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \".yaml` `.yml` `.json` | `path` row only, in every case | `path` row only\" and \"YAML/JSON: ... Nothing is harvested from those files at all.\" / \"Any symbol from YAML or JSON, so they never answer a function question.\" | WHY: The answer states YAML/JSON are registered as path rows in the file set but carry no symbols, and contrasts them with shell/CMake, which do get symbols.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that markdown is deliberately NOT given a path row, because it is prose and a path row would also count it as indexed source in coverage figures",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: \"Markdown is excluded too. It goes to the full-text corpus through `clew/prose.py`.\" | WHY: The answer says markdown is excluded and goes to the prose corpus, but never says it is deliberately denied a path row or that a path row would count it as indexed source in coverage figures.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that an installation lacking the grammars DEGRADES rather than failing \u2014 the router consults a capability gate before routing, and those file types are then reported as not indexed",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"A missing grammar produces no error and no warning. The file is still registered, just empty of symbols\" and \"`clew/harvest.py:203` checks `_grammar_available()` only for `bash` and `cmake`... If the key is missing, the router returns `None`, the harvester gets no tree, and no `memberdef` rows are written. Nothing raises.\" | WHY: The answer shows degradation (no error, no symbols) via a router grammar check. But it says the file is still registered as a `path` row and that the empty-answer reply wording is unverified. It never states that those file types are reported as not indexed.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the root node type cannot be the discriminator, because shell shares its root with JavaScript and CMake shares its root with Rust",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says the root node type can't discriminate languages because shell shares a root with JavaScript and CMake with Rust.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that CMake's definition name is an ARGUMENT of the command rather than a named field of the node",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: CMake: named parameters are recorded in `argsstring`. | WHY: The answer never says that CMake's definition name is an argument of the command rather than a named field of the node; it only mentions recorded parameters.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a shell function is recorded with no argument list and no return, because the language has neither",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: \"**Shell:** `argsstring` is empty because shell functions take `$1` and `$@`, not named parameters.\" | WHY: The answer says the argument list is empty because shell has no named parameters, but it never says that shell functions have no return, so only half of the item is stated.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that both languages share ONE harvest partition, and gives the reason \u2014 a second partition would write an empty payload row per file per index",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says YAML and JSON share one harvest partition, nor gives the empty-payload-row-per-file reason for not using a second partition.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 clew/synth.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 clew/shast.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 clew/cmakeast.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 clew/substrate.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": false,
+      "detail": "named 5 not in the set: ['clew/filedocs.py', 'clew/harvest.py', 'clew/mcp_server/emptiness.py', 'clew/scope.py', 'docs/languages/SCRIPT_INTEGRATION.md']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

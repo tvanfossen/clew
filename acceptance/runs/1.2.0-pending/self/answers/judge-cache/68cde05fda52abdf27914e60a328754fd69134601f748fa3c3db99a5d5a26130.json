@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Query replies carry a `staleness` block only when something is stale, so a current index adds no noise.\nVERDICT: HIT\nWHY: The answer says query replies carry the staleness block and that it is absent (empty) when the index is current. It also says `freshness.notices()` returns an empty list when the tool is current."
+}

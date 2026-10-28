@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists a compile-time route (config macros) and a run-time route (`mbedtls_platform_set_calloc_free`). It never says the two are mutually exclusive, and it treats the run-time hook as part of the dispatch build."
+}

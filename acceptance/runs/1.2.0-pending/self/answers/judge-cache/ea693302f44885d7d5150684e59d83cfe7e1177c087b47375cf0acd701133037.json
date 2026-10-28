@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every query reply is stamped with `staleness_notices()` (`server.py:1548`), which is non-raising... The list is empty when the index is current, and the `staleness` key is absent from the payload in that case.\nVERDICT: HIT\nWHY: The answer says every query reply is stamped with the staleness notices automatically, and that the list is empty (key absent) when the index is current."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 14521,
+  "stop_reason": "end_turn",
+  "session_id": "3fee64fc-6694-446d-b9d9-1d5628cee1f3",
+  "total_cost_usd": 0.010495280000000001,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 38922,
+    "cache_read_input_tokens": 148508,
+    "output_tokens": 2450,
+    "output_tokens_details": {
+      "thinking_tokens": 653
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 38922,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1380,
+        "cache_read_input_tokens": 50011,
+        "cache_creation_input_tokens": 7504,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7504
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2450,
+      "cacheReadInputTokens": 148508,
+      "cacheCreationInputTokens": 38922,
+      "webSearchRequests": 0,
+      "costUSD": 0.010495280000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 653,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 38922,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Scope is decided by a declaration in the repo, and if there is none, by the whole repository minus what git ignores. A Doxyfile no longer decides which files are indexed.\n\n**The decision path**\n\n`derive_scope` in `clew/scope.py:639` is the single entry point. It resolves in two tiers:\n\n1. **Declared scope.** `_declared_index_scope` (`clew/scope.py:991`) reads the `index_scope:` section of the repo's `.clew.yaml`. Roots are repo-relative, and each root is taken at its word and never walked. A root that does not exist on disk is dropped with a warning. `excludes` is optional, but `roots` is required. A scope that is present but unusable is rejected rather than treated as absent. Unknown keys inside `index_scope` are refused by name, so a misspelling like `exclude:` cannot silently do nothing.\n2. **Whole repository.** If nothing usable is declared, `whole_repo_scope` (`clew/scope.py:683`) makes the repo root the single INPUT root. Its excludes are the paths git ignores, on both sides of every submodule boundary, plus dot and cache directories. Nested git trees (submodules, vendored clones) are included, not cut out.\n\n**What \"nothing declared\" means**\n\n- The Doxyfile is not a tier. Its `INPUT` is treated as a documentation target, not a reasoning boundary. The repo's Doxyfile is still read for `ALIASES` and `PREDEFINED`, but its `INPUT` is replaced.\n- The doxygen-guard `files:` pattern is not a tier either. It governs what must be documented, not what gets indexed.\n- A repo with no `index_scope:` therefore gets its whole tree, less git-ignored paths and dot or cache directories. The build log records the reason, including where the declaration was looked for.\n\n**Two related points**\n\n- `declared_scope_rejection` (`clew/scope.py:612`) is a separate build-time check. `derive_scope` absorbs a rejected declaration into the whole-repo tier so internal callers always get a usable scope. The CLI and MCP refresh paths call this check first and can refuse the build instead. This exists because an excludes-only declaration once let a build proceed into the widest scope under a vendored tree it was meant to exclude.\n- Nested trees are tagged rather than excluded. `clew/external.py` marks files that sit inside a foreign git tree as external, so aggregates report first-party by default. Queries still traverse into them.\n\n**Caveat**\n\nThe `C_INTEGRATION.md` section titled \"The three things that decide what gets indexed\" describes Doxyfile `INPUT`, `EXCLUDE` and `FILE_PATTERNS` as deciding scope. That reads as older than the gh#333 change. I only saw a snippet, so I have not confirmed whether `FILE_PATTERNS` still filters anything in the current build.",
+  "ttft_ms": 1939,
+  "type": "result",
+  "duration_ms": 15751,
+  "uuid": "8c139042-717d-4f4b-bcee-ad89c492db33",
+  "ttft_stream_ms": 1345,
+  "time_to_request_ms": 122,
+  "first_content_frame_ms": 1346,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

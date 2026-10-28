@@ -1,0 +1,575 @@
+{
+  "target": "Mbed-TLS/mbedtls",
+  "commit": "068ff080b369adfac81509f9b57b2afabaf82dc5",
+  "rubric_version": "3.1.0",
+  "rubric_digest": "bbf6195f605be452",
+  "seed": 7,
+  "models": [
+    "claude-haiku-5-5"
+  ],
+  "replicates": 3,
+  "clew_build_version": "8",
+  "clew_version": "1.1.3",
+  "clew_commit": "844fee55404d2b2ddc122d23fedc72eb651528df",
+  "clew_dirty": true,
+  "substrate_version": "0.12.0",
+  "substrate_languages": [
+    "ada",
+    "bash",
+    "c",
+    "cmake",
+    "cpp",
+    "csharp",
+    "fortran",
+    "go",
+    "java",
+    "javascript",
+    "json",
+    "kotlin",
+    "lua",
+    "markdown",
+    "php",
+    "python",
+    "rust",
+    "scala",
+    "swift",
+    "typescript",
+    "yaml"
+  ],
+  "resumed": [
+    "Q1_claude-haiku-5-5_baseline_r1",
+    "Q1_claude-haiku-5-5_baseline_r2",
+    "Q1_claude-haiku-5-5_baseline_r3",
+    "Q1_claude-haiku-5-5_index_only_r1",
+    "Q1_claude-haiku-5-5_index_only_r2",
+    "Q1_claude-haiku-5-5_index_only_r3",
+    "Q1_claude-haiku-5-5_index_r1",
+    "Q1_claude-haiku-5-5_index_r2",
+    "Q1_claude-haiku-5-5_index_r3",
+    "Q2_claude-haiku-5-5_baseline_r1",
+    "Q2_claude-haiku-5-5_baseline_r2",
+    "Q2_claude-haiku-5-5_baseline_r3",
+    "Q2_claude-haiku-5-5_index_only_r1",
+    "Q2_claude-haiku-5-5_index_only_r2",
+    "Q2_claude-haiku-5-5_index_only_r3",
+    "Q2_claude-haiku-5-5_index_r1",
+    "Q2_claude-haiku-5-5_index_r2",
+    "Q2_claude-haiku-5-5_index_r3",
+    "Q3_claude-haiku-5-5_baseline_r1",
+    "Q3_claude-haiku-5-5_baseline_r2",
+    "Q3_claude-haiku-5-5_baseline_r3",
+    "Q3_claude-haiku-5-5_index_only_r1",
+    "Q3_claude-haiku-5-5_index_only_r2",
+    "Q3_claude-haiku-5-5_index_only_r3",
+    "Q3_claude-haiku-5-5_index_r1",
+    "Q3_claude-haiku-5-5_index_r2",
+    "Q3_claude-haiku-5-5_index_r3",
+    "Q4_claude-haiku-5-5_baseline_r1",
+    "Q4_claude-haiku-5-5_baseline_r2",
+    "Q4_claude-haiku-5-5_baseline_r3",
+    "Q4_claude-haiku-5-5_index_only_r1",
+    "Q4_claude-haiku-5-5_index_only_r2",
+    "Q4_claude-haiku-5-5_index_only_r3",
+    "Q4_claude-haiku-5-5_index_r1",
+    "Q4_claude-haiku-5-5_index_r2",
+    "Q4_claude-haiku-5-5_index_r3",
+    "Q5_claude-haiku-5-5_baseline_r1",
+    "Q5_claude-haiku-5-5_baseline_r2",
+    "Q5_claude-haiku-5-5_baseline_r3",
+    "Q5_claude-haiku-5-5_index_only_r1",
+    "Q5_claude-haiku-5-5_index_only_r2",
+    "Q5_claude-haiku-5-5_index_only_r3",
+    "Q5_claude-haiku-5-5_index_r1",
+    "Q5_claude-haiku-5-5_index_r2",
+    "Q5_claude-haiku-5-5_index_r3"
+  ],
+  "windows": [
+    {
+      "ordinal": 1,
+      "started": "2026-10-28T16:15:33+00:00",
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "models_floating": [
+        "claude-haiku-5-5"
+      ],
+      "cells_pending": 45,
+      "clew_build_version": "8",
+      "clew_version": "1.1.3",
+      "clew_commit": "844fee55404d2b2ddc122d23fedc72eb651528df",
+      "clew_dirty": true,
+      "substrate_version": "0.12.0",
+      "substrate_languages": [
+        "ada",
+        "bash",
+        "c",
+        "cmake",
+        "cpp",
+        "csharp",
+        "fortran",
+        "go",
+        "java",
+        "javascript",
+        "json",
+        "kotlin",
+        "lua",
+        "markdown",
+        "php",
+        "python",
+        "rust",
+        "scala",
+        "swift",
+        "typescript",
+        "yaml"
+      ]
+    },
+    {
+      "ordinal": 2,
+      "started": "2026-10-28T21:45:41+00:00",
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "models_floating": [
+        "claude-haiku-5-5"
+      ],
+      "cells_pending": 0,
+      "resumed": [
+        "Q1_claude-haiku-5-5_baseline_r1",
+        "Q1_claude-haiku-5-5_baseline_r2",
+        "Q1_claude-haiku-5-5_baseline_r3",
+        "Q1_claude-haiku-5-5_index_only_r1",
+        "Q1_claude-haiku-5-5_index_only_r2",
+        "Q1_claude-haiku-5-5_index_only_r3",
+        "Q1_claude-haiku-5-5_index_r1",
+        "Q1_claude-haiku-5-5_index_r2",
+        "Q1_claude-haiku-5-5_index_r3",
+        "Q2_claude-haiku-5-5_baseline_r1",
+        "Q2_claude-haiku-5-5_baseline_r2",
+        "Q2_claude-haiku-5-5_baseline_r3",
+        "Q2_claude-haiku-5-5_index_only_r1",
+        "Q2_claude-haiku-5-5_index_only_r2",
+        "Q2_claude-haiku-5-5_index_only_r3",
+        "Q2_claude-haiku-5-5_index_r1",
+        "Q2_claude-haiku-5-5_index_r2",
+        "Q2_claude-haiku-5-5_index_r3",
+        "Q3_claude-haiku-5-5_baseline_r1",
+        "Q3_claude-haiku-5-5_baseline_r2",
+        "Q3_claude-haiku-5-5_baseline_r3",
+        "Q3_claude-haiku-5-5_index_only_r1",
+        "Q3_claude-haiku-5-5_index_only_r2",
+        "Q3_claude-haiku-5-5_index_only_r3",
+        "Q3_claude-haiku-5-5_index_r1",
+        "Q3_claude-haiku-5-5_index_r2",
+        "Q3_claude-haiku-5-5_index_r3",
+        "Q4_claude-haiku-5-5_baseline_r1",
+        "Q4_claude-haiku-5-5_baseline_r2",
+        "Q4_claude-haiku-5-5_baseline_r3",
+        "Q4_claude-haiku-5-5_index_only_r1",
+        "Q4_claude-haiku-5-5_index_only_r2",
+        "Q4_claude-haiku-5-5_index_only_r3",
+        "Q4_claude-haiku-5-5_index_r1",
+        "Q4_claude-haiku-5-5_index_r2",
+        "Q4_claude-haiku-5-5_index_r3",
+        "Q5_claude-haiku-5-5_baseline_r1",
+        "Q5_claude-haiku-5-5_baseline_r2",
+        "Q5_claude-haiku-5-5_baseline_r3",
+        "Q5_claude-haiku-5-5_index_only_r1",
+        "Q5_claude-haiku-5-5_index_only_r2",
+        "Q5_claude-haiku-5-5_index_only_r3",
+        "Q5_claude-haiku-5-5_index_r1",
+        "Q5_claude-haiku-5-5_index_r2",
+        "Q5_claude-haiku-5-5_index_r3"
+      ],
+      "clew_build_version": "8",
+      "clew_version": "1.1.3",
+      "clew_commit": "844fee55404d2b2ddc122d23fedc72eb651528df",
+      "clew_dirty": true,
+      "substrate_version": "0.12.0",
+      "substrate_languages": [
+        "ada",
+        "bash",
+        "c",
+        "cmake",
+        "cpp",
+        "csharp",
+        "fortran",
+        "go",
+        "java",
+        "javascript",
+        "json",
+        "kotlin",
+        "lua",
+        "markdown",
+        "php",
+        "python",
+        "rust",
+        "scala",
+        "swift",
+        "typescript",
+        "yaml"
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q2",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 0
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q2",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 1
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q2",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 2
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q2",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 2,
+      "order": 3
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q2",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 2,
+      "order": 4
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q2",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 2,
+      "order": 5
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q2",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 3,
+      "order": 6
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q2",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 3,
+      "order": 7
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q2",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 3,
+      "order": 8
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q1",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 9
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q1",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 10
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q1",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 11
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q1",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 2,
+      "order": 12
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q1",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 2,
+      "order": 13
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q1",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 2,
+      "order": 14
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q1",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 3,
+      "order": 15
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q1",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 3,
+      "order": 16
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q1",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 3,
+      "order": 17
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q5",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 18
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q5",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 19
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q5",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 20
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q5",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 2,
+      "order": 21
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q5",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 2,
+      "order": 22
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q5",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 2,
+      "order": 23
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q5",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 3,
+      "order": 24
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q5",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 3,
+      "order": 25
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q5",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 3,
+      "order": 26
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q3",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 27
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q3",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 28
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q3",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 29
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q3",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 2,
+      "order": 30
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q3",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 2,
+      "order": 31
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q3",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 2,
+      "order": 32
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q3",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 3,
+      "order": 33
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q3",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 3,
+      "order": 34
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q3",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 3,
+      "order": 35
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q4",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 36
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q4",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 37
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q4",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 1,
+      "order": 38
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q4",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 2,
+      "order": 39
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q4",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 2,
+      "order": 40
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q4",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 2,
+      "order": 41
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q4",
+      "arm": "index",
+      "model": "claude-haiku-5-5",
+      "replicate": 3,
+      "order": 42
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q4",
+      "arm": "baseline",
+      "model": "claude-haiku-5-5",
+      "replicate": 3,
+      "order": 43
+    },
+    {
+      "target": "Mbed-TLS/mbedtls",
+      "question_id": "Q4",
+      "arm": "index_only",
+      "model": "claude-haiku-5-5",
+      "replicate": 3,
+      "order": 44
+    }
+  ]
+}

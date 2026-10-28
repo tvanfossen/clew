@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In `include/mbedtls/private_access.h`, the default expansion is `private_##member`, so `ctx->MBEDTLS_PRIVATE(alg)` becomes `ctx->private_alg`.\nVERDICT: HIT\nWHY: The answer explicitly locates the macro's definition and expansion in include/mbedtls/private_access.h."
+}

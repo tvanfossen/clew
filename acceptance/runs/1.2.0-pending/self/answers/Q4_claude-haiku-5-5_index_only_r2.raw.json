@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 13326,
+  "stop_reason": "end_turn",
+  "session_id": "8e2ab6d2-0cf0-4b67-a907-1075fab687b1",
+  "total_cost_usd": 0.002203,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 2521,
+    "cache_read_input_tokens": 75040,
+    "output_tokens": 1896,
+    "output_tokens_details": {
+      "thinking_tokens": 941
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 2521,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1597,
+        "cache_read_input_tokens": 37520,
+        "cache_creation_input_tokens": 2521,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2521
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 1896,
+      "cacheReadInputTokens": 75040,
+      "cacheCreationInputTokens": 2521,
+      "webSearchRequests": 0,
+      "costUSD": 0.002203,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 941,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 2521,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer for `git_argv` (`clew/gitenv.py:89`) is a set of **caller functions**, not call sites. It has seven rows, each giving a caller's name, file, and an edge class of `call`, all resolved from the parser (`source: ast`). The row for `_detect_git_version` in `clew/guard/main.py` is an example. Nothing in a row gives a line number, the arguments passed, or whether the call runs on every path or only under some condition.\n\nThe other fields change how the list should be read:\n\n- **Mixed production and test callers.** `test_the_disarmed_key_list_reaches_the_argv` sits in the same list as `run_git` and `tracked_files`. Counting callers tells you about tests as well as code.\n- **Direct callers only.** `run_git` (`clew/guard/git.py`) is a wrapper. The real set of places that run git is wider than seven, and you only see it by walking the caller chain with `depth` and `direction: back`.\n- **Empty `callees` is not \"calls nothing\".** It means no outgoing call resolved to an indexed function. The builtins and list operations in its body are not indexed, so the empty list says nothing about them.\n- **Threads and reachability are separate.** The reply also says `git_argv` is reached from the `clew-first-build-` pthread through `_await_first_build`, at medium confidence. That is a spawn edge, not a caller, and it does not show up in the callers list.\n- **`covering_tests` looks wrong.** The only covering test listed is `test_mqtt_dispatch_accepts_an_inline_document_not_only_a_path`, which has nothing to do with git argv. The real checks are in `tests/test_security_surface.py`, which `search` found. Treat the field as a mapping that needs checking, not as evidence of coverage.\n- **What the list cannot prove.** The docstring says every git call site must go through `git_argv`, and `test_every_git_invocation_disarms_the_inspected_trees_config` is meant to enforce that. The caller list does not prove it. Calls made through `getattr`, through indirect argv construction, or from a module the parser missed would not show as callers. The `callers_unresolved: 0` figure only covers edges the parser saw.\n\nSo the answer is a resolved set of direct caller functions, with no lines, no conditions, no transitive closure, and test callers mixed in. It is useful for \"who calls this\", and wrong for \"every place the program runs git\" or \"is this path always taken\". Walking back with `depth \u2265 2` and checking the source of each caller gives the more accurate picture.",
+  "ttft_ms": 3551,
+  "type": "result",
+  "duration_ms": 13668,
+  "uuid": "5fdb1a3e-7a5b-4dc0-a9c7-f52e637c4214",
+  "ttft_stream_ms": 2401,
+  "time_to_request_ms": 77,
+  "first_content_frame_ms": 2401,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

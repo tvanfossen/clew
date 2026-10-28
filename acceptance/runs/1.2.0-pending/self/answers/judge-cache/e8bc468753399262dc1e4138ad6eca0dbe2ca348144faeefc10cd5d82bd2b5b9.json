@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `stale_code_refusal` refuses any write from a stale process. `force` does not override it.\nVERDICT: HIT\nWHY: The answer states that the write path refuses (not warns) and that `force` cannot override it, which covers the item's substance. It does not explicitly say the refusal sits ahead of the build decision, but the force-proof refusal carries the mechanism."
+}

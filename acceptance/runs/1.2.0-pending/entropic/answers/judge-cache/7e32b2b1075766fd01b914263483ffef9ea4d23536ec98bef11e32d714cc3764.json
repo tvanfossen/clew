@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"passing a null buffer and zero length returns the negated token count needed. The code flips the sign and sizes the vector.\"\nVERDICT: HIT\nWHY: The answer states the first call returns a negative required count and that the code negates it to size the vector for the second call."
+}

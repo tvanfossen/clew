@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers mbedtls_strerror and the generated error.c. It never mentions MBEDTLS_ERROR_ADD or mbedtls_error_add, or that they capture __FILE__ and __LINE__."
+}

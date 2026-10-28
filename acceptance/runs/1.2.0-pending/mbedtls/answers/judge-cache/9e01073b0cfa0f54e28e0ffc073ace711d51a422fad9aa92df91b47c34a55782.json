@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that MBEDTLS_PRIVATE is applied at many hundreds of sites, mostly in public headers. It only mentions a few individual uses and the 129 files that include common.h."
+}

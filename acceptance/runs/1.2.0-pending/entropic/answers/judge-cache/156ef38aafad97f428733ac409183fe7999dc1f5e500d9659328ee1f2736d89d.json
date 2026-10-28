@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Python uses **ctypes**, not pybind11 or cffi. There is no Python extension module.\" and \"`entropic/_loader.py` \u2192 CDLL(librentropic.so)\"\nVERDICT: HIT\nWHY: The answer explicitly names ctypes loading librentropic.so via CDLL and states there is no Python extension module."
+}

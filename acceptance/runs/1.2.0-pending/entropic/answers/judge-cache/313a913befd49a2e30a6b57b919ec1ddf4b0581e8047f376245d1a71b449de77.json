@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If the second call returns a negative value, it logs `\"Tokenization failed for text of length {}\"` at error level (lines 64-68) and returns `{}`.\nVERDICT: HIT\nWHY: The answer states that a negative return from the second call logs an error and returns an empty vector, and that there is no retry or second attempt."
+}

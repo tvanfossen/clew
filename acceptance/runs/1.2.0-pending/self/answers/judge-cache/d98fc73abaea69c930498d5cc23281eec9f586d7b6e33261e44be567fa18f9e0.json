@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Layers are ranked `declared_dispatch` > `doxygen_sqlite` > `macro_hop` > `ast` > `binding` > `ast_member` > `fnptr`.\"\nVERDICT: MISS\nWHY: The answer lists a layer ranking and mentions vocabulary.py as a source, but never says the ranking is in the vocabulary module or that it, rather than SQL, decides which layer's provenance a collapsed row reports."
+}

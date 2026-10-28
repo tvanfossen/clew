@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `args_to_pattern` uses the value of the first JSON argument, or `*` if there are none.\nVERDICT: MISS\nWHY: The answer says only the first argument's value is used, but it never says the other arguments are invisible to matching. It also never says a non-string or unparseable argument collapses to a wildcard."
+}

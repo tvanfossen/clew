@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_memory_buffer_alloc_init(buf, len)` (line ~568) sets the global pointers to its own `buffer_alloc_calloc` / `buffer_alloc_free`, or to `_mutexed` variants when `MBEDTLS_THREADING_C` is on.\nVERDICT: HIT\nWHY: The answer says the init function installs mutexed variants when MBEDTLS_THREADING_C is on, and the plain pair otherwise. It doesn't say the choice is made at compile time, but the macro condition implies it."
+}

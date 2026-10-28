@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the docs disagree and that, per the code, files would still get path rows and not appear in the miss report. It also says the router refuses the route when bash is absent. It never concludes that a lacking install degrades with those types reported as not indexed."
+}

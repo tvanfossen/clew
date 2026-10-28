@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Returns `0`. The C API comment (`inference_c_api.cpp:544-546`) promises a `text_len/4` estimate on error, but the `catch(...)` only fires on exceptions, so a tokenizer failure returns `0`.\nVERDICT: HIT\nWHY: The answer states that `count_tokens` returns 0 on tokenizer failure instead of signalling an error."
+}

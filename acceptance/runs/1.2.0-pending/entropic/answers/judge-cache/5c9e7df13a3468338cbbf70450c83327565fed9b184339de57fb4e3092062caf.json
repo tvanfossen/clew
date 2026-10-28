@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: They are loaded into `PermissionManager` (`mcp/permission_manager.cpp`), which is built in `ServerManager`'s constructor at `server_manager.cpp:35`. Patterns come from `permissions.allow` and `permissions.deny` in config (`config/loader.cpp:365`, `types/config.h:589`).\nVERDICT: MISS\nWHY: The answer names PermissionManager and says the lists come from config, but never names PermissionsConfig or says ServerManager is constructed with it."
+}

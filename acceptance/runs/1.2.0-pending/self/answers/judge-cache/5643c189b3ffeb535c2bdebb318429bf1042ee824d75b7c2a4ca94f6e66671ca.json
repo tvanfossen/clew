@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The rule is `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. The short version is that you can correct our guesses, but you cannot un-discover a fact.\nVERDICT: HIT\nWHY: The answer states that stated tiers replace each other (tier1/2/5 \"or\") while tier-3/4 discovered facts accumulate and are never displaced by any stated tier."
+}

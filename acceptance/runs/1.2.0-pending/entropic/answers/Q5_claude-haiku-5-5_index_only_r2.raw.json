@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 17201,
+  "stop_reason": "end_turn",
+  "session_id": "99a2d34b-aee2-4112-a6af-59be01fc777e",
+  "total_cost_usd": 0.009958749999999999,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 31669,
+    "cache_read_input_tokens": 175215,
+    "output_tokens": 3744,
+    "output_tokens_details": {
+      "thinking_tokens": 1500
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 31669,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2587,
+        "cache_read_input_tokens": 59587,
+        "cache_creation_input_tokens": 8932,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 8932
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3744,
+      "cacheReadInputTokens": 175215,
+      "cacheCreationInputTokens": 31669,
+      "webSearchRequests": 0,
+      "costUSD": 0.009958749999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1500,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 31669,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Python reaches the engine through `ctypes`, calling the C ABI in `librentropic.so` directly. There is no C++ extension module and no pybind layer. The memory rules are the C API's ownership contract, plus extra rules the Python hook layer has to follow.\n\n**How the call path works**\n\n```\nPython (entropic package)\n  _bindings.py   ctypes function objects, one per entropic_* symbol\n       \u2502  loaded via _loader.py (search order ends in ~/.entropic/lib, then ctypes.util.find_library)\n       \u25bc\nlibrentropic.so   C ABI (entropic.h, pure C, opaque handles)\n       \u2502  facade catches C++ exceptions at the edge, returns entropic_error_t\n       \u25bc\nC++ engine (AgentEngine, inference, MCP, storage)\n```\n\n- `python/src/entropic/_bindings.py` is generated from `entropic.h`. The index says it covers every exported symbol, and that `scripts/gen_bindings.py` produces it. The `python/CMakeLists.txt` header says the bindings are regenerated at release time through `inv gen-bindings` and checked into the wheel. That file is a placeholder, and its comment points to a legacy `.claude/proposals/` path.\n- The Python side is a thin wrapper. The README says `entropic install-engine` downloads the matching `librentropic.so` from GitHub Releases.\n- Handles are opaque. The lifecycle is `entropic_create` \u2192 `entropic_configure` \u2192 `entropic_run` \u2192 `entropic_destroy`. `entropic_destroy(NULL)` is a no-op, and the handle is invalid after destroy.\n\n**Memory rules across the boundary**\n\n1. **Strings returned as `char*` belong to the caller.** Free them with `entropic_free()`. For example, `entropic_run` returns `result_json` that the caller must free. `entropic_free` is a thin wrapper over `free()` (`src/facade/entropic.cpp:1954`).\n2. **Strings returned as `const char*` belong to the handle.** They stay valid until the next call on that handle. Do not free them.\n3. **Buffers the engine will free must come from `entropic_alloc()`.** `entropic_alloc` is a wrapper over `malloc()`. The hook `modified_json` is the main case. Memory from a Python allocator or a `ctypes` buffer must never reach the engine's `free()`.\n4. **Exceptions never cross the `.so` boundary.** Errors come back as `entropic_error_t` codes, with detail in `entropic_last_error(handle)`. The header and `docs/architecture-cpp.md` both state this. `OLD_NOTES.md` records an older `entropic_configure_dir` exception that escaped the boundary, so the rule has been broken before.\n5. **Thread safety is per-function.** Calls are either thread-safe, serialized per handle, or single-threaded for init and destroy. Destroy must not race any other call on the same handle.\n\n**Rules on the Python side (hooks)**\n\n- **Callback lifetime.** A `CFUNCTYPE` wrapper must stay referenced for as long as the engine may call it. If it is dropped, C later calls freed memory. `hooks.py` keeps a per-handle list in `_bound` so trampolines survive as long as the handle does. A bare `entropic_register_hook(handle, point, HOOK_CB(f), None, 0)` is the unsafe pattern the module exists to avoid.\n- **Marshalling.** The trampoline decodes `context_json` into a dict. For a non-None return, it encodes JSON and writes it with `entropic_alloc()` into `*modified_json`, so the engine can `free()` it. `_alloc_c_string` in the same module does this.\n- **No Python exception escapes into C.** The trampoline catches everything, prints the traceback, and returns pass-through (rc 0). This keeps the engine running, but a buggy hook fails silently from the engine's point of view. A hook that raises behaves as if it returned None.\n\n**Open points**\n\n- I did not read the memory-ownership sections of `i_inference_backend.h` and `i_mcp_server.h`. Both declare their own ownership rules for strings crossing plugin and backend boundaries, and I have not verified them.\n- `entropic_run` can return an error code with a non-NULL `result_json` holding partial context. The doc says the caller must still free it. Check for a non-NULL pointer on the error path too, not only on `ENTROPIC_OK`.",
+  "ttft_ms": 1139,
+  "type": "result",
+  "duration_ms": 18108,
+  "uuid": "c09e18b4-485a-4bf0-b78d-0f12a47545a3",
+  "ttft_stream_ms": 700,
+  "time_to_request_ms": 65,
+  "first_content_frame_ms": 700,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

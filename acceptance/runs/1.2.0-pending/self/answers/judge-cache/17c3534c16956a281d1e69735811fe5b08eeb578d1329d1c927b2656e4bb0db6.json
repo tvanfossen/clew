@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that one collapse function serves both the flat neighbour list and the traversal surface; it only notes that chain_trace filters fuzzy edges differently from the flat list."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never concludes the public API surface is a single function (mbedtls_ct_memcmp); it describes many ct primitives and wide internal usage without that conclusion."
+}

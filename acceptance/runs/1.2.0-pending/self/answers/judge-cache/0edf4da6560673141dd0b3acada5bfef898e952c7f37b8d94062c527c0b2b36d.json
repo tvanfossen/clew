@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: clew checks its own currency on three separate axes ... **`data`:** the database is older than the source ... **`code`:** the running server imported its modules at launch ... **`schema`:** `build_version` against `expected_build_version`.\nVERDICT: HIT\nWHY: The answer states staleness is three separate axes (data, code, schema) and names and distinguishes each."
+}

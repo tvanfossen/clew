@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Everything that calls its C API lives in the `src/inference/llama_cpp_*` files, and the rest of entropic reaches it only through the `IInferenceBackend` and `Tokenizer`/`Sampler` seams.\nVERDICT: MISS\nWHY: The answer concludes the dependency is fully contained in src/inference, the opposite of the item's claim that a minority of reaching files sit outside it."
+}

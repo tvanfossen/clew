@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers how llama.cpp is vendored and where it's used, but never says the seam is llama.cpp's C API of `llama_`-prefixed free functions as opposed to C++ classes."
+}

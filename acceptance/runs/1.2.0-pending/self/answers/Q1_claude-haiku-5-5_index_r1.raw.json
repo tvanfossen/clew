@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 34780,
+  "stop_reason": "end_turn",
+  "session_id": "ae0a6012-44f8-46fe-ac9e-25defecfc2ec",
+  "total_cost_usd": 0.01524973,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 48676,
+    "cache_read_input_tokens": 288533,
+    "output_tokens": 5256,
+    "output_tokens_details": {
+      "thinking_tokens": 1600
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 48676,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2380,
+        "cache_read_input_tokens": 67002,
+        "cache_creation_input_tokens": 1829,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1829
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5256,
+      "cacheReadInputTokens": 288533,
+      "cacheCreationInputTokens": 48676,
+      "webSearchRequests": 0,
+      "costUSD": 0.01524973,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1600,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 48676,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Short answer: a declared `index_scope:` in the repo's `.clew.yaml` decides, and when nothing is declared the whole repository is indexed minus what git ignores and minus dot and cache directories. A Doxyfile does not decide the scope any more (gh#333). I read this from the index's docs and source for `clew/scope.py`, `clew/doxygen.py` and `clew/treescan.py`, not by running a build.\n\n**Decision order (`derive_scope`, `clew/scope.py:639`)**\n\n```\nstated scope (tool-call argument)      \u2500\u2500\u25ba if present and usable, use it\n  \u2502 absent\n.clew.yaml  index_scope:               \u2500\u2500\u25ba if present and usable, use it\n  \u2502 absent                                   (present but unusable \u2192 rejected)\nwhole repository (less ignores)        \u2500\u2500\u25ba the default\n```\n\n1. **Stated scope.** An operator can pass a scope at call time. `_declared_index_scope` builds it through the same path as a file declaration, so it is validated the same way.\n2. **Declared scope.** `_declared_index_scope` (`clew/scope.py:991`) reads `index_scope:` from `.clew.yaml`. `roots:` is required and replaces the scope. `excludes:` subtracts from it. Roots that do not exist on disk are dropped. Unknown keys inside the block are refused by name, not ignored. A block with no usable root is marked rejected, and the reason says so.\n3. **Whole repository.** `whole_repo_scope` (`clew/scope.py:683`) is the tier every repo gets for saying nothing. Its single root is the repo itself. Its excludes are:\n   - everything `git ls-files --others --ignored --exclude-standard --directory` reports (`_gitignored_paths`, `:845`), run per repo and per nested git tree, so a submodule's own `.gitignore` applies;\n   - dot-directories and `__pycache__` and `node_modules` (`_skip_dir`, `:490`), pruned by `_pruned_dirs` (`:908`), which does not descend into nested git trees beyond their top level.\n\nNested git trees (submodules, vendored clones) are indexed, not excluded. `external.py` tags their rows afterwards so answers can tell the codebases apart.\n\n**What the Doxyfile and gate do now**\n\n- The repo's Doxyfile still supplies ALIASES and PREDEFINED. Its `INPUT` is replaced, so a Doxyfile that documents only a header subset no longer narrows the index. The docs cite Mbed-TLS: its Doxyfile's `INPUT = ../include` would have indexed 1,571 header declarations and zero of the 108 `library/*.c` files.\n- `FILE_PATTERNS` is forced to `DOXYGEN_DEFAULT_FILE_PATTERNS` (`clew/doxygen.py:203`, C/C++ extensions and similar). `effective_file_patterns` returns that set regardless of what the target's Doxyfile declares.\n- The doxygen-guard `files:` pattern is explicitly not a tier. It answers what must be documented, not what should be indexed.\n\n**When nothing is declared**\n\n- The scope is the whole repository, less git-ignored paths and dot/cache directories. No Doxyfile is needed.\n- The reason is logged: the build says no `index_scope` is declared and names where it looked. This is the \"absence is not emptiness\" rule in practice.\n- If git is missing or the tree is not a repository, nothing is excluded and a warning says so. The index is wider than the repo asked for, but it still builds.\n\n**Things I did not fully verify**\n\n- `derive_scope` itself falls through to the whole repository when a declaration is rejected, with the rejection in the reason. The test `test_cli_apply_scope_refuses_a_rejected_declaration` says the CLI refuses the build instead. The refusal is probably decided before `derive_scope` is called (`declared_scope_rejection`), but I did not trace that path.\n- I did not read `enumerate_tree` in `treescan.py`, which applies per-file matching during the walk. I also did not see the full `DOXYGEN_DEFAULT_FILE_PATTERNS` list, only its first entries.",
+  "ttft_ms": 1940,
+  "type": "result",
+  "duration_ms": 38096,
+  "uuid": "796fd2d8-c55c-423c-b054-5669e6e27153",
+  "ttft_stream_ms": 1500,
+  "time_to_request_ms": 127,
+  "first_content_frame_ms": 1500,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

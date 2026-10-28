@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the value of the first string-valued argument in the JSON object. It is `*` when the args are empty, unparseable, or the first value is not a string.\nVERDICT: HIT\nWHY: The answer says only the first string argument reaches the pattern and that unparseable or non-string args collapse to `*`. It doesn't say outright that the other arguments are invisible to matching, but that follows from it."
+}

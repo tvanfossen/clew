@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`#define MBEDTLS_PRIVATE(member) private_##member`. A field `foo` is spelled `private_foo`, so `ctx.foo` fails to compile. Application code that touches a field directly breaks at build time\" and \"the rename is the only thing that changes between the two modes.\"\nVERDICT: HIT\nWHY: The answer says enforcement is a compile-time break of the member name, and that the rename is the only change, so the field declarations stay in the struct. It never contrasts this with hiding the layout, so that half of the item is implied rather than stated."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A write is refused before any build if the process code is stale (`stale_code_refusal`, freshness.py:531). `force` does not override that refusal.\nVERDICT: HIT\nWHY: The answer says the write path refuses (not warns) before any build, and that `force` can't override it."
+}

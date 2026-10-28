@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When the index is newer it says rebuilding cannot clear the flag and the client must restart.\nVERDICT: HIT\nWHY: The answer states that when the schema version is newer than the server, rebuilding cannot clear it and a restart is needed. It also says an index stamped with a newer version means the server predates the index. It does not give the re-stamping mechanism, but it does state the substance of the item."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the index scope is decided in one place, `derive_scope` in `clew/scope.py`.\nVERDICT: HIT\nWHY: The answer explicitly names `derive_scope` in `clew/scope.py` as where the scope decision is made."
+}

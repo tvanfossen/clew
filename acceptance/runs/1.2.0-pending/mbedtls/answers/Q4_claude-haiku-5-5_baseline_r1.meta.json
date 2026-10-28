@@ -1,0 +1,40 @@
+{
+  "stem": "Q4_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "skills": "",
+  "answered_by": "claude-haiku-5-5",
+  "seconds": 21.063925186987035,
+  "input_tokens": 10,
+  "output_tokens": 4361,
+  "cache_read_tokens": 165562,
+  "cache_creation_tokens": 28026,
+  "cost_usd": 0.00944232,
+  "result_bytes": 3574,
+  "turns": 6,
+  "tool_calls": 5,
+  "non_index_tool_calls": 5,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/1.2.0-pending/mbedtls/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nA caller gets back a negative integer from an mbedtls function. Walk through how that\nbecomes a human-readable string, and say what a contributor has to do to add a new one.\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "Mbed-TLS/mbedtls",
+    "question_id": "Q4",
+    "arm": "baseline",
+    "model": "claude-haiku-5-5",
+    "replicate": 1,
+    "order": 36
+  }
+}

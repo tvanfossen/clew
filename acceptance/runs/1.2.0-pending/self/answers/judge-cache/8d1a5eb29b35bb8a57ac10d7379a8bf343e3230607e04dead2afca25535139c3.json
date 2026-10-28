@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: each marked `source: ast`, `confidence: resolved`, `edge_class: call`\nVERDICT: MISS\nWHY: The answer mentions `edge_class: call` only as a field value on the callers. It never says the lists mix direct calls with shared-key dataflow edges, or that the consumer must read `edge_class` to tell them apart."
+}

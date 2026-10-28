@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When that option is on, the default is a stub that returns NULL from calloc and does nothing on free, so the project must supply its own functions before the library allocates.\nVERDICT: HIT\nWHY: The answer states that with NO_STD_FUNCTIONS the default pointers are stubs returning NULL from calloc and doing nothing on free, so they fail rather than fall back."
+}

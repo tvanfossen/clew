@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\ninclude/entropic/entropic.h\nscripts/gen_bindings.py\nsrc/facade/entropic.cpp\nhooks.py\nstreams.py\nmcp.py\nhelpers.py\nstreams.py\npython/src/\nEND\n\nWait \u2014 correcting to the exact paths as written, without duplicates:\n\nITEMS:\n__init__.py\ninclude/entropic/entropic.h\nscripts/gen_bindings.py\n_loader.load()\n_bindings.py\nhooks.py\nstreams.py\nmcp.py\nhelpers.py\nsrc/facade/entropic.cpp\npython/src/\nEND"
+}

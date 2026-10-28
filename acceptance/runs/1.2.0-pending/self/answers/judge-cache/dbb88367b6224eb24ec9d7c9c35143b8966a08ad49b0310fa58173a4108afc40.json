@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_staleness_within_budget` in `tools_query.py` shrinks the notices to fit the response budget rather than dropping them.\nVERDICT: MISS\nWHY: The answer says the notices are shrunk to fit the budget instead of being dropped, but it never says the wording is degraded, so the item's specific mechanism is absent."
+}

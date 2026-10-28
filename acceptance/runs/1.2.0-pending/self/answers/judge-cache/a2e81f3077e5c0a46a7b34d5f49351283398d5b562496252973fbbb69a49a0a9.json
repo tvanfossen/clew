@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The documented `.clew.yaml` sections map one-to-one onto the CLI options. Examples are `shared_key_patterns`, `thread_patterns`, `mqtt_dispatch`, `index_scope`, `doxyfile`, `kconfig`, and `preprocessor`.\nVERDICT: MISS\nWHY: The answer says sections map one-to-one onto CLI options, but it never says the embedding caller's `options` names are the same words as the section names or that diagnostics use those words."
+}

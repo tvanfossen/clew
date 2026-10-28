@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 36796,
+  "stop_reason": "end_turn",
+  "session_id": "2a23e0b7-f1bf-4adb-9ede-9c966d6cb742",
+  "total_cost_usd": 0.01024598,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 21370,
+    "cache_read_input_tokens": 348788,
+    "output_tokens": 4965,
+    "output_tokens_details": {
+      "thinking_tokens": 1911
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 21370,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2488,
+        "cache_read_input_tokens": 53638,
+        "cache_creation_input_tokens": 1268,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1268
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 4965,
+      "cacheReadInputTokens": 348788,
+      "cacheCreationInputTokens": 21370,
+      "webSearchRequests": 0,
+      "costUSD": 0.01024598,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1911,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 21370,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** a clew caller list is a list of *functions that have a resolved edge into the target name*, each tagged with how it was matched. It is not a list of call sites, and several things can make it misleading.\n\nI answered from the source (`clew/query/models.py`, `clew/query/symbols.py`, `clew/query/dossier.py`, and the tool description templates). I did not run clew against an index.\n\n**What each neighbour row carries** (`CallEdge`)\n\n- `name`, `rowid`: the caller's name and identity. There is no line number or call-site location on the row.\n- `source`: which doxygen or AST layer found the edge. Edges are stored once per layer, and the row reports the strongest evidence.\n- `confidence`: `exact`, `resolved` or `fuzzy` for call edges.\n- `edge_class`: `call` for a direct call, or `key` for a shared-key dataflow edge. A `key` row is not a call at all. It means one function writes a key the other reads, with no call between them, and it may be asynchronous or cross threads.\n- `implementors`: for a virtual endpoint, the bodies doxygen says override it. This is an annotation, not a synthetic edge.\n- `via_macro` and `via_macro_expansion`: the call is written as a macro, so the body contains no text for that hop.\n\nAround the rows, the reply adds:\n\n- `ambiguous` (`NameAmbiguity`): how many same-named functions the bare name matches, and how many neighbours are shared with them.\n- `callers_unresolved`: how many call sites named this function and failed to resolve. `None` means the index predates this measurement, which is not the same as 0.\n- `provenance: 'ast'`: the parser recovered the symbol because doxygen never emitted it. An empty brief there means unparsed, not undocumented.\n- `anchor_mismatch`: the file changed after the build, so the lines may no longer belong to that function.\n\n**What makes it wrong to read as a list of call sites**\n\n1. **Name-based matching, not receiver-based.** `obj.method()` is matched on the tail name `method`, and the receiver's type is never checked. Every same-named function inherits every such caller. The code's own measurement: `Get` matches 33 functions and shows 162 callers, at most one per call site being real. Check `ambiguous` before attributing any caller to a specific function.\n2. **`fuzzy` is a three-value label on a number.** A 2-candidate fuzzy edge and a 33-candidate one get the same label. The candidate count is the part that tells them apart.\n3. **Empty is not the same as no callers.** An empty `callers` means \"nothing calls this\" only when `callers_unresolved` is zero. Calls behind an unsatisfied preprocessor guard, through a function pointer, or in a file the parser could not read can all leave no row.\n4. **One row per function, not per site.** Several call sites in one caller collapse into one row, and the row gives no line. You must open the caller to find where it calls.\n5. **Surfaces differ.** `dossier` uses direct calls only (`include_dataflow=False`), with dataflow exposed as separate `writes`/`reads`. The standalone `callers` function merges `key` rows into the same list. Whether a list contains dataflow depends on which surface produced it. `qualified` narrows the call half but not the key half, so `key` rows can still come from every same-named function.\n6. **Macro hops.** An edge can read `resolved` while the calling text never names the callee; `via_macro` is what shows the path.\n7. **Snapshot.** The answer reflects the index at build time, so `anchor_mismatch` and the build's age both matter.\n\nA correct reading is: \"these functions have a resolved or fuzzy edge into this name, here is how many same-named functions share that name, and here is how many sites failed to resolve.\" Treat it as a candidate list to verify in the caller's body, not as a set of confirmed call sites.",
+  "ttft_ms": 2652,
+  "type": "result",
+  "duration_ms": 37218,
+  "uuid": "8ac9db94-ac6c-4cea-808a-024242ddc467",
+  "ttft_stream_ms": 2199,
+  "time_to_request_ms": 142,
+  "first_content_frame_ms": 2199,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

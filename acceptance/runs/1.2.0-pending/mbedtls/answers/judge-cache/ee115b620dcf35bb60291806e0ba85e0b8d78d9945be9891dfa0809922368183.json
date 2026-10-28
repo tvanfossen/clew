@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When both are present, `platform.c` drops the runtime setter entirely, so calling it fails to link.\nVERDICT: MISS\nWHY: The answer says the setter is dropped from platform.c and \"declared only in this configuration\" (the runtime-setter config), which is close. But it never says outright that on the macro path the function is neither declared nor compiled. It only implies this, so the item isn't stated."
+}

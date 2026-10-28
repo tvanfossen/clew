@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A repo can declare `index_scope` in `.clew.yaml` to set those itself. If it doesn't, the default is the whole repository\" and \"`derive_scope` absorbs a rejected declaration into the whole-repo tier so internal callers always get a scope.\"\nVERDICT: HIT\nWHY: The answer says a declared index_scope is used when present, and that both a missing declaration and a rejected or unusable one fall through to the whole-repo scope. It also mentions the git-missing case, where the scope is wider but not empty."
+}

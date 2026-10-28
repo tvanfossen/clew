@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Accept loop | `external_bridge.cpp:796` | Polls the listen fd, accepts clients ... Per-client serve thread | `external_bridge.cpp:945` | Serves one MCP client | Pushed into `client_threads_`... Each connection's uid is checked with `SO_PEERCRED` before a thread is spawned.\nVERDICT: HIT\nWHY: The answer identifies an accept-loop thread in the external bridge that spawns a separate per-client serve thread for each connection."
+}

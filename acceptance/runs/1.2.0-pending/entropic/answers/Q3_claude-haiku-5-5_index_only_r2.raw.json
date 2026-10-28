@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 29520,
+  "stop_reason": "end_turn",
+  "session_id": "e591f89a-3f76-40a8-a0aa-192bf404f886",
+  "total_cost_usd": 0.01105604,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 27821,
+    "cache_read_input_tokens": 274314,
+    "output_tokens": 5495,
+    "output_tokens_details": {
+      "thinking_tokens": 2373
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 27821,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2814,
+        "cache_read_input_tokens": 59399,
+        "cache_creation_input_tokens": 5276,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5276
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5495,
+      "cacheReadInputTokens": 274314,
+      "cacheCreationInputTokens": 27821,
+      "webSearchRequests": 0,
+      "costUSD": 0.01105604,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2373,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 27821,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 23,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The call's fate is decided in two places. Approval runs first, in `ToolExecutor`. Deny is enforced later, in `ServerManager::execute`. Only the allow-list and a callback are approval-side. The deny list is checked only at execution, so it still applies after anything has been approved.\n\n**Flow for one tool call** (`check_call_preconditions`, `src/mcp/tool_executor.cpp:667`):\n\n```\ncall\n \u251c\u2500 anti-spiral hard block        (fires first)\n \u251c\u2500 schema check\n \u251c\u2500 MCP key authorization         (check_mcp_authorization)\n \u251c\u2500 tier allowed_tools            (check_tier_allowed, gh#83)\n \u251c\u2500 duplicate-call check\n \u2514\u2500 check_approval_pc\n      \u2514\u2500 check_approval\n           \u251c\u2500 auto_approve_tools?          \u2192 approved\n           \u251c\u2500 is_explicitly_allowed(allow) \u2192 approved\n           \u251c\u2500 else on_tool_call callback   \u2192 approved = true (see below)\n           \u2514\u2500 else                          \u2192 denied (\"Permission denied\")\n \u2193 approved\nServerManager::execute\n \u2514\u2500 is_denied(deny list)? \u2192 \"Error: Permission denied for <tool>\"\n \u2514\u2500 route_tool_call\n```\n\n**What each list does**\n\n- **allow** (`PermissionManager::is_allowed`): a match skips the prompt. It does not grant execution past a deny match, because deny is checked again in `execute`.\n- **deny** (`PermissionManager::is_denied`): a match blocks the call at execute time, even if approval passed. The header says \"deny takes precedence,\" and the code matches that: deny is the last gate.\n- Both lists use the same matcher, `pattern_matches`. It splits the pattern on the first `:`:\n  - Left side (or the whole pattern if there's no colon) is `fnmatch`ed against the fully-qualified tool name, e.g. `filesystem.*` covers every filesystem tool.\n  - No colon means the tool matches with any arguments.\n  - With a colon, the full string `tool:<arg>` is `fnmatch`ed against the pattern, e.g. `bash.execute:python*`.\n- The argument side comes from `args_to_pattern`, which takes only the **first** JSON member of the arguments. If it is a string, that value is used; otherwise the argument is treated as `*`. Patterns therefore match the first argument, not all of them.\n- `fnmatch` is called with flags 0, so `*` also matches `/` and spaces, and matching is case-sensitive.\n- Bash's `BashServer::get_permission_pattern` generates `bash.execute:<base_cmd> *`, e.g. `bash.execute:pytest *`. The base-command form is what gets offered for \"Always Allow/Deny,\" and it is saved through `PermissionPersister::save_permission` into `config.local.yaml`. Note that the allow/deny matching path itself uses `args_to_pattern`, not this method. I did not confirm how `ServerManager::get_permission_pattern` joins the two.\n\n**Config sources:** `PermissionsConfig` (`include/entropic/types/config.h:589`) has `allow`, `deny` and `auto_approve`. `parse_permissions_config` reads them from the `permissions:` YAML section.\n\n**Things to check**\n\n- In `check_approval`, if `on_tool_call` is set, `approved` is set to `true` unconditionally after the callback runs. So a registered callback approves every call that reaches it, and the \"default-deny\" behaviour in the header only holds when no callback is wired. The header says \"approved via callback,\" which reads as if the callback decides. I'd treat this as a possible bug, but I only read the index, not the callback's contract.\n- Anything denied by `deny` still reaches `execute` only after approval. A call approved by the callback is blocked there, so deny remains effective either way.",
+  "ttft_ms": 1606,
+  "type": "result",
+  "duration_ms": 30570,
+  "uuid": "8f199b6a-9be3-40e0-a735-a00e54919f49",
+  "ttft_stream_ms": 1351,
+  "time_to_request_ms": 73,
+  "first_content_frame_ms": 1351,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Facts (tiers 3\u20134) are never displaced.** A stated tier only replaces the guesses underneath. So `main` survives even when someone passes `--entry-patterns`, which previously dropped it silently.\nVERDICT: HIT\nWHY: The answer says stated tiers (1\u20132) replace the stated layer, while tiers 3\u20134 (discovered facts) accumulate and are never displaced by anything stated, which is the asymmetry the item names."
+}

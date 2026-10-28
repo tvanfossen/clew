@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says surfaces differ in whether dataflow is included, and that `qualified` narrows only the call half. It never says that one surface selects the focal function by resolved identity while the traversal surface matches on the bare name."
+}

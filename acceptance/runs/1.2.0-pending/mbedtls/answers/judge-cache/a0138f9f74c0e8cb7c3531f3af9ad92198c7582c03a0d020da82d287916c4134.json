@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\ninclude/mbedtls/mbedtls_config.h\nplatform.h\nlibrary/platform.c\nplatform.c\nlibrary/memory_buffer_alloc.c\nprograms/test/selftest.c\ncipher_wrap.c\nEND"
+}

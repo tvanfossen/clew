@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Macros win over runtime setup (`platform.c:16-19`).\" and \"Leave both macros undefined, then call `mbedtls_platform_set_calloc_free(my_calloc, my_free)`\"\nVERDICT: MISS\nWHY: The answer separates compile-time macros from runtime function pointers, but it never says they are mutually exclusive. It only says the macros take precedence over runtime setup, and the mutual-exclusion rule it cites is between `*_MACRO` and `STD_*`, which is a different pairing."
+}

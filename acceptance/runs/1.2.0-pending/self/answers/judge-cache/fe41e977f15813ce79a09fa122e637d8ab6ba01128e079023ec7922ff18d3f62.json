@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is non-raising, so a failed measurement degrades to \"do not refresh\" and never breaks a query.\nVERDICT: MISS\nWHY: The non-raising claim is about `_data_stale` degrading to \"do not refresh\", not about the staleness measurement degrading to no annotation on query replies."
+}

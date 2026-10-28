@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In the asm path it is `asm volatile(\"\" : [x] \"+r\"(x))`. \nVERDICT: HIT\nWHY: The answer shows the empty asm volatile with the value as a \"+r\" input-output operand and says it's the compiler barrier stopping the optimiser seeing through the mask."
+}

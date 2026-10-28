@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says a winning tier is recorded with the index or that the record is derived from stored rows; it only says stated options are recorded in `build_meta` and replayed."
+}

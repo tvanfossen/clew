@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Add `#define MBEDTLS_ERR_<MODULE>_<NAME> -0x00NN` to the module's header in `include/mbedtls/`... Put `/** \u2026 */` before the define or `/**< \u2026 */` after it\" and \"**Regenerate.** Run `perl scripts/generate_errors.pl` from the repo root, or let the build do it. Don't hand-edit `library/error.c`.\"\nVERDICT: HIT\nWHY: The answer says to add the doc-commented #define to the public header, re-run the generator, and not hand-edit library/error.c."
+}

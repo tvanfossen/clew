@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Empty is also a valid result for empty input with `add_special=false`, so a caller cannot tell \"failed\" from \"nothing to encode.\"\"; \"Nothing checks `tokens.empty()`.\"\nVERDICT: HIT\nWHY: The answer says failure is returned as an empty vector, indistinguishable from a legitimately empty result. It also says that no caller checks for it on the main paths. It does note that the speculative path checks `size() < 2`, so \"no caller\" is slightly overstated, but the substance is stated."
+}

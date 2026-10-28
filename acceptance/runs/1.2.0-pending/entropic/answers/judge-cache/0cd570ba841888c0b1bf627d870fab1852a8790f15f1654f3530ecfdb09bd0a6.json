@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::run_async_ask` spawns `std::thread(...).detach()` per `entropic.ask` (`external_bridge.cpp:1158-1222`). The thread captures `this` and `handle_`, and nothing joins it.\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as the detached thread with no join that outlives the bridge/caller, which is the substance of the item."
+}

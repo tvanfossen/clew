@@ -390,6 +390,36 @@ def passes_recorded(answers: Path, stem: str, digest: str, fingerprint: str) -> 
     return count
 
 
+## @brief One cell's progress line, with an unruled question named rather than numbered.
+## @param stem The cell stem.
+## @param got The question's score, or None when nothing was ruled.
+## @param unmarked Share of weight the judge did not reach.
+## @return The line to print.
+## @version 1
+def _grade_line(stem: str, got: float | None, unmarked: float) -> str:
+    """SPLIT OUT OF `_grade_one` BECAUSE IT CRASHED A RUN 90 CELLS IN. `score()` returns
+    `float | None` by design — None means NOTHING WAS RULED, which is what stopped an unruled
+    question being published as a confident 0.0 — and this line formatted it with `:6.1%`, so
+    the first fully-unruled cell killed the whole grading phase with a TypeError. The sidecar is
+    written BEFORE this runs, so no score was lost; the phase died reporting one.
+
+    IT PRINTS `UNRULED`, NOT `0.0%`, and that is the whole point of the fix. A reader scanning a
+    grading log for weak cells must not see a zero where the measurement is absent — that is the
+    confusion the None exists to end, and printing it as zero would reintroduce it in the one
+    place a human actually looks.
+
+    A FUNCTION SO IT CAN BE TESTED. Inline in a closure it was unreachable from a test, which is
+    why a format string survived a change to the type it formats.
+
+    @brief Format one graded cell for the log.
+    @return Progress line.
+    @version 1
+    """
+    if got is None:
+        return f"{stem:<34} score UNRULED  unmarked {unmarked:5.1%}"
+    return f"{stem:<34} score {got:6.1%}  unmarked {unmarked:5.1%}"
+
+
 ## @brief Grade every frozen answer against the rubric.
 ## @param args Parsed arguments.
 ## @return Exit code.
@@ -466,7 +496,7 @@ def cmd_grade(args) -> int:
         ## judge noise.
         with (args.answers / f"{path.stem}.grades.jsonl").open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(record) + "\n")
-        return f"{path.stem:<34} score {got:6.1%}  unmarked {unmarked:5.1%}"
+        return _grade_line(path.stem, got, unmarked)
 
     ## CONCURRENT ONLY WHEN ASKED, AND THE ORDER OF THE LOG NEVER MOVES. The answers are graded
     ## in whatever order slots free up, but `map` yields results in submission order, so the

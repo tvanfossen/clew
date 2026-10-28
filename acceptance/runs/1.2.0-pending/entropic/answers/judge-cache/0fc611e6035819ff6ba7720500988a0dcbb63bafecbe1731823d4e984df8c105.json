@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The Python package is a ctypes shim over the C ABI\" and \"_loader.load()      finds librentropic.so, returns ctypes.CDLL\"\nVERDICT: HIT\nWHY: The answer identifies ctypes loading librentropic.so via CDLL as the mechanism, and it describes no compiled extension module."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A deny match also overrides `auto_approve` and the allow list, because it is checked unconditionally in `execute`.\"\nVERDICT: MISS\nWHY: The answer shows the allow list inside `check_approval` and the deny list in `ServerManager::execute`. It never says the allow list only suppresses the approval step without granting execution, or that it is consulted only from `check_approval`. The most it does is imply this through the deny-override remark."
+}

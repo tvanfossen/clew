@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global (`constant_time_impl.h:85-93`, `constant_time.c:29`).\nVERDICT: HIT\nWHY: The answer says that without asm the opaque function XORs with the volatile global `mbedtls_ct_zero`. It names that global and implies it holds zero. The item asks for the same function falling back, and the answer describes `mbedtls_ct_compiler_opaque` doing so."
+}

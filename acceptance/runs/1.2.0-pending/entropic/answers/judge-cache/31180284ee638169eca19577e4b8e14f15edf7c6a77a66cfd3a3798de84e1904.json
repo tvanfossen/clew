@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its reach is confined to the inference layer and a few facade and C++ headers, not the whole engine.\nVERDICT: MISS\nWHY: The answer says reach is \"confined\" to inference plus facade/headers, and gives no count showing a minority of reaching files outside src/inference. It frames the dependency as contained, not \"concentrated but not contained.\""
+}

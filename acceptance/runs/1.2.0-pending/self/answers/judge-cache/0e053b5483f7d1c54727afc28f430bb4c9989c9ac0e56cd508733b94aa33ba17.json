@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `<repo>/.clew.yaml` | 2 `declared` | **Replaces** | The repo's standing statement. Same section format as `--declare`.\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as tier 2, the repo's standing statement, but never says it is discovered from the repo root by both entry points (CLI and MCP) rather than plumbed per section."
+}

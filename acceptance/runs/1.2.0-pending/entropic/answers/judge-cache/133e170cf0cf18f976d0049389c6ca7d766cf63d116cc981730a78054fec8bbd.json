@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Thread creation sites the answer names:\n\n- `src/facade/external_bridge.cpp` (accept loop, per-client serve threads, detached async-ask workers)\n- `src/mcp/health_monitor.cpp`\n- `src/mcp/transport_sse.cpp`\n- `src/mcp/transport_stdio.cpp`\n- `src/inference/inference_c_api.cpp`\n- `src/core/response_generator.cpp`\n- `src/inference/interface_factory.cpp`\n\nITEMS:\nsrc/facade/external_bridge.cpp\nsrc/mcp/health_monitor.cpp\nsrc/mcp/transport_sse.cpp\nsrc/mcp/transport_stdio.cpp\nsrc/inference/inference_c_api.cpp\nsrc/core/response_generator.cpp\nsrc/inference/interface_factory.cpp\nEND"
+}

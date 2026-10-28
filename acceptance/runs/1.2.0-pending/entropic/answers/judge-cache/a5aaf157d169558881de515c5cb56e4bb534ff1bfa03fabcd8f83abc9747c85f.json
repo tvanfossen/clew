@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Polls an `int*` cancel flag every 10 ms and raises an `std::atomic<bool>` for the backend\nVERDICT: MISS\nWHY: The answer describes the poller converting int to atomic but never says it exists to bridge an atomic into a plain int because the C ABI can't carry an atomic. It even frames the direction oppositely, as a gap."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 40700,
+  "stop_reason": "end_turn",
+  "session_id": "483c63c4-70ea-4a27-a597-15653085cbeb",
+  "total_cost_usd": 0.01573944,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 36228,
+    "cache_read_input_tokens": 558764,
+    "output_tokens": 5808,
+    "output_tokens_details": {
+      "thinking_tokens": 2104
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 36228,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2387,
+        "cache_read_input_tokens": 68054,
+        "cache_creation_input_tokens": 1713,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1713
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 5808,
+      "cacheReadInputTokens": 558764,
+      "cacheCreationInputTokens": 36228,
+      "webSearchRequests": 0,
+      "costUSD": 0.01573944,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2104,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 36228,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the repository's own `index_scope:` declaration decides, and it is the only tier that makes a real scope decision. With nothing declared, the scope is the whole repository minus what git ignores, plus dot and cache directories. The Doxyfile no longer decides scope (gh#333), and the gate's config doesn't either.\n\nI read the code in `clew/scope.py`, `clew/treescan.py`, `clew/declaration.py`, `clew/doxygen.py`, `clew/harvest.py` and `clew/filetypes.py`. I did not run a build, so the behaviour below is from reading the code.\n\n**Decision flow**\n\n```\nderive_scope(repo_root)\n \u251c\u2500 load .clew.yaml (no file / no index_scope \u2192 None)\n \u251c\u2500 index_scope present but unusable \u2192 _Rejected \u2192 refuse the build (CLI exits 1)\n \u251c\u2500 index_scope with roots that exist \u2192 SOURCE_DECLARED (roots replace the scope)\n \u2514\u2500 otherwise \u2192 whole_repo_scope(repo)\n        roots    = [repo]\n        excludes = git-ignored paths\n                 + nested-repo ignores\n                 + dot-directories and __pycache__/node_modules\n```\n\n**Tier 1: a declaration.** `_declared_index_scope` (`scope.py` ~991) reads `index_scope:` from `.clew.yaml`. Only `roots` and `excludes` are accepted; any other key is rejected. `roots` is required, because `excludes` alone does nothing. Roots that don't exist on disk are dropped. A present-but-unusable section is refused at the CLI, not quietly widened to the whole repo.\n\n**Tier 2: nothing declared.** `whole_repo_scope` (`scope.py` ~683) is the default. Its root is the repository itself, and nested git trees are included and tagged rather than cut out. Exclusions come from three places:\n\n- **Git-ignored paths.** `git ls-files --others --ignored --exclude-standard --directory` (`_gitignored_paths`, ~845). Wholly ignored directories collapse into one entry. Each nested repo's own ignores are collected separately, because the parent's `ls-files` stops at the submodule boundary.\n- **Dot and cache directories.** Any directory whose name starts with `.` is pruned at any depth, along with `__pycache__` and `node_modules`. This applies even when git does not ignore them, so `.github/` is excluded.\n- **Depth cap.** Below depth 16 the walk stops pruning and takes the directories wholesale. The limit is recorded for provenance.\n\nIf the repo is not under git, a warning is logged and no git-ignored paths are excluded. Only the dot and cache pruning applies.\n\n**What doxygen then reads.** The whole-repo root goes in as doxygen's INPUT, with the exclusions as EXCLUDE. `FILE_PATTERNS` is forced to doxygen's own broad default list (`DOXYGEN_DEFAULT_FILE_PATTERNS`, `doxygen.py` ~203), which includes `*.py`, `*.h`, `*.md`, `*.java` and many more. A repo's declared `FILE_PATTERNS` no longer vetoes files (gh#340). A repo's own Doxyfile still supplies ALIASES and PREDEFINED, but its INPUT is ignored.\n\n**What filters after that.**\n\n- `enumerate_tree` (`treescan.py` ~203) is deliberately not extension-filtered. Every file under INPUT is hashed for the cache, so the cache errs toward a miss.\n- Binary files are dropped by `lang_parsing_substrate.classify_file` (`filetypes.py`), both from the scanned tree and before every harvest read.\n- Symbol parsing is by extension. `harvest.py` maps suffixes to tree-sitter grammars (C, C++, Python, Rust, JS, TS, shell, CMake). A file whose extension matches no grammar is hashed but not parsed.\n\n**Things worth knowing:**\n\n- The decision is per build, and `derive_scope` resets the depth-limit record on each call.\n- This repo's own `.clew.yaml` has only a `guard:` section, so `clew index` on it runs on the whole-repo default. Its comment says so explicitly.\n- Because the default is wide, a repo with large vendored trees that are not gitignored will be indexed in full unless it declares `index_scope:` with `roots:` and `excludes:`.",
+  "ttft_ms": 3908,
+  "type": "result",
+  "duration_ms": 41715,
+  "uuid": "371055df-a306-4bb5-97f3-2322aebf2797",
+  "ttft_stream_ms": 3598,
+  "time_to_request_ms": 270,
+  "first_content_frame_ms": 3599,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

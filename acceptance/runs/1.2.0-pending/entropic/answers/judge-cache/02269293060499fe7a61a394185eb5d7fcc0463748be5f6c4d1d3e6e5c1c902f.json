@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The two `llama_tokenize` calls are both in one function, `entropic::LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`), not in two places. The first call passes a null buffer and size 0 to get the required token count.\nVERDICT: HIT\nWHY: The answer names the file src/inference/llama_cpp_tokenizer.cpp and the function, and explains the size-query then fill two-call pattern."
+}

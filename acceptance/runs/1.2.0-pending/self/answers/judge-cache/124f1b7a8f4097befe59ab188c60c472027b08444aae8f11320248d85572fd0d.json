@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`code` | ... | Restarting the MCP client only. A rebuild runs the old logic.\" and \"`data` | ... | `index(action='refresh')`\"\nVERDICT: HIT\nWHY: The table gives a different remedy per axis (rebuild/refresh for data, client restart for code, and a rebuild can't clear code). It never says why one flag wouldn't be enough, but the different-actions substance is stated."
+}

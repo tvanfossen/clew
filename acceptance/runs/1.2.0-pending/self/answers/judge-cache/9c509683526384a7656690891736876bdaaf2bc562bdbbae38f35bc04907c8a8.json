@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`notices()` (`freshness.py`) turns those checks into a list of `{axis, message}` in the order data, schema, code. The list is empty when the index is current, and `staleness_notices()` in `server.py` attaches it to every query reply.\"\nVERDICT: HIT\nWHY: The answer says the notices are attached to every query reply and that the list is empty when the index is current."
+}

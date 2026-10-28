@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: What actually gates it is Valgrind/MSan \"constant flow\" tests in CI. ... `test_with_valgrind_constant_time` in `tests/scripts/components-configuration-crypto.sh:25-32` runs the `*constant_time*.data` suites under Valgrind memcheck with a `valgrind_cf` configuration.\nVERDICT: MISS\nWHY: The answer says constant-flow is tested via Valgrind/MSan in CI, but it never says the facility is off-by-default or explicitly not part of the library API."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Async `entropic.ask` worker | `src/facade/external_bridge.cpp:1158-1222`, `.detach()`\" and \"Detached async worker can outlive the bridge... Neither `stop()` nor the destructor waits for it.\"\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as detached and states that nothing joins it, so it outlives the bridge. It also says the other threads are joined, which implies this is the only detached one."
+}

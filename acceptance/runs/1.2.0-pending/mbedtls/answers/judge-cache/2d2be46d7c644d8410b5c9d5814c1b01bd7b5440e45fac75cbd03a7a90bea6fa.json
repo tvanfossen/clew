@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | Every library translation unit that includes `common.h` (129 of them). ... \"inside the library, `MBEDTLS_PRIVATE(x)` is just `x`, so the library reads and writes its own fields directly.\"\nVERDICT: HIT\nWHY: The answer says library code defines the opt-out in the shared internal header common.h, so every library TU sees plain member names."
+}

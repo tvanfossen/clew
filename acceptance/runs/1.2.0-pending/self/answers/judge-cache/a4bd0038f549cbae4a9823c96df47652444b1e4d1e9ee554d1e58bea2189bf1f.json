@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The reason string is set to say that no `index_scope` was declared, where the declaration was looked for, and what was excluded. That reason is what the build logs and what `IndexScope` reports, so the scope is never silently guessed.\nVERDICT: HIT\nWHY: The answer states that the fallback scope carries a reason string explaining which scope was used and why, so it is never silently guessed."
+}

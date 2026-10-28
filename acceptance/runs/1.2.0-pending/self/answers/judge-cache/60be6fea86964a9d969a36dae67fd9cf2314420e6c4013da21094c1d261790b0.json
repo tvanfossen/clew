@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says a containment call was removed rather than left in place with its callers dropped; it describes nested-tree inclusion and scope resolution without that fact."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The string lookup lives in `library/error.c`, which is generated from the `MBEDTLS_ERR_*` defines in `include/mbedtls/*.h` by `scripts/generate_errors.pl`.\nVERDICT: MISS\nWHY: The answer says error.c is generated from the public headers by generate_errors.pl, but it never names scripts/data_files/error.fmt as the template, which the item requires."
+}

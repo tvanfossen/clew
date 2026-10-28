@@ -1,0 +1,40 @@
+{
+  "stem": "Q2_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "skills": "",
+  "answered_by": "claude-haiku-5-5",
+  "seconds": 26.048315146006644,
+  "input_tokens": 10,
+  "output_tokens": 3470,
+  "cache_read_tokens": 189724,
+  "cache_creation_tokens": 13503,
+  "cost_usd": 0.00633384,
+  "result_bytes": 2860,
+  "turns": 7,
+  "tool_calls": 6,
+  "non_index_tool_calls": 6,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/1.2.0-pending/entropic/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nentropic depends on llama.cpp. How is that dependency brought in, and how far into\nentropic's own source does it reach?\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "tvanfossen/entropic",
+    "question_id": "Q2",
+    "arm": "baseline",
+    "model": "claude-haiku-5-5",
+    "replicate": 2,
+    "order": 23
+  }
+}

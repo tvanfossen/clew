@@ -1,0 +1,163 @@
+{
+  "cell": "Q4_claude-haiku-5-5_index_only_r3",
+  "arm": "index_only",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.0,
+  "unmarked_pct": 0.20689655172413793,
+  "split_decisions": 0,
+  "grader_fingerprint": "5489758d9a50",
+  "decisions": [
+    {
+      "mark": "states that call_edges stores one row per extraction LAYER, so the same logical edge found by two detectors is stored twice",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions call_edges storing one row per extraction layer or duplicate rows for the same edge found by two detectors.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the query surface returns ONE row per neighbour rather than one per layer, collapsing the variants to the strongest evidence",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says a caller appears once even if it calls multiple times, but it never concludes the query surface collapses per-layer variants of a neighbour into one row with the strongest evidence.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that which layer's provenance a collapsed row reports is decided by a RANKING held in the vocabulary module, not by SQL",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer discusses caller lists for `git_argv` and never mentions collapsed rows, layer provenance, or a ranking in the vocabulary module.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the same collapse function serves BOTH the flat neighbour surface and the traversal surface, so a chain and a neighbour list cannot disagree about one edge's provenance",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer discusses caller lists for `git_argv` and never mentions a shared collapse function serving both the neighbour and traversal surfaces.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the flat surface KEEPS fuzzy-confidence edges while the traversal surface excludes them, and gives the reason \u2014 a walk expands each hop, so one fuzzy edge multiplies into a wrong subtree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never discusses fuzzy-confidence edges being kept in the flat surface but excluded from traversal, nor the reason that a walk multiplies a fuzzy edge into a wrong subtree.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that `callers`/`callees` return TWO KINDS of neighbour in one list \u2014 direct calls and shared-key dataflow \u2014 distinguished by an `edge_class` field the consumer must read",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"The list covers `edge_class: call` only.\" | WHY: The answer shows `edge_class: call` on each caller but never says the list can mix direct calls with shared-key dataflow neighbours, or that the consumer must read `edge_class` to tell them apart.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that the causal polarity is INVERTED between the two halves \u2014 the \"callers\" of a reader are the functions whose writes it observes",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says the causal polarity is inverted between halves, or that a reader's \"callers\" are the functions whose writes it observes; it only discusses call-edge callers of `git_argv`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that dossier does NOT take the merged form \u2014 it asks for the call half only, because it already composes the dataflow separately and merging would report each dataflow edge twice in one payload",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says dossier asks for the call half only or that merging would report each dataflow edge twice; it only describes the caller list.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the two surfaces resolve the FOCAL side differently \u2014 the flat surface selects by resolved identity while the traversal surface still matches on the bare name",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never discusses flat vs traversal surfaces resolving the focal side differently (resolved identity vs bare name); it only describes a single caller list.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction matched no member \u2014 likely a key mismatch, not a wrong answer. extracted ['clew/gitenv.py', 'clew/mcp_server/server.py', 'tests/test_security_surface.py']; members ['call_edges.py', 'dossier.py', 'symbols.py', 'traversal.py', 'vocabulary.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction matched no member \u2014 likely a key mismatch, not a wrong answer. extracted ['clew/gitenv.py', 'clew/mcp_server/server.py', 'tests/test_security_surface.py']; members ['call_edges.py', 'dossier.py', 'symbols.py', 'traversal.py', 'vocabulary.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction matched no member \u2014 likely a key mismatch, not a wrong answer. extracted ['clew/gitenv.py', 'clew/mcp_server/server.py', 'tests/test_security_surface.py']; members ['call_edges.py', 'dossier.py', 'symbols.py', 'traversal.py', 'vocabulary.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction matched no member \u2014 likely a key mismatch, not a wrong answer. extracted ['clew/gitenv.py', 'clew/mcp_server/server.py', 'tests/test_security_surface.py']; members ['call_edges.py', 'dossier.py', 'symbols.py', 'traversal.py', 'vocabulary.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction matched no member \u2014 likely a key mismatch, not a wrong answer. extracted ['clew/gitenv.py', 'clew/mcp_server/server.py', 'tests/test_security_surface.py']; members ['call_edges.py', 'dossier.py', 'symbols.py', 'traversal.py', 'vocabulary.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction matched no member \u2014 likely a key mismatch, not a wrong answer. extracted ['clew/gitenv.py', 'clew/mcp_server/server.py', 'tests/test_security_surface.py']; members ['call_edges.py', 'dossier.py', 'symbols.py', 'traversal.py', 'vocabulary.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

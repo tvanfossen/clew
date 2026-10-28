@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says threads exist only outside `library/` and that `library/threading.c` holds the mutex abstraction. It never states the contrast directly: that nothing in `library/` creates a thread, yet `library/` supplies the mutex abstraction for threaded callers."
+}

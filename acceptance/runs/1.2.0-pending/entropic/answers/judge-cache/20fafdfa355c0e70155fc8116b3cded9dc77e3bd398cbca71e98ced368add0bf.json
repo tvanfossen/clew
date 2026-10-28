@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:55`, `:61`) | `llama_tokenize(..., nullptr, 0, ...)` to get the count | `llama_tokenize(..., tokens.data(), n, ...)` to fill\nVERDICT: HIT\nWHY: The answer names the file and the two-call sizing pattern in tokenize (lines 55/61) and detokenize (93/99)."
+}

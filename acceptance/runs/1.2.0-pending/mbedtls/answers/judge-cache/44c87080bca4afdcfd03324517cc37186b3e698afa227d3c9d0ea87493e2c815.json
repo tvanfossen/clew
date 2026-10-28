@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says MBEDTLS_PLATFORM_MEMORY is required for the runtime/function-pointer path, but never states it is commented out in the shipped mbedtls_config.h."
+}

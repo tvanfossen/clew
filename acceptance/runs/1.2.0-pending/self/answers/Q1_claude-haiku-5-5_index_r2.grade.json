@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_r2",
+  "arm": "index",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5625,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "5489758d9a50",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: cli._apply_scope \u2500\u2500\u25ba scope.derive_scope(repo_root) | WHY: The answer names derive_scope in the scope module as where the scope decision is resolved, and says \"Scope is still decided by `derive_scope`\".",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: A section that is present but unusable is refused with exit 1 at build time (`cli._apply_scope`), rather than quietly falling back to the whole repository. | WHY: The answer states declared scope is preferred, but says an unusable declaration is refused, not that every failure falls through to whole-repo indexing. That contradicts the item.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: The reason string names the fallback: \"no index_scope is declared for this repo \u2014 \u2026 so the whole repository is the index scope.\" | WHY: The answer states the fallback carries a reason string explaining which scope was used (whole repository) and why (no index_scope declared), so the scope isn't silently guessed.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"**Doxyfile:** if the repo ships one, it still supplies ALIASES, PREDEFINED and filters, but its INPUT is replaced. The reason is measured: Mbed-TLS's `mbedtls.doxyfile` sets `INPUT = ../include` and `FILE_PATTERNS = *.h`, which indexes 1,571 header declarations and none of its 108 `library/*.c` implementations.\" | WHY: The answer says the Doxyfile's INPUT is replaced rather than used for scope, and explains that a repo's own Doxyfile would yield only its documented subset (headers only). It doesn't spell out the contrast with a repo that has no Doxyfile getting its whole tree, but the substance is there.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"Root: the whole repository, with nested git trees included. Nested trees are tagged, not excluded (gh#333).\" | WHY: The answer explicitly states nested git trees are included in the default scope and tagged rather than excluded.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it describes the current scope-derivation flow only.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes scope derivation (declaration vs. whole-repo minus git-ignored) but never says that files within scope are further filtered by readability, such as the parse-built front end claiming file types doxygen can't read or binary classification dropping files with misleading extensions.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

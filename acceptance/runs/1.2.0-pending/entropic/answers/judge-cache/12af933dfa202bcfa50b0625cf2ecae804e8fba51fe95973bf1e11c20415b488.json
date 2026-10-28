@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Failure is not retried, and a failed tokenization returns an empty result\" and \"Neither is retried after a failure, and neither loops.\"\nVERDICT: HIT\nWHY: The answer says a failure on the second call is not retried and the tokenizer returns an empty result (`{}` for tokenize, `\"\"` for detokenize)."
+}

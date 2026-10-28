@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Add the define to the module's header in `include/mbedtls/<module>.h`, with a negative hex value in an unused slot and a doc comment.\" and \"Regenerate with the library build (`make` in `library/`, or the CMake target). Do not hand-edit `error.c`.\"\nVERDICT: HIT\nWHY: The answer says to add the documented #define to the module's public header, regenerate, and not hand-edit error.c."
+}

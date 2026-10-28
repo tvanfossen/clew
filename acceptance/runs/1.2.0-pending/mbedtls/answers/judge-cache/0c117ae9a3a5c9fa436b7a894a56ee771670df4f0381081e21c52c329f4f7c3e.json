@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `include/mbedtls/private_access.h` (lines 14\u201318) does this: - Default: `#define MBEDTLS_PRIVATE(member) private_##member`.\nVERDICT: HIT\nWHY: The answer names include/mbedtls/private_access.h as the file defining MBEDTLS_PRIVATE, with line numbers and the definition."
+}

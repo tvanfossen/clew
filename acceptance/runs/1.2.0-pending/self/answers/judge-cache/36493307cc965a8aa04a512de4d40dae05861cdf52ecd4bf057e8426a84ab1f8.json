@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions clew/mcp_server/emptiness.py or locates the grading of emptiness in any specific file; it only cites AGENTS.md's principle."
+}

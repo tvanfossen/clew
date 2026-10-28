@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 22123,
+  "stop_reason": "end_turn",
+  "session_id": "ca6c520f-9712-4feb-ab86-e85db8dd6cc2",
+  "total_cost_usd": 0.00850414,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 20082,
+    "cache_read_input_tokens": 235324,
+    "output_tokens": 4267,
+    "output_tokens_details": {
+      "thinking_tokens": 2008
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 20082,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2321,
+        "cache_read_input_tokens": 57045,
+        "cache_creation_input_tokens": 1485,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1485
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4267,
+      "cacheReadInputTokens": 235324,
+      "cacheCreationInputTokens": 20082,
+      "webSearchRequests": 0,
+      "costUSD": 0.00850414,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2008,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 20082,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** Entropic runs work on background threads in about ten spawn sites. Most are long-lived service loops owned by a class that joins them in `stop()`/the destructor. The rest are short-lived pollers that are joined before the calling function returns. Safety comes from mutexes around shared state, `std::atomic` flags for stop and done signals, and joining before the owner goes away. The one exception is the detached async-ask thread, and one cross-thread `int` looks like a data race.\n\nThe index found 10 spawn sites, all `std::thread`/pthread. Two are test-only, so the production count is 8. Spawn detection only matches known primitives, so a custom spawn helper would not appear.\n\n| Thread | Spawned in | Lifetime | What keeps it safe |\n|---|---|---|---|\n| `ExternalBridge::accept_loop` | `external_bridge.cpp:796` | Joined in `stop()` (l.833) | `running_` atomic; `poll(\u2026, 500ms)` so it can notice shutdown; each accepted fd is checked with `SO_PEERCRED` (gh#34) before a thread is spawned |\n| Per-client `serve_client` thread | `external_bridge.cpp:945` | Joined in `stop()` (l.850, 884) | `client_threads_mutex_` guards the vector; `stop()` does `shutdown(SHUT_RDWR)` to unblock reads; finished threads are reaped under the same mutex |\n| `run_async_ask` worker | `external_bridge.cpp:1158` | **Detached** (l.1222) | `tasks_mutex_` guards `tasks_`; the sentinel is written under that lock so pollers see the same terminal state the notification reports |\n| `HealthMonitor::monitor_loop` | `health_monitor.cpp:92` | Joined (l.108) | `event_mutex_`, `watched_mutex_`, `wake_mutex_` |\n| `StdioTransport::stderr_reader_loop` | `transport_stdio.cpp:164` | Joined (l.219) | `io_mutex_` |\n| `SSETransport::sse_reader_loop` | `transport_sse.cpp:107` | Joined (l.139) | `pending_mutex_` |\n| Cancel pollers (3 sites) | `inference_c_api.cpp:385`, `interface_factory.cpp:246`, `response_generator.cpp:413` | Joined in the dtor or before return | `std::atomic<bool>` done flags; the local state is captured by reference, which is safe only because the join happens first |\n\n**Things to look at:**\n\n1. **Detached async-ask thread.** `run_async_ask` captures `this` and is never joined. `stop()` joins the accept and client threads but not this one, so an in-flight ask could outlive the bridge. I did not confirm whether the destructor waits for running tasks, so treat this as an open question.\n\n2. **Cross-thread plain `int` in the cancel path.** `ResponseGenerator::dispatch_batch_generate` has an observer thread write `cancel_int = 1` while the backend's `CancelFlagBridge` poller reads `*cancel_flag` (a plain `int*`, `inference_c_api.cpp:388`). That is an unsynchronized read/write pair, which is a data race under the C++ memory model. The code comment says the int is kept to avoid atomics across the `.so` boundary, but that does not make the race benign. The fix is a `std::atomic<int>` on the C side, or passing an atomic pointer internally.\n\n3. **Lock ordering.** The index found three two-lock nestings, but none have resolved call sites, so I would not cite them as confirmed. The pairs are `event_mutex_ \u2192 adapter_mutex_` (`health_monitor.cpp:122`), `auth_mutex_ \u2192 key_mutex_` (`mcp_authorization.cpp:105`), and a test-only pair. None of them is taken in opposite orders, so no deadlock pair was found.\n\nI did not run the tests or a sanitizer (TSan would confirm item 2 directly).",
+  "ttft_ms": 896,
+  "type": "result",
+  "duration_ms": 22717,
+  "uuid": "7fa9fb26-2021-43de-8d11-03ec4216732a",
+  "ttft_stream_ms": 638,
+  "time_to_request_ms": 66,
+  "first_content_frame_ms": 638,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

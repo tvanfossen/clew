@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the strong wording is the exception and that unread-corpus hits downgrade the verdict, but it never states that the wording is earned per call rather than attached to a result shape. The nearest line, \"`q.unsearched_corpora` subtracts the searched kinds from the kinds the database holds, and any hit downgrades the verdict\", describes the mechanism without that contrast."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`on_tool_call` returns `void`. If it is registered, `check_approval` sets `approved = true` after calling it (`tool_executor.cpp:168-172`). The \"prompt\" is therefore a notification, and the calling application cannot stop the call through it.\"\nVERDICT: HIT\nWHY: The answer states the callback returns void, approved is set true after calling it, and so it cannot refuse."
+}

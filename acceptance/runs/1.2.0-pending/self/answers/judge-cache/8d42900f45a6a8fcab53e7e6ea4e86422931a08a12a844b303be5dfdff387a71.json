@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Restart the MCP client. A rebuild cannot clear it, since it re-stamps the same newer version. ... `code` | Process loaded old logic | Restart the MCP client. A rebuild cannot fix it.\nVERDICT: HIT\nWHY: The answer's table and text state that the data axis is cleared by `index(action='refresh')` (a rebuild) while the code axis is cleared only by restarting the client, and that a rebuild cannot fix the code axis. It never says one flag would not have been enough, but the item's substance, that different axes need different actions, is stated."
+}

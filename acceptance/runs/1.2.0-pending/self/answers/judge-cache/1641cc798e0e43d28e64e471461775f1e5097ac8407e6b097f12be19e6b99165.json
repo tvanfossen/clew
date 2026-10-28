@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The winning tier is stamped per option into `build_meta` (`explicit`, `declared`, `target-fact`, `ecosystem` or `heuristic`), and that stamp is how a reader can tell afterward who decided.\nVERDICT: MISS\nWHY: The answer says the winning tier is recorded in the index, but it calls it a \"stamp.\" It never says the record is derived from the stored rows rather than stamped as a separate summary, so the second half of the item is missing."
+}

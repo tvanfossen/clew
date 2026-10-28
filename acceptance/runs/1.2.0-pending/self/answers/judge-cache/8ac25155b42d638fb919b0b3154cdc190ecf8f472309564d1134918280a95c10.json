@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Restart the client. A rebuild cannot clear it.\" (table rows for schema-newer and code axes) alongside \"`index(action='refresh')`\" for data, and \"Rebuilding is refused in that state.\"\nVERDICT: MISS\nWHY: The answer maps data to rebuild and code to client restart, but it never says this difference is why a single flag would not have been enough."
+}

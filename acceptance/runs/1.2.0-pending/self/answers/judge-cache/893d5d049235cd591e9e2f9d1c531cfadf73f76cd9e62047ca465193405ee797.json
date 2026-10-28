@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses `key` edges as \"one function writes a key the other reads\" but never states that caller polarity is inverted between the call and dataflow halves (callers of a reader are the writers it observes)."
+}

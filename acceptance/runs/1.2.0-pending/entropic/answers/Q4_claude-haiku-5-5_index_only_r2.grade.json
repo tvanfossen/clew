@@ -1,0 +1,173 @@
+{
+  "cell": "Q4_claude-haiku-5-5_index_only_r2",
+  "arm": "index_only",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.8148148148148148,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "5489758d9a50",
+  "decisions": [
+    {
+      "mark": "identifies that thread creation is spread across several subsystems \u2014 the external bridge, the MCP transports, the health monitor and the inference path \u2014 rather than being centralised",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `external_bridge.cpp:1158` ... `health_monitor.cpp:92` ... `transport_stdio.cpp:164`, `transport_sse.cpp:107` ... `inference_c_api.cpp:385` ... `response_generator.cpp:413` | WHY: The answer lists thread spawn sites across the external bridge, the health monitor, the MCP transports (stdio and SSE) and the inference path (cancel pollers and the interrupt observer). That shows creation spread over several subsystems, though it never says outright that this is a lack of centralisation.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "describes the external bridge's two-level thread structure: one accept thread that spawns a further thread per connected client",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Accept loop | `external_bridge.cpp:796` | Polls the listen fd, accepts clients ... Per-client serve thread | `external_bridge.cpp:945` | Serves one MCP client | Pushed into `client_threads_`... Each connection's uid is checked with `SO_PEERCRED` before a thread is spawned. | WHY: The answer identifies an accept-loop thread in the external bridge that spawns a separate per-client serve thread for each connection.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the async-ask worker as the ONE detached thread, and that it therefore outlives its caller's scope with no join",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"**Detached async worker.** `run_async_ask` launches a `std::thread` that captures `this`. The body I could see (truncated at line 1201) doesn't show a join or a lifetime guarantee that `ExternalBridge` outlives the worker.\" | WHY: The answer identifies the async ask worker as detached with no visible join, though it doesn't say it is the only detached thread. The other threads are described as joined or reaped, which implies the contrast.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that the health monitor does NOT invoke its status callback from the monitor thread \u2014 it queues events under a mutex and the caller drains them on its own thread",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `HealthMonitor::monitor_loop` | `health_monitor.cpp:92` | Watches MCP server health | The loop only enqueues. `process_events()` swaps the queue out under `event_mutex_` and runs the callbacks on the engine thread. | WHY: The answer states the monitor loop only enqueues events, and `process_events()` swaps the queue under `event_mutex_` and runs callbacks on the engine thread, which is the caller-drains-on-its-own-thread mechanism.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the monitor's shutdown is an atomic flag exchange plus a condition variable wake, and that stop() joins rather than detaching or abandoning the thread",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says nothing about the monitor's shutdown being an atomic flag exchange plus a condition variable wake, or `stop()` joining the thread. It mentions `HealthMonitor::monitor_loop` only as an event enqueuer.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the cancellation observer thread as existing to bridge an atomic into a plain int, because the C ABI boundary cannot carry an atomic",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"Interrupt observer | `response_generator.cpp:413` ... Mirrors the engine's `interrupt_flag_` into the C-ABI `int` cancel flag\" and \"The C ABI is `int*`, so the observer thread writes `cancel_int` ... This is a deliberate choice to keep atomics off the `.so` boundary\" | WHY: The answer says the observer thread copies the engine's interrupt flag into a plain C-ABI `int`, and that this keeps atomics off the `.so` boundary. That covers the atomic-to-int bridge and the reason for it.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that every thread body installs a per-handle logging scope as its first statement, so background work logs against the handle that owns it",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions a per-handle logging scope installed as the first statement of each thread body.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that each MCP transport runs its own reader thread \u2014 a stderr forwarder for the stdio transport and an event reader for the SSE transport",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: Stdio and SSE reader threads | `transport_stdio.cpp:164`, `transport_sse.cpp:107` | Read child stderr and the SSE stream | Each has its own transport lock | WHY: The answer names a reader thread per transport, one for stdio reading child stderr and one for SSE reading the event stream.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/facade/external_bridge.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/mcp/health_monitor.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/mcp/transport_stdio.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/mcp/transport_sse.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/core/response_generator.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/inference/inference_c_api.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/inference/interface_factory.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": false,
+      "detail": "named 1 not in the set: ['transport_sse_test.cpp']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

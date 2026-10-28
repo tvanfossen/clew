@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every struct member is declared as `MBEDTLS_PRIVATE(foo)`, so by default the field is really named `private_foo`. Code that writes `ctx.foo` fails to compile because no such field exists. The layout is unchanged. What changes is the name\nVERDICT: HIT\nWHY: The answer says the mechanism is renaming the member (`private_foo`), producing compile errors on the old name, with the layout unchanged, so the fields stay visible and sized."
+}

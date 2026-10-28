@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"CLI flags, or the `options` argument for embedding callers\"\nVERDICT: HIT\nWHY: The tier 1 row states it is reached via CLI flags or the `options` argument for embedding callers, which covers both entry points."
+}

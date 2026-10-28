@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The pre-commit `gen-bindings --check` fails on drift.\nVERDICT: HIT\nWHY: The answer says bindings are generated from the header by `gen_bindings.py` and that a pre-commit `gen-bindings --check` fails on drift. That covers a pre-commit check that re-runs the generator and compares."
+}

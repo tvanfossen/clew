@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `<repo>/.clew.yaml`, same section names as the flags\nVERDICT: MISS\nWHY: The answer says the `.clew.yaml` section names match the CLI flags. It never says that the option names an embedding caller passes (the `options` argument) are the same words as the section names, and it never says the diagnostics use those words too."
+}

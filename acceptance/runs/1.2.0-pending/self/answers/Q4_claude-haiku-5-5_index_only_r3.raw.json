@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 16730,
+  "stop_reason": "end_turn",
+  "session_id": "74d0f1d0-258a-48f3-8312-64cf40864d20",
+  "total_cost_usd": 0.0025611,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 2219,
+    "cache_read_input_tokens": 75040,
+    "output_tokens": 2733,
+    "output_tokens_details": {
+      "thinking_tokens": 1451
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 2219,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2319,
+        "cache_read_input_tokens": 37520,
+        "cache_creation_input_tokens": 2219,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2219
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2733,
+      "cacheReadInputTokens": 75040,
+      "cacheCreationInputTokens": 2219,
+      "webSearchRequests": 0,
+      "costUSD": 0.0025611,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1451,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 2219,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer is a set of **caller functions with their edge metadata**, not a list of call sites. I checked this on `git_argv` (`clew/gitenv.py:89`), which builds a git argv with command-valued config keys disarmed.\n\n**What the reply contains**\n\n- **Callers:** seven functions, each with file, `source: ast`, `confidence: resolved`, and `edge_class: call`. Examples are `_detect_git_version`, `_git_ls_files`, `run_git`, `tracked_files`, and `_gitignored_paths`.\n- **Callees:** empty.\n- **`callers_unresolved: 0`** and **`context_undecidable: 0`**, which are counts of what the index could not place.\n- **Threads:** a separate layer. `git_argv` is reached from the `clew-first-build-` pthread, spawned at `clew/mcp_server/server.py:1440`, with `confidence: medium`.\n- **Requirements and covering tests:** `REQ-DDB-CONFIG-001` and `test_mqtt_dispatch_accepts_an_inline_document_not_only_a_path`.\n\n**What would make it wrong to read as a list of call sites**\n\n1. **No line numbers.** Each caller is a function, not a site. A caller that invokes `git_argv` three times appears once, and you cannot tell where in it.\n2. **Depth 1 only.** These are direct callers. The transitive picture needs `depth \u2265 2`. My attempt with `direction: \"back\"` was refused, and the valid value is `\"backward\"`, which I did not run, so I have no transitive chain here.\n3. **Mixed production and test code.** `test_the_disarmed_key_list_reaches_the_argv` in `tests/test_security_surface.py` is listed alongside production callers. Filter by file before counting \"real\" uses.\n4. **Empty callees is not \"calls nothing\".** `callees: []` means no call was resolved to an indexed function. The body does call `GIT_COMMAND_VALUED_KEYS`, `list.extend`, and `str` formatting. `external_callees` is where unresolved calls would appear, and this reply did not include it.\n5. **Callers are only resolved edges.** The list covers `edge_class: call` only. Calls through function pointers, dispatch tables, string-named commands, or code outside the indexed set (Makefiles, CI configs) would not appear. Most importantly, a raw `subprocess.run([\"git\", ...])` that skips the helper is invisible to this list. That absence is what `test_security_surface.py` exists to catch, and the index does not prove it.\n6. **The cap can look like completeness.** `max_neighbors` defaults to 8. Here seven came back, so nothing was cut. At the cap, a list looks complete when it is truncated.\n7. **Covering tests are a coarse mapping.** An MQTT-dispatch test \"covering\" `git_argv` reads as incidental, not as a test that exercises the function. Do not read the covering-test field as proof of behaviour.\n8. **Threads are not call-site information.** The thread link is a spawn-reachability claim at medium confidence, not evidence that the call happens on that thread.\n\nShort version: the caller list tells you which indexed functions have a resolved direct call edge to `git_argv`. It does not tell you where in those functions the call is, whether there are other calls the index cannot see, or whether anything bypasses the helper.",
+  "ttft_ms": 3682,
+  "type": "result",
+  "duration_ms": 16904,
+  "uuid": "9ab6b2be-dc98-451f-b835-5a6d7c2b9e4a",
+  "ttft_stream_ms": 2305,
+  "time_to_request_ms": 74,
+  "first_content_frame_ms": 2305,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

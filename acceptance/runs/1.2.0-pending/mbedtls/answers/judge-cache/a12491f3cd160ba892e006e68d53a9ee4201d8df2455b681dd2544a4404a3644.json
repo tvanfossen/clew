@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_THREADING_C` is commented out at `include/mbedtls/mbedtls_config.h:3787` (`//#define MBEDTLS_THREADING_C`). `MBEDTLS_THREADING_ALT` and `MBEDTLS_THREADING_PTHREAD` are also commented out\" and \"With `MBEDTLS_THREADING_C` + `MBEDTLS_THREADING_PTHREAD`\"\nVERDICT: HIT\nWHY: The answer names both macros as the ones controlling whether mutexes/locking are compiled in (the section header and the \"Mutexes exist only when `MBEDTLS_THREADING_C` is enabled\" statement), which covers the gating-macros item."
+}

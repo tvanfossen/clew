@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_r1",
+  "arm": "index",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.375,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "5489758d9a50",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: **Decision order (`derive_scope`, `clew/scope.py:639`)** | WHY: The answer names `derive_scope` in `clew/scope.py` (line 639) as the place where the scope decision order is resolved.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says a declared `index_scope` decides and that undeclared repos get the whole repository, but it explicitly says a rejected/unusable declaration is handled uncertainly (the CLI may refuse the build) and does not state that every failure to find one falls through to the whole repository.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: The reason is logged: the build says no `index_scope` is declared and names where it looked. | WHY: The answer says the fallback scope comes with a logged reason stating that nothing was declared and where it looked. It also says a rejected declaration's reason is recorded, so the scope isn't silently guessed.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Its `INPUT` is replaced, so a Doxyfile that documents only a header subset no longer narrows the index. The docs cite Mbed-TLS: its Doxyfile's `INPUT = ../include` would have indexed 1,571 header declarations and zero of the 108 `library/*.c` files. | WHY: The answer says the Doxyfile's INPUT is replaced and gives the Mbed-TLS example. It never says why this is deliberate, which is that a repo with a Doxyfile would get only its documented subset while a repo without one gets its whole tree.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Nested git trees (submodules, vendored clones) are indexed, not excluded. `external.py` tags their rows afterwards so answers can tell the codebases apart. | WHY: The answer explicitly says nested git trees are indexed rather than excluded and that their rows are tagged afterwards.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions a containment call being removed versus left in place with callers dropped; it only describes scope-derivation logic.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says that within the resolved scope a file must also be readable. It doesn't name the parse-built front end for types doxygen can't read, and it doesn't name binary classification dropping files with misleading extensions. It only mentions forcing doxygen's FILE_PATTERNS, and it says it did not read `enumerate_tree`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

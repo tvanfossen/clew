@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: External bridge accept loop | `src/facade/external_bridge.cpp:796` | Started in `start()`. `stop()` closes the listen fd and joins it... Per-client serve threads | `external_bridge.cpp:945`, tracked in `client_threads_` | ... Finished ones are reaped during accept (`:956`).\nVERDICT: HIT\nWHY: The answer describes an accept-loop thread in the external bridge that spawns a per-client serve thread (reaped during accept), which is the two-level structure."
+}

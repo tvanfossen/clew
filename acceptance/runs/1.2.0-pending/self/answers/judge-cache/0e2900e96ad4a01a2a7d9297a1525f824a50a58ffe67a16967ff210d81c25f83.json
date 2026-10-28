@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nclew/mcp_server/state.py\nclew/signature.py\nclew/mcp_server/freshness.py\nserver.py\ntools_query.py\nfreshness.py\nEND"
+}

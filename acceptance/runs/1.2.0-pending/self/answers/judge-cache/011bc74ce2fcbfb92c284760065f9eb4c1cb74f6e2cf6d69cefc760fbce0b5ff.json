@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Queries open the database per call, so data reads are live. The stale part is the process's logic and module constants. The docs say a stale process reads current data but writes with dead logic.\"\nVERDICT: HIT\nWHY: The answer says reads stay current because queries open the database per call, and that a stale process writes with old logic. It adds that the write path is refused because a rebuild through a stale process can drop layers."
+}

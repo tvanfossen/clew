@@ -1,0 +1,42 @@
+{
+  "stem": "Q5_claude-haiku-5-5_index_r3",
+  "arm": "index",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "skills": "",
+  "answered_by": "claude-haiku-5-5",
+  "seconds": 62.06562909798231,
+  "input_tokens": 20,
+  "output_tokens": 9670,
+  "cache_read_tokens": 746039,
+  "cache_creation_tokens": 68747,
+  "cost_usd": 0.050898990000000005,
+  "result_bytes": 4181,
+  "turns": 23,
+  "tool_calls": 22,
+  "non_index_tool_calls": 14,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/1.2.0-pending/entropic/repo.\n\nYou have the usual shell and file tools \u2014 Read, Grep, Glob and Bash \u2014 and additionally a queryable index of this repository: mcp__clew__dossier for everything known about a named symbol, mcp__clew__search to find a name or enumerate a layer, mcp__clew__index for status. USE THE INDEX FIRST for any question about a symbol, its callers or callees, what it touches, or where something lives; fall back to reading source only where the index cannot answer.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nentropic is a C++ engine with a Python package. How does Python actually reach the engine,\nand what are the rules about memory that crosses between them?\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash,mcp__clew__dossier,mcp__clew__search,mcp__clew__index",
+    "--strict-mcp-config",
+    "--mcp-config",
+    "/home/tvanfossen/Projects/clew/acceptance/runs/1.2.0-pending/entropic/mcp.json"
+  ],
+  "cell": {
+    "target": "tvanfossen/entropic",
+    "question_id": "Q5",
+    "arm": "index",
+    "model": "claude-haiku-5-5",
+    "replicate": 3,
+    "order": 42
+  }
+}

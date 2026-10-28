@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that measuring staleness is non-raising or that a failed measurement degrades to no annotation. It says only that the notice list is \"empty when the index is current or unmeasurable,\" which does not state the never-raises guarantee."
+}

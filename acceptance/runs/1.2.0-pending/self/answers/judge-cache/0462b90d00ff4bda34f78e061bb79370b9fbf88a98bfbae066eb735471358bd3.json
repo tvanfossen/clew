@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It never raises: on a timeout or failed build, the query answers from the stale index and the notice still rides along.\"\nVERDICT: MISS\nWHY: That sentence is about `_auto_refresh` never raising, not about the staleness measurement itself. The answer never says a failed measurement degrades to no annotation."
+}

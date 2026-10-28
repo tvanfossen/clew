@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `llama.h` is included by `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler.cpp`, `llama_cpp_tokenizer.cpp`, `grammar_registry.cpp`, `orchestrator.cpp`, `speculative_compat.cpp` and `adapter_manager.cpp`.\nVERDICT: MISS\nWHY: The answer lists about seven to eight files plus the facade and public headers, but it calls the dependency \"contained in the implementation layer\" and never says it reaches roughly a dozen files rather than one wrapper."
+}

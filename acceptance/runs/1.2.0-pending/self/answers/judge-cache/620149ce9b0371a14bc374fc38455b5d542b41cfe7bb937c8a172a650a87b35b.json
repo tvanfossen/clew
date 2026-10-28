@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A repo's own Doxyfile still supplies ALIASES and PREDEFINED, but its INPUT is ignored.\nVERDICT: MISS\nWHY: The answer says the Doxyfile's INPUT is ignored but never explains why (a repo shipping a Doxyfile would get only its documented subset, while one without gets the whole tree)."
+}

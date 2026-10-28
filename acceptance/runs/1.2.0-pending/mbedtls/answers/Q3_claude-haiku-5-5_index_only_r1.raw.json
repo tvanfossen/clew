@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 26958,
+  "stop_reason": "end_turn",
+  "session_id": "1a24961e-a7c9-4dae-9fd2-64a5db3ba758",
+  "total_cost_usd": 0.01649433,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 60353,
+    "cache_read_input_tokens": 172143,
+    "output_tokens": 5403,
+    "output_tokens_details": {
+      "thinking_tokens": 2673
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 60353,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4189,
+        "cache_read_input_tokens": 72199,
+        "cache_creation_input_tokens": 6751,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6751
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 5403,
+      "cacheReadInputTokens": 172143,
+      "cacheCreationInputTokens": 60353,
+      "webSearchRequests": 0,
+      "costUSD": 0.01649433,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2673,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 60353,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## What an allocation call resolves to\n\nLibrary code calls `mbedtls_calloc()` / `mbedtls_free()`, never `calloc()` / `free()` directly. Two things decide what those names become, and the index shows the split:\n\n```\nctx alloc in library (e.g. md.c ALLOC, cipher_wrap *_ctx_alloc)\n  \u2514\u2500 mbedtls_calloc (macro, include/mbedtls/platform.h:167)\n       \u251c\u2500 MBEDTLS_PLATFORM_MEMORY off (shipped default) \u2192 calloc()   [direct libc]\n       \u2514\u2500 MBEDTLS_PLATFORM_MEMORY on  \u2192 mbedtls_calloc() (library/platform.c:47)\n             \u2514\u2500 (*mbedtls_calloc_func)(n, size)   \u2190 runtime function pointer\n```\n\n- **Default build:** `MBEDTLS_PLATFORM_MEMORY` is off in `include/mbedtls/mbedtls_config.h:208`. The dispatch function `mbedtls_calloc` in `platform.c` is compiled only under that gate, so the macro goes straight to libc. Free is the same with `mbedtls_free` \u2192 `free()`.\n- **Dispatch build:** `MBEDTLS_PLATFORM_MEMORY` on. `platform.c` holds two function pointers, `mbedtls_calloc_func` and `mbedtls_free_func`, and every call goes through them.\n\nTwo more macros can override the libc name in that dispatch path: `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`. The index has no definition site for either, so they are user-supplied names, off by default.\n\n## Substituting an allocator\n\nTwo routes, both visible in the index:\n\n1. **Compile-time:** define `MBEDTLS_PLATFORM_MEMORY` in the config, then either point `MBEDTLS_PLATFORM_STD_CALLOC` / `STD_FREE` at your functions or define the `_MACRO` pair. `tests/configs/user-config-malloc-0-null.h` does this: it sets `MBEDTLS_PLATFORM_MEMORY` and maps `MBEDTLS_PLATFORM_STD_CALLOC` to a `custom_calloc` function.\n2. **Run-time:** call `mbedtls_platform_set_calloc_free(calloc_fn, free_fn)` (`library/platform.c:57`). It just stores the two pointers. It is the same hook the library's own allocator uses.\n\nThe default pointer depends on `MBEDTLS_PLATFORM_STD_CALLOC`. When it is off, `platform.c:32` installs `platform_calloc_uninit`, which always returns `NULL`. In that configuration every allocation fails until the integrator installs an allocator. I inferred this from the `#if` gating in the index rather than from the header text, so check `platform.c:20-40` before relying on it. I did not confirm the matching default for the free pointer.\n\n## What the library does with the facility\n\n- **Built-in heap:** `mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566`) takes a caller buffer and carves it into blocks with magic-number headers. It then calls `mbedtls_platform_set_calloc_free` with its own `buffer_alloc_calloc` / `buffer_alloc_free`, or the `_mutexed` variants when `MBEDTLS_THREADING_C` is on. `buffer_alloc_calloc` (line 199) does a first-fit search of the free list, rejects overflowing `n * size`, aligns the request, and splits blocks. `mbedtls_memory_buffer_alloc_free` tears it down. The index shows `main` in `programs/test/selftest.c` as its only caller. It is not used on the library's normal paths.\n- **Everywhere else:** the library's own call sites use only the `mbedtls_calloc` / `mbedtls_free` names. Examples are `mbedtls_md_setup`'s `ALLOC` macro (`library/md.c`), the `*_ctx_alloc` / `*_ctx_free` pairs in `cipher_wrap.c`, PSA key and buffer helpers, and the X.509 and SSL parsers. So one hook covers the whole library.\n- **Zeroize-then-free:** `mbedtls_zeroize_and_free` (`library/platform_util.c:139`) wipes the buffer and then calls `mbedtls_free`. The library uses it for secret material such as bignums.\n\n## Caveats\n\n- The index reports no definition site for `MBEDTLS_PLATFORM_CALLOC_MACRO` or `FREE_MACRO`. Their names are not defined in the library, so a substitution through them depends on your own config.\n- `mbedtls_zeroize_and_free` is listed with liveness `orphan`, even though 73 callers are unresolved. I didn't resolve that discrepancy.",
+  "ttft_ms": 2264,
+  "type": "result",
+  "duration_ms": 27785,
+  "uuid": "dcfd81ad-9f39-47e9-b320-836f973b78be",
+  "ttft_stream_ms": 1965,
+  "time_to_request_ms": 73,
+  "first_content_frame_ms": 1966,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

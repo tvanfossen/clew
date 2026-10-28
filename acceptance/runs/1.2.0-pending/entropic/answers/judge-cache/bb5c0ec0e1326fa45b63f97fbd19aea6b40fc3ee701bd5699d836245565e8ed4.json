@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Arguments are reduced by `args_to_pattern` (`server_manager.cpp:426`) to the value of the first string-valued argument, or `*` if there is none.\"\nVERDICT: HIT\nWHY: The answer states that only the first string argument reaches the pattern, with a `*` fallback when none is a string. It doesn't mention that other arguments are invisible to matching or that unparseable arguments collapse to a wildcard, but the single-value reduction and the non-string wildcard are both there."
+}

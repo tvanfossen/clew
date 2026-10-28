@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that on the macro path mbedtls_platform_set_calloc_free is neither declared nor compiled. It says only that call sites expand directly to the user's function."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: This is a source-level gate, not encapsulation. The struct layout stays in the public header, so `sizeof` and offsets are still visible. What the macro buys is that accidental or unsupported field access fails to compile\nVERDICT: HIT\nWHY: The answer says opacity is enforced at compile time by renaming the member to `private_<name>`, while the layout and sizes stay visible."
+}

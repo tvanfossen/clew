@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says that with `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS` the calloc default becomes `platform_calloc_uninit`, which always returns NULL. It never says that the free default does nothing. It also doesn't frame these defaults as failing rather than falling back."
+}

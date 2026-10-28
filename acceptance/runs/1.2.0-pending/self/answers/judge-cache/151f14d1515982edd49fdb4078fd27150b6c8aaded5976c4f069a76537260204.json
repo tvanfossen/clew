@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Doxyfile:** if the repo ships one, it still supplies ALIASES, PREDEFINED and filters, but its INPUT is replaced. The reason is measured: Mbed-TLS's `mbedtls.doxyfile` sets `INPUT = ../include` and `FILE_PATTERNS = *.h`, which indexes 1,571 header declarations and none of its 108 `library/*.c` implementations.\"\nVERDICT: HIT\nWHY: The answer says the Doxyfile's INPUT is replaced rather than used for scope, and explains that a repo's own Doxyfile would yield only its documented subset (headers only). It doesn't spell out the contrast with a repo that has no Doxyfile getting its whole tree, but the substance is there."
+}

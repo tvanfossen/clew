@@ -1,0 +1,14 @@
+**How it's brought in:** llama.cpp is a git submodule at `extern/llama.cpp` (pinned to commit `20a04b2`, which the comments call b8420), declared in `.gitmodules`. `extern/CMakeLists.txt` pulls it in with `add_subdirectory(llama.cpp EXCLUDE_FROM_ALL)`, with `LLAMA_BUILD_TESTS/EXAMPLES/SERVER/TOOLS` forced off and `LLAMA_BUILD_COMMON` on. It also adds `llama.cpp/tools/mtmd` for multimodal support. Everything is built as static libraries and absorbed into `librentropic.so`. The top-level `CMakeLists.txt:134` calls `add_subdirectory(extern)`. Unlike the other deps (spdlog, ryml, Catch2, nlohmann/json, httplib), which use FetchContent, llama.cpp comes from the local submodule checkout, so it must be initialised before configuring.
+
+**How far it reaches:** Mostly into the inference layer, with a thin leak into public headers.
+
+- **Direct llama.cpp use (`src/inference/`):** `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler`, `llama_cpp_tokenizer`, `adapter_manager.cpp`, `grammar_registry.cpp`, `orchestrator.cpp`, `speculative_compat.cpp` and `secondary_model_loader.cpp` include `<llama.h>` or `llama_cpp_backend.h`. `llama_cpp_backend.h` is the core: it pulls in `<llama.h>` and owns the context and model handles. The inference CMake links `llama`, `mtmd` and `llama-common` PRIVATE, with `llama-common` PUBLIC.
+- **Facade:** `src/facade/entropic.cpp` and `inference_c_api.cpp` reach it through `llama_cpp_backend.h`. The facade CMake links `llama`, `mtmd` and `llama-common` as `LINK_ONLY` so they are absorbed into the shared library.
+- **Public headers (`include/entropic/`):** these don't `#include` llama.h. They use forward declarations (`struct llama_model;`, `struct llama_context;`, `struct llama_adapter_lora;`) and raw `llama_*` pointer parameters in `orchestrator.h`, `adapter_manager.h`, `speculative_compat.h`, `sampler.h` and `grammar_registry.h`. So llama.cpp's types appear in the C++ interface contracts, which goes against the architecture doc's "no third-party headers in interface contracts" rule. The pure-C `entropic.h` mentions llama only in comments (state-blob format, error descriptions), not as a type.
+- **Python and consumers:** no llama references in the Python package source. The unit test CMake links `llama` directly in one test.
+
+**Notes:**
+- The `struct llama_*;` forward declarations in `include/` are a tension with design rule 1 (pure C at `.so` boundaries, no third-party types in contracts). Those headers are C++, so this is a judgment call, but worth flagging against the architecture doc.
+- Because the `.so` absorbs llama.cpp statically, consumers never link llama directly. The exported ABI is the `entropic.h` C API.
+
+A tool hook also appended a note suggesting I use a `dossier`/`search` tool. I didn't act on it. It isn't a tool I have here, and the answer above came from reading the files directly.

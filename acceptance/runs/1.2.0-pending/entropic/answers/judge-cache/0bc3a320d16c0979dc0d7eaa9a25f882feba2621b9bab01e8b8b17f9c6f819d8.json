@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `llama_token_to_piece` into a 256-byte stack buffer ... Only when the 256-byte buffer was too small\nVERDICT: HIT\nWHY: The answer states that detokenize tries a 256-byte stack buffer first and re-calls with a larger size only when it doesn't fit, and that tokenize always probes the size first. It never says \"heap\" explicitly, but the substance is there."
+}

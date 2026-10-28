@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Strings returned by the engine are caller-owned.** `char*` results transfer ownership and must be released with `entropic_free()`.\" and \"**Strings returned as `const char*` are handle-owned.** They are valid only until the next call on that handle.\"\nVERDICT: HIT\nWHY: The answer states both halves: a returned `char*` transfers ownership and is freed with `entropic_free`, and a `const char*` stays handle-owned and valid only until the next call on that handle."
+}

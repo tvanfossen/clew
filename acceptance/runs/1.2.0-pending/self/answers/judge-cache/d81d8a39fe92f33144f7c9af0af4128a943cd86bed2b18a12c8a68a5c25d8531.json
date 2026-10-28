@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_verdict` gives it only when `q.unsearched_corpora` returns nothing, which subtracts the kinds `search` reads from the kinds the database actually holds.\nVERDICT: HIT\nWHY: The answer says the strong \"definitive\" wording is granted per call only when a query of the unread corpora (the database's kinds minus the kinds search reads) comes back with no match. The answer ties this to the empty-result grading and not to a result shape."
+}

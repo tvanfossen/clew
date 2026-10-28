@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says YAML and JSON share one harvest partition, nor gives the empty-payload-row-per-file reason for not using a second partition."
+}

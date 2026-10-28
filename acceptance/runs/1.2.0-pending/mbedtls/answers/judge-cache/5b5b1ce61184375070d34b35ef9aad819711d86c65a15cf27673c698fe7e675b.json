@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_server2.c:8` | Defined before `ssl_test_lib.h`, so the in-tree test server reaches into SSL internals directly. | `programs/ssl/ssl_client2.c:8` | Same, for the client.\nVERDICT: HIT\nWHY: The answer states that the example programs ssl_server2.c and ssl_client2.c define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves and reach into SSL internals directly."
+}

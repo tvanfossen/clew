@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The block is computed by `_staleness` for the repository the reply actually read, never the derived default.\nVERDICT: HIT\nWHY: The answer states the staleness annotation on a reply is computed for the repository actually read, not the derived default target."
+}

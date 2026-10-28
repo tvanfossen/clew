@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The package is a thin `ctypes` shim over `librentropic.so`, the C ABI declared in `include/entropic/entropic.h`.\nVERDICT: HIT\nWHY: The answer names ctypes over librentropic.so as the mechanism, and its bindings are generated ctypes functions with no compiled extension module."
+}

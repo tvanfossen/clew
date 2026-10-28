@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library spawns no threads and describes mutexes behind MBEDTLS_THREADING_C. It never says library/ supplies the mutex abstraction for threaded callers. It says the library is not thread-safe and has no locks by default, and the thread spawns it lists are in programs/."
+}

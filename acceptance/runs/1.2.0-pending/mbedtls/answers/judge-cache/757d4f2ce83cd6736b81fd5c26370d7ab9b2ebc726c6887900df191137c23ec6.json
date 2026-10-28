@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Without `MBEDTLS_CT_ASM`, `constant_time.c:23-29` defines `volatile mbedtls_ct_uint_t mbedtls_ct_zero = 0`, and the barrier becomes `x ^ mbedtls_ct_zero`.\"\nVERDICT: HIT\nWHY: The answer states that without asm the opaque barrier falls back to XOR-ing with the volatile global `mbedtls_ct_zero`, which holds zero. The barrier it names is `mbedtls_ct_compiler_opaque()`, the same function that uses the asm barrier when assembly is available."
+}

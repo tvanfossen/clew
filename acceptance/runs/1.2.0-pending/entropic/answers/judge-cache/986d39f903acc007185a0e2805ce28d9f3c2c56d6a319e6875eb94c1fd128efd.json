@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A failure of the second call is logged at error level and returns an empty vector. It is not retried.\nVERDICT: HIT\nWHY: The answer states that a failure of the second call returns an empty vector and is not retried, which is the terminal-on-failure behavior the item asks for."
+}

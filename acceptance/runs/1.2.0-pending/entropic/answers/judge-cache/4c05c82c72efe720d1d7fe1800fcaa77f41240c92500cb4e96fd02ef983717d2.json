@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The failure contract is \"empty vector,\" and every caller receives it as if it were a valid result. A count of `0` or an empty prompt is never reported as an error.\"\nVERDICT: HIT\nWHY: The answer says tokenization failure returns `{}`, the same as empty input (\"failed\" and \"empty input\" look identical), and that no caller treats it as an error."
+}

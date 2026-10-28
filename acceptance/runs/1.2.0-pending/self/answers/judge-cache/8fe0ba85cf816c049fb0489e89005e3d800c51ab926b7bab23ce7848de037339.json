@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The router checks capability before parsing. Without the check, a missing grammar would raise `ValueError: unknown language key` mid-build.\" and \"the empty-answer report says which file types were not read\" / \"'14 `.sh` files were in scope and none are in this index.'\"\nVERDICT: HIT\nWHY: The answer says a missing grammar degrades (no crash, path row only) because the router checks capability first, and the missing file types are reported as not indexed."
+}

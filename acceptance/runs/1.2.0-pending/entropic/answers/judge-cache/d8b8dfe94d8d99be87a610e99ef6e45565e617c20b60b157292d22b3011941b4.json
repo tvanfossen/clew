@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The calls are both in `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`), not in two places: 1. **Line 55:** `llama_tokenize(vocab, text, nullptr, 0, ...)` ... 2. **Line 61:** the same call with the real buffer.\nVERDICT: HIT\nWHY: The answer locates the two-call size-probe/fill pattern in `LlamaCppTokenizer::tokenize` in `src/inference/llama_cpp_tokenizer.cpp`, with line numbers."
+}

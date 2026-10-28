@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the deny list is enforced at execute and that a callback approves every call, but never concludes that a tool matching neither list runs by default (default-allow); it even cites a \"default-deny\" header."
+}

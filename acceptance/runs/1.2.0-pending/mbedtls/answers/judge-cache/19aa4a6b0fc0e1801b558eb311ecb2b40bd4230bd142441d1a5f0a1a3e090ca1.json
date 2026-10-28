@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The base gate is `MBEDTLS_HAVE_ASM`, which defaults on (`include/mbedtls/mbedtls_config.h:52`). The compiler and CPU must also match `__GNUC__` or `__ARMCC_VERSION` and `__x86_64__`/`__amd64__` and so on (`constant_time_impl.h:40\u201352`).\nVERDICT: MISS\nWHY: The answer describes MBEDTLS_HAVE_ASM plus compiler macros gating the asm, but it never says MBEDTLS_CT_ASM is derived rather than configured. It only mentions MBEDTLS_CT_ASM being \"not defined\"."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says CMake's definition name is an argument of the command node rather than a named field; it only says CMake rows hold function/macro with parameters."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions that the Python package splits from the engine so `import entropic` works before the engine is installed, nor an install-engine subcommand."
+}

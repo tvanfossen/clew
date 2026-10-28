@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 32412,
+  "stop_reason": "end_turn",
+  "session_id": "83114337-b5e0-4042-ad3d-c9c0566aa397",
+  "total_cost_usd": 0.013705970000000001,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 38680,
+    "cache_read_input_tokens": 361017,
+    "output_tokens": 4716,
+    "output_tokens_details": {
+      "thinking_tokens": 1482
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 38680,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1321,
+        "cache_read_input_tokens": 52024,
+        "cache_creation_input_tokens": 2196,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2196
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 4716,
+      "cacheReadInputTokens": 361017,
+      "cacheCreationInputTokens": 38680,
+      "webSearchRequests": 0,
+      "costUSD": 0.013705970000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1482,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 38680,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What the answer contains**\n\n`callers(fn)` (surfaced through `dossier`'s `callers` field) returns a list of `CallEdge` rows, one per neighbouring function, not one per call site. Each row carries:\n\n- `name` and `rowid`: the neighbouring function, resolved by name.\n- `edge_class`: `'call'` for a direct call, or `'key'` for a shared-key dataflow edge.\n- `source`: which extraction layer found it (`doxygen_sqlite`, `macro_hop`, `ast`, `ast_member`, `fnptr`, \u2026).\n- `confidence`: `exact`, `resolved`, or `fuzzy`, describing the strongest evidence for that endpoint. It is `None` on `'key'` rows.\n- For `'key'` rows: `key_name`, `edge_kind`, `dispatch_mode`, `crosses_thread`, `strength`.\n- `implementors`: on a virtual endpoint, the known overriders from doxygen's `reimplements` relation. This is an annotation, not a synthetic edge.\n- `macro_hop` detail: the macro and its expansion, when a macro is what produces the hop.\n\nRows are sorted by name, then edge class, then key name.\n\n**Why it is wrong to read it as a list of call sites**\n\n1. **There is no call-site line.** `CallEdge` has no field for where in the caller the call is written. You get the other function's identity, not the line that calls `fn`. Getting to a site means reading the caller's body.\n\n2. **`'key'` rows are not calls.** They are functions that write or read a shared key `fn` touches, with no call between them. They may run asynchronously on another thread. The `callers` docstring says a `'key'` neighbour \"does NOT call `fn`\", and `callees` has the mirror problem.\n\n3. **`fuzzy` is included, not filtered.** The surface does not drop fuzzy edges. The descriptions tell a reader to weigh `confidence`, and `ast_member` edges are mostly fuzzy. The provenance notes say `ast_member` is the sole evidence for 77.7% of logical edges on the large C++ target, so dropping it would remove most of the graph.\n\n4. **Same-name rows are shared.** If a name matches several signatures, every namesake's neighbour list carries the same rows. The `ambiguous` block reports this. The template's example is `size` on the public entropic index, where 331 caller rows are returned and 330 are shared with eight namesakes. Those rows are not attributable to one overload until you re-ask with `qualified`. Even then, the `'key'` half is not narrowed, because `_key_edge_rows` joins on `memberdef.name` (a known gap, gh#26-shaped).\n\n5. **An empty list is not a measured zero.** Some calls through a pointer or reference receiver do not resolve unless the receiver's type is pinned. Brace-initialised constructions are not call edges at all. `callers_unresolved` records refused sites per symbol, and `_refusal_note` says so when it is positive. An unmeasured index reports `None`, not zero, and the code is careful not to treat that as clean.\n\n6. **`callees` is not a complete call list.** Call sites that do not resolve to an indexed function are reported as `external_callees`, so `callees` can legitimately be empty while the body makes calls.\n\n7. **Staleness.** `anchor_mismatch: true` means the file changed after the build, so the line ranges no longer belong to that function. Edges reflect the index's build, not the working tree.\n\n**Practical reading**\n\nTreat `callers` as \"functions that causally precede `fn`, by name, with a confidence rating and a layer label\". Check `edge_class` before anything else, then `confidence`, then the `ambiguous` and refusal notes. Before concluding nothing calls `fn`, read the body at the reported range or search the name.",
+  "ttft_ms": 1866,
+  "type": "result",
+  "duration_ms": 32839,
+  "uuid": "09a2af1c-2434-48aa-be24-a3c8f0cdf6c7",
+  "ttft_stream_ms": 1422,
+  "time_to_request_ms": 93,
+  "first_content_frame_ms": 1422,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

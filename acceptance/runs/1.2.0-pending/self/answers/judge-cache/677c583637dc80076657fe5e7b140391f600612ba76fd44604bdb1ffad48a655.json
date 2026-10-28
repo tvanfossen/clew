@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Tiers 3 and 4 always accumulate.\" and \"`resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`\"\nVERDICT: MISS\nWHY: The answer shows tiers 3 and 4 both accumulate in the formula. It never says they combine identically, that the distinction between them is deliberately inert, or that the load-bearing line is fact versus guess."
+}

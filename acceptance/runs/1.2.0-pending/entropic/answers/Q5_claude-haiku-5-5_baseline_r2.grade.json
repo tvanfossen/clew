@@ -1,0 +1,163 @@
+{
+  "cell": "Q5_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5882352941176471,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "5489758d9a50",
+  "decisions": [
+    {
+      "mark": "identifies ctypes over librentropic.so as the mechanism, with no compiled extension module involved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: Python never talks to C++ directly. The path is a single shared library reached through `ctypes`: ... `ctypes.CDLL(librentropic.so)` loaded by _loader.py ... pure Python, ~50 KB | WHY: The answer names ctypes.CDLL over librentropic.so as the mechanism, and it describes the Python package as pure Python with generated ctypes bindings, so no compiled extension module is involved.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the bindings are GENERATED from the C header by scripts/gen_bindings.py, not hand-written",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: `scripts/gen_bindings.py` parses `include/entropic/entropic.h` and `types/*.h` and emits `_bindings.py` and `_bindings_manifest.py`. | WHY: The answer states that the bindings are generated, naming scripts/gen_bindings.py as parsing the C header and emitting _bindings.py.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that drift between the header and the bindings is caught by a pre-commit check that re-runs the generator and diffs",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The pre-commit `gen-bindings --check` fails on drift. | WHY: The answer says bindings are generated from the header by `gen_bindings.py` and that a pre-commit `gen-bindings --check` fails on drift. That covers a pre-commit check that re-runs the generator and compares.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that the generated surface is SPLIT IN TWO on purpose \u2014 a names-only manifest that imports no ctypes, and the real bindings module that loads the library",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: `scripts/gen_bindings.py` parses `include/entropic/entropic.h` and `types/*.h` and emits `_bindings.py` and `_bindings_manifest.py`. | WHY: The answer names both generated files but never explains the deliberate split, i.e. that the manifest is names-only and imports no ctypes while the bindings module loads the library.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the split exists so `import entropic` succeeds before the engine is on disk, which is what makes an install-engine subcommand shippable inside the same package",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions that the Python package splits from the engine so `import entropic` works before the engine is installed, nor an install-engine subcommand.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "describes the loader's resolution order as environment overrides first, then a default user directory, then the system library cache \u2014 with two directory layouts tried per root",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: `_loader.find()` searches `$ENTROPIC_LIB`, then `$ENTROPIC_HOME`, then `~/.entropic/...`, then `ctypes.util.find_library`. | WHY: The answer gives the order of env overrides, then the user directory, then the system library cache. It never says two directory layouts are tried per root, and the item needs that detail.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states the engine-to-caller rule: a returned char* transfers ownership and is freed with entropic_free, while a const char* stays owned by the handle and is only valid until the next call on it",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"**`char*` returns transfer ownership.** The caller frees them with `entropic_free()`.\" and \"**`const char*` returns are borrowed.** They belong to the handle and are valid until the next call on that handle.\" | WHY: The answer explicitly states both halves: char* transfers ownership and is freed with entropic_free, while const char* is handle-owned and valid only until the next call on that handle.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states the caller-to-engine rule as the SECOND direction: a buffer the engine will free must be allocated with entropic_alloc, and shows where the Python side does that",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"**Buffers the engine will free must come from the engine's allocator.** `entropic_alloc()` and `entropic_free()` are `malloc` and `free` (`src/facade/entropic.cpp` ~1944). Hook `modified_json` is one such buffer, and `hooks.py` allocates it with `entropic_alloc` before writing the JSON into it.\" | WHY: The answer states that engine-freed buffers must be allocated with entropic_alloc and names hooks.py as where Python does it.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that the hook trampoline swallows every Python exception rather than letting it unwind into the C engine, treating a failed hook as a pass-through",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: The Python wrapper keeps the trampoline alive on the engine side and catches exceptions in each trampoline so they never unwind into C. | WHY: The answer says trampolines catch exceptions so they never unwind into C, but it never says a failed hook is treated as a pass-through. It only notes that `_trampoline` returns `rc=1` on OOM, and that is a different matter.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the files that make up the Python-to-engine boundary \u2014 python/src/entropic/_loader.py",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that make up the Python-to-engine boundary \u2014 python/src/entropic/_bindings.py",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that make up the Python-to-engine boundary \u2014 python/src/entropic/_bindings_manifest.py",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that make up the Python-to-engine boundary \u2014 python/src/entropic/__init__.py",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that make up the Python-to-engine boundary \u2014 include/entropic/entropic.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that make up the Python-to-engine boundary \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": false,
+      "detail": "named 8 not in the set: ['docs/architecture-cpp.md', 'helpers.py', 'hooks.py', 'python/src/entropic/*.py', 'scripts/gen_bindings.py', 'src/facade/entropic.cpp', 'streams.py', 'types/*.h']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

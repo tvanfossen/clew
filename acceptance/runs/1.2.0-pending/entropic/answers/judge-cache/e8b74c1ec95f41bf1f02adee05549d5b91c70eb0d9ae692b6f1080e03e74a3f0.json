@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: ExternalBridge::accept_loop `external_bridge.cpp:796` ... HealthMonitor::monitor_loop `health_monitor.cpp:92` ... StdioTransport::stderr_reader_loop `transport_stdio.cpp:164` ... SSETransport::sse_reader_loop `transport_sse.cpp:107` ... Cancel pollers (3 sites) `inference_c_api.cpp:385`, `interface_factory.cpp:246`, `response_generator.cpp:413`\nVERDICT: HIT\nWHY: The table lists spawn sites across the external bridge, MCP transports, health monitor, and inference path, and the answer frames them as about ten spawn sites in separate classes rather than centralised."
+}

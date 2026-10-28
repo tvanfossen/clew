@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Unless `MBEDTLS_ALLOW_PRIVATE_ACCESS` is defined, it expands to `private_##member`, so the field is renamed in the public header. ... Defining `MBEDTLS_ALLOW_PRIVATE_ACCESS` before any mbedtls header switches the guard off for that translation unit.\nVERDICT: HIT\nWHY: The answer says the macro expands to `private_##member` by default. It also says defining the opt-out macro turns the guard off, and the table says `MBEDTLS_PRIVATE(x)` becomes plain `x` under the opt-out."
+}

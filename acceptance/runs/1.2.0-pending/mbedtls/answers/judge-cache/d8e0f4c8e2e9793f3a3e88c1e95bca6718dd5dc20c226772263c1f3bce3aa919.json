@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Default build (`MBEDTLS_THREADING_C` off, `mbedtls_config.h:3787`) \u2026 `MBEDTLS_THREADING_ALT` is also off by default (`mbedtls_config.h:2185`)\nVERDICT: MISS\nWHY: The answer says `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_ALT` are off by default. It never says `MBEDTLS_THREADING_PTHREAD` is off, and the caveat says the default claim was not confirmed from the shipped config. The item probably means the C/PTHREAD pair, and I can't tell that from the answer, so this resolves to MISS."
+}

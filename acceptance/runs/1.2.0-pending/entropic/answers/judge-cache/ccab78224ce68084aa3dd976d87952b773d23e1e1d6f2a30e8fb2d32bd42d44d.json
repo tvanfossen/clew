@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Form: `tool` or `tool:argpattern`. Both halves are `fnmatch` globs with no `FNM_PATHNAME`... Tool-only (no colon): matches the tool name alone, so it covers every call to that tool. With a colon: the tool part must match the tool name. The full pattern must then match `tool:<arg>`\nVERDICT: HIT\nWHY: The answer states fnmatch globbing, the tool/argument split on a colon, and that a colon-less pattern matches the tool name alone. It never says \"split at the first colon\" in those words, but the tool-part/arg-part split is clear."
+}

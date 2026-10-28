@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The rule is `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. Clew's own summary is \"you can correct our guesses; you cannot un-discover a fact.\"\"\nVERDICT: HIT\nWHY: The answer says stated tiers replace each other and the heuristics, while tiers 3 and 4 always accumulate and survive any stated value."
+}

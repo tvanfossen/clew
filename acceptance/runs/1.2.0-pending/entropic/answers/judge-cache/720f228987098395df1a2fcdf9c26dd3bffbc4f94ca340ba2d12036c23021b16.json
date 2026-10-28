@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says failure returns an empty vector with no error code and that most callers don't check, but it never states that failure is indistinguishable from a legitimately empty result. It also finds some callers that do check, such as the size<2 check, so \"no caller checks\" isn't stated."
+}

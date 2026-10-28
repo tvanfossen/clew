@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions detokenize resizing a buffer after a too-small result, but never says it tries a fixed 256-byte stack buffer first and only heap-allocates when the token doesn't fit."
+}

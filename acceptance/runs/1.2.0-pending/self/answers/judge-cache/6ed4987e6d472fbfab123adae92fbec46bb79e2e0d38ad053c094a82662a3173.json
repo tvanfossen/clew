@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"a repo's own `index_scope:` declaration is the only thing that decides the scope. If nothing is declared, clew indexes the whole repository\"\nVERDICT: MISS\nWHY: The answer says a declared scope wins and an absent one falls back to the whole repo. It also says a rejected or unusable declaration falls to the whole-repo tier. But the item says \"every failure to find one\" falls through, and the answer doesn't generalize to that. For example, it says nothing about an unreadable file or about failing to find `.clew.yaml`. The answer also admits it did not confirm where that file is searched for."
+}

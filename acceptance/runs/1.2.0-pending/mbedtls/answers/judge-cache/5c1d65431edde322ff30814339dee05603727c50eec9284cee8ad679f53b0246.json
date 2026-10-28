@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says it found no thread creation in library/ and lists mutex locks, but it frames threading.c as compiling to nothing by default. It never states that library/ supplies the mutex abstraction for threaded callers as a contrast to creating no threads."
+}

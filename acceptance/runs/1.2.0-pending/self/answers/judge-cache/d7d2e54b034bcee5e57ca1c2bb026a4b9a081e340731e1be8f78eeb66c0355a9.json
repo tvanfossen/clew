@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.clew.yaml` at the repo root | 2, declared | Replaces the stated layer | Read by both the CLI and MCP through `--repo-root`. Sections mirror the standalone manifest formats.\nVERDICT: HIT\nWHY: The answer names `.clew.yaml` at the repo root as tier 2 and says both the CLI and MCP read it via `--repo-root`."
+}

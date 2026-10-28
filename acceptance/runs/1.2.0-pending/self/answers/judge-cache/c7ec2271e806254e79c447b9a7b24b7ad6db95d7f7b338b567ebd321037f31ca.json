@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Doxyfile | scope.py:683 docstring | Ignored for INPUT. Its ALIASES and PREDEFINED are still used\nVERDICT: MISS\nWHY: The answer says the Doxyfile is ignored for INPUT but never explains why (documented subset for repos with a Doxyfile versus the whole tree for repos without one)."
+}

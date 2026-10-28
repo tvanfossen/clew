@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It installs its own `buffer_alloc_calloc` / `buffer_alloc_free` through the same `mbedtls_platform_set_calloc_free()` setter.\"\nVERDICT: MISS\nWHY: The answer says the buffer allocator uses the setter from its init function, but it never says it is the only in-tree user of that setter."
+}

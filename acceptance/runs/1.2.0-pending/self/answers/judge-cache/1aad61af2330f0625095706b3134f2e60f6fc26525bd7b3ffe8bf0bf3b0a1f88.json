@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The build log records the reason, including where the declaration was looked for.\nVERDICT: HIT\nWHY: The answer says the whole-repo fallback is recorded with a reason, including where the declaration was looked for. That covers a stated scope and why it was used, so the scope is not silently guessed."
+}

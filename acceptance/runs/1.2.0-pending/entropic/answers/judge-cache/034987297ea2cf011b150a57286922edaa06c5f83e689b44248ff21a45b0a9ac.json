@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Consumer-allocated buffers the engine frees** (hook `modified_json`) must come from `entropic_alloc()`. `hooks.py:123` (`_alloc_c_string`) and `hooks.py:159-162` follow this rule.\"\nVERDICT: HIT\nWHY: The answer states that buffers the engine frees must be allocated with entropic_alloc and points to the Python code that does this (`hooks.py:123` `_alloc_c_string`, `hooks.py:159-162`)."
+}

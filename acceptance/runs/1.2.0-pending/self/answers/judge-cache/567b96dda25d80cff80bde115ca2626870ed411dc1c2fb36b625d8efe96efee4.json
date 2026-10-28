@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | 2 (declared) | `.clew.yaml` in the repo root | Replaces the stated layer. Each section mirrors the standalone manifest format for that option. |\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as tier 2 in the repo root, but never says that both entry points discover it from the root rather than plumbing it per section."
+}

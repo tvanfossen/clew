@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The stub calloc returns NULL and the stub free does nothing. So a build with `MBEDTLS_PLATFORM_MEMORY` and no allocator configured fails every allocation until something sets one.\nVERDICT: HIT\nWHY: The answer states that the default stubs return NULL from calloc and do nothing on free when no allocator is configured, so allocations fail rather than fall back."
+}

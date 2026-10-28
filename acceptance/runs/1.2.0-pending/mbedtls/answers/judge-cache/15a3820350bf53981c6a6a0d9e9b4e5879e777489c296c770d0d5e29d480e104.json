@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Inside those translation units `MBEDTLS_PRIVATE(m)` becomes plain `m`, so the code can write `ctx->grp.id` directly ... and \"By default it expands to `private_##m`, so the member is declared as `private_m` in the public header. The effect is that plain `ctx->m` fails to compile for anyone outside the library.\"\nVERDICT: HIT\nWHY: The answer states that where the opt-out is defined the names are plain, while ordinary consumers of the public headers see `private_`-renamed members and must use the explicit spelling."
+}

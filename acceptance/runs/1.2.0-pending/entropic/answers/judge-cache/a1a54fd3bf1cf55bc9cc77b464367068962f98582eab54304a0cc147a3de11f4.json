@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`do_count_tokens` / `entropic_inference_count_tokens` | Returns 0. The C API documents 0 as the answer for empty text, so a failed tokenization is indistinguishable from empty input.\"\nVERDICT: HIT\nWHY: The answer states that the count-tokens path returns 0 on failed tokenization, with no error signalled."
+}

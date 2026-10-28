@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_PRIVATE(x)` expands to `private_x`. A field declared as `MBEDTLS_PRIVATE(nr)` is really named `private_nr`, so `ctx.nr` fails to compile.\"\nVERDICT: HIT\nWHY: The answer says the macro renames the member so access fails at compile time. It never says the struct layout stays visible and sized, but the compile-time rename mechanism it describes is the substance of the item."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Fuzzy edges are kept in `callers`/`callees`. The source says 21.3% of clew's own call edges are fuzzy, and 79.8% on a large C++ target. `chain_trace` filters them out; the flat list does not.\nVERDICT: MISS\nWHY: The answer says the flat list keeps fuzzy edges and `chain_trace` filters them, but it never gives the reason that a walk expands each hop, so one fuzzy edge multiplies into a wrong subtree."
+}

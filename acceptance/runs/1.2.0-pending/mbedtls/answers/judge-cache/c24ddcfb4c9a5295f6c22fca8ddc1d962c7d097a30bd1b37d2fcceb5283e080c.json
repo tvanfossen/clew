@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without `MBEDTLS_ERROR_C` (and `MBEDTLS_ERROR_STRERROR_DUMMY`), the function is a stub that writes an empty string.\nVERDICT: MISS\nWHY: The answer only says what happens without MBEDTLS_ERROR_C; it never states the option is enabled in the shipped mbedtls_config.h or present in a default build."
+}

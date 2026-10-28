@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how empty-result grading works but never states the general rule that you fix the corpus (what's indexed) rather than the sentence about it."
+}

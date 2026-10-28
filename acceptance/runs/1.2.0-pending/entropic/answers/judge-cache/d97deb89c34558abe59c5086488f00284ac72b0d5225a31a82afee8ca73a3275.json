@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`do_count_tokens` (`cpp:825`) | `0` tokens\" and \"A real failure and legitimately empty input look the same to the caller. The error log is the only signal.\" and \"a tokenization failure is not raised or reported as an error. It becomes `0` tokens for counting\"\nVERDICT: HIT\nWHY: The answer states that a failed tokenization yields an empty vector, which the token-counting path reports as 0 tokens instead of raising an error."
+}

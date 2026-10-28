@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Edges are stored once per layer, and the row reports the strongest evidence.\nVERDICT: HIT\nWHY: The answer says edges are stored per layer but each neighbour row reports only the strongest evidence, which is the item's collapse-to-strongest claim."
+}

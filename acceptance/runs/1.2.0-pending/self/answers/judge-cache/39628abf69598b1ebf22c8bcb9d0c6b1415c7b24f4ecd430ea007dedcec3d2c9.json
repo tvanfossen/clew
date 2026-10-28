@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tiers 3 and 4 survive any stated tier, so `main` in entry patterns cannot be dropped by a flag.\nVERDICT: HIT\nWHY: The answer says stated tiers replace each other, while discovered tiers 3 and 4 accumulate and survive any stated tier. It gives the formula `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says an unknown section is refused by name against the allowed set. It covers only experimental-prefix sections being ignored with a warning and a malformed file degrading to defaults, and neither of those is the item."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Exceptions never cross the `.so` boundary, and the Python trampolines catch and print them.\nVERDICT: MISS\nWHY: The answer says trampolines catch and print exceptions, but never says a failed hook is treated as a pass-through, so the item's specific behavior is missing."
+}

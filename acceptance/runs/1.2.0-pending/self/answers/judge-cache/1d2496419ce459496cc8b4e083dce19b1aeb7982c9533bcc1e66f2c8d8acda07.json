@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that the option names an embedding caller states are the same words as the declaration file's section names and the diagnostics' names; it only says the `options` argument uses the \"Same keys as `.clew.yaml`\", which doesn't cover the diagnostics."
+}

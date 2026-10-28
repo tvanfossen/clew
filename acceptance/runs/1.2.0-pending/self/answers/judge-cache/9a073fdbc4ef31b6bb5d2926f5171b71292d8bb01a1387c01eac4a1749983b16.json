@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its `INPUT` is replaced, so a Doxyfile that documents only a header subset no longer narrows the index. The docs cite Mbed-TLS: its Doxyfile's `INPUT = ../include` would have indexed 1,571 header declarations and zero of the 108 `library/*.c` files.\nVERDICT: MISS\nWHY: The answer says the Doxyfile's INPUT is replaced and gives the Mbed-TLS example. It never says why this is deliberate, which is that a repo with a Doxyfile would get only its documented subset while a repo without one gets its whole tree."
+}

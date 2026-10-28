@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions `entropic install-engine` downloading the library but never concludes that a split exists so `import entropic` works before the engine is on disk."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Nested git trees (submodules, vendored clones) are included, not cut out.\" and \"Nested trees are tagged rather than excluded. `clew/external.py` marks files that sit inside a foreign git tree as external\"\nVERDICT: HIT\nWHY: The answer explicitly says nested git trees are included in the index and tagged as external rather than excluded."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the deny list is checked later, inside `ServerManager::execute`. The allow list only affects approval; it never overrides the deny list.\"\nVERDICT: MISS\nWHY: The answer says the deny list is enforced in ServerManager::execute, but it also describes other gates (hooks, schema check, key authorization, tier allowed_tools, approval denial) that block execution, so it never concludes that the deny list is the only blocker or that execute consults only is_denied."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Every query reply carries a `staleness` block only when something is stale. `staleness_notices()` returns a list of `{axis, message}` and is empty when the index is current or unmeasurable.\"\nVERDICT: HIT\nWHY: The answer says every query reply carries the staleness annotation and that the notices list is empty when the index is current."
+}

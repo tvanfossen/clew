@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | Engine \u2192 caller, `char*` return or out-param | Caller owns it. Free with `entropic_free()`. | ... | Engine \u2192 caller, `const char*` (e.g. handle-owned strings) | Owned by the handle, valid until the next call on that handle. | Copy immediately. Do not free. |\nVERDICT: HIT\nWHY: The table states both halves: a returned char* is caller-owned and freed with entropic_free, and a const char* is handle-owned and valid only until the next call on that handle."
+}

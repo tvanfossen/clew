@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nmbedtls_config.h\ninclude/mbedtls/platform.h\nlibrary/platform.c\ntests/configs/user-config-malloc-0-null.h\nmemory_buffer_alloc.c\ncipher_wrap.c\nplatform_util.c\n3rdparty/everest/.../kremlin/internal/target.h\nEND"
+}

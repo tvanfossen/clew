@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The library itself contains no thread creation.\" and \"These are sample and test programs.\"\nVERDICT: MISS\nWHY: The answer says the library creates no threads, but it lists `handle_ssl_connection` in the pthread example as a live entry point. It never says that the pthread example compiles to a stub main in a default build."
+}

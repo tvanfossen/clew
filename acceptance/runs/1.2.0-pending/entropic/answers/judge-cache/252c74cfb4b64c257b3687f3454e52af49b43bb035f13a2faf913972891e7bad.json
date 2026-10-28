@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `watched_mutex_` guards the watch list, `event_mutex_` guards the queue, and a `wake_cv_` wakes it on stop.\nVERDICT: MISS\nWHY: The answer mentions a condition variable wake and that the health monitor's stop() joins, but it never mentions an atomic flag exchange for shutdown, so the full mechanism is not stated."
+}

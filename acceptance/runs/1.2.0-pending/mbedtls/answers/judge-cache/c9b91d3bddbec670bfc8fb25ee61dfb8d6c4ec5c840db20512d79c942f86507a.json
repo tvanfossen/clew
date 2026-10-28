@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`calloc` returns NULL and `free` does nothing until you call the setter.\"\nVERDICT: HIT\nWHY: The answer states that the default stubs (when no STD_CALLOC/FREE is defined) return NULL for calloc and do nothing for free, so they fail rather than fall back."
+}

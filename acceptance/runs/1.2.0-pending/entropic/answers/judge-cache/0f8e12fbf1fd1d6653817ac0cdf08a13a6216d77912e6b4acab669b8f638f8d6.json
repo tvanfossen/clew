@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_loader.py` finds `librentropic.so` in this order: `$ENTROPIC_LIB`, then `$ENTROPIC_HOME` (nested, then flat layout), then `~/.entropic`, then `ctypes.util.find_library`.\nVERDICT: MISS\nWHY: The answer gives the order (env overrides, `~/.entropic`, `find_library`) but mentions the two layouts (nested, then flat) only for `$ENTROPIC_HOME`. It doesn't say both layouts are tried per root, so the item's \"two layouts per root\" is only partly stated."
+}

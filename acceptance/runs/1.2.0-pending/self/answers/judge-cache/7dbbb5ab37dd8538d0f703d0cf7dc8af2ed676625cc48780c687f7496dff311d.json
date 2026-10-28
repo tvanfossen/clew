@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the index's file set is decided by one resolver, `derive_scope` in `clew/scope.py`. It returns a root list plus an exclude list.\nVERDICT: HIT\nWHY: The answer explicitly names `derive_scope` in `clew/scope.py` as the resolver that decides the index scope."
+}

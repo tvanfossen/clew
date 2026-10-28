@@ -1,0 +1,143 @@
+{
+  "cell": "Q3_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5666666666666667,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "5489758d9a50",
+  "decisions": [
+    {
+      "mark": "names PermissionManager and locates the allow and deny lists as coming from the PermissionsConfig the ServerManager is constructed with",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: `permissions.allow`, `permissions.deny`, `permissions.auto_approve` in YAML (`src/config/loader.cpp:365`). | WHY: The answer mentions PermissionManager and says the lists come from YAML config and runtime add_permission. It never says they come from a PermissionsConfig that the ServerManager is constructed with.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the DENY list is the only one that blocks execution \u2014 ServerManager's execute path consults is_denied and nothing else before routing the call",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"the deny list is checked later, inside `ServerManager::execute`. The allow list only affects approval; it never overrides the deny list.\" | WHY: The answer says the deny list is enforced in ServerManager::execute, but it also describes other gates (hooks, schema check, key authorization, tier allowed_tools, approval denial) that block execution, so it never concludes that the deny list is the only blocker or that execute consults only is_denied.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the ALLOW list does not grant execution but suppresses the approval step \u2014 it is consulted only from ToolExecutor::check_approval, in a different file",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Approved if `auto_approve_tools` is set, or the call matches the allow list (`ServerManager::is_explicitly_allowed` \u2192 `PermissionManager::is_allowed`). ... The allow list only affects approval; it never overrides the deny list. | WHY: The answer says the allow list only affects approval (skips the approval step) and names `check_approval` in tool_executor.cpp, with the deny list checked separately in server_manager.cpp. This matches the item's substance: allow suppresses approval rather than granting execution, and it is consulted from check_approval in a different file.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the effective posture is default-ALLOW at the blocking gate \u2014 a tool matching neither list is not denied and runs",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: The header says default-deny with \"approved via callback\" (`include/entropic/mcp/permission_manager.h:6`). The code is default-deny only when no `on_tool_call` callback is registered. With a callback, every non-allow-listed call is approved (`tool_executor.cpp:168-172`). | WHY: The answer says a tool matching neither list is approved only when a callback is registered, and denied (\"Permission denied\") otherwise. It never concludes that the blocking gate is default-allow for unmatched tools.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the approval callback CANNOT refuse \u2014 it returns void, and the code sets approved to true unconditionally after firing it",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Otherwise, if the host registered `on_tool_call`, that callback is invoked and the call is approved anyway (`:168-172`). The callback is a notification, not a gate. | WHY: The answer states the callback is invoked and the call is approved regardless, so it cannot refuse. It doesn't mention the void return type, but the mechanism (approved unconditionally after firing) is stated.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a pattern is matched with fnmatch, split at the first colon into a tool part and an argument part, and that a pattern with no colon matches on the tool name alone",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: The part before the first `:` is matched with `fnmatch` against the tool name. If there is no `:`, that match is enough, so the rule covers every argument set. | WHY: The answer states the split at the first colon, fnmatch on the tool part, and that a colon-less pattern matches on the tool name alone.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that only ONE argument value ever reaches the pattern \u2014 the rest of the call's arguments are invisible to permission matching, and a non-string or unparseable argument collapses to a wildcard",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `args_to_pattern` (`server_manager.cpp:426`) does not look at all arguments. It takes the value of the first key in the parsed JSON object, and only if that value is a string. Otherwise it uses `*`. | WHY: The answer states that only one argument value (the first key's string value) reaches the pattern, and that a non-string value becomes `*`. It also notes that empty args become `*`. It doesn't mention unparseable arguments explicitly, but the single-argument and wildcard-collapse substance is there.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that a decision can be PERSISTED for future sessions by appending to config.local.yaml, separately from the in-memory add_permission call",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer mentions a permission persister and runtime add_permission but never says decisions are persisted by appending to config.local.yaml; it explicitly says it did not trace what the persister writes.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/permission_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/server_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/tool_executor.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 include/entropic/types/config.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": false,
+      "detail": "named 3 not in the set: ['include/entropic/mcp/permission_manager.h', 'src/config/loader.cpp', 'src/storage/permission_persister.cpp']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

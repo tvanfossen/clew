@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Interrupt observer | `response_generator.cpp:413` ... Mirrors the engine's `interrupt_flag_` into the C-ABI `int` cancel flag\" and \"The C ABI is `int*`, so the observer thread writes `cancel_int` ... This is a deliberate choice to keep atomics off the `.so` boundary\"\nVERDICT: HIT\nWHY: The answer says the observer thread copies the engine's interrupt flag into a plain C-ABI `int`, and that this keeps atomics off the `.so` boundary. That covers the atomic-to-int bridge and the reason for it."
+}

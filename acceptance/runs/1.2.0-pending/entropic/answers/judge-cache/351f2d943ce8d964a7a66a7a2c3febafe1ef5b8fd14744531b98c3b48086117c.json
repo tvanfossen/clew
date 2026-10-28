@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Allow list: a match skips the prompt and passes approval.\nVERDICT: MISS\n\nWHY: The answer says an allow match skips the prompt and that `is_explicitly_allowed` is called inside `check_approval`. It never says that allow doesn't grant execution, and it never says the allow list is consulted only from `check_approval` in a different file. It also says deny can still block after approval, but that isn't the item's claim."
+}
