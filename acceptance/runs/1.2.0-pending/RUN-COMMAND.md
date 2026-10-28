@@ -25,7 +25,7 @@ One invocation. It provisions all three, generates every cell, grades once, repo
 | flag | value | why this value |
 |---|---|---|
 | `--only` | `mbedtls entropic self` | 1.1.0's three. An unknown name refuses the grid rather than shrinking it. |
-| `--models` | `claude-haiku-5-5` | The model 1.1.0 answered with. `acceptance/modelpin.py` enforces a dated id for the judge; this is the answering half, and it is pinned here by being written down. |
+| `--models` | `claude-haiku-5-5` | The model 1.1.0 answered with. `acceptance/modelpin.py` applies the same rule to both halves: a provider-canonical id is accepted, a client shortcut (`haiku`) is refused. |
 | `--replicates` | `3` | 16 questions x 3 arms x 3 replicates = **144 cells**. |
 | `--seed` | `7` | 1.1.0's seed. It drives arm rotation per replicate, not sampling — the `claude` CLI exposes no seed. |
 | `--jobs` | `4` | Grading only; generation stays serial because a cell's wall-clock IS a reported axis. |
@@ -40,12 +40,31 @@ One invocation. It provisions all three, generates every cell, grades once, repo
 | | |
 |---|---|
 | cells generated | **144** |
-| judge calls, one pass | **3,672** — mbedtls 1,107, entropic 1,107, self 1,458 |
+| judge samples, one pass | **~3,300**, upper bound 3,672 |
 
-Derived, not estimated: 3 calls per mark where `weight >= samples_when_weight_at_least`, else 1;
-every rubric now sets that threshold to 1, so every mark is voted k=3. 1.1.0's threshold was 2
-and its pass was ~3,348, so the +324 is the `5b14197` change that removed single-sample marks
-from 12.7% of the grid's weight.
+**THE FORMULA OVER-COUNTS AND THE MEASUREMENT IS THE ONE TO TRUST.** The rubric formula — 3
+calls per mark where `weight >= samples_when_weight_at_least`, else 1, times 9 cells per
+question — gives **3,240** at 1.1.0's threshold of 2. The 1.1.0 run actually consumed
+**2,970**, measured from its own sidecars. The formula is 9% high because a set mark's per-item
+decisions land with `samples: 1` regardless of the mark's weight, so it is an UPPER BOUND and
+not a derivation. At threshold 1 that bound is 3,672; scaling the measurement by the same ratio
+gives ~3,300, and the method for that number is this paragraph.
+
+An earlier version of this file printed 3,672 as "derived, not estimated". It was neither.
+
+**WHAT THE EXTRA CALLS BUY, measured rather than assumed.** Under the Sonnet judge, 146 of 936
+voted decisions had the three samples DISAGREE — 15.6%, and 16.0% at weight 3. On roughly one
+voted decision in six, a single sample is a coin flip. That is why k=3 is not waste, and
+`5b14197` raised it to every mark because 12.7% of the grid's weight was still being decided by
+one call.
+
+**COST IS CAPACITY, NOT DOLLARS.** `acceptance/grader/judge.py` reaches the model through the
+`claude` CLI, so judge calls spend subscription capacity and no token count or price is recorded
+for them anywhere — this file states no dollar figure for grading because the evidence for one
+does not exist. The ANSWERING side is recorded: the whole 144-cell 1.1.0 generation cost
+**$1.71**, with 42.5M cache-read and 722K output tokens. `--skip-graded` exists because capacity
+windows, not money, are what has actually stopped a grid: one window graded 23 cells, the next
+re-graded those same 23 and reached 30.
 
 **No second grading pass.** A noise floor would need one with `--no-judge-cache` — with the
 verdict cache on, pass two replays pass one and reports a floor of zero. The ruling is one pass,
@@ -79,10 +98,10 @@ two disagree.
 | | |
 |---|---|
 | questions / marks / weight | 16 / 136 / 318 |
-| mbedtls | 5 / 41 / 97, digest `df99c485d2299d92` |
-| entropic | 5 / 41 / 96, digest `45ccebd5581c068a` |
-| self | 6 / 54 / 125, digest `e8bcc09226dcf43d` |
-| judge | `claude-sonnet-4-5-20250929` |
+| mbedtls | 5 / 41 / 97, digest `d05822f1233ad005` |
+| entropic | 5 / 41 / 96, digest `f908046b6fa97f44` |
+| self | 6 / 54 / 125, digest `237ee289ee1b5023` |
+| judge | `claude-haiku-5-5` — the same model that answers; floating, and `PRE-REGISTRATION.md` states what that costs |
 | `grader_fingerprint` | `5489758d9a50` |
 
 ## Before starting, and after
@@ -106,3 +125,9 @@ The counter is verified against committed evidence rather than trusted: run agai
 `acceptance/runs/2026-10-19-n3` it reports **152 of 2,970 samples, 5.12%**, which is the figure
 `PRE-REGISTRATION.md` cites. 1.1.0 was recoverable from its own sidecars the whole time; no
 command computed it, so no reader saw it.
+
+The same command prints the **split rate** — how often three samples of one mark disagreed. The
+judge changed from `claude-sonnet-4-5-20250929` to `claude-haiku-5-5` this round and there is no
+floor pass, so this is the only indicator available of whether the cheaper judge is noisier.
+Sonnet's figure was **146/936 voted = 15.6%**, printed alongside for comparison. It is NOT a
+noise floor.

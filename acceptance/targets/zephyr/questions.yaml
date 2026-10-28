@@ -53,7 +53,7 @@ ground_truth: |
   work handler as interrupt context has inverted the rule it is being asked about.
 
 judge:
-  model: claude-sonnet-4-5-20250929
+  model: claude-haiku-5-5
   samples_when_weight_at_least: 1
 
 index:

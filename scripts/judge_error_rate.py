@@ -16,7 +16,7 @@ grid the healthiest-looking one, so unreadable sidecars are reported separately 
 into the rate.
 
 @brief Judge error rate over a graded run.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -51,6 +51,44 @@ def tally(root: Path) -> tuple[int, int, int, list[Path]]:
     return samples, errors, cells, unreadable
 
 
+## @brief How many voted decisions had their samples disagree.
+## @param root Run directory holding one subdirectory per target.
+## @return (voted decisions, split decisions).
+## @version 1
+def splits(root: Path) -> tuple[int, int]:
+    """THE ONE NOISE INDICATOR A SINGLE GRADING PASS CAN GIVE. A floor needs two passes over
+    identical answers; the 1.2.0 run has one, and it changed the judge from
+    `claude-sonnet-4-5-20250929` to `claude-haiku-5-5`. Whether the cheaper judge disagrees with
+    ITSELF more often is visible without a second pass: on the Sonnet-graded 1.1.0 grid, 146 of
+    936 voted decisions split, 15.6%.
+
+    VOTED DECISIONS ONLY. A single-sample decision cannot split, so including it would dilute
+    the rate by however many marks the rubric left unvoted — turning a fact about the judge into
+    a fact about the weights.
+
+    IT IS NOT A NOISE FLOOR and must not be reported as one. It measures within-call-set
+    disagreement on one pass, not pass-to-pass movement in the score.
+
+    @brief Voted and split decision counts.
+    @return Voted, split.
+    @version 1
+    """
+    voted = split = 0
+    for path in sorted(root.glob("*/answers/*.grade.json")):
+        try:
+            record = json.loads(path.read_text("utf-8"))
+        except (OSError, ValueError):
+            continue
+        for decision in record.get("decisions", []):
+            if int(decision.get("samples", 0)) <= 1:
+                continue
+            voted += 1
+            agreement = decision.get("agreement")
+            if agreement is not None and float(agreement) < 1.0:
+                split += 1
+    return voted, split
+
+
 ## @brief Print the rate and its denominator.
 ## @return Exit code — 1 when the rate exceeds the threshold.
 ## @version 1
@@ -72,10 +110,20 @@ def main() -> int:
         print(f"REFUSED — no grade sidecars under {args.run}", file=sys.stderr)
         return 2
     rate = 100.0 * errors / samples if samples else 0.0
+    voted, split = splits(args.run)
     print(f"cells graded      {cells}")
     print(f"judge samples     {samples}")
     print(f"errored           {errors}")
     print(f"rate              {rate:.2f}%  (threshold {args.threshold:.2f}%)")
+    ## PRINTED BESIDE THE ERROR RATE because they answer different questions about the same
+    ## instrument: how often it failed to answer, and how often it disagreed with itself. The
+    ## Sonnet-graded comparison figure is quoted so the number means something to a reader who
+    ## has only this output. NOT a noise floor — see `splits`.
+    if voted:
+        print(
+            f"split decisions   {split}/{voted} voted  {100.0 * split / voted:.1f}% "
+            f"(1.1.0 under claude-sonnet-4-5-20250929: 146/936, 15.6%)"
+        )
     ## REPORTED, NEVER ABSORBED. An unreadable sidecar is a cell nobody graded, and folding it in
     ## as zero errors would make an empty grid the cleanest one on this measure.
     if unreadable:

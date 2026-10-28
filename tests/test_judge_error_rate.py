@@ -149,3 +149,53 @@ def test_the_published_1_1_0_rate_is_reproducible() -> None:
     assert (cells, samples, errors) == (144, 2970, 152)
     assert unreadable == []
     assert round(100.0 * errors / samples, 2) == 5.12
+
+
+## @brief The split rate is reported, because a cheaper judge may simply be noisier.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_split_rate_counts_only_voted_decisions(tmp_path: Path) -> None:
+    """WHY THIS NUMBER, AND WHY NOW. The 1.2.0 run grades with `claude-haiku-5-5` rather than
+    `claude-sonnet-4-5-20250929`, and it runs ONE pass, so there is no floor to measure whether
+    the cheaper judge disagrees with itself more often. The split rate is the one indicator of
+    that available from a single pass: on the Sonnet-graded 1.1.0 grid, 146 of 936 voted
+    decisions — 15.6% — had the three samples disagree. A materially higher figure here means
+    the instrument got noisier, and saying so costs nothing.
+
+    THE DENOMINATOR IS VOTED DECISIONS, NOT ALL OF THEM. A single-sample decision cannot split,
+    so counting it in would dilute the rate by however many marks happened to be unvoted —
+    making the rate a fact about the rubric's weights rather than about the judge.
+
+    @brief Split rate is over k>1 decisions only.
+    @return None.
+    @version 1
+    """
+    _sidecar(
+        tmp_path,
+        "a",
+        "Q1_m_baseline_r1",
+        [
+            {"samples": 3, "errors": 0, "agreement": 1.0},
+            {"samples": 3, "errors": 0, "agreement": 0.67},
+            {"samples": 1, "errors": 0, "agreement": 1.0},
+        ],
+    )
+    voted, split = judge_error_rate.splits(tmp_path)
+    assert (voted, split) == (2, 1)
+
+
+## @brief The published 1.1.0 split rate is reproducible from its sidecars.
+## @return None.
+## @version 1
+def test_the_1_1_0_split_rate_is_reproducible() -> None:
+    """PINNED TO REAL EVIDENCE so the Sonnet baseline this run is compared against is a
+    measurement rather than a remembered number.
+
+    @brief 146 of 936 voted decisions split under the Sonnet judge.
+    @return None.
+    @version 1
+    """
+    run = REPO / "acceptance" / "runs" / "2026-10-19-n3"
+    voted, split = judge_error_rate.splits(run)
+    assert (voted, split) == (936, 146)
