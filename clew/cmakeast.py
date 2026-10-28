@@ -59,10 +59,42 @@ _GENERATORS: dict[str, str] = {
     "configure_file": "configure_file",
 }
 
-## The keywords `add_custom_command` groups its flat argument list under. The grammar gives no
-## structure here — `argument_list` is a flat run of `argument` nodes — so the split is on these
-## words, upper-cased as CMake requires them.
+## The keywords `add_custom_command` groups its flat argument list under, and the only three this
+## harvest keeps. The grammar gives no structure here — `argument_list` is a flat run of
+## `argument` nodes — so the split is on these words.
 _SECTIONS = ("OUTPUT", "COMMAND", "DEPENDS")
+
+## EVERY OTHER KEYWORD STILL CLOSES THE SECTION IT FOLLOWS, and listing only the three above is
+## what let the other nine become data. FOUND BY INDEXING ALL OF mbedtls rather than one file:
+## across the tree the harvest produced two outputs that are not files, `WORKING_DIRECTORY` and
+## `..`, because `WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..` sat inside whichever section
+## preceded it.
+##
+## AN UNKNOWN ALL-CAPS TOKEN ALSO CLOSES A SECTION. CMake keywords are uppercase by convention
+## and the grammar does not mark them, so the conservative reading is that a bare uppercase word
+## ends the current section rather than joining it — a keyword added by a future CMake then costs
+## a dropped section rather than a fabricated filename.
+_KNOWN_KEYWORDS = frozenset(
+    {
+        *_SECTIONS,
+        "APPEND",
+        "BYPRODUCTS",
+        "COMMAND_EXPAND_LISTS",
+        "COMMENT",
+        "DEPFILE",
+        "IMPLICIT_DEPENDS",
+        "JOB_POOL",
+        "MAIN_DEPENDENCY",
+        "SOURCES",
+        "USES_TERMINAL",
+        "VERBATIM",
+        "WORKING_DIRECTORY",
+    }
+)
+
+## Arguments whose trailing segment is a directory reference rather than a filename. `..` named a
+## generated file on the first run over the real tree.
+_NOT_FILENAMES = frozenset({".", ".."})
 
 
 ## @brief Whether a tree holds CMake definitions this module can harvest.
@@ -182,7 +214,8 @@ def _command_arguments(node: Any, command_type: str) -> list[str]:
 ## @brief One argument as a record: the literal text, and a filename when it has one.
 ## @param literal The argument text exactly as written.
 ## @return The record.
-## @version 1
+## v2: a directory reference (`.`, `..`, a trailing slash) yields no filename.
+## @version 2
 ## @dg_internal
 def _argument_record(literal: str) -> dict[str, Any]:
     """VARIABLES ARE RECORDED, NEVER RESOLVED. `${CMAKE_CURRENT_BINARY_DIR}/error.c` depends on a
@@ -200,9 +233,11 @@ def _argument_record(literal: str) -> dict[str, Any]:
     """
     stripped = literal.strip()
     ## A trailing path segment outside `${...}` is the filename; a literal that is nothing but a
-    ## variable reference has none.
+    ## variable reference has none, and neither has one that ends in a directory reference or a
+    ## slash — `${CMAKE_CURRENT_SOURCE_DIR}/..` is a directory and was reported as a generated
+    ## file until the whole tree was indexed.
     tail = stripped.rsplit("/", 1)[-1]
-    name = "" if ("${" in tail or not tail) else tail
+    name = "" if ("${" in tail or not tail or tail in _NOT_FILENAMES) else tail
     return {
         "literal": stripped,
         "name": name,
@@ -214,7 +249,10 @@ def _argument_record(literal: str) -> dict[str, Any]:
 ## @param args The argument texts, in order.
 ## @param first_is_name True when the command's first argument is a target name, not a section.
 ## @return Section name -> argument records, for the sections present.
-## @version 1
+## v2: any known keyword or bare all-caps token closes the current section. Listing only the
+## three wanted keywords let the other nine become data — `WORKING_DIRECTORY` and `..` were
+## reported as generated files until the whole mbedtls tree was indexed.
+## @version 2
 ## @dg_internal
 def _sections(args: list[str], *, first_is_name: bool) -> dict[str, list[dict[str, Any]]]:
     """THE GRAMMAR GIVES NO STRUCTURE, so this is a keyword split and nothing cleverer. An
@@ -228,10 +266,16 @@ def _sections(args: list[str], *, first_is_name: bool) -> dict[str, list[dict[st
     out: dict[str, list[dict[str, Any]]] = {}
     current = "NAME" if first_is_name else ""
     for arg in args:
-        upper = arg.strip().upper()
-        if upper in _SECTIONS:
-            current = upper
+        text = arg.strip()
+        ## A KEYWORD CLOSES THE CURRENT SECTION WHETHER OR NOT THIS HARVEST WANTS IT. One the
+        ## harvest wants opens a section; any other known keyword, or any bare all-caps token,
+        ## closes the one in progress so its values do not become part of it.
+        if text in _SECTIONS:
+            current = text
             out.setdefault(current, [])
+            continue
+        if text in _KNOWN_KEYWORDS or (text.isupper() and text.isidentifier()):
+            current = ""
             continue
         if current and current != "NAME":
             out.setdefault(current, []).append(_argument_record(arg))

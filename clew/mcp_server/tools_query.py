@@ -1103,6 +1103,11 @@ _DOSSIER_LISTS = (
     ## reintroduces the unbounded payload one kind at a time. Named here rather than
     ## derived, because deriving them would mean trimming any list-shaped key including
     ## ones whose truncation is meaningless (`also`, `bases`).
+    ## The files one generator produces. Bounded by the repository rather than by clew — mbedtls
+    ## has 13 generated outputs and one script could plausibly produce many — so it is budgeted
+    ## like every other list. Trimming is safe here because the entries are bare basenames and
+    ## `generated_by` on each produced file carries the detail.
+    "generates",
     "sites",
     "siblings",
     "implementers",

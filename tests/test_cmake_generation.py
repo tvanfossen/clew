@@ -182,3 +182,93 @@ def test_the_real_mbedtls_cmakelists_yields_all_four_generators() -> None:
     assert "error.c" in produced and "version_features.c" in produced, produced
     generators = {c["name"] for r in commands for c in r["command"] if c["name"]}
     assert "generate_errors.pl" in generators, generators
+
+
+# ─── keywords I did not list, found by running on the whole tree ─────────────
+
+
+## @brief An unlisted CMake keyword does not leak into a section.
+## @version 1
+def test_unlisted_keywords_close_the_section() -> None:
+    """FOUND BY INDEXING ALL OF mbedtls, not by reading one file. The first version listed only
+    OUTPUT, COMMAND and DEPENDS, so every OTHER `add_custom_command` keyword was treated as a
+    value of whichever section preceded it. Across the real tree that produced two nonsense
+    outputs: `WORKING_DIRECTORY` and `..`.
+
+    `add_custom_command` has a dozen keywords — WORKING_DIRECTORY, COMMENT, VERBATIM,
+    MAIN_DEPENDENCY, BYPRODUCTS, IMPLICIT_DEPENDS, DEPFILE, JOB_POOL, USES_TERMINAL,
+    COMMAND_EXPAND_LISTS, APPEND — and enumerating only the three this harvest wants is how the
+    other nine became data.
+
+    SO AN UNKNOWN ALL-CAPS TOKEN ALSO CLOSES THE SECTION. CMake keywords are uppercase by
+    convention and the grammar does not mark them, so the conservative rule is that a bare
+    uppercase word ends the current section rather than joining it. A keyword added by a future
+    CMake then costs a dropped section, not a fabricated filename.
+    """
+    src = b"""
+add_custom_command(
+    OUTPUT ${BIN}/real.c
+    COMMAND ${PERL} gen.pl
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
+    COMMENT "Generating real.c"
+    VERBATIM
+    DEPENDS gen.pl
+)
+"""
+    rule = harvest_generation(_tree(src), src)["generated"][0]
+
+    assert [o["name"] for o in rule["outputs"]] == ["real.c"], rule["outputs"]
+    ## FILTERED TO NAMED ENTRIES, because `${PERL}` is a legitimate COMMAND argument — the
+    ## interpreter — recorded with an empty name and `unresolved: True`. An earlier version of
+    ## this assertion compared the whole list and failed on that record, which was the test being
+    ## wrong rather than the code: the property is that WORKING_DIRECTORY's value is absent, not
+    ## that the command holds exactly one entry.
+    assert [c["name"] for c in rule["command"] if c["name"]] == ["gen.pl"], (
+        f"WORKING_DIRECTORY and its value must not become part of COMMAND: {rule['command']}"
+    )
+    assert not any("CMAKE_CURRENT_SOURCE_DIR" in c["literal"] for c in rule["command"]), (
+        f"the working directory leaked into COMMAND: {rule['command']}"
+    )
+    assert [d["name"] for d in rule["depends"]] == ["gen.pl"], rule["depends"]
+
+
+## @brief A directory reference is not a filename.
+## @version 1
+def test_a_directory_reference_yields_no_filename() -> None:
+    """`${CMAKE_CURRENT_SOURCE_DIR}/..` has the basename `..`, which named a generated file in
+    the first run over the real tree. `.` and `..` are directory references and a trailing slash
+    means the argument is a directory, so none of them is a filename.
+    """
+    src = b"""
+add_custom_command(
+    OUTPUT ${BIN}/ok.c
+    COMMAND tool ${SRC}/.. ${SRC}/. ${SRC}/dir/
+    DEPENDS ${SRC}/..
+)
+"""
+    rule = harvest_generation(_tree(src), src)["generated"][0]
+
+    assert [c["name"] for c in rule["command"] if c["name"]] == ["tool"], rule["command"]
+    assert [d["name"] for d in rule["depends"] if d["name"]] == [], rule["depends"]
+
+
+## @brief The real mbedtls tree yields no nonsense output names.
+## @version 1
+def test_the_whole_mbedtls_tree_yields_only_plausible_outputs() -> None:
+    """THE CHECK THAT CAUGHT IT, kept as a test. One file parsed cleanly and the tree did not:
+    15 distinct outputs, of which `WORKING_DIRECTORY` and `..` were not files. Asserted over
+    EVERY CMakeLists in the checkout, because a per-file test is what let this through.
+    """
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parent.parent / "acceptance/runs/2026-10-19-n3/mbedtls/repo"
+    outputs: set[str] = set()
+    for f in repo.rglob("CMakeLists.txt"):
+        src = f.read_bytes()
+        for rule in harvest_generation(_tree(src), src).get("generated", []):
+            outputs |= {o["name"] for o in rule["outputs"] if o["name"]}
+
+    assert outputs, "precondition: the tree does hold generation rules"
+    bad = {o for o in outputs if o.isupper() or o in {".", ".."} or "/" in o}
+    assert not bad, f"these are not filenames: {sorted(bad)}"
+    assert "error.c" in outputs, outputs
