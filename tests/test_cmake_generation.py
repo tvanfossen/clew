@@ -39,6 +39,9 @@ would have missed three quarters of what the file says.
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
 
 from clew.cmakeast import harvest_generation, is_cmake_tree
 from clew.tsnode import Parser
@@ -70,6 +73,34 @@ endfunction()
 ##
 # @brief Parse CMake source into a tree.
 # @version 1
+## THE PROVISIONED mbedtls CHECKOUT, AND WHY A SKIP RATHER THAN A FIXTURE. The two tests below
+## assert over the REAL tree — that is their whole value, since a per-file test is exactly what
+## let `WORKING_DIRECTORY` and `..` through as generated filenames. The tree is a third-party
+## checkout under `acceptance/runs/*/*/repo`, which `.gitignore` excludes deliberately:
+## committing it would vendor another project into this repository.
+##
+## SO THEY PASSED LOCALLY AND COULD NEVER PASS IN CI, and CI was red for eleven hours before
+## anyone looked. A `skipif` on the absent prerequisite is the convention this suite already
+## uses for a missing doxygen and a missing self-index; the reason string names how to get it, so
+## the skip is an instruction rather than a shrug.
+##
+## WHAT THIS COSTS, STATED: in CI these assertions do not run, so the regression they guard is
+## guarded only on a provisioned machine. That is a real gap and the alternative — vendoring
+## mbedtls — is worse.
+_MBEDTLS_REPO = (
+    Path(__file__).resolve().parent.parent / "acceptance/runs/2026-10-19-n3/mbedtls/repo"
+)
+
+needs_mbedtls = pytest.mark.skipif(
+    not (_MBEDTLS_REPO / "library" / "CMakeLists.txt").is_file(),
+    reason=(
+        f"no provisioned mbedtls checkout at {_MBEDTLS_REPO} (gitignored third-party source); "
+        f"run `.venv/bin/python -m acceptance.matrix --only mbedtls --models claude-haiku-5-5 "
+        f"--out acceptance/runs/2026-10-19-n3 --provision-only` to enable these assertions"
+    ),
+)
+
+
 def _tree(src: bytes):
     return Parser("cmake").parse(src)
 
@@ -164,14 +195,13 @@ add_custom_target(mbedcrypto_generated_files_target
 
 ## @brief The real mbedtls file yields every rule in it.
 ## @version 1
+@needs_mbedtls
 def test_the_real_mbedtls_cmakelists_yields_all_four_generators() -> None:
     """PARSED FROM THE FROZEN CHECKOUT, not a fixture, because the fixture is mine and the file
     is theirs. Four `add_custom_command` rules and three distinct generators across two
     languages — a harvest written for mbedtls Q4's one mark would have missed three of them.
     """
-    from pathlib import Path
-
-    repo = Path(__file__).resolve().parent.parent / "acceptance/runs/2026-10-19-n3/mbedtls/repo"
+    repo = _MBEDTLS_REPO
     src = (repo / "library/CMakeLists.txt").read_bytes()
 
     rules = harvest_generation(_tree(src), src)["generated"]
@@ -254,14 +284,13 @@ add_custom_command(
 
 ## @brief The real mbedtls tree yields no nonsense output names.
 ## @version 1
+@needs_mbedtls
 def test_the_whole_mbedtls_tree_yields_only_plausible_outputs() -> None:
     """THE CHECK THAT CAUGHT IT, kept as a test. One file parsed cleanly and the tree did not:
     15 distinct outputs, of which `WORKING_DIRECTORY` and `..` were not files. Asserted over
     EVERY CMakeLists in the checkout, because a per-file test is what let this through.
     """
-    from pathlib import Path
-
-    repo = Path(__file__).resolve().parent.parent / "acceptance/runs/2026-10-19-n3/mbedtls/repo"
+    repo = _MBEDTLS_REPO
     outputs: set[str] = set()
     for f in repo.rglob("CMakeLists.txt"):
         src = f.read_bytes()
