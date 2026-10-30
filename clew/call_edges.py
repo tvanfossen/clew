@@ -446,7 +446,8 @@ def _ast_caller_at_line(
 ## @param source Provenance to stamp: 'ast' (bare identifier) or 'ast_member'.
 ## @param qualified The qualified callee text the call site wrote, or '' (#75).
 ## @param definition_of rowid → doxygen `definition` signature, for qualifier narrowing.
-## @version 6
+## @param one_function Candidate sets that name one function, from _one_function_targets.
+## @version 7
 ## @dg_internal
 def _ast_record_call_edge(
     caller_rowid: int,
@@ -465,6 +466,7 @@ def _ast_record_call_edge(
     argc_of: dict[int, int] | None = None,
     construction: bool = False,
     unresolved: list[list[int]] | None = None,
+    one_function: dict[tuple[int, ...], int] | None = None,
 ) -> None:
     """A UNIQUE NAME IS NOT EVIDENCE ABOUT A RECEIVER, and conflating the two made this
     layer assert fabrications as certainties.
@@ -488,9 +490,12 @@ def _ast_record_call_edge(
     reachability and thread BFS traverse only non-fuzzy edges and the tool descriptions
     already tell a model that `ast_member` edges are mostly fuzzy and may be wrong.
 
+    A BARE CALL TO A DECL/DEF PAIR is resolved too: the pair is one function, so the name is
+    still the whole call (see `_one_function_targets`).
+
     @brief Record one AST call edge, grading confidence by what was actually verified.
     @return None.
-    @version 7
+    @version 8
     """
     candidates = name_to_rowids.get(callee_name, [])
     if qualified and candidates:
@@ -557,9 +562,13 @@ def _ast_record_call_edge(
                 edges_fuzzy.append((caller_rowid, rowid, source))
             return
         candidates = narrowed
-    unverified_receiver = source == SOURCE_AST_MEMBER
-    if len(candidates) == 1 and not unverified_receiver:
-        edges_resolved.append((caller_rowid, candidates[0], source))
+    ## A DECL/DEF PAIR COUNTS AS ONE CANDIDATE for a bare call. Two rows for one function were
+    ## refused here as if they were two functions, so every bare C call to a prototyped function
+    ## earned no edge; `_one_function_targets` admits a set only when it is one identity and at
+    ## most one body, so two same-named functions are still refused below.
+    target = _bare_call_target(candidates, source, one_function)
+    if target is not None:
+        edges_resolved.append((caller_rowid, target, source))
         return
     ## AN UNRESOLVED CALL PRODUCES NO ROW (gh#347). This used to fan out — one row per
     ## same-named candidate — turning ONE true observation into N assertions. tree-sitter was
@@ -607,6 +616,33 @@ def _ast_record_call_edge(
     ):
         unresolved.append(list(candidates))
     return
+
+
+## @brief The one row a call resolves to without a receiver, or None.
+## @param candidates The candidate rowids left after qualifier and receiver narrowing.
+## @param source The call site's provenance.
+## @param one_function Candidate sets that name one function, from _one_function_targets.
+## @return The rowid, or None when the call must be refused.
+## @version 1
+## @dg_internal
+def _bare_call_target(
+    candidates: list[int],
+    source: str,
+    one_function: dict[tuple[int, ...], int] | None,
+) -> int | None:
+    """A member call never resolves here: its receiver was not verified, and one row of that
+    name is a fact about the index, not about the call. Anything else resolves when it has one
+    candidate, or when its candidates are one function's decl/def rows.
+
+    @brief Pick the target of a call that needs no receiver.
+    @return The rowid, or None.
+    @version 1
+    """
+    if source == SOURCE_AST_MEMBER:
+        return None
+    if len(candidates) == 1:
+        return candidates[0]
+    return (one_function or {}).get(tuple(candidates))
 
 
 ## Type spellings that name no class, so a receiver declared as one of them tells us nothing.
@@ -809,10 +845,40 @@ def _narrow_by_receiver(
     return scoped, True
 
 
-## @brief Every indexed function's (name, definition, argsstring) identity, and which rows have bodies.
+## @brief The name a `definition` declares, without the return type in front of it.
+## @param name The memberdef's bare name.
+## @param definition doxygen's `definition` text, or a recovered row's declarator.
+## @return The declared (possibly qualified) name, or `definition` unchanged when it is not
+##         recognisably `<anything> <qualified name>`.
+## @version 1
+## @dg_internal
+def _declared_name(name: str, definition: str) -> str:
+    """THE RETURN TYPE IS NOT PART OF WHICH FUNCTION THIS IS. doxygen writes a prototype's
+    `definition` as `MBEDTLS_CHECK_RETURN_TYPICAL int mbedtls_aes_crypt_ecb`, and
+    `recover_ast_symbols` writes the definition it recovered as the bare declarator,
+    `mbedtls_aes_crypt_ecb`. Both name one function; compared whole they never matched, so a
+    decl/def pair split across the two layers was never recognised as one.
+
+    THE QUALIFIER STAYS. Only what precedes the last token is dropped, and only when that token
+    ends in the function's own name, so `void ns::A::run` and `void ns::B::run` keep their
+    classes. A name with a space in it (`operator bool`) or a `definition` whose last token is
+    not the name falls back to the whole `definition`, which is the comparison this replaced.
+
+    @brief Strip the return type from a definition string.
+    @return The declared name.
+    @version 1
+    """
+    words = definition.split()
+    last = words[-1].lstrip("*&") if words else ""
+    if " " in name or not (last == name or last.endswith("::" + name)):
+        return definition
+    return last
+
+
+## @brief Every indexed function's identity, and which rows have bodies.
 ## @param conn Open connection to the database being built.
 ## @return (rowid → identity triple, set of rowids doxygen gave a body).
-## @version 1
+## @version 2
 ## @dg_internal
 def _function_identities(
     conn: sqlite3.Connection,
@@ -823,9 +889,17 @@ def _function_identities(
     map makes the collapse inert — every group stays fuzzy, which is the behaviour before it
     existed — instead of failing a build.
 
+    THE IDENTITY IS (name, declared name, parameter list without whitespace), not the raw
+    columns. A prototype doxygen read and the definition `recover_ast_symbols` recovered spell
+    one function differently: the `definition` carries a return type on one side only (see
+    `_declared_name`), and the recovered `argsstring` keeps the source's line breaks while
+    doxygen's is normalized. Compared raw, the two rows were two identities, so a call to the
+    function was neither resolved nor counted as unresolved. The parameter TEXT is kept, so a
+    different parameter list is still a different function.
+
     @brief Index function rowids to their identity, and note which carry a body.
     @return (identity map, defined rowids); both empty when the columns are absent.
-    @version 1
+    @version 2
     """
     columns = {str(row[1]) for row in conn.execute("PRAGMA table_info(memberdef)")}
     if not {"name", "definition", "argsstring", "bodystart"} <= columns:
@@ -836,10 +910,97 @@ def _function_identities(
         "SELECT rowid, name, COALESCE(definition,''), COALESCE(argsstring,''), "
         "COALESCE(bodystart,0) FROM memberdef WHERE kind = 'function'"
     ):
-        identity_of[int(rowid)] = (str(name), str(definition), str(args))
+        identity_of[int(rowid)] = (
+            str(name),
+            _declared_name(str(name), str(definition)),
+            "".join(str(args).split()),
+        )
         if int(bodystart) > 0:
             defined.add(int(rowid))
     return identity_of, defined
+
+
+## @brief Every function row's body, and which rows sit in the file that holds their body.
+## @param conn Open connection to the database being built.
+## @return (rowid → (bodyfile, bodystart) for rows with a body, rowids defined in their own file).
+## @version 1
+## @dg_internal
+def _function_bodies(conn: sqlite3.Connection) -> tuple[dict[int, tuple[int, int]], set[int]]:
+    """A BODY, NOT A ROW, IS ONE FUNCTION. doxygen copies a definition's body range onto the
+    header row that declares it, so two rows can carry one body; and two `static` helpers with
+    the same signature in two files are two bodies under one identity. `_one_function_targets`
+    needs both facts, so this records where each row's body is and which row lives beside it.
+
+    DEGRADES TO EMPTY when the columns are absent, as `_function_identities` does, which leaves
+    every bare call to a decl/def pair refused as it was.
+
+    @brief Map function rows to their bodies.
+    @return (body map, home rowids).
+    @version 1
+    """
+    columns = {str(row[1]) for row in conn.execute("PRAGMA table_info(memberdef)")}
+    if not {"bodyfile_id", "bodystart", "file_id"} <= columns:
+        return {}, set()
+    body_of: dict[int, tuple[int, int]] = {}
+    homes: set[int] = set()
+    for rowid, bodyfile, bodystart, file_id in conn.execute(
+        "SELECT rowid, COALESCE(bodyfile_id, 0), COALESCE(bodystart, 0), file_id "
+        "FROM memberdef WHERE kind = 'function' AND COALESCE(bodystart, 0) > 0"
+    ):
+        body_of[int(rowid)] = (int(bodyfile), int(bodystart))
+        if bodyfile and int(bodyfile) == int(file_id or 0):
+            homes.add(int(rowid))
+    return body_of, homes
+
+
+## @brief The candidate sets that name one function, each mapped to the row a call should reach.
+## @param name_to_rowids Name index built from _build_function_indexes.
+## @param identity_of rowid → identity, from _function_identities.
+## @param body_of rowid → (bodyfile, bodystart), from _function_bodies.
+## @param homes Rows defined in the file that holds their body.
+## @return tuple(candidate rowids) → the rowid to resolve to.
+## @version 1
+## @dg_internal
+def _one_function_targets(
+    name_to_rowids: dict[str, list[int]],
+    identity_of: dict[int, tuple[str, str, str]],
+    body_of: dict[int, tuple[int, int]],
+    *,
+    homes: set[int],
+) -> dict[tuple[int, ...], int]:
+    """A BARE CALL TO A DECL/DEF PAIR IS A CALL TO ONE FUNCTION. `_ast_record_call_edge`
+    resolves a bare identifier when its name matches one row, because then the name IS the whole
+    call. A C function declared in a header and defined in a source file is two rows, so every
+    bare call to it was refused, and `_collapse_duplicate_targets` — which knows the pair is one
+    function — only ever sees receiver-verified member calls. Measured on public mbedtls
+    (068ff080b369, whole-tree `clew --rebuild`): `mbedtls_platform_zeroize` had no inbound edge
+    and 244 unresolved inbound sites.
+
+    TWO CONDITIONS, BOTH REQUIRED. Every row shares one identity (`_attributable`, the test the
+    unresolved count already uses), AND the rows carry at most one body. The second is what keeps
+    gh#347's rule: two `static int helper(void)` definitions in two files share an identity and
+    are two functions, and a name cannot say which one a call meant.
+
+    KEYED BY THE CANDIDATE SET, NOT THE NAME. The lookup asks "do these rows name one function",
+    which is a fact about rows; the name only produced them.
+
+    THE ROW BESIDE ITS BODY WINS, then any row with the body, then the lowest rowid — the same
+    preference `_one_target` applies, made deterministic.
+
+    @brief Find the candidate sets that are one function.
+    @return The target map.
+    @version 1
+    """
+    targets: dict[tuple[int, ...], int] = {}
+    for rowids in name_to_rowids.values():
+        if len(rowids) < 2 or _attributable(rowids, identity_of) is None:
+            continue
+        bodies = {body_of[r] for r in rowids if r in body_of}
+        if len(bodies) > 1:
+            continue
+        ranked = sorted(rowids, key=lambda r: (r not in homes, r not in body_of, r))
+        targets[tuple(rowids)] = ranked[0]
+    return targets
 
 
 ## @brief Promote a receiver-verified fuzzy group to one resolved edge when it names one function.
@@ -1427,7 +1588,7 @@ def call_site_harvester() -> Harvester:
 
 
 ## @brief Resolve one file's harvested call sites into call_edges rows.
-## @version 4
+## @version 5
 ## @dg_internal
 def _fold_call_payload(
     payload: list[list[Any]],
@@ -1440,6 +1601,7 @@ def _fold_call_payload(
     scope_of: dict[int, str] | None = None,
     argc_of: dict[int, int] | None = None,
     unresolved: list[list[int]] | None = None,
+    one_function: dict[tuple[int, ...], int] | None = None,
 ) -> None:
     """Map each harvested call line back to its enclosing function's rowid and
     the callee name to candidate rowids — the rowid-dependent half of Layer 3,
@@ -1450,7 +1612,7 @@ def _fold_call_payload(
     of raising. The stage_version bump makes that path cold in practice.
 
     @brief Fold a cached call-site payload into call edges.
-    @version 4
+    @version 5
     """
     for site in payload:
         callee_name, call_line = site[0], site[1]
@@ -1481,6 +1643,7 @@ def _fold_call_payload(
             argc_of=argc_of,
             construction=construction,
             unresolved=unresolved,
+            one_function=one_function,
         )
 
 
@@ -1636,8 +1799,9 @@ _FOLD_STAGE_VERSION = 1
 ## @param receiver_types Receiver variable types by scope.
 ## @param scope_of Rowid to declaring scope.
 ## @param argc_of Rowid to parameter count.
+## @param one_function Candidate sets that name one function.
 ## @return Hex digest over all of them.
-## @version 1
+## @version 2
 ## @dg_internal
 def _resolution_digest(
     name_to_rowids: dict,
@@ -1645,6 +1809,7 @@ def _resolution_digest(
     receiver_types: dict,
     scope_of: dict,
     argc_of: dict,
+    one_function: dict | None = None,
 ) -> str:
     """THE PAYLOAD SHA IS NOT ENOUGH, and this digest is the whole reason caching a fold is
     safe. Resolution reads the WHOLE index: one edited file can add an overload to a candidate
@@ -1662,9 +1827,13 @@ def _resolution_digest(
     incremental edit — leaves this digest unchanged and every other file's fold valid. A signature
     change, a new function or a moved definition all move it, and then nothing is served.
 
+    THE ONE-FUNCTION MAP IS AN INPUT TOO. It decides whether a bare call to a decl/def pair
+    resolves, and it moves when a definition is recovered or a signature changes, so a fold
+    cached before it moved must not be served after.
+
     @brief Hash the index-wide resolution inputs.
     @return Hex digest.
-    @version 1
+    @version 2
     """
     hasher = hashlib.sha256()
     for label, mapping in (
@@ -1673,6 +1842,7 @@ def _resolution_digest(
         ("receivers", receiver_types),
         ("scopes", scope_of),
         ("argc", argc_of),
+        ("one_function", one_function or {}),
     ):
         hasher.update(label.encode("utf-8"))
         for key in sorted(mapping, key=repr):
@@ -1730,7 +1900,7 @@ def _extend_from_cache(
 ## @param maps The index-wide resolution inputs the fold reads.
 ## @param context (conn, repo_root, cache) — where the paths and the cache come from.
 ## @return (resolved edges, fuzzy edges, unresolved inbound rows).
-## @version 1
+## @version 2
 ## @dg_internal
 def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, list, list]:
     """gh#34. THE 59%. Measured on a 6.8 GB repository refreshing after one touched file: the
@@ -1756,7 +1926,7 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
 
     @brief Fold or serve each file's call edges.
     @return The three accumulators.
-    @version 1
+    @version 2
     """
     conn, repo_root, cache = context
     edges_resolved: list = []
@@ -1768,6 +1938,7 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
         maps["receiver_types"],
         maps["scope_of"],
         maps["argc_of"],
+        maps.get("one_function"),
     )
     rel_of = _rel_paths(conn)
     served = 0
@@ -1802,6 +1973,7 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
             scope_of=maps["scope_of"],
             argc_of=maps["argc_of"],
             unresolved=unresolved,
+            one_function=maps.get("one_function"),
         )
         if cache is not None and sha:
             cache.extract_put(
@@ -1836,7 +2008,7 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
 ## @param db_path Path to the clew.db being built.
 ## @param repo_root Repository root (for resolving indexed relative paths).
 ## @param cache Optional incremental index cache; None disables caching.
-## @version 14
+## @version 15
 ## @req REQ-DDB-PIPE-003
 def import_ast_call_edges(
     db_path: Path,
@@ -1856,7 +2028,7 @@ def import_ast_call_edges(
     stage that holds the AST evidence the guard needs.
 
     @brief Populate call_edges from tree-sitter AST walk, then guard self-edges.
-    @version 14
+    @version 15
     """
     conn = sqlite3.connect(str(db_path))
     name_to_rowids, file_funcs = _build_function_indexes(conn)
@@ -1876,6 +2048,7 @@ def import_ast_call_edges(
     ## attributable, every symbol would record a zero, and a zero is read as a measured negative
     ## — so the degrade would manufacture confidence rather than withhold it.
     identity_of, defined = _function_identities(conn)
+    body_of, homes = _function_bodies(conn)
     if receiver_types:
         scope_of = {
             int(r): str(sc or "")
@@ -1901,6 +2074,9 @@ def import_ast_call_edges(
             "receiver_types": receiver_types,
             "scope_of": scope_of,
             "argc_of": argc_of,
+            "one_function": _one_function_targets(
+                name_to_rowids, identity_of, body_of, homes=homes
+            ),
         },
         (conn, repo_root, cache),
     )
