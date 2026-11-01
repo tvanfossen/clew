@@ -1042,6 +1042,9 @@ def test_resume_does_not_respend_a_cell_that_already_has_an_answer(
 
     monkeypatch.setattr(cli, "run_cell", record)
     monkeypatch.setattr(cli, "check_revision", lambda *_a, **_k: None)
+    ## FIXTURE, NOT BEHAVIOUR: `generate` now refuses a modified clew tree, and this test runs
+    ## in a working checkout. The tree check is covered by tests/test_tool_tree_refusal.py.
+    monkeypatch.setattr(cli, "check_tool_tree", lambda *_a, **_k: None)
     args = cli.argparse.Namespace(
         rubric=MBEDTLS,
         ## FIXTURE, NOT BEHAVIOUR. This said `m` (resp. `sonnet`) until `--models` began
@@ -1140,6 +1143,9 @@ def test_arms_can_be_narrowed_and_the_record_says_which(tmp_path: Path, monkeypa
     """
     ran: list[str] = []
     monkeypatch.setattr(cli, "check_revision", lambda *_a, **_k: None)
+    ## FIXTURE, NOT BEHAVIOUR: `generate` now refuses a modified clew tree, and this test runs
+    ## in a working checkout. The tree check is covered by tests/test_tool_tree_refusal.py.
+    monkeypatch.setattr(cli, "check_tool_tree", lambda *_a, **_k: None)
     monkeypatch.setattr(
         cli,
         "run_cell",
@@ -1175,16 +1181,22 @@ def test_arms_can_be_narrowed_and_the_record_says_which(tmp_path: Path, monkeypa
 ## @brief An unknown arm name must be refused by name rather than silently dropped.
 ## @param tmp_path Per-test temporary directory.
 ## @return None.
-## @version 1
-def test_an_unknown_arm_is_refused_by_name(tmp_path: Path) -> None:
+## @version 2
+def test_an_unknown_arm_is_refused_by_name(tmp_path: Path, monkeypatch, capsys) -> None:
     """REFUSED BY NAME, like every other declaration in this project. A typo'd arm that silently
     matched nothing would generate zero cells and report success — a run directory with no answers
     and a green exit code, which reads as "the grid is cheap" rather than "the filter was wrong".
 
+    VERSION 2: THIS PASSED FOR THE WRONG REASON. `repo` does not exist, so `check_revision` refused
+    before the arm filter ran and the exit code was 1 either way. Both preflight checks are now
+    stubbed and the refusal must name the misspelled arm.
+
     @brief An unknown arm is refused.
     @return None.
-    @version 1
+    @version 2
     """
+    monkeypatch.setattr(cli, "check_revision", lambda *_a, **_k: None)
+    monkeypatch.setattr(cli, "check_tool_tree", lambda *_a, **_k: None)
     args = cli.argparse.Namespace(
         rubric=MBEDTLS,
         models=["claude-haiku-5-5"],
@@ -1199,6 +1211,7 @@ def test_an_unknown_arm_is_refused_by_name(tmp_path: Path) -> None:
     )
 
     assert cli.cmd_generate(args) == 1, "a misspelled arm was accepted"
+    assert "index_onlyy" in capsys.readouterr().err, "the refusal did not name the unknown arm"
 
 
 ## @brief A question nothing was ruled on prints as unruled, not as a crash.

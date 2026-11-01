@@ -128,6 +128,9 @@ def test_run_json_carries_the_tool_identity(tmp_path: Path, monkeypatch) -> None
     from acceptance import execute
 
     monkeypatch.setattr(cli, "check_revision", lambda *_a, **_k: None)
+    ## FIXTURE, NOT BEHAVIOUR: `generate` now refuses a modified clew tree, and this test runs
+    ## in a working checkout. The tree check is covered by tests/test_tool_tree_refusal.py.
+    monkeypatch.setattr(cli, "check_tool_tree", lambda *_a, **_k: None)
     monkeypatch.setattr(
         cli,
         "run_cell",
@@ -288,6 +291,9 @@ def test_generate_refuses_a_shortcut_answering_model(tmp_path: Path, monkeypatch
     spent: list[str] = []
     monkeypatch.setattr(cli, "run_cell", lambda cell, *_a, **_k: spent.append(cell.stem()))
     monkeypatch.setattr(cli, "check_revision", lambda *_a, **_k: None)
+    ## FIXTURE, NOT BEHAVIOUR: `generate` now refuses a modified clew tree, and this test runs
+    ## in a working checkout. The tree check is covered by tests/test_tool_tree_refusal.py.
+    monkeypatch.setattr(cli, "check_tool_tree", lambda *_a, **_k: None)
     out = tmp_path / "answers"
     args = cli.argparse.Namespace(
         rubric=FREERTOS,
@@ -339,6 +345,9 @@ def test_each_generate_appends_a_window_rather_than_overwriting(
         lambda cell, *_a, **_k: execute.CellResult(cell.stem(), cell.arm, cell.model, True),
     )
     monkeypatch.setattr(cli, "check_revision", lambda *_a, **_k: None)
+    ## FIXTURE, NOT BEHAVIOUR: `generate` now refuses a modified clew tree, and this test runs
+    ## in a working checkout. The tree check is covered by tests/test_tool_tree_refusal.py.
+    monkeypatch.setattr(cli, "check_tool_tree", lambda *_a, **_k: None)
     out = tmp_path / "answers"
 
     def once(resume: bool) -> None:
@@ -397,6 +406,9 @@ def test_a_floating_model_is_accepted_and_recorded_as_floating(tmp_path: Path, m
 
     FREERTOS = Path(__file__).resolve().parent.parent / "acceptance/targets/freertos/questions.yaml"
     monkeypatch.setattr(cli, "check_revision", lambda *_a, **_k: None)
+    ## FIXTURE, NOT BEHAVIOUR: `generate` now refuses a modified clew tree, and this test runs
+    ## in a working checkout. The tree check is covered by tests/test_tool_tree_refusal.py.
+    monkeypatch.setattr(cli, "check_tool_tree", lambda *_a, **_k: None)
     monkeypatch.setattr(
         cli,
         "run_cell",
@@ -445,6 +457,9 @@ def test_a_dated_model_is_not_recorded_as_floating(tmp_path: Path, monkeypatch) 
 
     FREERTOS = Path(__file__).resolve().parent.parent / "acceptance/targets/freertos/questions.yaml"
     monkeypatch.setattr(cli, "check_revision", lambda *_a, **_k: None)
+    ## FIXTURE, NOT BEHAVIOUR: `generate` now refuses a modified clew tree, and this test runs
+    ## in a working checkout. The tree check is covered by tests/test_tool_tree_refusal.py.
+    monkeypatch.setattr(cli, "check_tool_tree", lambda *_a, **_k: None)
     monkeypatch.setattr(
         cli,
         "run_cell",
