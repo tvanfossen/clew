@@ -24,6 +24,7 @@ import re
 import sqlite3
 from collections.abc import Iterable
 
+from ..generated import self_declared_paths
 from ..vocabulary import (
     CALL_MATCH,
     CALL_MATCH_FUZZY,
@@ -36,6 +37,7 @@ from ..vocabulary import (
     SEARCH_WEIGHT_NAME_SUBSTRING,
     SEARCH_WEIGHT_TOKEN_IN_BRIEF,
     SEARCH_WEIGHT_TOKEN_IN_NAME,
+    SEARCH_PENALTY_SELF_DECLARED_GENERATED,
     SEARCH_WEIGHT_TOKEN_IN_PATH,
 )
 from ._common import (
@@ -1383,7 +1385,9 @@ def _one_line(text: str | None) -> str:
 ## and none was `_candidate_paths`, defined in `_loader.py` — the symbol an agent needed, held by
 ## the index, reachable by no natural query. Ranked at `SEARCH_WEIGHT_TOKEN_IN_PATH`, the lowest
 ## of the four, so a path match cannot bury a named one.
-## @version 4
+## v5: a symbol in a self-declared generated file loses half a name-token match, so it loses ties
+## to hand-written code without ever being hidden.
+## @version 5
 ## @dg_internal
 def _memberdef_candidates(
     conn: sqlite3.Connection,
@@ -1466,12 +1470,15 @@ def _memberdef_candidates(
         kept[name] = row
         elsewhere[name] = []
 
+    ## Read once per kind, not per row: a handful of paths, and the set is what the loop asks.
+    generated = self_declared_paths(conn)
     candidates: list[_Candidate] = []
     for name, (_n, row_kind, file, brief, rowid, extra) in kept.items():
         clean = strip_xml(brief) or _one_line(extra)
+        penalty = SEARCH_PENALTY_SELF_DECLARED_GENERATED if file in generated else 0
         candidates.append(
             (
-                -_search_rank(name, clean, query, tokens, file),
+                -(_search_rank(name, clean, query, tokens, file) - penalty),
                 tier,
                 name,
                 SymbolHit(
@@ -1548,7 +1555,8 @@ def _memberdef_corpora(conn: sqlite3.Connection, query: str, tokens: list[str]) 
 ## @return Ranked candidate tuples with kind 'file'.
 ## v2: also reads `undocumented_path_rows`, so a file the index knows only BY NAME — the class C5
 ## registers — is reachable in the DEFAULT corpus and not only through `corpus="files"`.
-## @version 2
+## v3: a self-declared generated file takes the same search penalty as the symbols in it.
+## @version 3
 ## @dg_internal
 def _file_candidates(conn: sqlite3.Connection, query: str, tokens: list[str]) -> list[_Candidate]:
     """gh#10. The file's PATH is scored where a symbol's name is scored and its
@@ -1570,11 +1578,17 @@ def _file_candidates(conn: sqlite3.Connection, query: str, tokens: list[str]) ->
 
     @brief Match and rank file-level documentation, and files known only by name.
     @return Ranked candidates.
-    @version 2
+    @version 3
     """
+    ## The same penalty as a symbol in a self-declared generated file, so a file search is not
+    ## crowded by generated files any more than a symbol search is by their contents.
+    generated = self_declared_paths(conn)
     return [
         (
-            -_search_rank(path, doc, query, tokens),
+            -(
+                _search_rank(path, doc, query, tokens)
+                - (SEARCH_PENALTY_SELF_DECLARED_GENERATED if path in generated else 0)
+            ),
             _TIER_FILE,
             path,
             SymbolHit(

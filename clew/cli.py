@@ -171,6 +171,7 @@ from .requirements import (
 )
 from .pydocs import enrich_python_docstrings
 from .rustdoc import run_rustdoc, uses_rustdoc
+from .generated import record_self_declared
 from .synth import emit_definitions as emit_synth_definitions
 from .synth import register_paths as register_synth_paths
 from .scope import (
@@ -1890,7 +1891,9 @@ def _doxygen_meta(args) -> dict[str, str]:
 ## one answer, so a reader finds them together.
 ## v61: runs doxygen through `_doxygen_or_partial`, which builds without the C/C++ layer on a
 ## doxygen failure instead of losing the whole index, and stamps the outcome into diagnostics.
-## @version 61
+## v62: records self-declared generated files after the parse front end, over every indexed
+## file and not only JS/TS, since the front end returns early on a tree with no JS/TS.
+## @version 62
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -2049,6 +2052,10 @@ def _build_stages(
     ## that resolves against `memberdef` (and above `recover_ast_symbols`, which must see
     ## these spans as covered), for the reason given at that stage.
     emit_synth_definitions(output, repo_root, cache)
+    ## AFTER the parse front end, which clears `generated_files` before writing its CMake rows, and
+    ## OUTSIDE it, because it returns early on a tree with no JS/TS or script file — and a C tree
+    ## commits generated files too. Timed with it rather than as a stage of its own.
+    record_self_declared(output, repo_root)
     timer.mark("synth_definitions")
     ## gh#18 part 3, and INDEPENDENT of the line above on purpose: a gate on a symbol no
     ## Kconfig declares is dead code behind a symbol nobody can set, which is a finding

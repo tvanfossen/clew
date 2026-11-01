@@ -397,7 +397,9 @@ def _file_members(conn: sqlite3.Connection, name: str) -> list[FileMember]:
 ## @param conn Open connection.
 ## @param name The repo-relative path of the candidate generated file.
 ## @return The rule, or None.
-## @version 1
+## v2: matches a self-declared row on its EXACT path and keeps it out of the basename join, which
+## would otherwise mark every same-named file generated.
+## @version 2
 ## @req REQ-DDB-QUERY-004
 def generation_rule(conn: sqlite3.Connection, name: str) -> GenerationRule | None:
     """MATCHED ON BASENAME, AND THAT IS A STATED LIMIT RATHER THAN A SHORTCUT. A build file writes
@@ -413,17 +415,30 @@ def generation_rule(conn: sqlite3.Connection, name: str) -> GenerationRule | Non
 
     @brief Look up the rule producing this file.
     @return The GenerationRule, or None.
-    @version 1
+    @version 2
     """
     if not table_exists(conn, "generated_files"):
         return None
-    base = name.rsplit("/", 1)[-1]
-    rows = conn.execute(
+    columns = (
         "SELECT output_name, output_literal, kind, source_file, source_line, "
         "role, arg_name, arg_literal, unresolved FROM generated_files "
-        "WHERE output_name = ? AND output_name <> '' ORDER BY rowid",
-        (base,),
+    )
+    ## A SELF-DECLARED ROW KNOWS ITS EXACT PATH, so it is matched on it — and kept OUT of the
+    ## basename join below. Joined by basename, mattermost-mobile's one generated file,
+    ## `app/utils/emoji/index.ts`, would have marked every `index.ts` in the repository generated.
+    rows = conn.execute(
+        columns + "WHERE output_literal = ? AND kind LIKE 'self-declared:%' ORDER BY rowid",
+        (name,),
     ).fetchall()
+    base = name.rsplit("/", 1)[-1]
+    rows = (
+        rows
+        or conn.execute(
+            columns + "WHERE output_name = ? AND output_name <> '' "
+            "AND kind NOT LIKE 'self-declared:%' ORDER BY rowid",
+            (base,),
+        ).fetchall()
+    )
     if not rows:
         return None
     head = rows[0]

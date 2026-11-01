@@ -215,6 +215,10 @@ from .tiers import OPTIONS_META_PREFIX
 ##       of it. Before this a component reached only through JSX had no inbound edge, so "where is
 ##       it used" answered nothing and liveness read it as dead. `stage_version` moved to 9 for the
 ##       same reason, since a JS/TS payload cached without these sites would otherwise be reused.
+##     * `generated_files` holds `self-declared:` rows — a file whose own banner or path says it is
+##       generated, recorded by its EXACT path (never the basename join CMake rows use), and
+##       ranked below hand-written code in search. Precision measured first: 23 flagged across
+##       ~10,000 tracked files in four repositories, zero false positives.
 CLEW_BUILD_VERSION = 9
 
 

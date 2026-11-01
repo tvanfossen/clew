@@ -1264,3 +1264,11 @@ SEARCH_WEIGHT_TOKEN_IN_BRIEF = 5
 ## `_candidate_paths`, which is defined in `_loader.py`; the symbol was reachable only by
 ## searching a phrase already inside its own docstring.
 SEARCH_WEIGHT_TOKEN_IN_PATH = 2
+
+## Subtracted from a symbol or file whose file DECLARES ITSELF generated. HALF a name-token match,
+## and that size is the whole design: a generated symbol loses a TIE to a hand-written one, but
+## still wins on strictly better evidence — one more name token, or an exact name. Deprioritised,
+## never hidden. Larger than a brief or path token, so neither lets generated code win a tie back.
+## Only self-declared files: a CMake output is the project's own build product, and mbedtls Q4's
+## answer IS one.
+SEARCH_PENALTY_SELF_DECLARED_GENERATED = 25
