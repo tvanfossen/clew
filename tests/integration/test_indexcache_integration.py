@@ -628,3 +628,86 @@ def test_build_version_change_wipes_cache(guard_repo: Path, tmp_path: Path) -> N
         assert _stage_rows(cache_path) == {}
     finally:
         reopened.close()
+
+
+## @brief Stage a small TypeScript repository: twenty modules, each one call deep.
+## @param root Directory to populate.
+## @return The populated root.
+## @version 1
+def _ts_repo(root: Path) -> Path:
+    """EVERY TEST ABOVE RUNS ON `guard_repo`, and none of them touches TypeScript. The JS/TS front
+    end ships `HARVESTED`, and whether its per-file work is reused on a rebuild was asserted
+    nowhere — this exists so the claim "an edit re-parses only the edited file" covers it too.
+
+    @brief Build the TypeScript fixture.
+    @return Repo root.
+    @version 1
+    """
+    (root / "src").mkdir(parents=True, exist_ok=True)
+    for i in range(20):
+        (root / f"src/m{i}.ts").write_text(
+            f"export function f{i}() {{ return g{i}(); }}\nexport function g{i}() {{ return {i}; }}\n"
+        )
+    return root
+
+
+## @brief On TypeScript, one edited file means exactly one re-parsed file.
+## @param tmp_path Per-test temp directory.
+## @param parse_counter Installed per-file parse recorder.
+## @return None.
+## @version 1
+def test_editing_one_typescript_file_reparses_only_that_file(
+    tmp_path: Path, parse_counter: _ParseCounter
+) -> None:
+    """MEASURED BEFORE IT WAS ASSERTED. A rebuild's slowness on a TypeScript project raised the
+    question whether incremental reuse engaged on that front end at all, and there was a real
+    way for this test to be vacuous: the counter patches `harvest._ast_parse_one_file`, and a
+    TypeScript-only repo's doxygen `path` table is empty. Measured first — the counter sees all
+    twenty parses cold — so the precondition below is a check, not an assumption.
+
+    @brief Per-file reuse holds on the JS/TS front end.
+    @return None.
+    @version 1
+    """
+    repo = _ts_repo(tmp_path / "repo")
+    cache = tmp_path / "shared.idxcache"
+    before = _call_edge_names(_build(repo, tmp_path / "cold.db", cache=cache))
+    assert len(set(parse_counter.paths)) == 20, (
+        f"precondition: the counter must see the cold TypeScript parses, or every assertion "
+        f"below is vacuous: {sorted(set(parse_counter.paths))}"
+    )
+
+    (repo / "src/m3.ts").write_text(
+        "export function f3() { return g3() + h3(); }\n"
+        "export function g3() { return 3; }\nexport function h3() { return 33; }\n"
+    )
+    parse_counter.paths.clear()
+    after = _call_edge_names(_build(repo, tmp_path / "warm.db", cache=cache))
+
+    assert _reparsed(parse_counter, repo) == {"src/m3.ts"}
+    assert after - before == {("f3", "h3")}
+    assert before - after == set()
+
+
+## @brief On TypeScript, a cached build equals a no-cache build.
+## @param tmp_path Per-test temp directory.
+## @return None.
+## @version 1
+def test_typescript_cached_output_matches_no_cache(tmp_path: Path) -> None:
+    """The TypeScript twin of `test_cache_output_matches_no_cache`: the cache must accelerate and
+    never alter. `meta` and the `refresh.*` cost keys are excluded exactly as there, and for the
+    same reasons.
+
+    @brief Cached TypeScript graph equals the no-cache graph.
+    @return None.
+    @version 1
+    """
+    repo = _ts_repo(tmp_path / "repo")
+    nocache = _dump(_build(repo, tmp_path / "nc.db", no_cache=True))
+    cached = _dump(_build(repo, tmp_path / "ca.db", cache=tmp_path / "shared.idxcache"))
+    _strip_build_cost(nocache)
+    _strip_build_cost(cached)
+    nocache.pop("meta", None)
+    cached.pop("meta", None)
+    assert {t: len(r) for t, r in nocache.items()} == {t: len(r) for t, r in cached.items()}
+    assert nocache == cached
