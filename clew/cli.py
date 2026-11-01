@@ -140,7 +140,7 @@ from .doxygen import (
 )
 from .diagnostics import collect as collect_diagnostics
 from .enrichment import enrich_database
-from .errors import DoxygenUnavailableError, RustdocUnavailableError
+from .errors import DoxygenFailedError, DoxygenUnavailableError, RustdocUnavailableError
 from .event_edges import import_event_edges
 from .filedocs import ingest_file_docs
 from .harvest_plan import build_harvest_plan, warm_harvest_plan
@@ -1696,7 +1696,9 @@ def _is_rust_only_repo(repo_root: Path) -> bool:
 ## @param preprocessor The resolved preprocessor configuration this index represents.
 ## @param timer Stage timer, marked once the tree scan and its hash are complete.
 ## @return Path to the doxygen SQLite output (cached or freshly generated).
-## @version 12
+## v13: the skip path records `doxygen_status = skipped` on args, so the stamp can tell
+## "skipped, no C here" from "ran" and from "failed" — before, skipping was an INFO line only.
+## @version 13
 ## @dg_internal
 def _doxygen_stage(
     doxyfile: Path,
@@ -1771,6 +1773,7 @@ def _doxygen_stage(
             "doxygen: skipped — none of the %d file(s) in scope is a language doxygen reads",
             len(in_scope),
         )
+        args.doxygen_status = DOXYGEN_SKIPPED
         return _empty_doxygen_database()
     if cache is None:
         return _run_doxygen_from_args(doxyfile, args, predefined)
@@ -1809,11 +1812,85 @@ def _doxygen_stage(
     return generated
 
 
+## What the build recorded about doxygen. Stamped under `diagnostics.` because that section is
+## "what the build looked for and did not find" — and a C layer that failed is exactly that.
+DOXYGEN_RAN = "ran"
+DOXYGEN_SKIPPED = "skipped"
+DOXYGEN_FAILED = "failed"
+
+
+## @brief Run the doxygen stage, building without the C/C++ layer if doxygen fails.
+## @param doxyfile Doxyfile path.
+## @param repo_root Repository root.
+## @param args Parsed build arguments; `doxygen_status` and `doxygen_reason` are set on it.
+## @param cache Index cache, or None.
+## @param preprocessor Preprocessor configuration.
+## @param timer Stage timer.
+## @return A doxygen-schema database: real, or empty when doxygen did not run or failed.
+## @version 1
+## @dg_internal
+def _doxygen_or_partial(doxyfile, repo_root, args, cache, preprocessor, timer) -> Path:
+    """ONE DOXYGEN CRASH USED TO COST THE WHOLE INDEX. `run_doxygen` exited the process, so a
+    mixed repository — a TypeScript app carrying a little native code — got nothing, though
+    every other layer would have built.
+
+    AND THE FATAL VERSION WAS THE ONE THAT LOOPED. A failed build never swaps its staged
+    database in, so the previous one stays older than its sources and the MCP server retries
+    the crashing build on every query. A partial build swaps in, is current, and stops that.
+
+    THE SKIP PATH ALREADY PROVED THE SHAPE: an empty doxygen-schema database and the rest of the
+    build proceeds. A failure takes the same exit — but it is RECORDED as a failure with its
+    reason, because "skipped, there was no C" and "failed, the C is missing" are opposite facts
+    that must never look alike. Nothing is cached on this path, so the next build tries again.
+
+    @brief Doxygen stage that degrades to a stamped partial index.
+    @return Doxygen database path.
+    @version 1
+    """
+    args.doxygen_status = DOXYGEN_RAN
+    try:
+        return _doxygen_stage(doxyfile, repo_root, args, cache, preprocessor, timer)
+    except DoxygenFailedError as exc:
+        logger.error(
+            "doxygen FAILED (%s) — building WITHOUT the C/C++ layer. Every other layer is indexed; "
+            "the index records the failure, so a missing C/C++ symbol will be reported as "
+            "unindexed rather than absent.",
+            exc.reason,
+        )
+        args.doxygen_status = DOXYGEN_FAILED
+        args.doxygen_reason = exc.reason
+        return _empty_doxygen_database()
+
+
+## @brief The doxygen facts to stamp, or nothing when this build has no doxygen stage.
+## @param args Parsed build arguments.
+## @return build_meta diagnostics entries.
+## @version 1
+## @dg_internal
+def _doxygen_meta(args) -> dict[str, str]:
+    """ABSENT, NOT BLANK, WHEN THE STAGE NEVER RAN — a rustdoc build has no doxygen stage, and a
+    `doxygen` key there would claim a fact about something that was not attempted.
+
+    @brief Doxygen status for build_meta.
+    @return Mapping.
+    @version 1
+    """
+    status = getattr(args, "doxygen_status", None)
+    if status is None:
+        return {}
+    meta = {"doxygen": status}
+    if status == DOXYGEN_FAILED:
+        meta["doxygen_reason"] = getattr(args, "doxygen_reason", "") or "unrecorded"
+    return meta
+
+
 ## @brief Run every build stage against one (temp) output DB path.
 ## @param timer Stage timer; one `mark` closes each stage below. A fresh one when omitted.
 ## 59 -> 60: the configuration-default stage joined, directly beside the gates — the two are
 ## one answer, so a reader finds them together.
-## @version 60
+## v61: runs doxygen through `_doxygen_or_partial`, which builds without the C/C++ layer on a
+## doxygen failure instead of losing the whole index, and stamps the outcome into diagnostics.
+## @version 61
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -1870,7 +1947,7 @@ def _build_stages(
         timer.mark("copy")
         timer.mark("sanitize")
     else:
-        generated_db = _doxygen_stage(doxyfile, repo_root, args, cache, preprocessor, timer)
+        generated_db = _doxygen_or_partial(doxyfile, repo_root, args, cache, preprocessor, timer)
         timer.mark("doxygen")
         copy_database(generated_db, output)
         timer.mark("copy")
@@ -2385,7 +2462,8 @@ def _build_stages(
             ## gh#385 — the same declaration the locks stage ran with, so the hint cannot
             ## suggest declaring something this build already had.
             getattr(args, "locks", None),
-        ).as_meta(),
+        ).as_meta()
+        | _doxygen_meta(args),
     )
     timer.mark("signature")
 

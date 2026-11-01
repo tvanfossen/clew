@@ -24,11 +24,10 @@ import sqlite3
 import contextlib
 import subprocess
 import threading
-import sys
 from pathlib import Path, PurePosixPath
 
 from ._common import active_console, clean_subprocess_env, logger, make_progress
-from .errors import DoxygenUnavailableError
+from .errors import DoxygenFailedError, DoxygenUnavailableError
 
 _DOXYFILE_FORCED_FLAGS = (
     "\nGENERATE_SQLITE3 = YES\n"
@@ -1315,7 +1314,10 @@ def doxygen_supports_sqlite3(binary: str = "doxygen") -> bool | None:
 ## v14: a non-zero exit reports doxygen's own last output and the parsed-file count. It
 ## logged only "Doxygen exited with code N" — the crash text was classified `other` and
 ## discarded upstream, and the file count was computed and thrown away.
-## @version 14
+## v15: raises `DoxygenFailedError` instead of `sys.exit(1)` on a crash, a timeout or a missing
+## database. It subclasses SystemExit, so every caller sees the old propagation; only the
+## build's doxygen stage catches it by name and degrades to a stamped partial index.
+## @version 15
 ## @req REQ-DDB-INDEX-001
 def run_doxygen(
     doxyfile: Path,
@@ -1353,7 +1355,7 @@ def run_doxygen(
 
     @brief Run doxygen and return path to generated sqlite3 database.
     @raises DoxygenUnavailableError When the doxygen binary is not on PATH.
-    @version 14
+    @version 15
     """
     if shutil.which("doxygen") is None:
         raise DoxygenUnavailableError(
@@ -1467,7 +1469,9 @@ def run_doxygen(
             "swaps on success.",
             _DOXYGEN_TIMEOUT,
         )
-        sys.exit(1)
+        raise DoxygenFailedError(
+            f"doxygen did not finish within {_DOXYGEN_TIMEOUT} s and was killed"
+        )
     _surface_doxygen_warnings(out.warn_count, list(out.first_warnings))
     if rc != 0:
         ## WHAT DOXYGEN SAID, NOT ONLY THAT IT STOPPED. A crash prints its cause last, so the tail
@@ -1484,7 +1488,12 @@ def run_doxygen(
             out.parsed_files,
             "\n".join(f"  {line}" for line in out.tail) or "  (doxygen printed nothing)",
         )
-        sys.exit(1)
+        ## The LAST line is the reason recorded in build_meta: it is where a crash names itself,
+        ## and one line is what a stamp can hold.
+        last = out.tail[-1].strip() if out.tail else "doxygen printed nothing"
+        raise DoxygenFailedError(
+            f"doxygen exited with status {rc} after parsing {out.parsed_files} file(s): {last}"
+        )
 
     ## AFTER THE RUN, NOT BEFORE. Removing these first would delete output the run is about to
     ## regenerate if a forced flag ever changes back, and would do it before knowing the run
@@ -1509,9 +1518,11 @@ def run_doxygen(
                 "Ubuntu 22.04's doxygen 1.9.1 lacks it. Install a build that has it, then "
                 "confirm with: doxygen -g - | grep GENERATE_SQLITE3"
             )
-        else:
-            logger.error("Expected database not found: %s", db_path)
-        sys.exit(1)
+            raise DoxygenFailedError(
+                "doxygen was built without sqlite3 support and wrote no database"
+            )
+        logger.error("Expected database not found: %s", db_path)
+        raise DoxygenFailedError(f"doxygen exited 0 but wrote no database at {db_path}")
     return db_path
 
 

@@ -18,6 +18,41 @@ comes from `logging.getLogger` directly for exactly that reason.
 from __future__ import annotations
 
 
+## @brief doxygen ran and did not produce a database: it crashed, timed out, or wrote nothing.
+## @version 1
+class DoxygenFailedError(SystemExit):
+    """A SUBCLASS OF `SystemExit`, AND THAT IS THE WHOLE DESIGN. `run_doxygen` used to end each of
+    these with `sys.exit(1)`, and every caller was built around that: the CLI exits 1, the MCP
+    build wrapper catches `(Exception, SystemExit)`, and the direct tests assert `SystemExit`.
+    Subclassing keeps every one of those exactly as it was — same type to them, same code — while
+    letting the ONE place that wants to recover, the build's doxygen stage, catch it by name.
+
+    WHY ANYTHING RECOVERS. On a mixed repository a doxygen crash used to cost the whole index:
+    the TypeScript, Python and prose layers all discarded for a C layer that might hold a dozen
+    files. The stage now catches this, builds without the C/C++ layer, and STAMPS the failure
+    with `reason`, so the index says it is partial rather than letting a missing layer read as an
+    empty one.
+
+    A MISSING BINARY IS NOT THIS. `DoxygenUnavailableError` stays a refusal with install advice:
+    a machine without doxygen is a prerequisite to fix before building, not a build to salvage.
+
+    @brief doxygen ran and failed.
+    @version 1
+    """
+
+    ## @brief Carry the exit code callers already expect and the reason the stamp records.
+    ## @param reason One line saying what went wrong, for build_meta.
+    ## @version 1
+    ## @dg_internal
+    def __init__(self, reason: str) -> None:
+        """@brief Build the error.
+        @param reason Why doxygen produced no database.
+        @version 1
+        """
+        super().__init__(1)
+        self.reason = reason
+
+
 ## @brief The external `doxygen` binary is not installed or not on PATH.
 ## @version 1
 class DoxygenUnavailableError(RuntimeError):
