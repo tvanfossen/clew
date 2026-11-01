@@ -71,6 +71,7 @@ from .vocabulary import (
     CALL_SOURCE_AST,
     CALL_SOURCE_AST_MEMBER,
     CALL_SOURCE_BINDING,
+    CALL_SOURCE_JSX,
     CALL_SOURCE_DOXYGEN_SQLITE,
     CALL_SOURCE_FNPTR,
     CALL_SOURCE_MACRO_HOP,
@@ -336,6 +337,7 @@ SOURCE_FNPTR = CALL_SOURCE_FNPTR
 ## _ast_record_call_edge's tiering, which is why it can never be graded 'exact': a
 ## single candidate earns 'resolved' and several earn 'fuzzy'.
 SOURCE_BINDING = CALL_SOURCE_BINDING
+SOURCE_JSX = CALL_SOURCE_JSX
 
 
 ## @brief One file's function body ranges, with a bisect index when they do not nest.
@@ -1135,7 +1137,9 @@ def _sole_child(node: Any) -> Any:
 
 ## @brief Harvest one file's rowid-free (callee_name, call_line, source) call sites.
 ## @return List of [callee_name, call_line, source] triples in walk order.
-## @version 10
+## v11: passes the `jsx` source tag to the JS/TS harvester, so a component rendered in
+## JSX becomes a call edge rather than a component with no inbound edge at all.
+## @version 11
 ## @dg_internal
 def _ast_harvest_calls(tree: Any, src_bytes: bytes) -> list[list[Any]]:
     """Walk the parse tree iteratively, recording every direct call's callee
@@ -1170,7 +1174,9 @@ def _ast_harvest_calls(tree: Any, src_bytes: bytes) -> list[list[Any]]:
     if is_python_tree(tree):
         return harvest_calls(tree, src_bytes, SOURCE_AST, SOURCE_AST_MEMBER, SOURCE_BINDING)
     if is_js_tree(tree):
-        return harvest_js_calls(tree, src_bytes, SOURCE_AST, SOURCE_AST_MEMBER, SOURCE_BINDING)
+        return harvest_js_calls(
+            tree, src_bytes, SOURCE_AST, SOURCE_AST_MEMBER, SOURCE_BINDING, jsx=SOURCE_JSX
+        )
     sites: list[list[Any]] = []
     stack = [tree.root_node]
     while stack:
@@ -1400,7 +1406,9 @@ class _CallSiteHarvester(Harvester):
     #    the bump is what makes the fix take effect on an existing index.
     ## 8: JS/TS sites come from jsast (they used to take the C path and lose every
     ## member call), so a payload cached for a JS file must be re-harvested.
-    stage_version = 8
+    ## 9: JS/TS payloads now carry `jsx` sites for components rendered in JSX, so a payload
+    ## cached before them would leave every component without the callers that render it.
+    stage_version = 9
     label = "tree-sitter"
 
     ## @brief Harvest one file's call sites.

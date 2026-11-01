@@ -236,14 +236,19 @@ def _enclosing_class(ranges: list[tuple[int, int, str]], byte: int) -> str:
 ## @param plain Source tag for `f()`.
 ## @param member Source tag for `obj.m()` / `this.m()` / `new C()`.
 ## @param binding Source tag for a function passed by name.
+## @param jsx Source tag for a component rendered in JSX; empty harvests none.
 ## @return Sites as `[name, line, source, qualifier, receiver]`, bindings as
 ##         `[name, line, binding]`.
-## @version 1
+##
+## v2: also harvests JSX element usage as `jsx` sites. `<Card />` is a use of `Card`, and a
+## component reached only through JSX had no inbound edge — so "where is it used" answered nothing
+## and liveness read it as dead.
+## @version 2
 ## @req REQ-DDB-PIPE-012
 def harvest_calls(
-    tree: Any, src_bytes: bytes, plain: str, member: str, binding: str
+    tree: Any, src_bytes: bytes, plain: str, member: str, binding: str, jsx: str = ""
 ) -> list[list[Any]]:
-    """@brief Harvest JS/TS call sites."""
+    """@brief Harvest JS/TS call sites. @version 2"""
     ranges = _class_ranges(tree.root_node)
     sites: list[list[Any]] = []
     stack = [tree.root_node]
@@ -260,7 +265,43 @@ def harvest_calls(
             cls = _tail(node.child_by_field_name("constructor"))
             if cls:
                 sites.append(["constructor", line, member, f"{cls}.constructor", ""])
+        elif jsx and node.type in _JSX_ELEMENTS:
+            component = _jsx_component(node)
+            if component:
+                sites.append([component, line, jsx, "", ""])
     return sites
+
+
+## The two element shapes that name a component. A `jsx_element` is an opening tag, children and a
+## closing tag, so visiting the OPENING tag covers it once; the closing tag is never visited.
+_JSX_ELEMENTS = ("jsx_opening_element", "jsx_self_closing_element")
+
+
+## @brief The component a JSX element renders, or None for an intrinsic DOM element.
+## @param node A `jsx_opening_element` or `jsx_self_closing_element`.
+## @return The component's bare name, or None.
+## @version 1
+## @dg_internal
+def _jsx_component(node: Any) -> str | None:
+    """REACT'S OWN RULE DECIDES WHAT IS A COMPONENT. A capitalised identifier (`<Card/>`) or a
+    member expression (`<Menu.Item/>`) is a component; a lowercase identifier (`<div/>`) is a DOM
+    element. Verified against the parser rather than assumed: `<div/>` has an `identifier` name
+    exactly like `<Card/>`, so without this test a page of markup emits an edge per tag.
+
+    A member expression resolves by its TAIL, as a member call's name does — `Item` for
+    `<Menu.Item/>` — because that is the name a definition carries.
+
+    @brief Name the rendered component.
+    @return Component name or None.
+    @version 1
+    """
+    name = node.child_by_field_name("name")
+    if name is None:
+        return None
+    if name.type == "member_expression":
+        return _tail(name) or None
+    text = _text(name)
+    return text if text[:1].isupper() else None
 
 
 ## @brief A call expression as [name, source, qualifier, receiver], or None.

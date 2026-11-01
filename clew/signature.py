@@ -200,7 +200,22 @@ from .tiers import OPTIONS_META_PREFIX
 ##       entropic (748 files, 13,068) were byte-identical across the bump. A C-heavy tree is
 ##       not evidence either way until it is measured; "expect RIOT to move" was predicted for
 ##       this release and was wrong.
-CLEW_BUILD_VERSION = 8
+## 9 (1.3.0) — two changes to rows an existing index already holds, taken as ONE bump because no
+##   release separates them; an index built before either would report itself current and answer
+##   from the old rows:
+##
+##     * `unresolved_inbound` credits a DISPATCH FAMILY — one method name across classes sharing a
+##       base — where it used to credit only a single identity. A method reached through an
+##       interface with two implementations (a real one and a test double, routine under
+##       dependency injection) read `callers_unresolved: 0` on both, a false measurement. Measured
+##       before shipping, share of inbound-less functions now carrying a count: entropic 0.8% ->
+##       5.6%, self 2.4% -> 3.2%, mbedtls 3.3% -> 3.5% — against the 87% the withdrawn
+##       credit-every-candidate rule produced.
+##     * `call_edges` holds `source='jsx'` rows: a component rendered in JSX (`<Card />`) is a use
+##       of it. Before this a component reached only through JSX had no inbound edge, so "where is
+##       it used" answered nothing and liveness read it as dead. `stage_version` moved to 9 for the
+##       same reason, since a JS/TS payload cached without these sites would otherwise be reused.
+CLEW_BUILD_VERSION = 9
 
 
 ## @brief Stamp the build version, scope, coverage and preprocessor config into build_meta.
