@@ -31,7 +31,7 @@ _LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)")
 ## README is the only prose this repository asks a stranger to read and act on. Measured results
 ## live in `acceptance/` beside the transcripts that produced them, and the working-instructions
 ## file is untracked, because how someone instructs their own agent is theirs to maintain.
-_DOCS = ("README.md",)
+_DOCS = ("README.md", "docs/OVERVIEW.md")
 
 ## A GitHub blob/tree URL pointing back into this repository, whose `<path>` must therefore
 ## exist in this tree. Any ref is accepted: pinning `main` here would fail every link on a
