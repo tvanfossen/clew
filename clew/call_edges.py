@@ -1484,6 +1484,147 @@ def _fold_call_payload(
         )
 
 
+## @brief Class membership and inheritance, for telling a dispatch family from a shared name.
+## @version 1
+class _DispatchFamilies:
+    """WHAT MAKES SEVERAL CANDIDATES EVIDENCE RATHER THAN A NAME. A call site whose candidates are
+    one method across classes sharing a base genuinely dispatches to one of them — that is what an
+    interface-typed property, an injected service or a C++ virtual call IS. Several candidates that
+    merely share a name across unrelated classes are not, and stay unattributed.
+
+    Built once per build from `member` (which class owns a function) and `compoundref` (which
+    class derives from which). Either table missing yields no families, so attribution falls back
+    to the one-identity rule exactly as before.
+
+    @brief Member-to-class and class-to-base maps.
+    @version 1
+    """
+
+    __slots__ = ("_ancestry", "class_of", "parents")
+
+    ## @brief Hold the two maps.
+    ## @param class_of memberdef rowid -> owning class compound rowid.
+    ## @param parents class compound rowid -> its direct base compound rowids.
+    ## @version 1
+    ## @dg_internal
+    def __init__(self, class_of: dict[int, int], parents: dict[int, set[int]]) -> None:
+        """@brief Store the maps.
+        @version 1
+        """
+        self.class_of = class_of
+        self.parents = parents
+        self._ancestry: dict[int, frozenset[int]] = {}
+
+    ## @brief Read the maps from a database under construction.
+    ## @param conn Open connection.
+    ## @return The families, empty when either table is absent.
+    ## @version 1
+    ## @dg_internal
+    @classmethod
+    def load(cls, conn: sqlite3.Connection) -> _DispatchFamilies:
+        """@brief Load membership and inheritance.
+        @return Families.
+        @version 1
+        """
+        present = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if not {"member", "compoundref"} <= present:
+            return cls({}, {})
+        class_of = dict(conn.execute("SELECT memberdef_rowid, scope_rowid FROM member"))
+        parents: dict[int, set[int]] = {}
+        for base, derived in conn.execute("SELECT base_rowid, derived_rowid FROM compoundref"):
+            parents.setdefault(derived, set()).add(base)
+        return cls(class_of, parents)
+
+    ## @brief A class together with every class it derives from, transitively.
+    ## @param klass Class compound rowid.
+    ## @return The class and all of its ancestors.
+    ## @version 1
+    ## @dg_internal
+    def ancestry(self, klass: int) -> frozenset[int]:
+        """CYCLE-SAFE, because a malformed index can record a class as its own ancestor and an
+        unbounded walk would hang the build on it.
+
+        @brief Transitive ancestry, memoised.
+        @return Ancestor set including the class itself.
+        @version 1
+        """
+        if klass in self._ancestry:
+            return self._ancestry[klass]
+        seen: set[int] = set()
+        stack = [klass]
+        while stack:
+            node = stack.pop()
+            if node in seen:
+                continue
+            seen.add(node)
+            stack.extend(self.parents.get(node, ()))
+        result = frozenset(seen)
+        self._ancestry[klass] = result
+        return result
+
+    ## @brief Whether candidate functions are one method across one inheritance family.
+    ## @param candidates Candidate memberdef rowids.
+    ## @return True when every candidate's class shares a common ancestor.
+    ## @version 1
+    ## @dg_internal
+    def is_family(self, candidates: list[int]) -> bool:
+        """A CANDIDATE WITH NO KNOWN CLASS DISQUALIFIES THE SET, for the reason `_attributable`
+        gives about an unknown identity: a set only partly known cannot be shown to be a family.
+
+        @brief Test for a dispatch family.
+        @return True for a family.
+        @version 1
+        """
+        classes = [self.class_of.get(c) for c in candidates]
+        if not classes or any(k is None for k in classes) or len(set(classes)) < 2:
+            return False
+        common = self.ancestry(classes[0])
+        for klass in classes[1:]:
+            common = common & self.ancestry(klass)
+            if not common:
+                return False
+        return True
+
+
+## @brief The rowids a refused call site is evidence about.
+## @param candidates The candidate rowids the site refused between.
+## @param identity_of rowid -> (name, definition, argsstring).
+## @param families Class membership and inheritance.
+## @return One rowid per identity credited; empty when the site is evidence about nothing.
+## @version 1
+## @dg_internal
+def _credited(
+    candidates: list[int],
+    identity_of: dict[int, tuple[str, str, str]],
+    families: _DispatchFamilies,
+) -> list[int]:
+    """ONE IDENTITY, OR ONE DISPATCH FAMILY, OR NOTHING. The first is `_attributable`, unchanged.
+    The second is new and narrow: several identities are credited only when they are one method
+    across classes sharing a base, because then the site genuinely calls one of them and each
+    reading `callers_unresolved: 0` was a false measurement. Reproduced: an interface with a real
+    implementation and a test double — the shape dependency injection produces — read zero on both.
+
+    ONE ROWID PER IDENTITY, for the reason `_insert_unresolved_inbound` gives: the query layer
+    sums over an identity's whole decl/def pair, so crediting both rows would double it.
+
+    @brief Credit a refused site to one function or to a dispatch family.
+    @return Credited rowids.
+    @version 1
+    """
+    single = _attributable(candidates, identity_of)
+    if single is not None:
+        return [single]
+    if not candidates or any(identity_of.get(c) is None for c in candidates):
+        return []
+    if not families.is_family(candidates):
+        return []
+    by_identity: dict[tuple[str, str, str], int] = {}
+    for rowid in candidates:
+        identity = identity_of[rowid]
+        by_identity[identity] = min(rowid, by_identity.get(identity, rowid))
+    return sorted(by_identity.values())
+
+
 ## @brief The one function a refused call site is evidence about, if there is one.
 ## @param candidates The candidate rowids the site refused between.
 ## @param identity_of rowid → (name, definition, argsstring).
@@ -1526,7 +1667,10 @@ def _attributable(
 ## @param conn Open connection to the database being built.
 ## @param unresolved Candidate rowids, one entry per (site, candidate) pair.
 ## @return How many distinct callees carry a nonzero count.
-## @version 1
+## v2: credits a DISPATCH FAMILY as well as a single identity (see `_credited`). Measured
+## before shipping against the 87% blanket-credit failure this docstring records: entropic
+## 0.8% -> 5.6% of inbound-less functions, self 2.4% -> 3.2%, mbedtls 3.3% -> 3.5%.
+## @version 2
 ## @dg_internal
 def _insert_unresolved_inbound(
     conn: sqlite3.Connection,
@@ -1578,8 +1722,10 @@ def _insert_unresolved_inbound(
         "  callee_rowid INTEGER PRIMARY KEY,"
         "  sites        INTEGER NOT NULL)"
     )
-    attributable = (_attributable(c, identity_of or {}) for c in unresolved)
-    counts = Counter(rowid for rowid in attributable if rowid is not None)
+    families = _DispatchFamilies.load(conn)
+    counts = Counter(
+        rowid for c in unresolved for rowid in _credited(c, identity_of or {}, families)
+    )
     conn.executemany(
         "INSERT INTO unresolved_inbound (callee_rowid, sites) VALUES (?, ?)",
         sorted(counts.items()),
