@@ -30,17 +30,41 @@ _JS_FUNCTION_VALUES = ("arrow_function", "function_expression", "function", "gen
 # Wrappers a JSDoc block sits above rather than the definition itself: `export ...`, and the
 # `const`/`let`/`var` statement around a declarator.
 _JS_DOC_WRAPPERS = ("export_statement", "lexical_declaration", "variable_declaration")
+# React's own component wrappers. `const C = forwardRef((props, ref) => ...)` binds C to a CALL,
+# but what C names is the function inside it. ONLY THESE: the generic rule, any call whose first
+# argument is a function, measured on mattermost-mobile, adds 466 `makeStyleSheetFromTheme`
+# style factories as functions, all named `getStyleSheet`.
+_JS_COMPONENT_WRAPPERS = ("forwardRef", "memo", "React.forwardRef", "React.memo")
 
 
-## @brief The function a JS/TS binding names, e.g. the arrow in `const f = () => 1`.
+## @brief The function inside React's component wrappers, e.g. the arrow in `memo(() => 1)`.
 #  @version 1.0
+#  @dg_internal
+#  @return The innermost function-valued node, or None when the value is not one
+def _unwrap_component(value: Node | None) -> Node | None:
+    while value is not None and value.type == "call_expression":
+        callee = value.child_by_field_name("function")
+        args = value.child_by_field_name("arguments")
+        if callee is None or args is None or callee.text is None:
+            return None
+        if callee.text.decode("utf-8") not in _JS_COMPONENT_WRAPPERS:
+            return None
+        value = next((a for a in args.named_children if a.type != "comment"), None)
+    return value if value is not None and value.type in _JS_FUNCTION_VALUES else None
+
+
+## Version 1.1 sees through `forwardRef`/`memo`, so a wrapped React component is a function:
+## without it a component declared that way had no definition and every `<C />` that rendered it
+## resolved to nothing.
+##
+## @brief The function a JS/TS binding names, e.g. the arrow in `const f = () => 1`.
+#  @version 1.1
 #  @req REQ-DDB-GUARD-025
 #  @return The function-valued node, or None when the node is not such a binding
 def _bound_function(node: Node) -> Node | None:
     if node.type not in _JS_BINDINGS:
         return None
-    value = node.child_by_field_name("value")
-    return value if value is not None and value.type in _JS_FUNCTION_VALUES else None
+    return _unwrap_component(node.child_by_field_name("value"))
 
 
 ## @brief The node that carries a function's `body` and `parameters`.

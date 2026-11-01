@@ -28,7 +28,7 @@ from pathlib import Path
 import lang_parsing_substrate as lps
 
 from clew.cli import _build_argparser, _run_pipeline
-from clew.jsast import harvest_calls
+from clew.jsast import harvest_calls, harvest_definitions
 
 ## A component rendering three others — an opening tag with children, a self-closing tag, and a
 ## namespaced one — plus two intrinsics that must not become edges.
@@ -110,3 +110,69 @@ def test_a_rendered_component_has_its_renderer_as_a_jsx_caller(tmp_path: Path) -
         )
     )
     assert ("Page", "Card", "jsx") in edges, edges
+
+
+_WRAPPED = b"""\
+import React, {forwardRef, memo} from 'react';
+export const Header = forwardRef<Ref, Props>(({title}, ref) => <div ref={ref}>{title}</div>);
+export const Row = memo(function Row({x}) { return <span>{x}</span>; });
+export const Card = React.memo(React.forwardRef((props, ref) => <div ref={ref} />));
+const getStyleSheet = makeStyleSheetFromTheme((theme) => ({color: theme.x}));
+"""
+
+
+## @brief A component wrapped in `forwardRef` or `memo` is a function definition.
+## @return None.
+## @version 1
+def test_a_component_wrapped_in_forwardref_or_memo_is_a_definition() -> None:
+    """FOUND ON THE REAL TREE, not on a fixture. The mattermost-mobile acceptance rubric asks where
+    `NavigationHeader` is rendered; eight files render it, and the index recorded NO callers —
+    because `const NavigationHeader = forwardRef<SearchRef, Props>((...) => {...})` binds the
+    name to a CALL, and only a binding to an arrow or function expression counted. With no
+    definition there was nothing for a `jsx` edge to resolve to.
+
+    REACT'S OWN WRAPPERS ONLY, nested in either order, bare or `React.`-qualified. The generic
+    rule — any call whose first argument is a function — was measured on that tree and would add
+    466 `makeStyleSheetFromTheme((theme) => ...)` style factories, all named `getStyleSheet`, as
+    functions. That is the last line of the fixture, and it must stay out.
+
+    @brief forwardRef/memo-wrapped components are definitions.
+    @return None.
+    @version 1
+    """
+    out = harvest_definitions(lps.parse_tree("tsx", _WRAPPED), _WRAPPED)
+    names = sorted(f["name"] for f in out["functions"])
+    assert names == ["Card", "Header", "Row"], names
+
+
+## @brief A `forwardRef` component's renderer is its `jsx` caller.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_forwardref_component_has_its_renderer_as_a_jsx_caller(tmp_path: Path) -> None:
+    """@brief "Where is NavigationHeader used" is answerable.
+    @return None.
+    @version 1
+    """
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    (repo / "src/header.tsx").write_text(
+        "import {forwardRef} from 'react';\n"
+        "const Header = forwardRef((props, ref) => <div ref={ref} />);\n"
+        "export default Header;\n",
+        encoding="utf-8",
+    )
+    (repo / "src/page.tsx").write_text(
+        "import Header from './header';\nexport function Page() { return <Header />; }\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "clew.db"
+    _run_pipeline(_build_argparser().parse_args(["--output", str(out), "--repo-root", str(repo)]))
+    edges = set(
+        sqlite3.connect(out).execute(
+            "SELECT a.name, b.name, e.source FROM call_edges e "
+            "JOIN memberdef a ON a.rowid = e.caller_rowid "
+            "JOIN memberdef b ON b.rowid = e.callee_rowid"
+        )
+    )
+    assert ("Page", "Header", "jsx") in edges, edges

@@ -219,6 +219,10 @@ from .tiers import OPTIONS_META_PREFIX
 ##       generated, recorded by its EXACT path (never the basename join CMake rows use), and
 ##       ranked below hand-written code in search. Precision measured first: 23 flagged across
 ##       ~10,000 tracked files in four repositories, zero false positives.
+##     * a React component wrapped in `forwardRef` or `memo` is a function row. Found by the
+##       mattermost-mobile real-tree check: `NavigationHeader`, rendered from eight files, had no
+##       definition, so its `jsx` sites resolved to nothing. The JS/TS definitions stage moved to
+##       `stage_version` 2 so a cached payload without these rows is not reused.
 CLEW_BUILD_VERSION = 9
 
 
