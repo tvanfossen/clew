@@ -700,3 +700,103 @@ def test_a_scope_that_could_not_ask_git_does_not_claim_it_excluded_ignores(
     assert "not a git repository" in lowered or "could not" in lowered, (
         f"the reason must say the ignore list was unobtainable: {scope.reason}"
     )
+
+
+## @brief Write one source file under a tree, creating its directories.
+## @param root Tree root.
+## @param rel Relative file path.
+## @return None.
+## @version 1
+def _src(root: Path, rel: str) -> None:
+    """@brief Materialise a one-line C file at a relative path.
+    @return None.
+    """
+    path = root / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("int f(void){return 0;}\n", encoding="utf-8")
+
+
+## @brief A tree that looks vendored and IS indexed is named, with the remedy.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_an_indexed_tree_that_looks_vendored_is_named_with_the_remedy(tmp_path: Path) -> None:
+    """A COMMITTED DEPENDENCY TREE IS EXCLUDED BY NO IGNORE RULE. `_gitignored_paths` asks git
+    for `--others`, i.e. UNTRACKED files only, so a vendored library someone checked in is
+    indexed in full and nothing says so — the index is silently dominated by somebody else's
+    code.
+
+    DISCLOSED, NOT EXCLUDED, by owner ruling. clew cannot tell a vendored tree from
+    first-party code sharing a conventional name, and excluding by name would silently remove
+    real source — absence reported as emptiness, the failure this whole patch addresses. The
+    repository can already narrow its own scope with `index_scope`; what was missing is being
+    TOLD to.
+
+    @brief A vendored-looking indexed tree is named and the fix is given.
+    @return None.
+    @version 1
+    """
+    root = tmp_path / "repo"
+    _src(root, "src/main.c")
+    _src(root, "third_party/zlib/inflate.c")
+
+    reason = sc.whole_repo_scope(root).reason
+
+    assert "third_party" in reason, f"the vendored-looking tree is not named: {reason}"
+    assert "index_scope" in reason, f"no remedy is given: {reason}"
+
+
+## @brief First-party platform source is never reported as vendored.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_first_party_platform_directories_are_not_reported_as_vendored(tmp_path: Path) -> None:
+    """THE REASON DISCLOSURE WAS CHOSEN OVER EXCLUSION. A React Native app keeps its own native
+    source under `ios/` and `android/` — committed, first-party, and exactly what an index of
+    that app should contain. Its native DEPENDENCIES live under `ios/Pods` and build outputs,
+    which a well-kept repository gitignores and clew already excludes.
+
+    So the platform directories must not trip the vendored check. A rule broad enough to flag
+    them would teach every mobile-app user to ignore the disclosure, which is how a real one
+    stops being read.
+
+    @brief ios/ and android/ are not called vendored.
+    @return None.
+    @version 1
+    """
+    root = tmp_path / "app"
+    _src(root, "src/App.c")
+    _src(root, "ios/Mattermost/AppDelegate.c")
+    _src(root, "android/app/src/main/Main.c")
+
+    reason = sc.whole_repo_scope(root).reason
+
+    assert "vendored" not in reason.lower(), f"first-party platform code was flagged: {reason}"
+
+
+## @brief The vendored disclosure is bounded however many trees match.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_the_vendored_disclosure_is_bounded(tmp_path: Path) -> None:
+    """gh#37: an EXCLUDE list grew to ~390 entries and overflowed a client's reply limit. A
+    disclosure that names every matching tree repeats that on a repository vendoring many
+    libraries. Name a few, COUNT the rest, so the reader still learns the true size.
+
+    @brief Many vendored trees are summarised, not enumerated.
+    @return None.
+    @version 1
+    """
+    root = tmp_path / "mono"
+    for i in range(12):
+        _src(root, f"pkg{i}/vendor/lib.c")
+
+    reason = sc.whole_repo_scope(root).reason
+
+    ## THE FIRST DRAFT OF THIS TEST PASSED BEFORE THE FEATURE EXISTED, and is kept honest by
+    ## these anchors. `reason.count("vendor") <= 8` is trivially true when nothing is
+    ## disclosed, and a bare `"12" in reason` matched `git exit 128` in the not-a-repository
+    ## clause — so both assertions held over a reason that disclosed nothing at all.
+    assert "look vendored" in reason, f"precondition: nothing was disclosed: {reason}"
+    assert "12 trees" in reason, f"the true count was lost when summarising: {reason}"
+    assert reason.count("/vendor") <= 5, f"the disclosure was not bounded: {reason}"
