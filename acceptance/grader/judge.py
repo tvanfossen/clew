@@ -256,33 +256,47 @@ def configure_cache(path: Path | None) -> None:
         path.mkdir(parents=True, exist_ok=True)
 
 
-## @brief The cache file for one prompt and model, or None when caching is off.
+## Version 2 keys each SAMPLE of a vote separately. Version 1 keyed prompt and model only, and a
+## k=3 vote asks one prompt three times — so call 1 was stored and calls 2 and 3 replayed it. Every
+## voted verdict and every voted extraction was one judge call counted three times.
+##
+## @brief The cache file for one sample of one prompt and model, or None when caching is off.
 ## @param prompt The exact prompt sent to the judge.
 ## @param model The judge model id.
+## @param sample Which sample of a vote this is; 0 for the first or only call.
 ## @return Path to the entry, or None.
-## @version 1
+## @version 2
 ## @dg_internal
-def _cache_entry(prompt: str, model: str) -> Path | None:
+def _cache_entry(prompt: str, model: str, sample: int = 0) -> Path | None:
     """CONTENT-ADDRESSED ON THE WHOLE PROMPT, which already contains the mark text and the
     anonymised answer, so the key needs nothing else to be exact. The model id is included
     because two models are two instruments.
 
+    THE SAMPLE INDEX IS IN THE KEY, NEVER IN THE PROMPT. The judge must see only the mark and the
+    answer; telling it which attempt it is would change what it is asked. Sample 0 keeps the
+    original key, so every entry already written — each one a sample 0, the only sample the
+    collapsed vote ever made — still replays.
+
     @brief Cache path for a call.
     @return The path or None.
-    @version 1
+    @version 2
     """
     if _CACHE_DIR is None:
         return None
-    digest = hashlib.sha256(f"{model}\x00{prompt}".encode()).hexdigest()
+    key = f"{model}\x00{prompt}" if sample == 0 else f"{model}\x00{sample}\x00{prompt}"
+    digest = hashlib.sha256(key.encode()).hexdigest()
     return _CACHE_DIR / f"{digest}.json"
 
 
+## Version 3 takes `sample`, so the samples of one vote are cached as distinct calls.
+##
 ## @param prompt Full prompt text.
 ## @param model Dated model id — never an alias.
 ## @param timeout Seconds before the call is abandoned.
+## @param sample Which sample of a vote this is; cached separately, never shown to the judge.
 ## @return Reply.
-## @version 2
-def ask(prompt: str, model: str, timeout: int = DEFAULT_TIMEOUT) -> Reply:
+## @version 3
+def ask(prompt: str, model: str, timeout: int = DEFAULT_TIMEOUT, sample: int = 0) -> Reply:
     """Tool-less and fresh every call, which is what makes repeated calls a variance measurement
     rather than a conversation.
 
@@ -292,7 +306,7 @@ def ask(prompt: str, model: str, timeout: int = DEFAULT_TIMEOUT) -> Reply:
 
     @brief One judge call.
     @return Reply.
-    @version 3
+    @version 4
     """
     argv = [
         "claude",
@@ -314,7 +328,7 @@ def ask(prompt: str, model: str, timeout: int = DEFAULT_TIMEOUT) -> Reply:
     ## Bounded rather than indefinite: a genuinely broken invocation must still surface as an
     ## error instead of hanging a run. A missing binary is not retried at all, since it will not
     ## fix itself and would burn the whole budget.
-    entry = _cache_entry(prompt, model)
+    entry = _cache_entry(prompt, model, sample)
     if entry is not None and entry.is_file():
         try:
             ## A CACHED ERROR IS NEVER REPLAYED. Only verdicts are stored, so a transient capacity
@@ -542,13 +556,15 @@ def read_items(text: str) -> tuple[str, ...] | None:
     return tuple(items)
 
 
+## Version 3 passes each sample's index, so the cache no longer collapses a vote to one call.
+##
 ## @brief Majority-voted verdict across n independent samples.
 ## @param mark_text The mark being judged.
 ## @param answer Anonymised answer.
 ## @param model Dated model id.
 ## @param n Samples to request.
 ## @return Vote.
-## @version 2
+## @version 3
 def vote(mark_text: str, answer: str, model: str, n: int) -> Vote:
     """AGREEMENT IS OVER SAMPLES REQUESTED, never over survivors. One verdict plus two errors
     under a survivor denominator reads as unanimity, which makes a vote look MORE decisive the
@@ -568,8 +584,8 @@ def vote(mark_text: str, answer: str, model: str, n: int) -> Vote:
     reasons: list[str] = []
     said: dict[str, list[str]] = {}
     prompt = verdict_prompt(mark_text, answer)
-    for _ in range(requested):
-        reply = ask(prompt, model)
+    for sample in range(requested):
+        reply = ask(prompt, model, sample=sample)
         token = None if reply.error else read_verdict(reply.text)
         if token is None:
             errors += 1

@@ -130,7 +130,7 @@ lost or altered. Fixed in `acceptance/__main__.py`, which is outside the fingerp
 | replicates | 3 → 144 cells |
 | answering model | `claude-haiku-5-5` — **floats**, no dated id exists |
 | judge | `claude-sonnet-5-5` — **floats**; not the answering model |
-| `grader_fingerprint` | `5489758d9a50` |
+| `grader_fingerprint` | `5489758d9a50` — the tree has since moved to `72a6c7bd363d`; see below |
 | rubric digests | mbedtls `bbf6195f605be452`, entropic `705c131e354e5c22`, self `d8447c7b18eafbf5` |
 | seed | 7 |
 | clew | 1.1.3 at commit `844fee55`, **`clew_dirty: true`** |
@@ -140,6 +140,13 @@ uncommitted `_grade_line` fix described above. That change is confined to
 `acceptance/__main__.py`'s progress line, it is outside `acceptance/grader/`, and the fingerprint
 was verified unchanged — but a reader resolving `844fee55` will not get the exact tree that ran,
 and saying so is cheaper than letting them discover it.
+
+**THE GRADER HAS MOVED SINCE, TO FIX THE COLLAPSE DESCRIBED ABOVE.** At `72a6c7bd363d` each
+sample of a vote is cached under its own key, so k=3 makes three judge calls. Sample 0 keeps the
+original key, so this run's cached verdicts still replay as sample 0 — but its cells can no longer
+be re-graded at their own fingerprint from the current tree, and a re-grade here would ask the
+judge for samples 1 and 2 that this run never made. Re-grade at its own keys from the tree that
+produced it.
 
 **Both model ids float.** No dated form exists for the current families (`modelpin.py` documents
 why at length), so a replay months from now may not answer or judge from the same weights.

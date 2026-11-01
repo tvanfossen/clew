@@ -203,3 +203,150 @@ def test_disabling_the_cache_judges_afresh(monkeypatch) -> None:
         "the cache was not actually disabled, so a floor pass would measure the cache"
     )
     assert calls["n"] == 2
+
+
+## @brief A stub judge that answers each call with the next verdict from a list.
+## @param monkeypatch Pytest monkeypatch fixture.
+## @param replies Reply texts, one per subprocess call, in order.
+## @return The call counter.
+## @version 1
+def _scripted(monkeypatch, replies: list[str]) -> dict:
+    """@brief Install a judge stub that answers in order.
+    @return Call counter.
+    @version 1
+    """
+    calls = {"n": 0}
+
+    def fake_run(argv, **kwargs):
+        text = replies[calls["n"] % len(replies)]
+        calls["n"] += 1
+
+        class Done:
+            returncode = 0
+            stdout = json.dumps({"result": text})
+            stderr = ""
+
+        return Done()
+
+    monkeypatch.setattr(judge.subprocess, "run", fake_run)
+    return calls
+
+
+##
+# @brief A k=3 vote must reach the judge three times, not once and replay it twice.
+# @param tmp_path Per-test temporary directory.
+# @param monkeypatch Pytest monkeypatch fixture.
+# @return None.
+# @version 1
+def test_a_vote_of_three_asks_the_judge_three_times(tmp_path: Path, monkeypatch) -> None:
+    """**THE CACHE COLLAPSED EVERY VOTE TO ONE CALL.** `vote` builds its prompt once and asks it
+    `n` times; the cache keyed only on prompt and model, so call 1 was stored and calls 2 and 3
+    replayed it. Every k=3 verdict was one sample counted three times: agreement read 1.0 by
+    construction and the split rate read zero — a variance measurement of the cache.
+
+    The stub disagrees with itself (HIT, MISS, HIT), so a collapsed vote is visible in the tally
+    as well as in the call count.
+
+    @brief Three samples are three judge calls.
+    @return None.
+    @version 1
+    """
+    calls = _scripted(monkeypatch, ["VERDICT: HIT", "VERDICT: MISS", "VERDICT: HIT"])
+    judge.configure_cache(tmp_path / "judge-cache")
+
+    voted = judge.vote("a mark", "an answer", "claude-sonnet-4-5-20250929", 3)
+
+    assert calls["n"] == 3, f"the judge was asked {calls['n']} time(s) for a vote of three"
+    assert voted.verdict == "HIT" and voted.agreement < 1.0, voted
+
+
+##
+# @brief Re-grading a k=3 vote must replay all three samples, not re-ask the judge.
+# @param tmp_path Per-test temporary directory.
+# @param monkeypatch Pytest monkeypatch fixture.
+# @return None.
+# @version 1
+def test_a_repeated_vote_replays_every_sample(tmp_path: Path, monkeypatch) -> None:
+    """THE FIX MUST NOT COST THE CACHE ITS PURPOSE. Each sample is cached under its own key, so a
+    re-grade replays the same split, exactly and for free.
+
+    @brief A re-vote is exact and free.
+    @return None.
+    @version 1
+    """
+    calls = _scripted(monkeypatch, ["VERDICT: HIT", "VERDICT: MISS", "VERDICT: HIT"])
+    judge.configure_cache(tmp_path / "judge-cache")
+
+    first = judge.vote("a mark", "an answer", "claude-sonnet-4-5-20250929", 3)
+    second = judge.vote("a mark", "an answer", "claude-sonnet-4-5-20250929", 3)
+
+    assert calls["n"] == 3, f"a re-vote asked the judge {calls['n'] - 3} more time(s)"
+    assert (second.verdict, second.agreement) == (first.verdict, first.agreement)
+
+
+##
+# @brief A k=3 set extraction must reach the judge three times.
+# @param tmp_path Per-test temporary directory.
+# @param monkeypatch Pytest monkeypatch fixture.
+# @return None.
+# @version 1
+def test_a_set_extraction_of_three_asks_the_judge_three_times(tmp_path: Path, monkeypatch) -> None:
+    """`score_set` HAD THE IDENTICAL COLLAPSE: one prompt, asked `samples` times through the same
+    cached `ask`. Its majority rule exists because one flaky extraction moved a cell ten points;
+    with the collapse, the "majority" was one extraction counted three times.
+
+    @brief Three extraction samples are three judge calls.
+    @return None.
+    @version 1
+    """
+    from acceptance.grader import score
+    from acceptance.grader.rubric import Mark
+
+    calls = _scripted(monkeypatch, ["ITEMS:\ninclude\nEND"])
+    judge.configure_cache(tmp_path / "judge-cache")
+    mark = Mark(
+        text="the directories",
+        type="set",
+        weight=1,
+        extract="List them.",
+        members=({"value": "include"},),
+    )
+
+    score.score_set(mark, "an answer", "claude-sonnet-4-5-20250929", samples=3)
+
+    assert calls["n"] == 3, f"the judge was asked {calls['n']} time(s) for three extractions"
+
+
+##
+# @brief The first sample must keep the key every existing cache entry was written under.
+# @param tmp_path Per-test temporary directory.
+# @param monkeypatch Pytest monkeypatch fixture.
+# @return None.
+# @version 1
+def test_the_first_sample_replays_an_entry_written_before_samples_were_keyed(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """THE EXISTING CACHES STAY VALID FOR WHAT THEY ACTUALLY HOLD. Every entry already written is
+    sample 0 — the only sample the collapsed vote ever made. So sample 0 keeps the old key, and
+    only samples 1 and up are new. The entry is written here by hand, in the old format, rather
+    than through `ask`, so this test cannot pass by agreeing with itself.
+
+    @brief Sample 0 uses the pre-existing key.
+    @return None.
+    @version 1
+    """
+    import hashlib
+
+    calls = _scripted(monkeypatch, ["VERDICT: MISS"])
+    cache = tmp_path / "judge-cache"
+    judge.configure_cache(cache)
+    model, prompt = "claude-sonnet-4-5-20250929", "mark: written before"
+    digest = hashlib.sha256(f"{model}\x00{prompt}".encode()).hexdigest()
+    (cache / f"{digest}.json").write_text(json.dumps({"text": "VERDICT: HIT"}), "utf-8")
+
+    reply = judge.ask(prompt, model, sample=0)
+
+    assert reply.text == "VERDICT: HIT" and calls["n"] == 0, (
+        "sample 0 missed an entry written under the original key, so every existing cache "
+        "would be re-judged from scratch"
+    )

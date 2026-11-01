@@ -573,7 +573,12 @@ def test_grader_fingerprint_is_the_value_published_runs_recorded() -> None:
     ## 100% unruled and scored anyway. Excluding only those, `self`'s blended arm goes from 37.9
     ## — LOSING to baseline's 44.0 with a strict superset of its tools — to 45.4, and the blended
     ## headline from +0.25 to +1.54. A fully unruled question now returns None.
-    published = "5489758d9a50"
+    ## MOVED AGAIN, 2026-11-01, from `5489758d9a50`. The cache keyed prompt and model only, and a
+    ## k=3 vote asks one prompt three times, so samples 2 and 3 replayed sample 1: every voted
+    ## verdict and every voted extraction was one judge call counted three times. Each sample is
+    ## now cached under its own key; sample 0 keeps the old key, so existing entries still replay.
+    ## The 1.2.0 grid was graded at `5489758d9a50` and its RESULTS.md records the move.
+    published = "72a6c7bd363d"
 
     ## THE MESSAGE USED TO STATE A FALSEHOOD, and it is worth more than a wording fix: it said
     ## "every graded cell ... recorded {published}", which was never true of any value this
