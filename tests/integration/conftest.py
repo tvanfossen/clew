@@ -24,8 +24,10 @@ Two independent sources of real source feed the tier:
     doxygen-guard pre-commit hook but **no Doxyfile**, so every build through it
     exercises the #33 Doxyfile-synthesis path that nothing else covers.
 
-**This tier runs NOWHERE automatically.** It is opt-in via `--integration`, and the
-pre-commit pytest hook does not pass it. Running it is a deliberate local act.
+**This tier runs in the gate and in CI.** It is opt-in via `--integration` for a bare
+`pytest`, and `scripts/run_tests.py` — which the pre-commit hook and CI both call — passes it.
+This paragraph said the opposite until 1.3.0, after the gate began running the tier because a
+red integration test had survived a release; see `.pre-commit-config.yaml`.
 
 **Environment failures are not test failures.** Both preconditions (a `doxygen`
 binary, a reachable git remote) raise a named subclass of
@@ -238,6 +240,60 @@ def self_index_db(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """
     out = tmp_path_factory.mktemp("self-index") / "clew.db"
     args = _build_argparser().parse_args(["--repo-root", str(REPO_ROOT), "--output", str(out)])
+    args.no_index_cache = True
+    _run_pipeline(args)
+    return out
+
+
+## The TypeScript/JSX acceptance target. The URL and pin are READ FROM ITS RUBRIC, never restated:
+## the real-tree assertions exist to say that what the rubric grades is what the index holds, and
+## a second copy of the pin is a second thing that can drift.
+MATTERMOST_RUBRIC = REPO_ROOT / "acceptance/targets/mattermost/questions.yaml"
+
+
+## @brief A read-only checkout of mattermost-mobile at its rubric's pinned commit.
+## @param tmp_path_factory pytest's session-scoped temp directory factory.
+## @return Path to the checkout.
+## @version 1
+@pytest.fixture(scope="session")
+def mattermost_checkout(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Fetched exactly as `guard_checkout` is — one commit by SHA, refusing anything else — and
+    for the same reasons.
+
+    @brief Fetch the pinned TypeScript target once per session.
+    @version 1
+    """
+    import yaml
+
+    rubric = yaml.safe_load(MATTERMOST_RUBRIC.read_text(encoding="utf-8"))
+    sha = rubric["commit"]
+    root = tmp_path_factory.mktemp("mattermost-pinned")
+    _git(root, "init", "--quiet", ".")
+    _git(root, "remote", "add", "origin", f"https://github.com/{rubric['target']}.git")
+    _git(root, "fetch", "--quiet", "--depth", "1", "origin", sha)
+    _git(root, "checkout", "--quiet", "FETCH_HEAD")
+    head = _git(root, "rev-parse", "HEAD").strip()
+    if head != sha:
+        raise CloneUnavailableError(
+            f"fetched {head} but the rubric pins {sha} — refusing to test an unpinned tree"
+        )
+    return root
+
+
+## @brief A real, cold, full index of the pinned mattermost-mobile checkout.
+## @param mattermost_checkout The pinned checkout.
+## @param tmp_path_factory pytest's session-scoped temp directory factory.
+## @return Path to the built database.
+## @version 1
+@pytest.fixture(scope="session")
+def mattermost_db(mattermost_checkout: Path, tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """@brief Index mattermost-mobile with the real pipeline.
+    @version 1
+    """
+    out = tmp_path_factory.mktemp("mattermost-index") / "clew.db"
+    args = _build_argparser().parse_args(
+        ["--repo-root", str(mattermost_checkout), "--output", str(out)]
+    )
     args.no_index_cache = True
     _run_pipeline(args)
     return out

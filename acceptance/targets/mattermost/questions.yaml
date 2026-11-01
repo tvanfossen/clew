@@ -1,0 +1,414 @@
+# SPDX-License-Identifier: MIT
+#
+# THE GRADING KEY FOR MATTERMOST-MOBILE. Schema and rules: acceptance/DESIGN.md.
+#
+# THE FIRST TypeScript/JSX TARGET. Every other target is C, C++ or Python, so until this rubric
+# existed TypeScript support was asserted on synthetic fixtures and measured nowhere. A React
+# Native APPLICATION, not a library: application code is where components are rendered from many
+# screens, where a server value crosses three layers before it reaches a database, and where a
+# name and its behaviour drift apart.
+#
+# NO MARK REFERS TO ANY TOOL. Every question is about mattermost-mobile's own source, answerable
+# by either arm, and no mark names an index layer or a query surface.
+#
+# FIVE QUESTIONS, FIVE SHAPES, so the set does not measure one skill five times:
+#   Q1  a false friend across two layers — "retry" in the action, "no retry" in the transport
+#   Q2  a data flow from a websocket frame to a database write, and its asymmetric twin
+#   Q3  a component-usage set, with a trap: the same directory exports a second component
+#   Q4  an inventory of one setting's readers, with no file that lists them
+#   Q5  a class composed from mixins, and where every mixin's writes actually land
+#
+# EVERY CANDIDATE WAS VERIFIED BY HAND before it became a mark. The first survey of this tree
+# claimed `canViewArchivedChannels` had no callers; it has three, and Q4 is built on them.
+
+schema: 1
+
+target: mattermost/mattermost-mobile
+commit: 4d842026f6917fb4af0fe3643ddbf2f5d2ae41c5
+version: 1.0.0
+
+ground_truth: |
+  mattermost-mobile's own source at the commit above, read directly from an unmodified checkout.
+  Sets were established by grep over `app/` and `share_extension/`, excluding `*.test.ts(x)`,
+  `test/` and `detox/`; each set mark's `evidence` names the search. The native `ios/` and
+  `android/` trees are out of scope for every question.
+
+judge:
+  model: claude-sonnet-5-5
+  samples_when_weight_at_least: 1
+
+questions:
+  - id: Q1
+    intent: |
+      A false friend that spans two layers. `retryFailedPost` exists, so any agent finds "retry"
+      and can stop there. But the REQUEST is explicitly never retried: the network manager
+      configures exponential retry for every client, and `createPost` opts out with
+      `noRetry: true`, which the request builder turns into `retryLimit: 0`. The only retry is
+      the user tapping "Try Again", which makes ONE fresh attempt. Reaching that needs the
+      action, the REST client, the request builder and the network manager — four files.
+
+      The second half asks what a failure leaves behind: `createPost` writes the post BEFORE
+      sending it and, on failure, marks it `failed: true` and still returns `{data: true}`, so
+      the failure lives in the database rather than in the return value.
+
+    prompt: |
+      In mattermost-mobile, when sending a new post to the server fails, what happens to that
+      post, how many times is the send retried automatically, and what does retrying it do?
+
+    marks:
+      - text: >-
+          states that the create-post request is never retried automatically — it is sent once
+        type: conclusion
+        weight: 3
+        evidence: |
+          `createPost` passes `noRetry: true` (client/rest/posts.ts:46); `buildRequestOptions`
+          turns it into `retryPolicyConfiguration = {retryLimit: 0}` (client/rest/tracking.ts:383-384).
+        refs: [["app/client/rest/posts.ts", 46], ["app/client/rest/tracking.ts", 383, 384]]
+
+      - text: >-
+          explains that requests in general DO retry (exponential, limit 3, set by the network
+          manager) and that posting opts out of it
+        type: conclusion
+        weight: 2
+        evidence: |
+          `retryPolicyConfiguration: {type: RetryTypes.EXPONENTIAL_RETRY, retryLimit: 3, ...}`
+          at managers/network_manager.ts:68-70.
+        refs: [["app/managers/network_manager.ts", 68, 70]]
+
+      - text: >-
+          states that the post is written to the local database before it is sent, and on
+          failure is kept and marked `failed: true`
+        type: conclusion
+        weight: 3
+        evidence: |
+          `batchRecords(initialPostModels, 'createPost - initial')` at actions/remote/post.ts:146
+          precedes `client.createPost` at :155; the catch builds `errorPost` with
+          `props.failed: true` (:164-172) and writes it (:195).
+        refs: [["app/actions/remote/post.ts", 146], ["app/actions/remote/post.ts", 155, 195]]
+
+      - text: >-
+          names the server errors for which the failed post is removed instead of kept —
+          deleted root post, read-only town square, plugin-dismissed post
+        type: retrieval
+        weight: 1
+        evidence: |
+          DELETED_ROOT_POST_ERROR, TOWN_SQUARE_READ_ONLY_ERROR, PLUGIN_DISMISSED_POST_ERROR →
+          `removePost`, actions/remote/post.ts:175-180.
+        refs: [["app/actions/remote/post.ts", 175, 180]]
+
+      - text: >-
+          states that a retry happens only when the user chooses "Try Again" on the failed post,
+          and calls `retryFailedPost`
+        type: retrieval
+        weight: 2
+        evidence: |
+          components/post_list/post/body/failed/index.tsx:46-48, text `mobile.post.failed_retry`
+          "Try Again"; the sibling option deletes the post (:53-59).
+        refs: [["app/components/post_list/post/body/failed/index.tsx", 46, 59]]
+
+      - text: >-
+          concludes that `retryFailedPost` makes exactly one new attempt with no loop or backoff,
+          and on failure marks the post failed again (or removes it for the same three errors)
+        type: conclusion
+        weight: 3
+        evidence: |
+          actions/remote/post.ts:228-307: one `client.createPost(newPost)` at :269; the catch
+          removes on the three error ids (:287-292) or sets `failed: true` (:293-301).
+        refs: [["app/actions/remote/post.ts", 228, 307]]
+
+      - text: >-
+          notes that `createPost` reports a failed send as success to its caller (`{data: true}`),
+          so the failure is visible only in the stored post
+        type: conclusion
+        weight: 1
+        evidence: |
+          `return {data: true};` inside the catch, actions/remote/post.ts:198.
+        refs: [["app/actions/remote/post.ts", 198]]
+
+  - id: Q2
+    intent: |
+      A data flow across five files, from a websocket frame to a WatermelonDB write, followed by
+      the shape that makes it a question rather than a lookup: the REMOVE event for the same
+      entity does not take the same path. Added reactions go through the database operator and
+      its shared `batchRecords`; removed reactions bypass the operator and write directly.
+
+      `skipSync: true` is the conclusion an agent must argue to: `sanitizeReactions` otherwise
+      treats the rawReactions it is given as the post's COMPLETE set and deletes every other
+      reaction — correct for a full fetch, destructive for a one-reaction event.
+
+    prompt: |
+      In mattermost-mobile, trace what happens from the moment a "reaction added" websocket event
+      arrives to the moment the reaction is stored in the local database. Does a "reaction
+      removed" event take the same path? Explain any flag on the way that changes what gets
+      written.
+
+    marks:
+      - text: >-
+          names the websocket event dispatcher that routes `reaction_added` to its handler
+          (`handleWebSocketEvent` → `handleReactionAddedToPostEvent`)
+        type: retrieval
+        weight: 1
+        evidence: |
+          actions/websocket/event.ts:44, case REACTION_ADDED at :163-164; the callback is wired
+          in managers/websocket_manager.ts:112.
+        refs: [["app/actions/websocket/event.ts", 163, 164], ["app/managers/websocket_manager.ts", 112]]
+
+      - text: >-
+          states that the added reaction is stored through the database operator's
+          `handleReactions`, which prepares Reaction records and writes them with `batchRecords`
+        type: retrieval
+        weight: 2
+        evidence: |
+          actions/websocket/reactions.ts:26-33 calls `operator.handleReactions`;
+          handlers/index.ts:124-170 prepares via `prepareRecords` (tableName REACTION) and calls
+          `this.batchRecords` at :167; base_data_operator/index.ts:191-195 performs
+          `database.write(... writer.batch(...))`.
+        refs: [["app/actions/websocket/reactions.ts", 26, 33], ["app/database/operator/server_data_operator/handlers/index.ts", 124, 170], ["app/database/operator/base_data_operator/index.ts", 191, 195]]
+
+      - text: >-
+          concludes that a removed reaction does NOT go through the operator: its handler queries
+          the reaction and destroys it with a direct `database.write`
+        type: conclusion
+        weight: 3
+        evidence: |
+          `handleReactionRemovedFromPostEvent`, actions/websocket/reactions.ts:39-50:
+          `queryReaction(...)`, then `database.write(async () => { await reaction[0].destroyPermanently(); })`.
+        refs: [["app/actions/websocket/reactions.ts", 39, 50]]
+
+      - text: >-
+          explains that `skipSync: true` stops the single incoming reaction being treated as the
+          post's complete set — without it every other reaction on the post would be deleted
+        type: conclusion
+        weight: 3
+        evidence: |
+          operator/utils/reaction.ts:22-57: with skipSync it returns `deleteReactions: []`
+          (:49-50); otherwise every stored reaction absent from rawReactions is deleted (:54-57).
+          The added-event handler passes `skipSync: true` (actions/websocket/reactions.ts:28).
+        refs: [["app/database/operator/utils/reaction.ts", 22, 57], ["app/actions/websocket/reactions.ts", 28]]
+
+      - text: >-
+          notes that both handlers swallow any error silently (empty catch), so a failed write
+          leaves no trace
+        type: conclusion
+        weight: 1
+        evidence: |
+          `} catch { // Do nothing }` in both handlers, actions/websocket/reactions.ts:34-36 and
+          :51-53.
+        refs: [["app/actions/websocket/reactions.ts", 34, 36], ["app/actions/websocket/reactions.ts", 51, 53]]
+
+  - id: Q3
+    intent: |
+      A component-usage set: a React component rendered from eight screens in eight directories,
+      with no file that lists them. The trap is precision. `components/navigation_header/` also
+      exports `Header` (`navigation_header/header.tsx`), which a hook and a route render
+      directly — an agent that searches the directory instead of the component will list them.
+
+      The conclusion asks how the component's forwarded ref is used: it reaches the search input
+      only when `hasSearch` is set, and exactly one renderer sets it.
+
+    prompt: |
+      In mattermost-mobile, which files render the NavigationHeader component? Of those, which
+      show a search field, and how does a ref passed to NavigationHeader reach that field?
+
+    marks:
+      - text: every file that renders NavigationHeader
+        type: set
+        weight: 1
+        extract: |
+          List every source file path the answer names as rendering the NavigationHeader
+          component. Paths only, one per line, exactly as the answer writes them. If it names
+          none, reply NONE.
+        members:
+          - {value: "app/products/agents/screens/agent_chat/header.tsx", evidence: ":75"}
+          - {value: "app/products/playbooks/screens/participant_playbooks/participant_playbooks.tsx", evidence: ":132"}
+          - {value: "app/screens/channel/header/header.tsx", evidence: ":337"}
+          - {value: "app/screens/global_threads/global_threads.tsx", evidence: ":127"}
+          - {value: "app/screens/global_drafts/global_drafts.tsx", evidence: ":98"}
+          - {value: "app/screens/home/recent_mentions/recent_mentions.tsx", evidence: ":176"}
+          - {value: "app/screens/home/search/search.tsx", evidence: ":463"}
+          - {value: "app/screens/home/saved_messages/saved_messages.tsx", evidence: ":213"}
+        evidence: |
+          `grep -rlE "<NavigationHeader([ />]|$)" app share_extension --include=*.tsx`, tests
+          excluded. Every one imports the default export of `@components/navigation_header`.
+          NOT members: hooks/navigation_header.tsx:70 and routes/(authenticated)/thread.tsx:48
+          render `Header` from `@components/navigation_header/header`.
+
+      - text: >-
+          identifies the search screen (`screens/home/search/search.tsx`) as the only renderer
+          that enables the search field
+        type: conclusion
+        weight: 3
+        evidence: |
+          `hasSearch={true}` and `ref={searchRef}` at search.tsx:467, :480. `hasSearch` defaults
+          to false (navigation_header/index.tsx:54); recent_mentions and saved_messages pass
+          `hasSearch={false}` explicitly.
+        refs: [["app/screens/home/search/search.tsx", 463, 480], ["app/components/navigation_header/index.tsx", 54]]
+
+      - text: >-
+          explains that NavigationHeader forwards its ref to the NavigationSearch input, which is
+          rendered only when `hasSearch` is true — otherwise the ref is attached to nothing
+        type: conclusion
+        weight: 3
+        evidence: |
+          `forwardRef<SearchRef, Props>` at navigation_header/index.tsx:53; `{hasSearch &&
+          <NavigationSearch ... ref={ref} />}` at :128-134.
+        refs: [["app/components/navigation_header/index.tsx", 53], ["app/components/navigation_header/index.tsx", 128, 134]]
+
+      - text: >-
+          does not count renderers of `Header` from `navigation_header/header.tsx` — a different
+          component in the same directory, rendered directly by a navigation hook and the thread
+          route — as renderers of NavigationHeader
+        type: conclusion
+        weight: 3
+        evidence: |
+          hooks/navigation_header.tsx:70 and routes/(authenticated)/thread.tsx:48 render `<Header`,
+          imported from `@components/navigation_header/header` (hooks/navigation_header.tsx:9,
+          thread.tsx:8). NavigationHeader itself renders that `Header` (index.tsx:13, :100).
+        refs: [["app/hooks/navigation_header.tsx", 70], ["app/routes/(authenticated)/thread.tsx", 48]]
+
+  - id: Q4
+    intent: |
+      An inventory of one server setting's effects across six files, none of which lists the
+      others, plus a default an agent must read rather than assume. Most boolean settings in this
+      app default to FALSE when absent (`observeConfigBooleanValue`, queries/servers/system.ts:284);
+      this one is the inverse — absent means ON, and only an explicit 'false' disables it, because
+      newer servers stopped sending the deprecated key.
+
+    prompt: |
+      In mattermost-mobile, how does the ExperimentalViewArchivedChannels server setting change
+      the app's behaviour? List every place the behaviour depends on it, and say what the app
+      does when the server does not send the setting at all.
+
+    marks:
+      - text: >-
+          concludes that a missing setting means archived channels ARE viewable — only an
+          explicit 'false' turns them off
+        type: conclusion
+        weight: 3
+        evidence: |
+          `const archivedChannelsViewable = (value?: string) => value !== 'false';` at
+          queries/servers/system.ts:304, with the server-version rationale at :296-302.
+        refs: [["app/queries/servers/system.ts", 296, 304]]
+
+      - text: every file whose behaviour depends on the setting
+        type: set
+        weight: 1
+        extract: |
+          List every source file path the answer names as having behaviour that depends on the
+          ExperimentalViewArchivedChannels setting (reading it, or calling a helper derived from
+          it). Paths only, one per line, exactly as the answer writes them. If it names none,
+          reply NONE.
+        members:
+          - {value: "app/actions/websocket/channel.ts", evidence: "canViewArchivedChannels at :463"}
+          - {value: "app/actions/remote/channel.ts", evidence: "canViewArchivedChannels at :1397"}
+          - {value: "app/actions/remote/search.ts", evidence: "canViewArchivedChannels at :62"}
+          - {value: "app/screens/browse_channels/index.ts", evidence: "observeCanViewArchivedChannels at :21"}
+          - {value: "app/screens/channel_settings/archive/index.ts", evidence: "observeCanViewArchivedChannels at :21"}
+          - {value: "app/screens/home/channel_list/categories_list/categories/header/index.ts", evidence: "observeCanViewArchivedChannels at :15"}
+        evidence: |
+          The key is read only in queries/servers/system.ts:306-315, by `canViewArchivedChannels`
+          and `observeCanViewArchivedChannels`; the members are every caller of either, by
+          `grep -rnw` over app/ and share_extension/, tests excluded. system.ts itself (the
+          definition) and types/api/config.d.ts (the type) are not behaviour and not members.
+
+      - text: >-
+          states that when a channel is archived while archived channels are NOT viewable, the
+          user is removed from it (and kicked out if it is the current channel); when viewable,
+          the channel is kept and marked deleted
+        type: conclusion
+        weight: 2
+        evidence: |
+          websocket channel-deleted handler, actions/websocket/channel.ts:463-468;
+          `archiveChannel`, actions/remote/channel.ts:1397-1401.
+        refs: [["app/actions/websocket/channel.ts", 463, 468], ["app/actions/remote/channel.ts", 1397, 1401]]
+
+      - text: >-
+          states that post search sends the setting to the server as `include_deleted_channels`
+        type: retrieval
+        weight: 2
+        evidence: |
+          actions/remote/search.ts:62 and :73.
+        refs: [["app/actions/remote/search.ts", 62, 73]]
+
+  - id: Q5
+    intent: |
+      A class composed from mixins rather than declared methods. `ServerDataOperator` lists its
+      thirteen handlers in one `mix(...).with(...)` call; ten are defined beside it in the
+      operator's own handlers directory, and THREE are not — they live under `app/products/`,
+      with the product they belong to. Finding those three means following imports out of the
+      directory the class sits in; listing the ten beside it is one directory read.
+
+      The conclusion asks where the handlers' writes go: every mixin is typed against
+      `ServerDataOperatorBase`, so `this.batchRecords` inside any of them is
+      `BaseDataOperator.batchRecords`, the one place that opens a WatermelonDB write for the
+      operator — and `AppDataOperator` shares it.
+
+      THE SET IS THE THREE, NOT THE THIRTEEN. A thirteen-member set made one mark 88% of the
+      question's weight, and the ten that sit together are not where the difficulty is.
+
+    prompt: |
+      In mattermost-mobile, how is the ServerDataOperator class built up? Most of the handler
+      classes it is made from are defined next to it — which ones are defined somewhere else, and
+      where? When one of those handlers writes records, which code actually performs the database
+      write, and what else shares it?
+
+    marks:
+      - text: >-
+          explains that ServerDataOperator is composed with a mixin helper —
+          `mix(ServerDataOperatorBase).with(...)` — rather than declaring the handlers itself
+        type: retrieval
+        weight: 2
+        evidence: |
+          database/operator/server_data_operator/index.ts:40, `class ServerDataOperator extends
+          mix(ServerDataOperatorBase).with(...)`.
+        refs: [["app/database/operator/server_data_operator/index.ts", 40, 61]]
+
+      - text: >-
+          explains that a same-named interface extends each handler's `...Mix` type, so the class
+          is typed with every mixed-in method
+        type: conclusion
+        weight: 2
+        evidence: |
+          `interface ServerDataOperator extends AgentsHandlerMix, BoardsHandlerMix, ...` at
+          server_data_operator/index.ts:23-38, merged with the class of the same name at :40.
+        refs: [["app/database/operator/server_data_operator/index.ts", 23, 40]]
+
+      - text: every file outside the operator's own handlers directory that defines one of its handlers
+        type: set
+        weight: 2
+        extract: |
+          List every source file path the answer names as defining a handler mixin of
+          ServerDataOperator OUTSIDE app/database/operator/server_data_operator/handlers/. Paths
+          only, one per line, exactly as the answer writes them. If it names none, reply NONE.
+        members:
+          - {value: "app/products/agents/database/operators/handlers/index.ts", evidence: "AgentsHandler :35"}
+          - {value: "app/products/boards/database/operators/handlers/index.ts", evidence: "BoardsHandler :24"}
+          - {value: "app/products/playbooks/database/operators/handlers/index.ts", evidence: "PlaybookHandler :57"}
+        evidence: |
+          The thirteen names in the `.with(...)` call, each located by
+          `grep -rnE "const <Name>Handler = "` over app/. The other ten are in
+          app/database/operator/server_data_operator/handlers/ (category, channel, custom_profile,
+          group, post, properties, team, team_threads_sync, thread, user).
+
+      - text: >-
+          concludes that every handler's writes go through `batchRecords` inherited from
+          `BaseDataOperator`, because each mixin is constrained to extend ServerDataOperatorBase
+        type: conclusion
+        weight: 3
+        evidence: |
+          Each mixin is `<TBase extends Constructor<ServerDataOperatorBase>>(superclass: TBase) =>
+          class extends superclass`; `ServerDataOperatorBase extends BaseDataOperator`
+          (handlers/index.ts:31); `batchRecords` performs `database.write(... writer.batch(...))`
+          at base_data_operator/index.ts:191-195.
+        refs: [["app/database/operator/server_data_operator/handlers/index.ts", 31], ["app/database/operator/base_data_operator/index.ts", 191, 195]]
+
+      - text: >-
+          names AppDataOperator as the other subclass of BaseDataOperator, sharing the same write
+          path for the app-level database
+        type: retrieval
+        weight: 1
+        evidence: |
+          `export default class AppDataOperator extends BaseDataOperator` at
+          database/operator/app_data_operator/index.ts:15; both are constructed in
+          database/manager/index.ts (:121, :184).
+        refs: [["app/database/operator/app_data_operator/index.ts", 15], ["app/database/manager/index.ts", 121, 184]]
