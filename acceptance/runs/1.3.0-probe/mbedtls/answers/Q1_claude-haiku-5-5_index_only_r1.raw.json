@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 20418,
+  "stop_reason": "end_turn",
+  "session_id": "0a6de15b-1ba1-48e6-8d1f-2accf742e762",
+  "total_cost_usd": 0.012478580000000001,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 41262,
+    "cache_read_input_tokens": 207218,
+    "output_tokens": 4306,
+    "output_tokens_details": {
+      "thinking_tokens": 1892
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 41262,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1961,
+        "cache_read_input_tokens": 58111,
+        "cache_creation_input_tokens": 1719,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1719
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4306,
+      "cacheReadInputTokens": 207218,
+      "cacheCreationInputTokens": 41262,
+      "webSearchRequests": 0,
+      "costUSD": 0.012478580000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1892,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 41262,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** with the shipped defaults, mbedtls's own library code runs no concurrency and takes no locks. The mutex and thread code only exists when the operator enables `MBEDTLS_THREADING_C`, which defaults to off. The only threads in the repository are in `programs/` (sample and test programs), not in the library.\n\n**Default build (`MBEDTLS_THREADING_C` off)**\n\n- `library/threading.c` is compiled out entirely (`threading.c:18-193` is gated on `MBEDTLS_THREADING_C`, default off at `include/mbedtls/mbedtls_config.h:3787`).\n- Every mutex global is absent: `mbedtls_threading_key_slot_mutex`, `_psa_globaldata_mutex`, `_psa_rngdata_mutex`, `_gmtime_mutex`, `_readdir_mutex`.\n- The heap lock in `memory_buffer_alloc.c` (`buffer_alloc_calloc_mutexed` / `_free_mutexed`, lines 540-564) is also gated on `MBEDTLS_THREADING_C`, so the allocator is unlocked.\n- The PSA key-slot lock wrapper `psa_unregister_read_under_mutex` (`psa_crypto_slot_management.c:931-947`) is gated on `MBEDTLS_THREADING_C`. PSA Crypto itself is on by default, but its slot access is unlocked.\n- The entropy, CTR-DRBG, HMAC-DRBG, SSL cache, ticket, cookie and X.509 path loaders all take these same locks only when `MBEDTLS_THREADING_C` is set (their gates are listed in the index).\n- The library starts no threads. The thread list has no entries under `library/`.\n\nSo the only concurrency the default library faces is whatever the embedding application brings. The repository's own PSA thread-safety document says PSA API calls \"are not thread-safe\" in current releases (`docs/architecture/psa-thread-safety/psa-thread-safety.md`, \"Thread-safety of the PSA subsystem\"). Nothing in the library protects shared state across threads by default.\n\n**What runs concurrently in this repository (all under `programs/`, none in the library)**\n\n| Thread / handler | Where | Primitive | Gate |\n|---|---|---|---|\n| `handle_ssl_connection` | `programs/ssl/ssl_pthread_server.c:277` | pthread per connection | Needs `MBEDTLS_THREADING_PTHREAD` |\n| `sighandler` | `programs/test/benchmark.c:444` | SIGALRM handler | Not a thread, an async signal |\n| `TimerProc` | `programs/test/benchmark.c:430` | Win32 timer callback | Windows only |\n| `term_handler` | `programs/ssl/ssl_server2.c:1699` | signal handler | Not a thread |\n\nThe pthread server is the only real concurrent workload. It uses `my_mutexed_debug` (`ssl_pthread_server.c`) as its debug callback and `debug_mutex` for log serialization, so it sets its own locking up from the program side rather than relying on the library.\n\n**When `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` are enabled**\n\n- The pthread backend (`threading.c:50-111`) wraps `pthread_mutex_lock` / `unlock`. `threading_mutex_lock_pthread` (`threading.c:75-86`) is the only lock path the index resolves, via the `mbedtls_mutex_lock` function pointer.\n- The globals are:\n  - `mbedtls_threading_key_slot_mutex`: serializes PSA key-slot read registration.\n  - `mbedtls_threading_psa_globaldata_mutex`: PSA global state.\n  - `mbedtls_threading_psa_rngdata_mutex`: PSA RNG state.\n  - `mbedtls_threading_gmtime_mutex`: `gmtime` (not reentrant).\n  - `mbedtls_threading_readdir_mutex`: `readdir` (not reentrant).\n- The heap, entropy, DRBG, SSL session cache, ticket and cookie code take `mutex` around their shared state when this is on.\n- The index's lock layer shows one lock identity (`mutex->mutex` in `threading.c:81`) and no nested acquisitions. It records one spelling, not one object per context, so it cannot say which context each lock guards.\n\n**Caveats**\n\n- The index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` stated as operator flags, so the \"gates\" lists above describe that build. The off-by-default status comes from the header's `default_state` annotation. The index has no `config_header` for this target, so I cannot confirm the default from the repository's own config beyond those annotations.\n- Thread detection is by spawn-site pattern at medium confidence. A spawn through a primitive outside its pattern set would not appear.\n- \"Nothing else protects anything\" is the index's reading of the gated code, not a proof of freedom from races.",
+  "ttft_ms": 949,
+  "type": "result",
+  "duration_ms": 21635,
+  "uuid": "e3072714-ccac-4ecb-b7c0-83401b1a9afa",
+  "ttft_stream_ms": 635,
+  "time_to_request_ms": 85,
+  "first_content_frame_ms": 635,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

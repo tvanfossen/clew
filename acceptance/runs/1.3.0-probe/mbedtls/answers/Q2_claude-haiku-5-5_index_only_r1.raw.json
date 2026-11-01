@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 9906,
+  "stop_reason": "end_turn",
+  "session_id": "ea13d8e0-0e0c-43db-b2fb-2db6ce2055ee",
+  "total_cost_usd": 0.01195013,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 48361,
+    "cache_read_input_tokens": 129463,
+    "output_tokens": 1965,
+    "output_tokens_details": {
+      "thinking_tokens": 684
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 48361,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1091,
+        "cache_read_input_tokens": 47341,
+        "cache_creation_input_tokens": 1020,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1020
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 1965,
+      "cacheReadInputTokens": 129463,
+      "cacheCreationInputTokens": 48361,
+      "webSearchRequests": 0,
+      "costUSD": 0.01195013,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 684,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 48361,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it accomplishes:** `MBEDTLS_PRIVATE(x)` is a macro wrapper on struct member names. By default it expands to `private_x`, so the real field name no longer exists in the header. Code outside the library that writes `ctx.x` gets a compile error. Callers are pushed to the public accessor functions, and the library can rename or restructure internal fields without breaking them. The 3.0 migration guide calls direct field access \"a last resort\" and says you can reach a field only by writing `bar.MBEDTLS_PRIVATE(foo)`.\n\n**Mechanism** (`include/mbedtls/private_access.h`):\n- Line 14\u201316: `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS` \u2192 `MBEDTLS_PRIVATE(member)` expands to `private_##member`. This is the default, so private fields are renamed.\n- Line 16\u201318: `#ifdef MBEDTLS_ALLOW_PRIVATE_ACCESS` \u2192 it expands to `member`, so the real name is kept.\n\n**Who opts out:** The switch is `MBEDTLS_ALLOW_PRIVATE_ACCESS`. In this tree it is defined in three places:\n- `library/common.h:132`: the library's own sources define it. Library code therefore sees the real field names, which is how it can reach internal state across its own translation units.\n- `programs/ssl/ssl_client2.c:8` and `programs/ssl/ssl_server2.c:8`: the test/sample SSL programs define it at the top of the file. These programs read and set internal TLS fields directly.\n\nNothing else in the index defines it. The index does not show the context around those lines, so I can't confirm the `library/common.h` define sits outside any conditional or that the programs' define precedes their includes. Those are worth a glance in the source.\n\n**What that means in practice:** Code inside the library and the two SSL test programs can use plain field names. Any other consumer that defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` before including the headers gets the same access, and the protection is only as strong as that define is controlled. It is a compile-time convention, not a security boundary. The protection is against accidental coupling by application code, not against a deliberate opt-out.",
+  "ttft_ms": 919,
+  "type": "result",
+  "duration_ms": 10731,
+  "uuid": "a243a9dd-fb34-4e83-921e-df4cbab9a0db",
+  "ttft_stream_ms": 663,
+  "time_to_request_ms": 114,
+  "first_content_frame_ms": 663,
+  "queued_turn_count": 0,
+  "result_index": 0
+}
