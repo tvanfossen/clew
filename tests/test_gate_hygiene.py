@@ -344,3 +344,41 @@ def test_an_untracked_covered_file_still_fails_under_ci(tmp_path: Path) -> None:
     assert gate_hygiene.main([str(tmp_path)], ci=True) == 1, (
         "an untracked file inside the hooks' scope passed the gate under CI"
     )
+
+
+## @brief An always-run hook must declare the stage it belongs to.
+## @return None.
+## @version 1
+def test_always_run_hooks_are_scoped_to_one_stage() -> None:
+    """MEASURED, NOT SUSPECTED: a commit in this repository ran pytest TWICE and took about
+    fifteen minutes. `AGENTS.md` tells a fresh checkout to install both the `pre-commit` and
+    `commit-msg` hook types, and pre-commit runs a hook with no `stages:` at EVERY installed
+    stage — so the three `always_run` hooks each executed once per stage. pytest alone is ~59s
+    unit plus ~124s integration.
+
+    THE SECOND RUN CANNOT DISCOVER ANYTHING. The working tree is identical at `pre-commit` and
+    `commit-msg`; only the message file differs, and none of these three hooks reads it. So the
+    duplicate is pure cost, and it taxed every commit of the 1.2.0 release.
+
+    ASSERTED ON `always_run` RATHER THAN BY NAME, so a fourth such hook added later is covered
+    without anyone remembering this test. The file-scoped hooks are deliberately NOT asserted:
+    at `commit-msg` they are handed one message file, match nothing, and report
+    "(no files to check)Skipped" — a real cost of approximately zero.
+
+    @brief Every always_run hook names its stage.
+    @return None.
+    @version 1
+    """
+    import yaml
+
+    config = yaml.safe_load((REPO_ROOT / ".pre-commit-config.yaml").read_text("utf-8"))
+    unscoped = [
+        hook["id"]
+        for repo in config.get("repos", [])
+        for hook in repo.get("hooks", [])
+        if hook.get("always_run") and not hook.get("stages")
+    ]
+    assert not unscoped, (
+        f"these run at EVERY installed hook type because they declare no `stages:`, so each "
+        f"executes once per stage on every commit: {unscoped}. Add `stages: [pre-commit]`."
+    )
