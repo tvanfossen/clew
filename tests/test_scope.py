@@ -653,3 +653,50 @@ def test_a_declared_exclude_outside_the_repository_is_dropped(tmp_path: Path) ->
     assert derived.excludes == (), (
         f"an exclude outside the repository must be dropped, not resolved; got {derived.excludes}"
     )
+
+
+## @brief A scope that could not ask git must not claim it excluded what git ignores.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_scope_that_could_not_ask_git_does_not_claim_it_excluded_ignores(
+    tmp_path: Path,
+) -> None:
+    """`_gitignored_paths` returns `[]` on BOTH "git said nothing is ignored" and "git could not
+    be asked at all" — a missing binary, or a tree that is not a repository. The second case
+    excludes nothing, and the only signal is a WARNING nobody reads after a build reports
+    success.
+
+    MEANWHILE `DerivedScope.reason` STATES THE OPPOSITE. It is built unconditionally and says
+    the scope is the whole repository "less the paths git ignores and the dot/cache
+    directories". When git was never successfully asked, that sentence is FALSE: nothing
+    ignored was excluded, and the build log asserts that something was.
+
+    This is the module's own rule turned on itself. `_gitignored_paths`'s docstring already
+    concedes "a silently wider index is the outcome this project keeps paying for" — so the
+    author knew, and the reason string still claims the exclusion happened.
+
+    AN EMPTY IGNORE LIST AND AN UNASKABLE ONE ARE DIFFERENT FACTS. A reporter whose index is
+    mysteriously wide needs to know which one they have, and the reason string is where they
+    will look.
+
+    @brief An unaskable ignore list is disclosed, not asserted away.
+    @return None.
+    @version 1
+    """
+    ## A DIRECTORY THAT IS NOT A GIT REPOSITORY, which is the reachable half of the fallback:
+    ## `git ls-files` exits non-zero and the function returns `[]`. The missing-binary half
+    ## takes the same branch and needs no second fixture.
+    root = tmp_path / "notarepo"
+    (root / "src").mkdir(parents=True)
+    (root / "src" / "a.c").write_text("int main(void){return 0;}\n", encoding="utf-8")
+
+    scope = sc.whole_repo_scope(root)
+
+    assert "less the paths git ignores" not in scope.reason, (
+        f"claims an exclusion that never happened: {scope.reason}"
+    )
+    lowered = scope.reason.lower()
+    assert "not a git repository" in lowered or "could not" in lowered, (
+        f"the reason must say the ignore list was unobtainable: {scope.reason}"
+    )
