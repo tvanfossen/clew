@@ -210,6 +210,15 @@ _SCHEMA_AXIS = "schema"
 ## A subject miss is the one shape where a newer working tree fully explains the answer.
 _DATA_AXIS = "data"
 
+## A layer that FAILED rather than went stale (see `freshness.AXIS_PARTIAL`). Its own sentence,
+## because the schema remedy — refresh with force — re-runs the doxygen that crashed.
+_PARTIAL_AXIS = "partial"
+_UNEARNED_BY_PARTIAL = (
+    " NOT DEFINITIVE: this index was built without its C/C++ layer because doxygen failed (see "
+    "`staleness` below), so a C/C++ symbol may exist and simply not be indexed. Fix the cause named "
+    "there, then refresh, before concluding the repository has none."
+)
+
 ## Why this is still the residual case in 1.0.8 rather than a solved one: a data-stale query now
 ## refreshes BEFORE answering, so a miss with a live `data` notice means the refresh did not run —
 ## the `code` axis refuses it, or it failed. Both are conditions the reader must act on, so the
@@ -253,10 +262,13 @@ _DEFINITIVE_CLAIMS = ("definitive", "do not retry")
 ##          per-query verdict — so no tool's own reasoning changes.
 ## @param payload The reply, staleness already attached.
 ## @param staleness The notices attached to this reply.
+##
+## v3: a `partial` axis withdraws a definitive negative too, with its own sentence — the
+## schema remedy (refresh with force) would only re-run the doxygen that failed.
 ## @req REQ-DDB-MCP-004
-## @version 2
+## @version 3
 def _withdraw_definitive(payload: dict[str, Any], staleness: list[dict[str, str]]) -> None:
-    """@brief Withdraw a definitive-negative claim a stale index cannot earn. @version 2"""
+    """@brief Withdraw a definitive-negative claim a stale index cannot earn. @version 3"""
     note = payload.get("note")
     if not isinstance(note, str):
         return
@@ -267,6 +279,8 @@ def _withdraw_definitive(payload: dict[str, Any], staleness: list[dict[str, str]
     replacement = None
     if _SCHEMA_AXIS in axes:
         replacement = _UNEARNED_DEFINITIVE
+    elif _PARTIAL_AXIS in axes:
+        replacement = _UNEARNED_BY_PARTIAL
     elif _DATA_AXIS in axes and payload.get("found") is False:
         replacement = _UNEARNED_BY_DRIFT
     if replacement is None:

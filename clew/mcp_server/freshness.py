@@ -62,6 +62,10 @@ from ..signature import CLEW_BUILD_VERSION
 AXIS_DATA = "data"
 AXIS_CODE = "code"
 AXIS_SCHEMA = "schema"
+## NOT A STALENESS AXIS, carried in the same envelope anyway. A partial index is CURRENT — every
+## layer but one is complete and up to date — so it is not stale; but the envelope is where a
+## reader learns what is wrong with this index and what to do, and a missing layer is that.
+AXIS_PARTIAL = "partial"
 
 ## THE TWO HALVES OF THE `code` AXIS, WRITTEN ONCE. They are constants rather than inline
 ## prose because the notice and the write refusal must not be able to drift apart: the
@@ -404,6 +408,40 @@ def _data_notice(status: Mapping[str, object]) -> dict[str, str] | None:
     }
 
 
+## @brief The partial-index notice, when doxygen failed and the C/C++ layer is missing.
+## @param status A `db_status` payload.
+## @return One notice, or None when the index is not partial.
+## @version 1
+## @dg_internal
+def _partial_notice(status: Mapping[str, object]) -> dict[str, str] | None:
+    """A STAMP NOBODY READS CHANGES NOTHING. A build whose doxygen failed now completes without
+    the C/C++ layer and records `diagnostics.doxygen = failed`; this is what puts that in front of
+    the reader on every reply, rather than letting "no such C function" read as a measurement.
+
+    THE REMEDY IS NOT "REFRESH". A refresh re-runs the doxygen that failed, so the schema axis's
+    advice would send the reader round a loop. Fix the cause first — most often an over-wide
+    scope — then refresh.
+
+    @brief Build the partial-axis notice.
+    @return The notice, or None.
+    @version 1
+    """
+    diagnostics = status.get("diagnostics")
+    if not isinstance(diagnostics, Mapping) or diagnostics.get("doxygen") != "failed":
+        return None
+    reason = diagnostics.get("doxygen_reason") or "no reason was recorded"
+    return {
+        "axis": AXIS_PARTIAL,
+        "message": (
+            f"this index was built WITHOUT its C/C++ layer: doxygen failed ({reason}). Every other "
+            f"layer is complete, but a C/C++ symbol that is not found may exist and simply not be "
+            f"indexed. A refresh alone re-runs the same doxygen — fix the cause first (most often "
+            f"an over-wide scope: declare index_scope in .clew.yaml), then call "
+            f"index(action='refresh')."
+        ),
+    }
+
+
 ## @brief The schema-axis notice, when the stamped and expected versions disagree.
 ## @param status A `db_status` payload.
 ## @return One notice, or None when the versions agree.
@@ -568,7 +606,9 @@ def stale_code_refusal(code: Mapping[str, object] | None = None) -> str | None:
 ## @param status A `db_status` payload.
 ## @param code A `code_identity` payload; measured when omitted.
 ## @return Notices in data → schema → code order; EMPTY when the tool is current.
-## @version 1
+## v2: adds the `partial` axis — a doxygen failure leaves the index without its C/C++ layer,
+## and a stamp nobody reads would let a missing symbol pass as an absent one.
+## @version 2
 ## @req REQ-DDB-MCP-004
 def notices(
     status: Mapping[str, object], code: Mapping[str, object] | None = None
@@ -584,8 +624,13 @@ def notices(
 
     @brief List the active staleness axes with their remedies.
     @return List of {axis, message}, empty when current.
-    @version 1
+    @version 2
     """
     identity = code if code is not None else code_identity()
-    found = (_data_notice(status), _schema_notice(status), _code_notice(identity))
+    found = (
+        _data_notice(status),
+        _schema_notice(status),
+        _partial_notice(status),
+        _code_notice(identity),
+    )
     return [notice for notice in found if notice is not None]
