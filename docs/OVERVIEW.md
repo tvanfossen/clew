@@ -162,31 +162,30 @@ shape survives to be queried. Upgrading clew therefore costs one full build, onc
 
 ## Install
 
-The package is always required — the server *is* the `clew-mcp` command it installs, and no
-plugin or registration step can supply that. Install it so the command is on PATH whatever
-virtualenv happens to be active:
-
-```bash
-pipx install clew-trace          # or: pip install --user clew-trace
-sudo apt install doxygen         # REQUIRED, and not pip-installable
-```
-
-A plain `pip install` inside a project venv also works, but only while that venv is on the PATH
-your editor launches the server with — which is the usual reason a correctly-registered server
-shows as failed to connect.
-
-Then register it, EITHER as a Claude Code plugin:
+EITHER as a Claude Code plugin, which needs only [uv](https://docs.astral.sh/uv/) and doxygen:
 
 ```
 /plugin marketplace add tvanfossen/clew
 /plugin install clew@clew
 ```
 
-or by hand, which also doctors the environment and names what is missing:
+The plugin launches the server and its hook through `uvx --from clew-trace==<version>`, pinned
+to the release the plugin was published with, so installing the plugin installs exactly that
+clew. The first launch downloads it from PyPI; later launches reuse uv's cache. Measured on one
+machine against clew-trace 1.2.0: a warm `uvx` launch of the hook took about 63 ms against 16 ms
+for the bare command, and the first, installing launch 2.2 s.
+
+OR by hand, with the package on PATH whatever virtualenv happens to be active:
 
 ```bash
+pipx install clew-trace          # or: pip install --user clew-trace
+sudo apt install doxygen         # REQUIRED for C and C++, and not pip-installable
 clew init                        # writes ./.mcp.json  (--scope global for user-level)
 ```
+
+`clew init` also doctors the environment and names what is missing. A plain `pip install` inside a
+project venv also works, but only while that venv is on the PATH your editor launches the server
+with — which is the usual reason a correctly-registered server shows as failed to connect.
 
 Pick one. Both register a server named `clew`, so doing both leaves two sources for one entry —
 run `claude mcp remove clew` first if you have already used `clew init`.

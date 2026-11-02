@@ -1235,22 +1235,26 @@ def test_a_non_inspecting_call_does_not_consume_a_pressure_slot(tmp_path: Path) 
 ##
 # @brief Each modality renders its own note, and an unknown one still renders something valid.
 # @return None.
-# @version 1
+# @version 2
 def test_each_modality_gets_its_own_note() -> None:
     """DRIVEN FROM THE MANIFEST, not from a hard-coded list, so registering a new matcher without
     giving it text breaks this rather than silently emitting the wrong modality's wording.
 
+    VERSION 2, A FIXTURE CHANGE, NOT A BEHAVIOUR ONE: since 1.3.0 the manifest launches the hook
+    through a pinned `uvx --from clew-trace==<version> clew-hook`, so the hook's own flags are the
+    words AFTER `clew-hook` rather than after the first word. What this guards is unchanged.
+
     @brief Every registered modality has distinguishable text.
     @return None.
-    @version 1
+    @version 2
     """
     manifest = json.loads((REPO / "hooks" / "hooks.json").read_text(encoding="utf-8"))
-    flags = {
-        arg
+    commands = [
+        spec["command"].split()
         for entry in manifest["hooks"]["PostToolUse"]
         for spec in entry["hooks"]
-        for arg in spec["command"].split()[1:]
-    }
+    ]
+    flags = {arg for words in commands for arg in words[words.index("clew-hook") + 1 :]}
     modalities = flags - {hook.USED_FLAG}
     assert modalities, "no modality flags in the manifest — this test would be vacuous"
     assert modalities <= set(hook.MODALITY_FLAGS), (

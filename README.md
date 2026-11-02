@@ -24,7 +24,7 @@ chain of greps the agent rebuilds every session and loses at every context compa
 ## Quick start
 
 ```bash
-pipx install clew-trace        # the MCP server and hook are this package's commands
+curl -LsSf https://astral.sh/uv/install.sh | sh   # the plugin launches clew through uv
 sudo apt install doxygen       # only for C and C++ (brew install doxygen on macOS)
 ```
 
@@ -35,13 +35,18 @@ Then, in Claude Code:
 /plugin install clew@clew
 ```
 
+The plugin runs the clew-trace release it was published with, through `uvx`; the first launch
+installs it. To register clew without the plugin, see
+[Install](https://github.com/tvanfossen/clew/blob/main/docs/OVERVIEW.md#install).
+
 Ask Claude to index the repository — it calls `index(action='refresh')` — then ask about your
 code. Rust repositories also need `cargo +nightly`.
 
 **What the plugin runs, sends and fetches.** An MCP server (`clew-mcp`) that builds and queries a
 local SQLite index under `~/.local/state/clew`, and one `PostToolUse` hook (`clew-hook`) that, after
 a file read or search, adds a short note naming the index call that would have answered more;
-`CLEW_HOOK_DISABLE=1` turns it off. clew itself sends nothing over the network. Building an index
+`CLEW_HOOK_DISABLE=1` turns it off. Its first launch fetches the pinned clew-trace release from
+PyPI through `uv`; after that, clew itself sends nothing over the network. Building an index
 runs the repository's own tooling — doxygen on C/C++, and `cargo` on Rust, which can download the
 crate's dependencies — so treat indexing a tree like building it. See
 [SECURITY.md](https://github.com/tvanfossen/clew/blob/main/docs/SECURITY.md).
