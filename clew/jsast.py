@@ -101,6 +101,163 @@ def _bases(node: Any) -> list[str]:
     return bases
 
 
+## @brief The function an anonymous class expression is the result of, or None.
+## @param node A `class` expression node.
+## @return The arrow function / function expression whose body is, or returns, the class.
+## @version 1
+## @dg_internal
+def _mixin_function(node: Any) -> Any | None:
+    """THE TWO FORMS A MIXIN TAKES, and only those: the class as an arrow's expression body
+    (`(s) => class extends s {}`), and `return class ...` directly in a function's block. Any
+    other anonymous class (an argument, an assignment) is not a mixin and keeps no name.
+
+    @brief Find the mixin's function.
+    @return The function node, or None.
+    @version 1
+    """
+    parent = node.parent
+    if parent is not None and parent.type == "return_statement":
+        block = parent.parent
+        parent = block.parent if block is not None and block.type == "statement_block" else None
+    if parent is not None and parent.type in ("arrow_function", "function_expression", "function"):
+        return parent
+    return None
+
+
+## @brief The name a class takes: its own, or the binding of the mixin that returns it.
+## @param node A class-like node.
+## @return The name, or "" for an anonymous class that is not a mixin.
+## @version 1
+## @dg_internal
+def _class_name(node: Any) -> str:
+    """A MIXIN'S CLASS IS NAMED FOR ITS BINDING. `const ClientFiles = (s) => class extends s {}`
+    is how the codebase refers to it — `mix(Base).with(ClientFiles)` — so the binding is its
+    name in every sense a reader uses.
+
+    @brief Name a class.
+    @return The name, or "".
+    @version 1
+    """
+    own = _text(node.child_by_field_name("name"))
+    if own or node.type != "class":
+        return own
+    func = _mixin_function(node)
+    binding = func.parent if func is not None else None
+    if binding is not None and binding.type == "variable_declarator":
+        return _text(binding.child_by_field_name("name"))
+    return ""
+
+
+## @brief The class a mixin's `superclass` parameter is declared to construct.
+## @param node A mixin's `class` expression.
+## @return The constraint's class name, or "" when the chain is not declared.
+## @version 1
+## @dg_internal
+def _mixin_base(node: Any) -> str:
+    """FOLLOWS THE DECLARATION, NEVER THE NAME: `extends superclass` → the parameter
+    `superclass: TBase` → the type parameter `TBase extends Constructor<ClientBase>` →
+    `ClientBase`. Each link is the language's own statement; a missing one yields "" rather
+    than a guess.
+
+    @brief Resolve a mixin's base.
+    @return The base class name, or "".
+    @version 1
+    """
+    func = _mixin_function(node)
+    extended = _heritage_identifier(node)
+    if func is None or not extended:
+        return ""
+    param_type = _parameter_type(func, extended)
+    return _constraint_class(func, param_type) if param_type else ""
+
+
+## @brief The bare identifier a class expression extends, or "".
+## @version 1
+## @dg_internal
+def _heritage_identifier(node: Any) -> str:
+    """@brief The `extends <identifier>` name. @return The name or ""."""
+    for heritage in node.named_children:
+        if heritage.type != "class_heritage":
+            continue
+        clause = next((c for c in heritage.named_children if c.type == "extends_clause"), heritage)
+        target = next((c for c in clause.named_children if c.type == "identifier"), None)
+        return _text(target)
+    return ""
+
+
+## @brief The declared type name of one parameter of a function, or "".
+## @version 1
+## @dg_internal
+def _parameter_type(func: Any, name: str) -> str:
+    """@brief A parameter's type identifier. @return The type name or ""."""
+    params = func.child_by_field_name("parameters")
+    for param in params.named_children if params is not None else ():
+        if _text(param.child_by_field_name("pattern")) != name:
+            continue
+        annotation = param.child_by_field_name("type")
+        target = (
+            annotation.named_children[0]
+            if annotation is not None and annotation.named_children
+            else None
+        )
+        return _text(target) if target is not None and target.type == "type_identifier" else ""
+    return ""
+
+
+## @brief The class a type parameter's `Constructor<X>`-style constraint names, or "".
+## @version 1
+## @dg_internal
+def _constraint_class(func: Any, type_name: str) -> str:
+    """ANY GENERIC CONSTRAINT WITH ONE TYPE ARGUMENT, not only one spelled `Constructor`: the
+    alias is a project's own (`Constructor`, `Ctor`, `GConstructor`), and what identifies the
+    class is the argument, so requiring the alias's spelling would be an allowlist.
+
+    @brief Read the constraint's class. @return The class name or "".
+    """
+    tparams = func.child_by_field_name("type_parameters")
+    for tparam in tparams.named_children if tparams is not None else ():
+        if _text(tparam.child_by_field_name("name")) != type_name:
+            continue
+        constraint = tparam.child_by_field_name("constraint")
+        generic = next(
+            (
+                c
+                for c in (constraint.named_children if constraint is not None else ())
+                if c.type == "generic_type"
+            ),
+            None,
+        )
+        args = generic.child_by_field_name("type_arguments") if generic is not None else None
+        named = args.named_children if args is not None else []
+        return _tail(named[0]) if len(named) == 1 else ""
+    return ""
+
+
+## @brief The mixin class a bound function produces, or None.
+## @param func A function or binding node `_resolve_function_node` returned.
+## @return The `class` expression node, or None.
+## @version 1
+## @dg_internal
+def _produced_class(func: Any) -> Any | None:
+    """@brief The class a mixin function returns. @return The class node or None."""
+    from .guard.ts_parser import _function_carrier
+
+    body = _function_carrier(func).child_by_field_name("body")
+    if body is None:
+        return None
+    if body.type == "class":
+        return body
+    for stmt in body.named_children if body.type == "statement_block" else ():
+        value = (
+            stmt.named_children[0]
+            if stmt.type == "return_statement" and stmt.named_children
+            else None
+        )
+        if value is not None and value.type == "class":
+            return value
+    return None
+
+
 ## @brief Every function and class a JS/TS file defines.
 ## @param tree Parsed program tree.
 ## @param src_bytes The file's bytes.
@@ -123,8 +280,11 @@ def harvest_definitions(tree: Any, src_bytes: bytes) -> dict[str, list[dict[str,
     return out
 
 
+## Version 2: descends into the mixin class a bound function produces, and names anonymous classes
+## by their binding.
+##
 ## @brief Recursive collection of classes and functions under a node.
-## @version 1
+## @version 2
 ## @dg_internal
 def _walk(node: Any, spec: Any, cls: str | None, out: dict[str, list[dict[str, Any]]]) -> None:
     from .guard.ts_parser import _resolve_function_node
@@ -132,7 +292,7 @@ def _walk(node: Any, spec: Any, cls: str | None, out: dict[str, list[dict[str, A
     for child in node.children:
         kind = _COMPOUND_KINDS.get(child.type)
         if kind is not None:
-            name = _text(child.child_by_field_name("name"))
+            name = _class_name(child)
             if name:
                 out["classes"].append(_class_record(child, spec, name, kind, cls))
             _walk(child, spec, name or cls, out)
@@ -142,13 +302,18 @@ def _walk(node: Any, spec: Any, cls: str | None, out: dict[str, list[dict[str, A
             record = _function_record(func, spec, cls)
             if record is not None:
                 out["functions"].append(record)
+            mixin = _produced_class(func)
+            if mixin is not None:
+                _walk(mixin.parent, spec, cls, out)
             continue
         _walk(child, spec, cls, out)
 
 
+## Version 2: a mixin class's base is its declared constraint type, not the parameter it extends.
+##
 ## @brief One class-like declaration as a JSON-safe record.
 ## @return The record.
-## @version 1
+## @version 2
 ## @dg_internal
 def _class_record(node: Any, spec: Any, name: str, kind: str, outer: str | None) -> dict[str, Any]:
     return {
@@ -157,7 +322,7 @@ def _class_record(node: Any, spec: Any, name: str, kind: str, outer: str | None)
         "outer": outer or "",
         "line": node.start_point[0] + 1,
         "col": node.start_point[1],
-        "bases": _bases(node),
+        "bases": [_mixin_base(node)] if _mixin_base(node) else _bases(node),
         "doc": _doc_raw(node, spec),
     }
 
@@ -202,10 +367,12 @@ def _doc_raw(node: Any, spec: Any) -> str:
     return block.raw if block is not None else ""
 
 
+## Version 2: an anonymous mixin class takes its binding's name, so `this.m()` inside it is qualified.
+##
 ## @brief Byte ranges of every named class in a tree, innermost last.
 ## @param root The program node.
 ## @return (start_byte, end_byte, name) per class.
-## @version 1
+## @version 2
 ## @dg_internal
 def _class_ranges(root: Any) -> list[tuple[int, int, str]]:
     """@brief Class spans, for `this.m()` qualification."""
@@ -214,7 +381,7 @@ def _class_ranges(root: Any) -> list[tuple[int, int, str]]:
     while stack:
         node = stack.pop()
         if node.type in _COMPOUND_KINDS:
-            name = _text(node.child_by_field_name("name"))
+            name = _class_name(node)
             if name:
                 ranges.append((node.start_byte, node.end_byte, name))
         stack.extend(node.children)

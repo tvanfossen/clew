@@ -223,6 +223,14 @@ from .tiers import OPTIONS_META_PREFIX
 ##       mattermost-mobile real-tree check: `NavigationHeader`, rendered from eight files, had no
 ##       definition, so its `jsx` sites resolved to nothing. The JS/TS definitions stage moved to
 ##       `stage_version` 2 so a cached payload without these rows is not reused.
+##     * TypeScript mixin classes (`const M = (s: T) => class extends s {...}`) are classes:
+##       named for their binding, based on their declared `Constructor<X>` constraint, with their
+##       members as definitions. Found by auditing mattermost-mobile, where all 330 such members —
+##       its whole REST client and database operator — had no row.
+##     * a qualified call the class cannot answer is looked up in its declared bases, nearest first
+##       (`this.doFetch()` in a subclass of `ClientBase`), and refuses on a same-distance tie.
+##     * a call site is credited to the INNERMOST function containing it, not the first in list
+##       order, which was an accident of row order and credited a mixin's calls to its factory.
 CLEW_BUILD_VERSION = 9
 
 

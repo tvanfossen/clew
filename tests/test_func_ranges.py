@@ -29,20 +29,24 @@ from clew.call_edges import _FuncRanges, _ast_caller_at_line
 ## @param rows The file's (rowid, name, bodystart, bodyend) ranges.
 ## @param line Source line to locate.
 ## @return The enclosing function's rowid, or None.
-## @version 1
+## @version 2
 def _scan(rows: list[tuple[int, str, int, int]], line: int) -> int | None:
     """WRITTEN OUT HERE RATHER THAN IMPORTED. Comparing the implementation against itself would
     pass whatever it does; this is the reference the fast path is checked against, so it has to
     be a separate statement of the rule.
 
-    @brief Reference implementation: first range in list order containing the line.
+    VERSION 2 — THE RULE CHANGED ON PURPOSE, under CLEW_BUILD_VERSION 9. It was "first range in
+    list order", which the implementation's own docstring called an accident (no ORDER BY) and
+    said could only become "innermost" with a build-version bump. TypeScript mixins forced it:
+    every call in a mixin method was credited to the factory arrow that encloses it. The reference
+    now states the new rule, still written out independently of the implementation.
+
+    @brief Reference implementation: the innermost range containing the line.
     @return The rowid, or None.
-    @version 1
+    @version 2
     """
-    for rid, _name, bs, be in rows:
-        if bs <= line <= be:
-            return rid
-    return None
+    containing = [(be - bs, rid) for rid, _name, bs, be in rows if bs <= line <= be]
+    return min(containing)[1] if containing else None
 
 
 ## @brief On disjoint ranges the bisect path matches the scan for every line.
@@ -79,12 +83,11 @@ def test_unordered_input_is_handled() -> None:
 
 
 ## @brief Nested ranges fall back to the scan and keep its exact answer.
-## @version 1
+## @version 2
 def test_nested_ranges_keep_the_scan_answer() -> None:
     """THE CASE THE FAST PATH MUST REFUSE. A lambda at lines 4-6 inside a function at 1-20 means
-    two ranges contain line 5; bisect would return the inner one and the scan returns whichever
-    is first in list order. Preserving the scan's answer is what keeps this a cost change rather
-    than a silent re-attribution of call edges.
+    two ranges contain line 5. Both lookup paths must give the reference's answer — the innermost,
+    since version 2 of the reference (see `_scan`).
 
     Asserted against the scan rather than against a hardcoded rowid, so the test states the
     property ("same answer as before") rather than blessing one of the two candidates.
@@ -97,7 +100,7 @@ def test_nested_ranges_keep_the_scan_answer() -> None:
     for line in range(0, 25):
         assert ranges.caller_at(line) == _scan(rows, line), f"disagreement at line {line}"
     ## Anti-vacuity: the nesting must be real, or this test is the disjoint case again.
-    assert ranges.caller_at(5) == 10, "expected the scan's first-in-list-order answer"
+    assert ranges.caller_at(5) == 20, "expected the innermost span, the lambda"
 
 
 ## @brief Touching ranges count as nesting, not as disjoint.

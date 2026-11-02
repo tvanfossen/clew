@@ -49,6 +49,7 @@ from __future__ import annotations
 
 import bisect
 import hashlib
+import re
 import sqlite3
 from collections import Counter
 from collections.abc import Iterable
@@ -379,24 +380,23 @@ class _FuncRanges(list):
         self._index = ordered if disjoint else None
         self._starts = [row[2] for row in ordered] if disjoint else []
 
+    ## Version 2: nested bodies resolve to the INNERMOST span (see `_ast_caller_at_line`).
+    ##
     ## @brief The rowid of the function whose body contains `line`.
     ## @param line Source line to locate.
     ## @return The enclosing function's rowid, or None.
-    ## @version 1
+    ## @version 2
     ## @dg_internal
     def caller_at(self, line: int) -> int | None:
         """@brief Locate the enclosing function.
         @return Its rowid, or None.
-        @version 1
+        @version 2
         """
         if getattr(self, "_index", ...) is ...:
             self._prepare()
         if self._index is None:
-            ## Nested bodies: preserve the existing answer exactly.
-            for rid, _name, bs, be in self:
-                if bs <= line <= be:
-                    return rid
-            return None
+            ## Nested bodies: the innermost containing span, shared with the plain-list path.
+            return _innermost(self, line)
         at = bisect.bisect_right(self._starts, line) - 1
         if at < 0:
             return None
@@ -404,8 +404,30 @@ class _FuncRanges(list):
         return rid if bs <= line <= be else None
 
 
+## @brief The innermost function span containing a line.
+## @param rows (rowid, name, body start, body end) per function.
+## @param line Source line to locate.
+## @return The rowid of the smallest containing span, or None.
+## @version 1
+## @dg_internal
+def _innermost(rows: Any, line: int) -> int | None:
+    """ONE DEFINITION, used by both lookup paths, so the two cannot disagree about nesting.
+
+    @brief Smallest containing span.
+    @return Rowid or None.
+    @version 1
+    """
+    best: tuple[int, int] | None = None
+    for rid, _name, bs, be in rows:
+        if bs <= line <= be and (best is None or be - bs < best[1]):
+            best = (rid, be - bs)
+    return best[0] if best is not None else None
+
+
+## Version 3: innermost span, not list order — see the docstring.
+##
 ## @brief Ast caller at line.
-## @version 2
+## @version 3
 ## @dg_internal
 def _ast_caller_at_line(
     funcs_in_file: list[tuple[int, str, int, int]],
@@ -421,22 +443,21 @@ def _ast_caller_at_line(
     a class body — it falls back to this scan, because then "the enclosing function" has more
     than one answer and the existing one must be preserved.
 
-    THAT EXISTING ANSWER IS AN ACCIDENT, WHICH IS WHY IT IS NOT REDEFINED HERE.
-    `_build_function_indexes` issues its SELECT with no ORDER BY, so "first in list order" is
-    whatever order SQLite happened to return — not a chosen rule. Picking a better one
-    (innermost, say) is defensible and is a BEHAVIOUR change: it would move call-edge
-    attribution and needs a build-version bump, not a performance patch.
+    INNERMOST WINS (version 3, CLEW_BUILD_VERSION 9). The answer used to be "first in list order",
+    which this docstring itself called an accident: `_build_function_indexes` has no ORDER BY.
+    It stopped being harmless once TypeScript mixins were indexed — `getFileUrl` is defined inside
+    the arrow `ClientFiles`, both spans contain its body, and list order credited every call in
+    the REST client to the mixin factory instead of the method that makes it. The innermost
+    containing span is the function whose body the line is in, by definition; ties (one span)
+    keep the first.
 
     @brief The rowid of the function whose body contains a line.
     @return The enclosing function's rowid, or None.
-    @version 2
+    @version 3
     """
     if isinstance(funcs_in_file, _FuncRanges):
         return funcs_in_file.caller_at(call_line)
-    for rid, _name, bs, be in funcs_in_file:
-        if bs <= call_line <= be:
-            return rid
-    return None
+    return _innermost(funcs_in_file, call_line)
 
 
 ## @brief Ast record call edge.
@@ -448,7 +469,11 @@ def _ast_caller_at_line(
 ## @param source Provenance to stamp: 'ast' (bare identifier) or 'ast_member'.
 ## @param qualified The qualified callee text the call site wrote, or '' (#75).
 ## @param definition_of rowid → doxygen `definition` signature, for qualifier narrowing.
-## @version 6
+## @param bases_of Class name → its direct base class names, for inherited-method lookup.
+##
+## Version 7: a qualified call the class itself cannot answer is looked up in its declared bases,
+## nearest first, as the language does. Found on mattermost-mobile's TypeScript mixins.
+## @version 7
 ## @dg_internal
 def _ast_record_call_edge(
     caller_rowid: int,
@@ -467,6 +492,7 @@ def _ast_record_call_edge(
     argc_of: dict[int, int] | None = None,
     construction: bool = False,
     unresolved: list[list[int]] | None = None,
+    bases_of: dict[str, set[str]] | None = None,
 ) -> None:
     """A UNIQUE NAME IS NOT EVIDENCE ABOUT A RECEIVER, and conflating the two made this
     layer assert fabrications as certainties.
@@ -504,7 +530,13 @@ def _ast_record_call_edge(
         ## 662 matchable qualified sites on entropic. Falling back to the unqualified
         ## fan-out here would reintroduce exactly the fabrication fd384e5 removed, but with
         ## the call site's own evidence contradicting it, which is worse than the original.
+        all_named = candidates
         candidates = _narrow_by_qualifier(qualified, candidates, definition_of)
+        ## AN INHERITED METHOD IS FOUND WHERE THE LANGUAGE FINDS IT. `this.doFetch()` inside a
+        ## class that does not define `doFetch` names the nearest base that does; the qualified
+        ## match above looks only at the class itself and failed closed on every such call.
+        if not candidates and bases_of:
+            candidates = _inherited(qualified, all_named, definition_of or {}, bases_of)
         if len(candidates) == 1:
             ## GENUINELY resolved: the class was written at the call site and exactly one
             ## indexed function bears it. This is the only path on which an `ast_member`
@@ -1071,6 +1103,85 @@ def _narrow_by_qualifier(
     return [c for c in candidates if _qualified_match(definition_of.get(c, ""), qualified)]
 
 
+## @brief The class a definition signature belongs to: `Base` for `a.b.Base.run` / `ns::Base::run`.
+## @param definition A memberdef `definition` string.
+## @return The owning class's bare name, or "".
+## @version 1
+## @dg_internal
+def _owner_tail(definition: str) -> str:
+    """@brief Owning class of a definition. @return Bare class name or ""."""
+    head = definition.split("(", 1)[0].strip().split(" ")[-1]
+    parts = [p for p in re.split(r"::|\.", head) if p]
+    return parts[-2] if len(parts) >= 2 else ""
+
+
+## @brief Candidates defined on the NEAREST declared base of the qualified call's class.
+## @param qualified The call site's `Class.method` / `Class::method`.
+## @param candidates Every indexed function bearing the method's name.
+## @param definition_of rowid → definition signature.
+## @param bases_of Class name → direct base names.
+## @return The candidates on the nearest base defining the method; empty when none or a tie.
+## @version 1
+## @dg_internal
+def _inherited(
+    qualified: str,
+    candidates: list[int],
+    definition_of: dict[int, str],
+    bases_of: dict[str, set[str]],
+) -> list[int]:
+    """NEAREST FIRST, AND A TIE IS NOT A CHOICE. Breadth-first over DECLARED bases, so a method
+    defined on the direct base wins over one further up, as the language's lookup does. When two
+    bases at the same distance both define it — a diamond — nothing is returned rather than one
+    picked, and the call stays unresolved.
+
+    @brief Resolve an inherited method through declared bases.
+    @return Candidate rowids at the nearest defining base.
+    @version 1
+    """
+    parts = [p for p in re.split(r"::|\.", qualified) if p]
+    if len(parts) < 2:
+        return []
+    owners = {c: _owner_tail(definition_of.get(c, "")) for c in candidates}
+    seen = {parts[-2]}
+    level = set(bases_of.get(parts[-2], ()))
+    while level:
+        found = [c for c in candidates if owners[c] in level]
+        if found:
+            return found if len({owners[c] for c in found}) == 1 else []
+        seen |= level
+        level = {b for k in level for b in bases_of.get(k, ()) if b not in seen}
+    return []
+
+
+## @brief Class name → direct base class names, from the inheritance the index recorded.
+## @param conn Open index connection.
+## @return Bare derived name → bare base names.
+## @version 1
+## @dg_internal
+def _class_bases(conn: sqlite3.Connection) -> dict[str, set[str]]:
+    """BARE NAMES, because a call site's qualifier is bare. Two classes sharing a bare name merge
+    their bases, which can only add candidates to the nearest level — and `_inherited` refuses a
+    level whose candidates belong to more than one class, so a merge cannot pick wrongly.
+
+    @brief Read declared inheritance.
+    @return The map.
+    @version 1
+    """
+    if not _table_exists(conn, "compoundref"):
+        return {}
+    out: dict[str, set[str]] = {}
+    for derived, base in conn.execute(
+        "SELECT d.name, b.name FROM compoundref r "
+        "JOIN compounddef d ON d.rowid = r.derived_rowid "
+        "JOIN compounddef b ON b.rowid = r.base_rowid"
+    ):
+        d = re.split(r"::|\.", str(derived))[-1]
+        b = re.split(r"::|\.", str(base))[-1]
+        if d and b:
+            out.setdefault(d, set()).add(b)
+    return out
+
+
 # A call's `function` node is only a bare `identifier` for a free function.
 # Every C++ member call, qualified call and template call wraps that identifier,
 # and requiring the bare form dropped two thirds of a C++ codebase's call_expressions
@@ -1408,7 +1519,9 @@ class _CallSiteHarvester(Harvester):
     ## member call), so a payload cached for a JS file must be re-harvested.
     ## 9: JS/TS payloads now carry `jsx` sites for components rendered in JSX, so a payload
     ## cached before them would leave every component without the callers that render it.
-    stage_version = 9
+    ## 10: `this.m()` inside a TypeScript mixin class carries the mixin's name as its qualifier;
+    ## a payload cached at 9 carries none, and the inherited lookup could never engage.
+    stage_version = 10
     label = "tree-sitter"
 
     ## @brief Harvest one file's call sites.
@@ -1448,6 +1561,7 @@ def _fold_call_payload(
     scope_of: dict[int, str] | None = None,
     argc_of: dict[int, int] | None = None,
     unresolved: list[list[int]] | None = None,
+    bases_of: dict[str, set[str]] | None = None,
 ) -> None:
     """Map each harvested call line back to its enclosing function's rowid and
     the callee name to candidate rowids — the rowid-dependent half of Layer 3,
@@ -1489,6 +1603,7 @@ def _fold_call_payload(
             argc_of=argc_of,
             construction=construction,
             unresolved=unresolved,
+            bases_of=bases_of,
         )
 
 
@@ -1781,7 +1896,8 @@ def _ast_insert_edges(
 ## anything it reads changes shape, exactly as a harvest `stage_version` is bumped: a cached
 ## fold from older logic is not merely stale, it is a different answer wearing this key.
 _FOLD_STAGE = "ast_fold"
-_FOLD_STAGE_VERSION = 1
+## 2: qualified calls resolve inherited methods through declared bases (`_inherited`).
+_FOLD_STAGE_VERSION = 2
 
 
 ## @brief Digest of every INDEX-WIDE input the fold reads, so a change to any invalidates all.
@@ -1799,6 +1915,7 @@ def _resolution_digest(
     receiver_types: dict,
     scope_of: dict,
     argc_of: dict,
+    bases_of: dict | None = None,
 ) -> str:
     """THE PAYLOAD SHA IS NOT ENOUGH, and this digest is the whole reason caching a fold is
     safe. Resolution reads the WHOLE index: one edited file can add an overload to a candidate
@@ -1827,6 +1944,7 @@ def _resolution_digest(
         ("receivers", receiver_types),
         ("scopes", scope_of),
         ("argc", argc_of),
+        ("bases", bases_of or {}),
     ):
         hasher.update(label.encode("utf-8"))
         for key in sorted(mapping, key=repr):
@@ -1879,12 +1997,14 @@ def _extend_from_cache(
     unresolved.extend(list(row) for row in stored_unresolved)
 
 
+## Version 2: threads the declared-inheritance map (`bases_of`) into the fold and its cache digest.
+##
 ## @brief Fold every harvested file into call edges, serving unchanged files from the cache.
 ## @param harvested The per-file call payloads, as `run_harvest` yielded them.
 ## @param maps The index-wide resolution inputs the fold reads.
 ## @param context (conn, repo_root, cache) — where the paths and the cache come from.
 ## @return (resolved edges, fuzzy edges, unresolved inbound rows).
-## @version 1
+## @version 2
 ## @dg_internal
 def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, list, list]:
     """gh#34. THE 59%. Measured on a 6.8 GB repository refreshing after one touched file: the
@@ -1922,6 +2042,7 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
         maps["receiver_types"],
         maps["scope_of"],
         maps["argc_of"],
+        maps.get("bases_of", {}),
     )
     rel_of = _rel_paths(conn)
     served = 0
@@ -1956,6 +2077,7 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
             scope_of=maps["scope_of"],
             argc_of=maps["argc_of"],
             unresolved=unresolved,
+            bases_of=maps.get("bases_of"),
         )
         if cache is not None and sha:
             cache.extract_put(
@@ -1986,11 +2108,13 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
     return edges_resolved, edges_fuzzy, unresolved
 
 
+## Version 15: builds the declared-inheritance map the fold resolves inherited methods with.
+##
 ## @brief Layer 3: parse C/C++ source with tree-sitter to capture call edges.
 ## @param db_path Path to the clew.db being built.
 ## @param repo_root Repository root (for resolving indexed relative paths).
 ## @param cache Optional incremental index cache; None disables caching.
-## @version 14
+## @version 15
 ## @req REQ-DDB-PIPE-003
 def import_ast_call_edges(
     db_path: Path,
@@ -2055,6 +2179,7 @@ def import_ast_call_edges(
             "receiver_types": receiver_types,
             "scope_of": scope_of,
             "argc_of": argc_of,
+            "bases_of": _class_bases(conn),
         },
         (conn, repo_root, cache),
     )
