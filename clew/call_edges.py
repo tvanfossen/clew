@@ -474,7 +474,7 @@ def _ast_caller_at_line(
 ## Version 8: a bare call with several candidates resolves lexically first (`_lexical`).
 ## Version 7: a qualified call the class itself cannot answer is looked up in its declared bases,
 ## nearest first, as the language does. Found on mattermost-mobile's TypeScript mixins.
-## @version 8
+## @version 9
 ## @dg_internal
 def _ast_record_call_edge(
     caller_rowid: int,
@@ -494,6 +494,8 @@ def _ast_record_call_edge(
     construction: bool = False,
     unresolved: list[list[int]] | None = None,
     bases_of: dict[str, set[str]] | None = None,
+    via_import: bool | None = None,
+    class_scopes: frozenset[str] | None = None,
 ) -> None:
     """A UNIQUE NAME IS NOT EVIDENCE ABOUT A RECEIVER, and conflating the two made this
     layer assert fabrications as certainties.
@@ -557,6 +559,18 @@ def _ast_record_call_edge(
         if construction and len(candidates) > 1:
             for rowid in candidates:
                 edges_fuzzy.append((caller_rowid, rowid, source))
+            return
+    ## A MEMBER CALL REACHES A FREE FUNCTION ONLY THROUGH WHAT HOLDS IT (JS/TS): a module the file
+    ## imports, or the object it is a property of. `xs.map()` on a local array is contrary
+    ## evidence about every free `map`; `transitions.action()` names its owner and resolves.
+    ## A receiver that is not a bare name (`Object.keys(o).map`) is a call's result: contrary
+    ## evidence too, so the rule applies whenever the site is a JS/TS member call.
+    if source == SOURCE_AST_MEMBER and via_import is not None and class_scopes is not None:
+        candidates, owned = _member_reachable(
+            candidates, receiver, via_import, definition_of or {}, class_scopes
+        )
+        if len(owned) == 1:
+            edges_resolved.append((caller_rowid, owned[0], source))
             return
     ## THE RECEIVER'S DECLARED TYPE IS EVIDENCE, and reading it is what makes a member call
     ## verifiable rather than merely reportable. `handle->engine->run_turn(input)` looked
@@ -1112,6 +1126,68 @@ def _narrow_by_qualifier(
     return [c for c in candidates if _qualified_match(definition_of.get(c, ""), qualified)]
 
 
+## @brief Candidates a JS/TS member call can reach, and those its receiver names as owner.
+## @param candidates Same-named candidate rowids.
+## @param receiver The receiver's trailing name.
+## @param via_import Whether the receiver is a module the calling file imports.
+## @param definition_of rowid → definition.
+## @param class_scopes Dotted names of every class and interface.
+## @return (reachable candidates, non-method candidates owned by the receiver).
+## @version 1
+## @dg_internal
+def _member_reachable(
+    candidates: list[int],
+    receiver: str,
+    via_import: bool,
+    definition_of: dict[int, str],
+    class_scopes: frozenset[str],
+) -> tuple[list[int], list[int]]:
+    """A METHOD IS ALWAYS REACHABLE by a member call — the receiver's type is unknown, which is
+    not evidence against it. A NON-METHOD (a module function, a closure, an object's property) is
+    reachable only through what holds it. A doxygen-built candidate is kept unchanged: its
+    `definition` is not a dotted path and this rule says nothing about it.
+
+    @brief Filter by member-call reachability.
+    @return Reachable and receiver-owned rowids.
+    @version 1
+    """
+    kept: list[int] = []
+    owned: list[int] = []
+    for rowid in candidates:
+        definition = definition_of.get(rowid, "")
+        if not _DOTTED.fullmatch(definition):
+            kept.append(rowid)
+            continue
+        scope = definition.rsplit(".", 1)[0]
+        if scope in class_scopes:
+            kept.append(rowid)
+        elif via_import:
+            ## THROUGH AN IMPORTED MODULE: reachable, never "owned" — an alias that happens to
+            ## equal the module's file name would otherwise resolve by coincidence.
+            kept.append(rowid)
+        elif scope.rsplit(".", 1)[-1] == receiver:
+            kept.append(rowid)
+            owned.append(rowid)
+    return kept, owned
+
+
+## @brief Dotted names of every class and interface the index holds.
+## @param conn Open index connection.
+## @return e.g. `app.client.rest.base.ClientBase`.
+## @version 1
+## @dg_internal
+def _class_scopes(conn: sqlite3.Connection) -> frozenset[str]:
+    """@brief Class scope names. @return The set."""
+    if not _table_exists(conn, "compounddef"):
+        return frozenset()
+    return frozenset(
+        str(name).replace("::", ".")
+        for (name,) in conn.execute(
+            "SELECT name FROM compounddef WHERE kind IN ('class', 'interface', 'struct')"
+        )
+    )
+
+
 ## @brief The candidate a bare call names by lexical scope, or None.
 ## @param caller_rowid The calling function's rowid.
 ## @param name The bare callee name.
@@ -1569,7 +1645,8 @@ class _CallSiteHarvester(Harvester):
     ## cached before them would leave every component without the callers that render it.
     ## 10: `this.m()` inside a TypeScript mixin class carries the mixin's name as its qualifier;
     ## a payload cached at 9 carries none, and the inherited lookup could never engage.
-    stage_version = 10
+    ## 11: JS/TS member sites carry whether the receiver is an imported module (8th element).
+    stage_version = 11
     label = "tree-sitter"
 
     ## @brief Harvest one file's call sites.
@@ -1596,7 +1673,7 @@ def call_site_harvester() -> Harvester:
 
 
 ## @brief Resolve one file's harvested call sites into call_edges rows.
-## @version 4
+## @version 5
 ## @dg_internal
 def _fold_call_payload(
     payload: list[list[Any]],
@@ -1610,6 +1687,7 @@ def _fold_call_payload(
     argc_of: dict[int, int] | None = None,
     unresolved: list[list[int]] | None = None,
     bases_of: dict[str, set[str]] | None = None,
+    class_scopes: frozenset[str] | None = None,
 ) -> None:
     """Map each harvested call line back to its enclosing function's rowid and
     the callee name to candidate rowids — the rowid-dependent half of Layer 3,
@@ -1632,6 +1710,8 @@ def _fold_call_payload(
         argc = site[5] if len(site) > 5 else -1
         ## Seventh added for gh#15; absent in a payload cached before stage_version 6.
         construction = bool(site[6]) if len(site) > 6 else False
+        ## Eighth added in 1.3.0 for JS/TS: the receiver is a module the file imports.
+        via_import = bool(site[7]) if len(site) > 7 else None
         caller_rowid = _ast_caller_at_line(funcs_in_file, call_line)
         if caller_rowid is None:
             continue
@@ -1652,6 +1732,8 @@ def _fold_call_payload(
             construction=construction,
             unresolved=unresolved,
             bases_of=bases_of,
+            via_import=via_import,
+            class_scopes=class_scopes,
         )
 
 
@@ -1996,7 +2078,8 @@ def _ast_insert_edges(
 _FOLD_STAGE = "ast_fold"
 ## 2: qualified calls resolve inherited methods through declared bases (`_inherited`).
 ## 3: bare calls resolve lexically first (`_lexical`).
-_FOLD_STAGE_VERSION = 3
+## 4: JS/TS member calls reach free functions only through what holds them (`_member_reachable`).
+_FOLD_STAGE_VERSION = 4
 
 
 ## @brief Digest of every INDEX-WIDE input the fold reads, so a change to any invalidates all.
@@ -2015,6 +2098,7 @@ def _resolution_digest(
     scope_of: dict,
     argc_of: dict,
     bases_of: dict | None = None,
+    class_scopes: frozenset | None = None,
 ) -> str:
     """THE PAYLOAD SHA IS NOT ENOUGH, and this digest is the whole reason caching a fold is
     safe. Resolution reads the WHOLE index: one edited file can add an overload to a candidate
@@ -2044,6 +2128,7 @@ def _resolution_digest(
         ("scopes", scope_of),
         ("argc", argc_of),
         ("bases", bases_of or {}),
+        ("classes", {s: 1 for s in (class_scopes or ())}),
     ):
         hasher.update(label.encode("utf-8"))
         for key in sorted(mapping, key=repr):
@@ -2096,6 +2181,8 @@ def _extend_from_cache(
     unresolved.extend(list(row) for row in stored_unresolved)
 
 
+## Version 3: threads the class-scope map into the fold and its digest.
+##
 ## Version 2: threads the declared-inheritance map (`bases_of`) into the fold and its cache digest.
 ##
 ## @brief Fold every harvested file into call edges, serving unchanged files from the cache.
@@ -2103,7 +2190,7 @@ def _extend_from_cache(
 ## @param maps The index-wide resolution inputs the fold reads.
 ## @param context (conn, repo_root, cache) — where the paths and the cache come from.
 ## @return (resolved edges, fuzzy edges, unresolved inbound rows).
-## @version 2
+## @version 3
 ## @dg_internal
 def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, list, list]:
     """gh#34. THE 59%. Measured on a 6.8 GB repository refreshing after one touched file: the
@@ -2142,6 +2229,7 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
         maps["scope_of"],
         maps["argc_of"],
         maps.get("bases_of", {}),
+        maps.get("class_scopes", frozenset()),
     )
     rel_of = _rel_paths(conn)
     served = 0
@@ -2177,6 +2265,7 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
             argc_of=maps["argc_of"],
             unresolved=unresolved,
             bases_of=maps.get("bases_of"),
+            class_scopes=maps.get("class_scopes"),
         )
         if cache is not None and sha:
             cache.extract_put(
@@ -2207,13 +2296,15 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
     return edges_resolved, edges_fuzzy, unresolved
 
 
+## Version 16: builds the class-scope map member-call reachability reads.
+##
 ## Version 15: builds the declared-inheritance map the fold resolves inherited methods with.
 ##
 ## @brief Layer 3: parse C/C++ source with tree-sitter to capture call edges.
 ## @param db_path Path to the clew.db being built.
 ## @param repo_root Repository root (for resolving indexed relative paths).
 ## @param cache Optional incremental index cache; None disables caching.
-## @version 15
+## @version 16
 ## @req REQ-DDB-PIPE-003
 def import_ast_call_edges(
     db_path: Path,
@@ -2279,6 +2370,7 @@ def import_ast_call_edges(
             "scope_of": scope_of,
             "argc_of": argc_of,
             "bases_of": _class_bases(conn),
+            "class_scopes": _class_scopes(conn),
         },
         (conn, repo_root, cache),
     )

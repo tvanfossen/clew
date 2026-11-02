@@ -111,10 +111,13 @@ def test_call_sites_in_fold_shape():
     # `this.clean(s).trim()` is String's trim: no receiver can be named, so the site carries
     # none and the fold grades it fuzzy (a same-named function exists, unconfirmed), as it
     # does for every unverifiable member call in C and Python.
-    assert ("trim", 10, "ast_member", "", "") in as_set
+    ## Since 1.3.0 a non-`this` member site carries three more elements — argc (-1, unknown),
+    ## construction (0) and whether its receiver is an imported module (0 here) — so the fold
+    ## can tell `xs.map()` from `lodash.map()`. The receiver assertions are unchanged.
+    assert ("trim", 10, "ast_member", "", "", -1, 0, 0) in as_set
     assert ("normalize", 12, "ast", "", "") in as_set
     assert ("constructor", 14, "ast_member", "Formatter.constructor", "") in as_set, "new C()"
-    assert ("trim", 25, "ast_member", "", "f") in as_set, "obj.m() carries its receiver"
+    assert ("trim", 25, "ast_member", "", "f", -1, 0, 0) in as_set, "obj.m() carries its receiver"
     assert ("normalize", 25, "binding") in as_set, "a function passed by name is a binding"
 
 

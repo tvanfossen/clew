@@ -513,6 +513,8 @@ def _enclosing_class(ranges: list[tuple[int, int, str]], byte: int) -> str:
     return max(inside)[2] if inside else ""
 
 
+## Version 3: member sites carry whether the receiver is an imported module.
+##
 ## @brief Every call site in a JS/TS tree, in `_fold_call_payload`'s shape.
 ## @param tree Parsed program tree.
 ## @param src_bytes The file's bytes.
@@ -526,13 +528,16 @@ def _enclosing_class(ranges: list[tuple[int, int, str]], byte: int) -> str:
 ## v2: also harvests JSX element usage as `jsx` sites. `<Card />` is a use of `Card`, and a
 ## component reached only through JSX had no inbound edge — so "where is it used" answered nothing
 ## and liveness read it as dead.
-## @version 2
+## @version 3
 ## @req REQ-DDB-PIPE-012
 def harvest_calls(
     tree: Any, src_bytes: bytes, plain: str, member: str, binding: str, jsx: str = ""
 ) -> list[list[Any]]:
-    """@brief Harvest JS/TS call sites. @version 2"""
+    """@brief Harvest JS/TS call sites. @version 3"""
+    from .guard.ts_parser import _imported_names
+
     ranges = _class_ranges(tree.root_node)
+    imported = _imported_names(tree.root_node)
     sites: list[list[Any]] = []
     stack = [tree.root_node]
     while stack:
@@ -540,7 +545,7 @@ def harvest_calls(
         stack.extend(node.children)
         line = node.start_point[0] + 1
         if node.type == "call_expression":
-            site = _call_site(node, ranges, plain, member)
+            site = _call_site(node, ranges, plain, member, imported)
             if site is not None:
                 sites.append([*site[:1], line, *site[1:]])
             sites += _argument_bindings(node, line, binding)
@@ -591,7 +596,9 @@ def _jsx_component(node: Any) -> str | None:
 ## @return The site without its line, or None.
 ## @version 1
 ## @dg_internal
-def _call_site(node: Any, ranges: list, plain: str, member: str) -> list[Any] | None:
+def _call_site(
+    node: Any, ranges: list, plain: str, member: str, imported: frozenset[str] = frozenset()
+) -> list[Any] | None:
     callee = node.child_by_field_name("function")
     if callee is None:
         return None
@@ -606,7 +613,11 @@ def _call_site(node: Any, ranges: list, plain: str, member: str) -> list[Any] | 
     if obj is not None and obj.type in ("this", "super"):
         cls = _enclosing_class(ranges, node.start_byte)
         return [name, member, f"{cls}.{name}" if cls else "", ""]
-    return [name, member, "", _tail(obj)]
+    ## The EIGHTH element says whether the receiver is a module this file imports — the one way a
+    ## member call can reach a free function. argc and construction are unknown here (-1, 0).
+    receiver = _tail(obj)
+    via_import = obj is not None and obj.type == "identifier" and receiver in imported
+    return [name, member, "", receiver, -1, 0, int(via_import)]
 
 
 ## @brief Bare function names passed as arguments, as binding sites.
