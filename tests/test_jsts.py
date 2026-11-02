@@ -66,7 +66,11 @@ def _tree(key: str, src: bytes):
 
 def test_definitions_functions_and_classes():
     out = harvest_definitions(_tree("typescript", TS), TS)
-    functions = {(f["cls"], f["name"]): f for f in out["functions"]}
+    ## Since 1.3.0 an interface's method signature is a bodiless DECLARATION row (`decl`), so the
+    ## fixture's `Shape.area` appears; it is checked on its own below. The property this
+    ## assertion guards — anonymous callbacks are not definitions — is about definitions.
+    assert {(f["cls"], f["name"]) for f in out["functions"] if f.get("decl")} == {("Shape", "area")}
+    functions = {(f["cls"], f["name"]): f for f in out["functions"] if not f.get("decl")}
     assert set(functions) == {
         ("Formatter", "trim"),
         ("Formatter", "clean"),
@@ -193,6 +197,8 @@ def test_js_only_build_needs_no_doxygen(tmp_path, monkeypatch, caplog):
         "src.util.strings.normalize": "parse",
         "src.util.strings.run": "parse",
         "src.app.main": "parse",
+        ## Since 1.3.0: the interface's method signature, a bodiless declaration row.
+        "src.util.strings.Shape.area": "parse",
     }
     compounds = dict(conn.execute("SELECT name, kind FROM compounddef"))
     assert compounds["src::util::strings::Formatter"] == "class"

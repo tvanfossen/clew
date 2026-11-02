@@ -1786,6 +1786,52 @@ def _attributable(
     return min(candidates)
 
 
+## @brief The rowids of parse-built TYPE SIGNATURES: interface methods, with no body.
+## @param conn Open connection to the database being built.
+## @return Their rowids; empty when the index has none.
+## @version 1
+## @dg_internal
+def _signature_rowids(conn: sqlite3.Connection) -> frozenset[int]:
+    """PARSE-BUILT ONLY. A doxygen prototype also has no body, but a C/C++ declaration shares its
+    definition's identity already, so it never split attribution and is left exactly as it was.
+
+    @brief Signature rowids.
+    @return The set.
+    @version 1
+    """
+    from .vocabulary import SYMBOL_SOURCE_COLUMN, SYMBOL_SOURCE_PARSE
+
+    try:
+        rows = conn.execute(
+            f"SELECT rowid FROM memberdef WHERE kind = 'function' AND bodystart = -1 "
+            f"AND {SYMBOL_SOURCE_COLUMN} = ?",
+            (SYMBOL_SOURCE_PARSE,),
+        )
+    except sqlite3.OperationalError:
+        return frozenset()
+    return frozenset(int(r) for (r,) in rows)
+
+
+## @brief A refused site's candidates with type signatures set aside, unless only they remain.
+## @param candidates The candidate rowids.
+## @param signatures Rowids of type signatures.
+## @return The implementations, or the candidates unchanged when nothing else is left.
+## @version 1
+## @dg_internal
+def _without_signatures(candidates: list[int], signatures: frozenset[int]) -> list[int]:
+    """A SIGNATURE IS THE CONTRACT, NOT A COMPETING CALLEE. `BaseDataOperatorType` re-declares
+    `batchRecords`; counting it as a second identity made every refused `batchRecords` site
+    unattributable, and mattermost-mobile's `BaseDataOperator.batchRecords` fell from 153
+    unresolved sites to a zero — a measured "nothing else calls this" that was false.
+
+    @brief Drop signatures from a candidate set.
+    @return Rowids.
+    @version 1
+    """
+    kept = [c for c in candidates if c not in signatures]
+    return kept or list(candidates)
+
+
 ## @brief Record, per callee, how many call sites named it and did not resolve.
 ## @param conn Open connection to the database being built.
 ## @param unresolved Candidate rowids, one entry per (site, candidate) pair.
@@ -1793,7 +1839,8 @@ def _attributable(
 ## v2: credits a DISPATCH FAMILY as well as a single identity (see `_credited`). Measured
 ## before shipping against the 87% blanket-credit failure this docstring records: entropic
 ## 0.8% -> 5.6% of inbound-less functions, self 2.4% -> 3.2%, mbedtls 3.3% -> 3.5%.
-## @version 2
+## v3: TypeScript signature rows are set aside before crediting (`_without_signatures`).
+## @version 3
 ## @dg_internal
 def _insert_unresolved_inbound(
     conn: sqlite3.Connection,
@@ -1846,8 +1893,11 @@ def _insert_unresolved_inbound(
         "  sites        INTEGER NOT NULL)"
     )
     families = _DispatchFamilies.load(conn)
+    signatures = _signature_rowids(conn)
     counts = Counter(
-        rowid for c in unresolved for rowid in _credited(c, identity_of or {}, families)
+        rowid
+        for c in unresolved
+        for rowid in _credited(_without_signatures(c, signatures), identity_of or {}, families)
     )
     conn.executemany(
         "INSERT INTO unresolved_inbound (callee_rowid, sites) VALUES (?, ?)",

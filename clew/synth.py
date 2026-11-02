@@ -131,19 +131,20 @@ MEMBER_KIND = {"function": "function", "macro": "macro definition"}
 ## Version 3: `stage_version` 3 — TypeScript mixin classes and their members are definitions.
 ## Version 4: `stage_version` 4 — any wrapper around a function literal, and an IIFE's returned
 ## function, bind a definition; a payload cached at 3 would serve the old, narrower set.
+## Version 5: `stage_version` 5 — interface signatures and object-literal functions.
 ##
 ## @brief Per-file harvester for JS/TS definitions.
-## @version 4
+## @version 5
 class _JsSymbolHarvester(Harvester):
     """Rowid-free (names, spans, raw docs), so it caches on content like every stage.
     A non-JS file yields an empty payload.
 
     @brief JS/TS definitions harvester.
-    @version 4
+    @version 5
     """
 
     stage = STAGE_JS_SYMBOLS
-    stage_version = 4
+    stage_version = 5
     label = "js/ts definitions"
 
     ## @brief Harvest one file's definitions.
@@ -530,8 +531,10 @@ class _Writer:
         self.classes += 1
         return rowid
 
+    ## Version 2: a `decl` record (an interface signature) is written bodiless, start and end -1.
+    ##
     ## @brief Insert one function memberdef row, and its member link.
-    ## @version 1
+    ## @version 2
     ## @dg_internal
     def _function(
         self,
@@ -559,8 +562,10 @@ class _Writer:
                 MEMBER_KIND[fn.get("kind", "function")],
                 1 if fn["name"].startswith("#") else 0,
                 fn["static"],
-                fn["line"],
-                fn["end"],
+                ## A DECLARATION HAS NO BODY: written as doxygen writes a C prototype, so no call
+                ## site can ever fall inside it.
+                -1 if fn.get("decl") else fn["line"],
+                -1 if fn.get("decl") else fn["end"],
                 path_rowid,
                 path_rowid,
                 fn["line"],

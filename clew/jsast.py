@@ -280,11 +280,12 @@ def harvest_definitions(tree: Any, src_bytes: bytes) -> dict[str, list[dict[str,
     return out
 
 
+## Version 3: interface signatures and object-literal functions are recorded (`_member_record`).
 ## Version 2: descends into the mixin class a bound function produces, and names anonymous classes
 ## by their binding.
 ##
 ## @brief Recursive collection of classes and functions under a node.
-## @version 2
+## @version 3
 ## @dg_internal
 def _walk(node: Any, spec: Any, cls: str | None, out: dict[str, list[dict[str, Any]]]) -> None:
     from .guard.ts_parser import _resolve_function_node
@@ -296,6 +297,10 @@ def _walk(node: Any, spec: Any, cls: str | None, out: dict[str, list[dict[str, A
             if name:
                 out["classes"].append(_class_record(child, spec, name, kind, cls))
             _walk(child, spec, name or cls, out)
+            continue
+        member = _member_record(child, spec, cls)
+        if member is not None:
+            out["functions"].append(member)
             continue
         func = _resolve_function_node(child, spec)
         if func is not None:
@@ -311,6 +316,111 @@ def _walk(node: Any, spec: Any, cls: str | None, out: dict[str, list[dict[str, A
 
 ## Version 2: a mixin class's base is its declared constraint type, not the parameter it extends.
 ##
+## @brief An interface signature or an object-literal function as a record, or None.
+## @param node Any child node the walk visits.
+## @param spec The jsdoc LanguageSpec.
+## @param cls The enclosing class or interface name, or None.
+## @return The record, or None when the node is neither.
+## @version 1
+## @dg_internal
+def _member_record(node: Any, spec: Any, cls: str | None) -> dict[str, Any] | None:
+    """INDEX-ONLY SHAPES, kept out of the gate's rule by living here (owner's ruling: the gate
+    does not demand documentation for a type signature or an object's callback property).
+
+    A SIGNATURE IS A DECLARATION: `decl` makes `synth` write it bodiless, as doxygen writes a C
+    prototype, so no call site is ever attributed to it. Only a METHOD signature or a property
+    typed as a function — `name: string` is data.
+
+    AN OBJECT'S FUNCTION BELONGS TO ITS BINDING: `transitions = {idle: {guard: () => ...}}` gives
+    `transitions.guard`, because `transitions` is the declared name a reader writes.
+
+    @brief Record an interface signature or object-literal function.
+    @return Record or None.
+    @version 1
+    """
+    if node.type in ("method_signature", "property_signature") and cls:
+        return _signature_record(node, spec, cls)
+    if node.type == "pair":
+        value = node.child_by_field_name("value")
+        owner = _binding_of(node)
+        if value is not None and value.type in _FUNCTION_VALUES and owner:
+            return _value_record(_text(node.child_by_field_name("key")), value, node, owner)
+    return None
+
+
+## Function-valued expression nodes.
+_FUNCTION_VALUES = ("arrow_function", "function_expression", "function", "generator_function")
+
+
+## @brief An interface method or function-typed property signature as a declaration record.
+## @return The record, or None for a data property.
+## @version 1
+## @dg_internal
+def _signature_record(node: Any, spec: Any, cls: str) -> dict[str, Any] | None:
+    """@brief Record one interface signature. @return Record or None."""
+    shape = node
+    if node.type == "property_signature":
+        annotation = node.child_by_field_name("type")
+        shape = next(
+            (
+                c
+                for c in (annotation.named_children if annotation is not None else ())
+                if c.type == "function_type"
+            ),
+            None,
+        )
+        if shape is None:
+            return None
+    params = shape.child_by_field_name("parameters")
+    ret = shape.child_by_field_name("return_type")
+    line = node.start_point[0] + 1
+    return {
+        "name": _text(node.child_by_field_name("name")),
+        "cls": cls,
+        "line": line,
+        "end": line,
+        "col": node.start_point[1],
+        "args": _text(params),
+        "ret": _text(ret).lstrip(":").strip(),
+        "static": 0,
+        "doc": _doc_raw(node, spec),
+        "decl": True,
+    }
+
+
+## @brief The nearest enclosing `const`/`let` binding's name, or "".
+## @version 1
+## @dg_internal
+def _binding_of(node: Any) -> str:
+    """@brief Enclosing binding name. @return The name or ""."""
+    parent = node.parent
+    while parent is not None and parent.type in ("object", "pair"):
+        parent = parent.parent
+    if parent is not None and parent.type == "variable_declarator":
+        return _text(parent.child_by_field_name("name"))
+    return ""
+
+
+## @brief A function-valued property as a definition record.
+## @version 1
+## @dg_internal
+def _value_record(name: str, value: Any, node: Any, owner: str) -> dict[str, Any] | None:
+    """@brief Record an object-literal function. @return Record or None."""
+    if not name or value.child_by_field_name("body") is None:
+        return None
+    return {
+        "name": name.strip("'\""),
+        "cls": owner,
+        "line": node.start_point[0] + 1,
+        "end": value.end_point[0] + 1,
+        "col": node.start_point[1],
+        "args": _text(value.child_by_field_name("parameters")),
+        "ret": _text(value.child_by_field_name("return_type")).lstrip(":").strip(),
+        "static": 0,
+        "doc": "",
+    }
+
+
 ## @brief One class-like declaration as a JSON-safe record.
 ## @return The record.
 ## @version 2

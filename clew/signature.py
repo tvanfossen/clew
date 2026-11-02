@@ -234,6 +234,9 @@ from .tiers import OPTIONS_META_PREFIX
 ##       binds the function it returns. Excluded by construction, not by name lists: callbacks
 ##       CONSUMED by spec-defined calls (`.map`, `.then`, `setTimeout`), methods on local values
 ##       (`x.pipe(...)`, RxJS), and destructuring patterns.
+##     * interface method and function-typed property signatures are bodiless DECLARATION rows,
+##       so a call through an interface has the interface half of its dispatch family; and a
+##       module-level object's function-valued properties are definitions of its binding.
 ##     * a call site is credited to the INNERMOST function containing it, not the first in list
 ##       order, which was an accident of row order and credited a mixin's calls to its factory.
 CLEW_BUILD_VERSION = 9
