@@ -30,39 +30,144 @@ _JS_FUNCTION_VALUES = ("arrow_function", "function_expression", "function", "gen
 # Wrappers a JSDoc block sits above rather than the definition itself: `export ...`, and the
 # `const`/`let`/`var` statement around a declarator.
 _JS_DOC_WRAPPERS = ("export_statement", "lexical_declaration", "variable_declaration")
-# React's own component wrappers. `const C = forwardRef((props, ref) => ...)` binds C to a CALL,
-# but what C names is the function inside it. ONLY THESE: the generic rule, any call whose first
-# argument is a function, measured on mattermost-mobile, adds 466 `makeStyleSheetFromTheme`
-# style factories as functions, all named `getStyleSheet`.
-_JS_COMPONENT_WRAPPERS = ("forwardRef", "memo", "React.forwardRef", "React.memo")
+# Calls that CONSUME a callback and return something else, fixed by the ECMAScript and DOM
+# specifications rather than by any project's naming: `xs.map(fn)` is an array, `p.then(fn)` a
+# promise, `setTimeout(fn)` a handle. A binding to one of these is a value, not the callback.
+_CALLBACK_CONSUMING_METHODS = frozenset(
+    {
+        "map",
+        "filter",
+        "reduce",
+        "reduceRight",
+        "find",
+        "findLast",
+        "findIndex",
+        "findLastIndex",
+        "some",
+        "every",
+        "forEach",
+        "flatMap",
+        "sort",
+        "then",
+        "catch",
+        "finally",
+        "replace",
+        "replaceAll",
+    }
+)
+_CALLBACK_CONSUMING_GLOBALS = frozenset(
+    {"setTimeout", "setInterval", "setImmediate", "requestAnimationFrame", "queueMicrotask"}
+)
 
 
-## @brief The function inside React's component wrappers, e.g. the arrow in `memo(() => 1)`.
+## @brief Every local name a file's import statements bind.
+#  @details Default, namespace and named imports (with aliases), `import type` included.
 #  @version 1.0
+#  @dg_internal
+#  @return The bound local names
+def _imported_names(node: Node) -> frozenset[str]:
+    root = node
+    while root.parent is not None:
+        root = root.parent
+    names: set[str] = set()
+    for stmt in root.named_children:
+        if stmt.type != "import_statement":
+            continue
+        stack = list(stmt.named_children)
+        while stack:
+            part = stack.pop()
+            if part.type == "import_specifier":
+                alias = part.child_by_field_name("alias") or part.child_by_field_name("name")
+                names.add((alias.text or b"").decode("utf-8") if alias is not None else "")
+            elif part.type == "identifier":
+                names.add((part.text or b"").decode("utf-8"))
+            elif part.type in ("import_clause", "namespace_import", "named_imports"):
+                stack.extend(part.named_children)
+    names.discard("")
+    return frozenset(names)
+
+
+## @brief Whether a call consumes its callback and returns something else.
+#  @version 1.0
+#  @dg_internal
+#  @return True when the call's value is not the function it is given
+def _consumes_callback(callee: Node) -> bool:
+    if callee.type == "identifier":
+        return (callee.text or b"").decode("utf-8") in _CALLBACK_CONSUMING_GLOBALS
+    if callee.type == "member_expression":
+        prop = callee.child_by_field_name("property")
+        if prop is not None and (prop.text or b"").decode("utf-8") in _CALLBACK_CONSUMING_METHODS:
+            return True
+        ## A METHOD ON A LOCAL VALUE IS NOT A WRAPPER (`channel.pipe(...)`, `x.subscribe(...)`):
+        ## only a member of an IMPORTED module (`React.memo`) wraps the function it is given.
+        obj = callee.child_by_field_name("object")
+        if obj is None or obj.type != "identifier":
+            return True
+        return (obj.text or b"").decode("utf-8") not in _imported_names(callee)
+    return True
+
+
+## @brief The function a wrapped or immediately-invoked binding names, or None.
+#  @details `forwardRef((p, r) => ...)`, `memo(fn)`, `debounce((x) => ..., 200)`: a call whose FIRST
+#  argument is a function literal binds the name to that function, whatever the wrapper is called
+#  (owner's ruling, 1.3.0 — an allowlist missed `typedMemo`, `debounce`, `preventDoubleTap`).
+#  Nested wrappers unwrap in turn. `(() => { ...; return fn; })()` binds the function it returns.
+#  A call with no function-literal argument, or one passing a function BY NAME, is not a
+#  definition: its value is a call's result, or another binding's function.
+#  @version 2.0
 #  @dg_internal
 #  @return The innermost function-valued node, or None when the value is not one
 def _unwrap_component(value: Node | None) -> Node | None:
     while value is not None and value.type == "call_expression":
         callee = value.child_by_field_name("function")
-        args = value.child_by_field_name("arguments")
-        if callee is None or args is None or callee.text is None:
+        if callee is not None and callee.type == "parenthesized_expression":
+            return _iife_result(callee)
+        if callee is None or _consumes_callback(callee):
             return None
-        if callee.text.decode("utf-8") not in _JS_COMPONENT_WRAPPERS:
+        args = value.child_by_field_name("arguments")
+        if args is None:
             return None
         value = next((a for a in args.named_children if a.type != "comment"), None)
     return value if value is not None and value.type in _JS_FUNCTION_VALUES else None
 
 
+## @brief The function an immediately-invoked function expression returns, or None.
+#  @version 1.0
+#  @dg_internal
+#  @return The returned function-valued node, or None
+def _iife_result(paren: Node) -> Node | None:
+    inner = next((c for c in paren.named_children if c.type != "comment"), None)
+    if inner is None or inner.type not in _JS_FUNCTION_VALUES:
+        return None
+    body = inner.child_by_field_name("body")
+    if body is not None and body.type in _JS_FUNCTION_VALUES:
+        return body
+    for stmt in body.named_children if body is not None and body.type == "statement_block" else ():
+        if stmt.type == "return_statement" and stmt.named_children:
+            returned = stmt.named_children[0]
+            return returned if returned.type in _JS_FUNCTION_VALUES else None
+    return None
+
+
 ## Version 1.1 sees through `forwardRef`/`memo`, so a wrapped React component is a function:
 ## without it a component declared that way had no definition and every `<C />` that rendered it
-## resolved to nothing.
+## resolved to nothing. Since `_unwrap_component` 2.0, any wrapper around a function literal.
 ##
 ## @brief The function a JS/TS binding names, e.g. the arrow in `const f = () => 1`.
-#  @version 1.1
+#  @version 1.2
 #  @req REQ-DDB-GUARD-025
 #  @return The function-valued node, or None when the node is not such a binding
 def _bound_function(node: Node) -> Node | None:
     if node.type not in _JS_BINDINGS:
+        return None
+    ## A DESTRUCTURING PATTERN IS NOT A NAME: `const {result} = f(() => ...)` binds parts of a
+    ## value, never a function called `{result}`.
+    name = node.child_by_field_name("name")
+    if name is None or name.type not in (
+        "identifier",
+        "property_identifier",
+        "private_property_identifier",
+    ):
         return None
     return _unwrap_component(node.child_by_field_name("value"))
 

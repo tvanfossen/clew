@@ -129,19 +129,21 @@ MEMBER_KIND = {"function": "function", "macro": "macro definition"}
 ## Version 2: `stage_version` 2, because a `forwardRef`/`memo`-wrapped component is now a
 ## definition and a payload cached before that would be reused without it.
 ## Version 3: `stage_version` 3 — TypeScript mixin classes and their members are definitions.
+## Version 4: `stage_version` 4 — any wrapper around a function literal, and an IIFE's returned
+## function, bind a definition; a payload cached at 3 would serve the old, narrower set.
 ##
 ## @brief Per-file harvester for JS/TS definitions.
-## @version 3
+## @version 4
 class _JsSymbolHarvester(Harvester):
     """Rowid-free (names, spans, raw docs), so it caches on content like every stage.
     A non-JS file yields an empty payload.
 
     @brief JS/TS definitions harvester.
-    @version 3
+    @version 4
     """
 
     stage = STAGE_JS_SYMBOLS
-    stage_version = 3
+    stage_version = 4
     label = "js/ts definitions"
 
     ## @brief Harvest one file's definitions.

@@ -229,6 +229,11 @@ from .tiers import OPTIONS_META_PREFIX
 ##       its whole REST client and database operator — had no row.
 ##     * a qualified call the class cannot answer is looked up in its declared bases, nearest first
 ##       (`this.doFetch()` in a subclass of `ClientBase`), and refuses on a same-distance tie.
+##     * a name bound to a wrapper around a function literal is that function, whatever the wrapper
+##       is called (`typedMemo`, `debounce`, ...) — owner's ruling over an allowlist — and an IIFE
+##       binds the function it returns. Excluded by construction, not by name lists: callbacks
+##       CONSUMED by spec-defined calls (`.map`, `.then`, `setTimeout`), methods on local values
+##       (`x.pipe(...)`, RxJS), and destructuring patterns.
 ##     * a call site is credited to the INNERMOST function containing it, not the first in list
 ##       order, which was an accident of row order and credited a mixin's calls to its factory.
 CLEW_BUILD_VERSION = 9

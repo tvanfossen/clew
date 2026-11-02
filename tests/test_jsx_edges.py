@@ -118,12 +118,26 @@ export const Header = forwardRef<Ref, Props>(({title}, ref) => <div ref={ref}>{t
 export const Row = memo(function Row({x}) { return <span>{x}</span>; });
 export const Card = React.memo(React.forwardRef((props, ref) => <div ref={ref} />));
 const getStyleSheet = makeStyleSheetFromTheme((theme) => ({color: theme.x}));
+const Gutter = typedMemo((props: Props) => <View />);
+export const debounced = debounce((ids: string[]) => { return ids; }, 200);
+const getMatchTerm = (() => {
+    let last = '';
+    return (value: string) => { last = value; return last; };
+})();
+const notAFunction = compute(1, 2);
+const passedByName = wrap(Header);
+const ids = posts.map((p) => p.id);
+const ready = load().then((r) => r.ok);
+const handle = setTimeout(() => tick(), 10);
+const {result} = renderHook(() => useThing());
+const displayName = channel.pipe(map((c) => c.displayName));
+const subscription = manager.observe().subscribe((state) => state);
 """
 
 
-## @brief A component wrapped in `forwardRef` or `memo` is a function definition.
+## @brief A name bound to a wrapper call around a function literal is that function.
 ## @return None.
-## @version 1
+## @version 2
 def test_a_component_wrapped_in_forwardref_or_memo_is_a_definition() -> None:
     """FOUND ON THE REAL TREE, not on a fixture. The mattermost-mobile acceptance rubric asks where
     `NavigationHeader` is rendered; eight files render it, and the index recorded NO callers —
@@ -131,18 +145,46 @@ def test_a_component_wrapped_in_forwardref_or_memo_is_a_definition() -> None:
     name to a CALL, and only a binding to an arrow or function expression counted. With no
     definition there was nothing for a `jsx` edge to resolve to.
 
-    REACT'S OWN WRAPPERS ONLY, nested in either order, bare or `React.`-qualified. The generic
-    rule — any call whose first argument is a function — was measured on that tree and would add
-    466 `makeStyleSheetFromTheme((theme) => ...)` style factories, all named `getStyleSheet`, as
-    functions. That is the last line of the fixture, and it must stay out.
+    VERSION 2 — THE OWNER'S RULING REPLACED THE ALLOWLIST (2026-11-02). Version 1 accepted
+    React's own wrappers only and asserted that a style factory stays out. A TypeScript audit then
+    found the allowlist missing real definitions — `typedMemo` components, `debounce`d and
+    `preventDoubleTap`ped handlers — and the owner ruled for the general rule: a name bound to a
+    call whose first argument is a function literal IS that function, whatever the wrapper is
+    called. That makes the 466 `getStyleSheet = makeStyleSheetFromTheme(...)` bindings on
+    mattermost-mobile function rows too; they are real callables, one per file. A function bound
+    by an immediately-invoked expression is the function it returns.
 
-    @brief forwardRef/memo-wrapped components are definitions.
+    Still NOT a definition: a call with no function-literal argument (`compute(1, 2)`), and a
+    function passed BY NAME (`wrap(Header)`), whose definition is `Header`'s own.
+
+    MEASURED, then refined, without returning to an alias list. The first cut added 1,480 rows on
+    mattermost-mobile against ~475 expected: `const ids = posts.map((p) => p.id)` binds an ARRAY,
+    `setTimeout(() => ...)` a handle, `{result} = renderHook(...)` a destructured value. A
+    callback CONSUMED by a call that returns something else is not the binding's function; the
+    consumers excluded are fixed by the ECMAScript and DOM specifications (array/promise methods,
+    timers), not by any project's naming, and a pattern is not a name.
+
+    AND A METHOD ON A LOCAL VALUE IS NOT A WRAPPER. `channel.pipe(map((c) => ...))` binds an
+    Observable and `x.subscribe(fn)` a Subscription — RxJS, 30-odd rows on that tree. Nesting
+    cannot tell them apart from `memo(forwardRef(fn))`; the CALLEE can. A wrapper is a free
+    function (`memo`, `debounce`) or a member of an IMPORTED module (`React.memo`), and which names
+    the file imports is read from its own import statements.
+
+    @brief Wrapped bindings are definitions; plain call results are not.
     @return None.
-    @version 1
+    @version 2
     """
     out = harvest_definitions(lps.parse_tree("tsx", _WRAPPED), _WRAPPED)
     names = sorted(f["name"] for f in out["functions"])
-    assert names == ["Card", "Header", "Row"], names
+    assert names == [
+        "Card",
+        "Gutter",
+        "Header",
+        "Row",
+        "debounced",
+        "getMatchTerm",
+        "getStyleSheet",
+    ], names
 
 
 ## @brief A `forwardRef` component's renderer is its `jsx` caller.
