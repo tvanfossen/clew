@@ -233,33 +233,6 @@ def _constraint_class(func: Any, type_name: str) -> str:
     return ""
 
 
-## @brief The mixin class a bound function produces, or None.
-## @param func A function or binding node `_resolve_function_node` returned.
-## @return The `class` expression node, or None.
-## @version 1
-## @dg_internal
-def _produced_class(func: Any) -> Any | None:
-    """@brief The class a mixin function returns. @return The class node or None."""
-    from .guard.ts_parser import _function_carrier
-
-    body = _function_carrier(func).child_by_field_name("body")
-    if body is None:
-        return None
-    if body.type == "class":
-        return body
-    for stmt in body.named_children if body.type == "statement_block" else ():
-        value = (
-            stmt.named_children[0]
-            if stmt.type == "return_statement" and stmt.named_children
-            else None
-        )
-        if value is not None and value.type == "class":
-            return value
-    return None
-
-
-## Version 2: the payload carries typed class members (`variables`).
-##
 ## @brief Every function and class a JS/TS file defines.
 ## @param tree Parsed program tree.
 ## @param src_bytes The file's bytes.
@@ -282,6 +255,8 @@ def harvest_definitions(tree: Any, src_bytes: bytes) -> dict[str, list[dict[str,
     return out
 
 
+## Version 6: imports the shared `_produced_class` from the gate's parser.
+##
 ## Version 5: collects typed class members for receiver resolution.
 ##
 ## Version 4: descends into function bodies; a named closure is scoped under its function.
@@ -290,10 +265,10 @@ def harvest_definitions(tree: Any, src_bytes: bytes) -> dict[str, list[dict[str,
 ## by their binding.
 ##
 ## @brief Recursive collection of classes and functions under a node.
-## @version 5
+## @version 6
 ## @dg_internal
 def _walk(node: Any, spec: Any, cls: str | None, out: dict[str, list[dict[str, Any]]]) -> None:
-    from .guard.ts_parser import _function_carrier, _resolve_function_node
+    from .guard.ts_parser import _function_carrier, _produced_class, _resolve_function_node
 
     for child in node.children:
         kind = _COMPOUND_KINDS.get(child.type)

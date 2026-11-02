@@ -602,10 +602,37 @@ def parse_functions_ts(
     return functions
 
 
+## @brief The mixin class a bound function produces, or None.
+## @param func A function or binding node `_resolve_function_node` returned.
+## @return The `class` expression node, or None.
+## Moved here from clew/jsast.py in 1.3.0 so the index and the gate share ONE mixin rule.
+## @version 1
+## @dg_internal
+def _produced_class(func: Node) -> Node | None:
+    """@brief The class a mixin function returns. @return The class node or None."""
+    body = _function_carrier(func).child_by_field_name("body")
+    if body is None:
+        return None
+    if body.type == "class":
+        return body
+    for stmt in body.named_children if body.type == "statement_block" else ():
+        value = (
+            stmt.named_children[0]
+            if stmt.type == "return_statement" and stmt.named_children
+            else None
+        )
+        if value is not None and value.type == "class":
+            return value
+    return None
+
+
+## Version 2: the payload carries typed class members (`variables`).
+##
 ## @brief Recursively collect function definitions from the AST.
 #  @details Rust test code (`#[test]` functions, the `#[cfg(test)]` module) is skipped.
 #  A JS/TS function bound to a name is read through its value (_function_carrier).
-#  @version 1.6
+#  Version 1.7: descends into a mixin class a bound function produces (`_produced_class`).
+#  @version 1.7
 #  @req REQ-DDB-GUARD-020
 def _collect_functions(
     node: Node,
@@ -640,6 +667,13 @@ def _collect_functions(
                     returns_void=_js_returns_void(func_node) if spec.doc_style == "jsdoc" else None,
                 )
             )
+            ## A MIXIN'S MEMBERS ARE CLASS-LEVEL DEFINITIONS (owner's ruling, 1.3.0): the gate
+            ## descends into the class a bound function produces, exactly as the index does.
+            mixin = _produced_class(func_node) if spec.doc_style == "jsdoc" else None
+            if mixin is not None:
+                body = mixin.child_by_field_name("body")
+                if body is not None:
+                    _collect_functions(body, spec, exclude, comment_start_pattern, functions, name)
         else:
             _collect_functions(
                 child, spec, exclude, comment_start_pattern, functions, new_enclosing
