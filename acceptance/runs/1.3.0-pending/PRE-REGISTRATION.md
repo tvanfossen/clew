@@ -130,3 +130,48 @@ confound recorded since 1.1.0 is unresolved and still applies.
 No rubric edit, no mark reweighting, no question exclusion, and no grader change after the
 numbers exist. A defect found in the grader *by* this run is recorded and fixed for the NEXT
 run; it does not re-score this one.
+
+## Addendum, 2026-11-02 — written before the re-run, after a superseded grid
+
+**A grid ran at `f9e98a5` and is superseded, unanalysed.** Its 189 cells were generated; its
+grading hit two usage-limit outages (judge errors 42.2%, then 11.3% after one repair) and never
+reached the 2% gate. No quality figure was computed from it, and none will be. Its artifacts are
+kept, untracked, in `acceptance/runs/1.3.0-superseded-f9e98a5/`.
+
+**WHY IT WAS SUPERSEDED, stated so it cannot read as discarding a bad number:** no figure from it
+existed. During the outage the owner asked whether every TypeScript concern was answered; a
+measured audit of mattermost-mobile's index then showed the TypeScript harvest was materially
+incomplete, and the owner ruled 1.3.0 must not ship partial support. The fixes changed the index
+the grid would have measured, so its cells described a tree that would not be tagged.
+
+**What changed in the tool since this file was first committed** (`be873a8`), each measured on
+mattermost-mobile at `4d842026` and recorded in its commit:
+
+| commit | change |
+|---|---|
+| `fc51089` | TypeScript mixin classes are classes; inherited `this.` calls resolve through declared bases; a call is credited to the INNERMOST enclosing function |
+| `d988734` | any wrapper around a function literal binds that function (owner's ruling over an allowlist) |
+| `563f43a` | interface signatures and object-literal functions are definitions; signatures never split attribution |
+| `f2c919d` | named closures are definitions; a bare call resolves lexically first |
+| `cf057c4` | a member call reaches a free function only through what holds it |
+| `640977c` | typed class members; an interface-typed receiver reaches its implementation family |
+| `313e4eb` | the gate checks mixin members and stays a subset of the index |
+
+Net on mattermost: functions 6,884 → 10,015 · resolved call edges 12,439 → 16,357 · unresolved
+inbound sites 4,266 → 2,194.
+
+**CROSS-LANGUAGE EFFECTS, because they bear on the held 16.** Most of the above is gated to
+parse-built (JS/TS) definitions. Two changes are not: the innermost-caller rule applies to every
+language's call-site attribution, and the inherited-method lookup sits in the shared resolver
+(its Python end-to-end case passed without it, because doxygen's own cross-references already
+resolve `self.helper()`). Both can move the held targets' indexes; the held-16 delta is therefore
+read against them as well as against the TypeScript work.
+
+**Unchanged:** the rubrics (digests as above), the grader (`72a6c7bd363d`, frozen), the judge and
+answering models, the seed, the replicate count, Decisions A and B, and the comparator — 1.2.0's
+answers re-graded at `72a6c7bd363d` in `regrade-1.2.0/`, 0 judge errors after an outage repair
+that re-asked only errored samples (errors are never cached, so successes replayed unchanged).
+
+**Grading will be paced across usage windows.** One grid's judging (~3,900 real k=3 samples)
+does not fit a single window; each grading pass starts after a confirmed reset, with repair passes
+between, until the judge error rate is under 2%. Every repair pass is disclosed in RESULTS.md.
