@@ -237,6 +237,9 @@ from .tiers import OPTIONS_META_PREFIX
 ##     * interface method and function-typed property signatures are bodiless DECLARATION rows,
 ##       so a call through an interface has the interface half of its dispatch family; and a
 ##       module-level object's function-valued properties are definitions of its binding.
+##     * a named closure inside a function is a definition scoped under it (`outer.inner`), and a
+##       bare call resolves lexically first — the innermost enclosing scope declaring the name —
+##       for parse-built definitions; a `use[A-Z]` hook other than `useCallback` binds a value.
 ##     * a call site is credited to the INNERMOST function containing it, not the first in list
 ##       order, which was an accident of row order and credited a mixin's calls to its factory.
 CLEW_BUILD_VERSION = 9

@@ -132,19 +132,20 @@ MEMBER_KIND = {"function": "function", "macro": "macro definition"}
 ## Version 4: `stage_version` 4 — any wrapper around a function literal, and an IIFE's returned
 ## function, bind a definition; a payload cached at 3 would serve the old, narrower set.
 ## Version 5: `stage_version` 5 — interface signatures and object-literal functions.
+## Version 6: `stage_version` 6 — named closures inside functions, scoped under them.
 ##
 ## @brief Per-file harvester for JS/TS definitions.
-## @version 5
+## @version 6
 class _JsSymbolHarvester(Harvester):
     """Rowid-free (names, spans, raw docs), so it caches on content like every stage.
     A non-JS file yields an empty payload.
 
     @brief JS/TS definitions harvester.
-    @version 5
+    @version 6
     """
 
     stage = STAGE_JS_SYMBOLS
-    stage_version = 5
+    stage_version = 6
     label = "js/ts definitions"
 
     ## @brief Harvest one file's definitions.

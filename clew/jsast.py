@@ -280,15 +280,16 @@ def harvest_definitions(tree: Any, src_bytes: bytes) -> dict[str, list[dict[str,
     return out
 
 
+## Version 4: descends into function bodies; a named closure is scoped under its function.
 ## Version 3: interface signatures and object-literal functions are recorded (`_member_record`).
 ## Version 2: descends into the mixin class a bound function produces, and names anonymous classes
 ## by their binding.
 ##
 ## @brief Recursive collection of classes and functions under a node.
-## @version 3
+## @version 4
 ## @dg_internal
 def _walk(node: Any, spec: Any, cls: str | None, out: dict[str, list[dict[str, Any]]]) -> None:
-    from .guard.ts_parser import _resolve_function_node
+    from .guard.ts_parser import _function_carrier, _resolve_function_node
 
     for child in node.children:
         kind = _COMPOUND_KINDS.get(child.type)
@@ -310,6 +311,11 @@ def _walk(node: Any, spec: Any, cls: str | None, out: dict[str, list[dict[str, A
             mixin = _produced_class(func)
             if mixin is not None:
                 _walk(mixin.parent, spec, cls, out)
+            elif record is not None:
+                ## A CLOSURE IS NAMED UNDER ITS ENCLOSING FUNCTION: `outer.inner`, so two
+                ## components that each declare `onPress` are two definitions, not one name.
+                scope = f"{cls}.{record['name']}" if cls else record["name"]
+                _walk(_function_carrier(func), spec, scope, out)
             continue
         _walk(child, spec, cls, out)
 

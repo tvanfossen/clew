@@ -471,9 +471,10 @@ def _ast_caller_at_line(
 ## @param definition_of rowid → doxygen `definition` signature, for qualifier narrowing.
 ## @param bases_of Class name → its direct base class names, for inherited-method lookup.
 ##
+## Version 8: a bare call with several candidates resolves lexically first (`_lexical`).
 ## Version 7: a qualified call the class itself cannot answer is looked up in its declared bases,
 ## nearest first, as the language does. Found on mattermost-mobile's TypeScript mixins.
-## @version 7
+## @version 8
 ## @dg_internal
 def _ast_record_call_edge(
     caller_rowid: int,
@@ -595,6 +596,14 @@ def _ast_record_call_edge(
     if len(candidates) == 1 and not unverified_receiver:
         edges_resolved.append((caller_rowid, candidates[0], source))
         return
+    ## A BARE NAME RESOLVES LEXICALLY FIRST, as the language resolves it: the innermost enclosing
+    ## scope that declares it, outward to the module. Only for parse-built definitions, whose
+    ## `definition` IS the dotted scope path; doxygen-resolved languages are untouched.
+    if source == SOURCE_AST and len(candidates) > 1 and definition_of:
+        lexical = _lexical(caller_rowid, callee_name, candidates, definition_of)
+        if lexical is not None:
+            edges_resolved.append((caller_rowid, lexical, source))
+            return
     ## AN UNRESOLVED CALL PRODUCES NO ROW (gh#347). This used to fan out — one row per
     ## same-named candidate — turning ONE true observation into N assertions. tree-sitter was
     ## never the problem: it correctly found a `call_expression`. The defect was resolving the
@@ -1101,6 +1110,45 @@ def _narrow_by_qualifier(
     from .query._common import _qualified_match
 
     return [c for c in candidates if _qualified_match(definition_of.get(c, ""), qualified)]
+
+
+## @brief The candidate a bare call names by lexical scope, or None.
+## @param caller_rowid The calling function's rowid.
+## @param name The bare callee name.
+## @param candidates Every indexed function bearing the name.
+## @param definition_of rowid → definition signature.
+## @return The rowid declared in the innermost enclosing scope, or None.
+## @version 1
+## @dg_internal
+def _lexical(
+    caller_rowid: int, name: str, candidates: list[int], definition_of: dict[int, str]
+) -> int | None:
+    """SCOPE BY SCOPE, INNERMOST FIRST: the caller's own body (`outer.helper.inner`), then each
+    enclosing function or class, then the module. The first scope declaring exactly one candidate
+    wins; a scope declaring two (an overload, a redeclaration) refuses rather than picks.
+
+    PARSE-BUILT DEFINITIONS ONLY. Their `definition` is the dotted scope path
+    (`src.a.outer.inner`); a doxygen definition carries a type and spaces (`int foo`), never
+    matches the shape, and is resolved exactly as before.
+
+    @brief Lexical resolution of a bare call.
+    @return Rowid or None.
+    @version 1
+    """
+    caller = definition_of.get(caller_rowid, "")
+    if not _DOTTED.fullmatch(caller):
+        return None
+    parts = caller.split(".")
+    for depth in range(len(parts), 0, -1):
+        want = ".".join(parts[:depth]) + "." + name
+        hits = [c for c in candidates if definition_of.get(c) == want]
+        if hits:
+            return hits[0] if len(hits) == 1 else None
+    return None
+
+
+## A parse-built definition: a dotted path of identifiers, no type, no spaces.
+_DOTTED = re.compile(r"[\w$#]+(?:\.[\w$#]+)+")
 
 
 ## @brief The class a definition signature belongs to: `Base` for `a.b.Base.run` / `ns::Base::run`.
@@ -1947,7 +1995,8 @@ def _ast_insert_edges(
 ## fold from older logic is not merely stale, it is a different answer wearing this key.
 _FOLD_STAGE = "ast_fold"
 ## 2: qualified calls resolve inherited methods through declared bases (`_inherited`).
-_FOLD_STAGE_VERSION = 2
+## 3: bare calls resolve lexically first (`_lexical`).
+_FOLD_STAGE_VERSION = 3
 
 
 ## @brief Digest of every INDEX-WIDE input the fold reads, so a change to any invalidates all.

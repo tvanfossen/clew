@@ -55,6 +55,7 @@ _CALLBACK_CONSUMING_METHODS = frozenset(
         "replaceAll",
     }
 )
+_HOOK = re.compile(r"^use[A-Z]")
 _CALLBACK_CONSUMING_GLOBALS = frozenset(
     {"setTimeout", "setInterval", "setImmediate", "requestAnimationFrame", "queueMicrotask"}
 )
@@ -88,12 +89,17 @@ def _imported_names(node: Node) -> frozenset[str]:
 
 
 ## @brief Whether a call consumes its callback and returns something else.
-#  @version 1.0
+#  @version 1.1
 #  @dg_internal
 #  @return True when the call's value is not the function it is given
 def _consumes_callback(callee: Node) -> bool:
     if callee.type == "identifier":
-        return (callee.text or b"").decode("utf-8") in _CALLBACK_CONSUMING_GLOBALS
+        name = (callee.text or b"").decode("utf-8")
+        ## A HOOK BINDS A VALUE: `useMemo(() => x)` is x, `useAnimatedStyle(...)` a style. React's
+        ## own rule says a `use[A-Z]` call is a hook; only `useCallback` returns its callback.
+        if _HOOK.match(name) and name != "useCallback":
+            return True
+        return name in _CALLBACK_CONSUMING_GLOBALS
     if callee.type == "member_expression":
         prop = callee.child_by_field_name("property")
         if prop is not None and (prop.text or b"").decode("utf-8") in _CALLBACK_CONSUMING_METHODS:
