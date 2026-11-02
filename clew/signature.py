@@ -243,6 +243,9 @@ from .tiers import OPTIONS_META_PREFIX
 ##     * a JS/TS member call reaches a non-method only through what holds it — an imported
 ##       module or the owning object; any other receiver is contrary evidence. On mattermost,
 ##       unresolved inbound sites 4,224 -> 2,259, built-in collisions like `latinise.map` gone.
+##     * a typed TS class member (`svc: UserService`, `constructor(private svc: UserService)`)
+##       is a variable row with its type; a call through one typed as an INTERFACE is a fuzzy edge
+##       to each implementation — bounded by the declared type, never picking the bound one.
 ##     * a call site is credited to the INNERMOST function containing it, not the first in list
 ##       order, which was an accident of row order and credited a mixin's calls to its factory.
 CLEW_BUILD_VERSION = 9

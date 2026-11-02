@@ -258,11 +258,13 @@ def _produced_class(func: Any) -> Any | None:
     return None
 
 
+## Version 2: the payload carries typed class members (`variables`).
+##
 ## @brief Every function and class a JS/TS file defines.
 ## @param tree Parsed program tree.
 ## @param src_bytes The file's bytes.
 ## @return {"functions": [...], "classes": [...]}, each entry a JSON-safe dict.
-## @version 1
+## @version 2
 ## @req REQ-DDB-PIPE-012
 def harvest_definitions(tree: Any, src_bytes: bytes) -> dict[str, list[dict[str, Any]]]:
     """Positions are 1-based lines and 0-based columns, as doxygen writes them. A doc
@@ -275,18 +277,20 @@ def harvest_definitions(tree: Any, src_bytes: bytes) -> dict[str, list[dict[str,
     from .guard.ts_languages import LANGUAGE_SPECS
 
     spec = LANGUAGE_SPECS["typescript"]
-    out: dict[str, list[dict[str, Any]]] = {"functions": [], "classes": []}
+    out: dict[str, list[dict[str, Any]]] = {"functions": [], "classes": [], "variables": []}
     _walk(tree.root_node, spec, None, out)
     return out
 
 
+## Version 5: collects typed class members for receiver resolution.
+##
 ## Version 4: descends into function bodies; a named closure is scoped under its function.
 ## Version 3: interface signatures and object-literal functions are recorded (`_member_record`).
 ## Version 2: descends into the mixin class a bound function produces, and names anonymous classes
 ## by their binding.
 ##
 ## @brief Recursive collection of classes and functions under a node.
-## @version 4
+## @version 5
 ## @dg_internal
 def _walk(node: Any, spec: Any, cls: str | None, out: dict[str, list[dict[str, Any]]]) -> None:
     from .guard.ts_parser import _function_carrier, _resolve_function_node
@@ -303,6 +307,7 @@ def _walk(node: Any, spec: Any, cls: str | None, out: dict[str, list[dict[str, A
         if member is not None:
             out["functions"].append(member)
             continue
+        out["variables"].extend(_typed_members(child, cls))
         func = _resolve_function_node(child, spec)
         if func is not None:
             record = _function_record(func, spec, cls)
@@ -322,6 +327,72 @@ def _walk(node: Any, spec: Any, cls: str | None, out: dict[str, list[dict[str, A
 
 ## Version 2: a mixin class's base is its declared constraint type, not the parameter it extends.
 ##
+## @brief A class's typed members: fields, and constructor parameter properties.
+## @param node Any child node the walk visits.
+## @param cls The enclosing class name, or None.
+## @return Variable records, each with its declared type in `ret`.
+## @version 1
+## @dg_internal
+def _typed_members(node: Any, cls: str | None) -> list[dict[str, Any]]:
+    """THE RECEIVER'S DECLARED TYPE, which is what lets `this.svc.getUser()` be resolved at all.
+    Two forms: a typed field (`repo: UserService;`), and a constructor parameter property
+    (`constructor(private readonly svc: UserService)`) — the shape dependency injection takes.
+    A field whose value is a function is a method and handled elsewhere; an untyped field
+    carries no type and is skipped.
+
+    @brief Harvest typed class members.
+    @return Records.
+    @version 1
+    """
+    if not cls:
+        return []
+    if node.type == "public_field_definition":
+        value = node.child_by_field_name("value")
+        if value is not None and value.type in _FUNCTION_VALUES:
+            return []
+        record = _variable_record(node, node.child_by_field_name("name"), cls)
+        return [record] if record else []
+    if (
+        node.type == "method_definition"
+        and _text(node.child_by_field_name("name")) == "constructor"
+    ):
+        params = node.child_by_field_name("parameters")
+        return [
+            r
+            for p in (params.named_children if params is not None else ())
+            if any(c.type in ("accessibility_modifier", "readonly") for c in p.children)
+            for r in [_variable_record(p, p.child_by_field_name("pattern"), cls)]
+            if r
+        ]
+    return []
+
+
+## @brief One typed member as a variable record, or None when it carries no type.
+## @version 1
+## @dg_internal
+def _variable_record(node: Any, name_node: Any, cls: str) -> dict[str, Any] | None:
+    """@brief A typed variable record. @return Record or None."""
+    annotation = node.child_by_field_name("type")
+    type_text = _text(annotation).lstrip(":").strip()
+    name = _text(name_node)
+    if not type_text or not name:
+        return None
+    line = node.start_point[0] + 1
+    return {
+        "name": name,
+        "cls": cls,
+        "line": line,
+        "end": line,
+        "col": node.start_point[1],
+        "args": "",
+        "ret": type_text,
+        "static": 0,
+        "doc": "",
+        "decl": True,
+        "kind": "variable",
+    }
+
+
 ## @brief An interface signature or an object-literal function as a record, or None.
 ## @param node Any child node the walk visits.
 ## @param spec The jsdoc LanguageSpec.

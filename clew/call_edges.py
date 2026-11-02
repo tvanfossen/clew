@@ -496,6 +496,7 @@ def _ast_record_call_edge(
     bases_of: dict[str, set[str]] | None = None,
     via_import: bool | None = None,
     class_scopes: frozenset[str] | None = None,
+    implementors: dict[str, set[str]] | None = None,
 ) -> None:
     """A UNIQUE NAME IS NOT EVIDENCE ABOUT A RECEIVER, and conflating the two made this
     layer assert fabrications as certainties.
@@ -571,6 +572,14 @@ def _ast_record_call_edge(
         )
         if len(owned) == 1:
             edges_resolved.append((caller_rowid, owned[0], source))
+            return
+    if source == SOURCE_AST_MEMBER and receiver and receiver_types and implementors:
+        family = _interface_family(
+            receiver, candidates, receiver_types, implementors, definition_of or {}
+        )
+        if family is not None:
+            for rowid in family:
+                edges_fuzzy.append((caller_rowid, rowid, source))
             return
     ## THE RECEIVER'S DECLARED TYPE IS EVIDENCE, and reading it is what makes a member call
     ## verifiable rather than merely reportable. `handle->engine->run_turn(input)` looked
@@ -1171,6 +1180,89 @@ def _member_reachable(
     return kept, owned
 
 
+## @brief Bare names of every interface the index holds.
+## @param conn Open index connection.
+## @return Interface names.
+## @version 1
+## @dg_internal
+def _interfaces(conn: sqlite3.Connection) -> frozenset[str]:
+    """@brief Interface names. @return The set."""
+    if not _table_exists(conn, "compounddef"):
+        return frozenset()
+    return frozenset(
+        re.split(r"::|\.", str(name))[-1]
+        for (name,) in conn.execute("SELECT name FROM compounddef WHERE kind = 'interface'")
+    )
+
+
+## @brief Each interface's implementors, transitively.
+## @param bases_of Class name → direct base names.
+## @param interfaces Interface names.
+## @return Interface name → every class implementing it, directly or through a subclass.
+## @version 1
+## @dg_internal
+def _interface_implementors(
+    bases_of: dict[str, set[str]], interfaces: frozenset[str]
+) -> dict[str, set[str]]:
+    """@brief Interface → implementors. @return The map."""
+    below: dict[str, set[str]] = {}
+    for derived, bases in bases_of.items():
+        for base in bases:
+            below.setdefault(base, set()).add(derived)
+    out: dict[str, set[str]] = {}
+    for iface in interfaces:
+        seen: set[str] = set()
+        stack = [iface]
+        while stack:
+            for sub in below.get(stack.pop(), ()):
+                if sub not in seen:
+                    seen.add(sub)
+                    stack.append(sub)
+        out[iface] = seen
+    return out
+
+
+## @brief The family an interface-typed receiver's call can reach, or None.
+## @param receiver The receiver's trailing name.
+## @param candidates Same-named candidate rowids.
+## @param receiver_types Member-variable name → declared classes.
+## @param implementors Interface → its implementors.
+## @param definition_of rowid → definition.
+## @return The candidates on the interface or an implementor; None when the rule does not apply.
+## @version 1
+## @dg_internal
+def _interface_family(
+    receiver: str,
+    candidates: list[int],
+    receiver_types: dict[str, set[str]],
+    implementors: dict[str, set[str]],
+    definition_of: dict[int, str],
+) -> list[int] | None:
+    """AN INJECTED INTERFACE REACHES ITS IMPLEMENTATIONS, and nothing else. `this.svc` declared
+    `UserService` can run the `getUser` of any class implementing `UserService` — which one is
+    bound is container configuration the source does not state. So the call is narrowed to that
+    family and recorded as a FUZZY edge to each: bounded by the declared type, never picked, and
+    never reaching an unrelated class that merely has a `getUser` too.
+
+    ONE DECLARATION ONLY. A receiver name declared with several types is the ambiguity
+    `_narrow_by_receiver` already refuses, and it is left to that path unchanged; so is any
+    class-typed receiver, which keeps C++ base-pointer resolution as it was.
+
+    @brief Narrow to an interface's implementation family.
+    @return Family rowids or None.
+    @version 1
+    """
+    declared = receiver_types.get(receiver or "", set())
+    if len(declared) != 1:
+        return None
+    (iface,) = declared
+    if iface not in implementors:
+        return None
+    family = {iface} | implementors[iface]
+    hits = [c for c in candidates if _owner_tail(definition_of.get(c, "")) in family]
+    return hits or None
+
+
 ## @brief Dotted names of every class and interface the index holds.
 ## @param conn Open index connection.
 ## @return e.g. `app.client.rest.base.ClientBase`.
@@ -1688,6 +1780,7 @@ def _fold_call_payload(
     unresolved: list[list[int]] | None = None,
     bases_of: dict[str, set[str]] | None = None,
     class_scopes: frozenset[str] | None = None,
+    implementors: dict[str, set[str]] | None = None,
 ) -> None:
     """Map each harvested call line back to its enclosing function's rowid and
     the callee name to candidate rowids — the rowid-dependent half of Layer 3,
@@ -1734,6 +1827,7 @@ def _fold_call_payload(
             bases_of=bases_of,
             via_import=via_import,
             class_scopes=class_scopes,
+            implementors=implementors,
         )
 
 
@@ -2079,7 +2173,8 @@ _FOLD_STAGE = "ast_fold"
 ## 2: qualified calls resolve inherited methods through declared bases (`_inherited`).
 ## 3: bare calls resolve lexically first (`_lexical`).
 ## 4: JS/TS member calls reach free functions only through what holds them (`_member_reachable`).
-_FOLD_STAGE_VERSION = 4
+## 5: an interface-typed receiver reaches its implementation family (`_interface_family`).
+_FOLD_STAGE_VERSION = 5
 
 
 ## @brief Digest of every INDEX-WIDE input the fold reads, so a change to any invalidates all.
@@ -2099,6 +2194,7 @@ def _resolution_digest(
     argc_of: dict,
     bases_of: dict | None = None,
     class_scopes: frozenset | None = None,
+    implementors: dict | None = None,
 ) -> str:
     """THE PAYLOAD SHA IS NOT ENOUGH, and this digest is the whole reason caching a fold is
     safe. Resolution reads the WHOLE index: one edited file can add an overload to a candidate
@@ -2129,6 +2225,7 @@ def _resolution_digest(
         ("argc", argc_of),
         ("bases", bases_of or {}),
         ("classes", {s: 1 for s in (class_scopes or ())}),
+        ("implementors", implementors or {}),
     ):
         hasher.update(label.encode("utf-8"))
         for key in sorted(mapping, key=repr):
@@ -2181,6 +2278,8 @@ def _extend_from_cache(
     unresolved.extend(list(row) for row in stored_unresolved)
 
 
+## Version 4: threads the interface-implementor map into the fold and its digest.
+##
 ## Version 3: threads the class-scope map into the fold and its digest.
 ##
 ## Version 2: threads the declared-inheritance map (`bases_of`) into the fold and its cache digest.
@@ -2190,7 +2289,7 @@ def _extend_from_cache(
 ## @param maps The index-wide resolution inputs the fold reads.
 ## @param context (conn, repo_root, cache) — where the paths and the cache come from.
 ## @return (resolved edges, fuzzy edges, unresolved inbound rows).
-## @version 3
+## @version 4
 ## @dg_internal
 def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, list, list]:
     """gh#34. THE 59%. Measured on a 6.8 GB repository refreshing after one touched file: the
@@ -2230,6 +2329,7 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
         maps["argc_of"],
         maps.get("bases_of", {}),
         maps.get("class_scopes", frozenset()),
+        maps.get("implementors", {}),
     )
     rel_of = _rel_paths(conn)
     served = 0
@@ -2266,6 +2366,7 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
             unresolved=unresolved,
             bases_of=maps.get("bases_of"),
             class_scopes=maps.get("class_scopes"),
+            implementors=maps.get("implementors"),
         )
         if cache is not None and sha:
             cache.extract_put(
@@ -2296,6 +2397,8 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
     return edges_resolved, edges_fuzzy, unresolved
 
 
+## Version 17: builds the interface-implementor map injected receivers narrow with.
+##
 ## Version 16: builds the class-scope map member-call reachability reads.
 ##
 ## Version 15: builds the declared-inheritance map the fold resolves inherited methods with.
@@ -2304,7 +2407,7 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
 ## @param db_path Path to the clew.db being built.
 ## @param repo_root Repository root (for resolving indexed relative paths).
 ## @param cache Optional incremental index cache; None disables caching.
-## @version 16
+## @version 17
 ## @req REQ-DDB-PIPE-003
 def import_ast_call_edges(
     db_path: Path,
@@ -2371,6 +2474,7 @@ def import_ast_call_edges(
             "argc_of": argc_of,
             "bases_of": _class_bases(conn),
             "class_scopes": _class_scopes(conn),
+            "implementors": _interface_implementors(_class_bases(conn), _interfaces(conn)),
         },
         (conn, repo_root, cache),
     )

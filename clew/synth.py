@@ -123,7 +123,7 @@ _TYPE_FILE = 1
 ## vocabulary string, not ours"). `tests/test_member_kind_parity.py` holds the two
 ## together, because that module is on the READ side and importing it here would stand the
 ## pipeline's layering on its head.
-MEMBER_KIND = {"function": "function", "macro": "macro definition"}
+MEMBER_KIND = {"function": "function", "macro": "macro definition", "variable": "variable"}
 
 
 ## Version 2: `stage_version` 2, because a `forwardRef`/`memo`-wrapped component is now a
@@ -133,19 +133,20 @@ MEMBER_KIND = {"function": "function", "macro": "macro definition"}
 ## function, bind a definition; a payload cached at 3 would serve the old, narrower set.
 ## Version 5: `stage_version` 5 — interface signatures and object-literal functions.
 ## Version 6: `stage_version` 6 — named closures inside functions, scoped under them.
+## Version 7: `stage_version` 7 — typed class members (fields, constructor parameter properties).
 ##
 ## @brief Per-file harvester for JS/TS definitions.
-## @version 6
+## @version 7
 class _JsSymbolHarvester(Harvester):
     """Rowid-free (names, spans, raw docs), so it caches on content like every stage.
     A non-JS file yields an empty payload.
 
     @brief JS/TS definitions harvester.
-    @version 6
+    @version 7
     """
 
     stage = STAGE_JS_SYMBOLS
-    stage_version = 6
+    stage_version = 7
     label = "js/ts definitions"
 
     ## @brief Harvest one file's definitions.
@@ -498,8 +499,10 @@ class _Writer:
         two definitions share."""
         return int(self.conn.execute("INSERT INTO refid (refid) VALUES (?)", (key,)).lastrowid)
 
+    ## Version 2: writes typed class members as `kind='variable'` rows.
+    ##
     ## @brief Write one file's harvested classes and functions.
-    ## @version 1
+    ## @version 2
     ## @dg_internal
     def file(self, path_rowid: int, payload: dict[str, Any], prefix: str = "js") -> None:
         rel = self.conn.execute("SELECT name FROM path WHERE rowid = ?", (path_rowid,)).fetchone()[
@@ -511,6 +514,10 @@ class _Writer:
             local[cls["name"]] = self._compound(path_rowid, module, cls, prefix)
         for fn in payload.get("functions", []):
             self._function(path_rowid, module, fn, local.get(fn["cls"]), prefix)
+        ## TYPED MEMBERS, written as `kind='variable'` rows with their declared type — what the
+        ## call-edge layer reads to resolve `this.svc.getUser()` through the receiver's type.
+        for var in payload.get("variables", []):
+            self._function(path_rowid, module, var, local.get(var["cls"]), prefix)
 
     ## @brief Insert one class-like compounddef row.
     ## @return Its rowid.

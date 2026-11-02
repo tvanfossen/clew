@@ -39,10 +39,15 @@ _MOCK = (
     "export class MockUserService implements UserService {\n"
     "  getUser(id: string): string { return 'mock'; }\n}\n"
 )
+## FIXTURE CHANGE, 1.3.0, and why the property is unchanged. This controller declared
+## `private svc: UserService`; since the TypeScript receiver work that declared type RESOLVES the
+## call to the implementation family as fuzzy edges (tests/test_ts_injected.py), so nothing is
+## refused and there is nothing to credit. What these tests guard is the crediting of a call
+## that genuinely CANNOT be attributed — so the receiver is now untyped, which is that case.
 _CONTROLLER = (
     "import { UserService } from './svc';\n"
     "export class Controller {\n"
-    "  constructor(private svc: UserService) {}\n"
+    "  constructor(private svc) {}\n"
     "  handle(id: string): string { return this.svc.getUser(id); }\n}\n"
 )
 
