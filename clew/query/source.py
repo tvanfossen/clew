@@ -304,6 +304,55 @@ def declaration_excerpt(
     )
 
 
+## @brief The source of a class-like declaration's head: its line through the one opening its body.
+## @param conn Open connection to the index.
+## @param rowid The compounddef rowid.
+## @param repo_root Working-tree root the recorded paths are relative to.
+## @return BodyExcerpt over the declaration head, or None when it cannot be read.
+## @version 1
+## @utility
+def compound_declaration(
+    conn: sqlite3.Connection, rowid: int, repo_root: Path | str
+) -> BodyExcerpt | None:
+    """WHAT A CLASS DOSSIER WAS MISSING. It carried members and bases, never the line that
+    declares them — and that line is the answer whenever the inheritance is not a plain name:
+    `class ServerDataOperator extends mix(ServerDataOperatorBase).with(...)` on mattermost-mobile,
+    which no index-only agent in the 1.3.0 grid ever saw. Every language states its bases there:
+    a C++ head, a Python `class X(Base):`, a Rust `struct`.
+
+    THE HEAD ENDS AT THE LINE OPENING THE BODY — the first holding `{`, or ending in `:` for
+    Python — bounded by `DECLARATION_MAX_LINES`. A heuristic, disclosed as one: `truncated` is
+    True when the bound was reached first.
+
+    @brief Read a class's declaration head.
+    @return BodyExcerpt or None.
+    @version 1
+    """
+    row = conn.execute(
+        "SELECT COALESCE(p.name,''), c.line FROM compounddef c "
+        "LEFT JOIN path p ON p.rowid = c.file_id WHERE c.rowid=?",
+        (rowid,),
+    ).fetchone()
+    if row is None or not row[0] or not row[1]:
+        return None
+    file, start = row[0], int(row[1])
+    cap = DECLARATION_MAX_LINES
+    result = _read_body(Path(repo_root).expanduser(), file, start, start + cap - 1, cap)
+    if result is None or not result[0]:
+        return None
+    lines = result[0]
+    end = next((i for i, ln in enumerate(lines) if "{" in ln or ln.rstrip().endswith(":")), None)
+    kept = lines[: end + 1] if end is not None else lines
+    return BodyExcerpt(
+        file=file,
+        start_line=start,
+        end_line=start + len(kept) - 1,
+        total_lines=len(kept),
+        truncated=end is None,
+        lines=tuple(kept),
+    )
+
+
 ## @brief Cut a line window at the first statement terminator.
 ## @param lines The window read from the declaring file.
 ## @return The lines up to and including the first one containing a semicolon.

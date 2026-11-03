@@ -69,3 +69,57 @@ def test_a_merged_interface_and_class_are_both_candidates(tmp_path: Path) -> Non
     entry = lookup_class(out, "Operator")
     kinds = {c.kind for c in entry.candidates if c.qualified.endswith("::Operator")}
     assert kinds == {"interface", "class"}, entry.candidates
+
+
+## @brief A class dossier carries its declaration line, and the class wins over its interface twin.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_class_dossier_shows_its_declaration_and_prefers_the_class(tmp_path: Path) -> None:
+    """FROM THE 1.3.0-TS-FIX TRANSCRIPTS, not a reconstruction: in 0 of 3 index-only cells did any
+    reply contain `mix(ServerDataOperatorBase)` — a class dossier carried members and bases but no
+    source, and picked the interface over the class. In 3 of 3 cells with a shell, the agent read
+    the file and found it. The declaration is the answer, so it is carried.
+
+    @brief Operator's dossier is the class, with `extends mix(Base).with(...)` in its declaration.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server.tools_query import QueryTools
+
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    (repo / "src/op.ts").write_text(_SRC.decode(), encoding="utf-8")
+    out = tmp_path / "clew.db"
+    _run_pipeline(_build_argparser().parse_args(["--output", str(out), "--repo-root", str(repo)]))
+    reply = QueryTools(lambda: out, lambda: repo).dossier("Operator")
+    assert reply["kind"] == "class", reply.get("kind")
+    text = "\n".join(reply["declaration"]["lines"])
+    assert "mix(Base).with(AHandler, BHandler)" in text, reply.get("declaration")
+
+
+## @brief A Python class dossier carries its `class X(Base):` line too.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_python_class_dossier_shows_its_declaration(tmp_path: Path) -> None:
+    """ACROSS THE BOARD, not TypeScript only: the declaration is where every language states what a
+    class inherits.
+
+    @brief Child's declaration names Base.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server.tools_query import QueryTools
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "mod.py").write_text(
+        "class Base:\n    def a(self):\n        return 1\n\n\n"
+        "class Child(Base):\n    def b(self):\n        return 2\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "clew.db"
+    _run_pipeline(_build_argparser().parse_args(["--output", str(out), "--repo-root", str(repo)]))
+    reply = QueryTools(lambda: out, lambda: repo).dossier("Child")
+    assert "class Child(Base):" in "\n".join(reply["declaration"]["lines"]), reply

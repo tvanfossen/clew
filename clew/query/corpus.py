@@ -24,8 +24,10 @@ from __future__ import annotations
 import fnmatch
 import re
 import sqlite3
+from pathlib import Path
 
 from ..vocabulary import EXTERNAL_ROOT_COLUMN, UNRESOLVED_PATH_COLUMN
+from .source import compound_declaration
 from ._common import (
     MAX_CANDIDATES,
     DbSource,
@@ -1067,7 +1069,7 @@ def gate_symbol_rows(
 ## @param row Candidate row (rowid, name, kind, file, line, brief).
 ## @param wanted The name the caller asked for.
 ## @return Sort key tuple; lower sorts first.
-## @version 1
+## @version 2
 ## @dg_internal
 def _class_rank(row: tuple, wanted: str) -> tuple:
     """Rank so a project class always outranks the `std::` noise doxygen
@@ -1075,8 +1077,8 @@ def _class_rank(row: tuple, wanted: str) -> tuple:
     and a tail match beats an incidental substring.
 
     @brief Sort key for class-lookup candidates.
-    @return (is_stl, match tier, name length, name).
-    @version 1
+    @return (is_stl, match tier, kind rank, name length, name).
+    @version 2
     """
     name, file = row[1], row[3]
     tail = name.rsplit("::", 1)[-1]
@@ -1088,7 +1090,11 @@ def _class_rank(row: tuple, wanted: str) -> tuple:
         tier = 2
     else:
         tier = 3
-    return (bool(SYNTHETIC_PATH.match(file)), tier, len(name), name)
+    ## A CLASS BEFORE A SAME-NAMED INTERFACE (1.3.0): TypeScript declaration merging gives a class
+    ## and the interface typing it one qualified name, and the class is the implementation a
+    ## reader asks about. `kind` on the dossier still selects either.
+    kind_rank = 1 if row[2] == "interface" else 0
+    return (bool(SYNTHETIC_PATH.match(file)), tier, kind_rank, len(name), name)
 
 
 ## @brief Members of one compound, ordered by declaration line, with their documentation.
@@ -1213,7 +1219,7 @@ def _compound_candidates(ranked: list[tuple]) -> list[ClassCandidate]:
 ## @version 4
 ## @req REQ-DDB-QUERY-001
 ## @req REQ-DDB-QUERY-010
-def lookup_class(db: DbSource, name: str) -> ClassEntry | None:
+def lookup_class(db: DbSource, name: str, repo_root: Path | str | None = None) -> ClassEntry | None:
     """Resolve a class/struct/union name to its definition, members, and
     immediate hierarchy. Matching is exact-first then substring, and every
     project compound outranks the `std::` compounds doxygen registers against
@@ -1259,6 +1265,9 @@ def lookup_class(db: DbSource, name: str) -> ClassEntry | None:
             bases=bases,
             derived=derived,
             candidates=_compound_candidates(ranked),
+            declaration=(
+                None if repo_root is None else compound_declaration(conn, best[0], repo_root)
+            ),
         )
 
 

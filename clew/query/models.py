@@ -1423,6 +1423,10 @@ class ClassEntry:
     bases: list[str] = field(default_factory=list)
     derived: list[str] = field(default_factory=list)
     candidates: list[ClassCandidate] = field(default_factory=list)
+    ## THE DECLARATION'S OWN SOURCE, from the class's line through the line that opens its body:
+    ## where every language states what a class inherits or composes. None when no repository
+    ## root was given or the file could not be read.
+    declaration: BodyExcerpt | None = None
 
 
 ## @brief One annotated hop in a causal chain (a call or key edge).

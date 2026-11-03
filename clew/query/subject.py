@@ -1278,7 +1278,7 @@ _BUILDERS = {
     "function": lambda ctx: {"function": _dossier_conn(*ctx.function_args)},
     "macro": lambda ctx: {"function": _macro_subject(ctx.conn, ctx.subject)},
     "variable": lambda ctx: {"variable": _variable_subject(ctx.conn, ctx.subject, ctx.repo_root)},
-    "class": lambda ctx: {"compound": lookup_class(ctx.conn, ctx.subject)},
+    "class": lambda ctx: {"compound": lookup_class(ctx.conn, ctx.subject, ctx.repo_root)},
     "requirement": lambda ctx: {"requirement": req_trace(ctx.conn, ctx.subject)},
     "lock": lambda ctx: {"lock": _lock_subject(ctx.db, ctx.subject)},
     "thread": lambda ctx: {"thread": _thread_subject(ctx.conn, ctx.subject)},
