@@ -123,6 +123,16 @@ TIER1_TOOLS: dict[str, str] = load_descriptions()
 ##   reaches for FIRST was the unbounded one.
 RESPONSE_BUDGET_BYTES = 65_536
 
+## Callers and callees listed per dossier subject before the rest is disclosed rather than sent.
+## Enough for every "where is this used" set the acceptance rubrics grade (the largest is eight
+## files), and a bound on a hub: `doFetch` on mattermost-mobile listed 229 callers in 50,692 bytes,
+## re-read on every later turn of the agent that asked.
+DEFAULT_MAX_NEIGHBORS = 25
+
+## A deeper walk's per-hop fan-out when the caller sets none — `chain_trace`'s own default, so a
+## dossier at depth > 1 is the same walk `chain_trace` returns.
+CHAIN_MAX_NEIGHBORS = 8
+
 ## Headroom reserved for the `_limited` block itself, which is appended AFTER the
 ## payload has been trimmed. Without it the disclosure pushes the response back over
 ## the cap it exists to describe.
@@ -543,6 +553,46 @@ def _shrink_to_budget(
     if stepped:
         cut[CHAIN_DEPTH_CUT] = max(stepped)
     return cut
+
+
+## @brief A dossier with its depth-1 callers and callees capped at `cap`, each cut disclosed.
+## @param doss The flattened, budgeted dossier, or None.
+## @param cap The per-list limit.
+## @return The dossier.
+## @version 1
+## @dg_internal
+def _capped_neighbors(doss: dict[str, Any] | None, cap: int) -> dict[str, Any] | None:
+    """THE PARAMETER SAID IT CAPPED, AND AT DEPTH 1 IT DID NOT. `max_neighbors` reached only a
+    depth > 1 walk, so a depth-1 reply listed every caller up to the byte budget. Capped here, and
+    NEVER SILENTLY: the cut list's `_limited` entry carries `total_available` — the single most
+    useful fact about a hub — and says to raise `max_neighbors` for the rest.
+
+    @brief Cap and disclose depth-1 neighbours.
+    @return The dossier.
+    @version 1
+    """
+    if doss is None or cap < 1:
+        return doss
+    for field_name in ("callers", "callees"):
+        rows = doss.get(field_name)
+        if not isinstance(rows, list) or len(rows) <= cap:
+            continue
+        doss[field_name] = rows[:cap]
+        block = _limited_block(
+            field_name,
+            len(rows),
+            cap,
+            f"raise `max_neighbors` (currently {cap}) to list more of the {len(rows)} {field_name}",
+        )
+        block["reason"] = f"`max_neighbors` lists at most {cap} {field_name} per symbol"
+        limited = doss.setdefault("_limited", {})
+        if field_name in limited:
+            limited[field_name]["total_available"] = max(
+                limited[field_name].get("total_available", 0), len(rows)
+            )
+        else:
+            limited[field_name] = block
+    return doss
 
 
 ## @brief Build the `_limited` disclosure for one trimmed field.
@@ -2144,8 +2194,15 @@ class QueryTools:
             str, Field(description="'forward' for downstream, 'back' for upstream, on depth >= 2.")
         ] = "forward",
         max_neighbors: Annotated[
-            int, Field(description="Cap on callers and callees listed per symbol.")
-        ] = 8,
+            int | None,
+            Field(
+                description=(
+                    "Cap on callers and callees listed per symbol. Omitted: 25 at depth 1, 8 "
+                    "per hop of a deeper walk. A cut list is disclosed in `_limited` with its "
+                    "`total_available`; raise this to see the rest."
+                )
+            ),
+        ] = None,
         qualified: Annotated[
             str | None,
             Field(
@@ -2273,10 +2330,13 @@ class QueryTools:
             max_body_lines=max_body_lines,
             depth=depth,
             direction=direction,
-            max_neighbors=max_neighbors,
+            ## THE WALK KEEPS ITS OWN FAN-OUT (8 per hop) unless the caller set one: widening every
+            ## hop of a depth-3 walk was never the point of capping the depth-1 lists.
+            max_neighbors=max_neighbors if max_neighbors is not None else CHAIN_MAX_NEIGHBORS,
         )
+        cap = max_neighbors if max_neighbors is not None else DEFAULT_MAX_NEIGHBORS
         return self._answered(
-            _budgeted_dossier(_flatten_subject(built, db, depth)),
+            _capped_neighbors(_budgeted_dossier(_flatten_subject(built, db, depth)), cap),
             kind="dossier",
             subject=subject,
             target=target,
