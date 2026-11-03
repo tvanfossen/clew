@@ -76,6 +76,11 @@ TEST_PATH_FACTS: tuple[str, ...] = (
     "*.spec.*",
     "__tests__/*",
     "*/__tests__/*",
+    ## End-to-end suites and their helpers (Detox, Playwright, Cypress). 1.3.0: 144 TypeScript
+    ## helpers under mattermost-mobile's `detox/e2e/support/` read as production code without it.
+    "e2e/*",
+    "*/e2e/*",
+    "*.e2e.*",
 )
 
 _DDL = """
