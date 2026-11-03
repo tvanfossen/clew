@@ -95,10 +95,12 @@ def _tail(node: Any) -> str:
     return ""
 
 
+## Version 2: a heritage CALL (`mix(Base).with(A, B)`) contributes its argument classes.
+##
 ## @brief The base names a class or interface declares (extends / implements).
 ## @param node A class-like declaration.
 ## @return Tail names of every base, in order.
-## @version 1
+## @version 2
 ## @dg_internal
 def _bases(node: Any) -> list[str]:
     """JavaScript writes `class A extends B` as a `class_heritage` holding the expression;
@@ -118,9 +120,38 @@ def _bases(node: Any) -> list[str]:
             name = _tail(part)
             if name:
                 bases.append(name)
+            elif part.type == "call_expression":
+                bases.extend(_composed_bases(part))
             elif part.type in ("extends_clause", "implements_clause", "generic_type"):
                 stack.extend(reversed(part.named_children))
     return bases
+
+
+## @brief The classes a heritage CALL composes: every argument named, in order.
+## @param call A `call_expression` in a class's heritage, e.g. `mix(Base).with(A, B)`.
+## @return The argument names, innermost call first; never the helpers' own names.
+## @version 1
+## @dg_internal
+def _composed_bases(call: Any) -> list[str]:
+    """`extends mix(Base).with(A, B)` evaluates to a class composed FROM its arguments, so those
+    are the bases; `mix` and `with` are the helpers that compose them. Reading the arguments, not
+    a helper's name, covers mixwith, ts-mixer's `Mixin(A, B)` and a project's own helper alike.
+
+    @brief Bases of a composing call.
+    @return Names.
+    @version 1
+    """
+    out: list[str] = []
+    callee = call.child_by_field_name("function")
+    inner = callee.child_by_field_name("object") if callee is not None else None
+    if inner is not None and inner.type == "call_expression":
+        out.extend(_composed_bases(inner))
+    args = call.child_by_field_name("arguments")
+    for arg in args.named_children if args is not None else ():
+        name = _tail(arg)
+        if name:
+            out.append(name)
+    return out
 
 
 ## @brief The function an anonymous class expression is the result of, or None.

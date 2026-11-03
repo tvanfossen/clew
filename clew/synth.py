@@ -135,19 +135,20 @@ MEMBER_KIND = {"function": "function", "macro": "macro definition", "variable": 
 ## Version 6: `stage_version` 6 — named closures inside functions, scoped under them.
 ## Version 7: `stage_version` 7 — typed class members (fields, constructor parameter properties).
 ## Version 8: `stage_version` 8 — the payload carries the file's line count for `__module__`.
+## Version 9: `stage_version` 9 — a heritage call (`mix(Base).with(A, B)`) contributes its bases.
 ##
 ## @brief Per-file harvester for JS/TS definitions.
-## @version 8
+## @version 9
 class _JsSymbolHarvester(Harvester):
     """Rowid-free (names, spans, raw docs), so it caches on content like every stage.
     A non-JS file yields an empty payload.
 
     @brief JS/TS definitions harvester.
-    @version 8
+    @version 9
     """
 
     stage = STAGE_JS_SYMBOLS
-    stage_version = 8
+    stage_version = 9
     label = "js/ts definitions"
 
     ## @brief Harvest one file's definitions.

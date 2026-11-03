@@ -1173,7 +1173,7 @@ def _hierarchy(conn: sqlite3.Connection, rowid: int) -> tuple[list[str], list[st
 ## @brief The capped candidate list for an ambiguous class lookup, empty when unambiguous.
 ## @param ranked Candidate rows already sorted best-first by `_class_rank`.
 ## @return Up to MAX_CANDIDATES ClassCandidate rows, or [] when one compound matched.
-## @version 1
+## @version 2
 ## @dg_internal
 def _compound_candidates(ranked: list[tuple]) -> list[ClassCandidate]:
     """Collapses on the QUALIFIED NAME, which is a compound's identity the way a
@@ -1191,10 +1191,16 @@ def _compound_candidates(ranked: list[tuple]) -> list[ClassCandidate]:
     @return ClassCandidate rows, best-ranked first.
     @version 1
     """
-    seen: dict[str, ClassCandidate] = {}
+    ## KEYED BY NAME AND KIND (1.3.0). A TypeScript interface and class of one qualified name are
+    ## two declarations merged by the language — the way a mixin-composed class is typed — and
+    ## keying on the name alone hid the class behind the interface. Same-kind duplicates are
+    ## still the one compound seen twice.
+    seen: dict[tuple[str, str], ClassCandidate] = {}
     for _rowid, name, kind, file, line, _brief in ranked:
-        if name not in seen:
-            seen[name] = ClassCandidate(qualified=name, kind=kind, file=file, line=line or None)
+        if (name, kind) not in seen:
+            seen[(name, kind)] = ClassCandidate(
+                qualified=name, kind=kind, file=file, line=line or None
+            )
     if len(seen) < 2:
         return []
     return list(seen.values())[:MAX_CANDIDATES]
