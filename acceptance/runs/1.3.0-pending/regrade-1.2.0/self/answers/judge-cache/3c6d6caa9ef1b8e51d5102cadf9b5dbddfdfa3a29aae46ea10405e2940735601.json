@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer's confidence table keys off reply shape (definitive note, target, staleness, scope.not_indexed) and never says the strong wording is earned per call by querying which corpora the search did not read."
+}

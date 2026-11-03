@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its reach is confined to the inference layer and a few facade and C++ headers, not the whole engine.\nVERDICT: MISS\nWHY: The answer says the reach is mostly inference, with some facade and header spillover. It never splits the 12 reaching files into inside and outside `src/inference`, so it doesn't conclude that a minority sit outside."
+}

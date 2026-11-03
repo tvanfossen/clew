@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the tokenize path \"negates a negative first return\" and detokenize re-calls \"with `-n` bytes\", but never states that the first call returns the required size as a negative number. It even says it didn't verify llama_tokenize's return convention."
+}

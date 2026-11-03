@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"That same value also means \"vocab is null\" and \"empty input.\" The `Tokenizer::tokenize` contract says \"empty on failure or empty input,\" so the caller can't distinguish them from the return alone.\"\nVERDICT: MISS\nWHY: The answer states failure is indistinguishable from empty, but says some callers do check (MTP and speculative paths are guarded on size), which contradicts \"no caller checks for it.\""
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise it XORs with a `volatile` global that is zero, so the compiler cannot prove the value.\nVERDICT: MISS\nWHY: The answer states the XOR-with-volatile-zero-global fallback for `mbedtls_ct_compiler_opaque()`, but it never names the global (mbedtls_ct_zero), which the item requires."
+}

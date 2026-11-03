@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It refuses first if the process predates its source (`stale_code_refusal`, returning `REFUSED:` and `code` in the reply). It then takes the per-repo build lock and re-checks freshness inside it\nVERDICT: HIT\nWHY: The answer says the write path refuses with `REFUSED:` when the code axis is stale, and that this check comes first, before the lock and the build decision. That ordering implies a force flag cannot override it. The answer never mentions force explicitly, but the placement before the build decision is stated."
+}

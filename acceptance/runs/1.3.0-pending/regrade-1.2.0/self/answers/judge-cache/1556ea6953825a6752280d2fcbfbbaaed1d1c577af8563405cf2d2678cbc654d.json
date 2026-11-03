@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses only caller lists for a function and never mentions inverted causal polarity between call and shared-key halves, nor that a reader's callers are the writers it observes."
+}

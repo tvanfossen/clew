@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Spawned in `external_bridge.cpp:796`, `health_monitor.cpp:92`, `transport_stdio.cpp:164`, `transport_sse.cpp:107`, and cancel pollers at `inference_c_api.cpp:385`, `interface_factory.cpp:246`, `response_generator.cpp:413`\nVERDICT: HIT\nWHY: The table lists thread spawn sites across the external bridge, the MCP transports (stdio and SSE), the health monitor and the inference/cancel paths, which shows creation is spread across subsystems. It never says outright that this is decentralised, but the spread is stated."
+}

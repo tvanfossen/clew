@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tier 3/4, facts the repo already wrote | ... | Accumulate; no declaration removes them | Tier 5 ... The floor; any stated tier displaces them\nVERDICT: HIT\nWHY: The answer states that stated tiers displace one another (stated value wins/replaces) while discovered tier 3/4 layers accumulate and no declaration removes them."
+}

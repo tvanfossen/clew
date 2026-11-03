@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The axes have different remedies, and the messages say so\" plus the table rows: \"`data` ... `index(action='refresh')`, usually automatic\" and \"`code` | Running process predates the source tree | Restart the MCP client. A rebuild is unsafe and cannot fix it.\"\nVERDICT: HIT\nWHY: The answer states that data is cleared by a refresh/rebuild and code by a client restart, and says a rebuild cannot fix the code axis. It never says outright that this is why one flag would not have been enough, but it gives the distinct-remedies mechanism the item requires."
+}

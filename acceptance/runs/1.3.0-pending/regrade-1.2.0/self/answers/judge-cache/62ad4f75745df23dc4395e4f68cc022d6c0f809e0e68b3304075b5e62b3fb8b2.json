@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unknown section name is refused by name, because a misspelled section would otherwise run on defaults while reporting the declaration was honoured.\nVERDICT: HIT\nWHY: The answer says an unknown section is refused by name and gives the reason: otherwise it would run on defaults while reporting the declaration was honoured. It doesn't mention listing the allowed set, but the mechanism and the reason are both stated."
+}

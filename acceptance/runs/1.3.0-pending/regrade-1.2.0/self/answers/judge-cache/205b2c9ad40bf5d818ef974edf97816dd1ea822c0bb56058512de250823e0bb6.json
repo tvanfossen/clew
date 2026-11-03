@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer only lists callers of `git_argv` and never discusses how the flat and traversal surfaces resolve the focal symbol differently (resolved identity vs bare name)."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_memory_buffer_alloc_init()` (line 566) zeroes the heap and then calls `mbedtls_platform_set_calloc_free()` itself, pointing it at `buffer_alloc_calloc` or, with `MBEDTLS_THREADING_C`, a mutex-wrapped variant.\"\nVERDICT: HIT\nWHY: The answer states that the init function installs a plain pair or, with MBEDTLS_THREADING_C, a mutex-wrapped one. It doesn't say the choice happens at compile time, but \"with `MBEDTLS_THREADING_C`\" is a config macro, so the compile-time selection is implied."
+}

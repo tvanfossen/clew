@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 36371,
+  "stop_reason": "end_turn",
+  "session_id": "fb62f03e-fd71-49d9-8294-a9898a96bff7",
+  "total_cost_usd": 0.015610540000000001,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 52708,
+    "cache_read_input_tokens": 271654,
+    "output_tokens": 4702,
+    "output_tokens_details": {
+      "thinking_tokens": 1605
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 52708,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2544,
+        "cache_read_input_tokens": 59158,
+        "cache_creation_input_tokens": 6494,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6494
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 4702,
+      "cacheReadInputTokens": 271654,
+      "cacheCreationInputTokens": 52708,
+      "webSearchRequests": 0,
+      "costUSD": 0.015610540000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1605,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 52708,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the reply separates the two cases by grading the empty result, not by a yes/no flag. Only one shape earns the strong \"definitive, don't retry\" wording, and every reply also names what it did and did not read. The strong wording is still a claim about this index's scope, not about the repository. I read the code only; I did not run a query against a built index.\n\n**How the grading works** (`clew/mcp_server/emptiness.py`, `search_emptiness`)\n\n| Empty `search` case | Wording | Confidence |\n|---|---|---|\n| One token, nothing in the symbol corpora read, and no unread corpus holds a match | `_DEFINITIVE`: \"a definitive empty result\u2026 Do not retry\" | Strongest. Still bounded by the scope (see below). |\n| One token, but the index holds matching rows in a corpus `search` does not read | `_UNREAD_CORPUS`: \"NOT DEFINITIVE\u2026 this index HOLDS matching rows\u2026\" with counts by kind | Negative. The name exists; it is just in a kind `search` skips. |\n| One token, index has no file-docs corpus | `_NO_FILE_DOCS`: \"NOT definitive. Rebuild with index(action='refresh')\" | Not a negative. The index could not look. |\n| Multi-token query | `_conjunction_note`: \"NOT definitive\", plus per-token hit counts and the token that emptied it | Weak. Usually \"retry with fewer tokens.\" |\n| Prose corpus (`corpus='prose'`) | Matches elsewhere \u2192 \"NOT DEFINITIVE\u2026 these terms are in the symbol corpora.\" No prose corpus \u2192 \"NOT definitive.\" | Only definitive when both prose and symbol corpora were read and neither holds the token. |\n\nThe single-token definitive case is the one that matters. `_verdict` gives it only when `q.unsearched_corpora` returns nothing, which subtracts the kinds `search` reads from the kinds the database actually holds. Its docstring records four earlier cases (classes, variables, macros, typedefs/enums) where the strong wording was false, which is why the check exists.\n\n**The \"did not look there\" half** is carried by fields on every empty reply, not by the wording:\n\n- `scope` (`_scope_payload`): covered file count, source tier (whole-repo vs declared), extensions, top levels. This is what separates \"outside the indexed scope\" from \"not in the repo\". `not_indexed` and `not_indexed_count` are present only when the build recorded them. Absent means \"not recorded\", not \"nothing skipped\".\n- `not_searched` (`routing.py`, `RepoIndexes.not_searched`): for a sub-index answer, the other parts of the repo it did not read, built ones first, including known-but-unbuilt ones. A whole-repo answer lists nothing because it covered everything. A miss in a sub-index is therefore not definitive for the whole repo.\n- `unsearched_corpus_hits`, `token_hits`: the checkable evidence behind the grade.\n- The static `_SEARCHED` sentence lists the kinds read and says markdown and Kconfig prose are not searched.\n\n**Confidence to give each answer**\n\n- \"Definitive, nothing unread matched\" means the symbol corpora this index holds have no such name, within the scope it was built with. It does not mean the file is absent from the repo. A file outside the index scope is only visible through `scope`/`not_indexed`.\n- \"Not definitive\" means look elsewhere: another corpus, a fewer-token query, a sub-index named in `not_searched`, or a rebuild.\n- Missing `scope`/`not_indexed` on an older index means the reply cannot say what it covered. Treat the negative as weaker.\n\n**Gaps I noticed**\n\n- The unread-corpus check covers only the `memberdef` and `compounddef` kinds. Prose and Kconfig are handled by the static text and by `prose_emptiness`, not by the subtraction.\n- The single-token definitive case does not check whether the file scope was complete. It only checks the index's own kinds, so \"definitive\" depends on the scope the build chose.\n- The `rows` template says absent fields mean \"does not apply\". So a missing `not_indexed` means the build did not record it, not that nothing was skipped.",
+  "ttft_ms": 2408,
+  "type": "result",
+  "duration_ms": 36766,
+  "uuid": "93c66371-389a-45ee-b7d5-0bc4994d2379",
+  "ttft_stream_ms": 1910,
+  "time_to_request_ms": 159,
+  "first_content_frame_ms": 1911,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

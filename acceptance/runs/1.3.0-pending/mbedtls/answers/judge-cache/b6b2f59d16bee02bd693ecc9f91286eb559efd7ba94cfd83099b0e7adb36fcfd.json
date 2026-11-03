@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` hides the value of `x` from the optimiser. With assembly it is an empty `asm volatile` that takes and returns `x`. Without assembly it is `x ^ mbedtls_ct_zero`\nVERDICT: MISS\nWHY: The answer names the primitive and its mechanism, but never locates it in `library/constant_time_impl.h`. It says only that it did not read the layout of that file."
+}

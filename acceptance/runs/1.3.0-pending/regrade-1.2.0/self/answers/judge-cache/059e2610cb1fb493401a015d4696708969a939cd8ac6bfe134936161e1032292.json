@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`schema`, server older than index, or `code`: restart the MCP client. Rebuilding does nothing for these, and the message says so.\" and \"| `data` | ... | Rebuild (`index(action='refresh')`) |\" and \"| `code` | ... | Client restart only.\"\nVERDICT: MISS\nWHY: The answer shows different clearing actions per axis (rebuild for data, restart for code), but it never says this is why a single flag would not have been enough."
+}

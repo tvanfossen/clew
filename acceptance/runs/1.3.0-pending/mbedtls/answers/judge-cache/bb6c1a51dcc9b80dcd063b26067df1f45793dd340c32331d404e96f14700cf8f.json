@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these top-level directories as containing uses of MBEDTLS_PRIVATE:\n\n- `include`: it names `include/mbedtls/private_access.h` and `include/mbedtls/ssl.h`.\n- `library`: the library `.c` files it names, such as `ecp.c`, `ssl_tls.c` and `x509_crt.c`. It gives the paths as `library/common.h` and bare file names.\n- `programs`: `programs/ssl/ssl_context_info.c`, which uses the `MBEDTLS_PRIVATE(...)` spelling.\n- `tests`: `tests/suites/test_suite_x509write.function` and `test_suite_psa_crypto.function`.\n\nITEMS:\ninclude\nlibrary\nprograms\ntests\nEND"
+}

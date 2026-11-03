@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A shell function has no parameter list, so its `args` are empty, which is a fact about bash rather than a gap in the harvest.\nVERDICT: MISS\nWHY: The answer says shell functions have no parameter list but never says the return type is also absent because the language has neither."
+}

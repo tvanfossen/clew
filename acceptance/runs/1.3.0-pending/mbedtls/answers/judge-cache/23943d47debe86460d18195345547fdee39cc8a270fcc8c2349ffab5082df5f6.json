@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Unless `MBEDTLS_ALLOW_PRIVATE_ACCESS` is defined, `MBEDTLS_PRIVATE(member)` expands to `private_##member`... | The library itself | `library/common.h:132` defines it unconditionally | `MBEDTLS_PRIVATE(x)` becomes plain `x` in every library `.c` that includes `common.h`.\nVERDICT: HIT\nWHY: The answer contrasts the defining code (library and test programs) seeing plain names with ordinary application consumers who see the renamed `private_` members."
+}

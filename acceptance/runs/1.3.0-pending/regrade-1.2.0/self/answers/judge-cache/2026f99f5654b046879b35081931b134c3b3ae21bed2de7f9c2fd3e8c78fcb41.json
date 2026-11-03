@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `stale_code_refusal` (`freshness.py:531`) refuses every write from a process that predates its source, and `force` cannot override it. `_first_build_refusal` also blocks automatic first builds in that state.\nVERDICT: HIT\nWHY: The answer says writes are refused rather than warned and that `force` cannot override the refusal. That covers the item's substance, though it never says where the refusal sits relative to the build decision."
+}

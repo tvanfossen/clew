@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Renaming a field does not change the struct layout, so the opt-out is a source-level switch, not an ABI change.\nVERDICT: HIT\nWHY: The answer says opacity comes from renaming the member (`private_##member`) so `ssl->state` fails to compile, and that the struct layout is unchanged."
+}

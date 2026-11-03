@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppTokenizer::detokenize()` (lines 93 and 99), which uses a small stack buffer and retries with the exact size when the first call reports it was too small.\nVERDICT: MISS\nWHY: The answer mentions a small stack buffer with retry in detokenize but never gives the fixed 256-byte size or the heap allocation. It also doesn't contrast this with tokenize always sizing first. That contrast is only implied."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` forced on by flag\nVERDICT: HIT\nWHY: The answer names both macros, and treats THREADING_C as the gate for all locks; THREADING_PTHREAD is named as the backend macro."
+}

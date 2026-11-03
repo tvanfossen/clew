@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Empty is also a valid result for empty text with `add_special=false`, so callers cannot tell success from failure.\"\nVERDICT: MISS\nWHY: The answer states that failure and empty are indistinguishable, but it doesn't conclude that no caller checks for it. Its caller table shows some callers do check, such as the speculative and MTP paths with `tokens.size() < 2`, and `batch_shared_prefix_len` returning 0 for empty sequences."
+}

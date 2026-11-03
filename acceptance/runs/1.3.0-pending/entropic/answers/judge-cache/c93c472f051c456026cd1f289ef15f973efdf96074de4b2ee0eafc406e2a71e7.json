@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists several `src/inference/` files and facade files that touch llama.cpp, but it never states the overall footprint of roughly a dozen files or contrasts it with a single wrapper. It also says \"The index holds seven llama-named source files,\" which is a different claim."
+}

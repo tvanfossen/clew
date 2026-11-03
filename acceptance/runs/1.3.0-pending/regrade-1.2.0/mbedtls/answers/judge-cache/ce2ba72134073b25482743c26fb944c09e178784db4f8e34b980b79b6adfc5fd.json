@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names `library` and `programs`. It also names `docs` and `tests`, but only as places that mention or use the macro. Every directory it ties to MBEDTLS_PRIVATE uses is listed below.\n\n- `library`: `library/common.h` defines the opt-out, and `library/ssl_ciphersuites_internal.h` uses the wrapper.\n- `programs`: `ssl_server2.c` and `ssl_client2.c` define the opt-out.\n- `tests`: `tests/suites/test_suite_x509write.function:763` uses `MBEDTLS_PRIVATE(...)`.\n- `include`: it defines the macro in `include/mbedtls/private_access.h`, and public headers declare members with it.\n- `docs`: the migration guide describes the wrapped form.\n\nITEMS:\nlibrary\nprograms\ntests\ninclude\ndocs\nEND"
+}

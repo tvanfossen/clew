@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Code axis: clew cannot fix it from inside the session. Restart the MCP client so it loads current code, then run `index(action='refresh', force=True)`.\nVERDICT: MISS\nWHY: The answer gives per-axis remedies (auto-refresh for data, restart for code), but it never says that the differing remedies are why one flag would not have been enough."
+}

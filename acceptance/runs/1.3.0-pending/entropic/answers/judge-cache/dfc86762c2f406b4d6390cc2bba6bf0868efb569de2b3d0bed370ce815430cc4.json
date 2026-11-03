@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `HealthMonitor::stop()` notifies and joins.\nVERDICT: MISS\nWHY: It says stop() notifies and joins, but it never mentions an atomic flag exchange, and the condition variable is only implied by \"notifies\". The answer also names no monitor shutdown mechanism beyond that one clause."
+}

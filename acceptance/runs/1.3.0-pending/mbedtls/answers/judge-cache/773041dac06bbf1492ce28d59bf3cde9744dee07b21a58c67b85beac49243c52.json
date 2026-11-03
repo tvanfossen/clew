@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: enable `MBEDTLS_THREADING_C` plus `MBEDTLS_THREADING_PTHREAD` (or supply `MBEDTLS_THREADING_ALT`)\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros to enable for threading support, and says everything is gated on MBEDTLS_THREADING_C."
+}

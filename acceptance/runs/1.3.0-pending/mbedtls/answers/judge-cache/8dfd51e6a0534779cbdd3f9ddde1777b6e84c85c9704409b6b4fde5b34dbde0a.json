@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library spawns no threads and that the only threads are in sample programs, but it never says the pthread example compiles to a stub main under the default config. It lists `ssl_pthread_server.c` as a spawn site, which implies the opposite."
+}

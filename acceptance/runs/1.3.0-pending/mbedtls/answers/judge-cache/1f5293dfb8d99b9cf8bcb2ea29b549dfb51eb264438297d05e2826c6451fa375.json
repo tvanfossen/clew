@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Verification is by testing rather than by the compiler. `tests/scripts/components-configuration-crypto.sh` defines `test_with_valgrind_constant_time`, which runs a small set of dedicated constant-time tests under Valgrind. The architecture docs also mention Valgrind memory poisoning for constant-flow testing.\nVERDICT: MISS\nWHY: The answer mentions Valgrind-based testing but never says it is a separate off-by-default facility (MSan/valgrind) or that it is explicitly not part of the library API."
+}

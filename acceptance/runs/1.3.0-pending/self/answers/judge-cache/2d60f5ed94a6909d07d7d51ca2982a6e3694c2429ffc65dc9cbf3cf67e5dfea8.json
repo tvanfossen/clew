@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only `name() { }` and `function name { }`. No parameter list, so `args` is empty.\nVERDICT: MISS\nWHY: The answer says there is no parameter list and args is empty, but it never says the language has no return or that this is why the fields are empty."
+}

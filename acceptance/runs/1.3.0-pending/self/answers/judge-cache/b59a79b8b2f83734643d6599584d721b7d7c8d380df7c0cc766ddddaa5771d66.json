@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `code` notice says the *data* is still read live, but the *logic* is old and a rebuild cannot fix it. This is the gh#348 lesson: a notice that said \"the data is unaffected\" was read as reassurance, and a rebuild then dropped a pipeline layer.\nVERDICT: HIT\nWHY: The answer says reads stay live (data read live) while a rebuild through a stale process runs old logic and dropped a pipeline layer, and writes are refused. It doesn't name \"query tools open the database per call\", but the read/write asymmetry is stated."
+}

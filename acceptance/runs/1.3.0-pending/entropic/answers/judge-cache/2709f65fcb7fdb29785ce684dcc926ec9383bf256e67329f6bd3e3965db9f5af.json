@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Observer in `ResponseGenerator::dispatch_batch_generate` (`response_generator.cpp:413`), which mirrors the engine's `interrupt_flag_` into the C-ABI `int` cancel flag. ... The comment says the C ABI is `int*`-only\n\nVERDICT: HIT\nWHY: The answer says the observer thread mirrors the atomic `interrupt_flag_` into a plain C-ABI `int` cancel flag, and that the C ABI is `int*`-only, so it names the bridging purpose and the ABI constraint."
+}

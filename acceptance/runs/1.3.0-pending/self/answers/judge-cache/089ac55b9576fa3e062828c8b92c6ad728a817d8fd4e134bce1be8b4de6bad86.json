@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes scope tiers and doxygen patterns but never says that within the scope a file only reaches the index if something can read it, and it names neither the parse-built front end for types doxygen can't read nor binary classification by extension. It only mentions `treescan.py` as an unsettled question."
+}

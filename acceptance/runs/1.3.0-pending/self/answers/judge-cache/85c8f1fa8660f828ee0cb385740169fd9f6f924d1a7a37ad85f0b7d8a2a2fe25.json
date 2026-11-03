@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Root: the repository itself, including nested git trees. Those are indexed and tagged later, not cut out.\nVERDICT: HIT\nWHY: The answer explicitly states nested git trees are included in the root and indexed and tagged later rather than excluded."
+}

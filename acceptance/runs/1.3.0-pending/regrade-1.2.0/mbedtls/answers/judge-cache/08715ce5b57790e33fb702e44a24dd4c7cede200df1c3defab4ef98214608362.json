@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no top-level directories as containing uses of MBEDTLS_PRIVATE. It names `include/mbedtls/` for the macro's definition and for the `aes.h` example, and `library/` and `programs/` for the `MBEDTLS_ALLOW_PRIVATE_ACCESS` defines. None of these are described as directories that contain uses of MBEDTLS_PRIVATE.\n\nITEMS:\nNONE\nEND"
+}

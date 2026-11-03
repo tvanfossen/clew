@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 33627,
+  "stop_reason": "end_turn",
+  "session_id": "4f2c81c1-a692-4b7c-ad16-217951747ac2",
+  "total_cost_usd": 0.010495520000000001,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 24671,
+    "cache_read_input_tokens": 255462,
+    "output_tokens": 6011,
+    "output_tokens_details": {
+      "thinking_tokens": 1805
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24671,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2312,
+        "cache_read_input_tokens": 56267,
+        "cache_creation_input_tokens": 1253,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1253
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 6011,
+      "cacheReadInputTokens": 255462,
+      "cacheCreationInputTokens": 24671,
+      "webSearchRequests": 0,
+      "costUSD": 0.010495520000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1805,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 24671,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Several background threads run alongside the caller. Most are joined and mutex-guarded, but the async `entropic.ask` worker is detached and can outlive its bridge.\n\n**Threads that run off the caller's thread**\n\n| Thread | Where | Purpose | How it's made safe |\n|---|---|---|---|\n| Batch cancel poller | `src/inference/interface_factory.cpp:244-262`, `src/core/response_generator.cpp:409-429`, `CancelFlagBridge` in `src/inference/inference_c_api.cpp:376-420` | Polls an `int*` cancel flag every 10 ms and raises an `std::atomic<bool>` for the backend | Stop flag is `std::atomic<bool>`, and the thread is joined before the function returns or in the destructor (RAII). |\n| MCP accept loop | `src/facade/external_bridge.cpp:796` | Accepts socket clients | `running_` is atomic; `stop()` closes the listen fd, then joins. |\n| Per-client serve threads | `src/facade/external_bridge.cpp:945` | One thread per connected client | Tracked in `client_threads_` under `client_threads_mutex_`; `stop()` calls `shutdown(fd)` to unblock reads, then joins. Finished threads are reaped. |\n| Async `entropic.ask` worker | `src/facade/external_bridge.cpp:1158-1222`, `.detach()` | Runs `entropic_run` in the background | Task state is under `tasks_mutex_`. The sentinel is written under the same lock. Logs are scoped with `HandleLogScope`. |\n| Health monitor | `src/mcp/health_monitor.cpp:92` | Polls MCP servers every 500 ms and reconnects | `watched_mutex_` guards the watch list, `event_mutex_` guards the queue, and a `wake_cv_` wakes it on stop. Callbacks run on the engine thread via `process_events()`, not on the monitor thread. |\n| Stdio stderr reader | `src/mcp/transport_stdio.cpp:164` | Forwards child stderr | `io_mutex_` guards pipe I/O. The `connected_` flag is atomic. |\n| SSE reader | `src/mcp/transport_sse.cpp:107` | Reads server-sent events | `pending_mutex_` guards pending responses. `connected_` and `running_` are atomic. |\n\n**What keeps it safe**\n\n- **Explicit locking:** each shared structure has a named mutex (`tasks_mutex_`, `client_threads_mutex_`, `subscribers_mutex_`, `watched_mutex_`, `event_mutex_`, `pending_mutex_`, `io_mutex_`). This matches the architecture rule of atomics for state queries and mutexes for transitions.\n- **Join-on-shutdown:** `ExternalBridge::stop()` and the health monitor's `stop()` join their threads. The bridge destructor calls `stop()`.\n- **Stale-callback guard:** `observer_gen_` and `attached_gen_` discard phase-observer callbacks that fire after detach.\n- **Engine-thread callbacks:** health events are queued and delivered on the engine thread, so consumer code never runs on the monitor thread.\n- **Per-run ownership:** each async run owns its own `result_json`, and the cancel path only raises the interrupt flag.\n\n**Gaps I found**\n\n1. **Detached async worker can outlive the bridge.** The lambda at `external_bridge.cpp:1158` captures `this` and is detached. Neither `stop()` nor the destructor waits for it. `cancel_inflight_async_tasks()` (around line 420) waits at most about 1 s and then gives up. If the bridge or the engine handle is destroyed while a worker is still in `entropic_run` or broadcasting, that is a use-after-free. Fix: track workers and join them in `stop()`, or hold a `shared_ptr` to the bridge state.\n2. **The cancel poller reads a caller-owned plain `int`.** Both pollers do `*cancel_flag != 0` on an `int*` that another thread writes, with no atomic or fence. That is a data race under the C++ memory model, even though it usually works on x86. The C ABI forces the `int*` shape, so the fix is to have the C side take an `std::atomic<int>*` or an atomic-compatible wrapper, or to document that the caller must write through an atomic.\n3. **Not verified:** I did not check whether the SSE and stdio reader threads are joined on every close path. The destructor and `close()` paths should be read to confirm.",
+  "ttft_ms": 2054,
+  "type": "result",
+  "duration_ms": 33951,
+  "uuid": "3a369965-c360-4d8e-86ce-98315340350b",
+  "ttft_stream_ms": 1613,
+  "time_to_request_ms": 110,
+  "first_content_frame_ms": 1613,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

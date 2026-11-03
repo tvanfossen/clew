@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Used in: `bignum.c`, `bignum_core.c`, `bignum_mod_raw.c`, `rsa.c` (PKCS#1 v1.5 unpadding), `cipher.c` and `psa_crypto_cipher.c` (padding checks), `base64.c`, `ssl_msg.c` (CBC record padding and MAC verification via `mbedtls_ct_hmac`), the TLS 1.2 and 1.3 handshake files, `nist_kw.c`, `ccm.c`, `gcm.c`, `cmac.c`, `chachapoly.c`, and some PSA driver wrappers.\nVERDICT: HIT\nWHY: The answer lists well over a dozen distinct modules using the primitives across bignum, RSA, cipher, TLS, AEAD and PSA, which conveys broad consumption rather than confinement to one or two."
+}

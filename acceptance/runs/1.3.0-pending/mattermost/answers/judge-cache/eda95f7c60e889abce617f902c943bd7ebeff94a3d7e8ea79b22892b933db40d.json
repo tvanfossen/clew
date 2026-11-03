@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"when `hasSearch` is true, it renders `<NavigationSearch {...searchProps} ... ref={ref} />` (lines 128\u2013137)\" and \"when `hasSearch` is false, `NavigationHeader` drops the ref entirely, because the `NavigationSearch` branch is skipped. A ref passed alongside `hasSearch={false}` would silently stay `null`.\"\nVERDICT: HIT\nWHY: The answer says NavigationHeader forwards its ref to NavigationSearch only when `hasSearch` is true, and that with `hasSearch` false the ref stays attached to nothing (`null`)."
+}

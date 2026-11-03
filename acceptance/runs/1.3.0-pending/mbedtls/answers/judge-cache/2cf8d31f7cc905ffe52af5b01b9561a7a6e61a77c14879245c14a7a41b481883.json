@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | The library's own sources (it's the internal \"utility macros\" header) | Library code reads and writes struct fields directly.\nVERDICT: HIT\nWHY: The answer states that library/common.h defines MBEDTLS_ALLOW_PRIVATE_ACCESS for the library's own sources, so library code uses plain member names. It hedges on include order, but the core fact is stated."
+}

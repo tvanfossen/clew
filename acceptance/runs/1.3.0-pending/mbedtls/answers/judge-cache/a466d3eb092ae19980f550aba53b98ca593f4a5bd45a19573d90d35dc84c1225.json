@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"So the runtime setter appears to exist only when `MBEDTLS_PLATFORM_MEMORY` is defined and the macro overrides are not. I inferred the exact `#if` expression from the gate list and did not read it.\"\nVERDICT: HIT\nWHY: The answer distinguishes the compile-time macro pair from the runtime function-pointer setter, and it says the setter exists only when the macro overrides are not defined, which is mutual exclusivity. It hedges that this is inferred."
+}

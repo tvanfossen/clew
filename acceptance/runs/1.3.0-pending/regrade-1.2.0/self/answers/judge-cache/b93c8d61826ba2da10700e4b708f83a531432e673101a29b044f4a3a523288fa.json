@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"One token, zero hits in read corpora, zero hits in corpora `search` does not read, file docs present | \\\"This IS a definitive empty result\u2026\\\" | Strong, but only about the indexed scope\" and \"One token, but rows exist in an unread corpus (e.g. a typedef) | \\\"NOT DEFINITIVE \u2014 this index HOLDS matching rows\u2026 ask by name with dossier\\\"\"\nVERDICT: MISS\nWHY: The answer gives definitive-for-scope and not-definitive grades, but it never names a third grade for an empty reply that is definitive for a reason other than absence. The \"NOT DEFINITIVE\" rows are all about uncertainty, not a definitive-but-not-absent grade."
+}

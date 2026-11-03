@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"When a channel is archived and the setting is off, the app kicks the user out if that channel is open, then removes the user from the channel. When the setting is on, it only records `delete_at`.\"\nVERDICT: HIT\nWHY: The answer states that with archived channels not viewable the user is removed (and kicked out if it's the current channel), and that when viewable the channel is kept with `delete_at` stamped, which marks it deleted."
+}

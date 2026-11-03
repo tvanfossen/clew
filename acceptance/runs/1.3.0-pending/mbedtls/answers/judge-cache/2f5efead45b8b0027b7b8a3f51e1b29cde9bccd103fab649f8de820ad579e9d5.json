@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Outside code that writes `ctx.nr` or `ctx->nr` fails to compile. The public header is still visible, but the fields are not usable by name.\"\nVERDICT: HIT\nWHY: The answer says opacity is enforced at compile time by renaming members (`private_##member`), with the struct and its fields still declared in the visible public header."
+}

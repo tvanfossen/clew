@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Lazy import:** `entropic/__init__.py` uses PEP 562 `__getattr__`, so `entropic install-engine` can run before the `.so` exists.\nVERDICT: HIT\nWHY: States that lazy import lets install-engine run before the .so is on disk, which is the substance of the item."
+}

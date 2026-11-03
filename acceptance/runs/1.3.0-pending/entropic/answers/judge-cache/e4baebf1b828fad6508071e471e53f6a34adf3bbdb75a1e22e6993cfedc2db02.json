@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppBackend` calls `llama_model_load_from_file`, `llama_init_from_model`, and the decode, sampler, and batch APIs. It holds `llama_model*`, `llama_context*`\nVERDICT: MISS\nWHY: The answer names llama_-prefixed functions and opaque pointer types, but it never identifies the seam as llama.cpp's C API or contrasts it with C++ classes or inheritance. It describes the integration only as a submodule linked into the `.so`."
+}

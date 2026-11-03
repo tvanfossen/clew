@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_client2.c:8` | The `ssl_client2` test/sample program. ... `programs/ssl/ssl_server2.c:8` | The `ssl_server2` test/sample program. ... in these translation units `MBEDTLS_PRIVATE(x)` is just `x`, so `ctx.x` compiles and reads or writes internal state directly.\nVERDICT: HIT\nWHY: The answer lists the example programs (ssl_client2, ssl_server2) as defining the opt-out themselves and notes they reach into internal state."
+}

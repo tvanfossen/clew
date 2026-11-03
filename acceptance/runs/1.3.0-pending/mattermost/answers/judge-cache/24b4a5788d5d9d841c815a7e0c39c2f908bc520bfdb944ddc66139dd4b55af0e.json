@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every handler's write goes through one method, `BaseDataOperator.batchRecords`, which wraps `database.write` and `writer.batch`. ... `ServerDataOperatorBase` (`server_data_operator/handlers/index.ts`) extends `BaseDataOperator`\nVERDICT: MISS\nWHY: The answer says handlers' writes funnel through the inherited `batchRecords`, but it never says the mixins are constrained to extend ServerDataOperatorBase, which is the stated reason. It also lists writes that bypass `batchRecords`."
+}

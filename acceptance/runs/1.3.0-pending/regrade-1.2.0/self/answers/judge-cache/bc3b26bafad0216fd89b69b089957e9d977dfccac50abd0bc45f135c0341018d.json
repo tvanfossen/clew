@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A section that is present but unusable is refused with exit 1 at build time (`cli._apply_scope`), rather than quietly falling back to the whole repository.\nVERDICT: MISS\nWHY: The answer says declared scope is preferred but states that an unusable declaration is refused, not that every failure to find one falls through to the whole repository. It only says a missing section falls through, so the \"every failure\" part is absent and in part contradicted."
+}

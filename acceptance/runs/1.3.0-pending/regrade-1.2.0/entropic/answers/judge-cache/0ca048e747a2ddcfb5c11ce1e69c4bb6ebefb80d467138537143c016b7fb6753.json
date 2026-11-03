@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It returns the negative of the required token count, which the code flips to a positive `n` (line 58). The code then allocates `n` slots and makes the second call\nVERDICT: HIT\nWHY: The answer states that the first call returns a negative required count and the code negates it to size the buffer for the second call."
+}

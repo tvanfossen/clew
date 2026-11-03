@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Code that writes `ctx.foo` fails to compile because no such field exists. The layout is unchanged. What changes is the name\"\nVERDICT: HIT\nWHY: The answer says the macro renames the member to `private_foo` so direct access fails at compile time, and that the layout is unchanged rather than hidden."
+}

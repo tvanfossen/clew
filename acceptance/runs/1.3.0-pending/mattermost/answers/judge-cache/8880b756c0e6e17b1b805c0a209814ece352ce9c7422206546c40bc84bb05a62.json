@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only `SearchScreen` shows a search field.\nVERDICT: HIT\nWHY: The table shows `search.tsx` passes `hasSearch={true}` while the others pass false or nothing, and the answer says only `SearchScreen` shows a search field."
+}

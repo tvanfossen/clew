@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer presents tiers 1, 2, 3, 5 in its table and mentions a tier 4 for ecosystem signatures, but it opens with \"there are four ways to state a build option\". It never names five precedence tiers as a set, and the tiers it lists carry numbers rather than names."
+}

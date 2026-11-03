@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: launders a value through an empty `asm volatile` or an XOR with a volatile zero\nVERDICT: MISS\nWHY: The answer mentions an XOR with a volatile zero, and `mbedtls_ct_zero` as a volatile zero in the C fallback. It never says the fallback is the same function (`mbedtls_ct_compiler_opaque`) used when assembly is unavailable, and it never names the extern volatile global. Its description of the fallback (\"no asm barrier\") is not the XOR-with-global mechanism the item requires."
+}

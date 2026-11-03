@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The worker is detached (`external_bridge.cpp:1222`) and captures `this`. ... If the bridge is destroyed while `entropic_run` is active, the worker dereferences a dead `this`.\"\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as detached (`.detach()` at 1222) and says it outlives its owner with no confirmed wait. It doesn't say it is the only detached thread, but the other threads are described as joined or reaped, so the item's substance is there."
+}

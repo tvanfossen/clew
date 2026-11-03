@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The pollers and observers read a flag every 10 ms and set an atomic. ... The C ABI only ever sees `int*`, so no `std::atomic` crosses the `.so` boundary.\" and \"Interrupt observer ... Mirrors the engine's interrupt flag into an `int` for the duration of one batch call\"\n\nVERDICT: HIT\nWHY: The answer says the observer/poller threads bridge an atomic flag to a plain `int*` because the C ABI can't carry `std::atomic`."
+}

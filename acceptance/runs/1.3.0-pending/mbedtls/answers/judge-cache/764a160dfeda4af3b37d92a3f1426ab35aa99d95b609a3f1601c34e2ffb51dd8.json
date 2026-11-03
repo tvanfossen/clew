@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Defined: `MBEDTLS_PRIVATE(m)` \u2192 `m`. The real field name is visible. / Not defined (default): `MBEDTLS_PRIVATE(m)` \u2192 `private_m`.\nVERDICT: HIT\nWHY: The answer states that code defining MBEDTLS_ALLOW_PRIVATE_ACCESS sees plain member names while the default consumer of the public headers sees `private_`-renamed ones."
+}

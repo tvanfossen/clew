@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque()` (`constant_time_impl.h:85-93`) hides a value from the compiler\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the primitive that hides values from the compiler and places it in constant_time_impl.h."
+}

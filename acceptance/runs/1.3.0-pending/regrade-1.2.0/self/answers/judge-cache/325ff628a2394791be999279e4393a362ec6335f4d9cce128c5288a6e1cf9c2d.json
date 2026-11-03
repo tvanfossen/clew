@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions `_withdraw_definitive` removing \"definitive, do not retry\" wording from empty results, but says nothing about fitting the annotation to a response budget by degrading its wording rather than dropping the warning."
+}

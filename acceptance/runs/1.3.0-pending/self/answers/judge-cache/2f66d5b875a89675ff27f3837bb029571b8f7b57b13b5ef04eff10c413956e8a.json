@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A repo's own Doxyfile still supplies ALIASES and PREDEFINED, but its INPUT is replaced by the chosen roots.\nVERDICT: MISS\nWHY: It says the Doxyfile's INPUT is replaced by the chosen roots, but it never explains why: the documented-subset versus whole-tree asymmetry between repos that ship a Doxyfile and repos that don't."
+}

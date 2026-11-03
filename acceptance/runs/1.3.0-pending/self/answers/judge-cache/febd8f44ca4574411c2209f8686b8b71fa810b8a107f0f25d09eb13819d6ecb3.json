@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"No args, since shell passes arguments as `$1`.\"\nVERDICT: MISS\nWHY: The answer says shell functions have no args but never says they have no return recorded or that the language lacks both; it gives a partial, different rationale."
+}

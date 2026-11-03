@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\ninclude/mbedtls/*.h\nscripts/generate_errors.pl\ninclude/mbedtls/aes.h\nlibrary/Makefile\nlibrary/CMakeLists.txt\nEND"
+}

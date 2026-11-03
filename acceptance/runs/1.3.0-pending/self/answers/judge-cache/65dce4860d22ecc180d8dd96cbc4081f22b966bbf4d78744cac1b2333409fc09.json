@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Resolution order** (`clew/scope.py`, `derive_scope` at line 639)\"\nVERDICT: HIT\nWHY: The answer names `derive_scope` in `clew/scope.py` as where the scope decision is resolved, and it walks through the resolution order inside it."
+}

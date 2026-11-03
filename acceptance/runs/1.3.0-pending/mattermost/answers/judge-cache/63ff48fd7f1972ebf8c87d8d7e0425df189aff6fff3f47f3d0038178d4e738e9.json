@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`handleReactionAddedToPostEvent` wraps everything in `try { \u2026 } catch { // Do nothing }`\" and \"The same error policy applies: the outer `catch` is empty.\"\nVERDICT: HIT\nWHY: The answer says both the add and remove handlers use an empty outer catch, and that a failed write leaves no trace beyond a `logWarning` inside `batchRecords`."
+}

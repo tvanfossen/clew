@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` not defined (the shipped default; `mbedtls_config.h:208` is `//#define`)\nVERDICT: HIT\nWHY: The answer says the allocator substitution is gated by MBEDTLS_PLATFORM_MEMORY and that it is commented out (`//#define`) in the shipped mbedtls_config.h."
+}

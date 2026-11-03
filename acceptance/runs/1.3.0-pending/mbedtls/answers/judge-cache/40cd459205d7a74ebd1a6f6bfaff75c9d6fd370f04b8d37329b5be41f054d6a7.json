@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says how many sites use the macro (many hundreds) or that they sit mostly in public headers; it only counts the ~129 library files that opt in."
+}

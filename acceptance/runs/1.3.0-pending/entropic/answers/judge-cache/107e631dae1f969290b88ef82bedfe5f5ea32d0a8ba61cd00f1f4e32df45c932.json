@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: First call passes a null buffer and size 0. The code's comment says a negative return is the required token count, so the call is asking llama.cpp how big the output must be. The code negates it (`n = -n`).\nVERDICT: HIT\nWHY: The answer states the first call returns a negative required count and that the code negates it (`n = -n`) to size the vector for the second call."
+}

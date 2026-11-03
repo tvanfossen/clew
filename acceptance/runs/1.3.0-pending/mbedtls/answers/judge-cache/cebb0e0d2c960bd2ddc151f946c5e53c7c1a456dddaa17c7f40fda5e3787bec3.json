@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default, the field is renamed to `private_<name>`. Code that writes `ctx->md_info` fails to compile, while `ctx->MBEDTLS_PRIVATE(md_info)` still works inside the library. It is a naming gate, not a real access control.\nVERDICT: HIT\nWHY: The answer states the compile-time enforcement works by renaming the member, not real access control. It never says the layout stays visible and sized, but \"naming gate, not a real access control\" carries the substance of the item."
+}

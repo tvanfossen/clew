@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its C API is used from one directory, `src/inference/`, and does not appear in entropic's public headers.\nVERDICT: MISS\nWHY: The answer says the dependency is contained in one directory with a single backend class and its satellites, which is the opposite of reaching roughly a dozen files of entropic's own source."
+}

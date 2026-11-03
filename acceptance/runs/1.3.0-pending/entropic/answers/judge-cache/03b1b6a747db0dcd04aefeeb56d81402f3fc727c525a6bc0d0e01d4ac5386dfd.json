@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::accept_loop` | `external_bridge.cpp:796` | Polls the listen socket (500 ms timeout), checks peer uid, and spawns one serve thread per client (`:945`)\nVERDICT: HIT\nWHY: The answer states the accept loop thread spawns one serve thread per client, which is the two-level structure."
+}

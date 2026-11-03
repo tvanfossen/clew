@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque()` is an empty `asm volatile` barrier when assembly is available.\nVERDICT: MISS\nWHY: The answer says the opaque barrier is an empty `asm volatile` statement, but it doesn't mention the input-output register operand. It also doesn't say that the statement emits no instruction. It describes the barrier's purpose only as hiding values from the optimiser, so it states part of the item, not all of it."
+}

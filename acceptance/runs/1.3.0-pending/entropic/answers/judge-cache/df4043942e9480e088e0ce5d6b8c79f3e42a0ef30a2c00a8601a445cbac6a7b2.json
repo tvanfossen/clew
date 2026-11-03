@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppTokenizer::tokenize` calls `llama_tokenize` at lines 55 and 61: 1. First call passes a null buffer and size 0... It allocates a vector of that size and calls `llama_tokenize` again with the buffer.\nVERDICT: HIT\nWHY: The answer names src/inference/llama_cpp_tokenizer.cpp and describes the size-probe then fill two-call pattern in tokenize."
+}

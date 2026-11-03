@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: else is_explicitly_allowed (allow list) \u2192 approved\nVERDICT: MISS\nWHY: The answer places the allow list inside check_approval and says it \"only skips a prompt,\" but it never states that the allow list is consulted only from `ToolExecutor::check_approval` in a different file from the deny check. It also never says outright that the list does not grant execution."
+}

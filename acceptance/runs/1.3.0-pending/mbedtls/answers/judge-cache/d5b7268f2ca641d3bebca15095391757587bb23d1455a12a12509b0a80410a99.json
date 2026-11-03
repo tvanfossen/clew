@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Dynamic checks are opt-in and off by default: `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN` (clang MSan) and `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` (memcheck). They are commented out in `mbedtls_config.h:2123` and `:2142`\nVERDICT: MISS\nWHY: The answer says the MSan/valgrind checks are opt-in and off by default, but it never says the facility is explicitly not part of the library API, so one atomic part of the item is missing."
+}

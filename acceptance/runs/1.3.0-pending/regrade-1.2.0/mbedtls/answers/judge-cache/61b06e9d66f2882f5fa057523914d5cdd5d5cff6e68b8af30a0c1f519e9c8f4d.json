@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the facility reaches only code that opts in, \"mostly bignum, PKCS#7 padding and MAC/tag comparison.\" It names no module count and does not convey broad consumption across about twenty modules. It says the full consumer set can't be enumerated."
+}

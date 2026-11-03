@@ -1,0 +1,40 @@
+{
+  "stem": "Q4_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "skills": "",
+  "answered_by": "claude-haiku-5-5",
+  "seconds": 39.48031689901836,
+  "input_tokens": 14,
+  "output_tokens": 7234,
+  "cache_read_tokens": 282596,
+  "cache_creation_tokens": 44032,
+  "cost_usd": 0.01525076,
+  "result_bytes": 3848,
+  "turns": 10,
+  "tool_calls": 9,
+  "non_index_tool_calls": 9,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/1.2.0-pending/entropic/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nWhich parts of entropic run on a thread other than the caller's, and what keeps that safe?\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "tvanfossen/entropic",
+    "question_id": "Q4",
+    "arm": "baseline",
+    "model": "claude-haiku-5-5",
+    "replicate": 1,
+    "order": 0
+  }
+}

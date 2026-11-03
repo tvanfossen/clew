@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never concludes that mbedtls_ct_memcmp is the only public API function with the other primitives internal; it only notes that the PSA doc says `constant_time.h` remains the only tool."
+}

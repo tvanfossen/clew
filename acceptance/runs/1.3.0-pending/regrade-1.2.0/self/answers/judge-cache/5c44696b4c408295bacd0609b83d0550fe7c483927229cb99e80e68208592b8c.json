@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes scope/note/not_searched fields and confidence tiers by query type, but never says the strong wording is earned per call by querying which corpora were not read rather than tied to a result shape."
+}

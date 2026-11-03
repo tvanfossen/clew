@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The interface at line 23 re-declares the same names so TypeScript knows the instance has those methods.\nVERDICT: MISS\nWHY: The answer says an interface re-declares the names, and that each handler pairs with an exported `XHandlerMix` interface. It never says the same-named interface extends each `...Mix` type, so the specific mechanism is absent."
+}

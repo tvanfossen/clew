@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 28024,
+  "stop_reason": "end_turn",
+  "session_id": "67757d5e-2275-4b93-bebb-10dec1e92c83",
+  "total_cost_usd": 0.01317832,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 37942,
+    "cache_read_input_tokens": 338652,
+    "output_tokens": 4404,
+    "output_tokens_details": {
+      "thinking_tokens": 1661
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37942,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2138,
+        "cache_read_input_tokens": 70817,
+        "cache_creation_input_tokens": 3969,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3969
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 4404,
+      "cacheReadInputTokens": 338652,
+      "cacheCreationInputTokens": 37942,
+      "webSearchRequests": 0,
+      "costUSD": 0.01317832,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1661,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 37942,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** llama.cpp is a git submodule under `extern/`, built into the inference library, and it is used only inside `src/inference/`. The engine's public and interface layers never see llama.cpp types. The index can't show `#include` or link lines directly, so the build wiring below comes from CMake and architecture docs, not from parsed edges.\n\n**How it's brought in**\n\n- `extern/llama.cpp` is a submodule. `extern/CMakeLists.txt` says it is fetched and pinned, and its comment says it is \"NOT built in v1.8.0.\" That comment is stale: release notes say the pin moved to b9592 in v2.9.0, so treat it as history.\n- `src/inference/CMakeLists.txt` says the inference library links llama.cpp, nlohmann/json and spdlog.\n- `docs/architecture-cpp.md` lists `librentropic-inference-{cuda,vulkan,cpu}.so` as linking `llama.cpp` and implementing `IInferenceBackend`. So the backend is a compile-time variant (CUDA, Vulkan or CPU), which matches the design rules in `.claude/CLAUDE.md`.\n- `llama_cpp_backend.cpp` header comment says it is pinned to llama.cpp submodule b8420. That also looks stale against the v2.9.0 bump.\n\n**Where it reaches in entropic's own source**\n\n| Layer | Llama.cpp contact |\n|---|---|\n| `include/entropic/inference/` (`backend.h`, `sampler.h`, `tokenizer.h`) | Abstract seams. Per the design rules, no third-party headers in interface contracts. I did not open these headers to confirm that. |\n| `src/inference/llama_cpp_backend.{h,cpp}` | `LlamaCppBackend`, which is the concrete llama.cpp implementation. It owns `llama_model`, `llama_context`, the mtmd context and the vocab. It also calls the vendored `common_chat_*` and `common_speculative_*` helpers, the MTP head and speculative decode, and the state save/restore calls. |\n| `src/inference/llama_cpp_sampler.{h,cpp}` | `LlamaCppSampler` and `LlamaCppSamplerFactory`, which wrap a `llama_sampler` chain. |\n| `src/inference/llama_cpp_tokenizer.{h,cpp}` | `LlamaCppTokenizer`, which forwards to `llama_tokenize` and `llama_token_to_piece` and borrows the vocab. |\n| `src/inference/image_preprocessor.cpp` | Uses stb_image, which is vendored with llama.cpp. |\n| `include/entropic/inference/inference_c_api.cpp` | `entropic_create_inference_backend`, the factory that returns the abstract backend across the C boundary. |\n| Tests | `adapter_manager_test.cpp` mocks the llama LoRA functions by link-time substitution, so llama.cpp does not need to be linked for that test. |\n\n**Key points**\n\n- The reach is wide inside `src/inference/`, which is roughly 135 symbols in the backend header alone, and it stops there. The C API hides llama types behind an opaque handle, as the design rules require.\n- `LlamaCppBackend` exposes `llama_model_ptr()` and `llama_context_ptr()` as public methods. These are internal to the inference `.so`, not part of the C ABI.\n- The index has no callers of `LlamaCppBackend` outside `src/inference/`. I could not confirm which engine-level code selects it, beyond the factory.\n\n**Not settled by the index:** the exact `target_link_libraries` and `#include` lines, the current pin, and whether any other module includes llama headers directly. Checking `src/inference/CMakeLists.txt`, `extern/CMakeLists.txt` and `.gitmodules` would settle them.",
+  "ttft_ms": 2694,
+  "type": "result",
+  "duration_ms": 30554,
+  "uuid": "9b5445c3-b70c-4385-b594-ec33877a2512",
+  "ttft_stream_ms": 2403,
+  "time_to_request_ms": 96,
+  "first_content_frame_ms": 2403,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

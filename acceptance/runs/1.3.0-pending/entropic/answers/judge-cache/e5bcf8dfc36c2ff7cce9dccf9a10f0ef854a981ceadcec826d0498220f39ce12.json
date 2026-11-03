@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is plain `ctypes` over `librentropic.so`, with no C++ crossing.\nVERDICT: HIT\nWHY: The answer names ctypes over librentropic.so (via ctypes.CDLL) as the mechanism, and its described layers show only generated ctypes bindings with no compiled extension module."
+}

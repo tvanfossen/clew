@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp is a vendored git submodule at `extern/llama.cpp`, pinned by gitlink to commit `20a04b22` (`.gitmodules`). It is not a FetchContent dependency like spdlog, ryml, json or httplib.\nVERDICT: HIT\nWHY: The answer states llama.cpp is a git submodule at extern/llama.cpp, pinned via gitlink and .gitmodules, and contrasts it with FetchContent dependencies. The word \"vendored\" is loose, but the submodule mechanism is clearly stated."
+}

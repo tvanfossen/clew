@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Callers of `LlamaCppBackend::tokenize`; \"LlamaCppBackend::tokenize     returns {} (passes through)\"; \"The `tokenize` contract ... says 'empty on failure or empty input.'\"\nVERDICT: MISS\nWHY: The answer says failure yields an empty vector, but it never says the same empty value is returned when no tokenizer is wired at all."
+}

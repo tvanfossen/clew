@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: MBEDTLS_PLATFORM_MEMORY off (default)\n     \u2514\u2500 macro \u2192 calloc                                  platform.h:167\n\nVERDICT: HIT\nWHY: The answer's diagram says that in the default build (MEMORY off), mbedtls_calloc is a macro expanding directly to calloc, and it says mbedtls_free \"follows the same pattern\". It doesn't spell out \"no indirection\" for the default build, but the diagram makes it clear."
+}

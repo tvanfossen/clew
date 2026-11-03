@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes build and linking and notes llama types leaking as forward-declared pointers (`struct llama_context;`), but it never identifies the seam as llama.cpp's C API of `llama_`-prefixed free functions rather than C++ classes."
+}

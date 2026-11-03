@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"a repo's own `index_scope:` declaration is the only thing that decides the scope. If nothing is declared, clew indexes the whole repository\"\nVERDICT: MISS\nWHY: The answer says that a declared scope wins and that an absent declaration falls back to the whole repo. It also says a rejected declaration (a non-mapping section, an unknown key, no surviving root) falls back to the whole-repo tier with a WARNING. But it never states the general point that every failure to find a declared scope falls through to whole-repo indexing, so the item is only partly covered."
+}

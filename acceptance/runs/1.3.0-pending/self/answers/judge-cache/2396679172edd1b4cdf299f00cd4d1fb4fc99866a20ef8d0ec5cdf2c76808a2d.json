@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: There is no third \"read the Doxyfile\" tier any more (gh#333). A Doxyfile's `INPUT` is a documentation target, not a reasoning boundary, so `cli.py:_fold_scope_into_args` sets `replace_input`.\nVERDICT: MISS\nWHY: The answer says Doxyfile INPUT is not used and gives a \"documentation target, not reasoning boundary\" reason, but it omits the required rationale that a repo shipping a Doxyfile would get only its documented subset while a repo with none gets its whole tree."
+}

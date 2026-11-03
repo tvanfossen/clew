@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says `createPost` returns `{data: true}` or otherwise reports success to its caller on failure. It only describes the failed flag stored on the post. It says `retryFailedPost` returns `{error}`, which isn't the same fact."
+}

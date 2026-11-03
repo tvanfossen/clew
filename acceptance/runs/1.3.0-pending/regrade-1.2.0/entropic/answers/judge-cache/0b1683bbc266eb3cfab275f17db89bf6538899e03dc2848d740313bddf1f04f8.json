@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `entropic._bindings       generated from include/entropic/entropic.h by scripts/gen_bindings.py (pre-commit checks drift)`\nVERDICT: HIT\nWHY: The answer explicitly says the bindings are generated from the C header by scripts/gen_bindings.py."
+}

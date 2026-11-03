@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `schema` | Index was stamped by a newer build than this server expects | Nothing the consumer can do. A rebuild re-stamps the same newer version.\nVERDICT: HIT\nWHY: The answer states the schema axis occurs when the index is newer than the server and that rebuilding re-stamps the same newer version, so nothing clears it."
+}

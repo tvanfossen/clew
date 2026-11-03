@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: queryReaction(database, emoji_name, post_id, user_id).fetch()   [queries/servers/reaction.ts] \u2514\u2500 if found: database.write(() => reaction[0].destroyPermanently())\nVERDICT: HIT\nWHY: The answer states that the removed path queries the reaction and destroys it with a direct database.write, never going through the operator's handleReactions."
+}

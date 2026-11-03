@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: So a zero from `search` licenses \"no indexed code symbol by this name.\" It does not license \"the repository does not contain it.\"\nVERDICT: HIT\nWHY: The answer distinguishes \"absent from the indexed corpus\" from \"absent from the repository\", which is the nothing-exists versus did-not-look-there distinction. It also notes that token_hits identifies the token that emptied the search. It does not say a previous version treated a single non-matching token as proof of absence, but it does say a bare \"not found\" must not be read as a definitive negative."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Bits in `0xFF80` are the high-level module, and bits in `~0xFF80` are the low-level code.\" and \"If both parts are present, they are joined as `\"HIGH : LOW\"`.\"\nVERDICT: HIT\nWHY: The answer states the code splits into high-level module and low-level parts and that mbedtls_strerror joins both when both are present."
+}

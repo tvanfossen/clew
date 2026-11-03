@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In the library: nothing spawns a thread. The thread layer's only library-side lock is the wrapper `threading_mutex_lock_pthread` (`library/threading.c:75`), which is not reached under the default config.\nVERDICT: HIT\nWHY: The answer says nothing in the library spawns a thread, and it also says library/threading.c supplies the mutex wrapper and globals that threaded callers use (PSA, entropy, DRBG, heap)."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_callers_of` shows the strongest confidence per (caller, callee) pair across layers, so a row may hide a weaker layer that also found the edge.\nVERDICT: MISS\nWHY: The answer mentions multiple layers finding the same edge, but never states that call_edges stores one row per layer, so the same logical edge is stored twice."
+}

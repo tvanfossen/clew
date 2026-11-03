@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | Caller \u2192 engine, buffers the engine will free (e.g. hook `modified_json`) | Must be allocated with `entropic_alloc()`, not `malloc` or Python memory | Engine, with `entropic_free()` |\nVERDICT: MISS\nWHY: The answer states the rule but never shows where the Python side allocates with entropic_alloc, which the item requires."
+}

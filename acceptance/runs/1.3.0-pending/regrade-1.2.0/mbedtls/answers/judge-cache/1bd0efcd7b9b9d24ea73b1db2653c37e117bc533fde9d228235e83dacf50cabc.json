@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every struct member is declared as `MBEDTLS_PRIVATE(foo)`, so by default the field is really named `private_foo`. Code that writes `ctx.foo` fails to compile because no such field exists.\nVERDICT: MISS\nWHY: The answer describes the two macro branches and which code opts out, but it never states that a consumer with the define sees plain names while an ordinary public-header consumer sees the renamed `private_` ones; it only says opted-out code gets plain names."
+}

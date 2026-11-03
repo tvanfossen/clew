@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unknown top-level section is refused (`DeclarationError`), because a misspelled section would otherwise be ignored while the build reports it was honoured.\nVERDICT: HIT\nWHY: The answer states that unknown sections are refused, and that otherwise they'd be ignored while the build reports the declaration was honoured. It doesn't say the refusal names the section against the allowed set, but the refuse-versus-ignore mechanism and the reason are both there."
+}

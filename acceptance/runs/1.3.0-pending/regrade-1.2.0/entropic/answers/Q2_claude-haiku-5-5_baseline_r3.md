@@ -1,0 +1,16 @@
+**How it's brought in:** llama.cpp is a git submodule, not a FetchContent dependency. `.gitmodules` maps `extern/llama.cpp` to `ggml-org/llama.cpp`, and the superproject pins it at commit `20a04b2`. `extern/CMakeLists.txt` then does `add_subdirectory(llama.cpp EXCLUDE_FROM_ALL)` and a second `add_subdirectory(llama.cpp/tools/mtmd ...)` for libmtmd. Those settings force `LLAMA_BUILD_COMMON=ON` and `LLAMA_BUILD_TOOLS=OFF` (so only the library targets are built, not the CLI or server), and set `GGML_CUDA` when `ENTROPIC_HAS_CUDA` is on. The other dependencies (spdlog, ryml, Catch2, nlohmann/json, cpp-httplib) come in via FetchContent.
+
+**Important caveat:** in this checkout `extern/llama.cpp/` is an empty directory. The submodule is registered but was never initialised, so the configure step would fail until someone runs `git submodule update --init`. I did not build anything to confirm this.
+
+**Link model:** llama, mtmd and llama-common are static libraries that get absorbed into `librentropic.so` through `$<LINK_ONLY:...>` in `src/facade/CMakeLists.txt`. Consumers never link llama directly. The inference library `entropic-inference-{cpu,cuda,vulkan}` links them PRIVATE and exposes only `entropic-types` and `llama-common` as PUBLIC.
+
+**How far into entropic's source it reaches:**
+
+- **Deep, but contained, in `src/inference/`.** Direct llama/ggml/common/mtmd calls are confined to about 20 files. The main ones are `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler`, `llama_cpp_tokenizer`, `orchestrator`, `adapter_manager`, `grammar_registry`, `speculative_compat`, `tool_call_markers.h`, `mtp_envelope.h`, and `prompt_cache.h`. `llama_cpp_backend.cpp` includes `common.h`, `chat.h`, `sampling.h`, `speculative.h`, `mtmd.h` and `mtmd-helper.h`.
+- **Facade.** `src/facade/entropic.cpp` only touches `LlamaCppBackend` via `dynamic_cast`, to reach `llama_model_ptr()` and `llama_context_ptr()` for adapter load, unload and swap. It does not include `llama.h` directly.
+- **Core and CLI.** `src/core/engine.cpp` and `response_generator.cpp` mention llama and `common_chat` only in comments. No llama types or calls appear there.
+- **Public headers leak some names.** Under `include/entropic/`, `inference/orchestrator.h`, `inference/speculative_compat.h` and `inference/sampler.h` forward-declare `struct llama_model` / `llama_context` and use them in signatures. `interfaces/i_inference_backend.h` and `entropic.h` mention llama only in docs and log-redirect text. This conflicts with the design rule that interfaces stay free of third-party headers. The rule is stated in `.claude/CLAUDE.md`, not in this code.
+- **Tests** include `llama.h` and `chat.h` directly in about 8 files under `tests/unit/inference` and `tests/model`.
+- **Python** has no llama dependency. It wraps only `entropic.h` through `entropic_native`.
+
+**Stale comments to know about:** `extern/CMakeLists.txt` says "llama.cpp is a submodule but NOT built in v1.8.0" and "Submodule pinned at b8420". Both are out of date, since it is built now and the pin is `20a04b2`. `speculative_compat.h` cites `253ba110b` as the pinned commit, which is also stale.

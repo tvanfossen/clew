@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `code` | ... | Restarting the MCP client only; `data` ... Cleared by | Rebuild; \"a rebuild cannot fix it\"; \"`force=True` does not get past it. The caller is told to restart the client and then run `index(action='refresh', force=True)`.\"\nVERDICT: MISS\nWHY: The answer says that data needs a rebuild and code needs a client restart, but it never says this difference is why one flag would not have been enough."
+}

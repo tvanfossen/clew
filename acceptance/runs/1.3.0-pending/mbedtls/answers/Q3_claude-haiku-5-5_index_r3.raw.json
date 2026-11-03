@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 21347,
+  "stop_reason": "end_turn",
+  "session_id": "2f063dbe-0007-4fec-ac48-37070f5dbbb0",
+  "total_cost_usd": 0.00975834,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 25530,
+    "cache_read_input_tokens": 253184,
+    "output_tokens": 4239,
+    "output_tokens_details": {
+      "thinking_tokens": 1222
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 25530,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2248,
+        "cache_read_input_tokens": 62131,
+        "cache_creation_input_tokens": 3153,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3153
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4239,
+      "cacheReadInputTokens": 253184,
+      "cacheCreationInputTokens": 25530,
+      "webSearchRequests": 0,
+      "costUSD": 0.00975834,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1222,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 25530,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** every allocation in the library goes through `mbedtls_calloc()` / `mbedtls_free()`. What those two resolve to depends on the build configuration. With the shipped defaults, they are the libc `calloc` and `free`.\n\n**What gets called**\n\nThe chain depends on `MBEDTLS_PLATFORM_MEMORY` and the two `MBEDTLS_PLATFORM_{CALLOC,FREE}_MACRO` options (`include/mbedtls/platform.h:138-168`):\n\n| Config | `mbedtls_calloc` resolves to |\n|---|---|\n| `MBEDTLS_PLATFORM_MEMORY` off (shipped default, `mbedtls_config.h:208` commented out) | the libc `calloc`, by macro (`platform.h:166-167`) |\n| `MBEDTLS_PLATFORM_MEMORY` on, both `*_CALLOC_MACRO` and `*_FREE_MACRO` defined | your macro, substituted at compile time (`platform.h:143-144`) |\n| `MBEDTLS_PLATFORM_MEMORY` on, macros not both defined | a real function `mbedtls_calloc()` in `library/platform.c:47-50`, which calls through a function pointer |\n\nIn the third case the pointer starts as `MBEDTLS_PLATFORM_STD_CALLOC`. If that is not defined, it is the stub `platform_calloc_uninit`, which always returns NULL (`platform.c:24-33, 44`). The same applies to free, where the stub does nothing. So an unconfigured dynamic build fails every allocation rather than silently using libc.\n\n**How a project substitutes its allocator**\n\nThree routes, in order of how early they bind:\n\n1. **Compile-time macros.** Define `MBEDTLS_PLATFORM_MEMORY`, `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` in the user config. The macros must be defined together; the header comment at `mbedtls_config.h:197-198` says so. Calls are replaced at compile time with no runtime indirection.\n2. **Runtime registration.** Define only `MBEDTLS_PLATFORM_MEMORY`, then call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` before any library call. It stores the two pointers in `platform.c:57-63`. The setter takes no lock, so it must run before threads start.\n3. **Default function, replaced at build time.** Define `MBEDTLS_PLATFORM_STD_CALLOC` / `MBEDTLS_PLATFORM_STD_FREE` in config, and the dynamic path uses them as the initial values (`mbedtls_config.h:4113-4134`).\n\nThe contract for a replacement is documented in `mbedtls_config.h:4113-4133`: calloc must zero memory and return NULL on failure; free must accept NULL; a non-NULL argument must be a pointer your calloc returned and not yet freed.\n\n**What the library does with the facility**\n\n- **Allocation sites.** The library never calls `malloc`, `calloc` or `free` directly. A grep of `library/` finds only comments and one debug-only `free(hdr->trace)` in `memory_buffer_alloc.c:404`, which frees the `backtrace_symbols` output. Every ctx allocator, ASN.1 and X.509 parser, bignum growth, PSA slot and key buffer, and SSL session/handshake object goes through `mbedtls_calloc`. The dossier's caller list for `mbedtls_calloc` runs to over 100 functions.\n- **Its own allocator.** The library ships `library/memory_buffer_alloc.c`, a fixed-buffer heap. `mbedtls_memory_buffer_alloc_init(buf, len)` (`memory_buffer_alloc.c:566-600`) calls `mbedtls_platform_set_calloc_free()` with its own functions. With `MBEDTLS_THREADING_C` it installs mutex-wrapped versions (`buffer_alloc_calloc_mutexed`, lines 541-552). The buffer is then the only heap. Because the setter is global, calling this at init replaces whatever allocator was there before.\n- **Self-test.** `mbedtls_memory_buffer_alloc_self_test` calls `mbedtls_calloc` directly, so it exercises whatever allocator is installed.\n\n**Points to watch when substituting**\n\n- Do not call `mbedtls_platform_set_calloc_free` after threads start or after the first allocation; the library reads the pointers without synchronization.\n- `mbedtls_memory_buffer_alloc_init` and the setter overwrite the same global, so use one or the other, not both.\n- With the compile-time macros set, `mbedtls_platform_set_calloc_free` is compiled out (`platform.c:20-22`); calling it then is a link error, not a silent no-op.\n\nI did not build or run any of these configurations, so the behaviour above is from reading the code and the index's dossier output.",
+  "ttft_ms": 1735,
+  "type": "result",
+  "duration_ms": 22566,
+  "uuid": "f6f40f16-ee48-453b-9ba4-b6e8e5cf50ff",
+  "ttft_stream_ms": 1303,
+  "time_to_request_ms": 98,
+  "first_content_frame_ms": 1304,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

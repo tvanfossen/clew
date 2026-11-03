@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says ServerDataOperator is an interface extending 14 mixins and that handlers are factories returning subclasses, but it never mentions the `mix(ServerDataOperatorBase).with(...)` helper."
+}

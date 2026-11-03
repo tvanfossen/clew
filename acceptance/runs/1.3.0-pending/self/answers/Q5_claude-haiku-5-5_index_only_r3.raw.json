@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 24369,
+  "stop_reason": "end_turn",
+  "session_id": "6c8c481d-9bad-4261-9a9f-36151a60f85f",
+  "total_cost_usd": 0.01036155,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 27024,
+    "cache_read_input_tokens": 282455,
+    "output_tokens": 4262,
+    "output_tokens_details": {
+      "thinking_tokens": 2096
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 27024,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2295,
+        "cache_read_input_tokens": 61501,
+        "cache_creation_input_tokens": 3654,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3654
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4262,
+      "cacheReadInputTokens": 282455,
+      "cacheCreationInputTokens": 27024,
+      "webSearchRequests": 0,
+      "costUSD": 0.01036155,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2096,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 27024,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Clew has five ways to set indexing conventions, and when they disagree the rule is simple: a stated value replaces the guesses for that option, but facts never get dropped. I answered from the index's docstrings and tests, not the source, and one entry point's file changed after the index was built, so verify details before relying on them.\n\n**The ways to say so, from strongest to weakest**\n\n| Tier | Source | Combines by |\n|---|---|---|\n| 1 | CLI flag, or the `options` argument for an embedding caller (MCP and API) | Replaces the stated layer |\n| 2 | `.clew.yaml` at the repo root | Replaces the stated layer |\n| 3 | Facts the repo already wrote: Doxyfile `ALIASES`/`PREDEFINED`, generator manifests, language or platform entry points | Accumulates |\n| 4 | Known-ecosystem signatures (e.g. UDM, ingot) | Accumulates |\n| 5 | Built-in name-pattern heuristics | Replaced by any stated tier |\n\n- `.clew.yaml` sections are named after the option they set (`shared_key_patterns`, `thread_patterns`, `mqtt_dispatch`, `index_scope`, `doxyfile`, `kconfig`, `preprocessor`, and others). Each section holds the same content as the standalone manifest file.\n- Unknown top-level keys are refused by name. Keys with an experimental prefix are tolerated and ignored, so an older clew doesn't hard-fail on them.\n- `guard:` in the same file configures the doxygen gate, not the index.\n- The Doxyfile's `INPUT` is no longer a scope tier (gh#333). Its `ALIASES` and `PREDEFINED` are still used, but its `INPUT` is replaced.\n\n**When they disagree**\n\n- **Flag vs declaration, same option:** the flag wins outright and the declaration is ignored for that option. The declaration is the standing statement; the flag is a deliberate one-off.\n- **An empty flag is a withdrawal, not a statement:** `[]` or an empty inline document falls through to the declaration, then to the guesses. This lets an operator undo a recorded flag without deleting the database.\n- **Declaration vs heuristic:** the declaration displaces the guesses.\n- **Facts and ecosystem layers:** these accumulate under any stated tier. Tiers 3 and 4 behave identically, so arguing which one a value belongs to changes the label but not the result. Flagging `--entry-patterns` used to drop `main`; under this rule `main` survives any stated tier.\n- **Restated facts:** they are not duplicated.\n- **Scope:** a declared `index_scope` is the only scope decision. If it is rejected, internal callers log a warning and fall back to whole-repo scope. The CLI and MCP refresh path check first and refuse instead.\n- **Malformed `.clew.yaml`:** it is ignored entirely and built-in defaults apply. The build reports that the file was ignored.\n- **Recording:** the winning tier is stored in `build_meta`. Only tier-1 statements are replayed on refresh, and a withdrawn statement is not replayed from a stale row.\n\nI did not confirm how the CLI resolves a scope flag against a declared `index_scope`, since that lives in `clew/scope.py` and `clew/cli.py`, which the index only described.",
+  "ttft_ms": 2579,
+  "type": "result",
+  "duration_ms": 26850,
+  "uuid": "d1203353-0b8c-448e-9133-07b0653248b0",
+  "ttft_stream_ms": 2080,
+  "time_to_request_ms": 145,
+  "first_content_frame_ms": 2080,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

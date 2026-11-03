@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Direct llama/ggml/common/mtmd calls are confined to about 20 files. The main ones are `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler`, ...\"\nVERDICT: HIT\nWHY: The answer says the dependency reaches about 20 files in entropic's source, spread across many files rather than one wrapper. That is a broad footprint, though \"about 20\" is larger than \"roughly a dozen\". The answer lists around a dozen named main files, and its point that the reach is wide matches the item."
+}

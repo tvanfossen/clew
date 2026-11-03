@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_ERROR_STRERROR_DUMMY` is a second gate, and the index shows a second `mbedtls_strerror` candidate at `error.c:867`, which I'd expect to be the dummy variant. I did not confirm that.\nVERDICT: MISS\nWHY: The answer names the macro as a \"second gate\" but says it is unconfirmed. It never says it keeps the function linkable with the string table compiled out, and it never says it is enabled by default."
+}

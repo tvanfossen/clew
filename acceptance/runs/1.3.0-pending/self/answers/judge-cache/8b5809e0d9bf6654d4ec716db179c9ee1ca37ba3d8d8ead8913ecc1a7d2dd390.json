@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`data` | Sources changed since the build | Rebuild (`index(action='refresh')`)\" and \"`code` | The running server process loaded clew before its source changed | Restarting the MCP client only\"\nVERDICT: HIT\nWHY: The answer's table says data is cleared by a rebuild and code only by a client restart, and it adds that schema has no caller-side fix. That shows the three axes need different actions, though it never says outright that this is why one flag wasn't enough."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Detached async worker.** `run_async_ask` launches a `std::thread` that captures `this`. The body I could see (truncated at line 1201) doesn't show a join or a lifetime guarantee that `ExternalBridge` outlives the worker.\"\nVERDICT: MISS\nWHY: The answer says the async worker is detached with no visible join, but it never identifies it as the one detached thread. It also hedges that it \"could not confirm\" this, and it describes other threads as joined without saying they are the only ones that aren't."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The winning tier is written to `build_meta` as `options.<name>.tier`.\nVERDICT: MISS\nWHY: The answer says the winning tier is written to build_meta but never says it is derived from the stored rows rather than stamped as a separate summary."
+}

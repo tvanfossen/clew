@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \".yaml`, `.yml`, `.json` | `path` row only\" and \"YAML and JSON are deliberately left without symbols... They are findable by name through the file set.\"\nVERDICT: HIT\nWHY: The answer says YAML and JSON are registered as file-set entries with no symbols, and contrasts them with shell and CMake, which get symbols."
+}

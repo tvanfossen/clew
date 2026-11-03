@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes six table rows across five numbered tiers, with CLI flag and `options` both counted as tier 1. It never identifies five named precedence tiers: the tiers are numbered, but only the roles \"explicit,\" \"declared,\" \"target-fact,\" \"ecosystem,\" and \"heuristic\" are named, and the resolution formula it gives has a different shape."
+}

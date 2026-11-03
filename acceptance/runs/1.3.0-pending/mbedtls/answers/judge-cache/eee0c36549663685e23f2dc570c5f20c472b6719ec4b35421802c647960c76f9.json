@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `x ^ mbedtls_ct_zero` where `mbedtls_ct_zero` is a `volatile` global; all C arithmetic\nVERDICT: HIT\nWHY: The answer states that without assembly (MBEDTLS_CT_ASM undefined) the code XORs with the volatile global `mbedtls_ct_zero`, which names the global. It doesn't use the word \"extern\", and it doesn't say outright that the same function does the XOR, but the table row for that case implies both."
+}

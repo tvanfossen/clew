@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The `code` and `schema` axes cannot be fixed by a rebuild, so the caller has to restart the MCP client.\" and \"**data:** ... Call `index(action='refresh')`\" and \"**code:** reads are current, but writes are affected. A rebuild cannot clear it. Restart the MCP client.\"\nVERDICT: HIT\nWHY: The answer states data is cleared by a refresh/rebuild while code requires a client restart, since a rebuild can't clear it. The \"why one flag wouldn't suffice\" framing is only implicit, but the substance of the differing remedies per axis is stated."
+}

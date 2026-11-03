@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `stale_code_refusal()` is the guard every write path calls first. It has no override, and `force=True` does not bypass it.\nVERDICT: HIT\nWHY: The answer states that the write path refuses, is checked first by every write path, and that `force=True` cannot override it."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 49176,
+  "stop_reason": "end_turn",
+  "session_id": "9819b8d0-0b2b-4071-b535-29ee77ececf2",
+  "total_cost_usd": 0.02047239,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 49054,
+    "cache_read_input_tokens": 597329,
+    "output_tokens": 9373,
+    "output_tokens_details": {
+      "thinking_tokens": 4090
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 49054,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 5308,
+        "cache_read_input_tokens": 87664,
+        "cache_creation_input_tokens": 1162,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1162
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 9373,
+      "cacheReadInputTokens": 597329,
+      "cacheCreationInputTokens": 49054,
+      "webSearchRequests": 0,
+      "costUSD": 0.02047239,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4090,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 49054,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 19,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the constant-time guarantee is not enforced by the compiler or by any build-time check. It rests on three things: hand-written assembly for the primitives on four architectures, a plain-C fallback everywhere else that is only empirically constant-time, and dynamic tests that catch secret-dependent branches on the paths they exercise. The facility covers bignum, RSA, cipher padding, TLS record handling, base64 and a few others. It does not appear in the ECC or AES code in this checkout.\n\n## How it is enforced at the instruction level\n\nAll primitives live in `library/constant_time_impl.h` and are declared with their contract in `library/constant_time_internal.h`. The contract (`constant_time_internal.h:20-63`) says the operations are \"likely to result in\" branch-free code, which is an honest hedge.\n\n- **Mask generation** (`mbedtls_ct_bool`, `impl.h:120-203`). A non-zero value becomes an all-ones mask. On AArch64 this is `neg / orr / asr 63`; on 32-bit Arm it is `negs / orrs / asrs #31`; on x86-64 it is `mov / neg / or / sar $63`. Every bit of arithmetic is inside `asm volatile`, so the compiler cannot turn it into a `jcc` or a `csel`.\n- **Selection** (`mbedtls_ct_if`, `impl.h:205-269`) is an `and / not / and / or` blend under the mask, again in asm on the same architectures.\n- **Comparison** (`mbedtls_ct_uint_lt`, `impl.h:271-380`) is built from subtract-and-borrow sign-bit arithmetic, with the asm variants written out per architecture.\n- **Hiding values from the optimiser.** `mbedtls_ct_compiler_opaque` (`impl.h:85-93`) is an empty asm with a `+r` constraint when asm is available. Otherwise it XORs with a `volatile` zero (`constant_time.c:23-30`). That stops the compiler from proving a value at compile time and folding a branch away.\n- **Memory operations** (`constant_time.c`). `mbedtls_ct_memcmp` (`:67-116`) reads both buffers through `volatile` pointers and ORs all differences, so there is no early exit. `mbedtls_ct_memcpy_if` (`:169-212`) always reads both sources and blends with masks. `mbedtls_ct_memcpy_offset` (`:214-227`) loops over every possible offset, so the access pattern depends only on `offset_min`/`offset_max`.\n\nEven the asm does not control the hardware. Nothing here addresses cache timing, variable-latency division, or speculative execution.\n\n## What happens on a compiler that cannot support it\n\nIt falls back silently. There is no `#error`, no warning, and no runtime check.\n\nThe asm path is selected only when `MBEDTLS_HAVE_ASM` is defined and the compiler is GCC-compatible (`impl.h:40-52`). `MBEDTLS_HAVE_ASM` is a user switch (`mbedtls_config.h:52`), so any build that undefines it, such as the `config-symmetric-only` profile, takes the C path. The asm also covers only four families: Arm (32-bit and Thumb), AArch64, x86-64 and i386. MSVC, IAR, armcc 5, RISC-V and others fall through to the C path in each function.\n\nThe C path is claimed to be constant-time only because \"this has been observed to be constant-time on latest gcc, clang and MSVC as of May 2023\" (`constant_time_internal.h:57-59`). That is a snapshot observation with no guarantee. A future optimiser could reintroduce a branch and nothing in the build would notice, except the valgrind/MSan tests below.\n\nSanitizer builds are the one case that is refused outright. `check_config.h:250-251` errors if MemorySanitizer is combined with `MBEDTLS_HAVE_ASM`. So the MSan constant-flow test runs the C fallback, not the asm.\n\n## How it is tested\n\nThese are dynamic checks, not static ones.\n\n- `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` and `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN` (`mbedtls_config.h:2109-2142`) are off by default. They are exercised by `components-sanitizers.sh` (`:72-150`), including a `_no_asm` variant (`:105`) and an MSan variant (`:33`). The `skip_suites_without_constant_flow` helper restricts runs to suites that carry constant-flow annotations.\n- `tests/suites/test_suite_constant_time*.function` and similar suites exercise the primitives directly.\n- The annotation macros that mark secret inputs (`TEST_CF_SECRET` and friends) are not defined in this checkout. The tests refer to them but I could not find their definitions, so they likely come from the external test framework. I could not verify how they are implemented.\n\nValgrind and MSan only flag a secret-dependent branch on a path the test actually executes with secret data. Coverage is only as good as the annotations.\n\n## How far it reaches\n\nDossier and grep show 286 `mbedtls_ct_*` call sites across 29 library files. Roughly, by file:\n\n| Area | Files (call sites) |\n|---|---|\n| Bignum | `bignum_core.c` (22), `bignum.c` (21), `bignum_mod_raw.c` (2) |\n| RSA | `rsa.c` (29) |\n| Cipher padding | `cipher.c` (25); `mbedtls_get_pkcs_padding` calls `mbedtls_ct_if` |\n| TLS | `ssl_msg.c` (22), `ssl_tls12_server.c` (7), others |\n| Base64 | `base64.c` (21) |\n| PSA | `psa_crypto.c` (7), `psa_crypto_cipher.c` (3), others |\n| Other | `nist_kw.c` (4); single calls in `gcm.c`, `ccm.c`, `cmac.c`, `chachapoly.c` |\n\nThese are the places where it matters most: padding oracles, MAC comparisons and secret-dependent bignum operations.\n\nThe public surface is `include/mbedtls/constant_time.h` (`mbedtls_ct_memcmp`), `mbedtls_mpi_lt_mpi_ct` in `bignum.h`, and `bignum_core.h`.\n\nTwo gaps from this grep:\n- **No call sites** in `ecp.c`, `aes.c` or `ecdsa.c`. Whatever constant-time protection ECC or AES has is implemented separately, or is absent. For P-256 the third-party `p256-m` has its own configuration symbol `MUL64_IS_CONSTANT_TIME` (`3rdparty/p256-m`), which suggests that code makes its own claim.\n- Even inside the covered files, the facility only protects the operations that were rewritten to use it. Any remaining branch on a secret is outside its reach.",
+  "ttft_ms": 1445,
+  "type": "result",
+  "duration_ms": 49672,
+  "uuid": "91cf7bf7-918f-4718-85ee-9b1d11de515a",
+  "ttft_stream_ms": 1148,
+  "time_to_request_ms": 95,
+  "first_content_frame_ms": 1149,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says posting passes `noRetry: true` (retryLimit 0), but it explicitly says it found no general retry and doesn't state that requests in general retry with exponential backoff, limit 3, set by the network manager."
+}

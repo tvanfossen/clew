@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 23191,
+  "stop_reason": "end_turn",
+  "session_id": "9766a7b3-3c30-4839-8e8d-731235f66432",
+  "total_cost_usd": 0.01447374,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 48568,
+    "cache_read_input_tokens": 263094,
+    "output_tokens": 4256,
+    "output_tokens_details": {
+      "thinking_tokens": 1436
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 48568,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2255,
+        "cache_read_input_tokens": 56893,
+        "cache_creation_input_tokens": 7673,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7673
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4256,
+      "cacheReadInputTokens": 263094,
+      "cacheCreationInputTokens": 48568,
+      "webSearchRequests": 0,
+      "costUSD": 0.01447374,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1436,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 48568,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** `ServerDataOperator` is an interface that intersects 11 handler mixins from `handlers/` with 3 product mixins from `app/products/`, all built on `ServerDataOperatorBase`. Every handler write funnels through `BaseDataOperator.batchRecords`, which is the only place that calls `database.write`. `AppDataOperator` and the `PostHandler` private helpers share that path.\n\n**Composition** (`app/database/operator/server_data_operator/index.ts:23`)\n\n`ServerDataOperator` extends 14 bases:\n\n| Source | Bases |\n|---|---|\n| Next to it, in `server_data_operator/handlers/` | `CategoryHandlerMix`, `ChannelHandlerMix`, `CustomProfileHandlerMix`, `GroupHandlerMix`, `PostHandlerMix`, `PropertiesHandlerMix`, `TeamHandlerMix`, `TeamThreadsSyncHandlerMix`, `ThreadHandlerMix`, `UserHandlerMix` |\n| Same folder, but a class, not a mixin | `ServerDataOperatorBase` (`handlers/index.ts:31`) |\n| Defined elsewhere | `AgentsHandlerMix` (`app/products/agents/database/operators/handlers/index.ts:30`), `BoardsHandlerMix` (`app/products/boards/database/operators/handlers/index.ts:20`), `PlaybookHandlerMix` (`app/products/playbooks/database/operators/handlers/index.ts:49`) |\n\nSo the three product mixins are the only handler classes defined outside the server operator's folder. Each contributes its own methods: `handleAIBots`/`handleAIThreads`, `handleBoardViews`, and the five `handlePlaybook*` methods.\n\n`ServerDataOperatorBase` itself extends `BaseDataOperator` (`app/database/operator/base_data_operator/index.ts:33`), which holds the `database` handle and the generic machinery: `processRecords`, `prepareRecords`, `handleRecords`, `batchRecords`.\n\n**Write path for a handler**\n\n1. A handler method (e.g. `handleUsers`, `handleAIBots`) calls `handleRecords` or `execute`.\n2. `handleRecords` (`base_data_operator/index.ts:224`) dedupes against existing rows via `processRecords`, builds models via `prepareRecords`, and calls `batchRecords` only when `prepareRecordsOnly` is false.\n3. `execute` (`server_data_operator/handlers/index.ts:234`) is the simpler create/update path: `prepareRecords` then `batchRecords`.\n4. `batchRecords` (`base_data_operator/index.ts:191`) is the actual write: `this.database.write(async (writer) => writer.batch(...models), description)`. On error it logs a warning, emits `DATABASE_CORRUPTION_DETECTED` if the error is a corruption error, and rethrows only when `propagateError` is set.\n\n**What else shares that write**\n\n- **Every handler that goes through `handleRecords` or `execute`.** The index lists about 40 callers, including `handleUsers`, `handleChannel`, `handleTeam`, `handleThreads`, `handleDraft`, the `handlePlaybook*` methods, and `handleAIBots`.\n- **`PostHandler` private helpers** call `batchRecords` directly: `_createOrUpdateScheduledPost`, `_createPostsInChannelRecord`, `_deleteScheduledPostByIds`, `_mergePostInChannelChunks`.\n- **`AppDataOperator`** (`app/database/operator/app_data_operator/index.ts`) also extends `BaseDataOperator`, so `handleGlobal` and `handleInfo` share the same `batchRecords` path, but against the app database instead of a server database.\n\n**Caveats**\n\n- The `batchRecords` caller list reports 159 unresolved call sites. The ephemeral cleanup functions in `app/actions/local/ephemeral_mode/cleanup.ts` show up only as name matches, not as confirmed callers, so I did not count them as sharing the path.\n- `handleReactions` and `handleFiles` are in `ServerDataOperatorBase` and appear in the callers list, but I did not open their bodies to confirm each one writes via `handleRecords` rather than another route.",
+  "ttft_ms": 2129,
+  "type": "result",
+  "duration_ms": 24651,
+  "uuid": "f4c35ec2-220f-4f10-98dc-f267f83004f7",
+  "ttft_stream_ms": 1677,
+  "time_to_request_ms": 82,
+  "first_content_frame_ms": 1677,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says no thread is spawned from `library/` and describes the mutex wrapper in `threading.c`. It does not say that `library/` supplies the mutex abstraction for threaded callers as a contrast to having no threads. It also frames the mutexes as guarding the library's own internal state."
+}

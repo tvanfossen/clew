@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 21917,
+  "stop_reason": "end_turn",
+  "session_id": "4b6fae80-7bc5-4eb3-8487-5a1b52ab04c3",
+  "total_cost_usd": 0.006981140000000001,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 18339,
+    "cache_read_input_tokens": 145454,
+    "output_tokens": 3716,
+    "output_tokens_details": {
+      "thinking_tokens": 1797
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 18339,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2656,
+        "cache_read_input_tokens": 41417,
+        "cache_creation_input_tokens": 11092,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 11092
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3716,
+      "cacheReadInputTokens": 145454,
+      "cacheCreationInputTokens": 18339,
+      "webSearchRequests": 0,
+      "costUSD": 0.006981140000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1797,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 18339,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the reply does not just say \"empty.\" It grades the empty result against what the index actually searched, and it only makes a strong negative claim when that grading comes back clean. The grading lives in `clew/mcp_server/emptiness.py`, and the file-type comparison lives in `clew/cli.py`.\n\n**How the reply tells the cases apart**\n\n| What the caller sees | What it means | Confidence |\n|---|---|---|\n| Single token, no hits in any searched corpus, and no unread corpus holds it. The index has file docs. | \"Definitive for the scope.\" Retrying won't help. | High, but only for the index as built. It is not a claim about the working copy. |\n| Single token, but an unread corpus (for example typedefs or prose) holds matching rows. | \"NOT DEFINITIVE.\" The rows are named and counted (`unsearched_corpus_hits`), and the caller is told to use `dossier` for the name. | The name exists. Only the search's coverage is in question. |\n| Multi-token query with no hits. | \"NOT DEFINITIVE.\" Per-token counts are shown. If a token has zero hits, the note says to retry without it. Otherwise it says to retry with fewer tokens. | No negative claim is made. The reply names what emptied the conjunction. |\n| No file-docs corpus, or no prose corpus, in the index. | \"NOT definitive.\" The reply says to rebuild or use another corpus. | No claim. An index that cannot look must not report a negative. |\n| `not_indexed` / `not_indexed_count` present in the reply. | Some files in scope have no `path` rows in this build, so the build could not have indexed them. Types are named with exact counts (top 12 shown). | Measured at build time against the tree that was walked. It is stale if the tree changed afterwards. |\n| `not_indexed` absent. | No claim either way. The build had no scanned set, was built before this report existed, or fully covered its scope. | Absence of the key is not \"everything was covered.\" |\n\nEvery empty reply also carries the `scope` block: file count, source (whole-repo or declared), extensions, and top levels. The derivation paragraph is deliberately dropped from per-query replies to save bytes. It stays in `status`.\n\n**What each answer is entitled to**\n\n- A definitive negative means \"not in what this index searched.\" It is only as current as the build, and it covers only the corpora named in the `Searched:` clause.\n- A `not_indexed` hit means \"this build did not read that file type.\" It tells the caller to read the file directly, not to trust the miss.\n- Two limits to keep in mind. First, `not_indexed` is computed from `path` rows, so a file that has a path row but zero symbols is not reported there. Second, the strong wording was deliberately not extended to absent layers. The `graph_stats` surface is where absent layers are reported, and a test enforces that the strong wording survives on ordinary indexes.\n\nI read these from the code and its tests. I did not run a query against a live index, so the exact wording a client receives is unverified here.",
+  "ttft_ms": 2133,
+  "type": "result",
+  "duration_ms": 22287,
+  "uuid": "184cf492-ba2c-4432-843f-57de16986c8c",
+  "ttft_stream_ms": 1385,
+  "time_to_request_ms": 180,
+  "first_content_frame_ms": 1385,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It then calls `mbedtls_platform_set_calloc_free` with its own `buffer_alloc_calloc` / `buffer_alloc_free`, or the `_mutexed` variants when `MBEDTLS_THREADING_C` is on.\nVERDICT: MISS\nWHY: The answer says the buffer allocator calls the setter from its init function, but never says it is the only in-tree user of the setter. It even calls the setter \"the same hook the library's own allocator uses,\" which is not an exclusivity claim."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer concludes the opposite: the build succeeds but the miss report does NOT name those files as unindexed, contradicting the degrade-and-report-as-not-indexed behavior the item requires."
+}

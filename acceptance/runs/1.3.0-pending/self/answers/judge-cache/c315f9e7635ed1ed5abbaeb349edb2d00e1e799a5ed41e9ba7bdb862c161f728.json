@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: So an empty symbols search means \"no indexed symbol by that name.\" It does not mean \"the concept is absent,\" and it says nothing about a `.rs` or `.toml` file that was never read.\nVERDICT: MISS\nWHY: The answer explains that empty \u2260 absence and distinguishes searched from not-searched, but never states that a single non-matching token was previously treated as proof of absence (the prior behavior/fix)."
+}

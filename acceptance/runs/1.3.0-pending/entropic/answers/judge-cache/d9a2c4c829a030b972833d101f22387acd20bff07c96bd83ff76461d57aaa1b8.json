@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The hook trampoline catches every `Exception`, prints the traceback, and returns 0 (pass-through).\"\nVERDICT: HIT\nWHY: The answer states the trampoline catches all exceptions, never lets them cross into C, and returns 0 as pass-through."
+}

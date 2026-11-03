@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 30115,
+  "stop_reason": "end_turn",
+  "session_id": "ca3c75d2-89e6-45c9-b51d-05dd3070b502",
+  "total_cost_usd": 0.01456809,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 48953,
+    "cache_read_input_tokens": 279829,
+    "output_tokens": 3956,
+    "output_tokens_details": {
+      "thinking_tokens": 1804
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 48953,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2842,
+        "cache_read_input_tokens": 60391,
+        "cache_creation_input_tokens": 8691,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 8691
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3956,
+      "cacheReadInputTokens": 279829,
+      "cacheCreationInputTokens": 48953,
+      "webSearchRequests": 0,
+      "costUSD": 0.01456809,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1804,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 48953,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** A reaction-added event is written through the server data operator's batch pipeline, with `skipSync: true` so it can only add. A reaction-removed event bypasses the operator entirely: it looks up the row and hard-deletes it in its own write transaction. The two paths share only the switch dispatch and the per-server database handle.\n\n**Added path**\n\n```\nWebSocket msg (event = REACTION_ADDED)\n  \u2514\u2500 handleWebSocketEvent            app/actions/websocket/event.ts:44\n       \u2514\u2500 handleReactionAddedToPostEvent   websocket/reactions.ts:21\n            \u251c\u2500 DatabaseManager.getServerDatabaseAndOperator(serverUrl)\n            \u251c\u2500 JSON.parse(msg.data.reaction)      \u2192 Reaction\n            \u2514\u2500 operator.handleReactions({ prepareRecordsOnly: false,\n                                          skipSync: true,\n                                          postsReactions: [{post_id, reactions:[reaction]}] })\n                 \u2514\u2500 handleReactions          server_data_operator/handlers/index.ts:124\n                      \u251c\u2500 sanitizeReactions   operator/utils/reaction.ts:22\n                      \u2502    \u251c\u2500 load all Reaction rows for post_id\n                      \u2502    \u251c\u2500 for each raw: exists by `${user_id}-${emoji_name}`? skip : push to createReactions\n                      \u2502    \u2514\u2500 skipSync \u2192 return { createReactions, deleteReactions: [] }\n                      \u251c\u2500 prepareRecords({createRaws, transformer: transformReactionRecord})\n                      \u2502    \u2514\u2500 transformReactionRecord  transformers/reaction.ts:19\n                      \u2502         (CREATE: _raw.id = raw.id; sets userId, postId, emojiName, createAt)\n                      \u2514\u2500 prepareRecordsOnly is false \u2192 batchRecords(\u2026)\n                           \u2514\u2500 database.write(writer => writer.batch(...))   base_data_operator/index.ts:191\n                                \u2192 row inserted in the server DB\n```\n\n**Removed path**\n\n```\nWebSocket msg (event = REACTION_REMOVED)\n  \u2514\u2500 handleWebSocketEvent\n       \u2514\u2500 handleReactionRemovedFromPostEvent   websocket/reactions.ts:39\n            \u251c\u2500 DatabaseManager.getServerDatabaseAndOperator(serverUrl)  (uses .database only)\n            \u251c\u2500 JSON.parse(msg.data.reaction)\n            \u251c\u2500 queryReaction(db, emoji_name, post_id, user_id).fetch()   queries/servers/reaction.ts:12\n            \u2514\u2500 if found: database.write(() => reaction[0].destroyPermanently())\n```\n\nNo operator, no `sanitizeReactions`, no transformer. It is a hard delete, not a soft one, and the row is matched on `(emoji_name, post_id, user_id)` rather than the server reaction id.\n\n**Flags and what they change**\n\n- **`skipSync: true` (added path only).** In `sanitizeReactions` it returns early with `deleteReactions: []`, so the code never computes \"rows in the DB that are missing from the payload\". That diff is only correct for a full post payload, where it is the way stale reactions get removed. A single-reaction event contains one reaction, so without this flag every other reaction on the post would be deleted. `handleReactions` also guards `deleteReactions` with `!skipSync`, a second safety net.\n- **`prepareRecordsOnly: false`.** The batch is written immediately instead of being returned for the caller to combine into a larger transaction. Setting it to `true` would return the prepared models without writing.\n- **Existence check.** An already-present reaction (same user and emoji on that post) is skipped, not updated. Re-delivery of an add is therefore a no-op.\n- **`propagateError` (default `false`).** `batchRecords` logs and swallows write errors, and `handleReactionAddedToPostEvent` has an empty `catch`. A failed write is silent apart from the warning log.\n\n**Caveats**\n\n- The removed handler also has an empty `catch`, so a failed delete is silent.\n- The removed path does not check `skipSync` or any similar flag because it never reaches the operator. Its only guard is `reaction.length`, which means a removal for a reaction that is not stored does nothing.\n- `handleReactions` is typed to return `CustomEmojiModel` as well, but the function body only handles `Reaction` rows.",
+  "ttft_ms": 3199,
+  "type": "result",
+  "duration_ms": 32142,
+  "uuid": "979471ff-8686-4484-a5c9-203e7504c552",
+  "ttft_stream_ms": 3002,
+  "time_to_request_ms": 82,
+  "first_content_frame_ms": 3002,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

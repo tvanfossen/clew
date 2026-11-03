@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 42542,
+  "stop_reason": "end_turn",
+  "session_id": "614eae40-4044-4742-a959-7460dd469b75",
+  "total_cost_usd": 0.0105845,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 32654,
+    "cache_read_input_tokens": 174570,
+    "output_tokens": 4614,
+    "output_tokens_details": {
+      "thinking_tokens": 1544
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 32654,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2850,
+        "cache_read_input_tokens": 46500,
+        "cache_creation_input_tokens": 1668,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1668
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4614,
+      "cacheReadInputTokens": 174570,
+      "cacheCreationInputTokens": 32654,
+      "webSearchRequests": 0,
+      "costUSD": 0.0105845,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1544,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 32654,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** `mbedtls_strerror()` splits the code into a high-level part and a low-level part, looks each part up in a `switch` table, and joins the strings. Nobody maintains those tables by hand. `scripts/generate_errors.pl` builds `library/error.c` from the `#define`s in `include/mbedtls/*.h`. So adding a string means adding a documented `#define` and regenerating.\n\n## Runtime path\n\n```\nret = -0x4080 (say)\n  \u2502\n  \u251c\u2500 mbedtls_strerror(ret, buf, buflen)        library/error.c:792\n  \u2502    \u251c\u2500 buflen==0 \u2192 return; memset buf to 0\n  \u2502    \u251c\u2500 ret = -ret                           (sign dropped)\n  \u2502    \u2502\n  \u2502    \u251c\u2500 if (ret & 0xFF80)                    high-level bits present?\n  \u2502    \u2502    \u2514\u2500 mbedtls_high_level_strerr(ret)  switch on (ret & 0xFF80)\n  \u2502    \u2502         \u2192 \"RSA - Bad input parameters to function\"  (or \"UNKNOWN ERROR CODE (XXXX)\")\n  \u2502    \u2502         \u2514\u2500 if high == MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE \u2192 return early\n  \u2502    \u2502\n  \u2502    \u251c\u2500 low = ret & ~0xFF80; if 0 \u2192 done\n  \u2502    \u251c\u2500 if high already written \u2192 append \" : \"\n  \u2502    \u2514\u2500 mbedtls_low_level_strerr(ret)      switch on (ret & ~0xFF80)\n  \u2502         \u2192 e.g. \"AES - Invalid key length\"  (or \"UNKNOWN ERROR CODE (XXXX)\")\n  \u2502\n  \u2514\u2500 buf = \"RSA - Bad input parameters to function\"\n```\n\n- **Bit split.** The 0xFF80 mask selects the high-level module (bits 7\u201315). The low 7 bits (`0x007F`) are the low-level module. `include/mbedtls/error.h` documents the layout in a long comment.\n- **Sign.** Both `mbedtls_*_strerr` and `mbedtls_strerror` negate first. The generated cases are `case -(MBEDTLS_ERR_X):`, so the tables match the positive value.\n- **Combined codes.** A single return can carry both parts, for example an SSL code plus a low-level cause. The output is `\"HIGH : LOW\"`.\n- **Unknown codes.** If a code's bits are not in the table, the output is `UNKNOWN ERROR CODE (%04X)`, not an empty string.\n- **Fatal alerts.** `MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE` returns after the high-level part. The low part is the peer's alert, not a library error.\n- **Disabled module.** If `MBEDTLS_ERROR_C` is off, `mbedtls_strerror` writes an empty string. Each table case is also wrapped in its module's `#if defined(MBEDTLS_X_C)`.\n\nThe public functions are `mbedtls_strerror`, `mbedtls_high_level_strerr` and `mbedtls_low_level_strerr`, declared in `include/mbedtls/error.h`.\n\n## Adding a new error code\n\n1. **Define it in the module header.** Put `#define MBEDTLS_ERR_<MODULE>_<NAME> -0x....` in `include/mbedtls/<module>.h`. Pick an unused value in that module's range, using the layout table in `error.h`. Duplicate values fail the generator (`Duplicated error code`).\n2. **Document it, exactly once.** Give it either a `/** ... */` comment before the define or a `/*!< ... */` comment after it. Having neither, or both, fails the generator. The text becomes the string.\n3. **Check the module is known.** The module token is the word after `MBEDTLS_ERR_`. It must appear in `@low_level_modules` or `@high_level_modules` in `generate_errors.pl`, or the script exits with `Do not know how to handle`. A brand-new module also needs its `#if` guard name and include name set in the script.\n4. **Regenerate, don't hand-edit.** Run the normal build (`make` in `library/`, or the CMake target), which calls `generate_errors.pl`. Do not edit `library/error.c` directly. CI runs `tests/scripts/check-generated-files.sh`, which regenerates it and diffs the result.\n5. **Add a test first.** In `tests/suites/test_suite_error.data`, add a line like `error_strerror:-0x....:\"MODULE - description\"`. The string must match what the generator produced. Run the test red before the change, then green.\n6. **Changelog.** If the new string is user-visible, which it normally is, add an entry under `ChangeLog.d/` as described in `ChangeLog.d/00README.md`.\n\nI read the generator, the header, `error.c` and the test suite. I did not build the library or run the tests, so the regeneration and test steps above are from the scripts, not a run.",
+  "ttft_ms": 3023,
+  "type": "result",
+  "duration_ms": 42990,
+  "uuid": "a40c3fe2-ba51-4a8c-924e-0ed361a6e93e",
+  "ttft_stream_ms": 2846,
+  "time_to_request_ms": 192,
+  "first_content_frame_ms": 2846,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

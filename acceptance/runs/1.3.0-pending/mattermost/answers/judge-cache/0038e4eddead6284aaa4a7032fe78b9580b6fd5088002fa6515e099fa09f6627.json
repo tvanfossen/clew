@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: I did not find any other retry loop in `app/client` or the network manager. The only other retry logic there is the WebSocket reconnect backoff, which is unrelated to posts.\nVERDICT: MISS\nWHY: The answer says posts use `noRetry: true` with `retryLimit: 0`, but it never says requests in general retry with exponential backoff and a limit of 3 set by the network manager."
+}

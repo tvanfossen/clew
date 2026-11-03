@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | The library's own translation units, which pull in `common.h`.\nVERDICT: HIT\nWHY: The answer names a shared header (`library/common.h`) that defines the opt-out for the library's own translation units, which is the item's substance. The caveat about the guard doesn't remove that."
+}

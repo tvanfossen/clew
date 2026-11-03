@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Once `on_tool_call` is set, `check_approval` returns true for every non-allowed call. Only the deny list can block a call in that setup.\"\nVERDICT: HIT\nWHY: With the callback wired, a tool matching neither list is approved and then routed, so only the deny list blocks. That is default-allow in substance. The answer states it only for the callback-wired case, not as an unconditional posture."
+}

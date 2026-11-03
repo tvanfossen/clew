@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says `options=` uses \"the same mapping as `--declare`\" and lists section names, but never notes that the embedding caller's option names are the same words as the declaration file's section names and the diagnostics' wording."
+}

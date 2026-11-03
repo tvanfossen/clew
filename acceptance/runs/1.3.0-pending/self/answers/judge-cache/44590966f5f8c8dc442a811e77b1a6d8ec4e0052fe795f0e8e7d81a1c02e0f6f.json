@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Doxyfile: the target's `INPUT`, `EXCLUDE` and `EXCLUDE_PATTERNS` are ignored, so a repo that documents only its public headers still gets its `.c` files indexed.\nVERDICT: HIT\nWHY: The answer states the Doxyfile's INPUT is ignored and gives the reason: a repo documenting only its public headers would otherwise lose its `.c` files, which matches the \"documented subset\" concern."
+}

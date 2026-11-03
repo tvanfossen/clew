@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"So this is a naming guard, not an access control. C has no member visibility, and the spelling is the only thing standing between a user and the field. ... The field is still there under the mangled name ... It does not change the struct layout, so the ABI is the same either way.\"\nVERDICT: HIT\nWHY: The answer says opacity is enforced at compile time by renaming the member (`private_##member`), with the field still present and the layout unchanged."
+}

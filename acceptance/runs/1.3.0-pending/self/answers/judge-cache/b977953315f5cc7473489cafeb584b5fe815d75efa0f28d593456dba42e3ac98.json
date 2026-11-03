@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Files outside the Doxygen pattern list are picked up by the parse-built front end when `synth.claims()` accepts them (JS/TS and the script types). Everything else is ignored.\nVERDICT: HIT\nWHY: The answer says the resolved scope is filtered by Doxygen's file patterns, and it names the parse-built front end as the path for file types Doxygen can't read."
+}

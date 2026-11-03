@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Writes are refused, and `force` does not override the refusal (`stale_code_refusal`, `freshness.py:531`).\nVERDICT: MISS\nWHY: The answer says writes are refused and force doesn't override, but never states the refusal is placed ahead of the build decision."
+}

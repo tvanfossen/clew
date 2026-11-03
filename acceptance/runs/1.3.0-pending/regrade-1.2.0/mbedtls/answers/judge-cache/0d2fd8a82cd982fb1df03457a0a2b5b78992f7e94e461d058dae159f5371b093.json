@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `include/mbedtls/ssl.h` has 209 uses\nVERDICT: MISS\nWHY: The answer cites 209 uses in ssl.h and says public structs use the macro \"throughout\", but it never conveys the overall scale of many hundreds of sites or the split between public headers and library implementation. It says only that three library files use the macro directly."
+}

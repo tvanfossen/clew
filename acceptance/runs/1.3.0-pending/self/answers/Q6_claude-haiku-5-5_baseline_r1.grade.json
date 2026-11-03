@@ -1,0 +1,143 @@
+{
+  "cell": "Q6_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.38095238095238093,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names the shell and CMake extensions, including CMakeLists.txt matched by file name rather than by extension",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `*.sh`, `*.bash` ... `*.cmake`, `CMakeLists.txt` (matched by name) | WHY: The answer names the shell extensions (.sh, .bash) and the CMake extension (.cmake), and says CMakeLists.txt is matched by name. || QUOTE: `*.sh`, `*.bash` ... `*.cmake`, `CMakeLists.txt` (matched by name) | WHY: The answer names the shell extensions (.sh, .bash), the CMake extension (.cmake), and CMakeLists.txt matched by file name.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that YAML and JSON are registered in the file set but carry NO symbols, so the two file groups are treated differently rather than alike",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `*.yaml`, `*.yml`, `*.json` | nothing | `path` row only, `found=1`. No symbols, no prose, no docs. ... `DATA_EXTS` at `clew/synth.py:80` is registered but never harvested, on purpose | WHY: The answer states YAML/JSON get a path (file-set) row only with no symbols, while shell/CMake get symbol rows, so the groups are treated differently. || QUOTE: `*.yaml`, `*.yml`, `*.json` | nothing | `path` row only, `found=1`. No symbols, no prose, no docs. `DATA_EXTS` at `clew/synth.py:80` is registered but never harvested, on purpose | WHY: The answer states that YAML/JSON get only a file-set (path) entry with no symbols, while shell and CMake get symbols, so the two groups are treated differently. || QUOTE: `*.yaml`, `*.yml`, `*.json` | nothing | `path` row only, `found=1`. No symbols, no prose, no docs. `DATA_EXTS` at `clew/synth.py:80` is registered but never harvested, on purpose | WHY: The answer says YAML/JSON get a file-set (path) entry but no symbols, in contrast to shell/CMake, which get symbols.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that markdown is deliberately NOT given a path row, because it is prose and a path row would also count it as indexed source in coverage figures",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: Only `.md` and `.markdown` go into FTS (`clew/prose.py:47`). | WHY: The answer says markdown goes into the prose FTS, but never says markdown is deliberately denied a path row or that a path row would count it as indexed source in coverage figures. || QUOTE: NONE | WHY: The answer never says markdown is deliberately excluded from a path row or that a path row would count it as indexed source in coverage; it only says prose goes into FTS. || QUOTE: Prose. Only `.md` and `.markdown` go into FTS (`clew/prose.py:47`). | WHY: The answer says markdown goes into the prose FTS, but it never says markdown is deliberately denied a path row or that a path row would count it as indexed source in coverage figures.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that an installation lacking the grammars DEGRADES rather than failing \u2014 the router consults a capability gate before routing, and those file types are then reported as not indexed",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says the degrade report is not wired up and files still appear indexed with no symbols; it does not conclude that a capability gate causes those types to be reported as not indexed. || QUOTE: The promised report isn't wired up. `substrate.missing_languages` (`clew/substrate.py:72`) has no callers in `clew/`. The capability test's docstring says the miss report names these types as not indexed, but `clew/propose/notindexed.py` reports on scope, not grammars, so I found nothing that does that. | WHY: The answer says a missing-grammar install produces files that look indexed with no capability gate or not-indexed report, which contradicts the item's graceful-degradation conclusion. || QUOTE: NONE | WHY: The answer says the degrade report is not wired up and files still appear indexed, which contradicts the item's claim that a capability gate routes and those types are reported as not indexed.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the root node type cannot be the discriminator, because shell shares its root with JavaScript and CMake shares its root with Rust",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions that the root node type can't discriminate languages, nor that shell shares a root with JavaScript or CMake with Rust. || QUOTE: NONE | WHY: The answer never says the root node type can't discriminate languages, nor that shell shares its root with JavaScript or CMake with Rust. || QUOTE: NONE | WHY: The answer never says the root node type can't discriminate languages, nor mentions shell sharing a root with JavaScript or CMake with Rust.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that CMake's definition name is an ARGUMENT of the command rather than a named field of the node",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says CMake's definition name is an argument of the command rather than a named field; it only says parameters come from the argument list. || QUOTE: NONE | WHY: The answer never says that CMake's definition name is an argument of the command rather than a named field; it only mentions function_def/macro_def harvesting and that parameters come from the argument list. || QUOTE: NONE | WHY: The answer never says that CMake's definition name is an argument of the command rather than a named field; it only mentions function_def/macro_def and parameters from the argument list.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a shell function is recorded with no argument list and no return, because the language has neither",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: `args` is empty by design. | WHY: The answer says shell `args` is empty by design but never says there is no return or that the language has neither an argument list nor a return. || QUOTE: `args` is empty by design. | WHY: The answer notes shell `args` is empty by design but never says there's no return or that the language lacks both concepts. || QUOTE: `args` is empty by design. | WHY: The answer says shell function args are empty by design but never says the function has no return, or that this is because the language has neither.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that both languages share ONE harvest partition, and gives the reason \u2014 a second partition would write an empty payload row per file per index",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never states that bash and cmake share one harvest partition or gives the reason about a second partition writing empty payload rows per file per index. || QUOTE: NONE | WHY: The answer never states that shell and CMake share one harvest partition or that a second partition would write an empty payload row per file per index. || QUOTE: NONE | WHY: The answer never says that the shell and CMake languages share a single harvest partition, and it gives no reason about a second partition writing empty payload rows.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 clew/synth.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 clew/shast.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 clew/cmakeast.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 clew/substrate.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": false,
+      "detail": "named 7 not in the set: ['clew/doxygen.py', 'clew/harvest.py', 'clew/propose/notindexed.py', 'clew/prose.py', 'clew/treescan.py', 'tests/test_script_front_end.py', 'tests/test_substrate_capability.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

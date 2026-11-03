@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `PermissionManager` holds the two lists. Each list is checked in order and any single match is enough. ... `PermissionsConfig` has `allow`, `deny` (glob string lists) and `auto_approve` (bool), parsed by `parse_permissions_config`\nVERDICT: MISS\nWHY: The answer names PermissionManager and PermissionsConfig but never says the lists come from the PermissionsConfig that ServerManager is constructed with; it even lists how the lists are populated as unsettled."
+}

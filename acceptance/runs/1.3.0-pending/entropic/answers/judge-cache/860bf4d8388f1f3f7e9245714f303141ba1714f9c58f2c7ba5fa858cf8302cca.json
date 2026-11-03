@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | SSE reader | `src/mcp/transport_sse.cpp:107` | Reads the server-sent event stream |\n| Stdio stderr forwarder | `src/mcp/transport_stdio.cpp:164` | Forwards child stderr |\nVERDICT: HIT\nWHY: The answer lists an SSE event reader thread and a stdio stderr forwarder thread, each in its own transport file, which matches the item."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Deny check** (`ServerManager::execute`, `src/mcp/server_manager.cpp:153`). `PermissionManager::is_denied()` runs on the call. A match returns an error envelope and the call never reaches a server.\" and \"the deny list is the only hard block.\"\nVERDICT: HIT\nWHY: The answer states the deny list is the only hard block and that ServerManager::execute checks is_denied before routing the call."
+}

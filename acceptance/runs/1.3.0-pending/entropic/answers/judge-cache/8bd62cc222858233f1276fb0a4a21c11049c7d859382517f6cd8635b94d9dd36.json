@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says patterns use fnmatch and shows examples with and without colons, but it never states that the pattern is split at the first colon into tool and argument parts. It also never says explicitly that a pattern with no colon matches on the tool name alone, apart from the table row \"No colon, so args are ignored\", which is only an example and not the mechanism."
+}

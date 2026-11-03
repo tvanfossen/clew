@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It then calls `mbedtls_platform_set_calloc_free` with its own `buffer_alloc_calloc` / `buffer_alloc_free`, or the `_mutexed` variants when `MBEDTLS_THREADING_C` is on.\"\nVERDICT: HIT\nWHY: The answer says the buffer allocator's init installs the mutexed pair when MBEDTLS_THREADING_C is on and the plain pair otherwise. It does not say the choice is made at compile time, but the `#if`-style condition implies it."
+}

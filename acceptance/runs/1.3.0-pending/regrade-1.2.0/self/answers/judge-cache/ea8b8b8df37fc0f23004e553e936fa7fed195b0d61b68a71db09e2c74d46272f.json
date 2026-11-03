@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `data` ... Cleared by: A rebuild; `code` ... Cleared by: Restarting the MCP client only; \"A rebuild through this process will not clear it\"; \"The design rule behind all of this is that a rebuild through a stale process is never attempted... The refusal is cheap, since one client reconnect fixes it.\"\nVERDICT: MISS\nWHY: The answer says that data is cleared by a rebuild and code by a client restart. It never says that this difference is why a single flag would not have been enough."
+}

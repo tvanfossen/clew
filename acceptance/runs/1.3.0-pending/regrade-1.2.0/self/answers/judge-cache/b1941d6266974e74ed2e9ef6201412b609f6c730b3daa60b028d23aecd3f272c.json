@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer's table lists several different downgrade cases (stale index, unindexed extensions, conceptual names), and it never says there is exactly one absent-corpus downgrade or that keeping it to one is deliberate."
+}

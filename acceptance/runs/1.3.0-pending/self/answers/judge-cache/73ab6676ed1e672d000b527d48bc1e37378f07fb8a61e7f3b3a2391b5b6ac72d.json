@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions a `source` field naming the layer (doxygen_sqlite or ast) but never says that call_edges stores one row per layer or that the same logical edge from two detectors is stored twice."
+}

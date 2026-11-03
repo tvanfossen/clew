@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`{}` is also what it returns for empty input and for a null vocab (lines 52, 44). Callers cannot tell \"failed\" from \"empty.\"\"\nVERDICT: MISS\nWHY: The answer says failure is indistinguishable from empty, but it also says speculative/MTP callers check the result (`tokens.size() < 2`), which contradicts the item's \"no caller checks for it.\""
+}

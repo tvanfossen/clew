@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses build integration and mentions \"the llama C API\" only in passing, without identifying the seam as free functions with an llama_ prefix as opposed to C++ classes or inheritance."
+}

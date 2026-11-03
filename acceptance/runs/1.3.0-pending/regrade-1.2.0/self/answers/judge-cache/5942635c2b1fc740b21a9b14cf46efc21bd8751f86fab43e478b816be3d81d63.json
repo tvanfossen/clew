@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"For `code` it also says that reads are still current but writes are not safe.\"\nVERDICT: HIT\nWHY: The answer states that for the code axis reads remain current while writes/rebuilds are unsafe, and that a rebuild runs the old logic. It does not explain the per-call database open, but it gives the asymmetry and the old-logic-on-rebuild consequence."
+}

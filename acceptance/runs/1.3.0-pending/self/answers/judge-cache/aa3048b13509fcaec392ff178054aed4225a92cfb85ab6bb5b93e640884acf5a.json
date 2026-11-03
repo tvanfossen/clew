@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"clew checks staleness along three independent axes on every status call and on every query reply.\" The table then lists the axes as `data`, `schema` and `code`.\nVERDICT: HIT\nWHY: The answer says staleness has three independent axes, names them `data`, `schema` and `code`, and gives a different check and fix for each."
+}

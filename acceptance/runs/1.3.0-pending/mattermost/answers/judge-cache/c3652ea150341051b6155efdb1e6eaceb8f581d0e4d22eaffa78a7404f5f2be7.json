@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `interface ServerDataOperator extends ...HandlerMix` block merges the matching type declarations so the methods type-check.\nVERDICT: HIT\nWHY: The answer states that a same-named interface extends the handler Mix types, merging declarations so the class is typed with the mixed-in methods."
+}

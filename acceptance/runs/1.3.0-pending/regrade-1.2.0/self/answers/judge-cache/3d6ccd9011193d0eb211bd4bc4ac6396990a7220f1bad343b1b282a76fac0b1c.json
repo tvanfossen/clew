@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Reads are safe in a stale process. Writes are not: `stale_code_refusal` makes write paths refuse, and `force` does not override that. A stale process once rebuilt an index at an older build version and dropped the `external` stage; that is why writes are refused.\"\nVERDICT: HIT\nWHY: The answer states reads are safe in a stale-code process (data read live) while builds/writes from it would write old pipeline logic, and cites the rebuild-at-older-version incident."
+}

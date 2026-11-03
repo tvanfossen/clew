@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Schema and code are never auto-refreshed.** A build through an old process would re-stamp the index with old pipeline logic and could drop layers.\"\nVERDICT: MISS\nWHY: The answer states that a build through an old process writes old logic, but it never says that reads stay current because query tools open the database per call, so the read/write asymmetry is absent."
+}

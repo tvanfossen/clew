@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The right side is matched against the tool name plus the first string value in the args JSON (`ServerManager::args_to_pattern`, `server_manager.cpp:426`). Empty args, `{}`, or a non-string first value all become `*`.\"\nVERDICT: HIT\nWHY: The answer says only the first string argument value reaches the pattern and that empty or non-string first values collapse to `*`. That covers the single-value and wildcard-collapse parts. It does not state outright that the other arguments are invisible to matching, but that follows directly from only the first being matched."
+}

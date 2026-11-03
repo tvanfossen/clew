@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that the option names used by an embedding caller match the declaration file's section names and the diagnostics' wording. The closest it gets is \"Same sections as `.clew.yaml`\" and \"two routes to the same vocabulary\", which gestures at the idea without stating it."
+}

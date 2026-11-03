@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nclew/call_edges.py\nclew/query/models.py\nclew/dominated_edges.py\nclew/critical_sections.py\nEND"
+}

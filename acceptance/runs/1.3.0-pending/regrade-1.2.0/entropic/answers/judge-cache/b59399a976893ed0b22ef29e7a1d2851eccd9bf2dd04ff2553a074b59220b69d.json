@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: generated from include/entropic/entropic.h by scripts/gen_bindings.py (pre-commit checks drift)\nVERDICT: HIT\nWHY: The answer says the bindings are generated from the header by a script and that pre-commit checks drift. It doesn't say the check re-runs the generator and diffs, but a pre-commit drift check on a generated file implies that."
+}

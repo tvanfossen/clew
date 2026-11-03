@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says call_edges stores one row per extraction layer or that the same edge found by two detectors is duplicated; it only describes `source` as a field and says rows are DISTINCT per endpoint."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without assembly it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global defined in `library/constant_time.c`.\nVERDICT: HIT\nWHY: The answer states that without assembly the opaque barrier XORs with the volatile global `mbedtls_ct_zero`, and it names that global."
+}

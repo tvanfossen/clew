@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**How it knows (three axes, `clew/mcp_server/freshness.py`)** - **`data`:** the database is older than the source... **`code`:** the running server imported its modules at launch... **`schema`:** `build_version` against `expected_build_version`.\"\nVERDICT: HIT\nWHY: The answer explicitly states staleness is checked on three separate axes and names them data, code, and schema, with each one distinguished."
+}

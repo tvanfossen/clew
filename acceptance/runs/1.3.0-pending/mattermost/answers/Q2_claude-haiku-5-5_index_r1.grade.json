@@ -1,0 +1,63 @@
+{
+  "cell": "Q2_claude-haiku-5-5_index_r1",
+  "arm": "index",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 1.0,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names the websocket event dispatcher that routes `reaction_added` to its handler (`handleWebSocketEvent` \u2192 `handleReactionAddedToPostEvent`)",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: WebSocket msg (event = REACTION_ADDED) \u2514\u2500 handleWebSocketEvent            app/actions/websocket/event.ts:44        \u2514\u2500 handleReactionAddedToPostEvent   websocket/reactions.ts:21 | WHY: The answer names `handleWebSocketEvent` as the dispatcher that routes REACTION_ADDED to `handleReactionAddedToPostEvent`. || QUOTE: \"WebSocket msg (event = REACTION_ADDED) \u2514\u2500 handleWebSocketEvent app/actions/websocket/event.ts:44 \u2514\u2500 handleReactionAddedToPostEvent websocket/reactions.ts:21\" | WHY: The answer names `handleWebSocketEvent` as the dispatcher that routes the reaction-added event to `handleReactionAddedToPostEvent`. || QUOTE: WebSocket msg (event = REACTION_ADDED) \u2514\u2500 handleWebSocketEvent app/actions/websocket/event.ts:44 \u2514\u2500 handleReactionAddedToPostEvent websocket/reactions.ts:21 | WHY: The answer's added-path diagram shows `handleWebSocketEvent` dispatching the REACTION_ADDED event to `handleReactionAddedToPostEvent`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the added reaction is stored through the database operator's `handleReactions`, which prepares Reaction records and writes them with `batchRecords`",
+      "kind": "retrieval",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [...] }) ... prepareRecords({createRaws, transformer: transformReactionRecord}) ... prepareRecordsOnly is false \u2192 batchRecords(\u2026) | WHY: The answer shows the added reaction is stored via operator.handleReactions, which prepares Reaction records and writes them with batchRecords. || QUOTE: operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [...] }) ... prepareRecords({createRaws, transformer: transformReactionRecord}) ... prepareRecordsOnly is false \u2192 batchRecords(\u2026) | WHY: The answer shows the added reaction flowing through operator.handleReactions, which prepares Reaction records and writes them with batchRecords. || QUOTE: operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [...] }) ... prepareRecords({createRaws, transformer: transformReactionRecord}) ... prepareRecordsOnly is false \u2192 batchRecords(\u2026) | WHY: The answer states the added reaction goes through the operator's handleReactions, which prepares Reaction records and writes them with batchRecords.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that a removed reaction does NOT go through the operator: its handler queries the reaction and destroys it with a direct `database.write`",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"WebSocket msg (event = REACTION_REMOVED) ... handleReactionRemovedFromPostEvent ... queryReaction(db, emoji_name, post_id, user_id).fetch() ... if found: database.write(() => reaction[0].destroyPermanently())\" and \"No operator, no `sanitizeReactions`, no transformer.\" | WHY: The answer states the removed handler bypasses the operator, queries the reaction, and destroys it via a direct database.write. || QUOTE: \"queryReaction(db, emoji_name, post_id, user_id).fetch() ... if found: database.write(() => reaction[0].destroyPermanently())\" and \"No operator, no `sanitizeReactions`, no transformer. It is a hard delete\" | WHY: The answer states the removed handler skips the operator, queries the reaction, and destroys it via a direct `database.write`. || QUOTE: \"WebSocket msg (event = REACTION_REMOVED) \u2514\u2500 handleWebSocketEvent \u2514\u2500 handleReactionRemovedFromPostEvent ... \u251c\u2500 queryReaction(db, emoji_name, post_id, user_id).fetch() ... \u2514\u2500 if found: database.write(() => reaction[0].destroyPermanently())\" and \"A reaction-removed event bypasses the operator entirely: it looks up the row and hard-deletes it in its own write transaction.\" | WHY: The answer states that removal bypasses the operator, queries the reaction, and destroys it with a direct database.write.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that `skipSync: true` stops the single incoming reaction being treated as the post's complete set \u2014 without it every other reaction on the post would be deleted",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: A single-reaction event contains one reaction, so without this flag every other reaction on the post would be deleted. | WHY: The answer explains that skipSync prevents the single incoming reaction from being treated as the full set, which would otherwise delete all other reactions on the post. || QUOTE: \"A single-reaction event contains one reaction, so without this flag every other reaction on the post would be deleted.\" | WHY: The answer states that skipSync prevents the single-reaction payload from being treated as the full set, which would otherwise delete all other reactions on the post. || QUOTE: A single-reaction event contains one reaction, so without this flag every other reaction on the post would be deleted. | WHY: The answer states that skipSync prevents the single incoming reaction from being treated as the full set, since otherwise every other reaction on the post would be deleted.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that both handlers swallow any error silently (empty catch), so a failed write leaves no trace",
+      "kind": "conclusion",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: \"`handleReactionAddedToPostEvent` has an empty `catch`\" and \"The removed handler also has an empty `catch`, so a failed delete is silent.\" | WHY: The answer states both handlers have empty catch blocks, so failed writes/deletes are silent. || QUOTE: `handleReactionAddedToPostEvent` has an empty `catch`. A failed write is silent apart from the warning log. ... The removed handler also has an empty `catch`, so a failed delete is silent. | WHY: The answer states that both handlers have empty catch blocks and that failed writes or deletes are silent.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

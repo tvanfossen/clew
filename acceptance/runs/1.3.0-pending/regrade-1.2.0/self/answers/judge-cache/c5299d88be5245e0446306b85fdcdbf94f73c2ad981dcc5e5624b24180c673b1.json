@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The router only gates `bash` and `cmake` (`_OPTIONAL_KEYS` in `clew/harvest.py`)... For a missing `bash` or `cmake`: ... `register_paths` still writes a `path` row ... A `.sh` file on a bash-less install is therefore absent from `not_indexed`, and the report stays silent about it.\"\nVERDICT: MISS\nWHY: The answer says the install degrades silently but explicitly claims those files are NOT reported as not indexed, which contradicts the item's \"reported as not indexed\" conclusion."
+}

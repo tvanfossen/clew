@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the two llama.cpp calls are a size-probe and a fill, not retry.\" and \"Neither site repeats on failure: there is no loop, no backoff, and no second attempt on the same input.\"\nVERDICT: HIT\nWHY: The answer identifies size-probe/fill (size negotiation) rather than retry, and notes no loop or backoff and exactly one second call. It never mentions an attempt counter, but the core conclusion is clearly stated."
+}

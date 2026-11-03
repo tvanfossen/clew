@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_PRIVATE(member)` is a rename, not access control... Outside code that writes `ctx->alg` gets a compile error. The struct definitions stay in public headers, so `sizeof`, stack allocation and layout are still visible.\"\nVERDICT: HIT\nWHY: The answer says opacity is enforced at compile time by renaming members (private_ prefix), while the struct layout stays visible and sized."
+}

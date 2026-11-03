@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer names PermissionManager's pattern_matches and says allow/deny come from YAML, but never states that they come from the PermissionsConfig the ServerManager is constructed with."
+}

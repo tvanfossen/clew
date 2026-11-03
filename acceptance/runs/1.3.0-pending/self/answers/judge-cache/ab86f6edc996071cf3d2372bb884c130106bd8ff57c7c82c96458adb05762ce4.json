@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Data is cleared by a rebuild. Code is cleared only by restarting the client. Schema cannot be cleared by any action the consumer can take.\"\nVERDICT: HIT\nWHY: The answer states that the data axis is cleared by a rebuild and the code axis only by a client restart, and it presents them as separate axes. It never says outright that this is why one flag would not have been enough, but the differing remedies per axis carry the item's substance."
+}

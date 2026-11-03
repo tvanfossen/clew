@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists HealthMonitor::monitor_loop and its mutexes (event_mutex_, etc.) but never says status callbacks are queued under a mutex and drained by the caller's thread."
+}

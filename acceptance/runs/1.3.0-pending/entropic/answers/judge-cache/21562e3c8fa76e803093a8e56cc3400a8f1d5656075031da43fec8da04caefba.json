@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Call 1 passes `nullptr` and a size of 0. llama.cpp answers with the negative of the required token count. This is a size probe, not an attempt that failed.\" and \"No backoff, no repeated attempt at the same operation, no retry of a failure.\"\nVERDICT: HIT\nWHY: The answer concludes the double call is size negotiation (probe then sized call), not retry, and notes the absence of backoff."
+}

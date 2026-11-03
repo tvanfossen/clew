@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It rebuilds the post with a new timestamp and `failed: false`, updates the local record so the UI shows it as pending again, and then calls `client.createPost` once more.\" and \"On failure it sets `failed: true` again, or removes the post if the error is one of the three terminal errors above. Each tap is one more attempt; nothing repeats on its own.\"\nVERDICT: HIT\nWHY: The answer states retryFailedPost makes one new createPost attempt with no automatic repetition, and on failure re-marks failed or removes for the three errors."
+}

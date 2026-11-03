@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A `.clew.yaml` with `index_scope:` present but unusable (non-mapping, unknown keys, no existing roots) is `_Rejected`. The library-level `derive_scope` falls back to the whole repo and logs the rejection.\" and \"no index_scope section \u2192 None (fall through)\" and \"no declaration \u2192 whole_repo_scope(root)\"\nVERDICT: HIT\nWHY: The answer states that a declared index_scope is used first and that absent, unusable or rejected declarations fall back to indexing the whole repository."
+}

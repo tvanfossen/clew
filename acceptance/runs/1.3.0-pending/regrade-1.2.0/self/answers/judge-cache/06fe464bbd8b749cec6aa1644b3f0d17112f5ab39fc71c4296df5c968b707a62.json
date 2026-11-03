@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `<repo>/.clew.yaml`, same section names as the flags\nVERDICT: MISS\nWHY: The answer says the `.clew.yaml` sections match the flags, but it never says that the embedding caller's option names are the same words as the declaration file's section names and as the words in the diagnostics."
+}

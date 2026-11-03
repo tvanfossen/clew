@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_client2.c:8` | The `ssl_client2` sample, defined before any include.\nVERDICT: HIT\nWHY: The answer identifies that sample programs (ssl_client2, ssl_server2) themselves define MBEDTLS_ALLOW_PRIVATE_ACCESS, opting out of the private-member mangling to reach ssl internals."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`handleReactionAddedToPostEvent` wraps everything in `try { \u2026 } catch { // Do nothing }`.\" and \"The same error policy applies: the outer `catch` is empty.\"\nVERDICT: HIT\nWHY: The answer states both handlers have empty catch blocks that swallow errors, leaving a failed write without a trace at the handler level."
+}

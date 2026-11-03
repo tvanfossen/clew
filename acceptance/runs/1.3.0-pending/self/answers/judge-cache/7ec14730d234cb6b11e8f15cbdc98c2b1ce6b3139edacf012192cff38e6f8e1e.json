@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If the index is older, a forced rebuild clears it. If the index is newer, the server is the stale one.\" and \"A newer `schema` or a `code` mismatch says a rebuild cannot fix it and the MCP client must restart.\"\nVERDICT: HIT\nWHY: The answer states that a newer index schema can't be cleared by a rebuild and requires a client restart."
+}

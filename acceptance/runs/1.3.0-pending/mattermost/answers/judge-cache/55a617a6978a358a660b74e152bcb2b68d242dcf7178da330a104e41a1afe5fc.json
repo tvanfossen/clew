@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The interface at line 23 re-declares the same names so TypeScript knows the instance has those methods.\nVERDICT: MISS\nWHY: The answer says an interface re-declares the same names, but it never says the interface extends each handler's `...Mix` type. It also never says the class is typed with every mixed-in method that way."
+}

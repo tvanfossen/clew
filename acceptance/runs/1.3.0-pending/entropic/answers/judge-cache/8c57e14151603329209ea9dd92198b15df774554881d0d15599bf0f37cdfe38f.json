@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses a non-atomic cancel_int written by an observer thread, but frames it as a data race to fix, not as existing to bridge an atomic into a plain int because the C ABI can't carry an atomic."
+}

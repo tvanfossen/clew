@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A layer that was never built does not downgrade a single-token verdict. The code says this was tried and reverted, because most indexes lacking a layer were built without one and the hedge would fire on nearly every reply. The file-docs check is the one exception.\"\nVERDICT: HIT\nWHY: The answer states there is a single absent-corpus downgrade (file-docs) and that downgrading on other absent layers was deliberately reverted because the hedge would fire on nearly every reply."
+}

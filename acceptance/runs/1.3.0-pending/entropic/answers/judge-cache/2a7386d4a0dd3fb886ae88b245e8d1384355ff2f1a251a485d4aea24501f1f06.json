@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `allow` \u2014 `check_approval` treats a match as approved, so the callback is skipped and the call is not prompted. It does not bypass the MCP key checks, tier allowlist, or duplicate detection, which run earlier.\nVERDICT: HIT\nWHY: The answer says allow only suppresses the prompt and doesn't bypass other checks, and names `is_explicitly_allowed` consulted from `check_approval` in tool_executor.cpp, a different file from the permission manager."
+}

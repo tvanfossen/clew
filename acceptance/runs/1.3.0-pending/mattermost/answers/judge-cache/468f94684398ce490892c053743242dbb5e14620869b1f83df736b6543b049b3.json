@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Before the network call, the post is written locally with `id = pending_post_id` (`${currentUserId}:${timestamp}`), so the user sees it immediately.\" and \"On error, the post is stored with `props.failed = true`\"\nVERDICT: HIT\nWHY: The answer states the post is saved locally before the send and is kept and flagged `failed = true` on error."
+}

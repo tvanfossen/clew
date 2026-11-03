@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Cancel pollers (10 ms) | `response_generator.cpp:413`, `inference_c_api.cpp:385`, `interface_factory.cpp:246` | Joined before the call returns\nVERDICT: MISS\nWHY: The answer lists cancel pollers as threads but never says they exist to bridge an atomic into a plain int across the C ABI boundary."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 18823,
+  "stop_reason": "end_turn",
+  "session_id": "51143dae-52f0-4fe9-b7f7-d2587cb46a86",
+  "total_cost_usd": 0.00544541,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 13593,
+    "cache_read_input_tokens": 119171,
+    "output_tokens": 3069,
+    "output_tokens_details": {
+      "thinking_tokens": 1335
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 13593,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2343,
+        "cache_read_input_tokens": 44033,
+        "cache_creation_input_tokens": 7129,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7129
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 3069,
+      "cacheReadInputTokens": 119171,
+      "cacheCreationInputTokens": 13593,
+      "webSearchRequests": 0,
+      "costUSD": 0.00544541,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1335,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 13593,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** for YAML and JSON the index holds only that the files exist. For shell and CMake it holds definitions, but only if the installed substrate has the grammars. On an install without them, every one of these files is registered and findable by name, and the index reports that they were not read. It does not fabricate symbols.\n\n**What the index holds, by file type** (from `clew/synth.py`, `tests/test_script_front_end.py`, and the `docs/languages/SCRIPT_INTEGRATION.md` snippets)\n\n| File type | Index holds | Index does not hold |\n|---|---|---|\n| `.sh`, `.bash` | A `path` row, plus `memberdef` rows for shell functions, with docs taken from the `#` block above each one | Anything from a grammar that isn't compiled in (see below) |\n| `CMakeLists.txt`, `.cmake` | A `path` row, plus `memberdef` rows for `function` and `macro`. A macro is recorded as a macro, because it pastes its body into the caller's scope | Same caveat as shell |\n| `.yaml`, `.yml`, `.json` | A `path` row only. The file is in the file set and findable by name | Any symbols. Keys like `steps:` are not written as `memberdef` rows, because that would flood the namespace that answers `dossier(\"my_function\")` |\n\nShell and CMake definitions are written in the same table shapes doxygen uses for Python, so the query layer reads them without changes. Rows are stamped `dg_source='parse'`, so they can be told apart from `ast`-recovered rows.\n\n**What happens on an install whose parser lacks the grammars**\n\n- The published `lang-parsing-substrate` wheel (0.11.2) does not carry the five configuration grammars: bash, cmake, yaml, json and markdown. They come from a fork that is not yet released. `clew/substrate.py` therefore asks what is compiled in, not what version is installed. A version check would not work, because the fork reports the same version string.\n- Against that wheel, the router resolves the file to no grammar. The file is still registered and searchable, but it has no symbols. This is a deliberate fallback: the alternative is `ValueError: unknown language key` in the middle of a build.\n- The shell and CMake files also get no symbols on that wheel, not only YAML and JSON. The test file says so directly: with the published wheel, \"the files carry no symbols, and a query about a deploy script comes back empty.\"\n- An unimportable substrate is treated as \"no languages, logged\" rather than a crash. The reason given is that the pre-commit gate also consults this check.\n- The miss report is measured at build time. It records how many in-scope files of each unread type exist, for example \"14 `.sh` files were in scope and none of them are in this index.\" A query that comes back empty can then be told apart from a symbol that does not exist. An index built before this release reports nothing about this, instead of a fabricated empty set.\n\n**Caveats**\n\n- I did not verify whether call sites inside shell or CMake files produce call edges. The docs say that files with no `path` row get no call edges, and shell and CMake do get `path` rows. I did not confirm the edge behaviour, so treat it as unknown.\n- The `docs/languages/SCRIPT_INTEGRATION.md` dossier returned no body text. The table above comes from search snippets and the `clew/synth.py` module documentation.\n- `test_ingest_requirements_yaml_reads_the_mapping_keyed_shape` shows YAML requirement catalogs are read on a separate path (the requirements ingest in the docs build), not by the script front end. I did not trace that path.",
+  "ttft_ms": 2459,
+  "type": "result",
+  "duration_ms": 19405,
+  "uuid": "5fff181f-40bb-479d-9fcf-2a2bd5b93905",
+  "ttft_stream_ms": 1964,
+  "time_to_request_ms": 75,
+  "first_content_frame_ms": 1964,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `llama_decode`, mtmd, common chat, `common_sampler_*`\nVERDICT: MISS\nWHY: The answer lists llama_ function names but never states that the seam is llama.cpp's C API (free functions) as opposed to C++ classes or inheritance. It even notes `dynamic_cast<LlamaCppBackend*>`, which concerns the project's own class, not llama.cpp's."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes build/linking and include reach, but never states that the seam is llama.cpp's C API (free `llama_`-prefixed functions) as opposed to C++ classes or inheritance."
+}

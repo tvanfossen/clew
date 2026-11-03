@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Buffers the engine will free must come from `entropic_alloc()`.** This applies to hook `modified_json` and any consumer string the engine takes ownership of.\nVERDICT: HIT\nWHY: The answer states the caller-to-engine rule (engine-freed buffers must come from entropic_alloc) and shows the Python side doing it in the hooks trampoline: \"writes the JSON result with `entropic_alloc` and `ctypes.memmove`\"."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that the public API surface is just mbedtls_ct_memcmp with other primitives internal; it only calls the facility internal-header based without that conclusion."
+}

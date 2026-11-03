@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: So `derive_scope` returns the whole-repo tier with the reason \"no index_scope is declared\".\nVERDICT: HIT\nWHY: The answer says the fallback (whole-repo tier) carries an explicit reason stating why that scope was used, so the scope isn't silently guessed. A rejected declaration is also logged as a WARNING before it falls through."
+}

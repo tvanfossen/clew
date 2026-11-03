@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The config doc says the two macros must be defined or undefined together\" and \"**`MBEDTLS_PLATFORM_MEMORY` with both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`:** the macros expand to your symbols. No runtime hook exists in this mode.\" and \"**Option B: runtime.** Set `MBEDTLS_PLATFORM_MEMORY` and leave both macros undefined.\"\nVERDICT: HIT\nWHY: The answer distinguishes compile-time macros from the runtime setter pair of function pointers, and says the runtime hook doesn't exist in macro mode and requires the macros to be undefined, so the two are mutually exclusive."
+}

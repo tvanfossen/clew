@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says it could not confirm where persisted \"always\" entries are created and never mentions appending to config.local.yaml, so it doesn't state that a decision can be persisted separately from the in-memory add_permission call."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"stated scope (tool-call argument) \u2500\u2500\u25ba if present and usable, use it ... .clew.yaml index_scope: \u2500\u2500\u25ba if present and usable, use it (present but unusable \u2192 rejected) ... whole repository (less ignores) \u2500\u2500\u25ba the default\"\nVERDICT: MISS\nWHY: The answer says a declared scope is preferred and that nothing declared falls to the whole repo. But it says a rejected declaration is \"rejected\", and it flags as unverified whether `derive_scope` falls through or the CLI refuses. So it does not state that every failure to find a declared scope falls through to the whole repository."
+}

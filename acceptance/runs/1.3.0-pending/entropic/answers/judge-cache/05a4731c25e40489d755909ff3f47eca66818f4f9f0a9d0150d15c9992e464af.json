@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Log context follows the thread.** Each thread opens a `HandleLogScope` so its logs go to the owning handle's session log (gh#59).\nVERDICT: HIT\nWHY: The answer states each thread opens a per-handle logging scope so logs go to the owning handle, though it doesn't say \"first statement\" explicitly."
+}

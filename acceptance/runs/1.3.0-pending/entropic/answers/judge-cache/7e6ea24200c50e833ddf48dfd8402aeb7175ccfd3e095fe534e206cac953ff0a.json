@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`ExternalBridge::run_async_ask` | Detached thread that runs `entropic_run` for `entropic.ask`\" and \"**`run_async_ask` is detached.** It captures `this` and `handle_`, and I found no join or tracking for it in the index. If the bridge is destroyed while a task is running, that is a use-after-free.\"\nVERDICT: HIT\nWHY: The answer identifies the async-ask thread as detached, notes it has no join, and describes it outliving the bridge's scope. It does not say it is the only detached thread, but the item's core is stated."
+}

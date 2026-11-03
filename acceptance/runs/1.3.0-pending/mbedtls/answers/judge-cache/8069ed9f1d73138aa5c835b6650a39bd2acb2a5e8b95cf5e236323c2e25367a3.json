@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no top-level directories as containing uses of MBEDTLS_PRIVATE. It cites individual files (`include/mbedtls/private_access.h`, `library/common.h`, `programs/ssl/ssl_client2.c`, `programs/ssl/ssl_server2.c`), but these are definition sites and file paths, not directories it says contain uses.\n\nITEMS:\nNONE\nEND"
+}

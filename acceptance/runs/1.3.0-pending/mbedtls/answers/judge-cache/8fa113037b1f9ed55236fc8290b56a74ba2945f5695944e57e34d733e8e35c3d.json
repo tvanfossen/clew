@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library never creates threads: no `pthread_create` or `std::thread` appears under `library/` or `include/`.\nVERDICT: MISS\nWHY: The answer states that the library creates no threads. It does not say that library/ supplies the mutex abstraction for threaded callers. It says the mutex layer is compiled out by default and is declared in `include/mbedtls/threading.h`, so the second half of the contrast is missing."
+}

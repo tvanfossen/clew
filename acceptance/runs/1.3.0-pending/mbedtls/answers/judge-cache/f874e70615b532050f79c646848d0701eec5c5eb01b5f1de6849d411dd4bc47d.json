@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If that is not defined, it is the stub `platform_calloc_uninit`, which always returns NULL (`platform.c:24-33, 44`). The same applies to free, where the stub does nothing. So an unconfigured dynamic build fails every allocation rather than silently using libc.\"\nVERDICT: HIT\nWHY: The answer states the uninitialised calloc stub returns NULL, the free stub does nothing, and that this fails rather than falling back to libc."
+}

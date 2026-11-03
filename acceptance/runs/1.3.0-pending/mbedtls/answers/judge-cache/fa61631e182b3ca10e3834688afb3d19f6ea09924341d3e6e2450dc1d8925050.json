@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_CT_ASM` is defined only when `MBEDTLS_HAVE_ASM` is set, the compiler is GNU-compatible (`__GNUC__`, including clang), and the target is one of the four supported architectures.\nVERDICT: HIT\nWHY: The answer says MBEDTLS_CT_ASM is defined from MBEDTLS_HAVE_ASM plus compiler and architecture predefined macros, which conveys that it is derived. It never says outright that the macro is absent from mbedtls_config.h."
+}

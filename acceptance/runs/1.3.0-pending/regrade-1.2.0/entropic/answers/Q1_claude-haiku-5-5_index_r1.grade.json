@@ -1,0 +1,93 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_r1",
+  "arm": "index",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.7619047619047619,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "locates the two-call pattern in src/inference/llama_cpp_tokenizer.cpp",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: Both calls are in `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`), at lines 55 and 61... The first call passes a null buffer with size 0. llama.cpp then returns the negative of the token count it needs. The code flips the sign to get `n`, allocates a vector of that size, and calls again to fill it. | WHY: The answer names the file, function, and line locations of the two-call size-query-then-fill pattern and explains the mechanism. || QUOTE: Both calls are in `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`), at lines 55 and 61... The first call passes a null buffer with size 0. llama.cpp then returns the negative of the token count it needs. The code flips the sign to get `n`, allocates a vector of that size, and calls again to fill it. | WHY: The answer names the file, function, and line locations of the size-query-then-fill two-call pattern. || QUOTE: Both calls are in `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`), at lines 55 and 61... The first call passes a null buffer with size 0... allocates a vector of that size, and calls again to fill it. | WHY: The answer locates the two `llama_tokenize` calls in that file and describes the size-query-then-fill mechanism.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the first call returns the REQUIRED BUFFER SIZE as a negative number, and that the code negates it to size the buffer for the second call",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The first call passes a null buffer with size 0. llama.cpp then returns the negative of the token count it needs. The code flips the sign to get `n`, allocates a vector of that size, and calls again to fill it. | WHY: The answer states the first call returns the negative of the needed count and that the code flips the sign to size the buffer for the second call. || QUOTE: \"The first call passes a null buffer with size 0. llama.cpp then returns the negative of the token count it needs. The code flips the sign to get `n`, allocates a vector of that size, and calls again to fill it.\" | WHY: The answer states the first call returns the negative of the needed size and the code negates it to size the buffer for the second call. || QUOTE: The first call passes a null buffer with size 0. llama.cpp then returns the negative of the token count it needs. The code flips the sign to get `n`, allocates a vector of that size, and calls again to fill it. | WHY: The answer states the first call returns the negative of the needed token count and that the code flips the sign to size the vector for the second call.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that this is SIZE NEGOTIATION rather than retry-on-failure \u2014 there is no backoff, no delay, no attempt counter, and exactly one second call",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"the two `llama_tokenize` calls are a size-query followed by a fill, not retry logic... The second call is unconditional and never depends on the first failing.\" | WHY: The answer identifies a sizing call followed by one fill call, says it is not a retry, and notes the second call is unconditional. || QUOTE: \"The first call passes a null buffer with size 0. llama.cpp then returns the negative of the token count it needs. The code flips the sign to get `n`, allocates a vector of that size, and calls again to fill it. The second call is unconditional and never depends on the first failing.\" | WHY: The answer identifies the two calls as size-query then fill, not retry, and notes the second call is unconditional rather than failure-driven. It never mentions backoff, delay or an attempt counter, but the size-negotiation conclusion is stated. || QUOTE: \"The first call passes a null buffer with size 0. llama.cpp then returns the negative of the token count it needs. The code flips the sign to get `n`, allocates a vector of that size, and calls again to fill it. The second call is unconditional and never depends on the first failing.\" | WHY: The answer identifies the two calls as a size query followed by a fill, not retry, and notes the second call is unconditional; no backoff, delay, or counter is mentioned, but the size-negotiation substance and the single second call are stated.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a negative or non-positive result from the SECOND call is terminal \u2014 it returns empty rather than attempting again",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says the second call is unconditional and logs an error and returns `{}` on failure at lines 64-67, but it never says a non-positive second-call result is terminal with no further attempt. || QUOTE: NONE | WHY: The answer says the second call is unconditional and the failure path returns `{}`, but it never says a negative or non-positive result from the second call ends the attempt with an empty return. || QUOTE: NONE | WHY: The answer says the second call is unconditional and the tokenizer returns `{}` on failure, but it never states that a negative or non-positive result from the second call is terminal and returns empty without another attempt.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that detokenize tries a fixed 256-byte STACK buffer first and only heap-allocates when the token does not fit, whereas tokenize always sizes before writing",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer mentions detokenize resizing a buffer after a too-small result, but never says it tries a fixed 256-byte stack buffer first and only heap-allocates when the token doesn't fit. || QUOTE: The only real retry-style code is in `detokenize` (lines 92-104), which resizes a buffer after a too-small result. | WHY: The answer says detokenize resizes after a too-small result but never mentions a fixed 256-byte stack buffer tried first with heap allocation only on overflow. || QUOTE: The only real retry-style code is in `detokenize` (lines 92-104), which resizes a buffer after a too-small result. | WHY: The answer says detokenize resizes after a too-small result, but never mentions a fixed 256-byte stack buffer tried first with heap allocation only when the token doesn't fit.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the backend's wrapper returns an EMPTY container for a failed tokenization, the same value it returns when no tokenizer is wired at all",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `LlamaCppBackend::tokenize` | Returns `{}`; also returns `{}` silently when no tokenizer is wired | `llama_cpp_backend.cpp:788-800` | WHY: The answer states the backend wrapper returns `{}` on failure and also `{}` when no tokenizer is wired, so the two cases give the same empty value. || QUOTE: `LlamaCppBackend::tokenize` | Returns `{}`; also returns `{}` silently when no tokenizer is wired | `llama_cpp_backend.cpp:788-800` | WHY: The table states that the backend wrapper returns `{}` on tokenization failure and the same `{}` when no tokenizer is wired. || QUOTE: `LlamaCppBackend::tokenize` | Returns `{}`; also returns `{}` silently when no tokenizer is wired | `llama_cpp_backend.cpp:788-800` | WHY: The table states the backend wrapper returns `{}` on failure and the same `{}` when no tokenizer is wired, which is the item's substance.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that a failed tokenization is therefore indistinguishable from a legitimately empty result, and that no caller checks for it",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"Empty is also a valid result for empty input with `add_special=false`, so a caller cannot tell \"failed\" from \"nothing to encode.\"\"; \"Nothing checks `tokens.empty()`.\" | WHY: The answer says failure is returned as an empty vector, indistinguishable from a legitimately empty result. It also says that no caller checks for it on the main paths. It does note that the speculative path checks `size() < 2`, so \"no caller\" is slightly overstated, but the substance is stated. || QUOTE: \"Empty is also a valid result for empty input with `add_special=false`, so a caller cannot tell \"failed\" from \"nothing to encode.\"\" | WHY: The answer says failure is signalled only by an empty vector, so it can't be told apart from a legitimately empty result. It also says the generate paths never check `tokens.empty()`. That \"no caller checks\" claim is qualified, since the speculative path does check `tokens.size() < 2`. Even so, the core conclusion is stated. || QUOTE: Empty is also a valid result for empty input with `add_special=false`, so a caller cannot tell \"failed\" from \"nothing to encode.\" | WHY: The answer says failure is an empty vector indistinguishable from legitimate empty, and that callers (generation, streaming, completion) don't check `tokens.empty()`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the token-counting path reports ZERO for a failed tokenization rather than signalling an error",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: **Token counting** (`do_count_tokens` \u2192 C API `entropic_inference_count_tokens`): returns 0. Callers cannot distinguish this from an empty string. | WHY: The answer states that the token-counting path returns 0 on tokenizer failure, indistinguishable from an empty string, with no error signalled. || QUOTE: **Token counting** (`do_count_tokens` \u2192 C API `entropic_inference_count_tokens`): returns 0. Callers cannot distinguish this from an empty string. | WHY: The answer states that the token-counting path returns 0 on tokenizer failure, indistinguishable from an empty string, rather than signalling an error.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

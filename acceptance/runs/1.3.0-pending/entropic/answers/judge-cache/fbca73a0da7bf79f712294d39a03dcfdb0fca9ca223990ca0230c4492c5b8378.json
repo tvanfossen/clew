@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says llama.cpp types \"stop at `src/inference/`\", but it also lists `src/facade/entropic.cpp` as reaching llama types. It never concludes the dependency is concentrated but not contained, with a minority of reaching files outside `src/inference`."
+}

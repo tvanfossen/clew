@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the macro is applied at many hundreds of sites or that it is mostly in public headers; it only gives one example (`aes.h`) and lists the `#define` sites of the opt-out macro."
+}

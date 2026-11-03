@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The arg part is checked against only the **first string-valued argument** (`args_to_pattern`, `server_manager.cpp:426`). Empty args or non-string first args become `*`. So an arg pattern on `path` will be checked against whichever argument is first.\nVERDICT: HIT\nWHY: The answer states that only one argument (the first string-valued one) reaches the pattern, and that empty or non-string args become `*`, which is a wildcard. It does not mention unparseable arguments explicitly, but the single-argument and wildcard-collapse substance is there."
+}

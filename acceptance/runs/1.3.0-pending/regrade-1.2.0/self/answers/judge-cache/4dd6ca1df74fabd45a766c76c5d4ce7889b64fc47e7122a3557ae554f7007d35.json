@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \".yaml .yml .json | `path` row only, in every case\"; \"Any symbol from YAML or JSON, so they never answer a function question.\"\nVERDICT: HIT\nWHY: The answer says YAML/JSON are registered as path rows with no symbols, while shell/CMake get real definitions, so the two groups are treated differently."
+}

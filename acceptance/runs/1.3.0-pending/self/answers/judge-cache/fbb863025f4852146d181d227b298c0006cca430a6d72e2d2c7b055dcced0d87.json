@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Write paths refuse. `stale_code_refusal` returns a `REFUSED:` message on the code axis. It has no override, and `force` does not bypass it.\"\nVERDICT: MISS\nWHY: The answer says the write path refuses and that force doesn't bypass it, but it never says the refusal is placed ahead of the build decision, which is the mechanism the item requires."
+}

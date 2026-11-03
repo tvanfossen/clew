@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Inside those translation units `MBEDTLS_PRIVATE(m)` becomes plain `m`... By default it expands to `private_##m`... plain `ctx->m` fails to compile for anyone outside the library.\nVERDICT: HIT\nWHY: The answer explains that defining the opt-out gives plain member names while ordinary consumers of the public headers see the `private_`-renamed ones."
+}

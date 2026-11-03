@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`\nVERDICT: MISS\nWHY: The answer describes tiers 1\u20135 but lumps three routes into tier 1 and never names five precedence tiers. Its table also labels tiers 4 and 5 together, so it doesn't clearly state five named tiers."
+}

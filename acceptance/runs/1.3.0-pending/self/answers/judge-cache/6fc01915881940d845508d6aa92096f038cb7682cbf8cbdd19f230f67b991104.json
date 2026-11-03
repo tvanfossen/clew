@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The keys in `.clew.yaml` are the same ones the flags and `options` use: `index_scope`, `preprocessor`, `requirements`, ... The same section names are used at every tier.\nVERDICT: MISS\nWHY: The answer says the declaration file's keys match the flags and `options` names, but it never says those names are the same words the diagnostics use."
+}

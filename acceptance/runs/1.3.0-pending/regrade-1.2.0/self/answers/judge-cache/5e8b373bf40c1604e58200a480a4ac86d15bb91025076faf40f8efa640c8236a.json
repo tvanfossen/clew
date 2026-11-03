@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A repo's own `index_scope:` declaration wins if it is usable. If nothing is declared, the whole repository is the scope\" and \"If no declaration exists, or it is rejected, `whole_repo_scope` runs\"\nVERDICT: HIT\nWHY: The answer states the declared scope is preferred and that both absence and rejection of a declaration fall through to whole-repo scope."
+}

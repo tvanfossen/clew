@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | `MBEDTLS_THREADING_C` | off (commented out) | `include/mbedtls/mbedtls_config.h:3787` | ... | `MBEDTLS_THREADING_PTHREAD` | off (commented out) | `mbedtls_config.h:2196` |\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the threading config macros, and says that mutex use is compiled out when THREADING_C is off."
+}

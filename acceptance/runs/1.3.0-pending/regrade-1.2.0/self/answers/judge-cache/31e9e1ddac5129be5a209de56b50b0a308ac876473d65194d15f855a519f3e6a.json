@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Restart the client. A rebuild cannot clear it.\" and \"`data` ... `index(action='refresh')`\" and \"Do not rebuild through a stale process. `stale_code_refusal()` returns a refusal message\"\nVERDICT: HIT\nWHY: The answer states that data staleness is cleared by a refresh/rebuild while code staleness needs a client restart, and that a rebuild cannot clear it. The \"one flag would not have been enough\" conclusion is only implied, but the different-cure substance is clearly there."
+}

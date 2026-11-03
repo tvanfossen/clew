@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes a deny-by-default header, with a callback that approves everything. It never concludes that a tool matching neither list is allowed and runs."
+}

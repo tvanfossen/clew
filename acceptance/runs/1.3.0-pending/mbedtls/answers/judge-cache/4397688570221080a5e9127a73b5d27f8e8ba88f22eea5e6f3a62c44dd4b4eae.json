@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `x ^ mbedtls_ct_zero` where `mbedtls_ct_zero` is a `volatile` global; all C arithmetic\nVERDICT: HIT\nWHY: The answer states that without assembly the code XORs with `mbedtls_ct_zero`, a volatile global, which names the global and the fallback mechanism. It does not say the global is `extern`, but that detail is minor."
+}

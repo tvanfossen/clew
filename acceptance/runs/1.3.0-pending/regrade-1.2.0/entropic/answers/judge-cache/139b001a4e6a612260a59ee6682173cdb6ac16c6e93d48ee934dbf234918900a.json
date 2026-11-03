@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `stop()` sets `running_` false, notifies the CV, and joins (`:102-111`).\nVERDICT: HIT\nWHY: The answer says the health monitor's stop() sets the running_ flag, notifies the condition variable, and joins the thread. The one thing it doesn't say is that the flag is swapped atomically, but it does say \"Flags are `std::atomic` (`running_`...)\" elsewhere."
+}

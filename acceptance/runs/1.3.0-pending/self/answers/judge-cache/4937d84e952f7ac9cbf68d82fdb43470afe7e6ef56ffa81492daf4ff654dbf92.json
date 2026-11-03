@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: they are ranked by a five-tier precedence rule. | 1 | CLI flag ... | 2 | `.clew.yaml` ... | 3 | Facts someone else wrote ... | 4 | Known-ecosystem signatures ... | 5 | Name-pattern heuristics\nVERDICT: HIT\nWHY: The answer explicitly lays out five ranked precedence tiers (flag, declaration, facts, ecosystem signatures, heuristics) rather than a single override."
+}

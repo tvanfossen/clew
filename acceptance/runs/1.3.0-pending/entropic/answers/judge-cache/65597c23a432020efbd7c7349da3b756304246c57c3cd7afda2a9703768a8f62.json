@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `llama_cpp_sampler.cpp`, `llama_cpp_tokenizer.cpp`, `grammar_registry.cpp`, `orchestrator.cpp`, `adapter_manager.cpp`, `speculative_compat.cpp`: each includes `llama.h`.\nVERDICT: HIT\nWHY: The answer lists a wide set of entropic source files directly including llama headers (backend .h/.cpp, six others, tool_call_markers.h, facade, plus tests) and says \"the reach is wide inside the engine\", conveying that it spans many files rather than one wrapper."
+}

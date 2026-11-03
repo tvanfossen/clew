@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If not viewable, it calls `removeCurrentUserFromChannel`, which drops the channel from the user's view. ... If viewable, it stamps `delete_at` locally with `setChannelDeleteAt`, so the channel stays visible as archived. ... If not viewable and the channel is the current one, it calls `handleKickFromChannel` with `Events.CHANNEL_ARCHIVED`.\nVERDICT: HIT\nWHY: The answer states that a non-viewable setting removes the user and kicks them from the current channel. It also states that a viewable setting keeps the channel with `delete_at` set, which matches \"marked deleted\"."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The default-state column in the index marks `MBEDTLS_PLATFORM_MEMORY` as off in the shipped config (`mbedtls_config.h:208`).\nVERDICT: HIT\nWHY: The answer says both mechanisms are gated on MBEDTLS_PLATFORM_MEMORY and that it is off in the shipped mbedtls_config.h. \"Off\" is not literally \"commented out\", but it conveys the same fact."
+}

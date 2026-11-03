@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The reason string always says why the whole-repo tier was chosen: either \"no `index_scope:` is declared\" or the specific rejection message.\nVERDICT: HIT\nWHY: The answer states the fallback carries a reason string explaining which scope was chosen and why (undeclared vs. rejected), and the decision tree shows `_Rejected(reason)` and a `DerivedScope` source label, so the scope is never silently guessed."
+}

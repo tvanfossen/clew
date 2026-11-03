@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the bindings are generated from entropic.h by a script and marked \"do not edit\", but never mentions a pre-commit check that re-runs the generator and diffs to catch drift."
+}

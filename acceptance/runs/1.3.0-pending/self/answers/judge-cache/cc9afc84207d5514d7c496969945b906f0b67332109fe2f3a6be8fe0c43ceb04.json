@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Edge classes. The rows here are all `call`. Callbacks, dispatch tables and shared-key links are separate modules (`callback_edges`, `dispatch_edges`, `shared_key_edges`). A function reached only through a function pointer or registration may not appear in this list.\nVERDICT: MISS\nWHY: The answer says the rows here are all `call` and that shared-key links are separate modules, not that callers/callees mix direct calls and shared-key dataflow in one list distinguished by `edge_class`."
+}

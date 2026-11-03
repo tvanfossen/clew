@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the strong wording (\"definitive\") is earned per call by querying which corpora weren't read. It describes a fixed reply shape, with the note, scope, and not_searched fields, plus a confidence table."
+}

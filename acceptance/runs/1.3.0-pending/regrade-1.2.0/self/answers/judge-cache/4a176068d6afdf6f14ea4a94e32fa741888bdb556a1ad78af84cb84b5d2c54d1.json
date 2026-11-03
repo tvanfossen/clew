@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: derive_scope(repo_root, stated?) \u251c\u2500 _declared_index_scope() tier 1 (stated via MCP options) or tier 2 (.clew.yaml) ... \u2514\u2500 otherwise whole_repo_scope()\n\nVERDICT: HIT\n\nWHY: The answer says a declared `index_scope` is preferred and that no section, a rejected declaration, or an unusable one all fall through to the whole-repo scope. It says \"`derive_scope` absorbs a rejected declaration into the whole-repo tier,\" and \"otherwise \u2192 whole_repo_scope()\"."
+}

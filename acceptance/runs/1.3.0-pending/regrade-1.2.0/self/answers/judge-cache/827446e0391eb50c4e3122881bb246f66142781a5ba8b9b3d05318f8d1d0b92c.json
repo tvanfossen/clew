@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Facts and ecosystem entries accumulate. Heuristics are the provisional floor that any stated tier displaces.\" and \"Facts are never discarded. A stated tier only displaces the guesses. A Doxyfile's aliases or predefines survive a declaration\"\nVERDICT: HIT\nWHY: The answer says the stated tiers replace one another and that discovered facts accumulate and survive any declaration, and it gives the formula `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Buffers the engine will free (e.g. hook `modified_json`) must come from `entropic_alloc()`. | `entropic.h`; `hooks.py` uses `entropic_alloc`\nVERDICT: HIT\nWHY: The answer states the rule that engine-freed buffers must be allocated with entropic_alloc, and it names hooks.py as the Python side that does this."
+}

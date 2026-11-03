@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The health monitor never runs user code on its own thread. `monitor_loop` pushes events onto `event_queue_`, and `process_events()` swaps the queue out under `event_mutex_` and invokes the callbacks on the engine thread after releasing the lock (`health_monitor.cpp:118`).\nVERDICT: HIT\nWHY: The answer states that the monitor queues events under a mutex and callbacks are invoked by the drainer on the engine thread, not the monitor thread."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Interrupt observer | `response_generator.cpp:413` (`dispatch_batch_generate`) | Mirrors the engine's `interrupt_flag_` into the C-ABI `int` cancel flag; also \"This is a deliberate choice to keep atomics off the `.so` boundary\"\nVERDICT: HIT\nWHY: The answer states the observer mirrors the engine's atomic interrupt flag into the plain C-ABI `int` cancel flag, and says atomics are deliberately kept off the `.so` boundary."
+}

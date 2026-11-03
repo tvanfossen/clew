@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `PermissionManager` is built from the allow and deny lists (`server_manager.cpp:35`).\nVERDICT: MISS\nWHY: The answer names PermissionManager and says it is built from the allow and deny lists. It never says they come from a PermissionsConfig that ServerManager is constructed with."
+}

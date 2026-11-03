@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Nested git trees are indexed, not cut.** The walk stops at a nested tree's boundary but keeps its top-level dot-directories. `external.py` tags those rows afterwards so two codebases in one index can be told apart.\"\nVERDICT: HIT\nWHY: The answer explicitly says nested git trees are indexed rather than cut and that external.py tags their rows afterwards."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` forced on by flag\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD, and it says that locks and threaded code are gated on MBEDTLS_THREADING_C. It only mentions PTHREAD in the caveat about index flags, though, so the match is loose."
+}

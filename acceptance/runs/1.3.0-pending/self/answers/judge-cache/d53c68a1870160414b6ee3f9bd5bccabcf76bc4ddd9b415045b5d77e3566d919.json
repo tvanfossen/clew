@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Nested git trees | indexed, not excluded; their own `.gitignore` ignores are added\" and \"Vendored code: nested git trees are indexed and tagged by `external.py`, so a submodule's functions appear in the index.\"\nVERDICT: HIT\nWHY: The answer explicitly says nested git trees are indexed (not excluded) and tagged by external.py."
+}

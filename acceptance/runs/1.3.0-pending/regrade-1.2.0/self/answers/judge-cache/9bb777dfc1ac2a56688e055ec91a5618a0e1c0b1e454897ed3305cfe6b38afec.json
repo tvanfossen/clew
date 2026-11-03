@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how to interpret empty search replies, but never states the general rule that you should fix the corpus (the underlying data) rather than the sentence about it."
+}

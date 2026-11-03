@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` undefined | `calloc` / `free` from libc ... define only `MBEDTLS_PLATFORM_MEMORY` and call `mbedtls_platform_set_calloc_free`\nVERDICT: MISS\nWHY: The answer treats MBEDTLS_PLATFORM_MEMORY as the gate but never says it is commented out in the shipped mbedtls_config.h."
+}

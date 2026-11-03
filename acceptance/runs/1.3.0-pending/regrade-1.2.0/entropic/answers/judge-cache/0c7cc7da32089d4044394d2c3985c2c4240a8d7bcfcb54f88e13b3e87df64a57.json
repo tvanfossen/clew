@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The second call is deterministic given the first, so there is nothing to retry.\nVERDICT: HIT\nWHY: The answer calls it a size-query pattern (null/0 first call, then exact-size second call) and not retry logic, with a single deterministic second call. It never mentions backoff or an attempt counter, but the size-negotiation versus retry distinction is clearly stated."
+}

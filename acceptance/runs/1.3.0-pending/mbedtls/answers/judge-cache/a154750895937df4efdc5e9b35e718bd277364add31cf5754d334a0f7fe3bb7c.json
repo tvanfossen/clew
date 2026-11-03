@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that MBEDTLS_ERROR_C is enabled in the shipped mbedtls_config.h; it only says the second mbedtls_strerror is gated by MBEDTLS_ERROR_C and a dummy flag."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **No Python exception escapes into C.** The trampoline catches everything, prints the traceback, and returns pass-through (rc 0). This keeps the engine running, but a buggy hook fails silently from the engine's point of view. A hook that raises behaves as if it returned None.\nVERDICT: HIT\nWHY: The answer states that the hook trampoline catches all Python exceptions and returns pass-through (rc 0), so a failed hook behaves as if it returned None."
+}

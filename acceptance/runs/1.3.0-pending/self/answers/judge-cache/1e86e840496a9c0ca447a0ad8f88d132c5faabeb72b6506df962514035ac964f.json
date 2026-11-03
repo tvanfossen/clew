@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The point is that the caller can tell \"outside the scope\" from \"not in the repo\" without making another call.\nVERDICT: MISS\nWHY: The answer describes the current scope/wording mechanism for empty results but never says a single token matching nothing was previously treated as proof of absence, nor frames the nothing-exists vs. didn't-look-there confusion as a prior bug."
+}

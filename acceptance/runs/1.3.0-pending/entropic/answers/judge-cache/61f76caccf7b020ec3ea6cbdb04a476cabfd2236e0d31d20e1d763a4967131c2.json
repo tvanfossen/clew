@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Direct `#include <llama.h>`, `<chat.h>`, `<sampling.h>`, `<mtmd.h>` and `<mtmd-helper.h>` appear in about 20 files, all under `src/inference/` or in tests\" and \"`src/facade/entropic.cpp` | Only reaches the backend through `dynamic_cast<LlamaCppBackend*>` and `llama_model_ptr()`\"; also \"Several headers under `include/entropic/` forward-declare `struct llama_model`...\"\nVERDICT: HIT\nWHY: The answer says includes are concentrated in src/inference but also reaches outside it (facade's entropic.cpp, public headers under include/entropic/), so the dependency is not contained."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer concludes the opposite: without grammars, shell/CMake files still get path rows, are counted as covered, and are NOT reported as not indexed. It claims no capability gate is consulted by the router."
+}

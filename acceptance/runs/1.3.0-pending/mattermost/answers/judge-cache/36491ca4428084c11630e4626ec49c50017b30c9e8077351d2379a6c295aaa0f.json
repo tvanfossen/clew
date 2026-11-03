@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The payload holds only one reaction, so without this flag the sync would treat every other reaction on the post as stale and delete it.\nVERDICT: HIT\nWHY: The answer states that skipSync prevents the single-reaction payload from being treated as the full set, which would delete all other reactions."
+}

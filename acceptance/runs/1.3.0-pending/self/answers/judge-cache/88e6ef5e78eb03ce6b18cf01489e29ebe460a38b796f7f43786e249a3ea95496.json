@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tiers 3 and 4 behave identically; the distinction is only the label.\nVERDICT: MISS\nWHY: The answer says tiers 3 and 4 behave identically and the distinction is only a label. It never says the load-bearing line is fact versus guess. The quoted \"you cannot un-discover a fact\" line doesn't name that line."
+}

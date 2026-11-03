@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Tier 3, the whole repository.** If neither tier yields usable roots, `whole_repo_scope` (`scope.py:683`) returns the repo root as the single root.\"\nVERDICT: HIT\nWHY: The answer says a declared scope is read first (tiers 1\u20132). It then lists the failure cases (malformed YAML, unusable section, nothing declared, not a git repo) and says each one falls back to indexing the whole repo."
+}

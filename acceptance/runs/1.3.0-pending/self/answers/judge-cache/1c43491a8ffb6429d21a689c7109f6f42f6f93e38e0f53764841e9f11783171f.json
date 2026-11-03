@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Paths named as taking part in measuring staleness, wording it, attaching it to a reply, or acting on it:\n\n- `state.py` is where `db_status` measures drift.\n- `freshness.py` is where `code_identity()` measures the code axis.\n\nI left out the two test names, `tests/test_freshness.py` and the refusal test. The answer lists them only as tests, not as taking part in staleness handling.\n\nITEMS:\nstate.py\nfreshness.py\nEND"
+}

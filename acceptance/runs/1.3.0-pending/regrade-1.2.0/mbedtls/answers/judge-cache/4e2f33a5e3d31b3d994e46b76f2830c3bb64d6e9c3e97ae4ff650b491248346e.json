@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | Defines the opt-out unconditionally. Library `.c` files that include `common.h` first ... read and write struct members by their plain names.\nVERDICT: HIT\nWHY: The answer states that common.h, a shared header, defines MBEDTLS_ALLOW_PRIVATE_ACCESS so library .c files see plain member names."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: persisted by `PermissionPersister` into `permissions.allow` / `permissions.deny` in YAML\nVERDICT: MISS\nWHY: The answer mentions persistence to YAML by PermissionPersister, but it never names config.local.yaml or contrasts it with the in-memory add_permission call, and it hedges the claim (\"I read this method as...\")."
+}

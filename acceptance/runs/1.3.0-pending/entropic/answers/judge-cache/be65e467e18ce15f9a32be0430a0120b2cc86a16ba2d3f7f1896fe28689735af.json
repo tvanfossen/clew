@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Its C API is called directly from a small set of `src/inference/` files.\" and \"`LlamaCppBackend` makes direct llama.cpp C API calls\", plus calls named such as `llama_tokenize`, `llama_adapter_lora_init` and `llama_set_adapters_lora`.\nVERDICT: HIT\nWHY: The answer names the seam as llama.cpp's C API and shows it as `llama_`-prefixed free function calls, not class inheritance."
+}

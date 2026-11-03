@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Direct `#include <llama.h>`, `<chat.h>`, `<sampling.h>`, `<mtmd.h>` and `<mtmd-helper.h>` appear in about 20 files, all under `src/inference/` or in tests\" and \"The reach extends beyond the .cpp files. Several headers under `include/entropic/` forward-declare `struct llama_model` or `llama_context`\"\nVERDICT: MISS\nWHY: The answer says direct includes are all under src/inference/ (or tests), and the public headers under include/entropic/ are only a side note on forward declarations. It never concludes that the dependency is concentrated in the inference layer but not contained by it, with a minority of reaching files outside src/inference. It also lists src/facade/entropic.cpp as reaching llama only through dynamic_cast, which is not the same claim."
+}

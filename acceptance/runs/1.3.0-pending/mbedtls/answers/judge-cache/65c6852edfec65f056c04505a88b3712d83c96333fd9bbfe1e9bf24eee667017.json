@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` is an empty `asm volatile (\"\" : [x] \"+r\" (x))`. The compiler must treat the value as unknown, so it cannot prove a condition constant and fold a branch.\nVERDICT: HIT\nWHY: The answer states that the barrier is an empty asm volatile with the value as a \"+r\" input-output operand, and that its purpose is to stop the optimizer from folding branches. It doesn't say outright that no instruction is emitted, but an empty asm string implies it."
+}

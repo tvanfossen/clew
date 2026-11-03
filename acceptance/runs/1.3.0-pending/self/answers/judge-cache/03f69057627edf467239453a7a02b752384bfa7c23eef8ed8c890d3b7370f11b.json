@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml`, `.yml`, `.json` | Yes | None, by design | Findable by name, counted in the file set. Never harvested. ... \"Shell and CMake\" rows show symbols for `.sh` and `.cmake`.\nVERDICT: HIT\nWHY: The answer states YAML/JSON get path rows (in the file set) with no symbols, and contrasts them with shell/CMake which do carry symbols, so the groups are treated differently."
+}

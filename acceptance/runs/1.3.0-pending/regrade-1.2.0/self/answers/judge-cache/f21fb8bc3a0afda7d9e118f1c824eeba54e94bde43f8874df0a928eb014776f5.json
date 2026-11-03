@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses a dossier of `git_argv` callers and never mentions that call_edges stores one row per extraction layer or that duplicate edges arise from multiple detectors."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The combination rule is `resolved = (tier1 or tier2 or tier5) union tier3 union tier4`.\nVERDICT: HIT\nWHY: The answer names five numbered tiers (explicit flags, declared .clew.yaml, facts in the target, ecosystem signatures, name-pattern heuristics) and says they combine by a fixed precedence rule."
+}

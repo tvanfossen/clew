@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_loader.find()` checks `$ENTROPIC_LIB`, then `$ENTROPIC_HOME`, then `~/.entropic/...`, and finally `ctypes.util.find_library`.\nVERDICT: MISS\nWHY: The answer gives the env, user dir, and system cache order, but it never mentions the two directory layouts tried per root, so it lacks that part of the item."
+}

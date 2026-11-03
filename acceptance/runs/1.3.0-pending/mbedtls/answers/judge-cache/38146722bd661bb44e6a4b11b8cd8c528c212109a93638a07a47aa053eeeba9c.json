@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"MBEDTLS_PLATFORM_MEMORY off (the default) \u2502 platform.h:166-167 \u2192 calloc / free from libc\" and \"so a stock build calls libc directly\"\nVERDICT: HIT\nWHY: The answer states that in the default build (MEMORY off) the names resolve directly to libc calloc/free at platform.h:166-167, with no indirection. It doesn't use the word \"macro\" there, but the mechanism and location match the item."
+}

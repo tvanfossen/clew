@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `AppDataOperator` (`app/database/operator/app_data_operator/index.ts`) extends `BaseDataOperator`, so the app-level database uses the same `batchRecords` and `handleRecords` code.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as a BaseDataOperator subclass for the app-level database sharing the same write path."
+}

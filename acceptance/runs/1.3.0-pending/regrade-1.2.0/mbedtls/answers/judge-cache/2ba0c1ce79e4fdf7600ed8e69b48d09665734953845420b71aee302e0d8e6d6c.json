@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the default build starts no threads, but it never says the pthread example compiles to a stub main. It says only that the sample \"depends on THREADING_C\"."
+}

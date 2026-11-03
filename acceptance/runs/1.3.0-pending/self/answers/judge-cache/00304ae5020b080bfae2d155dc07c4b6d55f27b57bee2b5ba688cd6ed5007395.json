@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"These notices are attached to every query reply.\" and \"The `staleness` block is present only when there is something to report, so a current index carries no warning.\"\nVERDICT: HIT\nWHY: The answer states notices ride on every query reply and that the staleness block is absent (no warning) when the index is current."
+}

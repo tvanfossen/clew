@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | `ExternalBridge::accept_loop` | `ExternalBridge::start` | ... | `HealthMonitor::monitor_loop` | `HealthMonitor::start` | ... | `StdioTransport::stderr_reader_loop` | `StdioTransport::open` | ... | `SSETransport::sse_reader_loop` | ... | `ResponseGenerator` observer | `dispatch_batch_generate`\nVERDICT: HIT\nWHY: The answer's table lists spawn sites in the external bridge, the MCP transports, the health monitor and the inference path, so it shows creation spread across those subsystems. It never says outright that creation is not centralised, but the listing carries that substance."
+}

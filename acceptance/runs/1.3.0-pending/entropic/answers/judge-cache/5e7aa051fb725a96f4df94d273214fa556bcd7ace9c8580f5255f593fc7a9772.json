@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Both are a size-probe-then-fill pattern... Neither path loops, backs off, or re-attempts after an error. Calling this retry logic would be wrong.\nVERDICT: HIT\nWHY: The answer concludes the double call is size negotiation, not retry, noting no loop or backoff and a single second call."
+}

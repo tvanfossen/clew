@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It uses the facility to install its own allocator. `mbedtls_memory_buffer_alloc_init` (`memory_buffer_alloc.c:566-600`) takes a caller-supplied buffer, sets up an in-buffer heap that never calls `calloc`/`free`, and registers itself with `mbedtls_platform_set_calloc_free`.\"\nVERDICT: MISS\nWHY: The answer says the buffer allocator's init registers itself via the setter, but never says it is the only in-tree user, and never names MBEDTLS_MEMORY_BUFFER_ALLOC_C. The \"only user\" claim is the specific fact the item requires."
+}

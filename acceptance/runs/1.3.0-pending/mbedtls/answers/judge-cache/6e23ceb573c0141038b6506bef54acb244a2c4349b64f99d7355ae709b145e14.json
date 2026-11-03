@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: define `MBEDTLS_PLATFORM_MEMORY`, `MBEDTLS_PLATFORM_CALLOC_MACRO=my_calloc`... ; `MBEDTLS_PLATFORM_MEMORY` off | `calloc` / `free` via macro. No indirection.\nVERDICT: MISS\nWHY: The answer treats MBEDTLS_PLATFORM_MEMORY as the switch for the indirection, but it never says it is commented out in the shipped mbedtls_config.h."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It needs `MBEDTLS_MEMORY_BUFFER_ALLOC_C` plus the platform layer.\nVERDICT: MISS\nWHY: The answer says the buffer allocator needs \"the platform layer\" but never names MBEDTLS_PLATFORM_MEMORY as its requirement, and it doesn't say that enabling the allocator alone won't reroute allocations."
+}

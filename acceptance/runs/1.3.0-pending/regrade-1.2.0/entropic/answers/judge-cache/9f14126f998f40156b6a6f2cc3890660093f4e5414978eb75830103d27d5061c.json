@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `PermissionManager::pattern_matches` (`src/mcp/permission_manager.cpp:101`) splits each pattern at the first `:`: ... `filesystem.read_file` | fnmatch against the tool name | (none) | Every call to that tool, any args\nVERDICT: HIT\nWHY: The answer states that patterns are split at the first colon into a tool part (fnmatch) and an argument part, and that a pattern with no colon matches on the tool name alone, regardless of arguments."
+}

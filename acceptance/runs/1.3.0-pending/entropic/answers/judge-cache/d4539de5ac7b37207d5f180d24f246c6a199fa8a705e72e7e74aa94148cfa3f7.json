@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `detokenize` ... 256-byte stack buffer | Only if the first returns negative, re-calls with an exact-size heap buffer; and tokenize: `nullptr, 0` to get the token count | Fills a vector of that size\n\nVERDICT: HIT\nWHY: The answer contrasts detokenize's 256-byte stack buffer with a heap fallback only on negative return against tokenize's always-size-first call."
+}

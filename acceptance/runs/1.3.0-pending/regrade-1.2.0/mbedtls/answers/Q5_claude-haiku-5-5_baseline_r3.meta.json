@@ -1,0 +1,40 @@
+{
+  "stem": "Q5_claude-haiku-5-5_baseline_r3",
+  "arm": "baseline",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "skills": "",
+  "answered_by": "claude-haiku-5-5",
+  "seconds": 62.423724357038736,
+  "input_tokens": 24,
+  "output_tokens": 10454,
+  "cache_read_tokens": 627243,
+  "cache_creation_tokens": 37723,
+  "cost_usd": 0.019046430000000003,
+  "result_bytes": 4824,
+  "turns": 13,
+  "tool_calls": 12,
+  "non_index_tool_calls": 12,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/1.2.0-pending/mbedtls/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nmbedtls has code that is written to run in constant time. How is that actually enforced at\nthe instruction level, what happens on a compiler that cannot support it, and how far does\nthe facility reach into the rest of the library?\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "Mbed-TLS/mbedtls",
+    "question_id": "Q5",
+    "arm": "baseline",
+    "model": "claude-haiku-5-5",
+    "replicate": 3,
+    "order": 25
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `derive_scope` falls through to `whole_repo_scope`, and the reason string records why (for example \"no index_scope is declared for this repo\").\nVERDICT: HIT\nWHY: The answer states the fallback carries a reason string recording which scope was used and why, so an undeclared scope is not silently guessed."
+}

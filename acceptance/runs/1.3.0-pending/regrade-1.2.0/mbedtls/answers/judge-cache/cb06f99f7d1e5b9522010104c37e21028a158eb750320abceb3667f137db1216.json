@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says threading is off by default but explicitly disclaims having read the shipped config. It also says the claim comes from the index's default-state citations on the gating macro, not from reading the file. It never states that the shipped mbedtls_config.h leaves both threading macros undefined."
+}

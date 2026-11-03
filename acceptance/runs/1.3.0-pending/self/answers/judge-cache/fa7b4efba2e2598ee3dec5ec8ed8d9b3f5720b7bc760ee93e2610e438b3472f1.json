@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the signals a reader should check (`note`, `scope`, `not_searched`, `staleness`). It never says the tool's strong \"definitive\" wording is earned per call by checking which corpora went unread, as opposed to being tied to a result shape. The only wording it quotes is the hedged \"NOT a definitive negative\" note."
+}

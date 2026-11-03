@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library spawns no threads and describes mutexes in detail, but it never states that library/ supplies the mutex abstraction (threading.h) for threaded callers as a contrast. It frames the mutexes as optional internal protection, not an abstraction offered to threaded callers."
+}

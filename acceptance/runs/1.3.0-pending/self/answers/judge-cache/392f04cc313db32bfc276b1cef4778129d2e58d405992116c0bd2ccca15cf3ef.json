@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unknown top-level section is refused by name. Only keys prefixed `x-` are tolerated and ignored, so newer experimental keys do not break older clew builds.\nVERDICT: MISS\nWHY: The answer says unknown sections are refused by name, but it never mentions the allowed set. It also doesn't give the reason: an ignored section would build with defaults while reporting the declaration was honoured."
+}

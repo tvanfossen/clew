@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Your caller passes the negative int to `mbedtls_strerror()` ... `mbedtls_strerror(ret, buf, buflen)  (library/error.c:792)`\nVERDICT: HIT\nWHY: The answer names mbedtls_strerror as the caller's entry point and locates it in library/error.c at line 792."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In `include/mbedtls/private_access.h:15` it expands to `private_##member` by default\nVERDICT: HIT\nWHY: The answer explicitly locates the macro's definition in include/mbedtls/private_access.h (lines 14-18) and describes its expansion."
+}

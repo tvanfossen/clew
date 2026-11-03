@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_server2.c:8` | Defined in the test server program. | `programs/ssl/ssl_client2.c:8` | Defined in the test client program.\nVERDICT: HIT\nWHY: The answer states that the example programs (ssl_server2.c, ssl_client2.c under programs/) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves, which is the opt-out for private access."
+}

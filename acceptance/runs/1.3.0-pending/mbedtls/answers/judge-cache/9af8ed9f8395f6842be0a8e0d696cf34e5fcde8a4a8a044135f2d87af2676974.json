@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these files as containing the constant-time implementation itself:\n\n- `library/constant_time_impl.h` is where the masks, selectors and `mbedtls_ct_compiler_opaque` are built.\n- `library/constant_time.c` holds `mbedtls_ct_memcmp`, which the answer places at line 67.\n- `include/mbedtls/constant_time.h` is named as the public API declaration of `mbedtls_ct_memcmp`.\n\nThe answer also names `library/constant_time*` in passing, as the p256-m comparison. That is a wildcard pattern, not a specific file, so I left it out. The other files it lists only call the facility, or define their own helpers such as `mbedtls_ct_hmac` or the base64 decode value function. I excluded those too.\n\nITEMS:\nlibrary/constant_time_impl.h\nlibrary/constant_time.c\ninclude/mbedtls/constant_time.h\nEND"
+}

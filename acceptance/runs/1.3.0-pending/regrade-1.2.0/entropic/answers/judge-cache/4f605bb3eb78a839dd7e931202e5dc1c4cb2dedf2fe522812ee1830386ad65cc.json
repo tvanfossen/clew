@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**3. Detached worker: `ExternalBridge::run_async_ask`** ... `.detach()` at line 1222) runs `entropic_run` on a detached thread\" and \"it is detached. `ExternalBridge::stop()` ... does not wait for in-flight async tasks.\"\nVERDICT: HIT\nWHY: The answer identifies run_async_ask as the one detached worker (as opposed to joined threads) and explains it outlives its caller/stop() with no join or tracking."
+}

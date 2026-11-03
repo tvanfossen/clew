@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `not_indexed` (extensions the index never read, such as `.rs`, `.toml`, `.sql`, `.csv`, extensionless files, and `.lock`)\nVERDICT: MISS\nWHY: The item requires naming the file types that were in scope and produced no rows. The answer names only extensions the index never read (`not_indexed`), which is the opposite category, and it never says the reply lists in-scope file types that returned nothing."
+}

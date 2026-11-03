@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.sh`, `.bash` | `path` + `memberdef` ... `.cmake`, `CMakeLists.txt` | `path` + `memberdef`\nVERDICT: HIT\nWHY: The answer names the shell extensions (.sh, .bash) and the CMake extension (.cmake) and lists CMakeLists.txt as a separate entry. That entry is a file name, not an extension."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` is `asm volatile(\"\" : \"+r\"(x))` when asm is available. Otherwise it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global (`constant_time_impl.h:85-93`, `constant_time.c:29`). Its job is to stop the compiler from proving that a condition is `0` or `1` and turning it back into a branch.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque, says it stops the compiler from reasoning about values, and locates it in constant_time_impl.h."
+}

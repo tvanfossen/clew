@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Paths the answer names as taking part in stating, discovering, combining or recording a build option:\n\nITEMS:\n.clew.yaml\nclew/tiers.py\nclew/scope.py\nclew/guardconfig.py\nclew/cli.py\nEND"
+}

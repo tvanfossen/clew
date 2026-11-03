@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its `mbedtls_memory_buffer_alloc_init()` calls `mbedtls_platform_set_calloc_free()` itself, installing its own calloc and free. It uses a mutexed wrapper when `MBEDTLS_THREADING_C` is on.\nVERDICT: HIT\nWHY: The answer says the buffer allocator's init installs its own calloc/free pair and uses a mutexed wrapper when MBEDTLS_THREADING_C is on. It doesn't say \"plain otherwise\" or \"compile time\" outright, but both follow from the conditional macro."
+}

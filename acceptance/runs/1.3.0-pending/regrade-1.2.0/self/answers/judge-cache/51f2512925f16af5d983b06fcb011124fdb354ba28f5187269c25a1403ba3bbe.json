@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With no grammar, it returns None, so there is no tree, no harvest, and no `memberdef` rows. This part matches the docs. Nothing crashes.\nVERDICT: MISS\nWHY: The answer says nothing crashes and the capability gate returns None, but it claims the \"not indexed\" report likely does NOT fire, which contradicts the item's conclusion that those file types are reported as not indexed."
+}

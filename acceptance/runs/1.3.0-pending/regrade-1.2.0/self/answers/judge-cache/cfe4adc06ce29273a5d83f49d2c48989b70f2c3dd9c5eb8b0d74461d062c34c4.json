@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.clew.yaml` may carry `index_scope: {roots, excludes}` ... Invalid \u2192 CLI refuses; internal callers fall through ... neither \u2500\u25ba tier 2: whole repo\nVERDICT: MISS\nWHY: The answer says a declared scope is used and that no declaration yields the whole repo. But it says a rejected declaration makes the CLI refuse with exit 1, so it does not state that every failure to find a declaration falls through to indexing the whole repo."
+}

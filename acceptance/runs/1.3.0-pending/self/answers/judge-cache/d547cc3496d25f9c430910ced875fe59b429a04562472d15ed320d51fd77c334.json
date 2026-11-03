@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions edges with different confidence levels (ast/resolved vs doxygen_sqlite/exact) but never says the flat surface keeps fuzzy-confidence edges while traversal excludes them, nor the multiplication-per-hop reasoning."
+}

@@ -1,0 +1,103 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_r1",
+  "arm": "index",
+  "rubric_version": "3.1.0",
+  "rubric_digest": "bbf6195f605be452",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.55,
+  "unmarked_pct": 0.0,
+  "split_decisions": 2,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the gating macros",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: \"Its mutexes exist only when `MBEDTLS_THREADING_C` is enabled\" and \"`MBEDTLS_THREADING_PTHREAD` (line 2196) and `MBEDTLS_THREADING_ALT` (line 2185) are also commented out\"; \"The index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` passed as flags\" | WHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros that enable threading and gate the mutex and thread code, including the stub in ssl_pthread_server.c. || QUOTE: \"Its mutexes exist only when `MBEDTLS_THREADING_C` is enabled\" and \"`MBEDTLS_THREADING_PTHREAD` (line 2196) ... commented out\" and \"The index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` passed as flags.\" | WHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros that control threading, and shows MBEDTLS_THREADING_C gating the mutex code. || QUOTE: \"Its mutexes exist only when `MBEDTLS_THREADING_C` is enabled\" and \"`MBEDTLS_THREADING_PTHREAD` (line 2196) ... commented out\" and \"The index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` passed as flags.\" | WHY: The answer names both macros, with THREADING_C gating the mutexes and THREADING_PTHREAD selecting the pthread backend. It also notes the \"MBEDTLS_THREADING_PTHREAD not defined\" stub in `ssl_pthread_server.c`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the shipped mbedtls_config.h leaves BOTH threading macros undefined, so a default build defines neither",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `include/mbedtls/mbedtls_config.h:3787` has `//#define MBEDTLS_THREADING_C` commented out. `MBEDTLS_THREADING_PTHREAD` (line 2196) and `MBEDTLS_THREADING_ALT` (line 2185) are also commented out. | WHY: The answer states the shipped config header leaves the threading macros (THREADING_C and THREADING_PTHREAD) commented out, so a default build defines neither. || QUOTE: `include/mbedtls/mbedtls_config.h:3787` has `//#define MBEDTLS_THREADING_C` commented out. `MBEDTLS_THREADING_PTHREAD` (line 2196) and `MBEDTLS_THREADING_ALT` (line 2185) are also commented out. | WHY: The answer states the shipped config header has the threading macros (THREADING_C and THREADING_PTHREAD) commented out, so a default build defines neither. || QUOTE: `include/mbedtls/mbedtls_config.h:3787` has `//#define MBEDTLS_THREADING_C` commented out. `MBEDTLS_THREADING_PTHREAD` (line 2196) and `MBEDTLS_THREADING_ALT` (line 2185) are also commented out. | WHY: The answer states that the shipped config header leaves THREADING_C and THREADING_PTHREAD commented out, so a default build defines neither.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that a default build of mbedtls creates no threads at all, and that the pthread example compiles to a stub main under that condition",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: `ssl_pthread_server.c` builds to a stub `main` that prints \"MBEDTLS_THREADING_PTHREAD not defined\" and exits when threading is off (lines 24\u201329). | WHY: The answer says the library spawns no threads and that the pthread example compiles to a stub main. But it also lists thread-spawn sites in `programs/` (benchmark, ssl_server2) and never concludes that a default build creates no threads at all. || QUOTE: `ssl_pthread_server.c` builds to a stub `main` that prints \"MBEDTLS_THREADING_PTHREAD not defined\" and exits when threading is off (lines 24\u201329). | WHY: The answer says the library spawns no threads and the pthread example becomes a stub, but it also lists thread-spawning sites in `programs/`. That contradicts the item's claim that a default build creates no threads at all.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states BOTH halves of the contrast: that nothing in library/ creates a thread, AND that library/ nonetheless supplies the mutex abstraction used by threaded callers",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: No thread is spawned from `library/`. The four spawn sites the index found are all in `programs/`... The mutex is the wrapper from `threading.c`, which defaults to pthreads (`threading.c:103`) and can be replaced with `THREADING_ALT`. | WHY: The answer states that no thread is created in `library/`. It also says `library/threading.c` supplies the mutex wrapper that modules use when threading is enabled. || QUOTE: \"No thread is spawned from `library/`.\" and \"The mutex is the wrapper from `threading.c`, which defaults to pthreads (`threading.c:103`) and can be replaced with `THREADING_ALT`.\" | WHY: The answer states that library/ spawns no threads and that library/threading.c supplies the mutex wrapper used by the modules in a threaded build.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 programs/ssl/ssl_pthread_server.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 programs/test/benchmark.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": false,
+      "detail": "named 1 not in the set: ['programs/ssl/ssl_server2.c']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the benchmark timer thread as Windows-only, gated on a platform condition rather than on the threading config",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer mentions benchmark.c's alarm TimerProc and sighandler among spawn sites, but never says the timer thread is Windows-only or gated on a platform condition rather than the threading config. || QUOTE: NONE | WHY: The answer mentions benchmark.c's alarm TimerProc but never says it is Windows-only or gated on a platform condition rather than the threading config. || QUOTE: NONE | WHY: The answer mentions benchmark.c's alarm TimerProc but never says the timer thread is Windows-only or gated on a platform condition.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies debug_mutex as serialising debug output so that concurrent connections do not interleave their logging",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions debug_mutex or serialising debug/logging output across concurrent connections.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

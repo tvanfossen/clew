@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Pre-commit runs `inv gen-bindings --check`, so a drift between `entropic.h` and `_bindings.py` fails the commit.\nVERDICT: HIT\nWHY: The answer says pre-commit runs the generator's `--check` mode, which fails the commit when the header and bindings drift. That is the substance of the item, though the answer doesn't spell out the diff step."
+}

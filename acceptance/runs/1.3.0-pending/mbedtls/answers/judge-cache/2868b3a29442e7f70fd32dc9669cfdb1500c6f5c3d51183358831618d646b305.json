@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_client2.c:8` | The sample client reads TLS internals directly. ... `programs/ssl/ssl_server2.c:8` | The sample server does the same.\nVERDICT: HIT\nWHY: The answer says the example programs (ssl_client2.c and ssl_server2.c) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves, so they reach past the public API."
+}

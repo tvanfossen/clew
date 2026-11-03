@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The promised report isn't wired up. `substrate.missing_languages` (`clew/substrate.py:72`) has no callers in `clew/`. The capability test's docstring says the miss report names these types as not indexed, but `clew/propose/notindexed.py` reports on scope, not grammars, so I found nothing that does that.\nVERDICT: MISS\nWHY: The answer says a missing-grammar install produces files that look indexed with no capability gate or not-indexed report, which contradicts the item's graceful-degradation conclusion."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"annotates only the repository the reply actually read\"\nVERDICT: HIT\nWHY: The answer states that the staleness block is attached only for the repository the reply actually read, which matches the item (the \"not the server's default target\" contrast is implied)."
+}

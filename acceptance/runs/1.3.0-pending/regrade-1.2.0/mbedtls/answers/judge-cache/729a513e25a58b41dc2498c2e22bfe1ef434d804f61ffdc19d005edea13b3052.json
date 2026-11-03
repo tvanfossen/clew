@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS` set, it becomes `platform_calloc_uninit` (platform.c:25\u201330), which always returns NULL.\nVERDICT: MISS\nWHY: The answer says the uninitialised calloc returns NULL but never says the uninitialised free does nothing, and it doesn't present these as defaults that fail instead of falling back. The item needs both halves."
+}

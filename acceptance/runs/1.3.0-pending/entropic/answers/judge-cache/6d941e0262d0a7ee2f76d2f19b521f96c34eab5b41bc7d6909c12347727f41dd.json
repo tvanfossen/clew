@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: External bridge accept loop | `src/facade/external_bridge.cpp:796` | Accepts MCP client sockets; Per-client thread | `external_bridge.cpp:945` | Serves one client, owned by `client_threads_`\nVERDICT: HIT\nWHY: The answer lists an accept-loop thread that accepts client sockets and a separate per-client thread serving each client (tracked in `client_threads_`), which conveys the two-level structure."
+}

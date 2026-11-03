@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: high = ret & 0xFF80 ... if low != 0: append \" : \" (only if buf already has text, and only if \u22655 bytes remain)\nVERDICT: HIT\nWHY: The answer describes the split into high-level and low-level halves, each looked up separately, with the two strings joined by \" : \" when both are present."
+}

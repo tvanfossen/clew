@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the deny list is the only hard block. The allow list only skips the approval step.\"\nVERDICT: HIT\nWHY: The answer states deny is the only hard block and places the `is_denied` check in `ServerManager::execute` just before routing. It also says an unlisted tool runs unless a deny pattern matches."
+}

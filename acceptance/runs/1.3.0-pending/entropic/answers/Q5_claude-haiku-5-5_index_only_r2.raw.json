@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 21108,
+  "stop_reason": "end_turn",
+  "session_id": "3dec9b33-7cc3-4ebe-82f1-c08291ea34e2",
+  "total_cost_usd": 0.011025680000000001,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 33927,
+    "cache_read_input_tokens": 238228,
+    "output_tokens": 3714,
+    "output_tokens_details": {
+      "thinking_tokens": 1361
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 33927,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2571,
+        "cache_read_input_tokens": 64092,
+        "cache_creation_input_tokens": 7250,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7250
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3714,
+      "cacheReadInputTokens": 238228,
+      "cacheCreationInputTokens": 33927,
+      "webSearchRequests": 0,
+      "costUSD": 0.011025680000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1361,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 33927,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## How Python reaches the engine\n\nIt is a plain `ctypes` binding over the C ABI. There is no C++ extension module and no `EntropicEngine` class; the v1.7 Python engine is gone.\n\n```\nPython (entropic package)\n  _loader.load()  ->  ctypes.CDLL(\"librentropic.so\")\n  _bindings.py    ->  ctypes function objects, IntEnums, CFUNCTYPE typedefs\n        |  C ABI, entropic.h (pure C, opaque handles)\n        v\nlibrentropic.so  ->  src/facade/entropic.cpp, entropic_hooks.cpp, ...\n```\n\n- **Library location:** `_loader.find()` resolves `librentropic.so`. `load()` raises `OSError` and tells the user to run `entropic install-engine` or set `$ENTROPIC_LIB`.\n- **Bindings:** `python/src/entropic/_bindings.py` is generated from `entropic.h` by `scripts/gen_bindings.py` (`tasks.py gen_bindings`) and is marked \"do not edit\". Each symbol gets its `restype`/`argtypes` pinned by `_bind`.\n- **Lazy import:** `entropic/__init__.py` uses PEP 562 `__getattr__`, so `entropic install-engine` can run before the `.so` exists.\n- **Handles:** Python holds an opaque `entropic_handle_t` from `entropic_create`. Calls are `entropic_configure` (JSON string), `entropic_run*`, and `entropic_destroy`.\n- **Hooks:** `hooks.py` adds a Pythonic facade over `entropic_register_hook`. It JSON-marshals the context and wraps each callable in a `HOOK_CB` CFUNCTYPE trampoline.\n\n## Memory and error rules at the boundary\n\nThese come from the `entropic.h` header comments and the functions' dossiers.\n\n1. **Pure C only.** No C++ types or exceptions cross the `.so` boundary. Failures come back as `entropic_error_t` codes. The detail is read with `entropic_last_error(handle)`.\n2. **Exceptions stop at the boundary.** The hook trampoline wraps the user callable in `try/except Exception`, prints the traceback, and returns \"pass through\". Python exceptions never reach C.\n3. **Ownership of returned `char*`.** The caller owns the string and must free it with `entropic_free()`. This applies to `result_json` from `entropic_run` and the other `*_json`-style returns.\n4. **`const char*` returns are not owned by the caller.** `entropic_last_error` is an example. The string is owned by the handle, valid until the next call on that handle, and must not be freed.\n5. **Buffers the engine will free come from the engine's allocator.** Any buffer the engine later frees must come from `entropic_alloc()`. The trampoline does this for `modified_json`: it JSON-encodes the return value into an `entropic_alloc` buffer, then writes the pointer into `*mod_out`. `entropic_alloc` and `entropic_free` are `malloc` and `free` today, but the rule is about pairing, so a Python-side or other-CRT buffer must never be handed to `entropic_free`, and engine memory must never be freed with a foreign `free`.\n6. **Callback lifetime is the caller's problem, and it is the main hazard.** A `CFUNCTYPE` object must stay referenced for as long as C may call it. If it is dropped, C calls freed memory. `hooks.py` handles this with a module-level `_pending` list and a per-handle `_bound` list that keeps trampolines alive until the handle is gone. Raw `entropic_register_hook(handle, pt, HOOK_CB(f), None, 0)` without a kept reference is the documented foot-gun.\n7. **Threading.** Each function documents its thread-safety class. Calls are serialized per handle, and different handles are independent. `entropic_interrupt` can be called from another thread during a run. `init` and `destroy` must not race other calls on the same handle.\n\n## Caveats\n\n- I answered only from dossiers. I did not read the Python `entropic_run*` wrappers, so I cannot confirm that every Python call site frees `result_json` with `entropic_free`.\n- The `entropic_last_error` doc says the cache is thread-local, but the body I saw uses `s_last_error_cache`. I could not confirm from the index whether that variable is `thread_local`. Check it if you rely on the \"valid until next call\" contract across threads.",
+  "ttft_ms": 1407,
+  "type": "result",
+  "duration_ms": 22697,
+  "uuid": "c9f5033d-4beb-4dcc-a2ac-7b20435ff7d7",
+  "ttft_stream_ms": 1112,
+  "time_to_request_ms": 79,
+  "first_content_frame_ms": 1112,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

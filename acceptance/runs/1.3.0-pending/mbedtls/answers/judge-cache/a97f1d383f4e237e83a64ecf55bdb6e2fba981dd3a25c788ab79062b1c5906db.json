@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says there is \"No runtime hook\" in macro mode, but it never states that mbedtls_platform_set_calloc_free is neither declared nor compiled there."
+}

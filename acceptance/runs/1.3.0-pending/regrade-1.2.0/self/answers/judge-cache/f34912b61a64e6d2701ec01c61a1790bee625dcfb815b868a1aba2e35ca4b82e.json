@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says rows are caller functions without line numbers, but never concludes that the query surface returns one row per neighbour that collapses layer variants to the strongest evidence."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The gate's `files:` pattern and the Doxyfile's `INPUT` are deliberately not tiers. `clew/scope.py`'s own docstring explains why. Honouring a Doxyfile `INPUT` once indexed 1,571 header declarations and zero of 108 `.c` implementations on Mbed-TLS.\nVERDICT: MISS\nWHY: The answer says Doxyfile INPUT is deliberately not used, but its reason (an Mbed-TLS case that indexed only headers) is not the required one: a repo shipping a Doxyfile gets only its documented subset while a repo with none gets its whole tree."
+}

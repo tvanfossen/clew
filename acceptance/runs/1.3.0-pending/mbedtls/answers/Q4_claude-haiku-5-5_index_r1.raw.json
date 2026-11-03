@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 20051,
+  "stop_reason": "end_turn",
+  "session_id": "14cdc901-3b4f-48a7-bb5a-c0d4f9019598",
+  "total_cost_usd": 0.010172380000000002,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 30983,
+    "cache_read_input_tokens": 192928,
+    "output_tokens": 4091,
+    "output_tokens_details": {
+      "thinking_tokens": 1551
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 30983,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2718,
+        "cache_read_input_tokens": 48815,
+        "cache_creation_input_tokens": 2298,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2298
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4091,
+      "cacheReadInputTokens": 192928,
+      "cacheCreationInputTokens": 30983,
+      "webSearchRequests": 0,
+      "costUSD": 0.010172380000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1551,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 30983,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The string comes from a generated table, not from any hand-written mapping. Your caller passes the negative int to `mbedtls_strerror()`, and that walks through three layers.\n\n```\nheader  include/mbedtls/*.h          #define MBEDTLS_ERR_<MOD>_<X> -0x00NN  /**< doc */\n   \u2502\n   \u2502  scripts/generate_errors.pl   (run by library/Makefile, library/CMakeLists.txt, make_generated_files.bat)\n   \u2502  + scripts/data_files/error.fmt (template)\n   \u25bc\nlibrary/error.c  (generated, checked in)\n   mbedtls_high_level_strerr()  switch on ret & 0xFF80\n   mbedtls_low_level_strerr()   switch on ret & ~0xFF80\n   \u2502\n   \u25bc\nmbedtls_strerror(ret, buf, buflen)  (library/error.c:792)\n   ret = -ret; \u2192 high-level string, then \" : \", then low-level string\n```\n\n**Runtime path (`library/error.c:792`)**\n\n1. `mbedtls_strerror` returns early if `buflen == 0`, then zeroes the buffer.\n2. It flips the sign (`ret = -ret`), so `-0x6080` and `0x6080` decode the same.\n3. If `ret & 0xFF80` is set, it looks up the high-level part (the module, e.g. `SSL`, `X509`, `RSA`) with `mbedtls_high_level_strerr()`. An unknown code prints `UNKNOWN ERROR CODE (%04X)`.\n4. There is a special case: if the high-level part is `-(MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE)`, it returns without decoding the low-level part (only when `MBEDTLS_SSL_TLS_C` is on).\n5. It takes the remainder `ret & ~0xFF80`. If that is zero, it returns the high-level text alone.\n6. Otherwise it appends `\" : \"` and the low-level text from `mbedtls_low_level_strerr()`, again printing `UNKNOWN ERROR CODE` on a miss.\n\nEach lookup is a `switch` over `case -(MBEDTLS_ERR_X):` with `return \"MODULE - description\";`. So `MBEDTLS_ERR_ERROR_GENERIC_ERROR` (`-0x0001`) decodes to `\"ERROR - Generic error\"` (`library/error.c:665`).\n\n**Generation (`scripts/generate_errors.pl`)**\n\nThe script scans `include/mbedtls/*.h` with a regex for `#define MBEDTLS_ERR_\\w+ -0x...`. Each definition needs a Doxygen comment, either before it or as a `/**<` after-comment, but not both. It refuses a duplicate value, and it exits non-zero if a header defines codes without being in the include list. It then emits:\n\n- `case` lines grouped under `#if defined(MBEDTLS_<MOD>_C)` guards, so the string exists only when that module is compiled in;\n- an `#include \"mbedtls/<module>.h\"` for each module that has codes.\n\n**Adding a new code**\n\n1. **Pick the range.** Use the module's block in the table at the top of `include/mbedtls/error.h`. Generic codes live in `error.h`, and module codes sit in the module's own header (e.g. `foo.h`).\n2. **Add the define** with a Doxygen description, before or after, matching the convention in `error.h:98`. A value that is already used is a hard error.\n3. **Check the module is registered.** If the prefix is new, add it to `@low_level_modules` or `@high_level_modules` in `generate_errors.pl`. Otherwise the script prints \"Do not know how to handle\" and exits 1. A new header also needs its include name derived from the module name (lowercased, with the two special cases for `NET` and the renamed `MPI`/`CTR`/`HMAC`).\n4. **Regenerate `library/error.c`.** Run it through the build: `make` in `library/` or the CMake `GEN_FILES` target. Don't hand-edit `error.c`.\n5. **Commit both the header and the regenerated `error.c`.** `tests/scripts/check-generated-files.sh:135` checks that the checked-in `error.c` matches the generator output.\n\nTwo caveats for the caller: the generated string is only present when the defining module's `MBEDTLS_*_C` config is enabled, and the buffer is always null-terminated but may be truncated.\n\nI did not modify anything in the repository, and I did not run the generator or the build. The description above is from reading the source.",
+  "ttft_ms": 1470,
+  "type": "result",
+  "duration_ms": 20892,
+  "uuid": "cd60c56d-785b-4854-a59d-f10a59c8937e",
+  "ttft_stream_ms": 746,
+  "time_to_request_ms": 101,
+  "first_content_frame_ms": 747,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

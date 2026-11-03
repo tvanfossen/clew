@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 16688,
+  "stop_reason": "end_turn",
+  "session_id": "8a27c8c4-1db2-4290-8b8b-67928e2b877a",
+  "total_cost_usd": 0.01192824,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 35544,
+    "cache_read_input_tokens": 296424,
+    "output_tokens": 3708,
+    "output_tokens_details": {
+      "thinking_tokens": 1406
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 35544,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2291,
+        "cache_read_input_tokens": 68060,
+        "cache_creation_input_tokens": 6622,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6622
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3708,
+      "cacheReadInputTokens": 296424,
+      "cacheCreationInputTokens": 35544,
+      "webSearchRequests": 0,
+      "costUSD": 0.01192824,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1406,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 35544,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Two things decide what gets indexed: the repository's own `.clew.yaml` declaration, and, when there is none, the whole tree minus what git ignores. A Doxyfile no longer decides scope.\n\n**The decision flow**\n\n```\nbuild (--scope from-declaration; spelled from-guard in recorded builds)\n  \u2502\n  \u25bc\ncli._apply_scope \u2500\u2500\u25ba scope.derive_scope(repo_root)\n                       \u2502\n                       \u251c\u2500 _declared_index_scope\n                       \u2502     reads .clew.yaml via declaration.load_declaration_located\n                       \u2502     \u251c\u2500 no index_scope section \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba None (fall through)\n                       \u2502     \u251c\u2500 section present but unusable \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba _Rejected\n                       \u2502     \u2502     (not a mapping, unknown key, no usable roots)\n                       \u2502     \u2514\u2500 usable \u2500\u25ba DerivedScope(roots, excludes), source=declared\n                       \u2502\n                       \u2514\u2500 whole_repo_scope  (the default tier)\n                             roots    = (repo_root,)\n                             excludes = git-ignored paths (both sides of every\n                                        submodule boundary) + dot/cache dirs\n  \u2502\n  \u25bc\n_fold_scope_into_args \u2500\u2500\u25ba roots/excludes become the doxygen INPUT\n  \u2502                       (repo's Doxyfile kept for ALIASES/PREDEFINED only)\n  \u25bc\n_scanned_files (no-doxygen path, e.g. Rust/JS/TS) \u2500\u2500\u25ba enumerate_tree(roots, excludes)\n```\n\n**What happens when a repo declares an `index_scope`**\n\n- `roots` is required. It replaces the default scope, and each root must exist on disk or it is dropped. `excludes` alone does nothing.\n- Declared roots are taken at their word and never walked, so a clone nested under a declared root is indexed without being noticed. `external.py` walks for nested trees after the build and tags their rows.\n- A section that is present but unusable is refused with exit 1 at build time (`cli._apply_scope`), rather than quietly falling back to the whole repository. An unknown key inside the section is refused the same way, and an unknown top-level section name raises `DeclarationError`.\n\n**What happens when nothing is declared**\n\nThis is the default tier, and it is deliberately wide:\n\n1. **Root:** the whole repository, with nested git trees included. Nested trees are tagged, not excluded (gh#333).\n2. **Git-ignored paths:** `git ls-files --others --ignored --exclude-standard --directory` removes them. Each nested repo's own `.gitignore` is consulted separately, because the parent cannot see through a submodule boundary. Git runs with `git_env()` and `git_argv`, so a target's `.git/config` cannot execute code.\n3. **Dot and cache directories:** `_skip_dir` drops any name starting with `.`, plus `__pycache__` and `node_modules`. The walk stops at nested trees, keeping only their top-level dot directories. Directories deeper than 16 levels are taken wholesale and recorded in `_DEPTH_LIMITED`.\n4. **Doxyfile:** if the repo ships one, it still supplies ALIASES, PREDEFINED and filters, but its INPUT is replaced. The reason is measured: Mbed-TLS's `mbedtls.doxyfile` sets `INPUT = ../include` and `FILE_PATTERNS = *.h`, which indexes 1,571 header declarations and none of its 108 `library/*.c` implementations.\n5. **doxygen-guard's `files:` pattern is not a tier.** It answers what must be documented, not what should be indexed.\n6. **No Doxyfile and no declaration:** `cli._resolve_doxyfile_and_root` synthesizes a minimal Doxyfile. Scope is still decided by `derive_scope`, not by the synthesis.\n\nThe reason string names the fallback: \"no index_scope is declared for this repo \u2014 \u2026 so the whole repository is the index scope.\"\n\n**Caveat:** the index flagged `load_declaration_located` (`clew/declaration.py:299`) as anchor-mismatched, so its line span may have moved since the last build. I read its body from the index, not from the current file.",
+  "ttft_ms": 1058,
+  "type": "result",
+  "duration_ms": 19403,
+  "uuid": "aa86204a-a094-4d0d-8c55-316c8fb72386",
+  "ttft_stream_ms": 648,
+  "time_to_request_ms": 128,
+  "first_content_frame_ms": 648,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

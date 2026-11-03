@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer's table lists different clearing actions per axis (refresh for data, restart for code), but it never explains that this difference is why a single flag would not have been enough."
+}

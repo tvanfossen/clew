@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Any buffer the engine later frees must come from `entropic_alloc()`. The trampoline does this for `modified_json`: it JSON-encodes the return value into an `entropic_alloc` buffer, then writes the pointer into `*mod_out`.\nVERDICT: HIT\nWHY: The answer states the rule that engine-freed buffers must be allocated with entropic_alloc and shows the Python hook trampoline doing so for modified_json."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names `library` and `programs` as directories involved, but it never says either one contains uses of `MBEDTLS_PRIVATE`. It names `include` as the place where `MBEDTLS_PRIVATE` is defined and where `aes.h` declares a field with it. That makes `include` the only top-level directory the answer says contains uses.\n\nITEMS:\ninclude\nEND"
+}

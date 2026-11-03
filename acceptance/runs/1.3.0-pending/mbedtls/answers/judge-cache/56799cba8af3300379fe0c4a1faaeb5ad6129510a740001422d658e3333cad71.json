@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the default build runs no threads and lists spawn sites only in `programs/`, but it never says that library/ itself creates no threads, and it never presents library/ as supplying the mutex abstraction for threaded callers."
+}

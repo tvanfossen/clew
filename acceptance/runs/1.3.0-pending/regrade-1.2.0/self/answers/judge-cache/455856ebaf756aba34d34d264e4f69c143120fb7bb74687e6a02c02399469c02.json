@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"So a zero from `search` licenses \"no indexed code symbol by this name.\" It does not license \"the repository does not contain it.\"\"\nVERDICT: MISS\nWHY: The answer explains how an empty result should be read, but never says a single token matching nothing was previously treated as proof of absence, and never describes that earlier behaviour."
+}

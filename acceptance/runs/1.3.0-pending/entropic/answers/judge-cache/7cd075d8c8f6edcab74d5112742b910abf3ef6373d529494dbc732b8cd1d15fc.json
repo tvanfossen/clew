@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index finds 10 spawn sites in first-party code. Grouped by lifetime: | `ExternalBridge::accept_loop` | `ExternalBridge::start` ... | `HealthMonitor::monitor_loop` | `HealthMonitor::start` ... | `StdioTransport::stderr_reader_loop` | `StdioTransport::open` ... | `SSETransport::sse_reader_loop` ... | Cancel poller threads | `CancelFlagBridge`, `iface_generate_with_cancel`, `ResponseGenerator::dispatch_batch_generate`\nVERDICT: HIT\nWHY: The answer lists thread spawn sites across the external bridge, MCP transports (stdio/SSE), health monitor, and inference/generation paths, showing creation is distributed."
+}

@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.25,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: The index's file set is decided by one scope resolver, `derive_scope` in `clew/scope.py`, and then narrowed by a few later filters. | WHY: The answer explicitly names `derive_scope` in `clew/scope.py` as the single resolver that decides the index's file set. || QUOTE: The index's file set is decided by one scope resolver, `derive_scope` in `clew/scope.py`, and then narrowed by a few later filters. | WHY: The answer explicitly names `derive_scope` in `clew/scope.py` as the resolver that decides the index's file set. || QUOTE: The index's file set is decided by one scope resolver, `derive_scope` in `clew/scope.py`, and then narrowed by a few later filters. | WHY: The answer explicitly names derive_scope in clew/scope.py as the single resolver where the file-set scope decision is made.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Internal callers absorb it into the whole-repo tier with a WARNING. | WHY: The answer says a declared scope is used (tier 1) and that an invalid declaration falls to whole-repo for internal callers, but it never says that every failure to find a declaration falls through to indexing the whole repository. The CLI also refuses an invalid declaration rather than falling through. || QUOTE: `.clew.yaml` may carry `index_scope: {roots, excludes}` ... Invalid \u2192 CLI refuses; internal callers fall through ... neither \u2500\u25ba tier 2: whole repo | WHY: The answer says a declared scope is used and that no declaration yields the whole repo. But it says a rejected declaration makes the CLI refuse with exit 1, so it does not state that every failure to find a declaration falls through to indexing the whole repo. || QUOTE: `.clew.yaml` may carry `index_scope: {roots, excludes}` ... `invalid \u2192 CLI refuses; internal callers fall through` ... \"neither \u2500\u25ba tier 2: whole repo, minus exclusions\" | WHY: The answer says that a declared scope is used and that no declaration means the whole repo. It does not say that every failure to find one falls through to the whole repo, and it says the CLI refuses on an invalid declaration.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes the tiered scope resolution and WARNING on internal fallback, but never says the fallback carries a reason explaining which scope was used and why. || QUOTE: NONE | WHY: The answer describes tiers and fallbacks (whole-repo with a WARNING for internal callers) but never says the fallback carries a reason explaining which scope was used and why. || QUOTE: NONE | WHY: The answer describes the tiers and says internal callers fall through to the whole-repo tier \"with a WARNING\", but it never says the fallback carries a reason string explaining which scope was used and why.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: A Doxyfile, if present, contributes ALIASES and PREDEFINED but no longer contributes INPUT (gh#333). | WHY: The answer says a Doxyfile no longer contributes INPUT, but it never explains why (the documented-subset versus whole-tree asymmetry), which the item requires. || QUOTE: A Doxyfile, if present, contributes ALIASES and PREDEFINED but no longer contributes INPUT (gh#333). | WHY: The answer says a Doxyfile no longer contributes INPUT, but it never says this is deliberate or explains the reason (a repo with a Doxyfile would get only its documented subset, while one without gets its whole tree). || QUOTE: A Doxyfile, if present, contributes ALIASES and PREDEFINED but no longer contributes INPUT (gh#333). | WHY: The answer says a Doxyfile no longer contributes INPUT but gives no reason, so it never explains the documented-subset versus whole-tree rationale.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Nested git trees (submodules, vendored clones) are included, not excluded. `external.py` tags their rows afterward. | WHY: The answer explicitly says nested git trees are included in the scope and tagged afterward by external.py. || QUOTE: Nested git trees (submodules, vendored clones) are included, not excluded. `external.py` tags their rows afterward. | WHY: The answer explicitly states nested git trees are included in scope and tagged afterward by external.py. || QUOTE: Nested git trees (submodules, vendored clones) are included, not excluded. `external.py` tags their rows afterward. | WHY: The answer explicitly says nested git trees are included in scope and later tagged by external.py.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions a containment call being removed or its callers being dropped; it only describes scope resolution. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it only describes the current scope mechanism. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it only describes the scope resolution mechanism.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: Binary files are detected and dropped (`_drop_binary_files`, `filetypes.binary_files`). | WHY: The answer mentions dropping binary files, but it never says the extension lies about the file type. It also never names the parse-built front end that claims file types doxygen can't read, and it says it did not trace how non-doxygen languages reach the harvester. || QUOTE: Binary files are detected and dropped (`_drop_binary_files`, `filetypes.binary_files`). | WHY: The answer mentions binary file dropping but never says it targets files whose extensions lie, and it doesn't name the parse-built front end for types doxygen can't read. It also says it didn't trace non-doxygen languages, and it doesn't state that scope isn't the whole answer in the item's sense.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

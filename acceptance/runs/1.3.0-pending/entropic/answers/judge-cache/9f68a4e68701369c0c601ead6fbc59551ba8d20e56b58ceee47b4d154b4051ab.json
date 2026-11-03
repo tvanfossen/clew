@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `approved = loop_config_.auto_approve_tools || server_manager_.is_explicitly_allowed(name, args)` ... \"**`allow`** \u2014 `check_approval` treats a match as approved, so the callback is skipped and the call is not prompted. It does not bypass the MCP key checks, tier allowlist, or duplicate detection\"\nVERDICT: HIT\nWHY: The answer says allow suppresses the approval prompt rather than granting execution, and places the allow check within `check_approval` in tool_executor.cpp, with the permission manager in a separate file."
+}

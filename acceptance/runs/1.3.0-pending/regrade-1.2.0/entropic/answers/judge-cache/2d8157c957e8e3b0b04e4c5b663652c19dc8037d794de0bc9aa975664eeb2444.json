@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Empty is also a valid result for empty text with `add_special=false`, so callers cannot tell success from failure. The seam header (`include/entropic/inference/tokenizer.h`) documents this as \"empty on failure or empty input.\"\nVERDICT: HIT\nWHY: The answer says failure and legitimately empty results are indistinguishable. It also says callers don't check: the table shows `do_complete` has no check and other callers continue with empty tokens, and `count_tokens` returns 0."
+}

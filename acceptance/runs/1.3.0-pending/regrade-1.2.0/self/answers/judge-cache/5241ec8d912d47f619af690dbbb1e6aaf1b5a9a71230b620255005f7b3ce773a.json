@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**`.clew.yaml`** also carries a `guard:` section\" and table row \"2 | Declared | `.clew.yaml` at the repo root, one section per option (`clew/declaration.py`)\"\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` at the repo root as tier 2, but it never says that both entry points (CLI and MCP) discover it, which is the item's mechanism. It also says only that it has one section per option, not that it is discovered rather than plumbed per section."
+}

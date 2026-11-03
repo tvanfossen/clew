@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Exceptions must not cross into C.** The Python trampolines catch and print, then return 0.\nVERDICT: HIT\nWHY: The answer says the Python trampolines catch exceptions (so they don't cross into C) and return 0, which matches the swallow and pass-through behavior. It doesn't spell out that 0 means pass-through, but the mechanism and its location are named."
+}

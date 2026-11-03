@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the split exists so `import entropic` works before the engine is installed, or that this enables an install-engine subcommand. It only says `_bindings.py` loads the library at import time."
+}

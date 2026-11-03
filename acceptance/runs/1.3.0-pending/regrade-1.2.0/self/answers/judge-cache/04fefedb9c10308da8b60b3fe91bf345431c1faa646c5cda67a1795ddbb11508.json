@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | `data` | ... | `schema` | ... | `code` | ... (table naming three axes: data, schema, code), and \"`freshness.notices()` turns those into `{axis, message}` entries in the order data, schema, code.\"\nVERDICT: HIT\nWHY: The answer explicitly lays out three separate staleness axes (data, schema, code), each with its own detection and remedy, rather than a single flag."
+}

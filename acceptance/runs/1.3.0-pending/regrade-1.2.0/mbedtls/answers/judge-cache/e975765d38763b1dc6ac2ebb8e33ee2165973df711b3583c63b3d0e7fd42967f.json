@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library spawns no threads and `threading.c` compiles to nothing by default. It never says the pthread example compiles to a stub main. It says the sample programs are \"not built by default\", which is not the stub-main fact."
+}

@@ -1,0 +1,103 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_only_r1",
+  "arm": "index_only",
+  "rubric_version": "3.1.0",
+  "rubric_digest": "bbf6195f605be452",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.4,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the gating macros",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `MBEDTLS_THREADING_C` defaults to off (`include/mbedtls/mbedtls_config.h:3787`). Its gate covers all of `library/threading.c`... `MBEDTLS_THREADING_PTHREAD` also defaults to off (`mbedtls_config.h:2196`). | WHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the gating macros for the threading code. || QUOTE: `MBEDTLS_THREADING_C` defaults to off (`include/mbedtls/mbedtls_config.h:3787`). Its gate covers all of `library/threading.c`... `MBEDTLS_THREADING_PTHREAD` also defaults to off (`mbedtls_config.h:2196`). | WHY: The answer names both macros as the gates for the threading code, including the pthread spawn site being gated by MBEDTLS_THREADING_PTHREAD. || QUOTE: `MBEDTLS_THREADING_C` defaults to off (`include/mbedtls/mbedtls_config.h:3787`). Its gate covers all of `library/threading.c`... `MBEDTLS_THREADING_PTHREAD` also defaults to off (`mbedtls_config.h:2196`). | WHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros gating the threading code.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the shipped mbedtls_config.h leaves BOTH threading macros undefined, so a default build defines neither",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `MBEDTLS_THREADING_C` defaults to off (`include/mbedtls/mbedtls_config.h:3787`). ... `MBEDTLS_THREADING_PTHREAD` also defaults to off (`mbedtls_config.h:2196`). | WHY: The answer states both threading macros default to off in the shipped config header, so a default build defines neither. || QUOTE: `MBEDTLS_THREADING_C` defaults to off (`include/mbedtls/mbedtls_config.h:3787`)... `MBEDTLS_THREADING_PTHREAD` also defaults to off (`mbedtls_config.h:2196`). | WHY: The answer states that both threading macros are off by default in the shipped header, so a default build defines neither. || QUOTE: `MBEDTLS_THREADING_C` defaults to off (`include/mbedtls/mbedtls_config.h:3787`)... `MBEDTLS_THREADING_PTHREAD` also defaults to off (`mbedtls_config.h:2196`). | WHY: The answer states both threading macros are off by default in the shipped config header, so a default build defines neither.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that a default build of mbedtls creates no threads at all, and that the pthread example compiles to a stub main under that condition",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: So the library has zero threads of its own, and the sample servers are the only places a second thread appears. | WHY: The answer says the library has no threads of its own but locates a pthread spawn in a sample program gated by an off macro. It never says the pthread example compiles to a stub main under a default build. || QUOTE: So the library has zero threads of its own, and the sample servers are the only places a second thread appears. | WHY: The answer says the library has no threads of its own, but it never says the pthread example compiles to a stub main under the default build. It lists ssl_pthread_server.c as a thread spawn site gated by MBEDTLS_THREADING_PTHREAD (off), which is not the stub-main conclusion. || QUOTE: So the library has zero threads of its own, and the sample servers are the only places a second thread appears. | WHY: The answer says the library has no threads of its own but names pthread-server spawn sites in programs, and never says the pthread example compiles to a stub main under default build.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states BOTH halves of the contrast: that nothing in library/ creates a thread, AND that library/ nonetheless supplies the mutex abstraction used by threaded callers",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Everything in `threading.c` is compiled out... Concurrency comes only from the application, and the thread spawns the index finds are in the sample programs under `programs/`. | WHY: The answer says the library has no threads of its own and describes the mutex primitives in `threading.c`. It never makes the contrast that library/ supplies the mutex abstraction for threaded callers while creating no threads. It says the mutex layer is compiled out by default and treats it as library-internal locking. || QUOTE: NONE | WHY: The answer says the library has zero threads of its own and describes the mutex primitives, but it never states the contrast that library/ supplies the mutex abstraction for threaded callers. It says the threading layer is compiled out by default and calls concurrency application-provided. || QUOTE: NONE | WHY: The answer says the library has zero threads and details the mutex wrappers in threading.c, but it never presents the contrast, i.e. that library/ supplies the mutex abstraction for threaded callers while creating no threads of its own.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 programs/ssl/ssl_pthread_server.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 programs/test/benchmark.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": false,
+      "detail": "named 1 not in the set: ['programs/ssl/ssl_server2.c']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the benchmark timer thread as Windows-only, gated on a platform condition rather than on the threading config",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: `programs/test/benchmark.c:430` \u2192 `TimerProc` | Win32 timer | test program | WHY: The answer labels TimerProc a \"Win32 timer\" but never says the thread is Windows-only gated on a platform condition (e.g. `_WIN32`) rather than the threading config; the \"Gated by\" column just says \"test program\". || QUOTE: `programs/test/benchmark.c:430` \u2192 `TimerProc` | Win32 timer | test program | WHY: The answer labels TimerProc a \"Win32 timer\" but gates it only as \"test program\", never stating it is behind a platform condition rather than the threading config. || QUOTE: `programs/test/benchmark.c:430` \u2192 `TimerProc` | Win32 timer | test program | WHY: The answer labels TimerProc a \"Win32 timer\" but never states it is gated on a platform condition (e.g. `_WIN32`) rather than the threading config, and its \"Gated by\" column says only \"test program\".",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies debug_mutex as serialising debug output so that concurrent connections do not interleave their logging",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions debug_mutex or serialising debug output across concurrent connections; its mutex table omits it entirely. || QUOTE: NONE | WHY: The answer never mentions debug_mutex or serialising debug output across concurrent connections.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

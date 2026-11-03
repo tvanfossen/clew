@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says markdown is deliberately excluded from path rows because it is prose and would be counted as indexed source in coverage figures; it only mentions markdown in passing as one of the grammars the fork adds."
+}

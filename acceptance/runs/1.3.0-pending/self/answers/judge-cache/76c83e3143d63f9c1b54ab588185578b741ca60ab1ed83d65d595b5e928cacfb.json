@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: One row is kept per endpoint identity, not per layer, so the two doxygen layers do not double-count an edge.\nVERDICT: HIT\nWHY: The answer states the query surface returns one row per neighbour (endpoint identity) rather than per layer, deduplicating doxygen layers. It doesn't spell out \"strongest evidence\" collapsing, but the one-row-per-neighbour-not-per-layer substance is there."
+}

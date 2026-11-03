@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: pointers start as platform.c:44-45 stubs: calloc stub returns NULL, free stub does nothing\nVERDICT: HIT\nWHY: The answer states the uninitialised pointers default to stubs where calloc returns NULL and free does nothing, and a caveat says allocations fail with NULL when nothing was installed."
+}

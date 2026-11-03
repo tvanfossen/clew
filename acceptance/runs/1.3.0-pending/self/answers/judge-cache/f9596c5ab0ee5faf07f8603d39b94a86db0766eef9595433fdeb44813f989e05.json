@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every empty `search` carries a `scope` block (`clew/mcp_server/emptiness.py`, `_scope_payload`).\nVERDICT: HIT\nWHY: The answer explicitly locates the empty-result grading/scope logic in clew/mcp_server/emptiness.py."
+}

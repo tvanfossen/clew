@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The router only gates `bash` and `cmake` (`_OPTIONAL_KEYS` in `clew/harvest.py`)... `_harvest_one_file` returns `None`, so no payload and no `memberdef`... A `.sh` file on a bash-less install is therefore absent from `not_indexed`, and the report stays silent about it.\"\nVERDICT: MISS\nWHY: The answer says the files degrade silently and are NOT reported as not indexed, which contradicts the item's claim that those file types are then reported as not indexed."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Is it retry logic? No. Neither call is retried because of a failure. The first call always runs, and it is a size query rather than an attempt that failed. The second call is not repeated if it fails.\"\nVERDICT: HIT\nWHY: The answer concludes it is a size query (two-phase sized-buffer), not retry-on-failure, and notes the single second call that isn't repeated; no-backoff/counter is implicit but the substance is stated."
+}

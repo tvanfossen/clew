@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how empty replies now report scope and says to check `not_indexed` before concluding absence. It never says a single token matching nothing was previously treated as proof of absence."
+}

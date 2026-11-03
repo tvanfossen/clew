@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The mutex and thread code only comes into play when the integrator enables `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD`\nVERDICT: HIT\nWHY: The answer explicitly names both macros as the gates for the mutex/thread code."
+}

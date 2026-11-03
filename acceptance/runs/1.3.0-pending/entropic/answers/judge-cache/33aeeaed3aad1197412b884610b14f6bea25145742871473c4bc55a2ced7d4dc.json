@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its reach is about seven files in `src/inference/`, plus config fields that mirror its parameters and link-time mocks in the tests. Nothing in the public C interface or the Python wrapper exposes llama.cpp types.\nVERDICT: MISS\nWHY: The answer says the dependency stays inside `src/inference/`, with the C ABI as the outer boundary. It does not say that a minority of the reaching files sit outside that directory. The config header and the tests are named, but as mirrors and mocks, not as evidence that the dependency is not contained."
+}

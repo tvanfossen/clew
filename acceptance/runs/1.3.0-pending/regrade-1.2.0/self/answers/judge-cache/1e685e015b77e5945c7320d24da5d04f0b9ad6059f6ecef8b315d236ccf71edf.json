@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tiers 3 and 4 never get displaced. A stated tier cannot remove a fact someone else already wrote.\nVERDICT: MISS\nWHY: The answer says tiers 3 and 4 both accumulate, but it never says the distinction between them is deliberately inert or that the load-bearing line is fact-versus-guess."
+}

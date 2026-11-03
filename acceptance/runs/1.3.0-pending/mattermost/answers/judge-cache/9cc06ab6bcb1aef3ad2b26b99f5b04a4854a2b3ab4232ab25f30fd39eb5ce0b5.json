@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It destroys the row directly with its own `database.write`, not through `batchRecords`.\" and \"queryReaction(database, emoji_name, post_id, user_id).fetch() if found: database.write(() => reaction[0].destroyPermanently())\"\nVERDICT: HIT\nWHY: The answer states that removal bypasses the operator, queries the reaction, and destroys it via a direct database.write."
+}

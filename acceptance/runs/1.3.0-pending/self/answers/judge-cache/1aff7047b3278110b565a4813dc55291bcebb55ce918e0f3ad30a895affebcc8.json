@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: One row per pair, not per site. `UNIQUE(caller, callee, source)` collapses a caller that calls the function five times into one row.\n\nVERDICT: MISS\nWHY: The answer says rows collapse per caller-callee-source pair, but it doesn't say the surface returns one row per neighbour with layer variants collapsed to the strongest evidence. It lists the per-layer `source` labels as separate values instead."
+}

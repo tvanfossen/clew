@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer only mentions MBEDTLS_ERROR_STRERROR_DUMMY as gating eight sites in error.c; it never says it keeps mbedtls_strerror linkable with the table compiled out, nor that it is enabled by default."
+}

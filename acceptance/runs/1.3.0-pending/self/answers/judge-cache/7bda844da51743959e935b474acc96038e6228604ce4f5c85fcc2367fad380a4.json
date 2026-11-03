@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Every query reply carries that list as a `staleness` block, but only when stale.\" and \"`freshness.notices()` returns a list of `{axis, message}`... It is empty when the tool is current.\"\nVERDICT: HIT\nWHY: The answer says the staleness annotation is attached to every query reply (no asking needed) and that the notices list is empty when the tool is current."
+}

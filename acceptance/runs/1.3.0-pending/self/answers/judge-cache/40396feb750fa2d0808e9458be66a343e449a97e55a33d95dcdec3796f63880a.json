@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It returns one of two scopes: the repo's own declared `index_scope:`, or the whole repository minus a set of subtractions.\"\nVERDICT: HIT\nWHY: The answer states the declared scope is used when usable, and that absent, unusable, or rejected declarations (including malformed or no usable roots) fall through to the whole-repo scope."
+}

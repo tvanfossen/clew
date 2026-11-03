@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 24999,
+  "stop_reason": "end_turn",
+  "session_id": "6f2fa239-c7c5-4f6e-992e-81b14faec5d3",
+  "total_cost_usd": 0.00784229,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 17114,
+    "cache_read_input_tokens": 212549,
+    "output_tokens": 4586,
+    "output_tokens_details": {
+      "thinking_tokens": 2581
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 17114,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2607,
+        "cache_read_input_tokens": 51351,
+        "cache_creation_input_tokens": 3296,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3296
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4586,
+      "cacheReadInputTokens": 212549,
+      "cacheCreationInputTokens": 17114,
+      "webSearchRequests": 0,
+      "costUSD": 0.00784229,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2581,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 17114,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The path from a negative return to a string is a single translation function plus two generated lookup tables, and a contributor adds a message by editing the module header and rebuilding, not by editing `error.c`.\n\n```\nret = -0x0020            (e.g. MBEDTLS_ERR_AES_INVALID_KEY_LENGTH, aes.h:44)\n  \u2502\n  \u25bc\nmbedtls_strerror(ret, buf, buflen)            library/error.c:792\n  \u2502  memset buf to 0; if buflen == 0 return\n  \u2502  ret = -ret                              (sign flipped, now 0x0020)\n  \u2502\n  \u251c\u2500 ret & 0xFF80 ?  \u2500\u2500yes\u2500\u2500\u25b6 mbedtls_high_level_strerr(ret)   error.c:174\n  \u2502                             \"AES - ...\" (module name)\n  \u2502                             unknown \u2192 \"UNKNOWN ERROR CODE (%04X)\"\n  \u2502                             SSL fatal alert \u2192 return here, no low-level part\n  \u2502\n  \u251c\u2500 use_ret = ret & ~0xFF80 ; 0 \u2192 return\n  \u2502\n  \u251c\u2500 buf already has text? append \" : \" (only if 5+ bytes remain)\n  \u2502\n  \u2514\u2500 mbedtls_low_level_strerr(ret)             error.c:537\n                                \"Invalid key length\" style detail\n                                unknown \u2192 \"UNKNOWN ERROR CODE (%04X)\"\n```\n\nSome details from the bodies:\n\n- **Two halves.** The high bits (`0xFF80`) identify the module and the low bits (`~0xFF80`) identify the specific error. Both helpers are passed the full negated value and each masks its own part.\n- **Output.** A code with both parts reads like `\"<MODULE> - <high> : <low>\"`. Every write goes through `mbedtls_snprintf`, so the result is truncated to `buflen` and always null-terminated.\n- **Module gating.** Each `case` sits inside `#if defined(MBEDTLS_<MODULE>_C)`, so a string disappears from the table when its module is compiled out. `mbedtls_strerror` itself is gated by `MBEDTLS_ERROR_C`.\n- **Generated, not hand-written.** Both helpers are inside the \"Begin Auto-Generated Code\" block. `library/CMakeLists.txt:134` runs `scripts/generate_errors.pl` at build time over the headers in `include/mbedtls` and `scripts/data_files/error.fmt`, producing the build-dir `error.c`. Any hand edit to the checked-in `library/error.c` is overwritten.\n\n**To add a new message:**\n\n1. Add `#define MBEDTLS_ERR_<MODULE>_<NAME> -0x....` to the module's public header, with the description in the comment the generator reads. Pick a value inside that module's band. I did not confirm the band rules, because the generator is not in the index.\n2. Rebuild so the generator picks it up. Don't edit `library/error.c`.\n3. If the code should also map to a PSA status, update `mbedtls_to_psa_error`. The index shows it references existing codes like `MBEDTLS_ERR_AES_INVALID_KEY_LENGTH`.\n4. Check the output with `programs/util/strerror.c` (`strerror <code>`), which prints the string for a decimal or `-0x` hex code.\n5. Add a ChangeLog.d entry. `BRANCHES.md` treats a new error condition for a previously undocumented function as a compatibility-relevant change.\n\n**Limits of this answer.** The index holds the generated `error.c` and the header macros, but not `generate_errors.pl`, `error.fmt`, or the CMake rule's inputs. So the exact comment format the generator parses, the value bands per module, and whether the PSA mapping is generated are unverified. Read the Perl script before writing the header comment.",
+  "ttft_ms": 1760,
+  "type": "result",
+  "duration_ms": 25807,
+  "uuid": "95b56b9e-5298-4945-a7b7-d13194a3101e",
+  "ttft_stream_ms": 1488,
+  "time_to_request_ms": 74,
+  "first_content_frame_ms": 1488,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

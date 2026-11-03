@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `PermissionPersister::save_permission` has no call site in `src/`. Nothing in the library writes \"always allow\" patterns back to config.\nVERDICT: MISS\nWHY: The answer only says the persister is unused and never says a decision can be persisted by appending to config.local.yaml, separately from add_permission."
+}

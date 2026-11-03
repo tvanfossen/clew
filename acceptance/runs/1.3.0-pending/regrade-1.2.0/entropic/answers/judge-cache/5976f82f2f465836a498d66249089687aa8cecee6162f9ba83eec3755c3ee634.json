@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"In `check_approval`, a registered callback sets `approved = true` unconditionally.\" and \"`on_tool_call` is `void(*)(const char*, void*)`\"\nVERDICT: HIT\nWHY: The answer states the callback returns void and that approved is set true unconditionally when a callback is registered, so it cannot deny."
+}

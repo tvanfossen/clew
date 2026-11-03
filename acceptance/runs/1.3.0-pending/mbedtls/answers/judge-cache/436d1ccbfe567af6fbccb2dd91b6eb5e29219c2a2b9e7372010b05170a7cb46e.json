@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says to add the #define to the header, but it also says to add a `case` to the generated `switch` in `library/error.c` and to add a description entry in the generator's data source. It never concludes that the documented `#define` plus re-running the generator is enough."
+}

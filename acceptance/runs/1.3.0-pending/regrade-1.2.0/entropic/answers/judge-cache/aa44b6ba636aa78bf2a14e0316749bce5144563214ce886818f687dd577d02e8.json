@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: it is saved through `PermissionPersister::save_permission` into `config.local.yaml`\nVERDICT: HIT\nWHY: The answer says \"Always Allow/Deny\" decisions are saved via `PermissionPersister::save_permission` into `config.local.yaml`. It describes this as separate from the allow/deny matching path."
+}

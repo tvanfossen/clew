@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that, for a reader, its \"callers\" are the functions whose writes it observes (inverted causal polarity); it only mentions `key` edges as dataflow without that polarity inversion."
+}

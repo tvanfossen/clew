@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its second-call result is only checked for `n > 0`, so a failure there silently becomes an empty string.\nVERDICT: MISS\nWHY: The item concerns the tokenizer's second llama_tokenize call returning empty on negative result; the answer's quote is about detokenize, and its tokenize discussion never states that the second-call failure is terminal."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 25327,
+  "stop_reason": "end_turn",
+  "session_id": "39816535-73ef-49a1-a6c0-17bbcd003952",
+  "total_cost_usd": 0.01677423,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 54507,
+    "cache_read_input_tokens": 307113,
+    "output_tokens": 5601,
+    "output_tokens_details": {
+      "thinking_tokens": 2194
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 54507,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3061,
+        "cache_read_input_tokens": 73678,
+        "cache_creation_input_tokens": 986,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 986
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5601,
+      "cacheReadInputTokens": 307113,
+      "cacheCreationInputTokens": 54507,
+      "webSearchRequests": 0,
+      "costUSD": 0.01677423,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2194,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 54507,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How it's brought in:** llama.cpp is a vendored git submodule at `extern/llama.cpp`, pinned by gitlink to commit `20a04b22` (`.gitmodules`). It is not a FetchContent dependency like spdlog, ryml, json or httplib. `extern/CMakeLists.txt` builds it at configure time with `add_subdirectory(llama.cpp EXCLUDE_FROM_ALL)`, after forcing its options: no tests, examples, server or tools, `LLAMA_BUILD_COMMON=ON`, and `GGML_CUDA` bridged from `ENTROPIC_HAS_CUDA`. It also adds `llama.cpp/tools/mtmd` for multimodal. Both are built static, and `EXCLUDE_FROM_ALL` stops llama.cpp's own install rules from firing.\n\n```\nextern/llama.cpp (submodule)\n   \u251c\u2500\u2500 llama      (libllama + ggml)\n   \u251c\u2500\u2500 llama-common\n   \u2514\u2500\u2500 mtmd\n          \u2502  $<LINK_ONLY:...> PRIVATE\n          \u25bc\nsrc/inference  (OBJECT lib: PRIVATE llama, mtmd; PUBLIC llama-common)\n          \u2502\n          \u25bc\nsrc/facade     (entropic-facade \u2192 librentropic.so; absorbs them statically)\n```\n\n**How far it reaches:** it is contained in the implementation layer, with a few leaks.\n\n- **Implementation, `src/inference/`:** this is where the code uses llama.cpp directly. `llama.h` is included by `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler.cpp`, `llama_cpp_tokenizer.cpp`, `grammar_registry.cpp`, `orchestrator.cpp`, `speculative_compat.cpp` and `adapter_manager.cpp`. `llama_cpp_backend.cpp` also pulls in `chat.h`, `sampling.h`, `speculative.h`, `mtmd.h` and `mtmd-helper.h`. `tool_call_markers.h` includes `chat.h`.\n- **`LlamaCppBackend`** (`src/inference/llama_cpp_backend.h:65`) is the main carrier. It owns `model_`, `ctx_`, `vocab_` and the mtmd context. It exposes raw `llama_model_ptr()` and `llama_context_ptr()` accessors, and its `CommonChatResult` wraps common_chat parse output. The rest of entropic sees it only as an `InferenceBackend`. `do_backend_name()` returns `\"llama.cpp\"`.\n- **Facade, `src/facade/entropic.cpp`:** the one place outside `src/inference` that touches it. It includes `llama_cpp_backend.h` (the facade gets `src/inference` as a private include dir) and uses the raw pointers to wire LoRA adapters through `dynamic_cast<LlamaCppBackend*>`.\n- **Public headers, `include/entropic/`:** these do not include any llama.cpp header. They forward-declare `struct llama_model`, `llama_context` and `llama_adapter_lora`, and the C ABI in `entropic.h` has no llama types. Config enums such as `llama_split_mode` are re-declared as entropic's own types. Two leaks remain. `adapter_manager.h:181-182` puts raw `llama_adapter_lora*` and `llama_model*` into a public struct, and `orchestrator.h` and `speculative_compat.h` take raw llama pointers in their signatures. The architecture doc says \"No third-party headers in interface contracts\". Forward declarations are not headers, but the spirit is broken.\n- **Tests:** `tests/unit/inference` and `tests/model` include `llama.h` and `chat.h` directly, which is expected for seam tests.\n\n**Things to know:**\n\n- The submodule is not checked out in this copy. `extern/llama.cpp` is empty (the gitlink exists, `git submodule status` shows the commit). Nothing here will build until `git submodule update --init` runs. I did not build it.\n- The pin is described inconsistently. `extern/CMakeLists.txt` says \"pinned at b8420\", the gitlink is `20a04b22`, and `llama_cpp_backend.cpp` and `speculative_compat.h` cite older commits (`253ba110b`, `7f2cbd9a4`). At least some of those comments are stale.",
+  "ttft_ms": 732,
+  "type": "result",
+  "duration_ms": 25973,
+  "uuid": "53321b2f-212b-4d7c-9167-a8e428da6e6b",
+  "ttft_stream_ms": 591,
+  "time_to_request_ms": 109,
+  "first_content_frame_ms": 592,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

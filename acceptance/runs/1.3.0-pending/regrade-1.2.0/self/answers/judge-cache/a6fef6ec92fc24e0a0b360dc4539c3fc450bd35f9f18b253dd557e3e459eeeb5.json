@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"For `code` it also says that reads are still current but writes are not safe.\"\nVERDICT: HIT\nWHY: The answer says that on the code axis reads are still current but writes are unsafe, and that a rebuild \"runs the old logic\". It does not mention that query tools open the database per call. The asymmetry and the old-pipeline-logic consequence are both stated."
+}

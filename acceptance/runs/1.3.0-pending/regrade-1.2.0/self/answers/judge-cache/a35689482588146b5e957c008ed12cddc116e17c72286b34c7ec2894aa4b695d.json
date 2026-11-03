@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how the emptiness verdicts work but never states a general rule like \"fix the corpus, not the sentence about the corpus\" (i.e., fix the index/corpus rather than reword the note)."
+}

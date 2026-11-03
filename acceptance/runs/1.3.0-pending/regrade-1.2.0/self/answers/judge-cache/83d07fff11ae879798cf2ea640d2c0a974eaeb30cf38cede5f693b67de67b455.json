@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `edge_class`: `'call'` for a direct call, or `'key'` for a shared-key dataflow edge.\nVERDICT: HIT\nWHY: The answer says the callers/callees list mixes direct-call and shared-key rows, separated by `edge_class`, and says to \"Check `edge_class` before anything else\"."
+}

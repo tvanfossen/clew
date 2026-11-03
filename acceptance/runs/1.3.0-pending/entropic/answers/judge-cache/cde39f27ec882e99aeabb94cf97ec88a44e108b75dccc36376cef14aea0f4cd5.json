@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Deny list (`permissions.deny`) is checked only in `ServerManager::execute`, after approval has already happened. `check_approval` never consults it.\nVERDICT: MISS\nWHY: The answer says deny is checked in `ServerManager::execute` but also says allow-list and tier/MCP/schema/duplicate gates block execution, so it never concludes that deny is the only blocking list or that execute consults nothing else."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The right side is matched against the tool name plus the first string value in the args JSON (`ServerManager::args_to_pattern`, `server_manager.cpp:426`). Empty args, `{}`, or a non-string first value all become `*`.\nVERDICT: HIT\nWHY: States that only the first string arg value reaches the pattern and that empty or non-string first values collapse to `*`. The rest of the args being invisible follows from this. The answer doesn't mention unparseable args."
+}

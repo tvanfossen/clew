@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Regenerate, don't hand-edit.** Run the normal build (`make` in `library/`, or the CMake target), which calls `generate_errors.pl`. Do not edit `library/error.c` directly.\"\nVERDICT: HIT\nWHY: The answer says to add a documented `#define` to the module header (`/** ... */` comment) and regenerate with `generate_errors.pl`, and not to edit `library/error.c` by hand."
+}

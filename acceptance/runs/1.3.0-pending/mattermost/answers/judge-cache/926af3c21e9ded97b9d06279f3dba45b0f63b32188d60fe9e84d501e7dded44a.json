@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It passes the flag to the server as `include_deleted_channels`.\nVERDICT: HIT\nWHY: The answer says `searchPosts` in `app/actions/remote/search.ts` passes the setting to the server as `include_deleted_channels`."
+}

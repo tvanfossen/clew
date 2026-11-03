@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python talks to the engine through `ctypes`, loading `librentropic.so` and calling its plain C API in `entropic.h`.\nVERDICT: HIT\nWHY: The answer states ctypes loading librentropic.so via CDLL as the mechanism. It describes only a generated ctypes binding layer and no compiled extension module."
+}

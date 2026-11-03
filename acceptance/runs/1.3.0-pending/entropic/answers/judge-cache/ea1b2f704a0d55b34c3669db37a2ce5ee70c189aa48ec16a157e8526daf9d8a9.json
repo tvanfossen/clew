@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions ExternalBridge::stop() joining threads but never describes the monitor's atomic flag exchange plus condition variable wake, nor HealthMonitor stop() joining."
+}

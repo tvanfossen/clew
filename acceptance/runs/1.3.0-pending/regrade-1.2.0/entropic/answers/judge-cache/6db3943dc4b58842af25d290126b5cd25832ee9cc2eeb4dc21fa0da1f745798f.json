@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python reaches the engine through `ctypes` over a flat C ABI in `librentropic.so`, with no C++ types crossing.\nVERDICT: HIT\nWHY: The answer names ctypes over librentropic.so as the mechanism (CDLL loader, no extension module/C++ types)."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains how an empty reply reports what it searched. It never states the general rule to fix the corpus (the searched content) rather than the sentence describing it."
+}

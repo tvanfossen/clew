@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The app's HTTP client is configured with exponential retry and a limit of 3 (`app/managers/network_manager.ts:68-73`). But `createPost` in `app/client/rest/posts.ts:43-47` passes `noRetry: true`\"\nVERDICT: HIT\nWHY: The answer states the general exponential retry with limit 3 set in the network manager and that createPost opts out via noRetry."
+}

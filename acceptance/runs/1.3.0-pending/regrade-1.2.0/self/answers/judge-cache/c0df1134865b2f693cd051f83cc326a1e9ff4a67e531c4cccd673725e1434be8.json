@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The code notice also says the data is still current. Queries open the database per call, so the stale part is the process's logic, not the stored rows.\" and \"`build_or_refresh` (`server.py:2199`) refuses to build when the process predates its source... so a stale server cannot rebuild the index with old pipeline logic.\"\nVERDICT: HIT\nWHY: The answer states that reads stay current because queries open the database per call, and that a build/refresh from a stale process would write old pipeline logic, which is why it is refused."
+}

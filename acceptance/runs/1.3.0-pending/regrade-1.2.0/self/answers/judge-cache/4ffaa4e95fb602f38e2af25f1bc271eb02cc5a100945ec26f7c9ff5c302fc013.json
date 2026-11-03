@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the winning tier is recorded in `build_meta`, survives refreshes, and is reported by `status`.\nVERDICT: MISS\nWHY: The answer says the winning tier is recorded in `build_meta`, but it never says the record is derived from the stored rows rather than stamped as a separate summary."
+}

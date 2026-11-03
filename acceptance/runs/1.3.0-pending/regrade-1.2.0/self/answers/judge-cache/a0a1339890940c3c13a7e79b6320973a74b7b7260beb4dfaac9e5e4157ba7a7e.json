@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says markdown is deliberately excluded from path rows or that a path row would inflate indexed-source coverage; it covers only YAML/JSON path rows."
+}

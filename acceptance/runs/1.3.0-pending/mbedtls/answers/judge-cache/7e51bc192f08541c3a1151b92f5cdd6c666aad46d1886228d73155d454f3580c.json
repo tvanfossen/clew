@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Counts are from `grep -c` for `_ct\\b|_ct\\(|mbedtls_ct_` across `library/`: 430 matching lines in 33 files.\nVERDICT: HIT\nWHY: The answer says the facility is used across 33 library files and lists many modules (bignum, RSA, ECP, TLS, AEAD, PSA, base64), which conveys broad consumption on the order of twenty-plus modules."
+}

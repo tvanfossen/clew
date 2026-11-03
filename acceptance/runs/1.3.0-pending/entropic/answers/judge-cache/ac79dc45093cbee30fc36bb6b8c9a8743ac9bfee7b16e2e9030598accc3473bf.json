@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Neither path loops, backs off, or re-attempts after an error. Calling this retry logic would be wrong.\nVERDICT: HIT\nWHY: The answer concludes that the double call is a size-probe-then-fill pattern rather than retry, and notes there is no looping or backoff. It also says the second call is a single deterministic pass."
+}

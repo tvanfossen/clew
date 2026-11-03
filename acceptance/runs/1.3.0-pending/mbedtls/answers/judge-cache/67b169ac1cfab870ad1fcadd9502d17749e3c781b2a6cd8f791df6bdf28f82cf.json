@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer says these files turn the opt-out on:\n\n- `library/common.h:132` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` unconditionally.\n- `programs/ssl/ssl_client2.c:8` defines it before any include.\n- `programs/ssl/ssl_server2.c:8` also defines it.\n\nThe answer also mentions `include/mbedtls/private_access.h`, but only as the file that tests the macro and holds the `MBEDTLS_PRIVATE` wrapper, so I left it out. It mentions `include/mbedtls/ssl.h` only as the place that says the opt-out is deprecated.\n\nITEMS:\nlibrary/common.h\nprograms/ssl/ssl_client2.c\nprograms/ssl/ssl_server2.c\nEND"
+}

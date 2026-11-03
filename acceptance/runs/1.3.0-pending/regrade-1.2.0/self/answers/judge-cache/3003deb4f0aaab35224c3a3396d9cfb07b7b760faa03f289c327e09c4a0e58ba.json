@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unknown top-level section in `.clew.yaml` is refused by name. A misspelled key inside `index_scope` is also refused by name.\nVERDICT: MISS\nWHY: The answer says unknown sections are refused by name, but it omits the allowed set and the reason that ignoring one would build with defaults while reporting the declaration was honoured."
+}

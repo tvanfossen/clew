@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes only scope resolution (roots, excludes, gitignore, dot-directories) and never says a file must also be readable by the parse-built front end or survive binary classification."
+}

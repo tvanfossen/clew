@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Facts and ecosystem entries always accumulate. Tiers 3 and 4 survive every stated tier. The index says that an argument over whether something is tier 3 or tier 4 changes only the label, not the resolved set.\"\nVERDICT: HIT\nWHY: The answer says tiers 3 and 4 combine identically (the distinction changes only the label), and the formula plus \"you cannot un-discover a fact\" conveys the fact-versus-guess line."
+}

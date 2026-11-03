@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `StdioTransport::stderr_reader_loop` | `StdioTransport::open` | Joined on close (`transport_stdio.cpp:219`) | `io_mutex_` ; `SSETransport::sse_reader_loop` | `SSETransport::open` | Joined on close (`transport_sse.cpp:139`) | `pending_mutex_`\nVERDICT: HIT\nWHY: The answer lists a stderr reader thread for the stdio transport and an SSE reader thread for the SSE transport, each spawned in its own transport's open()."
+}

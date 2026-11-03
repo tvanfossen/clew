@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`test_with_valgrind_constant_time` in `tests/scripts/components-configuration-crypto.sh:25-32` runs the `*constant_time*.data` suites under Valgrind memcheck with a `valgrind_cf` configuration.\"\nVERDICT: MISS\nWHY: The answer describes Valgrind/MSan constant-flow tests but never says the facility is off-by-default or explicitly not part of the library API."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ClientPosts.createPost` in `app/client/rest/posts.ts:43` passes `noRetry: true`, and `app/client/rest/tracking.ts:383` maps that to `retryPolicyConfiguration = {retryLimit: 0}`. So there is no transport-level retry either.\nVERDICT: MISS\nWHY: The answer says posting opts out of retry (noRetry, retryLimit 0) but never states that requests in general retry with exponential backoff, limit 3, set by the network manager."
+}

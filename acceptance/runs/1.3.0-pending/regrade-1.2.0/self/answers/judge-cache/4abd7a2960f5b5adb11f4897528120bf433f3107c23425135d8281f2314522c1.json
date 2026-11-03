@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **File types the build skipped.** `cli._not_indexed_scope` compares the scanned tree against `path` rows and reports the gap by extension, with an exact count.\nVERDICT: MISS\nWHY: The answer describes reporting skipped (not-indexed) file types, but not file types in scope that produced zero rows. That is the opposite case, and the item needs it stated."
+}

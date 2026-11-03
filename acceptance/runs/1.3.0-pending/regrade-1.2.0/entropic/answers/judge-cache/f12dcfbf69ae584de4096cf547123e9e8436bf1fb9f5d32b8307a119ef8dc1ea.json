@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppTokenizer::detokenize` (`:93`, `:99`) | `llama_token_to_piece` into a 256-byte stack buffer | Re-call with `-n` bytes | Only when the 256-byte buffer was too small; \"Always, on every call\" for tokenize\nVERDICT: HIT\nWHY: The answer states detokenize tries a 256-byte stack buffer first and retries only if too small, while tokenize always does the sizing call first."
+}

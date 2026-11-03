@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A repo's own Doxyfile still supplies ALIASES and PREDEFINED, but its INPUT is replaced by the chosen roots.\nVERDICT: MISS\nWHY: The answer says the Doxyfile's INPUT is replaced and no longer a scope tier, but it never explains why: a repo shipping a Doxyfile would get only its documented subset while one without gets its whole tree."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A pre-commit check (`inv gen-bindings --check`) fails if the file drifts from the header.\nVERDICT: HIT\nWHY: The answer states that a pre-commit check (`inv gen-bindings --check`) fails when the bindings drift from the header. That covers the drift-catching mechanism, though it doesn't spell out \"re-runs the generator and diffs\"."
+}

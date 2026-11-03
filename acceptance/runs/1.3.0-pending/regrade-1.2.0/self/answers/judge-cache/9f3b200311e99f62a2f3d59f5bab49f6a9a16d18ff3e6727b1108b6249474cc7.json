@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how the current reply separates searched-vs-unsearched coverage, but never states that a single non-matching token was previously treated as proof of absence."
+}

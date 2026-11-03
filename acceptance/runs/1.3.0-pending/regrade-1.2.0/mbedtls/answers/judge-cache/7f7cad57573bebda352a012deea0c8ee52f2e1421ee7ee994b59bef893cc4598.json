@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: MBEDTLS_PLATFORM_MEMORY undefined \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba calloc() directly (platform.h:167)\nVERDICT: HIT\nWHY: The answer's diagram states that without MBEDTLS_PLATFORM_MEMORY (the default) the library calls calloc() directly, with no indirection. It never says \"macro\" for this case, but it names the mechanism and the location (platform.h:167). The same answer opens with a contradictory headline about function pointers, but that doesn't remove the stated fact."
+}

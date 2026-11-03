@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Treat `callers` as \"functions that causally precede `fn`, by name...\"; also \"`'key'` rows ... are functions that write or read a shared key `fn` touches, with no call between them.\"\nVERDICT: MISS\nWHY: The answer says key-edge neighbours aren't calls, but never states that for a reader the \"callers\" are the functions whose writes it observes, i.e. that the causal polarity is inverted between the call half and the key half."
+}

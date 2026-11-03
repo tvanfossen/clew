@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer only mentions `_loader.load()` calling `ctypes.CDLL(librentropic.so)` and says nothing about the resolution order: env overrides, a default user directory, the system library cache, or two layouts per root."
+}

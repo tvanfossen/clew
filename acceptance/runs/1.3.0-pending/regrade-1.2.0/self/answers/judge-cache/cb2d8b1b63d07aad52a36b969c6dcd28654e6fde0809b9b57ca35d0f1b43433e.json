@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions that root node type can't discriminate languages because shell shares its root with JavaScript and CMake shares its root with Rust."
+}

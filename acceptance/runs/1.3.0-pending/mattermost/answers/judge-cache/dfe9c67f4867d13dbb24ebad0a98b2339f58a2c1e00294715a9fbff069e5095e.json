@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`skipSync: true`** only affects deletions. `sanitizeReactions` returns early before computing `deleteReactions`, so a single-event add cannot remove other reactions on the post.\nVERDICT: HIT\nWHY: The answer says skipSync prevents the single-event add from deleting other reactions on the post, which is the item's substance."
+}

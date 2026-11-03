@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`edge_class` | Distinguishes a call from other causal edges. `callers` is documented as \"callers plus the writers it reads from\", so a writer can appear in the list.\" and \"**Mixed edge kinds.** A writer that shares a key with the subject is in the same list as a true caller. Filter on `edge_class` before counting.\"\nVERDICT: HIT\nWHY: The answer states that callers mixes true calls with shared-key writers in one list and that the consumer must filter on `edge_class`."
+}

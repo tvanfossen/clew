@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Imports are lazy (PEP 562), so `entropic install-engine` can run before the `.so` exists.\nVERDICT: HIT\nWHY: The answer states that lazy imports let the install-engine subcommand run before the engine .so is on disk, which matches the item's substance."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `args_to_pattern` (`server_manager.cpp:426`) does not look at all arguments. It takes the value of the first key in the parsed JSON object, and only if that value is a string. Otherwise it uses `*`.\n\nVERDICT: HIT\nWHY: The answer says only one argument (the first key's value) reaches the pattern, and that a non-string value becomes `*`. It adds that this can bypass patterns like `filesystem.write:/safe/*`. It doesn't mention the unparseable-argument case, but the item's core is stated."
+}

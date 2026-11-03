@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With no grammar, it returns None, so there is no tree, no harvest, and no `memberdef` rows. This part matches the docs. Nothing crashes.\nVERDICT: MISS\nWHY: The answer says nothing crashes but argues the miss report likely does not fire, so it does not conclude that the types are reported as not indexed."
+}

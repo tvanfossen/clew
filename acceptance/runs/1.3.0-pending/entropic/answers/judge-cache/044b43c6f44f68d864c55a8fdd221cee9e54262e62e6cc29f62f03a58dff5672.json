@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"1. Functions returning `char*` transfer ownership. The caller frees with `entropic_free()`. 2. `const char*` returns (e.g. `entropic_version`) are static or handle-owned. Do not free them.\"\nVERDICT: MISS\nWHY: The answer states that `char*` transfers ownership and is freed with `entropic_free`. But it says `const char*` is \"static or handle-owned\" and never gives the \"valid only until the next call on the handle\" lifetime, so the item's rule is incomplete."
+}

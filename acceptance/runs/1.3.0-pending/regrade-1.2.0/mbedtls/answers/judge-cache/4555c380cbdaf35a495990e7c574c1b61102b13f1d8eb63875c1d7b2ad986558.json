@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Those macros, directly (`platform.h:139-145`). `platform.c:20` omits all runtime machinery.\" and \"There is no runtime setter.\"\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer pair. It says that defining the macros removes the runtime machinery and setter, and that the pointer route applies only when the macros are undefined, so the two are exclusive."
+}

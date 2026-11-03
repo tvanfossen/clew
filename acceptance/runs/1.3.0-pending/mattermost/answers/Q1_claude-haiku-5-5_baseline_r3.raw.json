@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 31871,
+  "stop_reason": "end_turn",
+  "session_id": "138ade30-a080-4fbb-8760-b8e0bf1b0a0d",
+  "total_cost_usd": 0.00919061,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 17793,
+    "cache_read_input_tokens": 339861,
+    "output_tokens": 4464,
+    "output_tokens_details": {
+      "thinking_tokens": 1457
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 17793,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1988,
+        "cache_read_input_tokens": 56710,
+        "cache_creation_input_tokens": 1678,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1678
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 4464,
+      "cacheReadInputTokens": 339861,
+      "cacheCreationInputTokens": 17793,
+      "webSearchRequests": 0,
+      "costUSD": 0.00919061,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1457,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 17793,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** a failed post stays in the local database, flagged as failed. It is not retried automatically: the send is made with retries explicitly disabled. The user retries it by hand from the post's failure menu, and that retry sends a fresh request.\n\n**What happens on failure** (`app/actions/remote/post.ts:74-226`, `createPost`)\n\n1. Before the network call, the post is already written locally with a `pending_post_id` and an id of `${userId}:${timestamp}`, so it shows in the list immediately.\n2. The request is `client.createPost(...)`. If it throws, the code logs it and builds an error copy of the post with `props.failed = true`.\n3. Most errors keep the post. It is saved with `failed: true`, and it is also added to the thread when CRT is on.\n4. Three server errors remove the post from the database instead: `DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR`, and `PLUGIN_DISMISSED_POST_ERROR` (lines 176-181). A burn-on-read refusal also expires the cached render-permission entry, but the post is still kept as failed.\n5. Independently of that flag, a post still pending more than 10 seconds after `updateAt` (`POST_TIME_TO_FAIL`, `app/constants/post.ts:57`) counts as failed in the UI (`app/utils/post/index.ts:98`, timer in `app/components/post_list/post/post.tsx:274`).\n\n**How many automatic retries: zero**\n\nThe app's HTTP client is configured with exponential retry and a limit of 3 (`app/managers/network_manager.ts:68-73`). But `createPost` in `app/client/rest/posts.ts:43-47` passes `noRetry: true`, and `buildRequestOptions` turns that into `retryPolicyConfiguration: {retryLimit: 0}` (`app/client/rest/tracking.ts:383-385`). So a failed send is attempted once. The `handle_send_message` hook fires `createPost` and does not re-invoke it on error.\n\n**What retrying does** (`retryFailedPost`, `app/actions/remote/post.ts:228-307`)\n\nThe user taps the failed icon, then \"Try Again\" in the bottom sheet (`app/components/post_list/post/body/failed/index.tsx:46-49`). That calls `retryFailedPost`, which:\n\n- Clears `failed` and resets `create_at` and `update_at` to now. The post moves to the bottom and the UI shows it as pending again.\n- Sends the post once more, again with no automatic retries.\n- On success, writes the server's post in place of the local copy.\n- On failure, applies the same rule as before: removes the post for the three errors above, otherwise marks it failed again. Every error is handled this way, including local database errors.\n\nAttachments are not re-uploaded. The retry sends the stored post object, and `createPost`'s duplicate guard (`existing && !existing.props?.failed`) is bypassed.\n\nI did not run the app or the tests; this is from reading the code. A tool hook also suggested a `dossier` lookup for these files. I did not use it.",
+  "ttft_ms": 3050,
+  "type": "result",
+  "duration_ms": 32255,
+  "uuid": "09af7f16-680b-4cc5-8cda-d55efb24c0f1",
+  "ttft_stream_ms": 1347,
+  "time_to_request_ms": 125,
+  "first_content_frame_ms": 1347,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_PLATFORM_MEMORY` off (the default in `mbedtls_config.h:208`) ... The \"off by default\" state of `MBEDTLS_PLATFORM_MEMORY` comes from a heuristic on `mbedtls_config.h`, so confirm it against the shipped header.\nVERDICT: HIT\nWHY: The answer names MBEDTLS_PLATFORM_MEMORY as the switch that decides how allocation calls resolve, and says it is off by default in mbedtls_config.h, which is the same as saying it is commented out in the shipped header. Its hedge is about confirming that, not about whether the claim is made."
+}

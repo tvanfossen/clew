@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: External bridge accept loop | `src/facade/external_bridge.cpp:796` | Accepts MCP client sockets |; Per-client thread | `external_bridge.cpp:945` | Serves one client, owned by `client_threads_`\nVERDICT: HIT\nWHY: The answer names an accept-loop thread and a per-client thread (stored in `client_threads_`), and says `stop()` joins accept and then the client threads. That covers the accept-then-per-client structure."
+}

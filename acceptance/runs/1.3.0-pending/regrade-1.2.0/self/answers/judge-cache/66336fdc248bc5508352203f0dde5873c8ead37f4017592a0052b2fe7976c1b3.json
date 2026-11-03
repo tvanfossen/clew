@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | 5 | Heuristic | Name-pattern matching, the provisional floor | Replaced by any stated tier |\nVERDICT: HIT\nWHY: The answer's table lists five named tiers (Explicit, Declared, Target facts, Ecosystem, Heuristic) that resolve in a fixed order. Its opening line says \"four ways\", but the table shows five."
+}

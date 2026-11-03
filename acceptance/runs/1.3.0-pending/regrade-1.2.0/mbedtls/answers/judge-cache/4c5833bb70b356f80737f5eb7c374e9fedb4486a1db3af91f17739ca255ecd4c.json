@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_PLATFORM_MEMORY` on and no `MBEDTLS_PLATFORM_STD_CALLOC`/`STD_FREE` defined, the default is the stubs in `platform.c:24-42`. `calloc` returns NULL and `free` does nothing until you call the setter.\nVERDICT: HIT\nWHY: The answer states that the default stubs make calloc return NULL and free do nothing until the setter is called, which is the failing-default behavior the item requires."
+}

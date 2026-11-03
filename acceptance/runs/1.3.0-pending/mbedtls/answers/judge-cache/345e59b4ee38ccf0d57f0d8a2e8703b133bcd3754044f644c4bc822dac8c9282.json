@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names uses of `MBEDTLS_PRIVATE` only by file path, and none of those paths is a top-level directory with uses.\n\n- `include/mbedtls/private_access.h` is the macro definition, and the answer doesn't say there are uses there.\n- `library/common.h` and the `programs/ssl/` files are named as places that define `MBEDTLS_ALLOW_PRIVATE_ACCESS`, not as places that use `MBEDTLS_PRIVATE`.\n- `aes.h` is named as holding `mbedtls_aes_context`, with no directory given.\n\nThe answer does say that fields are wrapped in `MBEDTLS_PRIVATE`, but it doesn't list directories containing uses.\n\nITEMS:\nNONE\nEND"
+}

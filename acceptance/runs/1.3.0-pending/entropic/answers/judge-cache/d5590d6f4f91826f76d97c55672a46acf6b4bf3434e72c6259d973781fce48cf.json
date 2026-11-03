@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: ExternalBridge::run_async_ask worker, ExternalBridge::accept_loop, HealthMonitor::monitor_loop, StdioTransport::stderr_reader_loop, SSETransport::sse_reader_loop, ResponseGenerator::dispatch_batch_generate observer (table rows of spawn sites in different files)\nVERDICT: HIT\nWHY: The answer lists thread spawn sites across the external bridge, MCP transports (stdio/SSE), health monitor, and inference path (response generator, interface factory, C API), showing they are spread across subsystems."
+}

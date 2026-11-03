@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `skipSync: true` (add event) | `reactions.ts:28` | `sanitizeReactions` returns `deleteReactions: []`. Without it, every other stored reaction on that post that is missing from the one-item payload would be treated as stale and destroyed.\nVERDICT: HIT\nWHY: The answer states that without skipSync, all other reactions on the post missing from the single-item payload would be treated as stale and destroyed."
+}

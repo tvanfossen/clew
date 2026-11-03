@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Mirrors `interrupt_flag_` into the cancel `int` for one call\nVERDICT: MISS\nWHY: The answer describes observers/pollers bridging atomic and int, but never says they exist because the C ABI boundary cannot carry an atomic. It only says the code \"is meant to keep the C ABI `int*`-only\" and treats the plain int as a data-race risk."
+}

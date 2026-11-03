@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [...] }) ... prepareRecords({createRaws, transformer: transformReactionRecord}) ... prepareRecordsOnly is false \u2192 batchRecords(\u2026)\nVERDICT: HIT\nWHY: The answer shows the added reaction is stored via operator.handleReactions, which prepares Reaction records and writes them with batchRecords."
+}

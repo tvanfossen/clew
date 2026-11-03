@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the interface has no way to report an error, so the failure is silent at every layer above it.\" and \"Failure is reported as an empty vector, and that empty vector is indistinguishable from \"empty input,\" so callers can't tell the two apart.\"\nVERDICT: HIT\nWHY: The answer states failed tokenization is indistinguishable from empty input and traces callers, none of which check for or distinguish the failure."
+}

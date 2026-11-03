@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It calls `client.createPost` once. On success, the server post is stored. On failure, the post is marked `failed` again, and the same three-error removal rule applies.\"\nVERDICT: HIT\nWHY: The answer states retry makes a single createPost attempt (with no network retries) and on failure re-marks the post failed or removes it for the same three errors."
+}

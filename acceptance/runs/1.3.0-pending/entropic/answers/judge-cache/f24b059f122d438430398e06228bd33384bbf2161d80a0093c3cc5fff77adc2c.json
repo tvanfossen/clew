@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python never links against C++. It loads the C ABI shared library `librentropic.so` with `ctypes`, and the C header is the only contract.\nVERDICT: HIT\nWHY: The answer states ctypes loading librentropic.so (via ctypes.CDLL) as the mechanism and says Python never links against C++, so no compiled extension module is involved."
+}

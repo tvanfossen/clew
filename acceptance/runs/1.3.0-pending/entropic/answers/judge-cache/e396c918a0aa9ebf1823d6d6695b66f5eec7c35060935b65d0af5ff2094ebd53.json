@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `run_async_ask` worker | `ExternalBridge::run_async_ask` (`external_bridge.cpp:1158`) | Per `entropic.ask`, **detached**; \"`run_async_ask` ends with `}).detach();`... Nothing tracks it. `stop()` does not wait for in-flight async workers... I found no in-flight counter or join.\"\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as the detached thread (the others are joined) and says it has no join, so it can outlive the bridge and handle."
+}

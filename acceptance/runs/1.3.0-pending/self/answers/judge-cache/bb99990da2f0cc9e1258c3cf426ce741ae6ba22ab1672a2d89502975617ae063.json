@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"tiers 3 and 4 survive any stated value. The module's summary is \"you can correct our guesses; you cannot un-discover a fact.\"\"\nVERDICT: HIT\nWHY: The answer says the stated tiers replace the layer beneath while the discovered tiers (facts, ecosystem) accumulate and survive any stated value."
+}

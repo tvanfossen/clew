@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml`, `.yml`, `.json` | yes | never, by design | `clew/synth.py` `DATA_EXTS` (\"registered and never harvested\")\nVERDICT: HIT\nWHY: The answer says YAML/JSON get path rows (registered) but never symbols, contrasted with shell/CMake which get definitions when grammars are present."
+}

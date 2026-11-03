@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Mostly into the inference layer, with a thin leak into public headers.\"\nVERDICT: MISS\nWHY: The answer says the dependency is mostly in inference with leaks into public headers and facade, but it never states that a minority of the reaching files sit outside src/inference as a concentrated-but-not-contained conclusion. It only gestures at the idea."
+}

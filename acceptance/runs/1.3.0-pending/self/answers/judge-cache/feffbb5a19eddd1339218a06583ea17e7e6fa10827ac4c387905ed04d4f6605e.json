@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `dossier` keeps them out of `callers` and reports them under writes/reads, but the library function merges them.\nVERDICT: MISS\nWHY: The answer says dossier separates key edges from callers but never says it asks for the call half only, and it gives no reason about double-reporting dataflow edges."
+}

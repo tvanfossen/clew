@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `code` | The running server process loaded clew before its source changed | Restarting the MCP client only; `data` ... Rebuild (`index(action='refresh')`)\nVERDICT: HIT\nWHY: The answer's table and text give distinct clearing actions (rebuild for data, client restart for code, nothing for schema), so the substance of \"each axis cleared by a different action\" is stated. The answer never says outright that one flag would not have been enough, but the distinct actions imply it."
+}

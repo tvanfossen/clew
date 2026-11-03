@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is a plain `ctypes` binding over the C ABI. There is no C++ extension module and no `EntropicEngine` class\nVERDICT: HIT\nWHY: The answer names ctypes (`ctypes.CDLL(\"librentropic.so\")`) as the mechanism and says no C++ extension module is involved."
+}

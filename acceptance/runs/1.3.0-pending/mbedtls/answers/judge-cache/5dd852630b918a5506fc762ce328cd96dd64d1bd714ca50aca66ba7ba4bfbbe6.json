@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_THREADING_C` defaults to off (`include/mbedtls/mbedtls_config.h:3787`). Every mutex wrapper sits behind it, including the pthread implementation (`library/threading.c:18`, `:50`), which also needs `MBEDTLS_THREADING_PTHREAD`, default off\"\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros gating the mutex/threading code."
+}

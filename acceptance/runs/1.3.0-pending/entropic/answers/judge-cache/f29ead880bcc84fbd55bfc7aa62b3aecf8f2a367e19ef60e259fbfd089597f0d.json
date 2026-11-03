@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The first call passes a null buffer and size 0 to learn how many tokens are needed. llama.cpp answers with a negative number, which the code negates. The code then allocates that many slots and makes the second call to fill them.\"\nVERDICT: HIT\nWHY: The answer states the first call returns a negative number that the code negates to size the buffer for the second call."
+}

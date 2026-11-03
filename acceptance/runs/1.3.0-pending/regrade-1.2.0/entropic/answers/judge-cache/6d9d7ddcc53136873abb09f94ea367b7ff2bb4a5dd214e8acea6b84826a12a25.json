@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says nothing about the hook trampoline swallowing Python exceptions or treating a failed hook as a pass-through; it only covers allocation and lifetime of trampolines."
+}

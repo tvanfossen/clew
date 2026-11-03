@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `mbedtls_ct_` API is used across roughly 25 library files.\nVERDICT: HIT\nWHY: The answer states the constant-time primitives are used across roughly 25 library files and lists many modules (ssl_msg, rsa, bignum, cipher, base64, and others), which matches the item's \"on the order of twenty modules\"."
+}

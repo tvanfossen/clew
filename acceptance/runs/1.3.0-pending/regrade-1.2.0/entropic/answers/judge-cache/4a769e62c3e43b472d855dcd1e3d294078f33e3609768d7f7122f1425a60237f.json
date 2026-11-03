@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**`deny`** is consulted only in `ServerManager::execute`, after approval. A match blocks the call, even if the allow list or `auto_approve` already approved it.\"\nVERDICT: HIT\nWHY: The answer states that the deny list is checked only in `ServerManager::execute` (`is_denied`), before `route_tool_call`, and that it is the only gate that blocks the call."
+}

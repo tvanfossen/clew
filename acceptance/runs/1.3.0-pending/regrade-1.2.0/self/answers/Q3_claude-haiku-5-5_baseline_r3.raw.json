@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 37042,
+  "stop_reason": "end_turn",
+  "session_id": "5dee163f-8d05-4f1e-b9c4-063d47c54a14",
+  "total_cost_usd": 0.01716899,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 43405,
+    "cache_read_input_tokens": 580929,
+    "output_tokens": 5353,
+    "output_tokens_details": {
+      "thinking_tokens": 1141
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 43405,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1550,
+        "cache_read_input_tokens": 73940,
+        "cache_creation_input_tokens": 2996,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2996
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 5353,
+      "cacheReadInputTokens": 580929,
+      "cacheCreationInputTokens": 43405,
+      "webSearchRequests": 0,
+      "costUSD": 0.01716899,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1141,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 43405,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A clew index can be stale on three independent axes, and the tool reports each one with a different remedy. The caller is an MCP client (an agent), and the tool does most of the correction itself.\n\n**How it knows**\n\n- **Data axis (source drift):** `_source_drift` in `clew/mcp_server/state.py:823` stats every indexed source file (`path WHERE type=1`) and counts those whose mtime is newer than `clew.db`. Files more than 300 s in the future are ignored as edits, so a skewed clock cannot keep the index stale forever.\n- **Schema axis (pipeline version):** `build_meta.build_version` is compared with `CLEW_BUILD_VERSION` (currently 8, in `clew/signature.py:203`). An index stamped with a newer version than the server means the server predates the index.\n- **Code axis (process vs. source):** `code_identity()` in `clew/mcp_server/freshness.py` compares the fingerprint of the package source taken at process launch with the fingerprint on disk now. A mismatch means the running logic may be old.\n\n`db_status()` (`state.py:1140`) combines these into `stale = not exists or build_version != current or source_changed_files > 0`. The axes are listed separately, so `stale` alone does not say which fix applies.\n\n**What it tells the caller**\n\n- `db_status` / `status` returns the raw fields (`source_changed_files`, `newest_changed_source`, `build_version`, `expected_build_version`, `code`, `refresh` cost) plus a `staleness` list present only when something is wrong.\n- `freshness.notices()` turns those fields into `{axis, message}` entries. A current index gets none. The data notice names the count, the newest changed file and the cost of a refresh. The schema notice gives opposite advice depending on direction. When the index is older it says to run `index(action='refresh', force=True)`. When the index is newer it says rebuilding cannot clear the flag and the client must restart. The code notice says a rebuild cannot fix it and the client must restart.\n- Every query reply carries the same `staleness` list through `answering()` (`server.py:1708`). `tools_query._withdraw_definitive` (`tools_query.py:~257`) also removes \"definitive, do not retry\" wording from an empty result when the schema or data axis is stale, because a missing row may just mean the index is older than the code.\n\n**What the caller does**\n\n1. **Data stale, code current:** the server handles it itself. `_auto_refresh` (`server.py:1242`) runs before a query, using `_data_stale` (`server.py:1204`), which returns false unless the process matches its source. `_refresh_stale` takes the per-repo build lock with a bounded wait, re-checks inside the lock so concurrent queries produce one build, and runs `_run_build` with `skip_if_fresh=True`. A failed refresh falls back to answering from the existing index, with the notice still attached. A background `keep_current` loop (`server.py:1538`, every `refresh_interval`) refreshes the session's touched indexes between queries.\n2. **Explicit refresh:** `index(action='refresh')` calls `build_or_refresh` (`server.py:2189`). It skips with `built: false` when the index is already current, unless `force`, `exclude` or `options` is given. The reply reports `duration_ms` and the pipeline's own timings.\n3. **Schema older than server:** the caller should rebuild with `force=True`.\n4. **Schema newer, or code stale:** the caller must restart the MCP client. `stale_code_refusal` (`freshness.py:531`) refuses every write from a process that predates its source, and `force` cannot override it. `_first_build_refusal` also blocks automatic first builds in that state.\n\nThe CLI has its own refresh and status path, which I did not trace in full. The MCP path above is the one I verified in code.",
+  "ttft_ms": 3105,
+  "type": "result",
+  "duration_ms": 38687,
+  "uuid": "02506c2e-fcf4-4c5d-a096-da0337a01763",
+  "ttft_stream_ms": 2761,
+  "time_to_request_ms": 503,
+  "first_content_frame_ms": 2762,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

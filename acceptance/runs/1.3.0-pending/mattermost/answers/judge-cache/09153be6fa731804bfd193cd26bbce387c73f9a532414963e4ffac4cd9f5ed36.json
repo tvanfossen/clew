@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **The only file that shows a search field is `search.tsx`.** It is the only caller with `hasSearch={true}`.\nVERDICT: HIT\nWHY: The answer names `app/screens/home/search/search.tsx` as the only caller passing `hasSearch={true}`, which is what enables the search field."
+}

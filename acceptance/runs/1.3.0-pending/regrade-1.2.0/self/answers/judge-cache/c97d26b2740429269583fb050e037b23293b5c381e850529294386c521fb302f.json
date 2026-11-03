@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `callers(fn)` (surfaced through `dossier`'s `callers` field) returns a list of `CallEdge` rows, one per neighbouring function, not one per call site.\nVERDICT: MISS\nWHY: The answer says rows are per neighbouring function rather than per call site, but never says the surface returns one row per neighbour instead of one per layer, or that layer variants collapse to the strongest evidence. It lists `source` as a row field and says `confidence` describes \"the strongest evidence for that endpoint,\" but it never states that evidence from several layers is merged into a single row."
+}

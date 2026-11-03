@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions that the root node type cannot discriminate languages (shell sharing a root with JavaScript, CMake with Rust); it only discusses capability-gated routing."
+}

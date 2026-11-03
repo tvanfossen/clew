@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` not defined | Macros for libc `calloc` / `free`; \"Define `MBEDTLS_PLATFORM_MEMORY` and leave the two macros undefined.\"\nVERDICT: MISS\nWHY: The answer treats MBEDTLS_PLATFORM_MEMORY as the gating option but never says it is commented out in the shipped mbedtls_config.h."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Facts and ecosystem layers: these accumulate under any stated tier. Tiers 3 and 4 behave identically, so arguing which one a value belongs to changes the label but not the result.\"\nVERDICT: MISS\nWHY: The answer says tiers 3 and 4 behave identically, so the distinction is inert, but it never names the fact-versus-guess line as the load-bearing distinction. It only says a stated value replaces guesses and facts are kept, which does not frame fact-versus-guess as the load-bearing boundary."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions dossier or a merged-form call/dataflow distinction, so it doesn't state that dossier asks for the call half only to avoid duplicating dataflow edges."
+}

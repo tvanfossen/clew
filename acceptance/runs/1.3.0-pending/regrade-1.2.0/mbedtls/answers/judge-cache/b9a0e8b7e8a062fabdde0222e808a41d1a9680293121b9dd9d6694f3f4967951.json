@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` | `#define`d to your functions at compile time. No runtime indirection, and `mbedtls_platform_set_calloc_free` is compiled out.\"\nVERDICT: HIT\nWHY: The answer distinguishes the compile-time macro pair from the runtime function-pointer pair and says the setter is compiled out when the macros are used, which conveys mutual exclusivity."
+}

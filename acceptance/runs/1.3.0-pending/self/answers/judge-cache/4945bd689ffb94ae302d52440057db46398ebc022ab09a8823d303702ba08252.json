@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`staleness_notices()` (`server.py:1548`) puts this list on query replies, so the caller sees it with each answer.\" and \"It then calls `notices()` and adds a `staleness` list only when something is wrong. That list is absent on a current index.\"\nVERDICT: HIT\nWHY: The answer says the staleness list is attached to query replies and is absent when the index is current."
+}

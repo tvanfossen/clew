@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_CT_ASM` is derived, not user-facing; the index found no user toggle for it.\nVERDICT: HIT\nWHY: The answer says MBEDTLS_CT_ASM is derived rather than configured, and its diagram shows it is set when MBEDTLS_HAVE_ASM is defined and the compiler is GNUC or ARMCC."
+}

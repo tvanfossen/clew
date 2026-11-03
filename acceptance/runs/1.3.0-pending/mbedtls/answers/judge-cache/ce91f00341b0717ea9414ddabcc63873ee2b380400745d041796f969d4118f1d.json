@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It works by calling `mbedtls_platform_set_calloc_free` with its own functions, which are mutex-wrapped when `MBEDTLS_THREADING_C` is on.\nVERDICT: MISS\nWHY: The answer says the functions are mutex-wrapped when THREADING_C is on, but it never states the plain-pair alternative otherwise or that the choice is made at compile time inside the init function."
+}

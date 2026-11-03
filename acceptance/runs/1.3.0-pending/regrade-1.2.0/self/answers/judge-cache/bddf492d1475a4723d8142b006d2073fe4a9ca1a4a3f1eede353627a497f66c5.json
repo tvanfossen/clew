@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**\"The repository does not define that name.\"** Strong, but only within the scope.\" / \"**\"The repository does not contain that text.\"** Weak.\" / \"`staleness` appears only when the index is older than the source.\"\nVERDICT: MISS\nWHY: The answer distinguishes in-scope absence from out-of-scope or weak absence, and mentions staleness, but it never states a third grade of \"definitive for a reason that is not absence\" (e.g. an empty result that is definitive because of something other than absence)."
+}

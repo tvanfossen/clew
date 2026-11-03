@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Rebuild if the index is older. If the index is newer, only restarting the client helps.\" and \"The `schema` case where the index is newer than the server has no fix a consumer can take except restarting the client.\"\nVERDICT: HIT\nWHY: The answer states that when the index is newer than the server, rebuilding doesn't clear the schema axis, so it is unresolvable by rebuild. It doesn't give the \"re-stamps the same newer version\" reason, but the substance is there."
+}

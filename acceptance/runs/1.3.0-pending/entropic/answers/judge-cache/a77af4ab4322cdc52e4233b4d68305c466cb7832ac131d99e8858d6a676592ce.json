@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says neither call retries and that failure returns an empty vector/string, but it never states that a negative/non-positive result from the second call is terminal. It only calls the `actual < 0` branch \"probably unreachable\"."
+}

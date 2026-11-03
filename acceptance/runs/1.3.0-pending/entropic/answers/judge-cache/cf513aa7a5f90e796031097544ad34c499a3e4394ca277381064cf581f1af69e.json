@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Buffers the engine will free must come from `entropic_alloc()`.** The hook `modified_json` is the main case.\" and \"`hooks._build_trampoline` JSON-encodes the returned dict into `entropic_alloc` memory and writes it to `*mod_out`. The engine frees it.\"\nVERDICT: HIT\nWHY: The answer states the rule that engine-freed buffers must come from entropic_alloc and names the Python location, `hooks._build_trampoline`, where it does so."
+}

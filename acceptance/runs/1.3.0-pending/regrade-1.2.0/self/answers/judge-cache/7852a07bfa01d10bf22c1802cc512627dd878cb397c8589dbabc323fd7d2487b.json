@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `edge_class`: `call` for a direct call, or `key` for a shared-key dataflow edge. A `key` row is not a call at all. It means one function writes a key the other reads, with no call between them\nVERDICT: HIT\nWHY: The answer states that neighbour rows carry an `edge_class` of `call` or `key` (direct call vs shared-key dataflow), and it says a `key` row is not a call. It also says that whether a list contains dataflow depends on the surface that produced it."
+}

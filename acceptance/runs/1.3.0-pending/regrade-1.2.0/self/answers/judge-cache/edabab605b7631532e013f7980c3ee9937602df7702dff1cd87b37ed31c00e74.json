@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index knows it is stale by measuring three separate axes. ... `data` \u2014 Database is older than the source; `code` \u2014 The running server process loaded clew at launch...; `schema` \u2014 `build_version` differs from `expected_build_version`\nVERDICT: HIT\nWHY: The answer states staleness is three separate axes (data, code, schema), names them, and notes each needs a different action."
+}

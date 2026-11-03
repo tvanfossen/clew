@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains how to read empty results and `not_indexed` scope. It never states the general rule that you fix the corpus (what is indexed) rather than the sentence describing it."
+}

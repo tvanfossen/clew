@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Measurement failures degrade silently and never turn a good answer into an error.\nVERDICT: HIT\nWHY: The answer states that staleness measurement failures degrade silently (no annotation) rather than turning a successful reply into an error."
+}

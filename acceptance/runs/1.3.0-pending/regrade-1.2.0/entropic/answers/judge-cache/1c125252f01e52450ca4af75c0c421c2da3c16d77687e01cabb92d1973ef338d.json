@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Direct llama/ggml/common/mtmd calls are confined to about 20 files.\nVERDICT: HIT\nWHY: The answer says the dependency spans about 20 files across entropic's source and lists them, so it isn't one wrapper. \"About 20\" is higher than the item's \"roughly a dozen\", but the item's point, many files rather than one, is conveyed."
+}

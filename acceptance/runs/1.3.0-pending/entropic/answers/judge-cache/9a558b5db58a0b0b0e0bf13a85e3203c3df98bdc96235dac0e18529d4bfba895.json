@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the empty result is not distinguishable from a legitimate empty input. The callers I could trace then carry on with it silently.\"\nVERDICT: HIT\nWHY: The answer states failed tokenization is indistinguishable from legitimately empty input, and that traced callers (do_complete, do_generate_text_only) have no emptiness guard and proceed silently."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Scope only decides which files are walked. Extension filtering happens later, and the two can differ. This repo's index reports 426 files, with `.c .cpp .h .json .md .py .yaml` held and `.rs`, `.toml`, `.csv` and others in scope but unindexed.\nVERDICT: MISS\nWHY: The answer says scope isn't the whole answer and that some file types are unindexed, but it names neither the parse-built front end for types doxygen can't read nor binary classification of files with misleading extensions."
+}

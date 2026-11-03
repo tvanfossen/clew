@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`\nVERDICT: HIT\nWHY: The answer states that stated tiers replace each other (or-chain) while tier 3/4 discovered layers accumulate and are never removed by any stated tier."
+}

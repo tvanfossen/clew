@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The four thread-spawn sites the index finds are all in `programs/` (`ssl_pthread_server.c:277`, `benchmark.c:430/444`, `ssl_server2.c:1699`). The library spawns nothing.\nVERDICT: MISS\nWHY: The answer says the library spawns no threads, but it describes the mutex abstraction as conditional on `MBEDTLS_THREADING_C`. It never says that library/ supplies the mutex abstraction (threading.h/threading.c) for threaded callers to use, so the second half of the contrast is missing."
+}

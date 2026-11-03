@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: No markdown: it is prose, indexed by the prose path.\nVERDICT: MISS\nWHY: The answer says markdown isn't in the index because it's prose, but it never says markdown is deliberately denied a path row or that a path row would count it as indexed source in coverage figures."
+}

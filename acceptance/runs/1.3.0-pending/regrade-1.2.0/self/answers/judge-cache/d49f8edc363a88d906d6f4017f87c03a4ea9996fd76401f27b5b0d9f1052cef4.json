@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that the option names used by embedding callers (`options=` on `build_index()`/MCP) are the same words as the declaration file's section names and the diagnostics' wording. It only says the routes go through `apply_options` and use the same section format."
+}

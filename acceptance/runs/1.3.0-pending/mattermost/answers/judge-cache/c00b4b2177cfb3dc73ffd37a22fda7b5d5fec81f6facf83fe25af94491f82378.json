@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On a channel-archived websocket event, the current user is kicked out if the channel is open and their membership is removed. When viewable, the channel is left in place with `delete_at` set.\nVERDICT: HIT\nWHY: The answer states that when archived channels are not viewable, the user is kicked out of the open channel and their membership is removed. When viewable, the channel is kept with `delete_at` set, which marks it deleted."
+}

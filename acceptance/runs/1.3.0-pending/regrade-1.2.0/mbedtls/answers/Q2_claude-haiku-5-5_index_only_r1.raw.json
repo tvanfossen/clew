@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 22139,
+  "stop_reason": "end_turn",
+  "session_id": "4970b33e-0ff7-4ab1-9b55-501e5699d77c",
+  "total_cost_usd": 0.01160681,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 39357,
+    "cache_read_input_tokens": 189891,
+    "output_tokens": 3671,
+    "output_tokens_details": {
+      "thinking_tokens": 1876
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 39357,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1826,
+        "cache_read_input_tokens": 47371,
+        "cache_creation_input_tokens": 7984,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7984
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3671,
+      "cacheReadInputTokens": 189891,
+      "cacheCreationInputTokens": 39357,
+      "webSearchRequests": 0,
+      "costUSD": 0.01160681,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1876,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 39357,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it accomplishes:** `MBEDTLS_PRIVATE(member)` is a macro that renames a public struct field so ordinary code can't reach it by name. `include/mbedtls/private_access.h` (lines 14\u201318) does this:\n\n- Default: `#define MBEDTLS_PRIVATE(member) private_##member`. A field `foo` is spelled `private_foo`, so `ctx.foo` fails to compile. Application code that touches a field directly breaks at build time instead of silently depending on the layout.\n- With `MBEDTLS_ALLOW_PRIVATE_ACCESS` defined: `#define MBEDTLS_PRIVATE(member) member`, so the real name is used.\n\nThe field declarations are written as `MBEDTLS_PRIVATE(foo)`, so the rename is the only thing that changes between the two modes. The member documentation in headers such as `ssl.h`, `bignum.h` and `psa/crypto_struct.h` still describes these fields, but the fields are not a stable interface. That lets the library change layouts without an API break.\n\n**For whom:** the default protects external consumers. The opt-out is for code inside the tree:\n\n- **`library/common.h:132`** defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` (empty). Library sources that include it get direct field access.\n- **`programs/ssl/ssl_client2.c:8`** and **`programs/ssl/ssl_server2.c:8`** define it at the top of the file, so these sample programs read and write SSL context fields by name.\n\nNothing in `mbedtls_config.h` or the Kconfig layer declares the symbol, so it is not a build option. It is a source-level switch that each internal translation unit has to turn on itself.\n\n**What that means for those files:** they are coupled to field names and layout. A rename or reordering inside `ssl.h` or `pk.h` will break them without a public-API change. Code outside those files that defines the macro, or includes `library/common.h` first, gets the same access and the same coupling.\n\n**Caveats:**\n- The index doesn't record include order. Whether `library/common.h` is always included before the public headers in library `.c` files, which the opt-out relies on, I can't confirm from the index alone.\n- The index lists `mbedtls_cipher_get_iv_size` and `mbedtls_pk_get_type` as referencing `MBEDTLS_PRIVATE`. The `mbedtls_pk_get_type` body I retrieved (`library/pk.c:1593`) doesn't use it, so that reference edge is either in a different declaration or is noise. I didn't verify the cipher one.\n- The 3.0 migration guide (`docs/3.0-migration-guide.md`) describes `bar.MBEDTLS_PRIVATE(foo)` as a last-resort way for external code to reach a field. That is consistent with the mechanism above, but it is an escape hatch the docs discourage, not a supported API.",
+  "ttft_ms": 1609,
+  "type": "result",
+  "duration_ms": 22833,
+  "uuid": "bb2d03b9-fafc-4b73-9913-cd15ed2d9e5d",
+  "ttft_stream_ms": 1305,
+  "time_to_request_ms": 78,
+  "first_content_frame_ms": 1305,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

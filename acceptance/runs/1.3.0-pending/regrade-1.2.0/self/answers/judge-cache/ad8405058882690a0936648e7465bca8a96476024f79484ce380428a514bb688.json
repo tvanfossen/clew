@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `source`: which extraction layer found it. Layers are ranked `declared_dispatch` > `doxygen_sqlite` > `macro_hop` > `ast` > `binding` > `ast_member` > `fnptr`.\nVERDICT: MISS\nWHY: The answer lists a layer ranking but never says that the collapsed row's reported provenance is decided by a ranking in the vocabulary module rather than by SQL."
+}

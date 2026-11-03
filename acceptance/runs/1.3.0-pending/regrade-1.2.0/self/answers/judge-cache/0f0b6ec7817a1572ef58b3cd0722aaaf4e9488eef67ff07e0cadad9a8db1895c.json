@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`confidence` | Strongest incoming edge kept when several layers recorded the same caller\"\nVERDICT: HIT\nWHY: The answer states that when several layers recorded the same caller, only the strongest incoming edge is kept, and that multiple call sites collapse to one entry. That is one row per neighbour, collapsed to the strongest evidence."
+}

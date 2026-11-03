@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` not defined (the shipped default; `mbedtls_config.h:208` is `//#define`)\nVERDICT: HIT\nWHY: The answer says the shipped mbedtls_config.h has MBEDTLS_PLATFORM_MEMORY commented out (`//#define`), and it presents that macro as the gate that selects the allocator indirection."
+}

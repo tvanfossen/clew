@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that a routed reply's annotation (staleness) is computed for the repository actually read rather than the server's default target."
+}

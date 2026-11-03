@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes compile-time macros, std-name overrides, and a runtime setter, but never states that the macro pair and the function-pointer pair are mutually exclusive. It only notes that `mbedtls_platform_set_calloc_free` exists \"only in pointer mode.\""
+}

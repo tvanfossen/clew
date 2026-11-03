@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no top-level directories as containing uses of MBEDTLS_PRIVATE. It names paths such as `include/`, `library/`, `programs/`, `tests/` and `docs/`, but only as locations of the definition, the opt-out defines, and the test and program files. It never says which top-level directories contain uses of the macro.\n\nI read the instruction as asking for directories the answer states contain uses. The nearest reading would list `include`, `tests` and `programs`, since the answer says test suites and `ssl_context_info.c` use the `MBEDTLS_PRIVATE(...)` spelling. But that reading adds items the answer doesn't state as a list of use sites.\n\nITEMS:\nNONE\nEND"
+}

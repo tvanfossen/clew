@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Binary files are dropped by `lang_parsing_substrate.classify_file` (`filetypes.py`), both from the scanned tree and before every harvest read.\nVERDICT: MISS\nWHY: The answer names binary classification, but it doesn't state that it drops files whose extension lies about them. It also doesn't say the scope is only part of the answer, because a file reaches the index only if something can read it. It says \"Symbol parsing is by extension,\" which isn't the parse-built front end claiming file types doxygen can't read."
+}

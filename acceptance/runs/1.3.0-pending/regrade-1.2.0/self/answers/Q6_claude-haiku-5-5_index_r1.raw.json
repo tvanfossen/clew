@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 66538,
+  "stop_reason": "end_turn",
+  "session_id": "42c76894-22e9-4482-916e-cf6110defd72",
+  "total_cost_usd": 0.02782694,
+  "usage": {
+    "input_tokens": 30,
+    "cache_creation_input_tokens": 64221,
+    "cache_read_input_tokens": 936574,
+    "output_tokens": 11228,
+    "output_tokens_details": {
+      "thinking_tokens": 6167
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 64221,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2980,
+        "cache_read_input_tokens": 81867,
+        "cache_creation_input_tokens": 2509,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2509
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 30,
+      "outputTokens": 11228,
+      "cacheReadInputTokens": 936574,
+      "cacheCreationInputTokens": 64221,
+      "webSearchRequests": 0,
+      "costUSD": 0.02782694,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 6167,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 64221,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 25,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** for shell and CMake, the index holds one row per function or macro definition. For YAML and JSON it holds only a file-path row, so those files are findable by name and carry no symbols. Two things in the question don't match this repository, and the degraded-install behaviour is documented inconsistently, so read the last section before relying on it.\n\n**The premise doesn't match this repo.** The tracked tree has zero `.sh`, `.bash`, `.cmake` or `CMakeLists.txt` files. It has 37 data files: 18 JSON, 16 YAML and 3 `.yml`. So the shell/CMake half of the question has nothing to test here. The rest of this answer draws on clew's code and docs, which handle those file types.\n\n**What the index holds**\n\nThe parse-built front end is `clew/synth.py`. It writes doxygen-shaped `path`, `memberdef` and `compounddef` rows, so later stages run unchanged. Routing is by extension, and `CMakeLists.txt` is matched by name:\n\n| File type | Rows written | Source of rows |\n|---|---|---|\n| `.sh`, `.bash`, `.cmake`, `CMakeLists.txt` | `path` plus a `memberdef` per function or macro, with the docs from the `#` block | `clew/shast.py`, `clew/cmakeast.py` |\n| `.yaml`, `.yml`, `.json` | `path` only, no symbols | none, by design |\n\nThe YAML/JSON exclusion is deliberate. Their grammars offer `block_mapping_pair` and `pair`, and writing those as symbols would put every `steps:` key into the namespace that answers `dossier(\"my_function\")`. Checking the index confirms it: `requirements.yaml` is found and harvested with zero symbols, and `clew/mcp_server/descriptions/dossier.json` is found too.\n\n**What it does not hold**\n\n- YAML keys and values, and JSON pairs. The one exception is the requirements catalog, which tests say is ingested separately. I did not re-verify that path.\n- CMake variables, targets, `option()` and `add_executable`. Only function and macro definitions are recorded.\n- Top-level shell statements and variable assignments.\n- `.github/workflows/ci.yml` is not in the index. A `dossier` call returned a definitive negative. I did not establish why, and the likely cause is the declared scope, which is unverified.\n\n**The not-indexed report.** At build time, `_not_indexed_scope` in `clew/cli.py` compares the scanned files with the `path` table. It stamps the count exactly and names up to 12 extensions. An empty answer then reads as \"not indexed\" rather than \"absent\". Note that it counts only files with no `path` row.\n\n**On an install whose parser lacks the grammars**\n\n- `has_language` and `missing_languages` in `clew/substrate.py` ask what is compiled in, not what version is installed. An unimportable substrate logs an error and yields no languages, rather than crashing.\n- The router refuses the route. `_ts_language_for(\"scripts/deploy.sh\")` returns `None` when bash is absent, and the test pins this. C and Python are not gated, so a broken install fails loudly there.\n- I confirmed that the project's venv substrate compiles in all the grammars, including bash, cmake, yaml and json. So this environment does not exercise the degraded path.\n\n**The inconsistency.** The docs disagree about what happens to `.sh`, `.yaml` and `.json` files on the published wheel:\n\n- `clew/substrate.py` says the front ends \"register nothing\" and the miss report names those types as not indexed.\n- `tests/test_script_front_end.py` says the file \"is registered and searchable, and it carries no symbols.\"\n- The code agrees with the second. `register_paths` and `claims()` decide by extension alone and never call `has_language`. So on the published wheel, shell, YAML and JSON files would still get `path` rows. They would be findable by name, carry no symbols, and not appear in the miss report at all.\n\nI'm reporting this from reading the code. It would settle with one build against the published wheel: check that a `.sh` file has a `path` row, and check whether `not_indexed` names `.sh`.",
+  "ttft_ms": 1418,
+  "type": "result",
+  "duration_ms": 68056,
+  "uuid": "dc43b3d4-0424-4c20-8187-98abfd653562",
+  "ttft_stream_ms": 1042,
+  "time_to_request_ms": 88,
+  "first_content_frame_ms": 1042,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

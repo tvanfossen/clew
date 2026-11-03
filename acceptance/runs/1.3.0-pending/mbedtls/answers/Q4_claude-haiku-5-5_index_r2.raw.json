@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 22374,
+  "stop_reason": "end_turn",
+  "session_id": "cd43a5d5-3b52-4768-b90b-6c7d5a83282b",
+  "total_cost_usd": 0.00799857,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 16765,
+    "cache_read_input_tokens": 226257,
+    "output_tokens": 4764,
+    "output_tokens_details": {
+      "thinking_tokens": 1838
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 16765,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2901,
+        "cache_read_input_tokens": 54155,
+        "cache_creation_input_tokens": 2369,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2369
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4764,
+      "cacheReadInputTokens": 226257,
+      "cacheCreationInputTokens": 16765,
+      "webSearchRequests": 0,
+      "costUSD": 0.00799857,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1838,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 16765,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the caller passes the negative code to `mbedtls_strerror()`, which splits it into a high-level part and a low-level part and looks each up in a `switch` table in `library/error.c`. That table is generated from the `MBEDTLS_ERR_*` defines in `include/mbedtls/*.h`, so a contributor adds a code by adding a documented define and regenerating, not by hand-editing `error.c`.\n\n**Runtime path**\n\n```\nmbedtls_strerror(ret, buf, buflen)              library/error.c:792\n  \u251c\u2500 buflen == 0 \u2192 return; else memset(buf, 0)\n  \u251c\u2500 ret = -ret                                  (sign dropped)\n  \u251c\u2500 high = ret & 0xFF80\n  \u2502    \u2514\u2500 mbedtls_high_level_strerr(ret)         error.c:174  switch \u2192 \"CIPHER - Bad input parameters\"\n  \u2502       fallback: \"UNKNOWN ERROR CODE (%04X)\"\n  \u2502       if high code is SSL fatal alert \u2192 return (skip low level)\n  \u251c\u2500 low = ret & ~0xFF80\n  \u2502    \u2514\u2500 if low != 0: append \" : \" if buffer has room\n  \u2502       mbedtls_low_level_strerr(ret)         error.c:537  switch \u2192 \"AES - Invalid key length\"\n  \u2502       fallback: \"UNKNOWN ERROR CODE (%04X)\"\n  \u2514\u2500 result: \"HIGH : LOW\", or whichever part exists, truncated to buflen\n```\n\n- **Sign:** the caller's `-0x0020` becomes `0x0020` before any table lookup. Each `case` label is written `-(MBEDTLS_ERR_\u2026)`, so it compares against the positive value.\n- **Two tables:** the bits in `0xFF80` select a module, such as CIPHER, DHM, ECP or SSL. The low 7 bits select a leaf error within the low-level module, such as AES, ASN1 or BASE64. A single code can carry both parts.\n- **Truncation:** the buffer is always null-terminated. If fewer than 5 bytes remain before the `\" : \"` separator, the low-level part is dropped.\n- **Disabled builds:** with `MBEDTLS_ERROR_C` off, the `#else` branch at `error.c:867` is a dummy that writes an empty string. `MBEDTLS_ERROR_STRERROR_DUMMY` keeps the symbol without the tables.\n\n**Generation**\n\n`scripts/generate_errors.pl` builds `library/error.c` from `scripts/data_files/error.fmt`. It:\n\n1. Scans every `include/mbedtls/*.h` for `#define MBEDTLS_ERR_X -0x\u2026` with a Doxygen comment before or after it. Both, or neither, is a hard error.\n2. Takes the module from the second name token, with fixes: `MPI\u2192BIGNUM`, `CTR\u2192CTR_DRBG`, `HMAC\u2192HMAC_DRBG`, `NET\u2192net_sockets`.\n3. Dies on an unknown module, on a duplicate error value, and on a header that defines codes but is not included.\n4. Groups cases under `#if defined(MBEDTLS_<MODULE>_C)` and emits the description as `\"MODULE - description\"`, with the trailing period stripped.\n\nThe Makefile (`library/Makefile:355`) and CMake (`library/CMakeLists.txt:136-144`) regenerate `error.c` when headers change. `tests/scripts/check-generated-files.sh:135` fails CI if the committed file is stale.\n\n**To add a new code**\n\n1. Pick the module prefix. It determines the string shown (`MBEDTLS_ERR_MPI_*` displays as `BIGNUM`).\n2. Add the define to the module's header with a doxygen comment, either before or after but not both, and a value not already in use:\n   ```c\n   /** Something specific went wrong. */\n   #define MBEDTLS_ERR_FOO_SOMETHING_WRONG   -0x0031\n   ```\n   Use a low-level value (below `0x80`) for leaf errors. Use a high-level value (a multiple of `0x80`) only if the module needs its own top-level slot.\n3. If the prefix is a new module, add it to `@low_level_modules` or `@high_level_modules` in `scripts/generate_errors.pl`. Otherwise it dies with \"Do not know how to handle\". Map its `#if` gate too if the config symbol isn't `MBEDTLS_<MODULE>_C`.\n4. Regenerate with `make` in `library/` or the CMake build, or run `perl scripts/generate_errors.pl` from the repo root. Don't hand-edit `library/error.c`.\n5. Commit the header and the regenerated `error.c` together, and run the repo's pre-commit or test gate.\n6. Verify with `programs/util/strerror.c` (`strerror -0x0031`) or a test that asserts the exact string.\n\n**Not verified:** I read the code but did not run the generator or the build, so the steps above come from the scripts, not from a run.",
+  "ttft_ms": 1377,
+  "type": "result",
+  "duration_ms": 22946,
+  "uuid": "32569de5-906f-4115-8bd2-c906fce254f0",
+  "ttft_stream_ms": 564,
+  "time_to_request_ms": 87,
+  "first_content_frame_ms": 564,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

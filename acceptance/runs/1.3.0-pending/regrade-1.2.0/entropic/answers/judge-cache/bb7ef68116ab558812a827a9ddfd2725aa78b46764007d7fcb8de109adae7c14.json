@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python reaches the engine through `ctypes`, calling the C ABI in `librentropic.so` directly. There is no C++ extension module and no pybind layer.\nVERDICT: HIT\nWHY: The answer explicitly names ctypes over librentropic.so as the mechanism and states there is no compiled extension module or pybind layer."
+}

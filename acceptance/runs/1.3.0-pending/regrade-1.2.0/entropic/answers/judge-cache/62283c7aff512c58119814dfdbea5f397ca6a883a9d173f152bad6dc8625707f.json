@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `HealthMonitor::monitor_loop` | `health_monitor.cpp:92` | Watches MCP server health | The loop only enqueues. `process_events()` swaps the queue out under `event_mutex_` and runs the callbacks on the engine thread.\nVERDICT: HIT\nWHY: The answer states the monitor loop only enqueues events, and `process_events()` swaps the queue under `event_mutex_` and runs callbacks on the engine thread, which is the caller-drains-on-its-own-thread mechanism."
+}

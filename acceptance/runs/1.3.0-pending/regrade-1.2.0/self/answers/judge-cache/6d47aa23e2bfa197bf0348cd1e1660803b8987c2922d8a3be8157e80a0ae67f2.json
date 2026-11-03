@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says writes are refused from a stale process and that a rebuild is unsafe, but it never says reads stay current because query tools open the database per call."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`token_hits` | Which token emptied the conjunction. Every token must appear in one searchable unit. | No. It says the term is missing from the searched units, not from the repo.\" and \"A multi-token miss: this only shows the conjunction failed. Drop the token that matched nothing and retry before concluding anything.\"\n\nVERDICT: MISS\n\nWHY: The answer discusses zero-result signals and not-looked-there scope, but it never says that a single token matching nothing was previously treated as proof of absence. It describes the current behavior, not the earlier flaw that conflated \"nothing exists\" with \"I did not look there.\""
+}

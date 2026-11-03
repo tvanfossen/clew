@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `server_data_operator/index.ts` does `mix(ServerDataOperatorBase).with(...13 mixins...)`. Each mixin is a factory `(superclass) => class extends superclass`, and `mix` applies them left to right (`app/utils/mix.ts`).\nVERDICT: HIT\nWHY: The answer states that ServerDataOperator is built via `mix(ServerDataOperatorBase).with(...)` with handler mixins rather than declaring handlers itself."
+}

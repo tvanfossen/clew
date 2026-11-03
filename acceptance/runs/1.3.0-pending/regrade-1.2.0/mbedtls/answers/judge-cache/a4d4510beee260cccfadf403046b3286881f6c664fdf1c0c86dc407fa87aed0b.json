@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_platform_set_calloc_free` is only declared in the runtime configuration. Calling it when the macros are set is a compile error.\nVERDICT: HIT\nWHY: The answer says that on the macro path the function is not declared, so calling it is a compile error, and that platform.c's pointer block is compiled out. That matches \"neither declared nor compiled\"."
+}

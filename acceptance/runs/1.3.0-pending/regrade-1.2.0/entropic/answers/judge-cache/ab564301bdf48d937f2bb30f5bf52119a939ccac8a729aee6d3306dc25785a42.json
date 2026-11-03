@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The approval callback cannot veto. `on_tool_call` returns `void`. If it is registered, `check_approval` sets `approved = true` after calling it (`tool_executor.cpp:168-172`).\"\nVERDICT: HIT\nWHY: The answer states that the callback returns void and that approved is set to true after it fires, so it cannot refuse."
+}

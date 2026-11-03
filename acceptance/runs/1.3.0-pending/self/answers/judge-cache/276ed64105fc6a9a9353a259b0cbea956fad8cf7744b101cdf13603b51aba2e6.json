@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the empty-reply fields and lists unsearched corpora, but never states that strong wording is earned per call by querying which corpora were not read rather than being tied to a result shape."
+}

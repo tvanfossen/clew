@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off | `calloc` / `free` via macro. No indirection.\nVERDICT: HIT\nWHY: The answer says that with MBEDTLS_PLATFORM_MEMORY off (the default), mbedtls_calloc/mbedtls_free are macros to calloc/free with no indirection. The opening line says the same."
+}

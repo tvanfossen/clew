@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Root post deleted, town square read-only, or plugin-dismissed post: the post is removed with `removePost`.\"\nVERDICT: HIT\nWHY: The answer names all three server error cases (deleted root post, read-only town square, plugin-dismissed post) as the ones where the failed post is removed rather than kept."
+}

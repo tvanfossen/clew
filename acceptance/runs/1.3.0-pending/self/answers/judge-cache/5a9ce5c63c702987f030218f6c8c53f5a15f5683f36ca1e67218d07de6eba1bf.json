@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: One row is kept per endpoint identity, not per layer, so the two doxygen layers do not double-count an edge.\nVERDICT: MISS\nWHY: The answer states the opposite: it says rows are deduplicated per endpoint rather than stored once per extraction layer, so the same edge is not stored twice."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 20956,
+  "stop_reason": "end_turn",
+  "session_id": "500d0ff3-f2be-4fbc-be94-c6e0ed7cd21b",
+  "total_cost_usd": 0.00882038,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 24746,
+    "cache_read_input_tokens": 220068,
+    "output_tokens": 3339,
+    "output_tokens_details": {
+      "thinking_tokens": 1562
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24746,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2225,
+        "cache_read_input_tokens": 57191,
+        "cache_creation_input_tokens": 5079,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5079
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3339,
+      "cacheReadInputTokens": 220068,
+      "cacheCreationInputTokens": 24746,
+      "webSearchRequests": 0,
+      "costUSD": 0.00882038,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1562,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 24746,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index scope is decided in one place, `derive_scope` in `clew/scope.py`. A repo's own `index_scope:` declaration wins if it is usable. If nothing is declared, the whole repository is the scope, minus what git ignores and a few cache and dot directories.\n\n**How the decision is made**\n\n1. **Declared scope (tier 1).** `derive_scope` calls `_declared_index_scope`, which reads the `index_scope:` section from the repo's declaration file (`.clew.yaml`) via `load_declaration_located` in `clew/declaration.py`. A caller can also state a scope directly, and it goes through the same construction.\n   - `roots:` is required. `excludes:` alone does nothing.\n   - Roots that don't exist on disk are dropped.\n   - Unknown keys in the section, or a section that isn't a mapping, reject the declaration.\n   - A usable declaration becomes a `SOURCE_DECLARED` scope whose roots are taken as written and never walked.\n\n2. **Whole repository (tier 2).** If no declaration exists, or it is rejected, `whole_repo_scope` runs:\n   - One root: the repository itself.\n   - Excludes come from `git ls-files --ignored --others --exclude-standard --directory`, run through `git_argv`/`git_env` so a target's own git config cannot execute code. This runs once for the top repo and again for each nested git tree, because a submodule's `.gitignore` is invisible to its parent.\n   - Dot-directories and `__pycache__` and `node_modules` are pruned anywhere in the tree (`_skip_dir`, `_pruned_dirs`). They are added as exclude entries because the whole-repo root is never walked for files.\n   - Nested git trees are included, not cut out (gh#333). `external.py` tags their rows afterward so two codebases in one index can still be told apart.\n   - Walking stops at depth 16. Deeper directories are taken wholesale and recorded in `_DEPTH_LIMITED`, and a warning is logged.\n   - If the directory is not a git repository, nothing is excluded for ignores and a warning says so. The scope is wider than the repo asked for.\n\n**What the Doxyfile does now.** It no longer decides scope. Its `INPUT` is ignored (gh#333), because treating a documentation target as a reasoning boundary made repos that shipped a Doxyfile get narrower indexes than repos that didn't. Its `ALIASES` and `PREDEFINED` are still used. The doxygen-guard gate's `files:` pattern is also not a scope tier.\n\n**What happens when nothing is declared.** You get tier 2. The reason string is set to say that no `index_scope` was declared, where the declaration was looked for, and what was excluded. That reason is what the build logs and what `IndexScope` reports, so the scope is never silently guessed.\n\n**Things I could not settle from the index**\n\n- A rejected declaration: `derive_scope` logs a warning and falls back to whole-repo scope. But `tests/test_scope.py` has a test named `test_cli_apply_scope_refuses_a_rejected_declaration`, which says the CLI build refuses instead of widening. Both can be true, since the CLI and the library call may differ, but I could not read `cli.py` to confirm.\n- `toolchain.toml` `[ignore].paths` and `suppress.toml` entries with `tool = \"*\"` are documented as index-side exclusions, but I did not confirm they feed into `whole_repo_scope`.\n- `load_declaration_located` came back with `anchor_mismatch: true`, so its line numbers and possibly its text predate the current file. Treat its description as approximate.",
+  "ttft_ms": 2577,
+  "type": "result",
+  "duration_ms": 23022,
+  "uuid": "105454ff-0150-4e96-986e-fbaf5719e58f",
+  "ttft_stream_ms": 1750,
+  "time_to_request_ms": 134,
+  "first_content_frame_ms": 1751,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

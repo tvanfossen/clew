@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer names a runtime route and a compile-time macro route but never states that the two are mutually exclusive. It even says the library's own helpers use the runtime path while macros \"route at the preprocessor level\", without noting the conflict."
+}

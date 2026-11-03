@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Write paths call `stale_code_refusal()`. If the process predates its source, the write is refused. The `force` flag does not override this.\"\nVERDICT: HIT\nWHY: The answer states that writes are refused (not warned) and that `force` cannot override it, and it adds that \"a rebuild through a stale process is never attempted\". It doesn't say the refusal sits ahead of the build decision, but it does state the mechanism that matters: refusal that a force flag can't override."
+}

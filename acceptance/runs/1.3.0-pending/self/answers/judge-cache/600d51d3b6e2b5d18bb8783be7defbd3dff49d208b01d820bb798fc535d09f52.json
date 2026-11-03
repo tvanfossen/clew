@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `scope` block gives the file count (426), the top-level directories, the extensions indexed, and a `not_indexed` list with counts. In this repo that list covers `.rs`, `.toml`, `.sql`, `.csv`, `.lock`, `.motor`, `.jsonl` and extensionless files.\nVERDICT: MISS\nWHY: The answer's `not_indexed` list names file types that were NOT indexed (out of scope), which is the opposite of the item. The item asks for file types that were in scope but produced no rows. The answer never says the reply names those."
+}

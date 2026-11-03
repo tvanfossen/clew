@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains how to read empty replies now, but never says a single non-matching token was previously treated as proof of absence, nor describes that earlier behavior as conflating \"nothing exists\" with \"didn't look.\""
+}

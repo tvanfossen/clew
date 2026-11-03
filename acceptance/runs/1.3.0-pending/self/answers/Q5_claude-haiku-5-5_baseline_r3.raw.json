@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 35670,
+  "stop_reason": "end_turn",
+  "session_id": "4a02667a-e61d-483a-a753-126745d79298",
+  "total_cost_usd": 0.016330900000000002,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 39152,
+    "cache_read_input_tokens": 546530,
+    "output_tokens": 6066,
+    "output_tokens_details": {
+      "thinking_tokens": 2498
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 39152,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2275,
+        "cache_read_input_tokens": 68734,
+        "cache_creation_input_tokens": 4564,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4564
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 6066,
+      "cacheReadInputTokens": 546530,
+      "cacheCreationInputTokens": 39152,
+      "webSearchRequests": 0,
+      "costUSD": 0.016330900000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2498,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 39152,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** there are four ways to state a build option, ranked by precedence. Within one option, a higher tier replaces a lower one. Two kinds of values are the exception: exclusions accumulate, and built-in facts are never removed.\n\n## The ways to say it\n\n| Tier | Where it comes from | Reaches | Notes |\n|---|---|---|---|\n| 1 | CLI flags (`--exclude`, `--entry-patterns`, `--declare FILE`) and the `options` argument of `build_index` / MCP `index(action='refresh')` | One build | `--declare` loads a YAML mapping and applies it at tier 1 (`cli.py` `_apply_declared_document`). Inline `options` are applied after it, so inline wins. |\n| 2 | The target's own `<repo>/.clew.yaml` | Every build, CLI and MCP alike | This is the standing declaration. The same section names are used at every tier. |\n| 3 | Facts the target already wrote: its Doxyfile's ALIASES/PREDEFINED, manifests, entry points | Accumulates | Never removed by any stated tier. |\n| 5 | Built-in name-pattern guesses (for example, `main`) | Replaced by any stated tier | The floor. |\n\nTier 4 (ecosystem signatures) also accumulates, like tier 3. `tiers.py` defines the rule as `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`.\n\nThe keys in `.clew.yaml` are the same ones the flags and `options` use: `index_scope`, `preprocessor`, `requirements`, `thread_patterns`, `shared_key_patterns`, `locks`, `dispatch`, `mqtt_dispatch`, `data_model`, `kconfig`, `event_tags`, `entry_patterns`, `enrich`, and others. Two things are separate from this:\n- The `guard:` section is gate configuration. The index reads it only for the requirement-tag pattern and the catalog column mapping.\n- `toolchain.toml` and `suppress.toml` at the repo root are a shared exclusion list. The index honours their all-tools entries.\n\n## When two disagree\n\n- **CLI or `options` vs `.clew.yaml`, same option:** the stated value wins. The merge is per section, not deep. Stating `preprocessor:` replaces the whole declared block. Stating `{}` withdraws the statement, and the `.clew.yaml` value applies again.\n- **`--declare` vs inline `options`:** inline wins, because it is applied last.\n- **Exclusions:** these do not replace. `--exclude` paths are added to the toolchain-config excludes. The operator's list is recorded and replayed on the next build. An absent flag inherits the recorded list, an empty `--exclude []` clears it, and a non-empty list replaces it. Toolchain globs are re-read every build and are not replayed.\n- **`index_scope` vs `--scope`:** a stated `index_scope` combined with any non-default `--scope` is refused with exit 1. Silently ignoring the stated boundary would be worse.\n- **A rejected `index_scope`** (for example, `excludes:` without `roots:`, or an unknown key) is refused with exit 1. It is not silently widened to the whole repository.\n- **Doxyfile vs `index_scope`:** a Doxyfile's `INPUT` is no longer a scope tier. The repo's Doxyfile is still used for ALIASES and PREDEFINED, but its `INPUT` is replaced by the declared or whole-repo scope.\n- **A stated tier 1 or 2 vs a built-in guess:** the guess is replaced. A built-in fact is kept.\n\nRelevant code: `clew/tiers.py` (the rule), `clew/cli.py` (`_declared_or_flag`, `_apply_scope`, `_operator_excludes`, `_apply_toolchain_exclusions`), `clew/scope.py` (`_declared_index_scope`), `clew/buildoptions.py`, and `README.md` around line 280\u2013330.\n\nI did not run the test suite or a build to confirm this; the answer is from reading the code and its docstrings.",
+  "ttft_ms": 1238,
+  "type": "result",
+  "duration_ms": 36255,
+  "uuid": "5d916055-f32a-436c-b255-731f185b28fe",
+  "ttft_stream_ms": 820,
+  "time_to_request_ms": 150,
+  "first_content_frame_ms": 820,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

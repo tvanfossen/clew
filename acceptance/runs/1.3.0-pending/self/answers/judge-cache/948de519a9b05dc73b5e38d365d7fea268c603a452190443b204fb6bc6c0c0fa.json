@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the `options` argument for an embedding caller (MCP `index`, `--declare`)\nVERDICT: MISS\nWHY: The answer mentions the `options` argument and the `.clew.yaml` sections separately, but never says the option names are the same words as the section names or the diagnostics."
+}

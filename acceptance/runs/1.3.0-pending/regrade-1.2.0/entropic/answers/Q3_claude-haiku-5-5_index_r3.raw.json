@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 34973,
+  "stop_reason": "end_turn",
+  "session_id": "08a034d8-8aec-42ed-8bc6-df6ee016e562",
+  "total_cost_usd": 0.012564859999999999,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 27399,
+    "cache_read_input_tokens": 408546,
+    "output_tokens": 5996,
+    "output_tokens_details": {
+      "thinking_tokens": 3255
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 27399,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3634,
+        "cache_read_input_tokens": 64580,
+        "cache_creation_input_tokens": 1287,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1287
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 5996,
+      "cacheReadInputTokens": 408546,
+      "cacheCreationInputTokens": 27399,
+      "webSearchRequests": 0,
+      "costUSD": 0.012564859999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3255,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 27399,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What decides whether a call runs:** the deny list is the only hard block. The allow list only skips the approval step. With an approval callback registered, approval always succeeds, so the callback is a notification, not a gate.\n\n**Flow for one tool call** (`ToolExecutor::process_single_call`, `src/mcp/tool_executor.cpp`):\n\n1. **PRE_TOOL_CALL hook.** If it returns true, the call is cancelled (\"Cancelled by hook\").\n2. **Preconditions.** Duplicate detection runs first, then approval (`check_dup_or_approval` / `check_approval_pc`).\n3. **Approval** (`ToolExecutor::check_approval`). The call is approved if either:\n   - `loop_config_.auto_approve_tools` is set, or\n   - `ServerManager::is_explicitly_allowed()` matches an allow pattern.\n\n   If neither holds and `callbacks_.on_tool_call` is set, the call is approved anyway. `on_tool_call` returns `void` (`engine_types.h:370`), so the host cannot refuse here. If there is no callback, the call is denied with \"Permission denied\".\n4. **Deny check** (`ServerManager::execute`, `src/mcp/server_manager.cpp:153`). `PermissionManager::is_denied()` runs on the call. A match returns an error envelope and the call never reaches a server. This runs after approval, so a deny beats an allow.\n5. **Route** to the owning MCP server (`route_tool_call`).\n\n**What a pattern means** (`PermissionManager::pattern_matches`, `src/mcp/permission_manager.cpp:101`):\n\n| Entry form | Matches when |\n|---|---|\n| `filesystem.*` (no `:`) | the fully-qualified tool name matches the fnmatch glob, whatever the args |\n| `bash.execute:python*` | the tool part matches **and** `tool:<arg>` matches the glob |\n\n- The text before the first `:` is the tool glob. The text after it is an argument glob.\n- The argument value comes from `ServerManager::args_to_pattern()`. It takes the first key of the args JSON object, and only if that value is a string. Otherwise it uses `*`.\n- Matching is plain `fnmatch` with flags 0. `*` also matches `/`, and no paths are normalized.\n- Lists are checked in order and the first match wins. Deny is checked in `execute`, not in `is_allowed`.\n\n**Consequences:**\n\n- **Deny-by-arg is fragile.** `args_to_pattern` uses the first key in the JSON object. nlohmann objects are ordered maps, so that is the alphabetically first key, not necessarily the command the model wrote. A deny like `bash.execute:rm*` depends on that key being `command` and sorting first. If the first key is non-string, the pattern becomes `*` and the arg-level deny never matches. I did not confirm the bash tool's argument schema, so treat this as a probable hole to check.\n- **`BashServer::get_permission_pattern`** builds `bash.execute:<base_cmd> *`. The index shows matching uses `args_to_pattern`, not this method. I read this method as the string offered for \"Always Allow/Deny\" and persisted by `PermissionPersister` into `permissions.allow` / `permissions.deny` in YAML. The index's call edges for it are sparse, so confirm before relying on it.\n- **`auto_approve_tools` skips approval only.** Deny patterns still apply.\n\n**The gap:** the header (`permission_manager.h:6-7`) and `docs/architecture-cpp.md:517` say tools \"must be explicitly allowed or approved via callback\" under default-deny. The code does the opposite: with any `on_tool_call` callback set, unlisted tools run unless a deny pattern matches. I did not run this, so it is a read of the code. The fix would be to make the callback return a verdict, or to change the docs to say default-allow.",
+  "ttft_ms": 1623,
+  "type": "result",
+  "duration_ms": 36577,
+  "uuid": "dc534cbf-c4e8-4e40-8400-a8422505611c",
+  "ttft_stream_ms": 1332,
+  "time_to_request_ms": 73,
+  "first_content_frame_ms": 1332,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

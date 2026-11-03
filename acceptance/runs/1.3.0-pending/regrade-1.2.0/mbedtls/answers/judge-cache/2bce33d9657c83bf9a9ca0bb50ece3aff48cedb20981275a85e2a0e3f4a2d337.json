@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Default build:** `MBEDTLS_PLATFORM_MEMORY` is off in `include/mbedtls/mbedtls_config.h:208`. The dispatch function `mbedtls_calloc` in `platform.c` is compiled only under that gate\nVERDICT: HIT\nWHY: The answer names MBEDTLS_PLATFORM_MEMORY as the gate and says it is off by default in the shipped mbedtls_config.h. It does not say \"commented out\" in those words. The shipped-default claim at a specific config line carries the substance."
+}

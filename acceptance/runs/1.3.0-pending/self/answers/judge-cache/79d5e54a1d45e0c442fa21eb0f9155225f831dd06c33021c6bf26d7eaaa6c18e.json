@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"there are four ways to state a build option, ranked by precedence\" and the table listing tiers 1, 2, 3, 5, with \"Tier 4 (ecosystem signatures) also accumulates\" and \"`resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`\"\nVERDICT: MISS\nWHY: The answer explicitly says \"four ways\" and describes a mixed override/accumulate model, so it never states five named precedence tiers. Tier 4 appears only as an aside, not as a named tier."
+}

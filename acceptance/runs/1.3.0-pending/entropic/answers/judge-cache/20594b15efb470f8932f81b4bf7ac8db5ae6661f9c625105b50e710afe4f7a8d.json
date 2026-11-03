@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The other two-call site is `LlamaCppTokenizer::detokenize` (`llama_cpp_tokenizer.cpp:86-105`, `llama_token_to_piece` at lines 93 and 99). It tries a fixed 256-byte stack buffer first. If llama.cpp returns a negative size, it allocates exactly that and calls again.\nVERDICT: HIT\nWHY: The answer states detokenize tries a fixed 256-byte stack buffer first and allocates only on a negative return, and it contrasts this with tokenize's size-probe call before the fill."
+}

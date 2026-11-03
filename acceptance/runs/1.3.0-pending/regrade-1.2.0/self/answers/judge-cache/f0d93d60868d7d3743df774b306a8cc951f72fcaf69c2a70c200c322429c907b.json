@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"No parameter list, since arguments arrive as `$1`.\"\nVERDICT: MISS\nWHY: The answer says shell rows have no parameter list, but it never says there is no return, nor that the language itself has neither."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists many downgrade conditions (unread corpus, no file_docs, multi-token, stale, split) and never says there is exactly one absent-corpus downgrade kept to one deliberately to avoid blanket hedging."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Async-ask worker (runs `entropic_run`) | `external_bridge.cpp:1158`, `.detach()` at `:1222` | Detached, one per `entropic.ask`; and \"Detached async worker can outlive the bridge and the handle... `ExternalBridge::stop()` and `~ExternalBridge()` do not wait for or cancel these workers.\"\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as the detached thread (all others joined) and states that it outlives its scope with no join or wait."
+}

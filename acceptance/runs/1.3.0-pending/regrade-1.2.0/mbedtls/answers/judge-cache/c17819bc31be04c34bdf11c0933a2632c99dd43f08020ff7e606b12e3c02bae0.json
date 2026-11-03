@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_client2.c:8` | The `ssl_client2` test/sample program. ... \"in these translation units `MBEDTLS_PRIVATE(x)` is just `x`, so `ctx.x` compiles and reads or writes internal state directly.\"\nVERDICT: HIT\nWHY: The answer states that the example programs (ssl_client2.c, ssl_server2.c) themselves define MBEDTLS_ALLOW_PRIVATE_ACCESS, reaching into internal state past the public API."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says to add the macro to the header but also to add a `case` to the generated switch and a description entry in the generator's data source, and it is unsure about the regeneration step. It never concludes that adding the documented #define and re-running the generator is all that's needed."
+}

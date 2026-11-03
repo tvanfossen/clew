@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Cancel poller threads ... \"Each one spins at 10 ms, reads an int or atomic, and sets an atomic `cancel_` flag.\" and \"The C ABI passes only `int*`, so no `std::atomic` crosses the `.so` boundary.\"\nVERDICT: HIT\nWHY: The answer says the cancel pollers read an int and set an atomic flag, and that the C ABI carries only `int*`, so no atomic can cross. That is the bridging purpose the item asks for."
+}

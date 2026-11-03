@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these top-level directories as containing uses of `MBEDTLS_PRIVATE`:\n\n- `include`: it quotes the definition in `include/mbedtls/private_access.h` and says public headers declare struct members with the wrapper.\n- `library`: it says `library/ssl_ciphersuites_internal.h` uses the wrapper throughout.\n- `tests`: it says `tests/suites/test_suite_x509write.function` uses `MBEDTLS_PRIVATE(...)`.\n\nThe answer also mentions `programs` and `docs`, but only as places that define the opt-out or describe the wrapper. It doesn't say they contain uses of `MBEDTLS_PRIVATE`, so I left them out.\n\nITEMS:\ninclude\nlibrary\ntests\nEND"
+}

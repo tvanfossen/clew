@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [...] }) ... handlers/index.ts:146 prepareRecords(transformReactionRecord) \u2192 REACTION ... handlers/index.ts:166 prepareRecordsOnly is false \u2192 batchRecords() \u2192 one database write\nVERDICT: HIT\nWHY: The answer says the add event is stored via operator.handleReactions, which prepares Reaction records (prepareRecords with transformReactionRecord) and writes them with batchRecords."
+}

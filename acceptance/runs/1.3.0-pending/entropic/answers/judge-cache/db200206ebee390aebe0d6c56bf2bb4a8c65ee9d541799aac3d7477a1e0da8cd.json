@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The header says \"default-deny,\" but that holds only when no approval callback is wired. With a callback, `check_approval` sets `approved = true` after calling it, and the callback's return value is not read.\nVERDICT: MISS\nWHY: The answer says that with a callback wired every call is approved, so only the deny list vetoes. It never concludes that a tool matching neither list is not denied and runs. The \"default-deny\" holds only without a callback, which is a different claim."
+}

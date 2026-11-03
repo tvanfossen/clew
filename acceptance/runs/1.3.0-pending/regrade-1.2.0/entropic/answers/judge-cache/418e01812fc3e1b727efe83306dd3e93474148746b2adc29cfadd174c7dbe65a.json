@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the allow list approves calls inside `check_approval` and that deny overrides it, but it never states that allow only suppresses the approval step rather than granting execution. It also doesn't say the allow list is consulted only from `check_approval`, in a different file."
+}

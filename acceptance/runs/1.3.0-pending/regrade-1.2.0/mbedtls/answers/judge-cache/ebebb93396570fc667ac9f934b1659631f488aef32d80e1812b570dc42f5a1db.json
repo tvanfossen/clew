@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Built-in heap allocator. `mbedtls_memory_buffer_alloc_init(buf, len)` (`memory_buffer_alloc.c:566`) carves allocations out of a caller-supplied buffer. It calls `mbedtls_platform_set_calloc_free` to point the hooks at its own functions.\" Also: \"the only internal caller is the built-in allocator below\"\nVERDICT: HIT\nWHY: The answer says the buffer allocator's init function calls the runtime setter to install its own functions, and that it is the only internal caller. It doesn't name MBEDTLS_MEMORY_BUFFER_ALLOC_C, but the allocator and its location are identified."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names spawn sites only as functions and classes, such as `ExternalBridge::start` and `HealthMonitor::start`. The one file path it gives is `engine.h:1415`, which is where `interrupt_flag_` is declared, not a place a thread is created.\n\nITEMS:\nNONE\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Notices are built by `DocsDbServer.staleness_notices` (`server.py:1548`), which never raises.\nVERDICT: HIT\nWHY: The answer states that the staleness-notice measurement never raises. It doesn't spell out the degrade-to-no-annotation behavior, but \"never raises\" is the core mechanism the item names."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer separates a definitive empty (count 0 for the searched corpus) from non-definitive cases (prose, `not_indexed`, wrong target). It never names a third grade, an empty that is definitive for a reason other than absence."
+}

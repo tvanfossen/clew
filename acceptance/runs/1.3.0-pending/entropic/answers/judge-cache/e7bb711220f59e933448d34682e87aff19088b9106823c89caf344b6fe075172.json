@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Exceptions never cross into C.** The stream trampoline catches exceptions and prints them to stderr.\nVERDICT: MISS\nWHY: The answer says the stream trampoline catches exceptions, but not the hook trampoline, and it doesn't say a failed hook is treated as a pass-through."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The 0xFF80 mask selects the high-level module (bits 7\u201315). The low 7 bits (`0x007F`) are the low-level module.\" and \"**Combined codes.** A single return can carry both parts, for example an SSL code plus a low-level cause. The output is `\"HIGH : LOW\"`.\"\nVERDICT: HIT\nWHY: The answer describes the two-layer code (high-level module bits and low-level bits) and states that mbedtls_strerror outputs both joined with \" : \" when both are present."
+}

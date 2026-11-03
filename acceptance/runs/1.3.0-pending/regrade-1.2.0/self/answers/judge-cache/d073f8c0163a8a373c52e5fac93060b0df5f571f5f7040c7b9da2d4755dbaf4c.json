@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says callers/callees mix direct calls with shared-key dataflow neighbours; it only mentions `edge_class: call` on rows and never discusses an edge_class field the consumer must read to tell the two kinds apart."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS` is set and nothing is defined, the defaults are stubs. `calloc` returns NULL and `free` does nothing, so the library fails cleanly until a setter runs.\nVERDICT: HIT\nWHY: The answer states that uninitialised defaults are stubs where calloc returns NULL and free does nothing, so the library fails until a setter is called."
+}

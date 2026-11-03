@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Add the define** in the module's public header, in the correct range from the layout table, with exactly one doxygen description (before or after).\" and \"**Regenerate** `library/error.c` with the generator (or `check-generated-files.sh -u`). Do not hand-edit the file, because the next regeneration overwrites it.\"\nVERDICT: HIT\nWHY: The answer says to add the documented #define to the public header, regenerate, and not hand-edit library/error.c."
+}

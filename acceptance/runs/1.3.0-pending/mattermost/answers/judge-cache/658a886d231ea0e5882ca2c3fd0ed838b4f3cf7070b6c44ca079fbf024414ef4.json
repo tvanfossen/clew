@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is called only from the failed-post component (`app/components/post_list/post/body/failed/index.tsx`, line 48), so it runs when the user taps the failed indicator.\nVERDICT: HIT\nWHY: The answer says retry is manual, never automatic, and that `retryFailedPost` runs only when the user taps the failed indicator on the failed post. It doesn't name the \"Try Again\" label, but the mechanism and function are both stated."
+}

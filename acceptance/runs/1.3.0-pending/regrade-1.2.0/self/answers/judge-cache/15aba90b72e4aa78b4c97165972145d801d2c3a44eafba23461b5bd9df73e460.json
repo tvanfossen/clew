@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states the general rule \"fix the corpus, not the sentence about the corpus\". It describes grading by unread-corpus subtraction, but does not say the remedy for a false claim is to change what is read rather than the wording."
+}

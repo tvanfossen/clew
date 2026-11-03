@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.sh`, `.bash`, `.cmake`, `CMakeLists.txt` | `path` plus a `memberdef` per function or macro ... Routing is by extension, and `CMakeLists.txt` is matched by name\nVERDICT: HIT\nWHY: The answer names the shell and CMake extensions (.sh, .bash, .cmake) and says CMakeLists.txt is matched by name rather than by extension."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the library and test programs defining the opt-out and seeing plain names, and default consumers seeing renamed ones, but never frames it as two branches giving different consumers different views of the same header. It says the default is renamed and the opt-out yields plain `x`, which is close but is split across audiences without that explicit contrast."
+}

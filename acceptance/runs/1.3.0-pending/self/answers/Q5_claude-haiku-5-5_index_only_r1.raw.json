@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 24192,
+  "stop_reason": "end_turn",
+  "session_id": "03caf660-1885-4dea-82e3-84fce6391cad",
+  "total_cost_usd": 0.014561049999999999,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 49220,
+    "cache_read_input_tokens": 273685,
+    "output_tokens": 3958,
+    "output_tokens_details": {
+      "thinking_tokens": 1680
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 49220,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2378,
+        "cache_read_input_tokens": 65274,
+        "cache_creation_input_tokens": 2510,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2510
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3958,
+      "cacheReadInputTokens": 273685,
+      "cacheCreationInputTokens": 49220,
+      "webSearchRequests": 0,
+      "costUSD": 0.014561049999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1680,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 49220,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Clew has five layers of configuration. The first two are things a repository or caller states; the other three are facts or guesses clew derives itself. The rule for conflicts is that a stated value replaces the layer beneath it, while facts and ecosystem signatures are never discarded.\n\n**The ways to say so**\n\n| Tier | Source | Combines by |\n|---|---|---|\n| 1 explicit | CLI flag, or the `options` argument for an embedding caller (MCP `index`, `--declare`) | Replaces the stated layer |\n| 2 declared | `.clew.yaml` at the repo root | Replaces the stated layer |\n| 3 target-fact | Facts the repo already wrote: a Doxyfile's `ALIASES`/`PREDEFINED`/`INPUT`, a generator manifest, a language or platform entry point | Accumulates |\n| 4 ecosystem | Known-ecosystem signatures | Accumulates |\n| 5 heuristic | Name-pattern guesses, the explicitly provisional floor | Replaces the stated layer |\n\nThe `.clew.yaml` sections I could confirm are `index_scope`, `preprocessor`, `kconfig`, `shared_key_patterns`, `locks`, `entry_patterns`, `dispatch`, `requirements`, and `doxyfile`. The `guard:` section belongs to the doxygen gate, and the index ignores it. Keys prefixed `experimental_` are tolerated and ignored. The old `.doxygen-guard.yaml` is no longer read at all.\n\n**When two disagree**\n\n- **Flag vs. declaration:** the flag wins and replaces the declared value outright, with no merge. The test `test_an_explicit_flag_replaces_the_declaration` shows a declared macro being dropped when a flag states its own list.\n- **Declared vs. built-in default:** the declaration replaces the default. In `test_a_declaration_displaces_the_default_patterns`, a declared `t/*` stops `tests/*` from applying, so a repo can narrow the rule as well as widen it.\n- **Facts vs. stated tiers:** tiers 3 and 4 survive any stated value. The module's summary is \"you can correct our guesses; you cannot un-discover a fact.\"\n- **Index scope:** declaration beats the Doxyfile's `INPUT`, which beats whole-repo. An unusable declaration refuses the build instead of quietly widening it. The excludes-only case is the reason: it had silently fallen back to the whole repo and caused a 900-second doxygen timeout.\n- **Empty values:** an empty stated value is a withdrawal, so it falls back to the declaration. An empty `shared_key_patterns: {}` is one example.\n\n**How bad input is handled**\n\n- An unknown top-level section refuses the build, with an error naming the allowed sections. The reason is that the build would otherwise use defaults while reporting the declaration was honoured.\n- Malformed YAML is logged at WARNING and treated as absent.\n- Inline `options` are validated all-or-nothing, so one bad entry leaves the build untouched.\n\nI answered from the index alone, so I did not enumerate every CLI flag or confirm that every scope path routes through `clew/tiers.py`. The scope and kconfig precedence I cited is in the tests and docs, not in a single resolver I read.",
+  "ttft_ms": 1901,
+  "type": "result",
+  "duration_ms": 25755,
+  "uuid": "d7c72b76-8cfd-43e5-99b1-01fe12664b46",
+  "ttft_stream_ms": 1486,
+  "time_to_request_ms": 127,
+  "first_content_frame_ms": 1486,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

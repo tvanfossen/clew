@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions a containment call being removed; it describes nested trees being tagged rather than excluded but says nothing about removing a containment call versus leaving it with callers dropped."
+}

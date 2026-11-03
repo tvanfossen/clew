@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A field `foo` is spelled `private_foo`, so `ctx.foo` fails to compile. Application code that touches a field directly breaks at build time instead of silently depending on the layout.\nVERDICT: MISS\nWHY: The answer explains the rename-breaks-compile mechanism but never states that the struct layout/fields stay visible and sized (not hidden/opaque), which the item requires."
+}

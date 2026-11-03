@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An empty vector is therefore indistinguishable from legitimately empty input. The caller gets no error channel.\nVERDICT: MISS\nWHY: The answer says failure is indistinguishable from empty, but it doesn't conclude that no caller checks for it. It lists callers that handle the empty result in various ways, and says some misdiagnose it, which implies partial handling. The two-part item isn't fully stated."
+}

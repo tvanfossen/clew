@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Define the code in the right module header** (e.g. `include/mbedtls/aes.h`) as `#define MBEDTLS_ERR_<MODULE>_<NAME> -0xNNNN`.\" and \"**Regenerate and commit `library/error.c`** via `.venv/bin/pre-commit`/the make target, not by hand. Hand-editing it fails `check-generated-files.sh`.\"\nVERDICT: HIT\nWHY: The answer says to add the documented #define to the module header and re-run the generator, and that error.c must not be hand-edited."
+}

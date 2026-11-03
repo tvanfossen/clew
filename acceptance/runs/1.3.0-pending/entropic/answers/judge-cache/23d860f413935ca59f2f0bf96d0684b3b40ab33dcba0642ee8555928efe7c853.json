@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: So the dependency stops at the inference layer and the facade. The C ABI and the Python wrapper don't see it.\nVERDICT: MISS\nWHY: The answer says the dependency is mostly confined to inference and facade, with the C++ headers and tests also touching it. It never says the dependency is concentrated but not contained. It doesn't give a minority-outside-src/inference conclusion, and \"stops at\" suggests containment."
+}

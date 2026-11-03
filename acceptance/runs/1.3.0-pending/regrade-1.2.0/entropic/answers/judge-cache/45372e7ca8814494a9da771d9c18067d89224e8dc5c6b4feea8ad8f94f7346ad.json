@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An empty vector is therefore indistinguishable from legitimately empty input. The caller gets no error channel.\nVERDICT: MISS\nWHY: It says failure is indistinguishable from empty input, but it never says no caller checks for it. The callers table shows several that do handle an empty result, such as the `tokens.size() < 2` checks."
+}

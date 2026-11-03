@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS` is set and no `STD_CALLOC` is provided, the pointer is `platform_calloc_uninit`, which returns NULL. Likewise the uninitialised free does nothing (`platform.c:25-42`).\nVERDICT: HIT\nWHY: The answer states that the uninitialised calloc pointer returns NULL and the uninitialised free does nothing."
+}

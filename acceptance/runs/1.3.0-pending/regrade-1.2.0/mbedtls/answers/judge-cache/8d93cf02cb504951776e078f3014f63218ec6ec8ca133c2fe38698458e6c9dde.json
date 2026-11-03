@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists many primitives (`mbedtls_ct_bool*`, `mbedtls_ct_uint_*`, `mbedtls_ct_memcpy_if`, etc.) as the API and never says the public API is only `mbedtls_ct_memcmp` with the rest internal."
+}

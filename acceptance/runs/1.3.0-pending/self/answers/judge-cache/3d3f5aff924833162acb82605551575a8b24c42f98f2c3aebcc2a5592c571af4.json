@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Nothing this client can do; a rebuild re-stamps the same newer version\nVERDICT: HIT\nWHY: The schema row says the index was stamped by a newer build and that rebuilding cannot clear it because it re-stamps the same newer version."
+}

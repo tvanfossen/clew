@@ -1,0 +1,153 @@
+{
+  "cell": "Q3_claude-haiku-5-5_index_r2",
+  "arm": "index",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.7037037037037037,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "states that staleness is THREE distinguishable axes rather than one flag, and names them",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: \"Staleness has three axes, each measured by a different check:\" followed by \"**Data (sources changed).**\", \"**Schema (pipeline version).**\", \"**Code (this server process).**\" | WHY: The answer explicitly states staleness has three axes and names them as data, schema, and code. || QUOTE: \"Staleness has three axes, each measured by a different check:\" followed by \"**Data (sources changed).**\", \"**Schema (pipeline version).**\", \"**Code (this server process).**\" | WHY: The answer explicitly states staleness has three distinguishable axes (data, schema, code) and names each one. || QUOTE: \"Staleness has three axes, each measured by a different check:\" followed by the Data, Schema and Code axes. | WHY: The answer says staleness is three separate axes (data, schema, code) and names each, with a distinct remedy per axis.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that each axis is cleared by a DIFFERENT action \u2014 a rebuild for data, a client restart for code \u2014 which is why one flag would not have been enough",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Schema axis, index newer: \"Restart the MCP client. A rebuild cannot clear it.\" / \"`code` ... Restart the MCP client. A rebuild cannot clear it.\" / \"`data` ... `index(action='refresh')`\" / \"Rebuilding is unsafe here, not just ineffective.\" | WHY: The answer lists a different remedy per axis (refresh for data, restart for code), but it never says this is why a single flag would not have been enough. || QUOTE: Restart the MCP client. Rebuilding is unsafe here, not just ineffective. A stale process running an old pipeline would re-stamp the index with dropped layers. | WHY: The answer lists remedies per axis (refresh for data, restart for code), but it never says that this difference is why a single flag would not have been enough.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the schema axis can be UNRESOLVABLE \u2014 when the index is newer than the server, no rebuild clears it, because rebuilding re-stamps the same newer version",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `schema` (index newer) | stamp > expected | server predates index | Restart the MCP client. A rebuild cannot clear it. | WHY: The answer states that when the index is newer than the server, a rebuild cannot clear it, and adds that rebuilding re-stamps the same newer version. || QUOTE: | `schema` (index newer) | stamp > expected | server predates index | Restart the MCP client. A rebuild cannot clear it. | | WHY: The answer states that when the index is newer than the server, a rebuild cannot clear it, and adds that rebuilding re-stamps the same newer version. || QUOTE: | `schema` (index newer) | stamp > expected | server predates index | Restart the MCP client. A rebuild cannot clear it. | | WHY: The answer states that when the index is newer than the server, a rebuild can't clear it, and adds that rebuilding re-stamps the same newer version.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states the read/write asymmetry on the code axis: READS stay current because query tools open the database per call, while a BUILD through a stale process writes old pipeline logic",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"Rebuilding is unsafe here, not just ineffective. A stale process running an old pipeline would re-stamp the index with dropped layers. `build_or_refresh` refuses before the lock when the process predates its source\" | WHY: The answer covers the build-side danger of a stale process but never states that reads stay current because query tools open the database per call. || QUOTE: Rebuilding is unsafe here, not just ineffective. A stale process running an old pipeline would re-stamp the index with dropped layers. `build_or_refresh` refuses before the lock when the process predates its source, and `force` cannot override that. | WHY: The answer covers the build-through-stale-process risk but never says reads stay current because query tools open the database per call, so the read/write asymmetry is absent. || QUOTE: Rebuilding is unsafe here, not just ineffective. A stale process running an old pipeline would re-stamp the index with dropped layers. `build_or_refresh` refuses before the lock when the process predates its source, and `force` cannot override that. | WHY: The answer covers the build-side risk of a stale process writing old pipeline logic, but never says reads stay current because query tools open the database per call, so the read/write asymmetry is missing.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the write path REFUSES rather than warning, and that the refusal is placed ahead of the build decision so a force flag cannot override it",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `build_or_refresh` refuses before the lock when the process predates its source, and `force` cannot override that. | WHY: The answer says the write path refuses (not warns), does so before the lock/build, and that `force` cannot override it. || QUOTE: `build_or_refresh` refuses before the lock when the process predates its source, and `force` cannot override that. | WHY: The answer states the write path refuses (not warns), placed before the lock/build, and that `force` can't override it. || QUOTE: `build_or_refresh` refuses before the lock when the process predates its source, and `force` cannot override that. | WHY: The answer states that the write path refuses (not warns) ahead of the lock/build and that `force` cannot override it.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the annotation RIDES ON EVERY QUERY REPLY rather than waiting to be asked for, and that it is empty on a current tool",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"These notices are attached to every query reply.\" and \"The `staleness` block is present only when there is something to report, so a current index carries no warning.\" | WHY: The answer states notices ride on every query reply and that the staleness block is absent (no warning) when the index is current. || QUOTE: \"The `staleness` block is present only when there is something to report, so a current index carries no warning.\" and \"These notices are attached to every query reply.\" | WHY: The answer states that notices are attached to every query reply and that the block is absent (no warning) when the index is current. || QUOTE: \"The `staleness` block is present only when there is something to report, so a current index carries no warning.\" and \"These notices are attached to every query reply.\" | WHY: The answer states the staleness annotation is attached to every query reply and is absent/empty when the index is current.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that measuring staleness NEVER raises \u2014 a failed measurement degrades to no annotation rather than turning a successful reply into an error",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: \"staleness is measured per reply, and an unreadable database or failed measurement degrades to \"no annotation\" rather than an error. A query can therefore return with no warning when the check itself failed. The code is written to prefer that over turning a good answer into an error\" | WHY: The answer explicitly states that a failed staleness measurement degrades to no annotation rather than turning a good reply into an error. || QUOTE: \"staleness is measured per reply, and an unreadable database or failed measurement degrades to \\\"no annotation\\\" rather than an error. A query can therefore return with no warning when the check itself failed. The code is written to prefer that over turning a good answer into an error\" | WHY: The answer explicitly states that a failed staleness measurement degrades to no annotation rather than turning a good reply into an error.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a routed reply is annotated for the repository it actually read, not for the server's default target",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says that a routed reply's staleness annotation is computed for the repository actually read rather than the server's default target. || QUOTE: NONE | WHY: The answer never says a routed reply's staleness annotation is computed for the repository actually read (the routed target) rather than the server's default target.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the annotation is fitted to the response budget by degrading its wording rather than by dropping the warning",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: `_staleness_within_budget` in `tools_query.py:160` fits them to the space left in the payload, compacting the text before dropping it, so a large answer doesn't lose its warning. | WHY: The answer says the annotation is fitted to the payload budget by compacting its text rather than dropping it, so the warning is kept. || QUOTE: `_staleness_within_budget` in `tools_query.py:160` fits them to the space left in the payload, compacting the text before dropping it, so a large answer doesn't lose its warning. | WHY: The answer says the annotation is fitted to the payload budget by compacting its text rather than dropping the warning. || QUOTE: `_staleness_within_budget` in `tools_query.py:160` fits them to the space left in the payload, compacting the text before dropping it, so a large answer doesn't lose its warning. | WHY: The answer states that the annotation is fitted to the budget by compacting its text rather than dropping the warning.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the modules a staleness warning passes through \u2014 clew/mcp_server/freshness.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules a staleness warning passes through \u2014 clew/mcp_server/server.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules a staleness warning passes through \u2014 clew/mcp_server/tools_query.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules a staleness warning passes through \u2014 clew/mcp_server/state.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules a staleness warning passes through \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

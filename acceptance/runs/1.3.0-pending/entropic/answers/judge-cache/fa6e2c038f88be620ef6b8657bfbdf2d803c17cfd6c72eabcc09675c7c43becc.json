@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The same empty result also comes back when `vocab_` is null, and when `tokenizer_` is unset in `LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:795`).\nVERDICT: HIT\nWHY: The answer says a failed tokenization returns an empty vector, and that the same empty result comes back when `tokenizer_` is unset in the backend wrapper."
+}

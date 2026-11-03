@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: ret (e.g. -0x2880) ... high = ret & 0xFF80 module/category bits ... low = ret & ~0xFF80 module-specific bits ... join with \" : \"\nVERDICT: HIT\nWHY: The answer shows the code split into a high-level module part and a low-level part, and says mbedtls_strerror joins the two with \" : \"."
+}

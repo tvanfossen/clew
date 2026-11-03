@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says dossier requests only the call half or that merging would double-report dataflow edges; it only mentions that the callers query returns \"callers plus the writers it reads from.\""
+}

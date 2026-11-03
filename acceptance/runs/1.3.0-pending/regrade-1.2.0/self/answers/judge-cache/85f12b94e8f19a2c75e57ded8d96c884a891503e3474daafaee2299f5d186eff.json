@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Write paths call `stale_code_refusal()`. If the process predates its source, the write is refused. The `force` flag does not override this.\"\nVERDICT: HIT\nWHY: The answer states that writes are refused (not warned) and that `force` cannot override the refusal. It doesn't explicitly say the refusal sits ahead of the build decision, but the force-immunity is stated."
+}

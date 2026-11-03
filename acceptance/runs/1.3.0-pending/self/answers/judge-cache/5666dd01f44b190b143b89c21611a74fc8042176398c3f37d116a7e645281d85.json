@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says every caller has an edge class of `call`, but never states that the list mixes direct calls with shared-key dataflow neighbours or that consumers must read `edge_class`."
+}

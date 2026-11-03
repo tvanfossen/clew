@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Comments in the code record that an earlier version used the strong wording without this check and was wrong four times.\" and \"The 'definitive' claim is made only after the database has been asked whether any unread corpus holds the token\"\nVERDICT: HIT\nWHY: The answer says single-token empties used to get the definitive \"nothing here\" wording without checking corpora `search` doesn't read. That is the \"nothing exists\" versus \"didn't look there\" confusion, though the answer doesn't name it in those words."
+}

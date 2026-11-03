@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_ERROR_STRERROR_DUMMY` keeps the symbol without the tables.\nVERDICT: MISS\nWHY: The answer names the switch and its purpose but never says it is enabled by default, which the item requires."
+}

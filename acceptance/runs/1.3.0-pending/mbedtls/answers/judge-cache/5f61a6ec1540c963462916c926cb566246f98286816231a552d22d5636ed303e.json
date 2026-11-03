@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the macro is applied at hundreds of sites in the public headers; its only count is \"336 signatures,\" given as the ambiguity of the caller data, and it doesn't say where those uses sit."
+}

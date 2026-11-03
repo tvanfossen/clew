@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In C builds it returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a global `volatile` set to 0.\nVERDICT: HIT\nWHY: The answer states the non-assembly fallback XORs with a volatile global zero and names it as `mbedtls_ct_zero`, though it describes the function as `mbedtls_ct_compiler_opaque`."
+}

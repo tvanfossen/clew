@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 21493,
+  "stop_reason": "end_turn",
+  "session_id": "e8865bc1-baa8-45d5-aff9-90073e0eb8a6",
+  "total_cost_usd": 0.01170327,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 38831,
+    "cache_read_input_tokens": 181977,
+    "output_tokens": 4233,
+    "output_tokens_details": {
+      "thinking_tokens": 1656
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 38831,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3047,
+        "cache_read_input_tokens": 64174,
+        "cache_creation_input_tokens": 12072,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 12072
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 4233,
+      "cacheReadInputTokens": 181977,
+      "cacheCreationInputTokens": 38831,
+      "webSearchRequests": 0,
+      "costUSD": 0.01170327,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1656,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 38831,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## How Python reaches the engine\n\nPython never links against C++. The path is a flat C ABI loaded at runtime:\n\n```\nPython caller (entropic.create / run / register_hooks ...)\n  \u2502  facades: hooks.py, streams.py, mcp.py (kwargs/dict \u2194 JSON, lifetime keepalives)\n  \u25bc\n_bindings.py   ctypes prototypes + CFUNCTYPE typedefs (auto-generated from entropic.h, \"do not edit\")\n  \u25bc  ctypes.CDLL-style load of librentropic.so; _loader.py resolves the path\n     ($ENTROPIC_LIB \u2192 $ENTROPIC_HOME \u2192 ~/.entropic \u2192 ldconfig)\nlibrentropic.so  src/facade/entropic.cpp   \u2190 pure-C functions, opaque entropic_handle_t\n  \u25bc\nC++ engine (AgentEngine, hook registry, inference backend)\n```\n\n- `entropic.h` is the only public surface. It is pure C, and no C++ types cross it.\n- The Python package has no `EntropicEngine` class. It exposes the C symbols directly (`entropic_create`, `entropic_run_streaming`, `entropic_destroy`, ...), plus thin \"Pythonic\" wrappers in `hooks.py`, `streams.py`, and `mcp.py`.\n- Imports are lazy (PEP 562), so `entropic install-engine` can run before the `.so` exists.\n- Plugin `.so` files (MCP servers, inference backends) cross the same kind of boundary through their own C interfaces (`i_mcp_server.h`, `i_inference_backend.h`).\n\n## Memory rules at the boundary\n\nThese are the documented rules from `entropic.h` and the interface headers:\n\n| Direction | Rule | Who frees |\n|---|---|---|\n| Engine \u2192 caller, `char*` out-params (e.g. `entropic_run` `result_json`) | Newly allocated, caller owns | Caller, with `entropic_free()` |\n| Caller \u2192 engine, buffers the engine will free (e.g. hook `modified_json`) | Must be allocated with `entropic_alloc()`, not `malloc` or Python memory | Engine, with `entropic_free()` |\n| Engine \u2192 caller, `const char*` (e.g. `entropic_last_error`) | Owned by the handle, do not free, valid until the next call on that handle | Engine |\n| Input strings (`input`, `messages_json`, `params_json`, `prompt`) | Borrowed for the duration of the call only | Caller |\n| Token pointers in stream callbacks | Valid only inside the callback; copy to keep | Engine |\n| Plugin returns (MCP `list_tools`/`execute`, backend `result_json`) | Caller-owned, freed via the plugin's free function (`entropic_free` for MCP, `entropic_inference_free` for backends) | Caller |\n| Plugin `name` strings | Owned by the server for the handle's lifetime | Plugin |\n\n`entropic_free` and `entropic_alloc` are simply `free` and `malloc` in `src/facade/entropic.cpp`. The pairing rule therefore matters because it guarantees the engine's free sees a pointer from the same allocator.\n\nTwo things are easy to get wrong:\n\n- **Partial results on failure.** When `entropic_run` throws, it still returns `ENTROPIC_ERROR_GENERATE_FAILED` with a serialized partial `result_json`. Callers must free that buffer even on error.\n- **Ownership of `entropic_last_error`.** The header says the pointer is handle-owned, so don't free it.\n\n## Lifetime and threading rules\n\n- **Python callbacks must be kept alive.** A `CFUNCTYPE` wrapper that Python drops while C still holds its pointer leads to use-after-free. `hooks.py` keeps a per-handle registry of wrappers. `streams.py` stores its callback in a module-level `_observers` dict keyed by the handle address, which is the keepalive.\n- **Exceptions never cross into C.** The stream trampoline catches exceptions and prints them to stderr. The C++ side reports errors through error codes plus callbacks, not C++ exceptions.\n- **Handle thread-safety classes** (from `entropic.h`):\n  - Thread-safe: callable any time.\n  - Serialized per handle: one call at a time per handle; separate handles are independent.\n  - Init/destroy: must not race with any other call on the same handle.\n- `entropic_destroy` invalidates the handle and is NULL-safe.\n- Stream observers can fire from the engine thread and from the external-bridge worker thread, so Python token callbacks must be thread-safe.\n- `entropic_set_stream_observer` also fires a synthetic `(\"\", 0)` sentinel at the end of each non-streaming run.\n\n## Discrepancy to check\n\nThe `entropic_last_error` doc comment says it returns a *thread-local* cache copy. The body copies into `s_last_error_cache`, which looks like a process-wide static, not a thread-local. The \"valid until the next call\" guarantee therefore may not hold across threads. I could not verify this beyond the indexed body, so it is worth reading the source directly.",
+  "ttft_ms": 1747,
+  "type": "result",
+  "duration_ms": 22742,
+  "uuid": "7704297f-8b01-4f46-a88c-982c42b709b2",
+  "ttft_stream_ms": 1355,
+  "time_to_request_ms": 76,
+  "first_content_frame_ms": 1355,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says `memory_buffer_alloc.c` installs its own calloc/free via the runtime hook. It never says that the buffer allocator itself requires `MBEDTLS_PLATFORM_MEMORY`, or that enabling the buffer allocator alone does not route the library's allocations through it."
+}

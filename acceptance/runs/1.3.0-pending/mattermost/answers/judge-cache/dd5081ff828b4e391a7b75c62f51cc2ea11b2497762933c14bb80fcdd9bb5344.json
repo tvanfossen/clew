@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"WebSocket msg (event = REACTION_REMOVED) ... handleReactionRemovedFromPostEvent ... queryReaction(db, emoji_name, post_id, user_id).fetch() ... if found: database.write(() => reaction[0].destroyPermanently())\" and \"No operator, no `sanitizeReactions`, no transformer.\"\nVERDICT: HIT\nWHY: The answer states the removed handler bypasses the operator, queries the reaction, and destroys it via a direct database.write."
+}

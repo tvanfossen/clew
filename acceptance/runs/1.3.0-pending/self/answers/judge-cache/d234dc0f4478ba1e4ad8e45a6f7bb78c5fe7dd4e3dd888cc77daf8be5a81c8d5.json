@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer refuses a rejected `index_scope` and a conflicting `--scope`, but it never says an unknown section is refused by name against the allowed set, and it gives no reason about builds silently using defaults."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its gate in `constant_time_impl.h` (lines ~40\u201352) requires `MBEDTLS_HAVE_ASM` plus `__GNUC__` or `__ARMCC_VERSION`. The index lists `MBEDTLS_HAVE_ASM` as default-on at `include/mbedtls/mbedtls_config.h:52`\nVERDICT: MISS\nWHY: The answer says MBEDTLS_CT_ASM is gated on HAVE_ASM plus compiler macros, but it never states that it is derived rather than configured in mbedtls_config.h. It even says the config header's shipped default for the asm path is unconfirmed."
+}

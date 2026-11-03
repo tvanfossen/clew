@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: nested git trees INCLUDED, not cut out\nVERDICT: HIT\nWHY: The answer states that on the whole-repo default, nested git trees are included, and that `external.py` tags foreign clones inside a declared root."
+}

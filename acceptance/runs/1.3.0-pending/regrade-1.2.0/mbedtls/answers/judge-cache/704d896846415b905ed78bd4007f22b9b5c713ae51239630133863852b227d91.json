@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"This is a source-level gate, not encapsulation. The struct layout stays in the public header, so `sizeof` and offsets are still visible.\"\nVERDICT: HIT\nWHY: The answer says the compile-time gate comes from renaming members to `private_x`, and that the struct layout stays visible in the public header."
+}

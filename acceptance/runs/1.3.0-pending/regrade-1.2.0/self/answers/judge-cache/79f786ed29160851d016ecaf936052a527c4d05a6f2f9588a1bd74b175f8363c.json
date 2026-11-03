@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The reason string names the fallback: \"no index_scope is declared for this repo \u2014 \u2026 so the whole repository is the index scope.\"\nVERDICT: HIT\nWHY: The answer states the fallback scope carries a reason string explaining that no index_scope was declared and the whole repository was used, so the scope is never silently guessed."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the second call is unconditional and the failure path returns `{}`, but it never says a negative or non-positive result from the second call ends the attempt with an empty return."
+}

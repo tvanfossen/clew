@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"in the default configuration, mbedtls runs no threads of its own and takes no locks.\" and \"sample programs (all gated by `MBEDTLS_THREADING_C`/`PTHREAD`, so not built by default)\"\nVERDICT: MISS\nWHY: The answer says the library creates no threads by default, but it lists thread and signal-handler sites in `programs/` and never says the pthread example compiles to a stub main under that condition."
+}

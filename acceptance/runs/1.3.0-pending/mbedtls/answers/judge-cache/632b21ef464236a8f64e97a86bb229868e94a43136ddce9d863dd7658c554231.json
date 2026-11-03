@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A single code can carry both parts.\" and \"result: \"HIGH : LOW\", or whichever part exists\" and \"high = ret & 0xFF80 ... low = ret & ~0xFF80 ... append \" : \" if buffer has room\"\nVERDICT: HIT\nWHY: The answer explains that a code has a high-level module part and a low-level part, and that mbedtls_strerror looks up each part and joins them with \" : \" when both are present."
+}

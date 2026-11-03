@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the index scope is decided by a `.clew.yaml` `index_scope:` section if one is declared and usable. If not, the scope is the whole repository\"\nVERDICT: HIT\nWHY: The answer states the declared index_scope is preferred and that when it is not usable the scope falls back to the whole repository. It also covers the present-but-rejected case, which it handles with a warning and the whole-repo fallback (though it says a broken declaration is refused at the CLI level)."
+}

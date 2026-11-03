@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Query replies get the same `staleness` stamp via `server.py:1708`. ... The list is empty when the index is current, and `db_status` includes a `staleness` key only when it is non-empty.\nVERDICT: MISS\nWHY: The answer says query replies carry the staleness stamp, but it never says the annotation rides on every reply without being asked for, and it describes the key as absent (not empty) when current, with only a brief \"notice rides along\" for fallback cases."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: These exist because the C ABI takes an `int*` cancel flag and the backend wants an atomic. Each one polls every 10 ms and is joined before the function returns:\nVERDICT: HIT\nWHY: The answer says the cancel-bridge pollers exist because the C ABI forces an `int*` while the backend wants an atomic. That matches the item's bridge purpose. The direction of the bridge is reversed, though, and the answer's gap #2 also says the plain int is shared with no atomic."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ssl_pthread_server.c` builds to a stub `main` that prints \"MBEDTLS_THREADING_PTHREAD not defined\" and exits when threading is off (lines 24\u201329).\nVERDICT: HIT\nWHY: The answer says that with the default config no thread is spawned from `library/` and that the pthread example compiles to a stub `main` when threading is off."
+}

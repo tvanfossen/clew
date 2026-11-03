@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is never retried automatically: the send makes one attempt.\" and \"`client.createPost` is called once. ... `noRetry: true` ... `retryLimit: 0`. So there is no transport-level retry either.\"\nVERDICT: HIT\nWHY: The answer explicitly says the create-post send is a single attempt with no automatic retry, citing noRetry and retryLimit 0."
+}

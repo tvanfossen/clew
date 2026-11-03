@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Files the answer says define `MBEDTLS_ALLOW_PRIVATE_ACCESS`, which turns the opt-out on:\n\n- `library/common.h` (line 132, unconditionally)\n- `programs/ssl/ssl_client2.c` (line 8)\n- `programs/ssl/ssl_server2.c` (line 8)\n\nThe answer also names `include/mbedtls/private_access.h`, but only as the file that defines the `MBEDTLS_PRIVATE` wrapper and tests the macro, not as a file that turns the opt-out on. I left it out.\n\nITEMS:\nlibrary/common.h\nprograms/ssl/ssl_client2.c\nprograms/ssl/ssl_server2.c\nEND"
+}

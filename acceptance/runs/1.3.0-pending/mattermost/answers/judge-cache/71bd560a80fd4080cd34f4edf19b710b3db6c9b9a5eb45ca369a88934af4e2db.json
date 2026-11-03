@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ClientPosts.createPost` (`app/client/rest/posts.ts:43-48`) calls `doFetch` with `noRetry: true`. ... How many automatic retries: none. I found one attempt per send.\nVERDICT: HIT\nWHY: The answer states there are no automatic retries, one attempt per send, citing `noRetry: true` on the create-post request."
+}

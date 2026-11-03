@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**The callback cannot deny.** The signature is `void (*on_tool_call)(const char*, void*)` (`engine_types.h:370`). `check_approval` sets `approved = true` after calling it. A frontend can only observe the request, not refuse it.\"\nVERDICT: HIT\nWHY: The answer states the callback returns void and that approved is set to true after calling it, so it cannot refuse."
+}

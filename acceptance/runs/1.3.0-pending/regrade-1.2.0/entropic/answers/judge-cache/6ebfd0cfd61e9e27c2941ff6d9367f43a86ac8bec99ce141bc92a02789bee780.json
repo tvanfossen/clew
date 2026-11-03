@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never discusses why the package is split or that `import entropic` works before the engine is installed (lazy exports are mentioned, but with no install-engine rationale)."
+}

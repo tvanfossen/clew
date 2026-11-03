@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_data_stale` only permits an auto-refresh when the `data` axis is stale and the process matches its source. It is non-raising, so a failed measurement degrades to \"do not refresh\" and never breaks a query.\nVERDICT: MISS\nWHY: The non-raising claim is made about `_data_stale`'s auto-refresh decision, not about staleness measurement degrading to no annotation on a reply, so the item's mechanism is absent."
+}

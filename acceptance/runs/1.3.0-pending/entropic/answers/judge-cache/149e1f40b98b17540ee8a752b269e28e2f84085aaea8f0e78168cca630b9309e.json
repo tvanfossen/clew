@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the second call is a sized fill and that failure yields an empty return. But it never says a negative result from the second call is terminal. It only calls the `actual < 0` branch \"probably unreachable\"."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 18227,
+  "stop_reason": "end_turn",
+  "session_id": "3ea4b4b0-4b50-4c92-8850-ad53c4edc405",
+  "total_cost_usd": 0.00945623,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 30794,
+    "cache_read_input_tokens": 170443,
+    "output_tokens": 3184,
+    "output_tokens_details": {
+      "thinking_tokens": 1102
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 30794,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2110,
+        "cache_read_input_tokens": 44513,
+        "cache_creation_input_tokens": 1791,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1791
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3184,
+      "cacheReadInputTokens": 170443,
+      "cacheCreationInputTokens": 30794,
+      "webSearchRequests": 0,
+      "costUSD": 0.00945623,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1102,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 30794,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer is a one-hop, name-resolved list of causal neighbours, not a list of call sites. I read this from the source (`clew/query/symbols.py`, `clew/query/models.py`, `clew/mcp_server/tools_query.py`) and did not run clew against the repo.\n\n**What `callers(fn)` returns**\n\nEach row is a `CallEdge`, and the fields are:\n\n- `name`, `rowid`: the neighbouring function, resolved by identity.\n- `edge_class`: `'call'` or `'key'`. This is the field to check first.\n- `source`, `confidence`: for `'call'` rows, the doxygen layer that found the edge and `exact`/`resolved`/`fuzzy`.\n- `strength`, `key_name`, `edge_kind`, `dispatch_mode`, `edge_triggered`, `crosses_thread`, `to_thread`: for `'key'` rows, the shared-key details.\n- `implementors`: on a virtual endpoint, the overrides doxygen's `reimplements` relation names. It annotates the edge and is not an edge of its own.\n\nThere is no file, line or call-site location in the row. You learn who is on the other end, not where the call happens. One row is kept per endpoint identity, not per layer, so the two doxygen layers do not double-count an edge.\n\n**What makes it wrong to read as a list of call sites**\n\n1. **`'key'` rows do not call `fn`.** `callers()` deliberately merges in functions that write a shared key `fn` reads, with no call between them. The docstring says such a neighbour \"does NOT call `fn` and may run on another thread\". Counting every row as a caller overstates the call graph.\n\n2. **Fuzzy edges are not filtered.** `callers` keeps `confidence='fuzzy'` rows. The code comment gives 21.3% of clew's own call edges and 79.8% of a C++ target's (entropic) as fuzzy. Traversal code filters them, but the flat list does not, so the consumer has to weigh `confidence`.\n\n3. **An empty list is not a measured \"no callers\".** `_empty_callers_note` and `_refusal_note` exist because of this:\n   - A constructor appears as an empty caller list when brace-initialisation sites are not call edges (gh#4). A name that is also a class is flagged.\n   - Calls through pointer or reference receivers resolve only when the declared type pins the class. Refused sites are counted in `callers_unresolved`, and a non-zero count means the empty list is not a negative.\n   - `None` for that count means the index predates the measurement, not \"zero refusals\".\n\n4. **Same-named functions can merge.** Without `qualified=`, overloads or same-named functions can share a result. Member-call rows recovered from an unqualified tail can belong to several of them at once. The `qualified` selector narrows `'call'` rows but not `'key'` rows, because the key join is on `memberdef.name` (a known gh#26-shaped gap). A `'key'` row is therefore the union over every function with that name.\n\n5. **It is one hop.** `callers` is a flat neighbour list. Multi-hop `chain_trace` follows different rules, and it filters fuzzy edges because each hop expands.\n\n**How to read it**\n\nSplit the rows by `edge_class`. Treat `'call'`/`exact` and `'call'`/`resolved` as the call sites. Treat `'call'`/`fuzzy` as candidates to check by reading the body. Treat `'key'` rows as data-flow neighbours that may be asynchronous. Treat an empty result as \"not established\" whenever `callers_unresolved` is positive, the name is also a class, or the name is ambiguous.",
+  "ttft_ms": 1703,
+  "type": "result",
+  "duration_ms": 18647,
+  "uuid": "e229a435-5b4c-48f6-8682-8fbce13f120e",
+  "ttft_stream_ms": 1204,
+  "time_to_request_ms": 177,
+  "first_content_frame_ms": 1204,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

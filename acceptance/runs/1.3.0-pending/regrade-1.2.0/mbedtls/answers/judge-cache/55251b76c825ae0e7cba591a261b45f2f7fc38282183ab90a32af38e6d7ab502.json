@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Compile time (no runtime layer). Set `MBEDTLS_PLATFORM_MEMORY`, then define both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`... The macros win over any runtime setting, and `platform.c`'s pointer block is compiled out\" and \"`mbedtls_platform_set_calloc_free` is only declared in the runtime configuration. Calling it when the macros are set is a compile error.\"\n\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer setter, and says the setter is not declared when the macros are set, so the two cannot be combined."
+}

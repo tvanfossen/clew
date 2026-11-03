@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `PermissionPersister` writes the new entries back to project YAML.\nVERDICT: MISS\nWHY: The answer says a persister writes entries back to project YAML, but it never names config.local.yaml or ties persistence across future sessions to a separate append step distinct from the in-memory add_permission."
+}

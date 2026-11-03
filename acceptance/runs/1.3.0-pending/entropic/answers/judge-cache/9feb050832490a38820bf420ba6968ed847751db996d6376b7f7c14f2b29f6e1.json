@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Async `entropic.ask` worker | `external_bridge.cpp:1158`, `.detach()` at `:1222` | Detached, never joined\nVERDICT: HIT\nWHY: The answer identifies the async ask worker as the detached, never-joined thread (all others joined), and the gap section says it outlives its owner."
+}

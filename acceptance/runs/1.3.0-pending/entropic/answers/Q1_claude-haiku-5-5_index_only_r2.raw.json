@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 25857,
+  "stop_reason": "end_turn",
+  "session_id": "e1761a68-2bc6-4bfe-8401-494bd37376a9",
+  "total_cost_usd": 0.013260880000000003,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 35103,
+    "cache_read_input_tokens": 343888,
+    "output_tokens": 5600,
+    "output_tokens_details": {
+      "thinking_tokens": 2447
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 35103,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2439,
+        "cache_read_input_tokens": 66320,
+        "cache_creation_input_tokens": 6241,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6241
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 5600,
+      "cacheReadInputTokens": 343888,
+      "cacheCreationInputTokens": 35103,
+      "webSearchRequests": 0,
+      "costUSD": 0.013260880000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2447,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 35103,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 21,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the two llama.cpp calls are a size-probe and a fill, not retry. A failed tokenization returns an empty vector, and the callers mostly don't check for it. The failure is silent in most paths.\n\n**Why it calls twice (`src/inference/llama_cpp_tokenizer.cpp:49-71`)**\n\n`LlamaCppTokenizer::tokenize` calls `llama_tokenize` at lines 55 and 61:\n\n1. First call passes a null buffer and size 0. The code's comment says a negative return is the required token count, so the call is asking llama.cpp how big the output must be. The code negates it (`n = -n`).\n2. It allocates a vector of that size and calls `llama_tokenize` again with the buffer.\n\nThe second call is the only real work. The `actual < 0` check after it is defensive, since the size was just measured on the same input.\n\nThe other two-call site is `LlamaCppTokenizer::detokenize` (`llama_cpp_tokenizer.cpp:86-105`, `llama_token_to_piece` at lines 93 and 99). It tries a fixed 256-byte stack buffer first. If llama.cpp returns a negative size, it allocates exactly that and calls again. That is a buffer resize, not a retry.\n\n**Is it retry logic?** No. Neither site repeats on failure: there is no loop, no backoff, and no second attempt on the same input. The only \"failure\" branch is the second call returning negative, which logs an error and returns `{}`.\n\n**What the caller receives on failure**\n\n- `LlamaCppTokenizer::tokenize` returns an empty vector. It also returns empty when `vocab_` is null, and it logs only in the negative-return case (`\"Tokenization failed for text of length N\"`).\n- `detokenize` returns an empty string on failure.\n- `LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788-800`) passes the empty result through. It returns empty when no tokenizer is wired, with no log.\n\nDownstream, the empty vector propagates without a check:\n\n| Caller | What it does with empty tokens |\n|---|---|\n| `tokenize_text` (`llama_cpp_backend.cpp:837`) | Returns empty. |\n| `do_count_tokens` (`:825`) | Returns `0`. |\n| `InferenceBackend::count_tokens` (`backend.cpp:496`) | When loaded, returns `0` directly. The `len/4` estimate applies only when COLD. |\n| `entropic_inference_count_tokens` (`inference_c_api.cpp:548`) | Returns `0`. The `len/4` fallback runs only on an exception. |\n| `compute_prefix_token_count` (`:2051`) | Returns `0`, so prefill caches a zero-length prefix. |\n| `do_complete` (`:3941`) and `do_generate_text_only` (`:2555`) | Log \"0 input tokens\" and continue into `decode_loop` / `run_prefill_cached`. |\n\n`run_prefill` (`:1484`) does not fail on an empty token list: its loop simply doesn't execute and it returns `true`. Nothing in the generation path surfaces the tokenization failure as an error result.\n\n**Observations**\n\n- A loaded model whose tokenization fails reports `0` tokens from `count_tokens`. A COLD model reports a `len/4` estimate for the same text. That is an inconsistency, and a caller budgeting context will see a silent undercount.\n- The generation path for an empty prompt is the least certain part of this. The index shows that `run_prefill` returns `true` for zero tokens. I did not verify what llama.cpp does when `generate_after_prefill` samples without a prefilled context. Check that before relying on the behaviour.\n- The index doesn't cover llama.cpp itself. The \"negative return = required size\" reading comes from the code's own comment and standard llama.cpp usage, not from the library source.",
+  "ttft_ms": 898,
+  "type": "result",
+  "duration_ms": 27459,
+  "uuid": "c091b3a0-45a6-44e5-9660-6a3b128f8b61",
+  "ttft_stream_ms": 602,
+  "time_to_request_ms": 89,
+  "first_content_frame_ms": 602,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

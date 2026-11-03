@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tier 3/4, facts the repo already wrote | Doxygen `PREDEFINED`/`ALIASES`, generator manifests, language or ecosystem signatures | Accumulate; no declaration removes them ... Tier 5 ... The floor; any stated tier displaces them\nVERDICT: HIT\nWHY: The answer says stated tiers displace one another (the stated value wins, and a stated tier displaces the heuristics), while the discovered tiers \"Accumulate; no declaration removes them\"."
+}

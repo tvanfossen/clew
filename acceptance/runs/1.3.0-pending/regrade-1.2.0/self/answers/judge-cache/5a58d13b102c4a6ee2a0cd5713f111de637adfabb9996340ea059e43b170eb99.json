@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: CLI flag, or the structured `options` argument for an embedding caller or MCP (`clew/buildoptions.py`)\nVERDICT: HIT\nWHY: The answer states tier 1 is set by either a CLI flag or the structured options argument, which an embedding caller or MCP can use. It also says \"Before it existed, MCP got only built-in defaults, because the flags were CLI-only.\""
+}

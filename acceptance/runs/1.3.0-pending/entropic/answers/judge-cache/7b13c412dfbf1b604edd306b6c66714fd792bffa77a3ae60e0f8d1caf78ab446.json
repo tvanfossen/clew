@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Allow list** (`permissions.allow`) is the only thing that skips prompting.\" and \"auto_ok = permissions.auto_approve OR ServerManager::is_explicitly_allowed (allow list)\" under `check_approval (:161)`\nVERDICT: HIT\nWHY: The answer says the allow list skips prompting (suppresses approval) and ties it to check_approval in tool_executor.cpp, with is_explicitly_allowed in server_manager. It does not say \"does not grant execution\" in so many words, but the mechanism and location are there."
+}

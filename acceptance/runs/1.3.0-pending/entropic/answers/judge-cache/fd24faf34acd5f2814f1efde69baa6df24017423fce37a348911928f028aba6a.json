@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When `on_tool_call` is set, `check_approval` sets `approved = true` after calling it. The return value is never read.\nVERDICT: HIT\nWHY: The answer states the callback cannot deny: the code sets approved = true after calling it and ignores its return value, so it only notifies. The void return type is implied by \"return value is never read\" rather than stated."
+}

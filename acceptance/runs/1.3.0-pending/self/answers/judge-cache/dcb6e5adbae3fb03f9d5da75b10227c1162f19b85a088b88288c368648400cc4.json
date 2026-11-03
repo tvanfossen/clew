@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Binary detection runs before parsing. Non-text files are skipped, but there is no size limit, so a large generated `.c` is still read.\nVERDICT: MISS\nWHY: The answer describes binary detection as a content check and puts extension filtering in doxygen, but it never says the resolved scope is only part of the answer. It also never names the parse-built front end or the binary filter that drops files whose extension lies about them."
+}

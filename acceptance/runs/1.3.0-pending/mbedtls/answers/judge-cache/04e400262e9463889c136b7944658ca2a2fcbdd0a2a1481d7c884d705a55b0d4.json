@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the asm path requires MBEDTLS_HAVE_ASM plus a GNU compiler and recognised architecture, but never mentions MBEDTLS_CT_ASM or that it is derived rather than configured."
+}

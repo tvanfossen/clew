@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the flat surface keeps fuzzy edges while the traversal excludes them, nor that a walk multiplies a fuzzy edge into a wrong subtree."
+}

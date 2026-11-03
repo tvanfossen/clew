@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: So the boundary is: llama.cpp types stop at `src/inference/`.\nVERDICT: MISS\nWHY: The answer claims the dependency is contained in src/inference/, though it also lists facade files (e.g. `src/facade/entropic.cpp`) that reach llama types. It never concludes that a minority of reaching files sit outside the inference layer."
+}

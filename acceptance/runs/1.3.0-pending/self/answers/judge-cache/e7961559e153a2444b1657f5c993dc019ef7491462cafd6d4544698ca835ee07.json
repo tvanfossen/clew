@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: No error is raised. `derive_scope` logs the reason at INFO (\"no index_scope is declared for this repo \u2026 so the whole repository is the index scope\u2026\"), and that reason is stored in `IndexScope` (`clew/query/models.py`).\nVERDICT: HIT\nWHY: The answer says the whole-repo fallback carries a stored reason, and that a rejection is used as the stated reason, so the scope choice is never silently guessed."
+}

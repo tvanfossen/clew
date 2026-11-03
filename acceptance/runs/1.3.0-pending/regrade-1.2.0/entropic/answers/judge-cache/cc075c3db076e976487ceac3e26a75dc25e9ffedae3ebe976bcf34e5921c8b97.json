@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"llama.cpp returns that count negated, and the code flips it back to positive.\"\nVERDICT: HIT\nWHY: The answer states the first call returns the required count as a negated value and the code flips it to positive to size the second call's vector."
+}

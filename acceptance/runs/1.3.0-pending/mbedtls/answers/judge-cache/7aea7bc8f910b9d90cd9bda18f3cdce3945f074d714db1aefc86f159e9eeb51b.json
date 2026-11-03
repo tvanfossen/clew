@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132`, `#define MBEDTLS_ALLOW_PRIVATE_ACCESS` | Unconditional for every library `.c` that includes `common.h` (about 129 files). Inside the library, `MBEDTLS_PRIVATE(x)` expands to the real `x`.\nVERDICT: HIT\nWHY: The answer states that a shared header (common.h) unconditionally defines the opt-out for library code, so library files see plain member names."
+}

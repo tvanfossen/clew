@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The path from a negative return code to a string runs through `mbedtls_strerror()` in `library/error.c`.\nVERDICT: HIT\nWHY: The answer explicitly names mbedtls_strerror() as the entry point and places it in library/error.c."
+}

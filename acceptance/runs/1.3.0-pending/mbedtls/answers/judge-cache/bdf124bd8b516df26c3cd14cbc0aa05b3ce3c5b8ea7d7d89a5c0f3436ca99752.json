@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque()` (`constant_time_impl.h`) launders a value through an empty `asm volatile` or an XOR with a volatile zero, so the compiler cannot constant-fold or prove the condition.\nVERDICT: HIT\nWHY: The answer says the asm path is an empty `asm volatile` used as an opacity barrier that stops compiler optimisation. It doesn't mention the input-output register operand, but the core mechanism and purpose are stated."
+}

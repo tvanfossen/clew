@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The allow list only skips the prompt.\nVERDICT: MISS\nWHY: The answer says allow only skips the prompt and puts the check in `check_approval`, but it never says allow doesn't grant execution or that it's consulted only from `check_approval` in a different file (the deny check is in `ServerManager::execute`)."
+}

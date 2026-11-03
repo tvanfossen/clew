@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788`) forwards that empty vector. It returns `{}` when no tokenizer is wired too.\"\nVERDICT: HIT\nWHY: The answer states the backend wrapper returns an empty vector on tokenization failure and also `{}` when no tokenizer is wired."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains why YAML/JSON get path-only rows and no symbols, but never says markdown is deliberately excluded from path rows or that a path row would count it as indexed source in coverage figures."
+}

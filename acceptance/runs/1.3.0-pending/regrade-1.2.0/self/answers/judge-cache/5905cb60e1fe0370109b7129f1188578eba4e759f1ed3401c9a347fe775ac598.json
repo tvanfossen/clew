@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says tiers 3 and 4 combine identically or that the fact-versus-guess line is what matters; it only gives the formula `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4` and notes that facts are never discarded."
+}

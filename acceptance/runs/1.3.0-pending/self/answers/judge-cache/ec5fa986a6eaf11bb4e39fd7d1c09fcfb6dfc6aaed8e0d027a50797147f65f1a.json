@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tree-sitter (`harvest.py`) handles Python, Rust, C/C++, JS/TS, shell and CMake. `synth.py` claims JS/TS, shell, CMake and YAML/JSON.\nVERDICT: MISS\nWHY: The answer says Doxygen only reads its forced FILE_PATTERNS and that other languages come from their own front ends, but it never states that the scope is not the whole answer or names the \"claiming the file types doxygen cannot read\" filter. It does mention binary removal, but not the \"extension lies\" aspect."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `qualified` narrows the call half but not the key half, so `key` rows can still come from every same-named function.\nVERDICT: MISS\nWHY: The answer says `qualified` narrows the call half but not the key half, but it never says the flat surface selects the focal side by resolved identity while the traversal surface matches on the bare name."
+}

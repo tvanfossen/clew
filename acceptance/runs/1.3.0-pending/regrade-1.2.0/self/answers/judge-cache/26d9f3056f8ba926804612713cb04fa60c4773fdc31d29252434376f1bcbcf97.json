@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes two cases (\"searched and found nothing\" versus \"never in reach\") and gives a confidence table. It never names three reply grades: definitive for the scope, definitive for a reason other than absence, and not definitive."
+}

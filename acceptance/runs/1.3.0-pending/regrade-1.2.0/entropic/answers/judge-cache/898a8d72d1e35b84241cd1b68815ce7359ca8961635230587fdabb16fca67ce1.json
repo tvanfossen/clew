@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`entropic_inference_count_tokens` (`inference_c_api.cpp:548`) | Returns 0 to the plugin caller.\" and \"`do_count_tokens` \u2192 `count_tokens` (`backend.cpp:496`) | Returns 0.\" and \"A plugin caller gets 0 with no error signal\"\nVERDICT: HIT\nWHY: The answer states that the token-counting path returns 0 on tokenization failure with no error signal, which is the item's substance."
+}

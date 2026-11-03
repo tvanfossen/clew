@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`): 1. **Probe:** `llama_tokenize(vocab_, text, ..., nullptr, 0, ...)` ... 2. **Fill:** It allocates `std::vector<int32_t>(n)` and calls `llama_tokenize` again\nVERDICT: HIT\nWHY: The answer names the file and function and describes the probe-then-fill two-call llama_tokenize pattern."
+}

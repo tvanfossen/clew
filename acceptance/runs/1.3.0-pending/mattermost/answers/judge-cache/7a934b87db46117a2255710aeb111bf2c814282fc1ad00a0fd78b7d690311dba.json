@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ServerDataOperator` (`app/database/operator/server_data_operator/index.ts:23`) is an interface that extends 14 handler mixins.\nVERDICT: HIT\nWHY: The answer states that the `ServerDataOperator` interface extends each `...HandlerMix` type. The class is typed with every mixed-in method as a result. It does not spell out that the interface shares the class's name, so that part is implied rather than stated."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`TimerProc` / `sighandler` (benchmark) | Windows timer thread, and a POSIX alarm handler, in the benchmark tool only.\"\nVERDICT: MISS\nWHY: The answer says the benchmark has a Windows timer thread but never says it is gated on a platform condition (e.g. `_WIN32`) rather than on the threading config. The `_WIN32` gate it mentions is for `term_handler`, not the benchmark timer."
+}

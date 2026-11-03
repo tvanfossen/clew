@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Within one document: validation is all-or-nothing. One bad entry or unknown key refuses the whole document and changes nothing.\nVERDICT: MISS\nWHY: The answer says an unknown key refuses the document, but it never says the refusal names the section against the allowed set. It also never gives the reason that an ignored section would build with defaults while claiming the declaration was honoured. It even describes a malformed file as silently ignored."
+}

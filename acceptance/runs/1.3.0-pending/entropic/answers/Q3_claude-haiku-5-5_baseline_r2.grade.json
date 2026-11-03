@@ -1,0 +1,143 @@
+{
+  "cell": "Q3_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5666666666666667,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names PermissionManager and locates the allow and deny lists as coming from the PermissionsConfig the ServerManager is constructed with",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never names PermissionManager or says the allow/deny lists come from the PermissionsConfig that ServerManager is constructed with. It only gives the config shape and the check locations. || QUOTE: NONE | WHY: The answer never names PermissionManager or says the allow/deny lists come from the PermissionsConfig that ServerManager is constructed with; it only mentions the config schema and ServerManager::execute. || QUOTE: NONE | WHY: The answer never names PermissionManager or says the allow/deny lists come from the PermissionsConfig that ServerManager is constructed with. It only mentions the config shape and `ServerManager::execute` checking `is_denied`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the DENY list is the only one that blocks execution \u2014 ServerManager's execute path consults is_denied and nothing else before routing the call",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"Deny is the last gate. It is checked in `ServerManager::execute`, after approval. `check_approval` only consults the allow list.\" | WHY: The answer says deny is checked in ServerManager::execute, but it also describes other gates (pre-tool hook, schema, MCP authorization, tier checks, approval) that can block, so it doesn't conclude that deny is the only blocking list with execute consulting only is_denied. || QUOTE: \"Deny is the last gate. It is checked in `ServerManager::execute`, after approval. `check_approval` only consults the allow list.\" | WHY: The answer places deny in ServerManager::execute, but it doesn't conclude that deny is the only list that blocks execution. It describes the allow list as gating approval, so an unapproved call is refused at the approval step. || QUOTE: \"Deny is the last gate. It is checked in `ServerManager::execute`, after approval. `check_approval` only consults the allow list.\" | WHY: The answer says deny is checked in ServerManager::execute, but it also describes multiple other gates that block execution (hook, schema, tier, approval refusal), so it does not conclude that DENY is the only blocking list consulted there.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the ALLOW list does not grant execution but suppresses the approval step \u2014 it is consulted only from ToolExecutor::check_approval, in a different file",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"`check_approval` only consults the allow list.\" and \"The allow list only skips the approval step. It never overrides deny, schema, or tier checks.\" and \"check_approval_pc \u2192 check_approval (tool_executor.cpp:161)\" | WHY: The answer says the allow list only skips approval and doesn't override deny. It places the allow-list check in `check_approval` in tool_executor.cpp, and `ServerManager::execute` in the separate server_manager.cpp does only the deny check. || QUOTE: \"`check_approval` only consults the allow list.\" and \"The allow list only skips the approval step. It never overrides deny, schema, or tier checks.\" | WHY: The answer says the allow list only skips approval rather than granting execution, and places its use in check_approval (tool_executor.cpp:161) while deny sits in ServerManager::execute in server_manager.cpp, a different file. || QUOTE: \"`check_approval` only consults the allow list.\" and \"approved = auto_approve || is_explicitly_allowed(allow list)\" with \"The allow list only skips the approval step. It never overrides deny, schema, or tier checks.\" | WHY: The answer says the allow list only skips the approval step and doesn't override deny. It also says it is consulted only in `check_approval` (tool_executor.cpp:161), while deny is checked in server_manager.cpp, so the different-file point is shown.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the effective posture is default-ALLOW at the blocking gate \u2014 a tool matching neither list is not denied and runs",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer concludes the opposite: a call matching no allow pattern is refused (default-deny) unless auto_approve is set, never saying an unmatched tool runs. || QUOTE: NONE | WHY: The answer concludes the opposite: a call matching no allow pattern is refused unless auto_approve is set (default-deny at approval), and never states that unmatched tools run. || QUOTE: NONE | WHY: The answer concludes the opposite: a call matching no allow pattern is refused (default-deny) unless auto_approve is set, never saying an unlisted tool runs.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the approval callback CANNOT refuse \u2014 it returns void, and the code sets approved to true unconditionally after firing it",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Even when the callback is set, it does not wait. The code calls it and then sets `approved = true` unconditionally. Nothing blocks on a user answer in this path. | WHY: The answer states that the callback is fired and `approved = true` is then set unconditionally, so the callback cannot refuse. The answer doesn't mention the void return type, but the unconditional approval is the core of the item. || QUOTE: Even when the callback is set, it does not wait. The code calls it and then sets `approved = true` unconditionally. Nothing blocks on a user answer in this path. | WHY: The answer says the code calls the callback and then sets approved = true unconditionally, so the callback cannot refuse. It doesn't mention the void return type, but the unconditional-approval mechanism is stated. || QUOTE: \"Even when the callback is set, it does not wait. The code calls it and then sets `approved = true` unconditionally. Nothing blocks on a user answer in this path.\" | WHY: The answer states the callback is fired and approved is then set to true unconditionally, so the callback cannot refuse.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a pattern is matched with fnmatch, split at the first colon into a tool part and an argument part, and that a pattern with no colon matches on the tool name alone",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: Patterns are `tool[:argpattern]`, split at the first `:`, and both halves use `fnmatch` with no flags. ... **No colon:** the tool-name match is enough, so the pattern covers every call to that tool. | WHY: The answer states fnmatch matching, a split at the first colon into tool and argument parts, and that a pattern with no colon matches on the tool name alone. || QUOTE: Patterns are `tool[:argpattern]`, split at the first `:`, and both halves use `fnmatch` with no flags. ... **No colon:** the tool-name match is enough, so the pattern covers every call to that tool. | WHY: The answer states fnmatch matching, splitting at the first colon into tool and arg parts, and that a no-colon pattern matches on tool name alone. || QUOTE: Patterns are `tool[:argpattern]`, split at the first `:`, and both halves use `fnmatch` with no flags. ... **No colon:** the tool-name match is enough, so the pattern covers every call to that tool. | WHY: The answer states fnmatch matching, the split at the first colon into tool and argument parts, and that a colon-less pattern matches on tool name alone.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that only ONE argument value ever reaches the pattern \u2014 the rest of the call's arguments are invisible to permission matching, and a non-string or unparseable argument collapses to a wildcard",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: That function takes the first key of the args object and uses its value if it is a string. Otherwise it uses `*`. | WHY: The answer says only the first argument's value reaches the pattern, and a non-string value becomes `*`. It never mentions unparseable arguments, but the \"only one argument\" mechanism is stated. || QUOTE: That function takes the first key of the args object and uses its value if it is a string. Otherwise it uses `*`. | WHY: The answer states that only one argument (the first key's value) is used for pattern matching, and that a non-string value becomes `*`. It does not mention unparseable arguments, but the core of the item is there. || QUOTE: That function takes the first key of the args object and uses its value if it is a string. Otherwise it uses `*`. | WHY: The answer states that only one argument (the first key's value) is used for matching and that a non-string value becomes `*`. It does not mention unparseable arguments, but the core claim of a single argument value with a wildcard fallback is there.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that a decision can be PERSISTED for future sessions by appending to config.local.yaml, separately from the in-memory add_permission call",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer mentions set_permission_persist and PermissionPersister::save_permission as dead code, but never says a decision can be persisted by appending to config.local.yaml separately from add_permission. || QUOTE: NONE | WHY: The answer says \"Always allow\" does not persist and that `save_permission` and `add_permission` are unwired. It never says a decision can be persisted by appending to config.local.yaml, separately from the in-memory add_permission call. || QUOTE: NONE | WHY: The answer says \"Always allow\" does not persist and that permission_persist_ is never called, but never says a decision can be persisted by appending to config.local.yaml, separately from the in-memory add_permission call.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/permission_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/server_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/tool_executor.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 include/entropic/types/config.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": false,
+      "detail": "named 2 not in the set: ['bash.cpp', 'loader.cpp']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

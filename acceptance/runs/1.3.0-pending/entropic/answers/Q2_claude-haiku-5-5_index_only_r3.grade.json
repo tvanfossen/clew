@@ -1,0 +1,103 @@
+{
+  "cell": "Q2_claude-haiku-5-5_index_only_r3",
+  "arm": "index_only",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.23076923076923078,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "states that llama.cpp is brought in as a git SUBMODULE at extern/llama.cpp, rather than vendored, copied or fetched by the build",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `extern/` holds llama.cpp as a git submodule. | WHY: The answer states llama.cpp is a git submodule under `extern/llama.cpp`, and it does so without contradiction. It also says the comment \"is a submodule but NOT built\". || QUOTE: `extern/` holds llama.cpp as a git submodule. | WHY: The answer states llama.cpp is a git submodule under `extern/llama.cpp`. It also mentions a stale FetchContent comment, but it still names the submodule mechanism and location. || QUOTE: `extern/` holds llama.cpp as a git submodule. | WHY: The answer explicitly states llama.cpp is a git submodule under `extern/llama.cpp`, even though it also hedges about FetchContent wiring.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the dependency reaches roughly a dozen files of entropic's own source, not one wrapper",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: Its reach is about seven files in `src/inference/`, plus config fields that mirror its parameters and link-time mocks in the tests. | WHY: The answer says about seven files in src/inference/ (plus config header and tests), not roughly a dozen files of entropic's own source, and it frames the reach as largely contained. || QUOTE: Its reach is about seven files in `src/inference/`, plus config fields that mirror its parameters and link-time mocks in the tests. | WHY: The answer says about seven files in src/inference/ (plus config and test mocks), not roughly a dozen files of entropic's own source, so it doesn't convey the required breadth. || QUOTE: Its reach is about seven files in `src/inference/`, plus config fields that mirror its parameters and link-time mocks in the tests. | WHY: The answer says about seven files in src/inference/ (plus config and tests), not roughly a dozen files of entropic's own source, so it doesn't convey the item's breadth.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the dependency is CONCENTRATED in the inference layer but NOT contained by it \u2014 a minority of the reaching files sit outside src/inference",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says the reach is \"about seven files in `src/inference/`\" and that nothing outside exposes llama.cpp types; it never concludes that a minority of reaching files sit outside src/inference. || QUOTE: NONE | WHY: The answer says the dependency is confined to src/inference/ and the C ABI boundary, with config fields and test mocks as indirect touches. It never says that a minority of the reaching files sit outside src/inference. || QUOTE: Its reach is about seven files in `src/inference/`, plus config fields that mirror its parameters and link-time mocks in the tests. Nothing in the public C interface or the Python wrapper exposes llama.cpp types. | WHY: The answer says the dependency stays inside `src/inference/`, with the C ABI as the outer boundary. It does not say that a minority of the reaching files sit outside that directory. The config header and the tests are named, but as mirrors and mocks, not as evidence that the dependency is not contained.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the seam as llama.cpp's C API \u2014 free functions with an llama_ prefix \u2014 rather than C++ classes or inheritance",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: `LlamaCppBackend` calls `llama_model_load_from_file`, `llama_init_from_model`, and the decode, sampler, and batch APIs. It holds `llama_model*`, `llama_context*` | WHY: The answer lists llama_-prefixed functions but never identifies the seam as llama.cpp's C API of free functions, as opposed to C++ classes or inheritance. || QUOTE: `LlamaCppBackend` calls `llama_model_load_from_file`, `llama_init_from_model`, and the decode, sampler, and batch APIs. It holds `llama_model*`, `llama_context*` | WHY: The answer lists llama_-prefixed function calls but never identifies the seam as llama.cpp's C API of free functions; it frames the boundary as the entropic C++ backend and doesn't state the C-API-vs-classes point. || QUOTE: `LlamaCppBackend` calls `llama_model_load_from_file`, `llama_init_from_model`, and the decode, sampler, and batch APIs. It holds `llama_model*`, `llama_context*` | WHY: The answer names llama_-prefixed functions and opaque pointer types, but it never identifies the seam as llama.cpp's C API or contrasts it with C++ classes or inheritance. It describes the integration only as a submodule linked into the `.so`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 inference",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 config",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 core",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 facade",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

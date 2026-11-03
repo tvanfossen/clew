@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If nothing approved the call and `on_tool_call` is registered, the code calls it and then sets `approved = true`. `on_tool_call` is a `void` callback that cannot return a refusal (`engine_types.h:370`).\nVERDICT: HIT\nWHY: The answer states the callback is void and cannot refuse, and that approved is set to true unconditionally after it fires."
+}

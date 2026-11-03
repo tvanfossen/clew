@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 72872,
+  "stop_reason": "end_turn",
+  "session_id": "f4cecc74-af0b-44a4-926c-a9dcc2945219",
+  "total_cost_usd": 0.03464540000000001,
+  "usage": {
+    "input_tokens": 48,
+    "cache_creation_input_tokens": 74306,
+    "cache_read_input_tokens": 1468390,
+    "output_tokens": 10191,
+    "output_tokens_details": {
+      "thinking_tokens": 4170
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 74306,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2552,
+        "cache_read_input_tokens": 88319,
+        "cache_creation_input_tokens": 1498,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1498
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 48,
+      "outputTokens": 10191,
+      "cacheReadInputTokens": 1468390,
+      "cacheCreationInputTokens": 74306,
+      "webSearchRequests": 0,
+      "costUSD": 0.03464540000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4170,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 74306,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 26,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** with nothing declared, the index scope is the whole repository minus what git ignores, minus dot-directories and a few cache/vendor names. That candidate set is not filtered by extension. Which of those files get parsed is decided later, by Doxygen's forced `FILE_PATTERNS` and by per-language front ends. This is from reading the code; I did not run a build.\n\n**The decision, in order**\n\n1. **Default scope is `from-guard`.** `cli.py:348` sets it. Despite the name, it no longer reads the gate. It reads `index_scope:` from `.clew.yaml`, and falls back to the whole repo when that is absent.\n\n2. **Declaration check (`scope.py:639`, `derive_scope`).** It looks for `index_scope:` with `roots` and `excludes`. This repo's `.clew.yaml` has none; its header says the index \"declares nothing here and builds this repo on its defaults.\" A present but unusable declaration is refused at build time (`cli.py:807`), not silently replaced.\n\n3. **Whole-repo tier (`scope.py:683`, `whole_repo_scope`).**\n   - Root: the repository itself, including nested git trees. Those are indexed and tagged later, not cut out.\n   - Excludes, from three sources:\n     - `git ls-files --others --ignored --exclude-standard --directory` (`scope.py:845`), so `.gitignore` is the main filter. The git call uses `git_argv`/`git_env`, so the target's own `.git/config` cannot run code.\n     - The same query run inside each nested tree.\n     - Dot-directories and `__pycache__`/`node_modules` (`_skip_dir`, `scope.py:490`), pruned in a walk that stops at nested trees (`_pruned_dirs`).\n   - If the tree is not a git repo, nothing is ignored and a warning says so. The index is then wider than the repo asked for.\n\n4. **Toolchain exclusions (`cli.py:2523`).** A `toolchain.toml` `[ignore].paths` entry is folded into the same exclude list. This repo has no `toolchain.toml`, so this step does nothing here.\n\n5. **Enumeration (`treescan.py`, `enumerate_tree`).** It walks the roots, pruning excluded subtrees, and keeps every regular file. There is no extension filter. Files are hashed for cache identity, so any change forces a re-run.\n\n6. **Binary removal (`cli.py:2554`, `filetypes.py`).** `classify_file` drops binaries before anything reads them. Empty files and large generated sources stay in.\n\n7. **Doxygen reads only its forced `FILE_PATTERNS` (`doxygen.py:203\u2013270`).** Doxygen's full default list is forced, so a declared `FILE_PATTERNS` cannot narrow it. It covers C/C++, Java, Python, Fortran, Markdown and others. A declared Doxyfile contributes ALIASES and PREDEFINED only; its `INPUT` is replaced (`doxygen.py` around line 783). Without a Doxyfile, one is synthesized.\n\n8. **Other languages come from their own front ends, not Doxygen.** Tree-sitter (`harvest.py`) handles Python, Rust, C/C++, JS/TS, shell and CMake. `synth.py` claims JS/TS, shell, CMake and YAML/JSON. YAML/JSON are registered as `path` rows but harvested for no symbols.\n\n**What \"nothing declared\" means in practice**\n\n| Situation | Result |\n|---|---|\n| Ignored by `.gitignore` | Not indexed |\n| Dot-dir or `__pycache__`/`node_modules` | Not indexed, anywhere in the tree |\n| `.venv`, `build/` not in `.gitignore` | Indexed (only dot-dirs are pruned by name) |\n| Binary file | Dropped and logged at INFO |\n| Source file of a type nothing claims (e.g. `.txt`) | Enumerated and hashed, but no `path` row |\n| Scanned but not in the `path` table | Reported in `not_indexed` / `not_indexed_count` (`cli.py` around 2660) |\n\nThe `not_indexed` report is the place to check for silent gaps. It counts files that were in scope but produced no row.\n\n**Caveat on tool output:** several of my file reads returned trailing text suggesting I call a clew `dossier` tool instead. That is not part of your question, so I ignored it and read the source directly.",
+  "ttft_ms": 1899,
+  "type": "result",
+  "duration_ms": 74190,
+  "uuid": "be9fe41f-b425-4ade-9402-96d94ef0756b",
+  "ttft_stream_ms": 1257,
+  "time_to_request_ms": 170,
+  "first_content_frame_ms": 1257,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,103 @@
+{
+  "cell": "Q2_claude-haiku-5-5_index_only_r2",
+  "arm": "index_only",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.38461538461538464,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "states that llama.cpp is brought in as a git SUBMODULE at extern/llama.cpp, rather than vendored, copied or fetched by the build",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: \"`extern/llama.cpp` is a git submodule.\" | WHY: The answer explicitly states llama.cpp is a git submodule at extern/llama.cpp. || QUOTE: \"`extern/llama.cpp` is a git submodule.\" | WHY: The answer explicitly states llama.cpp is a git submodule at extern/llama.cpp, which is the item's substance.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the dependency reaches roughly a dozen files of entropic's own source, not one wrapper",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says the C API is used from one directory (src/inference/) and lists about three class pairs. It never says the dependency reaches roughly a dozen of entropic's own source files. It argues the opposite, that the dependency is contained. || QUOTE: NONE | WHY: The answer says the API is used from one directory (`src/inference/`), centered on `LlamaCppBackend` with a few satellite files. It never says the dependency reaches about a dozen of entropic's own source files, and it implies the opposite. || QUOTE: Its C API is used from one directory, `src/inference/`, and does not appear in entropic's public headers. | WHY: The answer says the dependency is contained in one directory with a single backend class and its satellites, which is the opposite of reaching roughly a dozen files of entropic's own source.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the dependency is CONCENTRATED in the inference layer but NOT contained by it \u2014 a minority of the reaching files sit outside src/inference",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer concludes the dependency is fully contained in src/inference, with only a vendored stb_image mention, and doesn't say that a minority of reaching files sit outside it. || QUOTE: NONE | WHY: The answer concludes the dependency is contained in src/inference/ and names no files outside it using llama.cpp, the opposite of \"concentrated but not contained\". || QUOTE: NONE | WHY: The answer concludes the dependency is \"contained\" in src/inference/ and never says that some reaching files sit outside it.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the seam as llama.cpp's C API \u2014 free functions with an llama_ prefix \u2014 rather than C++ classes or inheritance",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: Its C API is used from one directory, `src/inference/`; \"Direct C API\" (`docs/architecture-cpp.md`); `llama_decode`, wrap `llama_sampler` chains and `llama_vocab` | WHY: The answer identifies llama.cpp's \"Direct C API\" and names llama_-prefixed free functions and types (`llama_decode`, `llama_sampler`, `llama_vocab`) as what the backend calls, rather than C++ classes or inheritance. || QUOTE: Direct C API (from `docs/architecture-cpp.md`); \"Its C API is used from one directory\"; \"model load, context, `llama_decode`, batching...\"; \"wrap `llama_sampler` chains and `llama_vocab`\" | WHY: The answer identifies llama.cpp's C API as the integration seam, with `llama_`-prefixed free functions such as `llama_decode` used from the backend. It also notes the C++ classes only wrap them.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 inference",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 config",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 core",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 facade",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

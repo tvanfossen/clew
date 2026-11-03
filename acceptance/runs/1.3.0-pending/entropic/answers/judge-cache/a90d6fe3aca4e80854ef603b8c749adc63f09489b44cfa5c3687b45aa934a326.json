@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The empty vector is the same value a legitimately empty input produces, so callers cannot tell \"no tokens\" from \"failed.\"\nVERDICT: HIT\nWHY: The answer states failure is indistinguishable from legitimately empty input, and that most callers don't check (only the MTP path does, as a too-short-prompt check). That is close enough to \"no caller checks for it\" in substance."
+}

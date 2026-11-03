@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"NOT an error and NOT a malformed call, and it is NOT a definitive negative either.\" ... \"Reasonably strong\" ... \"None. The index never saw it.\"\nVERDICT: MISS\nWHY: The answer gives graded confidence levels, but it doesn't name the three grades the item requires. Those are definitive for the scope, definitive for a reason that isn't absence, and not definitive. Its table is organized by situation, not by those three grades."
+}

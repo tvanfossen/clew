@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says no thread creation was found and describes the mutex wrappers, but it never states that library/ supplies the mutex abstraction for threaded callers. It says threading.c compiles to nothing by default and does not draw the contrast."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: launders a value through an empty `asm volatile` or an XOR with a volatile zero, so the compiler cannot constant-fold or prove the condition.\nVERDICT: HIT\nWHY: The answer says the opacity barrier uses an empty `asm volatile` to stop the compiler reasoning about the value, so it names the empty-asm optimisation barrier. It never mentions the input-output register operand, which is a minor detail."
+}

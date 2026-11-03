@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 23030,
+  "stop_reason": "end_turn",
+  "session_id": "117178b0-0a81-4500-b74a-542942a601ab",
+  "total_cost_usd": 0.006519170000000001,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 8395,
+    "cache_read_input_tokens": 253747,
+    "output_tokens": 4603,
+    "output_tokens_details": {
+      "thinking_tokens": 2570
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 8395,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1446,
+        "cache_read_input_tokens": 46384,
+        "cache_creation_input_tokens": 1145,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1145
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4603,
+      "cacheReadInputTokens": 253747,
+      "cacheCreationInputTokens": 8395,
+      "webSearchRequests": 0,
+      "costUSD": 0.006519170000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2570,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 8395,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What the answer contains.** `dossier` on `git_argv` (clew/gitenv.py:89) returned seven direct callers, each marked `source: ast`, `confidence: resolved`, `edge_class: call`. Six are production functions (`_detect_git_version`, `_git_ls_files`, `_gitignored_paths`, `_is_dependency_of_parent`, `run_git`, `tracked_files`). The seventh is a test, `test_the_disarmed_key_list_reaches_the_argv`, so test callers are mixed in with production ones. It also returned `callers_unresolved: 0`, a claim about the parser's own resolution, not about the program. The upstream chain (depth 2) adds two hops: `_nested_trees_recursive \u2192 _gitignored_paths` and `find_source_files \u2192 _git_ls_files`. Those two hops come from `doxygen_sqlite` (`exact`), not `ast`. The chain's depth-0 node reports `omitted: 4`, so it is capped.\n\nThe reply also carries relations that are not call sites:\n- **threads**: `clew-first-build-`, with `member_count: 72`. This says the function is reachable from that thread's entry, not that the thread calls it.\n- **requirements**: `REQ-DDB-CONFIG-001`, an annotation the code claims to satisfy.\n- **covering_tests**: `test_mqtt_dispatch_accepts_an_inline_document_not_only_a_path`. The name has nothing to do with git, so this link looks like a weak attribution. Treat it as a pointer to check, not as coverage.\n- **callees**: empty. For this function that is plausible, but an empty field is only a statement about what the index resolved.\n\n**Why reading it as a list of call sites would be wrong.**\n\n1. **It is a static, name-resolved graph.** An edge means the source names the callee at that place. It does not mean the call runs, and it misses calls made through function references, callbacks, dynamic dispatch, or other languages (a shell script or CMake invoking the Python).\n\n2. **The direct callers are not all the git invocations.** `clew/guard/git.py` has bare literal argv such as `[\"git\", \"diff\", \u2026]` at lines 88, 104, 142, 152, 181 and 197. None of those appear as callers of `git_argv`, because they call `run_git`, and only `run_git` calls `git_argv`. `run_git` (line 72) rewrites the argv only when `cmd[0] == \"git\"`. So the literal sites are safe through `run_git`, but only because of that conditional. A caller list for `git_argv` would not show a site that bypassed `run_git` or built its argv some other way. The index does not show that gap. The test `test_every_git_invocation_disarms_the_inspected_trees_config` is what checks it, from the source text, not the graph.\n\n3. **Depth decides what you see.** Depth 1 is only the direct layer. Who reaches `git_argv` through `run_git` or `find_source_files` is in the depth-2 chain, which is truncated and mixes provenance.\n\n4. **Provenance and confidence differ by hop.** `resolved` (AST) and `exact` (doxygen_sqlite) are different evidence, and a single chain can mix them.\n\n5. **Absence is not proof.** No caller listed means the index did not resolve one. It does not mean nothing calls the function.\n\n**How to use it.** Read the direct callers as a starting set. Filter out tests if you want production paths. Then follow `run_git` upward, and grep for the exact argv pattern that the call-graph cannot see. For a safety property like this one, the source-level test is the authoritative check, and the graph is the map that tells you where to look.",
+  "ttft_ms": 1422,
+  "type": "result",
+  "duration_ms": 23642,
+  "uuid": "16a2fece-6f5c-4a66-9449-3d3d74465ccc",
+  "ttft_stream_ms": 561,
+  "time_to_request_ms": 76,
+  "first_content_frame_ms": 561,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

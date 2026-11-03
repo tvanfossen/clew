@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says a caller appears once even if it calls multiple times, but it never concludes the query surface collapses per-layer variants of a neighbour into one row with the strongest evidence."
+}

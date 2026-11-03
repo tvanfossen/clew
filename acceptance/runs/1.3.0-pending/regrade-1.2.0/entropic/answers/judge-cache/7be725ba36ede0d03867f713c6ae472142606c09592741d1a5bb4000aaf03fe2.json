@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A call with no allow match, no `auto_approve`, and a registered callback still runs unless it is on the deny list.\"\nVERDICT: HIT\nWHY: The answer says a tool on neither list is not denied and runs, because the callback only notifies and doesn't gate. It limits this to the case where a callback is registered, so it is a conditional version of the item's default-allow conclusion."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::accept_loop` ... Polls the listen socket every 500 ms and gates each connection on `SO_PEERCRED` uid. | Per-client serve thread | `external_bridge.cpp:945` | Runs `serve_client` for one MCP connection.\nVERDICT: HIT\nWHY: The answer lists an accept-loop thread and a per-client serve thread, with a vector of client threads. Together these show one accept thread spawning a thread per connected client."
+}

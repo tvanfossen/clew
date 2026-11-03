@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| CLI flag ... | 1 `explicit` | ... | `<repo>/.clew.yaml` | 2 `declared` | ... | Target facts ... | 3 `target-fact` | ... | Ecosystem signatures ... | 4 `ecosystem` | ... | Built-in name-pattern guesses | 5 `heuristic`\"\nVERDICT: HIT\nWHY: The answer lays out five named precedence tiers (explicit, declared, target-fact, ecosystem, heuristic) rather than a single override."
+}

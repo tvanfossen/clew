@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The bits above `0xFF80` are the high-level code, one module per code range. ... The bits under `0x80` are the low-level code (AES, SHA, ERROR, and so on). ... The two halves are joined with `\" : \"`.\nVERDICT: HIT\nWHY: The answer describes the high-level module part and low-level part of a code, and says mbedtls_strerror renders both joined with \" : \" (example shows both present)."
+}

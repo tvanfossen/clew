@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these top-level directories as containing uses of `MBEDTLS_PRIVATE`:\n\n- `include`: the macro definition in `private_access.h`, and the `ssl->MBEDTLS_PRIVATE(state)` example in `ssl.h`.\n- `programs`: `ssl_context_info.c` and `fuzz_dtlsserver.c`.\n- `tests`: `test_suite_x509write.function`.\n\nI left out `library`: the answer says it uses the plain names, not the explicit spelling. I also left out `docs`, which the answer cites only as the source of the migration-guide quote.\n\nITEMS:\ninclude\nprograms\ntests\nEND"
+}

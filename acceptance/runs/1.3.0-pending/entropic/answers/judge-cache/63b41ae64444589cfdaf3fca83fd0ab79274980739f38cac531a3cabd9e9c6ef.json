@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The code then does `if (n < 0) n = -n;`, which uses the negated return as the size.\" and \"The probe... asks llama.cpp how many tokens the text needs\" and \"the first call's negative return is the protocol's way of reporting size\"\nVERDICT: HIT\nWHY: The answer states the first call returns a negative value encoding the needed size, and the code negates it (`n = -n`) to size the buffer for the second call."
+}

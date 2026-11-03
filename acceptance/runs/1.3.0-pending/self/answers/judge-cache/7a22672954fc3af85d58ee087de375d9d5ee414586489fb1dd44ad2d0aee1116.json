@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`data` | indexed source files changed | Index is behind the code. A refresh fixes it.\" and \"`code` | ... Only a client restart clears it.\"\nVERDICT: HIT\nWHY: The answer states data is cleared by a refresh/rebuild and code only by a client restart (and that schema rebuild can't clear it), which conveys the different remedies per axis. It doesn't explicitly say \"one flag would not suffice,\" but the substance of the distinct actions is stated."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions two edge sources with differing confidence but never says a flat surface keeps fuzzy-confidence edges while traversal excludes them, nor the multiplication-per-hop reason."
+}

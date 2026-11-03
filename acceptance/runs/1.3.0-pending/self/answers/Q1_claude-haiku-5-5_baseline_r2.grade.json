@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.75,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: **Step 1: Is there an `index_scope:` declaration?** (`clew/scope.py`, `derive_scope`) | WHY: The answer names `derive_scope` in `clew/scope.py` as where the scope decision is resolved, including declared versus default. || QUOTE: **Step 1: Is there an `index_scope:` declaration?** (`clew/scope.py`, `derive_scope`) | WHY: The answer names `derive_scope` in `clew/scope.py` as where the scope decision is resolved. || QUOTE: **Step 1: Is there an `index_scope:` declaration?** (`clew/scope.py`, `derive_scope`) | WHY: The answer names `derive_scope` in `clew/scope.py` as where the scope decision is made.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The section is rejected, and the build falls back to the whole repo with a WARNING, if it is not a mapping, has an unknown key (so `exclude:` for `excludes:` fails), or has no usable `roots:`. | WHY: It says a declared index_scope is read first and that malformed, unknown-key or rootless declarations fall back to the whole repo, and \"Nothing usable declared means\" the whole-repo default. || QUOTE: The section is rejected, and the build falls back to the whole repo with a WARNING, if it is not a mapping, has an unknown key (so `exclude:` for `excludes:` fails), or has no usable `roots:`. | WHY: The answer says a declared index_scope is read first and that invalid, malformed or missing declarations fall back to indexing the whole repo (\"Nothing usable declared means: Root: the repo root\").",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: A WARNING says so, so the boundary is logged rather than silent. | WHY: The answer says the whole-repo default is logged with a WARNING. It never says the fallback carries a reason naming which scope was used and why, so an unstated scope is not guessed silently. || QUOTE: The section is rejected, and the build falls back to the whole repo with a WARNING, if it is not a mapping, has an unknown key (so `exclude:` for `excludes:` fails), or has no usable `roots:`. ... A WARNING says so, so the boundary is logged rather than silent. | WHY: The answer mentions a WARNING on fallback but never says the fallback carries a reason field explaining which scope was used and why. || QUOTE: The section is rejected, and the build falls back to the whole repo with a WARNING, if it is not a mapping, has an unknown key (so `exclude:` for `excludes:` fails), or has no usable `roots:`. | WHY: The answer mentions a WARNING on fallback, but it never says the fallback carries a reason recording which scope was used and why, so an unstated scope is never silently guessed.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"the target's `INPUT`, `EXCLUDE` and `EXCLUDE_PATTERNS` are ignored, so a repo that documents only its public headers still gets its `.c` files indexed.\" | WHY: The answer says the Doxyfile's INPUT is replaced by the scope and gives the reason: a repo that documents only some files would otherwise miss the rest. It doesn't spell out the contrast with a repo that ships no Doxyfile, but the mechanism and rationale are stated. || QUOTE: Doxyfile: the target's `INPUT`, `EXCLUDE` and `EXCLUDE_PATTERNS` are ignored, so a repo that documents only its public headers still gets its `.c` files indexed. | WHY: The answer states the Doxyfile's INPUT is ignored and gives the reason: a repo documenting only its public headers would otherwise lose its `.c` files, which matches the \"documented subset\" concern. || QUOTE: \"the target's `INPUT`, `EXCLUDE` and `EXCLUDE_PATTERNS` are ignored, so a repo that documents only its public headers still gets its `.c` files indexed.\" | WHY: The answer says the Doxyfile's INPUT is replaced by the scope, and gives the reason: a repo that documents only its public headers would otherwise lose its `.c` files. That covers the documented-subset side of the item, and the scope fallback to the whole tree covers the other side.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"Nested git trees | indexed, not excluded; their own `.gitignore` ignores are added\" and \"Vendored code: nested git trees are indexed and tagged by `external.py`, so a submodule's functions appear in the index.\" | WHY: The answer explicitly says nested git trees are indexed rather than excluded and tagged by external.py. || QUOTE: Nested git trees | indexed, not excluded; their own `.gitignore` ignores are added | WHY: The answer states nested git trees are indexed rather than excluded, and adds that `external.py` tags them as vendored code. || QUOTE: \"Nested git trees | indexed, not excluded; their own `.gitignore` ignores are added\" and \"Vendored code: nested git trees are indexed and tagged by `external.py`, so a submodule's functions appear in the index.\" | WHY: The answer explicitly says nested git trees are indexed (not excluded) and tagged by external.py.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer is about index scope and Doxygen file selection; it never mentions a containment call being removed rather than left in place with its callers dropped. || QUOTE: NONE | WHY: The answer is about index scope and Doxygen file selection, and it never mentions a containment call being removed. || QUOTE: NONE | WHY: The answer is about index scope and Doxygen configuration. It says nothing about a containment call being removed instead of left in place with its callers dropped.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: \"Files outside the Doxygen pattern list are picked up by the parse-built front end when `synth.claims()` accepts them (JS/TS and the script types).\" | WHY: The answer says the resolved scope isn't the whole story, and names the parse-built front end that claims file types doxygen can't read. || QUOTE: Files outside the Doxygen pattern list are picked up by the parse-built front end when `synth.claims()` accepts them (JS/TS and the script types). Everything else is ignored. | WHY: The answer says the resolved scope is filtered by Doxygen's file patterns, and it names the parse-built front end as the path for file types Doxygen can't read. || QUOTE: Files outside the Doxygen pattern list are picked up by the parse-built front end when `synth.claims()` accepts them (JS/TS and the script types). Everything else is ignored. | WHY: The answer names the parse-built front end claiming file types outside Doxygen's patterns, and it says the scope is filtered by what can read the files.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

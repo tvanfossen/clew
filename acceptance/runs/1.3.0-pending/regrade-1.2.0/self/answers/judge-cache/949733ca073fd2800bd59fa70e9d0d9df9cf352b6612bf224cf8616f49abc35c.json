@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The reason is logged: the build says no `index_scope` is declared and names where it looked.\nVERDICT: HIT\nWHY: The answer says the fallback to whole-repo scope carries a logged reason naming where it looked, and that a rejected declaration's reason is recorded. That conveys that the fallback explains which scope was used and why instead of guessing silently."
+}

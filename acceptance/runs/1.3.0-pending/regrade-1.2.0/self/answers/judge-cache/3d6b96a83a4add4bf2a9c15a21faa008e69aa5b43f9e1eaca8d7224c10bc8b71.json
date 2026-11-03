@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer's table covers clean empty, weak/conceptual, not-indexed, stale, and out-of-index cases, but it never names a \"definitive for a reason that is not absence\" grade, so the three-grade distinction is not stated."
+}

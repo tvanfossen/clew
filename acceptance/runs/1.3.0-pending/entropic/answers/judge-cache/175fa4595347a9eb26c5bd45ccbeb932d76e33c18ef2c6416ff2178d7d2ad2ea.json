@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Source-level reach stops at `src/inference/`, but the orchestrator, the facade's adapter path, and the `speculative_compat` and `orchestrator` headers reach past it.\"\nVERDICT: HIT\nWHY: The answer says llama.cpp usage is concentrated in src/inference (~9 files) but leaks into other files such as src/facade/entropic.cpp, secondary_model_loader.cpp, inference_c_api.cpp and interface_factory.cpp. That is concentrated but not contained, with a minority of reaching files outside the layer."
+}

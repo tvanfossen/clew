@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Everything in `threading.c` is compiled out... Concurrency comes only from the application, and the thread spawns the index finds are in the sample programs under `programs/`.\nVERDICT: MISS\nWHY: The answer says the library has no threads of its own and describes the mutex primitives in `threading.c`. It never makes the contrast that library/ supplies the mutex abstraction for threaded callers while creating no threads. It says the mutex layer is compiled out by default and treats it as library-internal locking."
+}

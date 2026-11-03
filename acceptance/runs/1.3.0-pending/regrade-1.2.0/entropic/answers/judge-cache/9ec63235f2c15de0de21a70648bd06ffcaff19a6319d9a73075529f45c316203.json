@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"llama.cpp is vendored as a git submodule and linked into the inference library.\" and \"Pinned against llama.cpp submodule b8420.\"\nVERDICT: MISS\nWHY: The answer calls it a submodule but never gives the `extern/llama.cpp` location. It also says \"vendored\" and doubts the build mode, and it calls the `extern/CMakeLists.txt` comment stale. So it doesn't clearly state the submodule-at-extern/llama.cpp fact."
+}

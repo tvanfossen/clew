@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions the distinct `Header` component in `navigation_header/header.tsx` or says its renderers are excluded; it only lists NavigationHeader callers."
+}

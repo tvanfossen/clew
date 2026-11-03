@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unknown section name in `.clew.yaml` raises an error and refuses the build. Silently ignoring it would report a declaration as honoured when nothing read it.\nVERDICT: HIT\nWHY: States unknown sections are refused (error) rather than ignored, and gives the reason that ignoring would falsely report the declaration as honoured. It doesn't name the allowed set or the build-with-defaults detail, but the core mechanism and rationale are there."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 47880,
+  "stop_reason": "end_turn",
+  "session_id": "79822aba-dd7c-4513-84f5-26980400b218",
+  "total_cost_usd": 0.020023400000000004,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 54911,
+    "cache_read_input_tokens": 437710,
+    "output_tokens": 9325,
+    "output_tokens_details": {
+      "thinking_tokens": 4126
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 54911,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4541,
+        "cache_read_input_tokens": 73557,
+        "cache_creation_input_tokens": 1484,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1484
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 9325,
+      "cacheReadInputTokens": 437710,
+      "cacheCreationInputTokens": 54911,
+      "webSearchRequests": 0,
+      "costUSD": 0.020023400000000004,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4126,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 54911,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nConstant-time in mbedtls is a convention enforced by code structure, not by the compiler. Branch-free arithmetic keeps secrets out of `if`s, and an empty inline-asm barrier stops the optimizer from re-introducing them. Hand-written assembly covers the hot primitives on four architectures. Everything else falls back to plain C that is only *observed* to be constant-time. Nothing in the build fails when the fast path is missing. Actual verification is dynamic and happens in test builds only.\n\n## Instruction-level enforcement\n\nThe public-facing layer is `mbedtls_ct_*` in `library/constant_time_impl.h`, with types and `MBEDTLS_CT_TRUE`/`MBEDTLS_CT_FALSE` in `constant_time_internal.h`.\n\n- **Condition type.** A condition is an all-ones or all-zeros machine word (`MBEDTLS_CT_TRUE` / `MBEDTLS_CT_FALSE`), not a 0/1 `int`. Its width is 32 or 64 bits, chosen from `SIZE_MAX` and `MBEDTLS_HAVE_INT64`.\n- **Optimizer barrier.** `mbedtls_ct_compiler_opaque(x)` is an empty `asm volatile (\"\" : [x] \"+r\" (x))`. The compiler must treat the value as unknown, so it cannot prove a condition constant and fold a branch.\n- **Mask generation.** `mbedtls_ct_bool(x)` turns any non-zero `x` into an all-ones mask. On AArch64 it is `neg / orr / asr`; on x86-64 it is `mov / neg / or / sar`; on ARM32 it is `negs / orrs / asrs`.\n- **Selection.** `mbedtls_ct_if(c, a, b)` is `(a & c) | (b & ~c)`, also in hand-written asm on the same four targets. Comparisons such as `mbedtls_ct_uint_ne/eq/lt/ge` are built on `bool` and `if`.\n- **Memory compare.** `mbedtls_ct_memcmp` (`library/constant_time.c:67`) reads both buffers through `volatile` pointers so the loop cannot exit early. It XOR-accumulates the differences and never branches on data. It is constant with respect to the data, but not with respect to `n`. On 32-bit ARM and AArch64 it uses unaligned volatile word loads.\n\nWhat this does **not** guarantee: the compiler can still emit a secret-dependent branch in the code around these calls, and nothing here controls the CPU's microarchitecture (cache, division timing). The barrier only stops the optimizer from *knowing* the value.\n\n## What happens on an unsupported compiler\n\nSelection is decided at preprocessing time in `constant_time_impl.h:40-52`:\n\n| Situation | `MBEDTLS_CT_ASM` | Arch fast path | What you get |\n|---|---|---|---|\n| `MBEDTLS_HAVE_ASM` on, GNU-compatible, ARM/AArch64/x86/x86-64 | defined | yes | Hand-written mask/select asm |\n| `MBEDTLS_HAVE_ASM` on, GNU-compatible, other arch (RISC-V, MIPS, \u2026) | defined | no | Generic `\"+r\"` barrier; `bool`/`if` in C arithmetic |\n| `MBEDTLS_HAVE_ASM` off, or MSVC / IAR / armcc5 | not defined | no | `x ^ mbedtls_ct_zero` where `mbedtls_ct_zero` is a `volatile` global; all C arithmetic |\n\nThere is **no `#error`** for the last two rows. The C fallback's own comment (`constant_time_internal.h:55-59`) says it \"has been observed to be constant-time on latest gcc, clang and MSVC as of May 2023\". That is an observation about compiler output, not a guarantee. A future compiler could regress it silently.\n\nOne related trap: `check_config.h:250` rejects `MBEDTLS_HAVE_ASM` combined with MemorySanitizer. So the MSan constant-flow build necessarily runs the C fallback, not the shipped assembly.\n\n## How far it reaches\n\nI counted `mbedtls_ct_*` call sites in `library/`: about 238 across 27 files. The largest users:\n\n- `rsa.c` (25), `bignum_core.c` (21), `bignum.c` (18), `cipher.c` (20), `ssl_msg.c` (17), `base64.c` (10)\n- `ssl_tls12_server.c` (7), `nist_kw.c`, `psa_crypto.c`, `ccm.c`, `gcm.c`, `cmac.c`, `chachapoly.c`, `ssl_cookie.c`, `bignum_mod_raw.c`\n\nConcrete consumers from the dossier callers: `mbedtls_rsa_rsaes_oaep_decrypt`, `mbedtls_ssl_decrypt_buf` (record padding check), `mbedtls_mpi_core_random`, and `mbedtls_mpi_core_check_zero_ct` / `mbedtls_mpi_core_lt_ct`. The public `mbedtls_mpi_lt_mpi_ct` in `bignum.h` exposes the comparison to applications. `mbedtls_mpi_gcd_modinv_odd` wraps a constant-time GCD/inverse.\n\nLimits of that reach:\n\n- **ECC scalar multiplication is not in the list.** `ecp*.c` does not appear among the files using `mbedtls_ct_*`. I did not read `ecp.c`, so I can't say from this what it uses instead. The third-party `p256-m` has its own `MUL64_IS_CONSTANT_TIME` gating, and the bundled Everest/HACL code uses its own helpers.\n- **It is opt-in per call site.** Only code that calls these helpers gets the property. The facility does not analyse other code.\n\n## How it is tested\n\n- `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` and `_MEMSAN` are documented in `mbedtls_config.h:2109-2142`. The Valgrind one is the one the CI runs: `test_with_valgrind_constant_time` (`tests/scripts/components-configuration-crypto.sh:25`) runs `tests/suites/*constant_time*.data` under memcheck. Memcheck flags secret-dependent branches as uninitialised-value use.\n- The implementation of those hooks lives in the `framework/` submodule (`constant_flow.h`). **That submodule is empty in this checkout**, so I could not read the Valgrind hook itself. This is a limit of this answer, not of the library.\n\n## Summary\n\n- **Enforced:** branch-free masks in asm on four architectures, plus an optimizer barrier everywhere a GNU compiler is used.\n- **Not enforced:** a compile-time or runtime check that the fast path is active. On MSVC, IAR, armcc5, or a build without `MBEDTLS_HAVE_ASM`, the library silently uses C code that is only observed to be constant-time.\n- **Verified by:** Valgrind memcheck on asm builds, and MSan on the C-fallback build.\n- **Reach:** about 27 library files and the RSA-OAEP, record-padding, and MPI paths. Not demonstrably ECC scalar multiplication.",
+  "ttft_ms": 1962,
+  "type": "result",
+  "duration_ms": 49252,
+  "uuid": "76c24672-0900-4f48-a95d-55f59e662901",
+  "ttft_stream_ms": 1220,
+  "time_to_request_ms": 87,
+  "first_content_frame_ms": 1220,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

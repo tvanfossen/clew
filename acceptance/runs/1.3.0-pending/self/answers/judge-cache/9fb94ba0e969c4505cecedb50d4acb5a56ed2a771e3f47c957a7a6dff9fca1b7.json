@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer gives the resolution formula (tier 1/2/5 \u222a tier 3 \u222a tier 4) but never says tiers 3 and 4 combine identically, that the distinction between them is inert, or that the load-bearing line is fact versus guess. It only says \"you can correct our guesses; you cannot un-discover a fact.\""
+}

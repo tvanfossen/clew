@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ServerDataOperatorBase` itself extends `BaseDataOperator` (`app/database/operator/base_data_operator/index.ts:33`), which holds the `database` handle and the generic machinery: `processRecords`, `prepareRecords`, `handleRecords`, `batchRecords`.\nVERDICT: MISS\nWHY: The answer says every handler write funnels through `BaseDataOperator.batchRecords`, but it never says each mixin is constrained to extend `ServerDataOperatorBase`. That constraint is the mechanism the item requires."
+}

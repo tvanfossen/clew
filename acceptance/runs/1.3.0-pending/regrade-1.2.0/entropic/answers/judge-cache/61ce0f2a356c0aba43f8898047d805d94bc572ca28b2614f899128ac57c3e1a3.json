@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | Stdio stderr reader | `StdioTransport::open` | Drains the child process's stderr. | ... | SSE reader | `SSETransport::open` | Reads the SSE stream. |\nVERDICT: HIT\nWHY: The answer names a stderr-draining thread spawned in the stdio transport and an SSE stream reader thread in the SSE transport."
+}

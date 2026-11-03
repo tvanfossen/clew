@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A present-but-unusable section is refused at the CLI, not quietly widened to the whole repo.\"\nVERDICT: MISS\nWHY: The answer says the declaration wins and that the default is whole-repo when nothing is declared, but it says an unusable declaration is refused rather than widened to the whole repo. That contradicts the item's claim that every failure to find one falls through to whole-repo indexing."
+}

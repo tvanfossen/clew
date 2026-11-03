@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names one file path that takes part in stating, discovering, combining or recording a build option. It names others, such as `Doxyfile`, but only as a convention, a concept or a key name, not as a path.\n\nITEMS:\n.clew.yaml\nclew/tiers.py\nEND"
+}

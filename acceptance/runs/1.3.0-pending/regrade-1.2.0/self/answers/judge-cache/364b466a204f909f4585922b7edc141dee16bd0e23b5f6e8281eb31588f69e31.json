@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Do not rebuild through a stale process. `stale_code_refusal()` returns a refusal message, and `build_or_refresh` calls it before touching an index. `force` does not override it. The reply states that nothing was written.\nVERDICT: HIT\nWHY: The answer states the write path refuses (not warns), that the check runs before touching the index, and that `force` cannot override it."
+}

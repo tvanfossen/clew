@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses only call edges for a function's callers and never mentions inverted causal polarity between writers and readers."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that within the resolved scope a file must also be readable. It doesn't name the parse-built front end for types doxygen can't read, and it doesn't name binary classification dropping files with misleading extensions. It only mentions forcing doxygen's FILE_PATTERNS, and it says it did not read `enumerate_tree`."
+}

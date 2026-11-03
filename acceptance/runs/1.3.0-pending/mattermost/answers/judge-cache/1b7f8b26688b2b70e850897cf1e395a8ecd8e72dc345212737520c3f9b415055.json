@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Without it, `sanitizeReactions` computes `deleteReactions` as every local reaction on the post that is absent from the payload. The payload holds only one reaction, so a single event would delete all the other reactions on that post.\"\nVERDICT: HIT\nWHY: The answer explains that skipSync stops the single-reaction payload being treated as the full set, which would otherwise delete all other reactions on the post."
+}

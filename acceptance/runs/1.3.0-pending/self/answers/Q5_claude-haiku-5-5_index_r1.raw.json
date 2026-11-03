@@ -1,0 +1,107 @@
+{
+  "duration_api_ms": 22849,
+  "stop_reason": "end_turn",
+  "session_id": "de0c4c28-f10a-4c49-9479-4f2bd39bd03e",
+  "total_cost_usd": 0.011814400000000001,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 39524,
+    "cache_read_input_tokens": 207260,
+    "output_tokens": 3672,
+    "output_tokens_details": {
+      "thinking_tokens": 1699
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 39524,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2575,
+        "cache_read_input_tokens": 54610,
+        "cache_creation_input_tokens": 5040,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5040
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3672,
+      "cacheReadInputTokens": 207260,
+      "cacheCreationInputTokens": 39524,
+      "webSearchRequests": 0,
+      "costUSD": 0.011814400000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1699,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 39524,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "mcp__clew__propose_declaration",
+      "tool_use_id": "toolu_01PySf7mofo7987kpYgWrqky",
+      "tool_input": {}
+    }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The main way is a `.clew.yaml` at the repository root. Other inputs can also set conventions, and they are ranked by a five-tier precedence rule.\n\n**The ways to say so**\n\n| Tier | Source | How it combines |\n|---|---|---|\n| 1 | CLI flag, e.g. `--shared-key-patterns`, `--thread-patterns`, `--mqtt-dispatch`, `--data-model`, `--entry-patterns` | Replaces the stated layer |\n| 2 | `.clew.yaml` in the repo root | Replaces the stated layer |\n| 3 | Facts someone else wrote: a Doxyfile's ALIASES/PREDEFINED, a generator manifest, a language or platform entry point | Accumulates |\n| 4 | Known-ecosystem signatures (UDM, ingot) | Accumulates |\n| 5 | Name-pattern heuristics, explicitly provisional | Replaces the stated layer |\n\nThe main channel is `.clew.yaml`. Its sections hold the same content as the standalone manifests, so a repo can move an existing file's contents in unchanged. The sections include `shared_key_patterns`, `thread_patterns`, `mqtt_dispatch`, `dispatch`, `entry_patterns`, `locks`, `requirements`, `sub_indexes`, `vendored`, `preprocessor`, `kconfig`, `data_model`, `index_scope` and `test_paths`. Because the file is read from the repo root, both the CLI and the MCP server pick it up. The MCP server passes no flags, so the file is its only route to declared conventions.\n\nTwo other points about the file:\n- `index_scope:` is the one tier that decides what gets indexed. It takes `roots:` and `excludes:`. Without it, the scope is the whole repository minus what git ignores. The Doxyfile's `INPUT` no longer sets scope, so a repo that ships one is not narrowed by it.\n- The `guard:` section belongs to the doxygen gate, not the index. The index accepts it and ignores it.\n\n**What happens when they disagree**\n\n1. **Flag versus declaration, same option:** the flag wins outright. The declaration's value for that option is not merged in. The flag is meant as a deliberate one-off override.\n2. **Declaration versus a Doxyfile or ecosystem fact:** these accumulate, so both survive. Facts from tiers 3 and 4 are kept under any stated tier.\n3. **Declaration versus heuristic guesses:** the declaration replaces the guesses. This is how you correct them. Facts cannot be replaced this way, so a declaration cannot un-discover a fact.\n4. **Declared `index_scope` versus no scope:** the declared roots are used. If the declaration is unusable, the build falls back to the whole repository and logs the reason. Nothing is silently guessed.\n5. **Declared key-alias prefixes:** these replace the built-in defaults rather than extend them.\n\nThe resolved tier for each setting is recorded in the index metadata, so you can see which source chose a value.\n\n**Errors**\n\n- An unknown top-level section is refused by name. Only keys prefixed `x-` are tolerated and ignored, so newer experimental keys do not break older clew builds.\n- A malformed `.clew.yaml` is ignored with a message that names the file, and built-in defaults apply.\n- An unknown key inside `index_scope:` rejects that scope and falls back to the whole repository, with a warning.\n- The old `.doxygen-guard.yaml` is not read. A repo still carrying one gets the defaults.\n\nI did not run `propose_declaration`. Its permission was denied in this session, so the proposed-file route is unverified here. The rules above come from the index's documentation and dossiers for `clew/tiers.py`, `clew/declaration.py` and `clew/scope.py`. I did not run the tests, so they reflect the code's stated design rather than a verified run.",
+  "ttft_ms": 2352,
+  "type": "result",
+  "duration_ms": 23982,
+  "uuid": "75baf8a0-3458-4822-9d9d-690161f5d49c",
+  "ttft_stream_ms": 1467,
+  "time_to_request_ms": 117,
+  "first_content_frame_ms": 1467,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

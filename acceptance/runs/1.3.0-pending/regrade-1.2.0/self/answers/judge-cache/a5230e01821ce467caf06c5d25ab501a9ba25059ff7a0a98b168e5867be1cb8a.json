@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says an unknown section is refused by name against the allowed set. It says only that invalid options refuse the whole mapping, which is not the same fact and does not give the ignored-section reason."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`not_indexed`: extensions the index holds but did not read (`.rs=2`, `.toml=2`, `.sql=1`, extensionless `=3`, and others)\" and \"So an empty symbols search means 'no indexed symbol by that name.' It does not mean 'the concept is absent,' and it says nothing about a `.rs` or `.toml` file that was never read.\"\nVERDICT: HIT\nWHY: The answer says the empty reply names file types present but not read, and uses that to separate \"not in this repo\" from \"not where I looked.\""
+}

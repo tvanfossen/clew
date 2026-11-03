@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"So the dependency stops at the inference layer and the facade.\"\nVERDICT: MISS\nWHY: The answer concludes the reach is inference plus facade, and says tests, but never frames it as a concentrated-but-not-contained dependency with a minority of reaching files outside src/inference."
+}

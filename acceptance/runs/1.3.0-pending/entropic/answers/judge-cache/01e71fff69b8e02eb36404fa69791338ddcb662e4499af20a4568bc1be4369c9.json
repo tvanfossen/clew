@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The deny list is the only hard refusal, and it is checked last.\" and \"**Deny** is enforced only in `ServerManager::execute`, after approval.\"\nVERDICT: HIT\nWHY: The answer states that deny is the only hard refusal, enforced in ServerManager::execute via is_denied before routing, which matches the item."
+}

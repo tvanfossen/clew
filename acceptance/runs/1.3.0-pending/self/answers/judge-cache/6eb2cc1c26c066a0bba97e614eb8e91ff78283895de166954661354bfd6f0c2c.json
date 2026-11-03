@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_staleness_within_budget` in `tools_query.py:160` fits them to the space left in the payload, compacting the text before dropping it, so a large answer doesn't lose its warning.\nVERDICT: HIT\nWHY: The answer says the annotation is fitted to the payload budget by compacting its text rather than dropping the warning."
+}

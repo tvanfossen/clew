@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Binary files are dropped by `lang_parsing_substrate.classify_file` (`filetypes.py`), both from the scanned tree and before every harvest read.\" and \"Symbol parsing is by extension. `harvest.py` maps suffixes to tree-sitter grammars...\"\nVERDICT: MISS\nWHY: The answer names binary classification, but it never says that extensions can lie about the file's type. It also never names the parse-built front end claiming file types doxygen can't read. It says only that symbol parsing is by extension and that unmatched files are hashed but not parsed."
+}

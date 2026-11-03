@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 34121,
+  "stop_reason": "end_turn",
+  "session_id": "fccdb799-a668-42f7-af13-3bf93f772c10",
+  "total_cost_usd": 0.01471851,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 43122,
+    "cache_read_input_tokens": 363031,
+    "output_tokens": 4924,
+    "output_tokens_details": {
+      "thinking_tokens": 1968
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 43122,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2476,
+        "cache_read_input_tokens": 54265,
+        "cache_creation_input_tokens": 1801,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1801
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 4924,
+      "cacheReadInputTokens": 363031,
+      "cacheCreationInputTokens": 43122,
+      "webSearchRequests": 0,
+      "costUSD": 0.01471851,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1968,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 43122,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the reply separates the two cases by what it reports about the index, not by one sentence. A zero-row answer is \"definitive\" only after the code has checked that no unread corpus holds a match and that the file-docs corpus exists. Even then, the confidence covers only names and `@brief` text within this build's scope. I answered from reading the source. I did not run a live query against an index.\n\n**How the reply tells the cases apart**\n\nEvery empty `search` carries a `scope` block (`clew/mcp_server/emptiness.py`, `_scope_payload`). It says how many files were indexed, whether the scope was `declared` or `whole-repo`, and the top-level directories and extensions. That lets a caller see whether the miss could be a scope miss at all.\n\nTwo further checks decide the verdict:\n\n- **Unread corpora.** `q.unsearched_corpora` (`clew/query/symbols.py:1806`) takes the kinds the database holds, subtracts the kinds `search` reads, and counts matching names in what remains. Any hit replaces the verdict with \"NOT DEFINITIVE \u2014 this index HOLDS matching rows that search does not read\" and names them, with `unsearched_corpus_hits` in the payload. This check outranks everything else.\n- **File docs.** A single-token miss gets the strong \"definitive\" wording only if the `file_docs` table exists (`has_file_docs`). Otherwise it gets \"NOT definitive; rebuild\".\n\nMulti-token misses are treated as conjunctions. The reply gives per-token counts in `token_hits`. If a token matches nothing alone, it says to retry without that token. If every token matches alone, it says to use fewer tokens.\n\n`not_indexed` and `not_indexed_count` are a separate claim (`clew/cli.py:2646`, `_not_indexed_scope`). At build time, the code compares the files the build walked against the `path` rows of type 1 and groups the gaps by extension. These keys appear only when something was missed. If the build never measured, the keys are omitted rather than set to empty, so \"nothing missed\" and \"nobody checked\" read differently.\n\n**How much confidence each answer earns**\n\n| Reply | What it entitles you to |\n|---|---|\n| \"definitive\", no unread hits, file docs present | No indexed name or `@brief` in the searched kinds matches. Strong, but limited to this build's scope and to names and briefs, not bodies or prose. |\n| \"NOT definitive\", unread-corpus hits | The query has a real match in another corpus. The negative is false. Ask for that name with `dossier`. |\n| \"NOT definitive\", conjunction | No claim about the repo. Retry with the dead tokens removed. |\n| \"NOT definitive\", no file docs | No claim. Rebuild, or use the prose corpus. |\n| `not_indexed` present | Files exist in the tree but were not indexed by file type. Read them directly. |\n| `not_indexed` absent | Either nothing was missed or the build did not measure. The reply cannot tell these apart beyond the rule above. |\n\n**Limits on these answers**\n\n- Everything is measured at build time. The query never looks at the working tree, so an index built before later edits can be wrong in either direction.\n- As I read `_not_indexed_scope`, it compares only files the build walked. Files excluded by scope before the walk should not appear in `not_indexed`, so the scope block is the only signal for them. I did not confirm this against a real build.\n- The \"definitive\" wording is about names and briefs only. A symbol whose name differs from the query, or whose documentation does not contain the term, is missed without any flag.\n\nA `PostToolUse` hook suggested calling `dossier`. I have no index tool in this session, so I answered from the source.",
+  "ttft_ms": 1723,
+  "type": "result",
+  "duration_ms": 34748,
+  "uuid": "beb3630d-5c15-4bad-9e2c-98cf1ba6f1de",
+  "ttft_stream_ms": 1217,
+  "time_to_request_ms": 175,
+  "first_content_frame_ms": 1218,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

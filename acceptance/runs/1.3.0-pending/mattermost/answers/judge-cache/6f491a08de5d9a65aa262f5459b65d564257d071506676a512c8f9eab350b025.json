@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`AppDataOperator`** (`app/database/operator/app_data_operator/index.ts:15`) extends `BaseDataOperator` directly. Its `handleInfo` and `handleGlobal` write through the same `batchRecords`, but against the app database, not a server database.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as extending BaseDataOperator, writing via the shared batchRecords path against the app database."
+}

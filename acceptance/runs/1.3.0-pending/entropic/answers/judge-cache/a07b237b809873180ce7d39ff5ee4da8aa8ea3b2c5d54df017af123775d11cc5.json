@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It reaches the public `include/entropic/inference/` headers in one place, a signature that exposes `llama_model*`, so the dependency is not fully contained in the implementation layer.\"\nVERDICT: HIT\nWHY: The answer says the dependency is concentrated in src/inference files but leaks outside the layer into a public header, so it is not contained."
+}

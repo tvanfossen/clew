@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A newer `schema` or a `code` mismatch says a rebuild cannot fix it and the MCP client must restart.\" and the table rows \"`data` ... Cleared by `index(action='refresh')`\" and \"`code` ... Only restarting the MCP client\"\nVERDICT: HIT\nWHY: The answer states data is cleared by a refresh/rebuild while code is cleared only by a client restart (a rebuild cannot fix it), which is the substance of different actions per axis. It never says one flag would not have been enough, but the item's core fact is present."
+}

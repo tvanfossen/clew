@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Code is cleared only by restarting the client. ... Data is cleared by a rebuild.\nVERDICT: HIT\nWHY: The answer states that the data axis is cleared by a rebuild (`index(action='refresh')`) and the code axis only by restarting the client. It also reports the axes separately, with a distinct remedy for each, which is the substance of the item."
+}

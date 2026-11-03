@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says nothing about the monitor's shutdown mechanism (atomic flag exchange, condition variable wake, or stop() joining); it only mentions the health monitor's 500 ms check and the unverified `running_` read."
+}

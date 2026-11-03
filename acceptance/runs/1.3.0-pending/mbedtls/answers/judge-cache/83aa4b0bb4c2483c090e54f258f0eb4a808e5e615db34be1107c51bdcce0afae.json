@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Test harness programs | `programs/ssl/ssl_server2.c:8`, `ssl_client2.c:8` | Defined as the first line, before `ssl_test_lib.h`, so these programs read internals directly.\nVERDICT: HIT\nWHY: The answer states that example programs (ssl_server2.c and ssl_client2.c) define the opt-out themselves on purpose, which is the substance of the item. It also says they do this deliberately (\"they do it on purpose\") to read internals directly."
+}

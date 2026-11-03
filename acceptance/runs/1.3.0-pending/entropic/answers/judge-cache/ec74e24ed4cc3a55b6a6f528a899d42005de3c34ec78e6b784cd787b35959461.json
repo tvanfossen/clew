@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists several `src/inference/` files and one public header, but never says the dependency reaches roughly a dozen of entropic's own source files rather than a single wrapper. It describes the reach as \"a small set of `src/inference/` files.\""
+}

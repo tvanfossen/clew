@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Callback** (`on_tool_call`) is `void`-returning. Its mere presence sets `approved = true` (`tool_executor.cpp:168-172`). It can notify but cannot refuse.\"\nVERDICT: HIT\nWHY: The answer states the callback returns void, approval is set true regardless, and it cannot refuse."
+}

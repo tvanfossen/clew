@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only translation units that define `MBEDTLS_ALLOW_PRIVATE_ACCESS` before the first include of `private_access.h` see the real names.\nVERDICT: HIT\nWHY: The answer shows both branches (`private_##member` vs plain `member`) and says that translation units defining the macro see the real names while the default external user sees the renamed `private_` members."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions MBEDTLS_CT_ASM or that it is derived from MBEDTLS_HAVE_ASM plus compiler predefined macros rather than set in mbedtls_config.h."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes five tiers, but they are a table of conventions sources (explicit statement, .clew.yaml, facts, ecosystem signature, heuristics), not five named precedence tiers for layered build options; it also opens by calling them \"four ways\", which contradicts the five-tier framing."
+}

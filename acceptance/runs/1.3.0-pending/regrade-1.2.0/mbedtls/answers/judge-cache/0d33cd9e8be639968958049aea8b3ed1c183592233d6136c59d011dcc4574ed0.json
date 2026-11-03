@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_ct_compiler_opaque()` stops the optimiser from learning a value. With asm it is an empty `asm volatile(\"\" : \"+r\"(x))` barrier. Without asm it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global set to 0 that the compiler cannot fold.\"\nVERDICT: HIT\nWHY: The answer says the same function, `mbedtls_ct_compiler_opaque()`, becomes `x ^ mbedtls_ct_zero` without asm, and names `mbedtls_ct_zero` as the volatile zero global."
+}

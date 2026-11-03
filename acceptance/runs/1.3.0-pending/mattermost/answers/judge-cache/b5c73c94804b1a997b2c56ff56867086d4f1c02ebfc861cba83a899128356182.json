@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer places three handler mixins outside `app/database/operator/server_data_operator/handlers/`. They are the agents, boards and playbooks product handlers.\n\nITEMS:\napp/products/agents/database/operators/handlers/index.ts\napp/products/boards/database/operators/handlers/index.ts\napp/products/playbooks/database/operators/handlers/index.ts\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A present but unusable declaration is refused at build time (`cli.py:807`), not silently replaced.\nVERDICT: MISS\nWHY: The answer never says the fallback carries a reason stating which scope was used and why. It only says an unusable declaration is refused rather than replaced, and that a warning is logged when the tree is not a git repo."
+}

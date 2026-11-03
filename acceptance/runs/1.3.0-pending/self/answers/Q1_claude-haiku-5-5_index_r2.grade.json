@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_r2",
+  "arm": "index",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5625,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: the decision about which files enter the index is made in one place: `derive_scope` in `clew/scope.py:639`. | WHY: The answer explicitly names derive_scope in clew/scope.py as the single place where the scope decision is resolved.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"**Tier 3, the whole repository.** If neither tier yields usable roots, `whole_repo_scope` (`scope.py:683`) returns the repo root as the single root.\" | WHY: The answer says a declared scope is read first (tiers 1\u20132). It then lists the failure cases (malformed YAML, unusable section, nothing declared, not a git repo) and says each one falls back to indexing the whole repo. || QUOTE: \"**Tier 3, the whole repository.** If neither tier yields usable roots, `whole_repo_scope` (`scope.py:683`) returns the repo root as the single root.\" | WHY: The answer states that a declared scope (tiers 1 and 2) is preferred. It also states that malformed, rejected, or absent declarations all fall back to whole-repo indexing. || QUOTE: \"If neither tier yields usable roots, `whole_repo_scope` (`scope.py:683`) returns the repo root as the single root.\" and \"A malformed YAML file is logged at WARNING and treated as absent, so the build falls back to whole-repo.\" and \"`derive_scope` logs it and falls back to whole-repo\" | WHY: The answer states the declared scope is preferred and that absent, malformed, or unusable declarations all fall back to indexing the whole repository.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: No error is raised. `derive_scope` logs the reason at INFO (\"no index_scope is declared for this repo \u2026 so the whole repository is the index scope\u2026\"), and that reason is stored in `IndexScope` (`clew/query/models.py`). | WHY: The answer says the whole-repo fallback carries a stored reason, and that a rejection is used as the stated reason, so the scope choice is never silently guessed. || QUOTE: No error is raised. `derive_scope` logs the reason at INFO (\"no index_scope is declared for this repo \u2026 so the whole repository is the index scope\u2026\"), and that reason is stored in `IndexScope` (`clew/query/models.py`). | WHY: The answer states the whole-repo fallback carries a stored reason, and for rejections says \"with the rejection as the stated reason\", so the scope used is never silently guessed. || QUOTE: No error is raised. `derive_scope` logs the reason at INFO (\"no index_scope is declared for this repo \u2026 so the whole repository is the index scope\u2026\"), and that reason is stored in `IndexScope` (`clew/query/models.py`). | WHY: The answer says the whole-repo fallback carries a stored, logged reason stating which scope was used and why, including rejection reasons, so nothing is silently guessed.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: There is no third \"read the Doxyfile\" tier any more (gh#333). A Doxyfile's `INPUT` is a documentation target, not a reasoning boundary, so `cli.py:_fold_scope_into_args` sets `replace_input`. | WHY: The answer says Doxyfile INPUT is not used and gives a \"documentation target, not reasoning boundary\" reason, but it omits the required rationale that a repo shipping a Doxyfile would get only its documented subset while a repo with none gets its whole tree. || QUOTE: There is no third \"read the Doxyfile\" tier any more (gh#333). A Doxyfile's `INPUT` is a documentation target, not a reasoning boundary, so `cli.py:_fold_scope_into_args` sets `replace_input`. | WHY: The answer says Doxyfile INPUT isn't used, but it never gives the required reason: a repo that ships a Doxyfile would get only its documented subset, while a repo with none gets its whole tree. || QUOTE: There is no third \"read the Doxyfile\" tier any more (gh#333). A Doxyfile's `INPUT` is a documentation target, not a reasoning boundary, so `cli.py:_fold_scope_into_args` sets `replace_input`. The Doxyfile still supplies `ALIASES` and `PREDEFINED`, but not the file list. | WHY: The answer says Doxyfile INPUT is no longer used for scope, but it never gives the required reason: a repo with a Doxyfile would get only its documented subset while a repo without one gets its whole tree.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Nested git trees are indexed, not excluded. Their own ignores are collected separately, since the parent's `ls-files` stops at the submodule boundary. | WHY: The answer states that nested git trees are indexed rather than excluded from the scope. || QUOTE: Nested git trees are indexed, not excluded. Their own ignores are collected separately, since the parent's `ls-files` stops at the submodule boundary. | WHY: The answer explicitly states nested git trees are indexed rather than excluded from scope. It doesn't mention tagging, but the core claim of the item is stated. || QUOTE: Nested git trees are indexed, not excluded. Their own ignores are collected separately, since the parent's `ls-files` stops at the submodule boundary. | WHY: The answer explicitly says nested git trees are indexed rather than excluded.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it only describes the removal of the Doxyfile tier, which is a different matter. || QUOTE: NONE | WHY: The answer describes how scope is derived and never says a containment call was removed rather than left in place with its callers dropped. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it describes scope derivation and says nothing about removal versus dropping callers.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer covers scope derivation and notes forced FILE_PATTERNS, but never mentions the parse-built front end claiming file types doxygen can't read, nor binary classification dropping files with misleading extensions. || QUOTE: NONE | WHY: The answer covers scope derivation and notes that doxygen reads a forced default `FILE_PATTERNS` list. It never mentions the parse-built front end for file types doxygen can't read, and it never mentions binary classification dropping files whose extension lies about them. || QUOTE: NONE | WHY: The answer covers scope derivation and notes that doxygen's default FILE_PATTERNS fix the extension set. It never mentions the parse-built front end for file types doxygen can't read, or binary classification dropping files with misleading extensions.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

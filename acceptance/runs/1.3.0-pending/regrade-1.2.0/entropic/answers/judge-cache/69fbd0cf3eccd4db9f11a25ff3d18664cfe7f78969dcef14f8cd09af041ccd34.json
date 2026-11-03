@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp is a git submodule that CMake builds in-tree and statically absorbs into `librentropic.so`. ... `.gitmodules` maps `extern/llama.cpp` to ggml-org/llama.cpp.\nVERDICT: HIT\nWHY: The answer states llama.cpp is a git submodule at extern/llama.cpp (via .gitmodules), built by CMake add_subdirectory rather than vendored or fetched."
+}

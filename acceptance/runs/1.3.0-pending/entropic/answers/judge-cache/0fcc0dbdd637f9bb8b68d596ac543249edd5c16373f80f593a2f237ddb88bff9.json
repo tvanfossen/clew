@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If `actual < 0`, it logs `Tokenization failed for text of length N` and returns `{}`.\" and \"The only failure check is on the second call, and that is not retried.\"\nVERDICT: HIT\nWHY: The answer states the second call's negative result is logged and returns empty with no retry."
+}

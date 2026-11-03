@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Per-thread log routing:** each spawned thread installs `HandleLogScope` so its logs reach the owning handle's session log (gh#59).\nVERDICT: HIT\nWHY: The answer states that each spawned thread installs a per-handle log scope so logs go to the owning handle, though it doesn't say \"first statement\"."
+}

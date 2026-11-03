@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The arg comes from `ServerManager::args_to_pattern` (`server_manager.cpp:426`). It is the first member's value if that value is a string. Empty or `{}` args give `*`. Only the first argument is ever compared.\nVERDICT: MISS\nWHY: The answer says only the first argument is compared and that empty args give `*`. It never says a non-string or unparseable argument collapses to a wildcard, so the item is only partly covered."
+}

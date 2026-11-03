@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE (the answer lays out six rows, tiers 1, 1, 2, 3, 4 and 5, which collapse to five distinct tiers: explicit, declared, target-fact, ecosystem and heuristic. The rule is given as `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. It says \"they stack in tiers\", and the table labels the five as \"1, explicit\", \"2, declared\", \"3, target-fact\", \"4, ecosystem\" and \"5, heuristic\".)\nVERDICT: HIT\nWHY: The answer names five distinct precedence tiers (explicit, declared, target-fact, ecosystem, heuristic) and a resolution rule across them, not a single override. The QUOTE line above is not a verbatim quote, so it does not follow the required format."
+}

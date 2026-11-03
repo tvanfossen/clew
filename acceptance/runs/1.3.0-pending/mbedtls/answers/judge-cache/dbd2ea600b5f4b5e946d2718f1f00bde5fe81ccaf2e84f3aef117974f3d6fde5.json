@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the macro is applied at many hundreds of sites, mostly in public headers. It cites only a few usages, such as ssl.h:1737 and the 60 library sources that include common.h, and gives no scale or distribution."
+}

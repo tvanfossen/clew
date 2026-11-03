@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Whether an unlisted call runs depends on whether an `on_tool_call` callback is registered.\" and \"else if on_tool_call callback set \u2192 approved = true (notify only)\" and \"Default-deny holds only when no callback is registered.\"\nVERDICT: MISS\nWHY: The answer says the deny list is the only blocking check and that the outcome depends on callback registration, but it never concludes that an unlisted tool is not denied and runs at the blocking gate. Its default-deny-without-callback claim cuts against the item."
+}

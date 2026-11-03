@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes only a single generated `_bindings` module that loads the library via `_loader`. It never mentions a names-only manifest that imports no ctypes, or a deliberate two-way split of the generated surface."
+}

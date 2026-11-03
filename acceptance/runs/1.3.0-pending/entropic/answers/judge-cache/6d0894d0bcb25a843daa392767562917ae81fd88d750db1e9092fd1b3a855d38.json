@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Patterns come from `permissions.allow` and `permissions.deny` (`parse_permissions_config`, loader.cpp:365). Both lists go into `PermissionManager` (permission_manager.h).\nVERDICT: MISS\nWHY: It names PermissionManager and the permissions config source, but never says the lists come from a PermissionsConfig that the ServerManager is constructed with."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Copies the engine's `interrupt_flag_` into the C-ABI cancel int during a batch call.\nVERDICT: MISS\nWHY: The answer describes the observer copying a flag into the C-ABI int, but it never says the thread exists because the C ABI boundary cannot carry an atomic."
+}

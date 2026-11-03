@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `callers()` also returns `'key'` rows: functions that write a value this one reads. They do not call it, and may run on another thread. `dossier` keeps them out of `callers` and reports them under writes/reads, but the library function merges them.\nVERDICT: HIT\nWHY: The answer says a reader's \"callers\" rows include functions that write a value the reader reads, which is the inverted causal polarity of the write/read half."
+}

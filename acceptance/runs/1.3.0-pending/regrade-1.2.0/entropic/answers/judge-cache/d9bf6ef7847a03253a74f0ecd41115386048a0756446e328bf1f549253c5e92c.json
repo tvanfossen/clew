@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It negates a negative first return without checking whether it means \"needed size\" or a real error.\"\nVERDICT: HIT\nWHY: The answer says the tokenize code negates the negative first return to size the vector for the second call, and describes the first call as learning the required size. It does not state outright that the negative number is the required size, but the negate-then-allocate mechanism is there."
+}

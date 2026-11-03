@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::accept_loop` ... each accepted fd is checked with `SO_PEERCRED` (gh#34) before a thread is spawned; Per-client `serve_client` thread | `external_bridge.cpp:945`\n\nVERDICT: HIT\nWHY: The table describes an accept_loop thread that spawns a separate serve_client thread for each accepted client connection, which is the two-level structure."
+}

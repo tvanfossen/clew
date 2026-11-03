@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: both lookup functions sit under `MBEDTLS_ERROR_C` (`include/mbedtls/mbedtls_config.h:2907`, default on)\nVERDICT: HIT\nWHY: The answer says MBEDTLS_ERROR_C is defined in mbedtls_config.h and is on by default, which means the string table is present in a default build."
+}

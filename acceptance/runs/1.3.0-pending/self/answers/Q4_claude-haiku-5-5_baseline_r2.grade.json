@@ -1,0 +1,163 @@
+{
+  "cell": "Q4_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.27586206896551724,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "states that call_edges stores one row per extraction LAYER, so the same logical edge found by two detectors is stored twice",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: `UNIQUE(caller, callee, source)` collapses a caller that calls the function five times into one row. | WHY: The answer mentions a per-source uniqueness constraint, but it never states that the same logical edge found by two detectors is stored twice. It frames the constraint as collapsing repeated calls from one caller. || QUOTE: `UNIQUE(caller, callee, source)` collapses a caller that calls the function five times into one row. | WHY: The answer says the unique key includes `source`, but it never states that the same logical edge found by two detectors is stored twice. It uses the key only to explain collapsing repeated call sites. || QUOTE: `UNIQUE(caller, callee, source)` collapses a caller that calls the function five times into one row. | WHY: The answer says the uniqueness key includes `source` (layer), but it never states that the same logical edge found by two detectors is stored twice. It only discusses collapsing repeat calls within one layer.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the query surface returns ONE row per neighbour rather than one per layer, collapsing the variants to the strongest evidence",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says one row per caller-callee pair (UNIQUE(caller, callee, source)), which is per source layer, and it lists source variants as separate rows. It never says variants are collapsed to the strongest evidence into one row per neighbour. || QUOTE: `UNIQUE(caller, callee, source)` collapses a caller that calls the function five times into one row. | WHY: The answer says one row per caller-callee-source pair (so multiple layers can yield multiple rows) and never says variants across layers are collapsed to the strongest evidence. || QUOTE: One row per pair, not per site. `UNIQUE(caller, callee, source)` collapses a caller that calls the function five times into one row. | WHY: The answer says rows collapse per caller-callee-source pair, but it doesn't say the surface returns one row per neighbour with layer variants collapsed to the strongest evidence. It lists the per-layer `source` labels as separate values instead.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that which layer's provenance a collapsed row reports is decided by a RANKING held in the vocabulary module, not by SQL",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer lists the `source` values and notes `UNIQUE(caller, callee, source)` collapses rows, but never says that a ranking in the vocabulary module decides which layer's provenance a collapsed row reports. || QUOTE: NONE | WHY: The answer never mentions a ranking in a vocabulary module deciding which layer's provenance a collapsed row reports; it only lists source values and the UNIQUE(caller, callee, source) constraint. || QUOTE: NONE | WHY: The answer never mentions a ranking in a vocabulary module deciding which layer's provenance a collapsed row reports; it only says rows are collapsed by UNIQUE(caller, callee, source).",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the same collapse function serves BOTH the flat neighbour surface and the traversal surface, so a chain and a neighbour list cannot disagree about one edge's provenance",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says one collapse function serves both the flat neighbour surface and the traversal surface; it only mentions per-pair rows and a UNIQUE constraint. || QUOTE: NONE | WHY: The answer never states that one collapse function serves both the flat neighbour surface and the traversal surface; it only mentions per-pair collapsing via a UNIQUE constraint. || QUOTE: NONE | WHY: The answer never says one collapse function serves both the flat neighbour list and the traversal/chain surface; it only mentions per-pair rows and a UNIQUE constraint.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the flat surface KEEPS fuzzy-confidence edges while the traversal surface excludes them, and gives the reason \u2014 a walk expands each hop, so one fuzzy edge multiplies into a wrong subtree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says fuzzy edges appear in `callers` results (flagged by confidence), but never contrasts this with traversal excluding them or explains the per-hop multiplication into a wrong subtree. || QUOTE: NONE | WHY: The answer notes that `callers` rows carry `confidence='fuzzy'` and are flagged, but it never contrasts a flat surface that keeps fuzzy edges with a traversal surface that excludes them, and it never says a walk multiplies one fuzzy edge into a wrong subtree. || QUOTE: NONE | WHY: The answer notes `confidence='fuzzy'` edges appear in the callers list but never contrasts this with a traversal surface that excludes them, and it gives no walk-multiplication reason.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that `callers`/`callees` return TWO KINDS of neighbour in one list \u2014 direct calls and shared-key dataflow \u2014 distinguished by an `edge_class` field the consumer must read",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"`edge_class` | `'call'` for a direct call, `'key'` for a shared-key dataflow edge with no call between the two.\" and \"`callers()` also returns `'key'` rows: functions that write a value this one reads. They do not call it... Check `edge_class` on every row.\" | WHY: The answer states that callers mixes call and shared-key dataflow rows in one list, distinguished by `edge_class`, which consumers must check. || QUOTE: \"`edge_class` | `'call'` for a direct call, `'key'` for a shared-key dataflow edge with no call between the two.\" and \"`callers()` also returns `'key'` rows: functions that write a value this one reads. They do not call it... Check `edge_class` on every row.\" | WHY: The answer states that the list mixes direct-call and shared-key dataflow edges, distinguished by `edge_class`, and tells the consumer to check it. || QUOTE: \"`edge_class` | `'call'` for a direct call, `'key'` for a shared-key dataflow edge with no call between the two.\" and \"`callers()` also returns `'key'` rows: functions that write a value this one reads. They do not call it... Check `edge_class` on every row.\" | WHY: The answer states that callers mixes call and shared-key rows in one list, distinguished by `edge_class`, which the consumer must check.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that the causal polarity is INVERTED between the two halves \u2014 the \"callers\" of a reader are the functions whose writes it observes",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: `callers()` also returns `'key'` rows: functions that write a value this one reads. They do not call it, and may run on another thread. | WHY: The answer says that \"callers\" rows of the 'key' class are functions that write a value the function reads. That is the inverted polarity the item describes: the callers of a reader are the functions whose writes it observes. || QUOTE: `callers()` also returns `'key'` rows: functions that write a value this one reads. They do not call it, and may run on another thread. | WHY: The answer says that for a function that reads a value, its \"callers\" rows can be functions that write that value. That is the inverted polarity the item describes: a reader's callers are the functions whose writes it observes. || QUOTE: `callers()` also returns `'key'` rows: functions that write a value this one reads. They do not call it, and may run on another thread. `dossier` keeps them out of `callers` and reports them under writes/reads, but the library function merges them. | WHY: The answer says a reader's \"callers\" rows include functions that write a value the reader reads, which is the inverted causal polarity of the write/read half.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that dossier does NOT take the merged form \u2014 it asks for the call half only, because it already composes the dataflow separately and merging would report each dataflow edge twice in one payload",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: `dossier` keeps them out of `callers` and reports them under writes/reads, but the library function merges them. | WHY: The answer says dossier keeps key edges out of callers, but it never says dossier asks for the call half only, and it never gives the reason that merging would report each dataflow edge twice. || QUOTE: `dossier` keeps them out of `callers` and reports them under writes/reads, but the library function merges them. | WHY: The answer says dossier separates key edges from callers but never says it asks for the call half only, and it gives no reason about double-reporting dataflow edges. || QUOTE: `dossier` keeps them out of `callers` and reports them under writes/reads, but the library function merges them. | WHY: The answer says dossier separates key edges from callers but never says dossier asks for the call half only or that merging would report each dataflow edge twice.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the two surfaces resolve the FOCAL side differently \u2014 the flat surface selects by resolved identity while the traversal surface still matches on the bare name",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never contrasts how a flat surface and a traversal surface resolve the focal function (identity vs bare name); it only says edges match on unqualified names for namesakes. || QUOTE: NONE | WHY: The answer never contrasts a flat surface that selects the focal function by resolved identity against a traversal surface that still matches on bare name; it only says `callers` rows are keyed by name and rowid and that `ast_member` edges keep only the unqualified tail. || QUOTE: NONE | WHY: The answer never contrasts how the flat and traversal surfaces resolve the focal function (resolved identity vs. bare name).",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/call_edges.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/query/symbols.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/query/traversal.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/vocabulary.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/query/dossier.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": false,
+      "detail": "named 1 not in the set: ['clew/query/models.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

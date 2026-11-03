@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_client2.c:8` and **`programs/ssl/ssl_server2.c:8`** define it at the top of the file, so these sample programs read and write SSL context fields by name.\nVERDICT: HIT\nWHY: The answer identifies that sample programs (ssl_client2/ssl_server2) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves to access private fields directly, which is the item's substance."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists the SSE reader and the stdio stderr forwarder as table rows, but it says \"Not checked\" for the stderr forwarder and doesn't describe either as a per-transport reader thread. It doesn't state the item's mechanism."
+}

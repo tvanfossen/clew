@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the macro is used at many hundreds of sites, nor that those uses are mostly in the public headers. It only counts files that include common.h (129) and names a few example call sites."
+}

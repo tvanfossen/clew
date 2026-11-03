@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The argument comes from `args_to_pattern` (`server_manager.cpp:426`): the value of the first JSON key, only if it is a string. Otherwise it is `*`.\nVERDICT: HIT\nWHY: The answer says only the first JSON key's value reaches the pattern and that a non-string value becomes `*`. That covers the single-argument limit and the wildcard collapse. It does not mention unparseable arguments, but the other two parts are stated."
+}

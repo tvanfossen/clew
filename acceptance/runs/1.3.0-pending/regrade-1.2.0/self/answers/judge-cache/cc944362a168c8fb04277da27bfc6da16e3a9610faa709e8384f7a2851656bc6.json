@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_verdict` gives it only when `q.unsearched_corpora` returns nothing... Its docstring records four earlier cases (classes, variables, macros, typedefs/enums) where the strong wording was false, which is why the check exists.\nVERDICT: MISS\nWHY: The answer describes the current grading and past false \"definitive\" cases for unread corpora, but never says a single token matching nothing was previously treated as proof of absence, and it doesn't frame that as confusing \"nothing exists\" with \"I did not look there\". Its single-token discussion is about unread corpora, not the one-token-as-proof-of-absence mistake."
+}

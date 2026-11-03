@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Polls an `int*` cancel flag every 10 ms and raises an `std::atomic<bool>` for the backend ... The C ABI forces the `int*` shape\n\nVERDICT: MISS\n\nWHY: The answer describes the poller bridging an int* to an atomic<bool> and notes the C ABI forces int*, but it presents this as a data-race gap rather than stating that the observer thread exists to bridge an atomic into a plain int because the C ABI can't carry an atomic. The direction and rationale are reversed or unstated."
+}

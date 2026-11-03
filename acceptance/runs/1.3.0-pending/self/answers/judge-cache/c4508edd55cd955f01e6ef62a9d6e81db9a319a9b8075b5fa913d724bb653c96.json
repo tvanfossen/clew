@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A multi-token miss: this only shows the conjunction failed. Drop the token that matched nothing and retry before concluding anything.\"\nVERDICT: MISS\nWHY: The answer describes how to read zero-row replies, but it never says that a single non-matching token was previously treated as proof of absence, nor that this conflated \"nothing exists\" with \"I did not look there.\""
+}

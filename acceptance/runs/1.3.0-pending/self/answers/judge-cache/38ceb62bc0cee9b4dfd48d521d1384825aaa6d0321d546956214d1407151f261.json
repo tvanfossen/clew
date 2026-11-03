@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `code`: a rebuild cannot clear this. Reads are still correct because the DB is opened per call. Writes are refused, and `force` does not override the refusal (`stale_code_refusal`, `freshness.py:531`).\nVERDICT: MISS\nWHY: The answer says reads stay correct because the DB is opened per call. It says writes are refused. The item requires that a build through a stale process would write old pipeline logic, and the answer gives no such reason."
+}

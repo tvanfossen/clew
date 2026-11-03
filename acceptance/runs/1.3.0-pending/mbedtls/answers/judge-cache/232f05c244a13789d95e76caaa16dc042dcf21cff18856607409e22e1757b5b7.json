@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS #define MBEDTLS_PRIVATE(member) private_##member #else #define MBEDTLS_PRIVATE(member) member #endif` and \"So `ctx->MBEDTLS_PRIVATE(state)` compiles to `ctx->private_state` by default... Library code is exempt through `common.h`... Test and tool code that is not one of those translation units gets the mangled names.\"\nVERDICT: HIT\nWHY: The answer shows both macro branches and explains that code defining MBEDTLS_ALLOW_PRIVATE_ACCESS sees plain names while ordinary consumers see the private_-prefixed ones."
+}

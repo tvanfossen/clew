@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes `_bindings.py` as the generated module and `_loader.py` as the finder, but never mentions a names-only manifest that imports no ctypes, nor an intentional two-way split of the generated surface."
+}

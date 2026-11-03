@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 11911,
+  "stop_reason": "end_turn",
+  "session_id": "f2a634d6-eb36-472b-b27d-9fec9a22f89c",
+  "total_cost_usd": 0.006283810000000001,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 23470,
+    "cache_read_input_tokens": 53541,
+    "output_tokens": 2108,
+    "output_tokens_details": {
+      "thinking_tokens": 1062
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 23470,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1740,
+        "cache_read_input_tokens": 37543,
+        "cache_creation_input_tokens": 1925,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1925
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2108,
+      "cacheReadInputTokens": 53541,
+      "cacheCreationInputTokens": 23470,
+      "webSearchRequests": 0,
+      "costUSD": 0.006283810000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1062,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 23470,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply separates the two cases by describing what the search covered, not by a yes/no flag. I ran two probes with a nonsense name to see the shape. Both came back empty, and both were graded.\n\n**What the reply says for a symbol search (`corpus='symbols'`, the default)**\n\n- `note` says plainly that an empty result is \"NOT an error\" and \"NOT a definitive negative.\"\n- `token_hits` gives per-token counts. Matching is a conjunction, so a zero on one token tells you which token emptied the result. The reply then tells you to retry without it.\n- `note` lists what was searched: names, `@brief` text, macros, typedefs, enums, classes, the config symbols the repo gates on, and file docs.\n- It lists what was not searched: markdown and Kconfig prose, which need `corpus='prose'`.\n- `scope` gives the coverage: `file_count`, the extensions held, and `not_indexed`, which names extensions with no grammar (here `.rs`, `.toml`, `.sql`, and extensionless files). That field is how you tell \"not in the repo\" from \"not parsed.\"\n- `target` names the repository that answered.\n\n**What the `files` corpus says**\n\nIt states that the corpus holds indexed source files only. A build script, Doxyfile, or data file is absent by construction, and the reply says so. It points to `inventory` and `doc_scope` and tells you to re-glob or go to the shell.\n\n**How much confidence each answer deserves**\n\n| Empty result | What it licenses |\n|---|---|\n| Symbol search, every token zero, `scope` whole-repo | Moderate-to-high: no indexed symbol or brief carries that name in the 426 indexed files. It does not say the text is absent from bodies, comments, or prose. |\n| Single token zero, others hit | Narrow: that token is absent from the searched fields. The conjunction is what emptied the result. |\n| Prose corpus empty | Only the prose that was indexed. Conceptual phrases are the ones prose search catches. |\n| Files corpus empty | Weak: it only means no indexed source file matches. Non-source files were never in scope. |\n| Anything with an extension in `not_indexed`, a Makefile, CI config, or an unindexed vendored tree | None. The index never looked there, so it cannot say the thing is absent. |\n\nThe reply's signal is the difference between \"searched and found nothing\" and \"this was never in reach.\" A zero with `scope` and `not_searched` naming the place where the thing would live is a gap, not an answer. In practice: the symbol result is a strong negative for named functions, variables, and types in indexed source, and a weak one for everything else. Confirm an absence in prose, build files, or unparsed extensions before concluding anything.",
+  "ttft_ms": 1806,
+  "type": "result",
+  "duration_ms": 12132,
+  "uuid": "009f04ca-b4a3-4772-b406-ac2fa47d7a03",
+  "ttft_stream_ms": 801,
+  "time_to_request_ms": 80,
+  "first_content_frame_ms": 801,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

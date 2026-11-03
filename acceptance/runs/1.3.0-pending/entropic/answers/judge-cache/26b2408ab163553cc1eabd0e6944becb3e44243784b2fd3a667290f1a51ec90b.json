@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists about a dozen llama.cpp-touching files but never states that the dependency reaches roughly a dozen of entropic's own source files rather than a single wrapper. It frames the reach as a layer and as `LlamaCppBackend` being the main consumer."
+}

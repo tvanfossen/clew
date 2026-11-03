@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: No args, since shell passes arguments as `$1`.\nVERDICT: HIT\nWHY: The answer states shell functions are recorded with no args because shell has no formal parameter list (uses `$1`), but it does not mention the missing return. Still, it carries the no-argument-list substance with the language-based reason.\n\nReconsidering: the item requires both \"no argument list and no return, because the language has neither.\" The answer only covers arguments, not return.\n\nQUOTE: No args, since shell passes arguments as `$1`.\nVERDICT: MISS\nWHY: The answer gives the no-args reason but never says shell functions are recorded with no return, so half of the atomic fact is absent."
+}

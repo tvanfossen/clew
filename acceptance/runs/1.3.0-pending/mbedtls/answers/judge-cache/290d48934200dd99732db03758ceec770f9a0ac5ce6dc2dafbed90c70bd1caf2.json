@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In C builds it returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a global `volatile` set to 0.\nVERDICT: HIT\nWHY: The answer says the C fallback of `mbedtls_ct_compiler_opaque` XORs with the volatile global `mbedtls_ct_zero`, which holds 0. The same function has an asm variant and a C variant, so \"same function falls back\" is met."
+}

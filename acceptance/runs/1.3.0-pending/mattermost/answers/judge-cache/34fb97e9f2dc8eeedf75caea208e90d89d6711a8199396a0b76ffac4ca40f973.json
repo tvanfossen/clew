@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On a channel-archived websocket event, the current user is kicked out if the channel is open and their membership is removed. When viewable, the channel is left in place with `delete_at` set.\nVERDICT: HIT\nWHY: Row 1 states that when not viewable, the user is kicked out of the current channel and their membership is removed. When viewable, the channel is kept with `delete_at` set, which matches \"marked deleted\"."
+}

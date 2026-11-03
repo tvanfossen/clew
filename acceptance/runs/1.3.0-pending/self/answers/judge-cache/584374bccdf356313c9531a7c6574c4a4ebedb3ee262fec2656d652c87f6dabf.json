@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only `name() { }` and `function name { }`. No parameter list, so `args` is empty.\nVERDICT: MISS\nWHY: The answer says shell definitions have no parameter list, but it never mentions a missing return or says the language has neither, so the item's substance is only partly there."
+}

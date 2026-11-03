@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The Doxyfile is no longer a tier (gh#333).\nVERDICT: MISS\nWHY: The answer says the Doxyfile is no longer a tier, but it never states that the Doxyfile's INPUT is deliberately ignored, and it never gives the reason (a repo with a Doxyfile would get only its documented subset, while a repo without one would get everything)."
+}

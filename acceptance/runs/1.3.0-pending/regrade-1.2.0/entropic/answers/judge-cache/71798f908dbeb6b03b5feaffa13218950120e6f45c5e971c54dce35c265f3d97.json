@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the allow list only skips the prompt and the deny list is enforced later. It never concludes that a tool matching neither list is allowed and runs. It only says the approval callback doesn't gate anything."
+}

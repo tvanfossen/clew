@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A failure on the second call returns `{}` at line 67.\nVERDICT: HIT\nWHY: The answer says the second call is the real fill call, nothing is retried, and its failure returns an empty vector (`{}`), so the failure is terminal."
+}

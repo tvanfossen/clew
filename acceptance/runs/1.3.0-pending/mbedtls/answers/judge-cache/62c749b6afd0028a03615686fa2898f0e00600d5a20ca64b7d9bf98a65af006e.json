@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index lists a second `mbedtls_strerror` at `error.c:867`. I think it is the stub variant gated by `MBEDTLS_ERROR_STRERROR_DUMMY`, but that is an inference from the gate lists.\nVERDICT: MISS\nWHY: The answer only speculatively mentions a stub variant gated by the DUMMY macro. It never states that the macro keeps mbedtls_strerror linkable while the table is compiled out, and it never says the macro is enabled by default."
+}

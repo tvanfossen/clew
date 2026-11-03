@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Facts and ecosystem entries (tiers 3 and 4) are never displaced by any stated tier, so `main` survives a user-stated entry-pattern list.\" / \"you can correct our guesses; you cannot un-discover a fact.\"\nVERDICT: HIT\nWHY: The answer says stated tiers replace one another, discovered tiers 3 and 4 accumulate and are never displaced by any stated tier, and it frames this as \"you cannot un-discover a fact.\""
+}

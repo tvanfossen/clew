@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists several src/inference files (about six or seven) and calls the dependency \"a small set of `src/inference/` files\". It never says the dependency reaches roughly a dozen files, and it frames the reach as narrow, not wide."
+}

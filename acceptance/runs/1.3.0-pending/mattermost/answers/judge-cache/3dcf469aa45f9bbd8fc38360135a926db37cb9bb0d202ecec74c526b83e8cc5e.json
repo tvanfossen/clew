@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [{post_id, reactions:[reaction]}] }) ... handlers/index.ts:166 prepareRecordsOnly is false \u2192 batchRecords() \u2192 one database write\nVERDICT: HIT\nWHY: The answer says the add event calls operator.handleReactions, which prepares reaction records via transformReactionRecord and writes them with batchRecords."
+}

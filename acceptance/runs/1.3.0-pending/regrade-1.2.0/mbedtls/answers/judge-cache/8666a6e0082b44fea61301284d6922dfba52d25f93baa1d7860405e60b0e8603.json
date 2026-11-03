@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the libc `calloc` / `free` directly, via macros (`platform.h:~170`)\nVERDICT: HIT\nWHY: The table says that with MBEDTLS_PLATFORM_MEMORY undefined (the shipped default), mbedtls_calloc and mbedtls_free become libc calloc/free directly via macros, so there is no indirection."
+}

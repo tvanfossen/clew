@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The provider never raises, so a failed measurement cannot turn a good answer into an error.\nVERDICT: HIT\nWHY: The answer states that the staleness provider never raises, so a failed measurement cannot turn a successful reply into an error. The item's \"degrades to no annotation\" detail is implied rather than spelled out, but the core mechanism is stated."
+}

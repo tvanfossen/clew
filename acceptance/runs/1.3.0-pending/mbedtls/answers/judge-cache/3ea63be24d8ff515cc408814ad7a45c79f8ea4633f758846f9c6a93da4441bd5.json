@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Roughly 79 files reference the facility. Primitive-use counts in `library/`: ... rsa.c, bignum_core.c / bignum.c, cipher.c, ssl_msg.c, base64.c, ecp.c\nVERDICT: MISS\nWHY: The answer says about 79 files, not roughly twenty modules, and it frames the reach as \"per-function, not library-wide\" and lists only six modules. It does not convey broad use across about twenty modules."
+}

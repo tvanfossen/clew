@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: with `MBEDTLS_ERROR_C` off, the `#else` branch at `error.c:867` is a dummy that writes an empty string.\nVERDICT: MISS\nWHY: The answer only discusses the disabled case and never states that MBEDTLS_ERROR_C is enabled in the shipped config, so the string table is present by default."
+}

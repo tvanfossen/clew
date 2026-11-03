@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never names PermissionManager as constructed from the ServerManager's PermissionsConfig; it says only that patterns come from `permissions.allow`/`permissions.deny` and that how the config lists are copied into `ServerManager::permissions_` at construction was not traced."
+}

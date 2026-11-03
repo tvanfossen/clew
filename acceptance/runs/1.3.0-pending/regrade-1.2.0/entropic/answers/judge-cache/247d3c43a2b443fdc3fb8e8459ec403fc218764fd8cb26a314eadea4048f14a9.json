@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: entropic/__init__.py       lazy (PEP 562) attribute lookup, so install-engine works before the .so exists\nVERDICT: HIT\nWHY: The answer states that lazy attribute lookup in the package lets install-engine work before the .so exists, which is the substance of the item (import succeeds without the engine, so install-engine can ship in the same package)."
+}

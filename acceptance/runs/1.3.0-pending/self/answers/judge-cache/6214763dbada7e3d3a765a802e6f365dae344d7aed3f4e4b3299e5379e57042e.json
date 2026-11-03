@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: CLI flag, or the `options` argument for an embedding caller (MCP and API)\nVERDICT: HIT\nWHY: The tier 1 row states it is reachable via both a CLI flag and the `options` argument for embedding callers."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | The library's internal utilities header, so library sources that include it get plain member names.\nVERDICT: HIT\nWHY: The answer states that the library's shared internal header (common.h) turns on the opt-out, so library sources that include it see plain member names, though it hedges on whether the define is unconditional."
+}

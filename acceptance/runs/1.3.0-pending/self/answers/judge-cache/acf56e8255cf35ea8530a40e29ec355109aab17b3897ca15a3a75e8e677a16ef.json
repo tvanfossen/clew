@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A single-token miss gets the strong \"definitive\" wording only if the `file_docs` table exists (`has_file_docs`). ... `q.unsearched_corpora` ... takes the kinds the database holds, subtracts the kinds `search` reads, and counts matching names in what remains. Any hit replaces the verdict with \"NOT DEFINITIVE\"\nVERDICT: HIT\nWHY: The answer says the \"definitive\" wording depends on a per-query check of which corpora search did not read (`unsearched_corpora`) and on whether `file_docs` exists. That check runs on every empty reply, not on the result shape."
+}

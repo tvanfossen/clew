@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"12 files in `src/` include llama, ggml, mtmd or common headers.\"\nVERDICT: HIT\nWHY: The answer states that 12 files in entropic's own src/ include llama-related headers, which conveys a dozen-file reach rather than a single wrapper."
+}

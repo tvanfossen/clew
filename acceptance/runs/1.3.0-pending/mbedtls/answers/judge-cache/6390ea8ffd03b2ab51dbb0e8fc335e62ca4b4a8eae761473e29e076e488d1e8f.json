@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Add the define to the module's header with a doxygen comment, either before or after but not both... Regenerate with `make` in `library/` or the CMake build, or run `perl scripts/generate_errors.pl` from the repo root. Don't hand-edit `library/error.c`.\nVERDICT: HIT\nWHY: The answer says to add a Doxygen-documented define to the module header, regenerate, and not hand-edit `library/error.c`."
+}

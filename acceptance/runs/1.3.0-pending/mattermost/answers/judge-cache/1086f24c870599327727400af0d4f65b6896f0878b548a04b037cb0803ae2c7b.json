@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If the user is viewing that channel, kicks them out with `CHANNEL_ARCHIVED`. Then removes the user from the channel.\" and \"Only sets `deleteAt`.\"\nVERDICT: HIT\nWHY: The table says that when archived channels are not viewable the user is removed from the channel, and kicked out if it is the current one. It says that when they are viewable the channel is kept and `deleteAt` is set."
+}

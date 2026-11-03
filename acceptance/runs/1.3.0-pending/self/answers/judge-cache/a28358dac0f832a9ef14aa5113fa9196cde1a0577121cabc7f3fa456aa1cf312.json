@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.clew.yaml` sections are named after the option they set (`shared_key_patterns`, `thread_patterns`, `mqtt_dispatch`, `index_scope`, `doxyfile`, `kconfig`, `preprocessor`, and others).\nVERDICT: MISS\nWHY: The answer says the declaration file's sections are named after the options, but it never says that an embedding caller's option names are the same words as those sections and as the diagnostics' wording."
+}

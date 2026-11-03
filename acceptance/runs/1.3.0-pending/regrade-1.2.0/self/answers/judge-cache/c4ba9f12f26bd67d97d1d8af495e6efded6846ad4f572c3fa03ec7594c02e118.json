@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `staleness_notices()` returns a list of `{axis, message}` and is empty when the index is current or unmeasurable.\nVERDICT: MISS\nWHY: The answer says notices are empty when unmeasurable, but never states that measurement never raises or that a failed measurement degrades to no annotation instead of turning a reply into an error."
+}

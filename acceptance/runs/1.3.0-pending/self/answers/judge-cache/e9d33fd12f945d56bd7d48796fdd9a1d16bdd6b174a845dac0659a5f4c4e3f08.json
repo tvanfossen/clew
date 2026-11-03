@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It refuses first if the process predates its source (`stale_code_refusal`, returning `REFUSED:` and `code` in the reply). It then takes the per-repo build lock and re-checks freshness inside it\nVERDICT: MISS\nWHY: The answer says the refresh refuses first on a stale code axis, but it never says the refusal sits ahead of the build decision or that a force flag cannot override it."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | MCP `index(options=\u2026)` | The `options` argument, keyed by `.clew.yaml` section names | Same as a declaration, since MCP passes no flags |\nVERDICT: MISS\nWHY: The answer puts the CLI flag at tier 1 but says the MCP `options` argument is tier 2 (same as a declaration), so it never says tier 1 is reachable through a structured options argument."
+}

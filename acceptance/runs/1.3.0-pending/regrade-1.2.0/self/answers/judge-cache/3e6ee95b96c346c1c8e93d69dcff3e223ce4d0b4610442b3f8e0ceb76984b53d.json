@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses 'key' rows as shared-key dataflow without calls, but never says the polarity is inverted, i.e. that a reader's \"callers\" are the functions whose writes it observes."
+}

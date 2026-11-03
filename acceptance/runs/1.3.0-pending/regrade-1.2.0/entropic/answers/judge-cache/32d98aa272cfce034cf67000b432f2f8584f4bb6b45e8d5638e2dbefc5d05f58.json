@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Both calls are in `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`), at lines 55 and 61... The first call passes a null buffer with size 0. llama.cpp then returns the negative of the token count it needs. The code flips the sign to get `n`, allocates a vector of that size, and calls again to fill it.\nVERDICT: HIT\nWHY: The answer names the file, function, and line locations of the two-call size-query-then-fill pattern and explains the mechanism."
+}

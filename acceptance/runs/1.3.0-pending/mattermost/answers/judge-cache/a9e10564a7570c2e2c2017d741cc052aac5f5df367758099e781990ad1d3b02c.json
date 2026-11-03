@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`searchPosts`** (`app/actions/remote/search.ts:62-73`). It passes `include_deleted_channels` to the search request set to the same boolean.\nVERDICT: HIT\nWHY: The answer states that post search (searchPosts) sends the setting to the server as `include_deleted_channels`."
+}

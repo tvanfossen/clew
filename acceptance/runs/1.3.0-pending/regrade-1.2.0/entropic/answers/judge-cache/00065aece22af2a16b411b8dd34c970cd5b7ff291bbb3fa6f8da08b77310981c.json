@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The reach is wide inside `src/inference/`, which is roughly 135 symbols in the backend header alone, and it stops there.\nVERDICT: MISS\nWHY: The answer claims llama.cpp use is fully contained in src/inference and never states that a minority of reaching files sit outside it, which is the opposite of the item."
+}

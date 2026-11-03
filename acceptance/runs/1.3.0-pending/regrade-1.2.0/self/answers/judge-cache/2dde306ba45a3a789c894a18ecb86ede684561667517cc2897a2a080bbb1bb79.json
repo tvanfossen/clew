@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Facts and ecosystem entries (tiers 3 and 4) are never displaced by any stated tier\nVERDICT: MISS\nWHY: The answer lists tiers 3 and 4 both as \"Accumulates\" but never says they combine identically, that the distinction between them is deliberately inert, or that the load-bearing line is fact-versus-guess."
+}

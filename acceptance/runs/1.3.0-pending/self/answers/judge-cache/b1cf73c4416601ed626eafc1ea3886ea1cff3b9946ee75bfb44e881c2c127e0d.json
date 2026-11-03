@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: a `not_indexed` list (14 entries, including `.rs`, `.toml`, `.csv`, `.sql`, `.lock`, and extensionless files)\nVERDICT: MISS\nWHY: The answer lists file types that were not indexed. It never says the reply names file types that were in scope but produced no rows, which is what separates \"absent\" from \"not indexed\"."
+}

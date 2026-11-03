@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Detached async ask worker | `external_bridge.cpp:1158`, `.detach()` at 1222 | Runs `entropic_run` on the handle... Detached async workers can outlive the bridge. The worker captures `this` and the handle. `stop()` joins only the accept and client threads, not the async workers.\nVERDICT: HIT\nWHY: The answer identifies the async ask worker as detached, which is the one thread with `.detach()`, and says it outlives the bridge because `stop()` never joins it."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `entropic/__init__.py` imports the binding names lazily (PEP 562), so `entropic install-engine` can run before the `.so` exists.\nVERDICT: HIT\nWHY: The answer states that lazy imports let `entropic install-engine` run before the engine `.so` exists, which is the substance of the item."
+}

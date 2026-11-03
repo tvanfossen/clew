@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `stale_code_refusal` refuses any write from a stale process. `force` does not override it.\nVERDICT: MISS\nWHY: The answer says writes are refused from a stale process, but it never states that reads stay current because query tools open the database per call. It also says nothing about a build through a stale process writing old pipeline logic."
+}

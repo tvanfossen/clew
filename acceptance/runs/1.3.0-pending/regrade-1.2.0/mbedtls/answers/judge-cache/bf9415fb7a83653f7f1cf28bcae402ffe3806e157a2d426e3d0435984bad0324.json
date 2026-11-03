@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: (platform.c:24-33; if that is undefined, platform_calloc_uninit returns NULL)\nVERDICT: MISS\nWHY: The answer mentions that an uninit calloc returns NULL, but only as a fallback when the STD macro is undefined. It never says the free default does nothing, and it doesn't present the defaults as failing rather than falling back."
+}

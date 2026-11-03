@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Layered options follow one five-tier rule. ... Resolved set = (tier 1 or tier 2 or tier 5) \u222a tier 3 \u222a tier 4.\nVERDICT: HIT\nWHY: The answer states layered options resolve through a five-tier rule and names the tiers: CLI flag (1), declaration (2), target facts (3), ecosystem signatures (4), name-pattern guesses (5)."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Tiers 3 and 4** (facts from target manifests, and known-ecosystem signatures) **accumulate**. No stated value removes them.\nVERDICT: MISS\nWHY: The answer says tiers 3 and 4 both accumulate and can't be removed, and gives the closing principle \"a stated value can correct a guess, but cannot remove a fact\". It never says tiers 3 and 4 combine identically, that the distinction between them is deliberately inert, or that fact-versus-guess is the load-bearing line."
+}

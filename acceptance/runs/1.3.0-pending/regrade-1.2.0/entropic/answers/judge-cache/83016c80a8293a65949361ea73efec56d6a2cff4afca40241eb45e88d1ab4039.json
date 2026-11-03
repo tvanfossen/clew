@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its reach into entropic's source is confined to the `src/inference/llama_cpp_*` files, plus test mocks.\nVERDICT: MISS\nWHY: The answer names a handful of llama_cpp_* files (backend, sampler, tokenizer) and test mocks, but never conveys that the dependency reaches roughly a dozen of entropic's own source files; it frames the reach as confined."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Thread-local log routing.** `HandleLogScope` (gh#59) is installed at the top of every spawned thread body so logs reach the owning handle's session log.\"\nVERDICT: HIT\nWHY: The answer states that a per-handle log scope is installed at the top of every spawned thread body so logs go to the owning handle's log."
+}

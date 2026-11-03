@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_THREADING_C`, those are mutex-wrapped variants (`buffer_alloc_calloc_mutexed` / `buffer_alloc_free_mutexed`, lines 541-563).\nVERDICT: HIT\nWHY: The answer says the init function (`memory_buffer_alloc_init`) installs mutex-wrapped calloc/free variants when `MBEDTLS_THREADING_C` is on. It doesn't say outright that the plain pair is used otherwise, or that the choice is made at compile time, but both are implied by the `#if`-style conditioning."
+}

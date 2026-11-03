@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It measures three independent axes and gives a different remedy for each.\" and the table listing `data`, `schema`, `code` axes.\nVERDICT: HIT\nWHY: The answer explicitly states three independent staleness axes and names them as data, schema, and code."
+}

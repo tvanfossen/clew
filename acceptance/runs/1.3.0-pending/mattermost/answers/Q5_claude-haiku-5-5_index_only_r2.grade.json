@@ -1,0 +1,93 @@
+{
+  "cell": "Q5_claude-haiku-5-5_index_only_r2",
+  "arm": "index_only",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5625,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "explains that ServerDataOperator is composed with a mixin helper \u2014 `mix(ServerDataOperatorBase).with(...)` \u2014 rather than declaring the handlers itself",
+      "kind": "retrieval",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer lists the handler mixins as bases but says it can't confirm the composition mechanism, and it never mentions a `mix(...).with(...)` helper. || QUOTE: NONE | WHY: The answer lists the mixin bases but explicitly says it can't confirm the composition mechanism; it never names `mix(ServerDataOperatorBase).with(...)`. || QUOTE: NONE | WHY: The answer lists the mixin bases and says \"the mixin wiring itself is not a symbol the index holds, so I can't confirm the exact composition mechanism\", so it never states the `mix(ServerDataOperatorBase).with(...)` helper.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a same-named interface extends each handler's `...Mix` type, so the class is typed with every mixed-in method",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer lists the mixins as bases but never mentions a same-named interface extending each handler's `...Mix` type to type the class with all mixed-in methods; it even says the composition mechanism is unconfirmed. || QUOTE: NONE | WHY: The answer says the class has handler mixins as bases but never mentions a same-named interface extending each `...Mix` type to type the class with all mixed-in methods; it even says the composition mechanism is unconfirmed. || QUOTE: NONE | WHY: The answer lists the mixin bases but never says a same-named interface extends each handler's `...Mix` type to give the class every mixed-in method. It even says the composition mechanism can't be confirmed.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 app/products/agents/database/operators/handlers/index.ts",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 app/products/boards/database/operators/handlers/index.ts",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 app/products/playbooks/database/operators/handlers/index.ts",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that every handler's writes go through `batchRecords` inherited from `BaseDataOperator`, because each mixin is constrained to extend ServerDataOperatorBase",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Every handler's DB write funnels through `BaseDataOperator.batchRecords` | WHY: The answer says writes funnel through `batchRecords`, but it never says each mixin is constrained to extend `ServerDataOperatorBase`. It even says it can't confirm the composition mechanism, so the required reason is missing. || QUOTE: NONE | WHY: The answer says writes funnel through `BaseDataOperator.batchRecords`, but it never says each mixin is constrained to extend `ServerDataOperatorBase`. It says the mixin composition mechanism can't be confirmed. || QUOTE: Every handler's DB write funnels through `BaseDataOperator.batchRecords` | WHY: The answer says writes funnel through `batchRecords` but never says each mixin is constrained to extend ServerDataOperatorBase. It even says it cannot confirm the composition mechanism.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "names AppDataOperator as the other subclass of BaseDataOperator, sharing the same write path for the app-level database",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: **`AppDataOperator`** (`app/database/operator/app_data_operator/index.ts:15`) extends `BaseDataOperator` directly. Its `handleInfo` and `handleGlobal` write through the same `batchRecords`, but against the app database, not a server database. | WHY: The answer names AppDataOperator as extending BaseDataOperator, writing via the shared batchRecords path against the app database. || QUOTE: **`AppDataOperator`** (`app/database/operator/app_data_operator/index.ts:15`) extends `BaseDataOperator` directly. Its `handleInfo` and `handleGlobal` write through the same `batchRecords`, but against the app database, not a server database. | WHY: The answer names AppDataOperator as extending BaseDataOperator, writing via the same batchRecords to the app database.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

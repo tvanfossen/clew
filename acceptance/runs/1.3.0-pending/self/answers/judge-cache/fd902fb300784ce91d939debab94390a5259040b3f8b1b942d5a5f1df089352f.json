@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`scope` (`file_count`, `extensions`, `not_indexed`) | Exactly which files were read. Here: 426 files, with `.rs`, `.toml`, `.sql`, `.lock`, `.csv`, `.jsonl`, `.motor` and extensionless files left out.\" and \"Term lives in an extension listed under `not_indexed`: no confidence. The reply names those files, so use Grep on them.\"\n\nVERDICT: MISS\n\nWHY: The answer names `not_indexed` file types, which are the ones left out. The item asks for the file types that were in scope and produced no rows, and the answer doesn't say the reply lists those."
+}

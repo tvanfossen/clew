@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"About 21 `.c` files reach the primitives directly, plus several headers.\"\nVERDICT: HIT\nWHY: The answer explicitly states roughly 21 library files use the primitives directly, matching \"on the order of twenty modules.\""
+}

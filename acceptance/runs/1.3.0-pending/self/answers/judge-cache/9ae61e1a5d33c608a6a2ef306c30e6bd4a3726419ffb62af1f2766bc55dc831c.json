@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Schema axis (index newer than server):** `build_version` is above `expected_build_version`. A rebuild re-stamps the same newer version, so this cannot be cleared from this process.\"\nVERDICT: HIT\nWHY: The answer states that the schema axis occurs when the index is newer than the server and that a rebuild only re-stamps the same newer version, so no rebuild clears it."
+}

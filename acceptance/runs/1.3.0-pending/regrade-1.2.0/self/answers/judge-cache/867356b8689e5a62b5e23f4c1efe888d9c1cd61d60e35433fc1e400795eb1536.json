@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A clew index is judged stale on three independent axes.\" with table rows `data`, `schema`, `code`\nVERDICT: HIT\nWHY: The answer states staleness has three independent axes and names them as data, schema, and code."
+}

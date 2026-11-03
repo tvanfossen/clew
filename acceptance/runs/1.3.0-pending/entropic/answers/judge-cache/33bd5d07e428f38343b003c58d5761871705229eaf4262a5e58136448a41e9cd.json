@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Call 2 allocates `n` slots and makes the real call. ... \"`LlamaCppTokenizer::tokenize` logs an error with only the text length ... and returns `{}`.\" ... \"the `actual < 0` branch is defensive.\"\n\nVERDICT: HIT\n\nWHY: The answer says that when the second call fails (`actual < 0`), tokenize logs an error and returns `{}` instead of trying again, and it says explicitly that nothing is retried."
+}

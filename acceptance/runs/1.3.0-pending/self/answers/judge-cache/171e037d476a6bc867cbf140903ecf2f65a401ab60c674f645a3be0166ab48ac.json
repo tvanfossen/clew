@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the scope block (extensions indexed) and `not_indexed` grouped by extension for files missed. It never states that the reply names the file types that were in scope and produced no rows."
+}

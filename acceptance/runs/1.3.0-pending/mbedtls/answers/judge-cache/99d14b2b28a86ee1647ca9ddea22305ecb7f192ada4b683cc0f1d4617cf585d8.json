@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes default calloc/free via function pointers in platform.c and never states that a default build has macros expanding directly to calloc/free with no indirection."
+}

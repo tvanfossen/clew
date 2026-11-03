@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The reply is explicit that an empty result is \"NOT an error\" and \"NOT a definitive negative either\".\"\nVERDICT: MISS\nWHY: The answer describes scope-limited evidence and \"did not look there\" cases, but it never presents the three distinct grades. It has no category for \"definitive for a reason other than absence,\" and it states no definitive grade at all."
+}

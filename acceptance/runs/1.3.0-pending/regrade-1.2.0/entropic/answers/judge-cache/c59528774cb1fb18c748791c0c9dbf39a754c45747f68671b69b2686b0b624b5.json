@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the second call is unconditional and the tokenizer returns `{}` on failure, but it never states that a negative or non-positive result from the second call is terminal and returns empty without another attempt."
+}

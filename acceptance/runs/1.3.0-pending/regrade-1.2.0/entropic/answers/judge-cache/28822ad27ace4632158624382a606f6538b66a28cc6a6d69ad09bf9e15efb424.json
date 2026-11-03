@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never describes the monitor's shutdown as an atomic flag exchange plus condition-variable wake, and never says `HealthMonitor::stop()` joins its thread. It covers `ExternalBridge::stop()` joining threads, but not the monitor's shutdown mechanism."
+}

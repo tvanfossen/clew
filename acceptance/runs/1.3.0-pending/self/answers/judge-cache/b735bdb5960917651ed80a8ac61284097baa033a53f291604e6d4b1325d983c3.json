@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names one file path as taking part in this work. It gives `clew/query/symbols.py` as the home of the `callers` query. The other paths it mentions are `acceptance/__main__.py` and `clew/guard/main.py`. Those are only the `main` functions it was resolving, so I left them out.\n\nITEMS:\nclew/query/symbols.py\nEND"
+}

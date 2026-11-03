@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says rows carry an `edge_class` field (\"here always `call`\") and mentions shared-key edges are separate modules, but it never concludes that callers/callees mix direct calls and shared-key dataflow in one list that the consumer must distinguish via `edge_class`. It even implies the list is calls only."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains how the current design reports scope and coverage, but it never says a single non-matching token was previously treated as proof of absence, nor that this earlier behavior conflated \"nothing exists\" with \"I did not look there\"."
+}

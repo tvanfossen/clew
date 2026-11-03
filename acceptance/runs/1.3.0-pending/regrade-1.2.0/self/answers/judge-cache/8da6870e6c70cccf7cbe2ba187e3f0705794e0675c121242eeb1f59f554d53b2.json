@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Multi-token query | Always \"NOT DEFINITIVE\", with per-token hits and the token(s) with zero hits named\nVERDICT: MISS\nWHY: The answer describes graded verdicts but never states that a single non-matching token was previously treated as proof of absence, conflating \"nothing exists\" with \"did not look.\""
+}

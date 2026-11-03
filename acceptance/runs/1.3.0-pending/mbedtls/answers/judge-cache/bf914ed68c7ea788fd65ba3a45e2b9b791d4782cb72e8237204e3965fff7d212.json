@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says how many sites use MBEDTLS_PRIVATE (hundreds) or that they sit overwhelmingly in public headers rather than library implementation; it only gives examples from aes.h and describes the opt-out."
+}

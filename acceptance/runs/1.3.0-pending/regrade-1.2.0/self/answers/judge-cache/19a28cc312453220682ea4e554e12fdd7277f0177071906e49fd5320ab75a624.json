@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `data` \u2014 \"Cleared by `index(action='refresh')`\"; `code` \u2014 \"Restarting the MCP client only. A rebuild runs the old logic.\"\nVERDICT: HIT\nWHY: The answer's table and notes state that data is cleared by a rebuild/refresh while code is cleared only by a client restart (a rebuild can't help), which is the substance of the item."
+}

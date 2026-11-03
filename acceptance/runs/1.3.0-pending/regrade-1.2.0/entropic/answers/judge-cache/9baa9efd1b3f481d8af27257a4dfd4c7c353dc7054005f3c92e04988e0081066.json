@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Polls an `int*` cancel flag every 10 ms and raises an `std::atomic<bool>` for the backend ... The C ABI forces the `int*` shape, so the fix is to have the C side take an `std::atomic<int>*`\nVERDICT: MISS\nWHY: The answer describes the poller bridging an int* to an atomic, but it frames this as a data-race gap to fix. It never says the thread exists because the C ABI cannot carry an atomic."
+}

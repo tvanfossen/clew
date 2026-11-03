@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `derive_scope (scope.py:639)` ... \"\u251c\u2500 derive_scope (scope.py:639)\"\nVERDICT: HIT\nWHY: The answer names derive_scope in scope.py as the function that resolves the index scope (declared index_scope vs whole-repo fallback)."
+}

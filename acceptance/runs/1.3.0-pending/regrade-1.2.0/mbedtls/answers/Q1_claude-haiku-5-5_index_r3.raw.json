@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 33095,
+  "stop_reason": "end_turn",
+  "session_id": "0ad840e4-121f-49c0-be97-6c9f2f06429c",
+  "total_cost_usd": 0.01073779,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 24113,
+    "cache_read_input_tokens": 284849,
+    "output_tokens": 6131,
+    "output_tokens_details": {
+      "thinking_tokens": 2880
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24113,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3140,
+        "cache_read_input_tokens": 62078,
+        "cache_creation_input_tokens": 1170,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1170
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 6131,
+      "cacheReadInputTokens": 284849,
+      "cacheCreationInputTokens": 24113,
+      "webSearchRequests": 0,
+      "costUSD": 0.01073779,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2880,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 24113,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** with the shipped defaults, mbedtls runs no threads of its own and takes no locks. Concurrency is whatever the application does with the library, and the library protects nothing on its own.\n\n**Why the defaults matter**\n\n- `MBEDTLS_THREADING_C` is commented out in `include/mbedtls/mbedtls_config.h:3787`, and `MBEDTLS_THREADING_PTHREAD` is commented out at `:2196`. So `threading.c` compiles to nothing useful, and every lock site in the library sits behind `#if defined(MBEDTLS_THREADING_C)`.\n- The index was built with both flags set by the operator (`configured_macros` in the search reply). Its lock and gate results therefore describe a threaded build, not the default. Don't quote them as default behaviour.\n\n**What runs concurrently by default**\n\n- **Library threads:** none. The index found four spawn sites, all in `programs/`: `ssl_pthread_server.c:277` (per-connection pthreads), `benchmark.c:430` and `:444` (timer thread and signal handler for `mbedtls_set_alarm`), and `ssl_server2.c:1699` (a `term_handler` signal handler). `library/` has none.\n- **Signal dispositions (process-global, not thread-related):**\n  - `library/net_sockets.c:112` calls `signal(SIGPIPE, SIG_IGN)` on the non-Windows, non-EFI path. This changes the whole process's SIGPIPE behaviour, and it is the only one of these I read the gate for.\n  - `library/sha256.c:185-199` and `sha512.c:178-199` temporarily swap the SIGILL handler with `sigaction`, using `setjmp`/`longjmp`, to probe for crypto instructions. This is a process-wide side effect that is unsafe if another thread uses SIGILL at the same time. I did not confirm the gate that limits it to particular platforms.\n\n**What protects what, if `MBEDTLS_THREADING_C` is enabled**\n\nThe mutex type is `mbedtls_threading_mutex_t`. Lock and unlock go through function-pointer variables (`threading.c:103`) that default to pthread implementations, and `MBEDTLS_THREADING_ALT` lets you substitute your own. Locking failures are returned as errors.\n\n| Lock | Protects | Where |\n|---|---|---|\n| per-object `mutex` in `ssl_cache`, `ssl_ticket`, `ssl_cookie` | that context's state | e.g. `ssl_cache.c:84` |\n| `ctx->mutex` in `entropy` | entropy sources and pool | `entropy.c:93`, `:179`, `:254`, `:294` |\n| `ctx->mutex` in `ctr_drbg`, `hmac_drbg`, `rsa` | DRBG state, some RSA operations | `ctr_drbg.c:703`, `hmac_drbg.c:388`, `rsa.c:1239` |\n| `heap.mutex` | the static buffer allocator | `memory_buffer_alloc.c:544`, `:558` |\n| `mbedtls_threading_gmtime_mutex` | the `gmtime` wrapper | `platform_util.c:189` |\n| `mbedtls_threading_readdir_mutex` | `readdir` during cert path parsing | `x509_crt.c:1611` |\n| `mbedtls_threading_psa_globaldata_mutex` | global PSA state | `psa_crypto.c:141`, `psa_crypto_slot_management.c:200` |\n| `mbedtls_threading_psa_rngdata_mutex` | PSA RNG state | `psa_crypto.c:131`, `psa_crypto_random.c:147` |\n| `mbedtls_threading_key_slot_mutex` | PSA key-slot table | `psa_crypto.c:2022` |\n\nNote that the PSA globals are shared across every caller in the process, so they become a contention point under load.\n\n**What the index can and cannot tell you**\n\n- The lock layer reports one identity, `mutex->mutex`, with `identity_confidence: low`. It does not separate per-object locks, so it cannot show which lock protects which instance.\n- It reports zero nested holdings. That is not a proof of deadlock freedom. I read the code paths for the psa and entropy locks directly and did not find nested acquisition there, but I did not audit every path.\n- The library itself is not thread-safe per context. Two threads must not use the same SSL, cipher, or DRBG context at once, even with threading enabled, because the mutexes only cover the internal state listed above. I did not check the public docs for this, so treat it as the usual contract rather than a verified statement.",
+  "ttft_ms": 1619,
+  "type": "result",
+  "duration_ms": 33935,
+  "uuid": "620ad641-5f90-40a6-84a0-549226823112",
+  "ttft_stream_ms": 1169,
+  "time_to_request_ms": 80,
+  "first_content_frame_ms": 1169,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

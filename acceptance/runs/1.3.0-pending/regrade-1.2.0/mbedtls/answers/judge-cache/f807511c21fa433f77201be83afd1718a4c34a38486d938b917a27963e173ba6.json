@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the opt-out makes MBEDTLS_PRIVATE(x) expand to x inside the library and samples. It never says that an ordinary consumer of the public headers sees the renamed private_ names. It also says the first include decides the mangling, which is a different point from the two-view contrast the item asks for."
+}

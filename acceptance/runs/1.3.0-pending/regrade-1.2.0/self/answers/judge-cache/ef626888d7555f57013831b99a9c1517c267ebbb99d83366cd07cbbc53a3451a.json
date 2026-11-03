@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The documented `.clew.yaml` sections map one-to-one onto the CLI options.\nVERDICT: MISS\nWHY: The answer maps sections to CLI options but never says embedding-caller option names are the same words as the section names and the diagnostics."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `code` | ... | Restarting the MCP client only; `data` ... Cleared by Rebuild; \"a rebuild cannot fix it\"\nVERDICT: MISS\nWHY: The answer shows different remedies per axis (rebuild for data, restart for code), but it never says this is why a single flag would not have been enough."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The \"definitive\" claim is made only after the database has been asked whether any unread corpus holds the token (`q.unsearched_corpora`). Comments in the code record that an earlier version used the strong wording without this check and was wrong four times.\nVERDICT: HIT\nWHY: The answer states the strong \"definitive\" wording is decided per reply by querying whether any corpus search doesn't read holds the token, not by result shape."
+}

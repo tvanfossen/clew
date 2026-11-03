@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the caller passes the negative code to `mbedtls_strerror()`, which splits it into a high-level part and a low-level part and looks each up in a `switch` table in `library/error.c`\nVERDICT: HIT\nWHY: The answer names mbedtls_strerror as the entry point and places it in library/error.c (also shown at library/error.c:792)."
+}

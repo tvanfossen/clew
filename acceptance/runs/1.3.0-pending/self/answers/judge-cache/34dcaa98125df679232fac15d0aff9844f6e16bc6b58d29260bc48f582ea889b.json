@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `callers` query in `clew/query/symbols.py` is documented as returning \"its callers plus the writers it reads from\", so other edge classes can appear.\nVERDICT: MISS\nWHY: The answer mentions that callers includes writers but never states the inverted causal polarity, where a reader's \"callers\" are the functions whose writes it observes."
+}

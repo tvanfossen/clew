@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The argument side is not the full argument list. `args_to_pattern` (`server_manager.cpp:426`) takes the value of the first JSON key, if it is a string, and otherwise uses `*`. A pattern like `bash.execute:rm*` therefore constrains only the first string argument.\n\nVERDICT: HIT\nWHY: States that only the first argument's value reaches the pattern and that a non-string value falls back to `*`. It doesn't mention unparseable arguments, but the other parts of the item are covered."
+}

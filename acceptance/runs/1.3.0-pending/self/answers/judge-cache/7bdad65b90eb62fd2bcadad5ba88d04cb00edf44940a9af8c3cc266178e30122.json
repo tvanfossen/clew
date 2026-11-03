@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`DocsDbServer.staleness_notices` in `clew/mcp_server/server.py` produces it and never raises.\"\nVERDICT: HIT\nWHY: The answer states the staleness-notice producer never raises, but it doesn't say a failed measurement degrades to no annotation. \"Never raises\" is the item's core claim, so I'm grading it a HIT."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists the SSE reader and stdio stderr forwarder only as table rows with explicit \"not checked\" caveats, and never states that each transport runs its own reader thread."
+}

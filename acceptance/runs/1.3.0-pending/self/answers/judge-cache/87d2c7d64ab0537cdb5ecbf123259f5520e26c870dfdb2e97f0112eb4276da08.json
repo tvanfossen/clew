@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A failed or stalled refresh degrades to answering from the old index with its notice attached.\nVERDICT: MISS\nWHY: The answer covers refresh failure degrading, but never says that the staleness measurement itself never raises or that a failed measurement yields no annotation. The unreadable-tree case returns `\"\"` (cannot tell), which is not the same fact."
+}

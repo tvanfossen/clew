@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"if it is undefined, `MBEDTLS_PRIVATE(m)` becomes `private_##m`; if it is defined, it becomes plain `m`.\"\nVERDICT: HIT\nWHY: The answer states the default rename to private_<member> and that defining MBEDTLS_ALLOW_PRIVATE_ACCESS yields the plain member name."
+}

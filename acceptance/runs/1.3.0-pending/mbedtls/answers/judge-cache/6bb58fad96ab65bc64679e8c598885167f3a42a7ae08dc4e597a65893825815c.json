@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise it XORs with `mbedtls_ct_zero`, which is declared `volatile` in `constant_time.c`.\nVERDICT: HIT\nWHY: The answer says that without inline asm, `mbedtls_ct_compiler_opaque` falls back to XOR-ing with the volatile `mbedtls_ct_zero` global. That names both the mechanism and the global."
+}

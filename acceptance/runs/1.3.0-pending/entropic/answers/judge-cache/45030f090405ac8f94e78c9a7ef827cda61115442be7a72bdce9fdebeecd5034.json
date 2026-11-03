@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Persistence** \u2014 \"Always Allow/Deny\" choices go through `PermissionPersister::save_permission` into `config.local.yaml` (the header says config.local.yaml), under a mutex.\" and \"**Runtime** \u2014 `add_permission` (the `PermissionManager` API) adds patterns at runtime.\"\nVERDICT: HIT\nWHY: The answer separates persistence to config.local.yaml (via PermissionPersister) from the runtime in-memory add_permission call."
+}

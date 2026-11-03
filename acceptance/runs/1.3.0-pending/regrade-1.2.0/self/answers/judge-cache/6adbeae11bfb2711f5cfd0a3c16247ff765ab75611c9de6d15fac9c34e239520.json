@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \".yaml, .yml, .json | A `path` row only. No `memberdef`, no harvest, no symbols.\" and \"`.sh`, `.bash` | `memberdef` rows for `name() {\u2026}`...\"\nVERDICT: HIT\nWHY: The answer says YAML/JSON get only a path row (registered in the file set) with no symbols, while shell and CMake get symbol rows, so the two groups are treated differently."
+}

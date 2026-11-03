@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp is a git submodule at `extern/llama.cpp` (pinned to commit `20a04b2`, which the comments call b8420), declared in `.gitmodules`.\nVERDICT: HIT\nWHY: The answer states llama.cpp is a git submodule at extern/llama.cpp and contrasts it with the other dependencies fetched via FetchContent."
+}

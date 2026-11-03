@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"else is_explicitly_allowed (allow list) \u2192 approved\" and \"The allow list only skips a prompt.\"\nVERDICT: MISS\nWHY: The answer says the allow list only skips a prompt and places it inside check_approval. But it never says the allow list is consulted only from there, in a different file than the deny check. The \"only from check_approval, in a different file\" part isn't stated."
+}

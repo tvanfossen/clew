@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the two calls are a size probe followed by a fill, not retry. Nothing in the tokenizer retries a failure.\"\nVERDICT: HIT\nWHY: The answer identifies the two calls as size negotiation (probe then fill) rather than retry-on-failure, and notes the second call runs unconditionally with no retry. It never says \"no backoff\" or \"no attempt counter\" in so many words, but it states the substance."
+}

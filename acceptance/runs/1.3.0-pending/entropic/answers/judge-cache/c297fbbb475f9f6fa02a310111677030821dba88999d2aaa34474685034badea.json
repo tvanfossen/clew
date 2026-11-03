@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Paths the answer names as taking part in the decision or recording it:\n\n- tool_executor.cpp\n- server_manager.cpp\n- config.h\n- loader.cpp\n- bash.cpp\n\nITEMS:\ntool_executor.cpp\nserver_manager.cpp\nconfig.h\nloader.cpp\nbash.cpp\nEND"
+}

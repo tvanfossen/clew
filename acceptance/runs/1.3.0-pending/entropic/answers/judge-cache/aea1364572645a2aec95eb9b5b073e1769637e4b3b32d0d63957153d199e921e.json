@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Deny is checked here, after approval. Deny wins over allow and over `auto_approve`, because an allow match alone never reaches the server.\nVERDICT: MISS\nWHY: The answer describes two gates (an approval gate plus a deny check) and says the deny check applies \"just before routing\". It never concludes that the deny list is the only list that blocks execution, and it says the allow and approval path also gates the call."
+}

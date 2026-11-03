@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Facts and ecosystem layers: these accumulate under any stated tier. ... Flagging `--entry-patterns` used to drop `main`; under this rule `main` survives any stated tier.\"\nVERDICT: HIT\nWHY: The answer says stated tiers replace each other and the built-in guesses, while the facts and ecosystem layers accumulate and survive any stated tier. That is the asymmetry the item asks for."
+}

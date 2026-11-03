@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Define `MBEDTLS_PLATFORM_MEMORY` plus both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`... Define only `MBEDTLS_PLATFORM_MEMORY`. Then ... forward through two function pointers. Call `mbedtls_platform_set_calloc_free(my_calloc, my_free)`\nVERDICT: MISS\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer setter, but it never says the two are mutually exclusive; the nearest claim is that the check forbids `MBEDTLS_PLATFORM_STD_CALLOC` alongside the macros."
+}

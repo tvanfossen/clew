@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer concludes the opposite: without the grammars, no files are reported as not indexed because `register_paths()` registers them anyway, so the miss report stays silent. It does not describe a capability gate before routing."
+}

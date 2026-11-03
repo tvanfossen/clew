@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` undefined | `#define`d straight to `calloc` / `free` | `include/mbedtls/platform.h`, `#else` branch near line 180\nVERDICT: HIT\nWHY: The answer states that without MBEDTLS_PLATFORM_MEMORY, the default, mbedtls_calloc and mbedtls_free are macros defined directly to calloc and free."
+}

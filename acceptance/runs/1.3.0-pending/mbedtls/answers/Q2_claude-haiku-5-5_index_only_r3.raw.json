@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 24013,
+  "stop_reason": "end_turn",
+  "session_id": "2e6e64ad-4add-495f-8729-fd5ab9f7c4e1",
+  "total_cost_usd": 0.00816675,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 15291,
+    "cache_read_input_tokens": 315715,
+    "output_tokens": 3900,
+    "output_tokens_details": {
+      "thinking_tokens": 1663
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 15291,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1888,
+        "cache_read_input_tokens": 55290,
+        "cache_creation_input_tokens": 1342,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1342
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 3900,
+      "cacheReadInputTokens": 315715,
+      "cacheCreationInputTokens": 15291,
+      "webSearchRequests": 0,
+      "costUSD": 0.00816675,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1663,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 15291,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it accomplishes:** `MBEDTLS_PRIVATE(x)` is a name-mangling wrapper around struct members. In `include/mbedtls/private_access.h`, the macro is gated on `MBEDTLS_ALLOW_PRIVATE_ACCESS`:\n\n- **Default (opt-out not defined):** `MBEDTLS_PRIVATE(member)` expands to `private_##member`. So `mbedtls_aes_context` declares `nr`, `rk_offset` and `buf` as `private_nr`, `private_rk_offset` and `private_buf` (`include/mbedtls/aes.h:64-71`). Outside code that writes `ctx.nr` or `ctx->nr` fails to compile. The public header is still visible, but the fields are not usable by name.\n- **Opt-out defined:** the same macro expands to plain `member`, so the names are ordinary.\n\nThe 3.0 migration guide describes this as the intent: \"Most structure fields are now private\u2026 Attempting to access a private field directly will result in a compilation error\" (`docs/3.0-migration-guide.md`, \"Most structure fields are now private\"). The header's own doc says it is a \"Macro wrapper for struct's members.\" The intent is to stop applications from depending on internal layout, so the library can change struct fields without breaking the ABI or API.\n\n**Who the opt-out is for:** `MBEDTLS_ALLOW_PRIVATE_ACCESS` is not a Kconfig option. It is a bare macro that a translation unit defines to see the plain names. Its documented purpose is in `library/common.h:132`: \"Allow library to access its structs' private members. Although structs defined in header files are publicly available, their members are private and should not be accessed by the user.\"\n\nThe index shows it being turned on in three places:\n\n| Location | What it means |\n|---|---|\n| `library/common.h:132` | The library's internal utilities header, so library sources that include it get plain member names. |\n| `programs/ssl/ssl_client2.c:8` | The sample client reads TLS internals directly. |\n| `programs/ssl/ssl_server2.c:8` | The sample server does the same. |\n\nFor the code in those places, `ctx->nr` and similar accesses compile, and they stay coupled to the struct layout. Application code outside the library and these two sample programs still gets the mangled names and cannot touch the fields.\n\n**Limits of what I could confirm from the index:**\n- Whether `library/common.h:132` is unconditional, or defined only in some library builds, is not visible to me. The index records the definition and its line but not its surrounding conditions. Check this before relying on \"all library sources.\"\n- For `ssl_client2.c` and `ssl_server2.c`, the index gives line 8 but not the include order. I did not verify that the define comes before the mbedtls includes, which it must for the opt-out to take effect.",
+  "ttft_ms": 1382,
+  "type": "result",
+  "duration_ms": 25622,
+  "uuid": "6fed3dba-5883-46fe-a716-02b15b8b346f",
+  "ttft_stream_ms": 1071,
+  "time_to_request_ms": 95,
+  "first_content_frame_ms": 1071,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

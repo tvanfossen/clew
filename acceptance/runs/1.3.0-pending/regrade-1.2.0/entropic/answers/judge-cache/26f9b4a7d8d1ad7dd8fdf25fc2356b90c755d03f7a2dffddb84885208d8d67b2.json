@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says detokenize uses the same probe-then-fill pattern as tokenize; it never mentions a fixed 256-byte stack buffer tried first with heap allocation only on overflow."
+}

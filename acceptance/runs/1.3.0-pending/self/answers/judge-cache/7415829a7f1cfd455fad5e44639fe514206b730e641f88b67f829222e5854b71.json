@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions provenance of collapsed rows being decided by a ranking in the vocabulary module; it only says one row is kept per endpoint identity."
+}

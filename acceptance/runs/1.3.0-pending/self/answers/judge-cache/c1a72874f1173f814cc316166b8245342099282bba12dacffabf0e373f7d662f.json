@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses only call-graph callers of `git_argv`; it never mentions the inverted causal polarity where a reader's \"callers\" are the functions whose writes it observes."
+}

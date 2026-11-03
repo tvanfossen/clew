@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `<repo>/.clew.yaml` | the target's own standing declaration | 2 (declared) | every build of that repo\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as the tier-2 standing declaration but never says that both entry points (CLI and MCP/build_index) discover it from the repo root rather than plumbing it per section."
+}

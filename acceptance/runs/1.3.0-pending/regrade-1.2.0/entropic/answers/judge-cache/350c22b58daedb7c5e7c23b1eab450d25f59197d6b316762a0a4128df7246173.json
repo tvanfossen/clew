@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Caller \u2192 engine (buffer the engine will free, e.g. hook `modified_json`) | Must come from `entropic_alloc()`\" and \"`hooks.py::_alloc_c_string` and the hook trampoline call `entropic_alloc`, copy the JSON bytes plus a NUL, and write the pointer into `*modified_json`.\"\nVERDICT: HIT\nWHY: The answer states the caller-to-engine rule (engine-freed buffers must come from entropic_alloc) and shows where Python does it (hooks.py `_alloc_c_string` and the trampoline)."
+}

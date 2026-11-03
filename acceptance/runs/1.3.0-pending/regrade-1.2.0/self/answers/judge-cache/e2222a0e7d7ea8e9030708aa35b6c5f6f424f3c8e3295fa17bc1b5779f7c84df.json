@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: a `not_indexed` list with counts per extension (here `.rs=2`, `.toml=2`, no-extension=3, `.csv=3`, and others). This is the field that shows whether the place a name lives was covered at all.\nVERDICT: MISS\nWHY: The item requires naming file types that were in scope but produced no rows; the answer describes `not_indexed` (file types skipped), which is the opposite, so the stated substance is absent."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `<repo>/.clew.yaml` | the target's own standing declaration | 2 (declared) | every build of that repo\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as tier 2 and the standing declaration, but it never says both entry points (CLI and MCP) discover it from the repo root. The \"every build of that repo\" scope doesn't state that mechanism."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Tiers 3 and 4 behave identically, so arguing which one a value belongs to changes the label but not the result.\"\nVERDICT: HIT\nWHY: The answer states tiers 3 and 4 behave identically so the distinction is inert, but it never names the fact-versus-guess line as the load-bearing one. The item has two halves and only the first is stated, so by the rubric's wording this should be a MISS. However, the answer's tier table does mark tiers 1\u20132 and 5 as stated versus guesses, and the \"facts never get dropped\" framing implies the fact-versus-guess split. I count that as the substance."
+}

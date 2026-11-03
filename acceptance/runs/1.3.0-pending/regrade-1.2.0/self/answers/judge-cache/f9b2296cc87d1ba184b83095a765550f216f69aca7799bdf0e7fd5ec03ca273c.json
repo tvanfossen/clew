@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The reply is explicit that an empty result is \"NOT an error\" and \"NOT a definitive negative either\".\" and \"'I did not look there' is what the reply says for everything else.\"\nVERDICT: MISS\nWHY: The answer describes how the tool now distinguishes absence from non-search. It never says that a single non-matching token was previously treated as proof of absence."
+}

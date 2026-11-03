@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Allow list** (`permissions.allow`) is the only thing that skips prompting.\" and \"auto_ok = permissions.auto_approve OR ServerManager::is_explicitly_allowed (allow list)\" within check_approval\nVERDICT: HIT\nWHY: The answer says the allow list skips prompting (suppresses approval) and is consulted in check_approval, with deny handled separately in server_manager.cpp (a different file); it does not explicitly say that allow does not grant execution, but the other gates are shown as still applying (\"An allow-list entry does not bypass them\")."
+}

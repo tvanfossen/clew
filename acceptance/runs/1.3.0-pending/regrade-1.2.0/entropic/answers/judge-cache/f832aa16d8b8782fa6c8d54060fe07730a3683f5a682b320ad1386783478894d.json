@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nentropic/__init__.py\n_bindings_manifest.py\n_bindings.py\nscripts/gen_bindings.py\ninclude/entropic/entropic.h\n_loader.py\nsrc/facade/entropic.cpp\nhooks.py\nhelpers.py\nEND"
+}

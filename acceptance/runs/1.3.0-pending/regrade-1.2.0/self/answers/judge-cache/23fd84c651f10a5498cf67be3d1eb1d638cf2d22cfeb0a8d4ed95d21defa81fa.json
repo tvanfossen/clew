@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every query reply is stamped with `staleness_notices()` (`server.py:1548`), which is non-raising, so a failed measurement cannot turn a good answer into an error.\nVERDICT: HIT\nWHY: The answer states that staleness measurement is non-raising so a failure can't turn a good reply into an error."
+}

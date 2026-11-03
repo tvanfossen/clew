@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Allow list: `is_allowed` returns true on the first matching pattern. A match only skips the approval prompt. It does not bypass the deny check.\"\nVERDICT: HIT\nWHY: The answer states that an allow match only skips approval rather than granting execution. It places the allow list in `check_approval`, which is in `tool_executor.cpp`, while the deny list sits in `server_manager.cpp`."
+}

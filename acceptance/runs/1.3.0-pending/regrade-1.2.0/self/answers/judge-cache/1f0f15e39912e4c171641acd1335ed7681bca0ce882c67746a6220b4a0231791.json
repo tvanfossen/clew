@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says a missing bash/cmake grammar degrades silently, and that those files are NOT reported as not-indexed. It states the opposite of the item's \"reported as not indexed\" conclusion. It does mention the capability gate (`_OPTIONAL_KEYS`), but that isn't enough."
+}

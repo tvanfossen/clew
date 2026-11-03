@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The same empty return is used for a null vocab (`:52`), so an invalid vocab is silent. ... `LlamaCppBackend::tokenize` ... Returns `{}` when `tokenizer_` is null. ... Failure in `tokenize` is a `logger->error` (`:64-68`) followed by `return {}`.\nVERDICT: HIT\nWHY: The answer says the backend wrapper returns `{}` when `tokenizer_` is null, and that a failed tokenize also ends in `return {}`. It also says callers can't tell the two apart, so the item is covered."
+}

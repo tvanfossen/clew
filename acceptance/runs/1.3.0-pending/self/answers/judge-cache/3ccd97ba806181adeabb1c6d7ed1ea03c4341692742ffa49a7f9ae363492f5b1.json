@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The three axes:\" followed by the table rows `data` | Sources changed since the build, `schema` | Index was stamped by a *newer* build than this server expects, `code` | The running server process loaded clew before its source changed\nVERDICT: HIT\nWHY: The answer explicitly says the index can be stale along three independent axes and names them data, schema, and code."
+}

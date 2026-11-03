@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::accept_loop` | `external_bridge.cpp:796` ... `HealthMonitor::monitor_loop` | `health_monitor.cpp:92` ... `StdioTransport::stderr_reader_loop` | `transport_stdio.cpp:164` | ... `SSETransport::sse_reader_loop` | `transport_sse.cpp:107` ... Cancel pollers (3 sites) | `inference_c_api.cpp:385`, `interface_factory.cpp:246`, `response_generator.cpp:413`\nVERDICT: HIT\nWHY: The answer's table lists spawn sites across the external bridge, the MCP transports (stdio and SSE), the health monitor and the inference cancel pollers. That shows thread creation is spread over several subsystems. It never says outright that this is decentralised, but the table shows it."
+}

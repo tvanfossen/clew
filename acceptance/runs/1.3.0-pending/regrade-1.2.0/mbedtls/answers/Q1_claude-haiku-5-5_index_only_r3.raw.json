@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 14736,
+  "stop_reason": "end_turn",
+  "session_id": "f0fd05c3-5501-4db6-b55b-095f3b36b02d",
+  "total_cost_usd": 0.006920720000000001,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 20882,
+    "cache_read_input_tokens": 115772,
+    "output_tokens": 3172,
+    "output_tokens_details": {
+      "thinking_tokens": 1127
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 20882,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2290,
+        "cache_read_input_tokens": 40730,
+        "cache_creation_input_tokens": 17673,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 17673
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 3172,
+      "cacheReadInputTokens": 115772,
+      "cacheCreationInputTokens": 20882,
+      "webSearchRequests": 0,
+      "costUSD": 0.006920720000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1127,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 20882,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** in the default configuration, mbedtls runs no threads of its own and takes no locks. Everything that uses a mutex sits behind `MBEDTLS_THREADING_C`, which is off by default. The only threads and signal handlers the index finds are in `programs/`, not `library/`.\n\n**Default configuration**\n\n- `MBEDTLS_THREADING_C` has default state `off`, declared at `include/mbedtls/mbedtls_config.h:3787`. Its `threading.c` gate (line 18) and the `psa_crypto_slot_management.c` and `memory_buffer_alloc.c` gates all depend on it.\n- `MBEDTLS_THREADING_PTHREAD` is also `off` by default (`mbedtls_config.h:2196`).\n- With both off, `library/threading.c` compiles to nothing, so the `mbedtls_mutex_*` function pointers, the global mutexes and the `pthread_mutex_*` calls are all absent.\n- The index's `configured_macros` lists both macros as set, but that came from the operator's build flags, not from the repo's shipped config. The index holds no `config_header` for this target, so treat the default as the `mbedtls_config.h` value above.\n\n**What runs concurrently**\n\n- **In the library:** nothing spawns a thread. The thread layer's only library-side lock is the wrapper `threading_mutex_lock_pthread` (`library/threading.c:75`), which is not reached under the default config.\n- **In the sample programs** (all gated by `MBEDTLS_THREADING_C`/`PTHREAD`, so not built by default):\n  - `handle_ssl_connection` in `programs/ssl/ssl_pthread_server.c:277`, one pthread per accepted client, each with its own `mbedtls_ssl_context`.\n  - `sighandler` in `programs/test/benchmark.c:444` and `term_handler` in `programs/ssl/ssl_server2.c:1699`, which are signal handlers.\n  - `TimerProc` in `programs/test/benchmark.c:430`, a Win32 timer thread.\n- The index counts 4 spawn sites, all first-party. Its spawn patterns cover only the primitives it knows, so a platform-specific spawn would not appear.\n\n**What the mutexes protect, when threading is enabled**\n\n| Object | Where declared | Protects (verified) |\n|---|---|---|\n| `mbedtls_threading_key_slot_mutex` | `threading.c:188` | PSA key slots; taken in `psa_unregister_read_under_mutex` (`psa_crypto_slot_management.c:931`) |\n| `buffer_alloc` `heap.mutex` | `memory_buffer_alloc.c` | Heap; `buffer_alloc_calloc_mutexed` / `_free_mutexed` (lines 541+) wrap calloc and free |\n| `mbedtls_threading_psa_globaldata_mutex` | `threading.c:189` | PSA global data (declared; users not checked) |\n| `mbedtls_threading_psa_rngdata_mutex` | `threading.c:190` | PSA RNG data (declared; users not checked) |\n| `mbedtls_threading_gmtime_mutex` | `threading.c:185` | `gmtime` (declared; users not checked) |\n| `mbedtls_threading_readdir_mutex` | `threading.c:182` | `readdir` (declared; users not checked) |\n\nThe mutexes are `PTHREAD_MUTEX_INITIALIZER` wrappers (`MUTEX_INIT`). The entropy, CTR-DRBG and HMAC-DRBG code takes the same lock wrapper through `mbedtls_mutex_lock` (the dossier lists those callers), and the PSA crypto, SSL cache, cookie and ticket code do too. None of these were individually checked for which data the lock covers. The mutex layer shows no nested locking: there are zero two-lock critical sections.\n\n**Implication:** under the default config, the library is not thread-safe in any sense the index can verify. If you call it from several threads, you must serialise access yourself or build with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD`. Even then, the index shows only the listed globals and the heap mutex. Whether every shared object is covered is unverified, because the lock layer resolves only one identity (`mutex->mutex`, low confidence).",
+  "ttft_ms": 936,
+  "type": "result",
+  "duration_ms": 15399,
+  "uuid": "824794bf-2b0f-40fd-b590-64bb04e7ff3c",
+  "ttft_stream_ms": 678,
+  "time_to_request_ms": 76,
+  "first_content_frame_ms": 678,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

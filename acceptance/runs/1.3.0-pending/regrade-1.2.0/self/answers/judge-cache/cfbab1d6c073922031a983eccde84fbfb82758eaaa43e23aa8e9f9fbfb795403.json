@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tiers 3 and 4 survive any stated tier, so `main` in entry patterns cannot be dropped by a flag.\nVERDICT: MISS\nWHY: The answer shows tiers 3 and 4 both \"Accumulate\" and union in the formula, but it never says their distinction is deliberately inert or that the load-bearing line is fact versus guess."
+}

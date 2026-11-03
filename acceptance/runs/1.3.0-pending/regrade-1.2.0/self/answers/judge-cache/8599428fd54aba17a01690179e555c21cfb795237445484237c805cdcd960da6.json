@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `*.sh`, `*.bash` ... `*.cmake`, `CMakeLists.txt` (by whole name, so `oldCMakeLists.txt` is excluded)\nVERDICT: HIT\nWHY: The answer names the shell extensions (.sh, .bash) and the CMake extension (.cmake), and says CMakeLists.txt is matched by whole file name rather than by extension."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Unless `MBEDTLS_ALLOW_PRIVATE_ACCESS` is defined, it expands to `private_##member`, so the field is renamed in the public header.\" and \"Inside the library, and in the two SSL sample programs, you can write plain member names and the code compiles. Anywhere else, including `ssl_context_info.c`, you must write `MBEDTLS_PRIVATE(...)` or the build fails.\"\nVERDICT: HIT\nWHY: The answer says that code defining the opt-out macro sees plain member names, while other consumers of the public headers see the renamed `private_` fields."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python never talks to C++ directly. The path is a single shared library reached through `ctypes`: ... `ctypes.CDLL(librentropic.so)` loaded by _loader.py ... pure Python, ~50 KB\nVERDICT: HIT\nWHY: The answer names ctypes.CDLL over librentropic.so as the mechanism, and it describes the Python package as pure Python with generated ctypes bindings, so no compiled extension module is involved."
+}

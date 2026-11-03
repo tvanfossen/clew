@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Every front end therefore asks which languages are compiled in (`clew/substrate.py`: `compiled_languages`, `has_language`, `missing_languages`).\" and \"The gate prevents that by resolving the route to no grammar.\" and \"The not-indexed report ... stamps at build time which in-scope file types have no rows.\"\nVERDICT: HIT\nWHY: The answer says that an installation without the grammars still builds, that a capability gate runs before routing, and that the skipped file types are reported as not indexed."
+}

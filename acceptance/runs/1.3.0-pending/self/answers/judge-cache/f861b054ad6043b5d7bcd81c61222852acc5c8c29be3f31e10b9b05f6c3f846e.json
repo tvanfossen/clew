@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`staleness_notices()` in `server.py` attaches them to every query reply, and a `staleness` block appears only when something is stale, so a current index adds nothing.\"\nVERDICT: HIT\nWHY: The answer states notices are attached to every query reply and the block is absent (adds nothing) on a current index."
+}

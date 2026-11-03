@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer distinguishes definitive-for-scope, \"not looked\" (not_indexed extension), and staleness, but never states a \"definitive for a reason that is not absence\" grade (e.g., definitive because the target is a type the index cannot settle). The \"not definitive\" row for stale/not-indexed is there, but the middle grade is missing."
+}

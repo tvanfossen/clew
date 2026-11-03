@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml`, `.yml`, `.json` | Yes, as a `path` row | No. Keys such as `steps:` are deliberately not symbols\nVERDICT: HIT\nWHY: The answer states YAML/JSON are registered in the index as file (path) rows with no symbols, and contrasts this with shell and CMake, which do get symbols."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`not_indexed` for extensions the index never reads (here `.rs`, `.toml`, `.csv`, `.sql`, extensionless files and so on)\" and \"Name that would live in a file with an unindexed extension (`.rs`, `.toml`, `.sql`, \u2026) | No evidence either way. The index never read those files, so this is the 'did not look there' case.\"\n\nVERDICT: MISS\n\nWHY: The answer distinguishes \"not indexed\" file types from searched ones, but it never says the reply also names the in-scope file types that produced no rows. The item needs that specific fact, and the answer only lists the unindexed extensions and the indexed ones in general."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says exceptions never cross the .so boundary (C++ side), but never says the Python hook trampoline swallows exceptions and treats a failed hook as pass-through."
+}

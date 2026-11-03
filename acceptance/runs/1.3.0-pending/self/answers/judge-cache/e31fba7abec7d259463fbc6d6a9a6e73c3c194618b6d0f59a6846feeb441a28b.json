@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `code` notice says the *data* is still read live, but the *logic* is old and a rebuild cannot fix it. This is the gh#348 lesson: a notice that said \"the data is unaffected\" was read as reassurance, and a rebuild then dropped a pipeline layer. ... Writes: the server refuses. `stale_code_refusal()` runs before any build.\n\nVERDICT: HIT\nWHY: The answer says data is read live while a stale process's rebuild drops a pipeline layer (old logic) and is refused, covering the read/write asymmetry. It never says \"query tools open the database per call\", but the mechanism is otherwise stated."
+}

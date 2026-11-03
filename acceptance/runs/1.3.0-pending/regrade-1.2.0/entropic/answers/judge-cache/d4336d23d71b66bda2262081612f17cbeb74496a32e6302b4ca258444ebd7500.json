@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: finds librentropic.so: $ENTROPIC_LIB, then $ENTROPIC_HOME, then ~/.entropic, then ctypes.util.find_library\nVERDICT: MISS\nWHY: The answer gives env overrides, then ~/.entropic, then the system library cache (find_library). It never mentions two directory layouts tried per root, which the item requires."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nclew/gitenv.py\nclew/mcp_server/server.py\ntests/test_security_surface.py\nEND"
+}

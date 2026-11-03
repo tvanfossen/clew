@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It zeroes its heap, creates a mutex when `MBEDTLS_THREADING_C` is set, and installs its own functions through `mbedtls_platform_set_calloc_free`. It uses the mutexed variants when threading is on, and the plain ones otherwise.\"\nVERDICT: HIT\nWHY: The answer says the init function installs mutexed variants when threading is on and plain ones otherwise, tied to MBEDTLS_THREADING_C. It doesn't say the choice is made at compile time, but the macro gate implies it."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `data` ... Cleared by: A rebuild; `code` ... Cleared by: Restarting the MCP client only; \"A rebuild through this process will not clear it\"\nVERDICT: MISS\nWHY: The answer gives the different clearing actions per axis, but it never says that this is why one flag would not have been enough."
+}

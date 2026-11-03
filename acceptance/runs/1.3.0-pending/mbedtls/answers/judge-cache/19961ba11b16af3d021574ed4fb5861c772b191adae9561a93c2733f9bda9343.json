@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`ctx->MBEDTLS_PRIVATE(state)` compiles to `ctx->private_state` by default. A user who writes `ctx->state` gets a compile error\"\nVERDICT: MISS\nWHY: The answer explains the compile-time renaming of the member, but never says the struct layout and fields remain visible and sized, as opposed to being hidden, as the item requires."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_PLATFORM_MEMORY` off (the default, per `include/mbedtls/mbedtls_config.h:208`), `platform.h:163-167` makes `mbedtls_calloc` a macro for `calloc` and `mbedtls_free` a macro for `free`.\nVERDICT: MISS\nWHY: The answer says MEMORY is off by default and cites the config header, but never states that it is commented out in the shipped mbedtls_config.h. It does not clearly name it as the gate either."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: So the runtime setter appears to exist only when `MBEDTLS_PLATFORM_MEMORY` is defined and the macro overrides are not. I inferred the exact `#if` expression from the gate list and did not read it.\nVERDICT: MISS\nWHY: The answer only hedges that the setter \"appears to exist\" only when the macros aren't defined, and it never states that the setter is neither declared nor compiled on the macro path. It also lists the setter as a way to substitute the allocator, so the fact is not stated."
+}

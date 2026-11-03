@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It zeroes its heap, creates a mutex when `MBEDTLS_THREADING_C` is set, and installs its own functions through `mbedtls_platform_set_calloc_free`. It uses the mutexed variants when threading is on, and the plain ones otherwise.\nVERDICT: HIT\nWHY: The answer states the mutexed vs. plain pair choice based on MBEDTLS_THREADING_C inside the init function; \"compile time\" is implied by the macro gate."
+}

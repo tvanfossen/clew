@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The interface contract (`include/entropic/inference/tokenizer.h:48`) says empty means \"failure or empty input\". Callers cannot tell the two apart, and no error code reaches them.\nVERDICT: HIT\nWHY: The answer states that failure and empty input are indistinguishable. It also says most callers (count, generate, complete) do not check, which covers the \"no caller checks\" half. The speculative and MTP size checks happen to catch it but do not detect tokenization failure."
+}

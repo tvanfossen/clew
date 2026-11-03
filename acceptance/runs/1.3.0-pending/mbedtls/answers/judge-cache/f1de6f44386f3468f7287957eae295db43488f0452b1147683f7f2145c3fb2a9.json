@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nplatform.h\nplatform.c\ntests/configs/user-config-malloc-0-null.h\nmemory_buffer_alloc.c\nEND"
+}

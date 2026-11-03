@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A user who writes `ctx->state` gets a compile error, and the public header never promises that field exists.\nVERDICT: MISS\nWHY: The answer explains the rename to `private_##member` and compile errors. It never says the struct layout and fields stay visible and sized, and it never contrasts this with hiding the layout."
+}

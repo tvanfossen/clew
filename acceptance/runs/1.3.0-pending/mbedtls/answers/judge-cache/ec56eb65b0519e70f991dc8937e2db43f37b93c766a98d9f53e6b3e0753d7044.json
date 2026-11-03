@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library creates no threads. `pthread_create` appears only in `programs/ssl/ssl_pthread_server.c`, which is an example.\nVERDICT: MISS\nWHY: The answer states the library creates no threads, but it frames the mutex layer as compiled out by default. It never says that library/ supplies the mutex abstraction for threaded callers. It only lists the mutexes as used when THREADING_C is on, which doesn't state the contrast."
+}

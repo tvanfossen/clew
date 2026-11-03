@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `extern/CMakeLists.txt` says external dependencies are fetched at configure time with `FetchContent`, and that llama.cpp is a submodule.\nVERDICT: HIT\nWHY: The answer states llama.cpp is a git submodule under `extern/`, and it names a pinned submodule commit. It also says other dependencies use FetchContent but doesn't say llama.cpp is fetched that way."
+}

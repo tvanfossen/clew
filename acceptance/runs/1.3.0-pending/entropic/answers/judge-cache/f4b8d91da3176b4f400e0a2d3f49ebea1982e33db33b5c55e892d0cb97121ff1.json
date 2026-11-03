@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions `_bindings_manifest.py` only as a hand-written helper and never explains the two-part split of a names-only manifest with no ctypes import versus the bindings module that loads the library."
+}

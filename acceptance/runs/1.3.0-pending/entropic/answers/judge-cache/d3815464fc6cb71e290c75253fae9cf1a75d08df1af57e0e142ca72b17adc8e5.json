@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp is a git submodule at `extern/llama.cpp` (`.gitmodules` \u2192 `ggml-org/llama.cpp`), pinned by gitlink to commit `20a04b22`.\nVERDICT: HIT\nWHY: The answer explicitly states llama.cpp is a git submodule at extern/llama.cpp, and it also says it is built from source via add_subdirectory rather than found through find_package."
+}

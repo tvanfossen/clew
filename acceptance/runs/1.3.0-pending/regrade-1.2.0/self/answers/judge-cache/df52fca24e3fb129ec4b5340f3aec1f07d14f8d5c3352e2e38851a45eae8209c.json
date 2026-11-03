@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions markdown only as a missing grammar and never states that markdown is deliberately not given a path row because it is prose and would be counted as indexed source in coverage."
+}

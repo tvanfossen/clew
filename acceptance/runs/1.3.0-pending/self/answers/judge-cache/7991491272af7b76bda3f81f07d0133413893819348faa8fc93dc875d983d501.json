@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the current graded-empty design but never says a single non-matching token was previously treated as proof of absence, nor that this conflated \"nothing exists\" with \"I did not look there\" as a past defect."
+}

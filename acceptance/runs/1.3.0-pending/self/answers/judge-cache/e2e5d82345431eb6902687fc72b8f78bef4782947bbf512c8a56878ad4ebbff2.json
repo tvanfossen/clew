@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Restart the MCP client. Rebuilding is unsafe here, not just ineffective. A stale process running an old pipeline would re-stamp the index with dropped layers.\nVERDICT: MISS\nWHY: The answer lists remedies per axis (refresh for data, restart for code), but it never says that this difference is why a single flag would not have been enough."
+}

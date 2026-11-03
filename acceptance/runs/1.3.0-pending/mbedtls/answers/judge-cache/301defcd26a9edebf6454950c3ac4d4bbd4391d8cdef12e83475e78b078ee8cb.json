@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: These are enabled with `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` or `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN`.\nVERDICT: MISS\nWHY: The answer describes MemorySanitizer/Valgrind-based verification and the build flags, but never states that it is an off-by-default facility or that it is explicitly not part of the library API."
+}

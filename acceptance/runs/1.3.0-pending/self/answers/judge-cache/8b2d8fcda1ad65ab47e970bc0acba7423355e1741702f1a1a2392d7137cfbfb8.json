@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Staleness has three axes, each measured by a different check:\" followed by the Data, Schema and Code axes.\nVERDICT: HIT\nWHY: The answer says staleness is three separate axes (data, schema, code) and names each, with a distinct remedy per axis."
+}

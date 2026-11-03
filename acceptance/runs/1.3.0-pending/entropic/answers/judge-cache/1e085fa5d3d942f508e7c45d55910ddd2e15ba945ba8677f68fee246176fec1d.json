@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `accept_loop` \u2192 per-client thread | `serve_client` per connection ... `ExternalBridge::start` \u2192 `accept_loop` | Accepts socket clients ... joins the accept thread ... then joins each client thread\nVERDICT: HIT\nWHY: The answer states that the bridge's accept thread runs `accept_loop` and spawns a per-client `serve_client` thread for each connection."
+}

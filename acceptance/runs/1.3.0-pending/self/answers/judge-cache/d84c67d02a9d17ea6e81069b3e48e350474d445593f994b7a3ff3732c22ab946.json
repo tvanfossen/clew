@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `gh#393` note in the same file records a deliberate refusal to downgrade on every absent gate layer. That would have hedged almost every reply.\nVERDICT: HIT\nWHY: The answer says the code deliberately refuses to downgrade on every absent layer because it would hedge almost every reply, which matches the item's substance. It never says outright that there is exactly one downgrade."
+}

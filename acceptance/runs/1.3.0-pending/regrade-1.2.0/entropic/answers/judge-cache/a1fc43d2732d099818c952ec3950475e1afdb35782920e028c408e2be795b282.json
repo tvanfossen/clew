@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Detached async-ask worker outlives `stop()`.** `run_async_ask` ends with `.detach()` (`external_bridge.cpp:1222`). The lambda captures `this` and `handle_`. `stop()` joins the accept and client threads but never waits on the detached worker.\"\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as detached and states that it outlives its owner's stop() with no join. It does not say the worker is the only detached thread, but the rest of its table treats the other threads as joined."
+}

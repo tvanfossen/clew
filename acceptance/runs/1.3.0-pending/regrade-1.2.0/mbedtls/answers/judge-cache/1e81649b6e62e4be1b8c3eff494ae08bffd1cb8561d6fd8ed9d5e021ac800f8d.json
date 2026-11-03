@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque()` (`constant_time_impl.h:85-93`) wraps values in `asm volatile(\"\" : \"+r\"(x))` so the compiler cannot prove a value and fold the mask back into a branch.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the barrier that stops the compiler from knowing a value and places it in constant_time_impl.h."
+}

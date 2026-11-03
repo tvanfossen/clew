@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When `hasSearch` is true, it renders `<NavigationSearch {...searchProps} ... ref={ref} />`\nVERDICT: HIT\nWHY: The answer states NavigationHeader forwards its ref to NavigationSearch, rendered only when `hasSearch` is true. It doesn't say outright that the ref attaches to nothing otherwise, but the conditional rendering implies it."
+}

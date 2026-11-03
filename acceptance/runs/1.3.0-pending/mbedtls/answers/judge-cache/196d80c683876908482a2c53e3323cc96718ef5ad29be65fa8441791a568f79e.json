@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | The library's own sources (it's the internal \"utility macros\" header) | Library code reads and writes struct fields directly.\nVERDICT: HIT\nWHY: The answer says common.h, a shared internal header, defines the opt-out for the library's own sources, so library code sees plain member names. It hedges on include order, but it still states the substance."
+}

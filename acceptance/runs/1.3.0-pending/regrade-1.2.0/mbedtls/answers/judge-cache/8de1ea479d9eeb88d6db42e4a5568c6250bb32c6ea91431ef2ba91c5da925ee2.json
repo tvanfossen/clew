@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions MBEDTLS_ERROR_STRERROR_DUMMY or the compiled-out string table that keeps mbedtls_strerror linkable."
+}

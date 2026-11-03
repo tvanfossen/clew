@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Also returns `{}` when `vocab_` is null, so \\\"failed\\\" and \\\"empty input\\\" look identical\" and \"The failure contract is \\\"empty vector,\\\" and every caller receives it as if it were a valid result. A count of `0` or an empty prompt is never reported as an error.\"\nVERDICT: HIT\nWHY: The answer says failure returns `{}`, which is indistinguishable from empty input, and that callers treat it as a valid result without checking."
+}

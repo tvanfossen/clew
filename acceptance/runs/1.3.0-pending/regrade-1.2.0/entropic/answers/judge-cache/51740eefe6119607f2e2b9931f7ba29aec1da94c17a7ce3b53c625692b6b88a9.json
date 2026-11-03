@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`EngineCallbacks::on_tool_call` is declared `void(*)(const char*, void*)`... In `check_approval`, if the callback is set, the code calls it and then sets `approved = true` without checking anything.\"\nVERDICT: HIT\nWHY: The answer states the callback returns void and approved is set to true unconditionally after firing it, so it cannot deny."
+}

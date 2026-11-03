@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`run_async_ask` ends with `.detach()`, so nothing joins it.\"\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as detached with no join, and it lists the other threads as joined. That makes it the one detached thread."
+}

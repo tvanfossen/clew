@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Health monitor ... \"`watched_mutex_` guards the watch list, `event_mutex_` guards the queue, and a `wake_cv_` wakes it on stop.\" and \"`ExternalBridge::stop()` and the health monitor's `stop()` join their threads.\"\nVERDICT: HIT\nWHY: The answer states the health monitor is woken by a condition variable on stop and that its stop() joins its thread. It never mentions an atomic flag exchange, so the match is partial, but the join and CV-wake substance is present."
+}

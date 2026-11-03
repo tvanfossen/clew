@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer's table puts the llama.cpp-calling code in `src/inference/` and in `src/facade/`. It says the direct includes sit \"all under `src/inference/` or in tests\". The facade row says `src/facade/entropic.cpp` reaches the backend only through `dynamic_cast<LlamaCppBackend*>` and `llama_model_ptr()`.\n\nITEMS:\nsrc/inference\nsrc/facade\nEND"
+}

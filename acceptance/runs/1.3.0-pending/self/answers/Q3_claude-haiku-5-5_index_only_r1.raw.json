@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 14370,
+  "stop_reason": "end_turn",
+  "session_id": "b5aedcaa-f9cb-4540-b7bd-f7535abdc7b4",
+  "total_cost_usd": 0.01195628,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 47444,
+    "cache_read_input_tokens": 154218,
+    "output_tokens": 1849,
+    "output_tokens_details": {
+      "thinking_tokens": 260
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 47444,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1225,
+        "cache_read_input_tokens": 54201,
+        "cache_creation_input_tokens": 11807,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 11807
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 1849,
+      "cacheReadInputTokens": 154218,
+      "cacheCreationInputTokens": 47444,
+      "webSearchRequests": 0,
+      "costUSD": 0.01195628,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 260,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 47444,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 5,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A clew index can be out of date along three independent axes, and the tool tells the caller which one and what clears it. It also refuses to rebuild in the one case where a rebuild would make things worse.\n\n**How it knows.** `db_status` in `clew/mcp_server/state.py` measures the database against the running code (version 12 of that function). Freshness is two-termed: the pipeline version that stamped the index differs from the one expected, or the source files have changed since the build. Version checks alone missed source edits, so mtimes are also compared. `db_status` also reports coverage, so an index can be current yet hold little of the repository.\n\n**What it tells the caller.** `freshness.py` turns the raw fields into `notices()`, a list of `{axis, message}` entries in the order data \u2192 schema \u2192 code. Each message names the action that clears it. The three axes:\n\n| Axis | Meaning | Cleared by |\n|---|---|---|\n| `data` | Sources changed since the build | Rebuild (`index(action='refresh')`) |\n| `schema` | Index was stamped by a *newer* build than this server expects | Nothing the caller can do; a rebuild re-stamps the same newer version |\n| `code` | The running server process loaded clew before its source changed | Restarting the MCP client only |\n\nThe notices ride inside the payload. `staleness_notices()` in `server.py` attaches them to every query reply, and a `staleness` block appears only when something is stale, so a current index adds nothing. The block is non-raising: if measuring fails, the reply goes out without it rather than turning into an error. When the index is schema-stale, `_withdraw_definitive` in `tools_query.py` also rewrites any \"definitive empty result\" note, so a reply cannot say both \"no locks exist\" and \"layers may be missing.\"\n\n**What the caller does.**\n\n- **Queries refresh automatically.** `_answering_with_refresh` wraps each query tool and calls `_auto_refresh` before answering. `_data_stale` decides whether a refresh applies, and only the `data` axis qualifies.\n- **Guards on the rebuild path.** `_data_stale` returns false when the process does not match its source, so an auto-refresh never runs the build that could corrupt the index. `stale_code_refusal()` is the guard every write path calls first. It has no override, and `force=True` does not bypass it.\n- **Locking and failure.** `_refresh_stale` takes the per-repository build lock with a bounded wait. Concurrent queries deduplicate into one build, and a lock wait that times out answers from the existing index with its notice still attached. A failed refresh also degrades to answering with the warning, not an error.\n- **Caller's manual step.** The caller's own move depends on the notice. For `data`, nothing is needed because queries already refresh. For `code`, the caller restarts the MCP client and then runs `index(action='refresh', force=True)`. For `schema`, the caller can't fix it from the client side.\n\n**Why it's built this way.** The design records two earlier failures. Reporting staleness and leaving the fix to the caller meant agents answered from stale indexes anyway, so refresh is now automatic. A stale process once rebuilt an index at an older version and dropped a layer while `status` reported it healthy, so writes from stale code are refused.\n\nSome of the line anchors I got back were flagged as mismatched against the current file, so treat the exact line numbers as approximate. The behaviour described above is consistent across the docstrings and tests.",
+  "ttft_ms": 1353,
+  "type": "result",
+  "duration_ms": 15911,
+  "uuid": "04d4f670-3b29-40fe-8d76-3a8a8201f26a",
+  "ttft_stream_ms": 1072,
+  "time_to_request_ms": 83,
+  "first_content_frame_ms": 1073,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

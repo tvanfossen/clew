@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The one automated check in the index is `test_with_valgrind_constant_time` (`tests/scripts/components-configuration-crypto.sh:25`). It runs the `*constant_time*.data` suites under Valgrind.\nVERDICT: MISS\nWHY: The answer mentions a valgrind CI component but doesn't say the constant-flow property is verified by a separate off-by-default facility (MemorySanitizer/valgrind), nor that it's explicitly not part of the library API."
+}

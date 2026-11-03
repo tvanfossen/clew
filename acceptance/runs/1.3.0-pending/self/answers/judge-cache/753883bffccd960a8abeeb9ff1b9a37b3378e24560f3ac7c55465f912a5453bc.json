@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions `key` edges as shared-key dataflow but never says that for a reader the \"callers\" are the functions whose writes it observes, so it does not state the inverted polarity."
+}

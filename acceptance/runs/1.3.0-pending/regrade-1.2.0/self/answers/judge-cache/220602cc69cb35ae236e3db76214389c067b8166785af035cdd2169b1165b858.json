@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Paths named in the answer:\n\nITEMS:\nclew/cli.py\nclew/synth.py\nshast.py\ncmakeast.py\nclew/harvest.py\nclew/substrate.py\ntests/test_not_indexed_report.py\nEND"
+}

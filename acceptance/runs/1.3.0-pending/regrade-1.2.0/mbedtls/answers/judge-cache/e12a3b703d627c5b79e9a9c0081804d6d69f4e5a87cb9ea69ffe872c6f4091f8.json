@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | Unconditional `#define MBEDTLS_ALLOW_PRIVATE_ACCESS` | Every library translation unit gets plain field names.\nVERDICT: HIT\nWHY: The answer states that library/common.h unconditionally defines the opt-out, so every library translation unit sees plain member names."
+}

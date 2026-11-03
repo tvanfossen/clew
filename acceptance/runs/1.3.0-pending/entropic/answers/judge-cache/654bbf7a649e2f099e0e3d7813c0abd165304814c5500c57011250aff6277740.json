@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Reading the answer, the only directory under `src/` that it says contains code calling into llama.cpp is `src/inference/`. It also names `src/inference/adapters/`, where `adapter_registry.cpp` uses llama.cpp's `common_chat`. `include/entropic/inference/` is not under `src/`, so I left it out.\n\nITEMS:\nsrc/inference/\nsrc/inference/adapters/\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Deny** entries are checked in `ServerManager::execute`, after approval has already passed. A tool that matches both lists is approved and then denied at dispatch.\" and \"`ServerManager::execute` does a final deny check before routing. The allow list is a skip-prompt shortcut\"\n\nVERDICT: MISS\n\nWHY: The answer places the deny check in `ServerManager::execute` before routing, but it also lists several other gates (hook, schema, MCP authorization, tier allowlist, duplicate check) that can stop a call. It doesn't conclude that the deny list is the only list that blocks execution, or that `execute` consults nothing else."
+}

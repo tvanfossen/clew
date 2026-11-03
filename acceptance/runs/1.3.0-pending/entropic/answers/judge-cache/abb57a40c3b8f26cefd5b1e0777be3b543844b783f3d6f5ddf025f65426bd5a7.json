@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::accept_loop` ... Polls the listen socket every 500 ms and gates each connection on `SO_PEERCRED` uid. | Per-client serve thread | `external_bridge.cpp:945` | Runs `serve_client` for one MCP connection. | Same `client_threads_mutex_`. `stop()` drains the vector...\nVERDICT: HIT\nWHY: The answer lists one accept thread (`accept_loop`) and a separate per-client serve thread for each MCP connection, with `client_threads_mutex_` guarding the client-thread vector. That covers the two-level structure."
+}

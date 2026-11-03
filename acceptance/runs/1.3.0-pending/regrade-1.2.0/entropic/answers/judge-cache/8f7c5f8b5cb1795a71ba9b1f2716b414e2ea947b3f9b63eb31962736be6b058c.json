@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the llama.cpp API is confined to a few `src/inference/llama_cpp_*` files and says nothing about it reaching roughly a dozen of entropic's source files."
+}

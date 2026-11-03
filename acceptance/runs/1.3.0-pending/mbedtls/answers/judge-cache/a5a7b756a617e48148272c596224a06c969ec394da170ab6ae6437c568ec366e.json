@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `include/mbedtls/mbedtls_config.h` has `//#define MBEDTLS_THREADING_C` (line ~3787), and `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` are both commented out.\nVERDICT: MISS\nWHY: The answer says THREADING_C, PTHREAD and ALT are all commented out. The item's \"both threading macros\" is most likely THREADING_C and THREADING_PTHREAD, and the answer's wording covers those. But it never says explicitly that a default build defines neither, and the item is only partly covered, so this resolves to MISS."
+}

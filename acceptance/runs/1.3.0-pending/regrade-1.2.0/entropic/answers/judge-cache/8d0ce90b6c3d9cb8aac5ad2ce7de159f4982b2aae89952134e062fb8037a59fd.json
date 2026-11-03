@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Arguments are reduced by `args_to_pattern` (`server_manager.cpp:426`) to the value of the first string-valued argument, or `*` if there is none.\nVERDICT: MISS\nWHY: The answer says only the first string argument is used and `*` is the fallback when none exists. It never says the other arguments are invisible to matching. It also never says that a non-string or unparseable argument collapses to a wildcard."
+}

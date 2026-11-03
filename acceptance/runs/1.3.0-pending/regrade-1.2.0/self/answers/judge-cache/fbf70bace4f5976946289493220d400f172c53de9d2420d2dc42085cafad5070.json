@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers scope resolution and exclusions but never says that files within scope reach the index only if a reader can parse them (parse-built front end for non-doxygen types, or binary classification dropping files with misleading extensions)."
+}

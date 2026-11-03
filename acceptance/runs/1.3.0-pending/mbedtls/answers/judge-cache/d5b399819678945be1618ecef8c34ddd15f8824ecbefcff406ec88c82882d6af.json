@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"so a struct field declared as `MBEDTLS_PRIVATE(nr)` is actually named `private_nr` in the compiled header. Code that writes `ctx->nr` against the public header fails to compile\" and \"Public headers declare full struct layouts\"\nVERDICT: HIT\nWHY: The answer says enforcement is a compile-time rename of the member (private_##member) while the public headers still declare the full struct layout."
+}

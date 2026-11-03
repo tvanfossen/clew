@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(member)` expands to `private_##member`. With it defined, the macro expands to `member`.\nVERDICT: HIT\nWHY: The answer states that library and in-tree code defining the opt-out sees the real field names while ordinary consumers see the mangled `private_` names, which is the different-views substance."
+}

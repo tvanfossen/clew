@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_memory_buffer_alloc_init()` (`:566-576`) calls `mbedtls_platform_set_calloc_free` itself, using a mutex-wrapped variant when `MBEDTLS_THREADING_C` is on.\nVERDICT: HIT\nWHY: The answer states the init function installs a mutex-wrapped calloc/free pair under MBEDTLS_THREADING_C. It doesn't say \"plain otherwise\" or \"compile time\", but both are implied by the conditional."
+}

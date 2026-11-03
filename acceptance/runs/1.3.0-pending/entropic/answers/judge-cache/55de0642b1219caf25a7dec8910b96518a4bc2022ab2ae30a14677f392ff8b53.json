@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: So the boundary is: llama.cpp types stop at `src/inference/`.\nVERDICT: MISS\nWHY: The answer claims llama.cpp is contained in src/inference (plus facade); it never concludes that a minority of reaching files sit outside that layer."
+}

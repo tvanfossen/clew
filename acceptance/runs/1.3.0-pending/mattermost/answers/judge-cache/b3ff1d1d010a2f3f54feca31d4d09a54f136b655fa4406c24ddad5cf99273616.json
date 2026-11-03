@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Which show a search field:** only `SearchScreen` (`search.tsx`) passes `hasSearch={true}`. The other seven either set `hasSearch={false}` or leave it unset, so `NavigationSearch` is never mounted for them.\nVERDICT: HIT\nWHY: The answer explicitly names `app/screens/home/search/search.tsx` (SearchScreen) as the only renderer passing `hasSearch={true}`, so the search field is enabled only there."
+}

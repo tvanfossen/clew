@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `programs/ssl/ssl_pthread_server.c` sample is application code that depends on THREADING_C. The library does not create that concurrency.\nVERDICT: MISS\nWHY: The answer says the library starts no threads by default, but it never says the pthread example compiles to a stub main under that condition. It only calls the example application code that depends on THREADING_C."
+}

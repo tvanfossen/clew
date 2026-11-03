@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes scope/not_indexed/token_hits blocks and says the claim is only as wide as the scope, but never states that the strong wording is earned per call by querying which corpora weren't read, as opposed to being tied to a result shape."
+}

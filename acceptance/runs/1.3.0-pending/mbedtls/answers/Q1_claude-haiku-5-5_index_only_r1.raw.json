@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 26039,
+  "stop_reason": "end_turn",
+  "session_id": "1a5e8c63-ac37-47a7-ba9b-0a6de45b95b7",
+  "total_cost_usd": 0.013274669999999999,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 45415,
+    "cache_read_input_tokens": 156387,
+    "output_tokens": 5254,
+    "output_tokens_details": {
+      "thinking_tokens": 2888
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 45415,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3003,
+        "cache_read_input_tokens": 58327,
+        "cache_creation_input_tokens": 5656,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5656
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 5254,
+      "cacheReadInputTokens": 156387,
+      "cacheCreationInputTokens": 45415,
+      "webSearchRequests": 0,
+      "costUSD": 0.013274669999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2888,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 45415,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** with the default `mbedtls_config.h`, the library runs no threads and takes no mutexes. Everything in `threading.c` is compiled out. Concurrency comes only from the application, and the thread spawns the index finds are in the sample programs under `programs/`.\n\n**Default configuration**\n\n- `MBEDTLS_THREADING_C` defaults to off (`include/mbedtls/mbedtls_config.h:3787`). Its gate covers all of `library/threading.c` (lines 18\u2013193), so the mutex primitives and their function-pointer table don't exist.\n- `MBEDTLS_THREADING_PTHREAD` also defaults to off (`mbedtls_config.h:2196`).\n- Every lock site in the library sits behind `#if defined(MBEDTLS_THREADING_C)`. That includes the PSA key-slot paths in `psa_crypto_slot_management.c`, the allocator wrappers in `memory_buffer_alloc.c` (lines 540\u2013564), and the gmtime path in `platform_util.c`. In a default build these are plain calls.\n- The index was built with both macros set by flag, so `configured_macros` shows a non-default variant. The \"off\" defaults come from the header's `default_site`, not from that build.\n\n**Threads the index finds (all in programs, none in the library)**\n\n| Spawn site | Kind | Gated by |\n|---|---|---|\n| `programs/ssl/ssl_pthread_server.c:277` \u2192 `handle_ssl_connection` | pthread | `MBEDTLS_THREADING_PTHREAD` (off) |\n| `programs/test/benchmark.c:430` \u2192 `TimerProc` | Win32 timer | test program |\n| `programs/test/benchmark.c:444` \u2192 `sighandler` | signal handler | test program |\n| `programs/ssl/ssl_server2.c:1699` \u2192 `term_handler` | signal handler | sample program |\n\nAttribution is by spawn site with pattern matching, at medium confidence. Any spawn primitive the patterns don't know is invisible here. So the library has zero threads of its own, and the sample servers are the only places a second thread appears. Concurrency beyond that is whatever the embedding application adds.\n\n**When threading is enabled: what each mutex protects**\n\n| Mutex | Used by | What it guards |\n|---|---|---|\n| `mbedtls_threading_key_slot_mutex` | `psa_get_and_lock_key_slot` (held across the load-from-storage path), `psa_unregister_read_under_mutex` | The PSA key-slot table. The comment in `psa_get_and_lock_key_slot` says it must be held so another thread can't load and destroy a key between the \"loaded?\" check and marking the slot full. |\n| `mbedtls_threading_psa_globaldata_mutex` | none resolved | Declared only. The name suggests PSA global state, but the index has no use sites. |\n| `mbedtls_threading_psa_rngdata_mutex` | none resolved | Declared only. Name suggests PSA RNG state; unverified. |\n| `mbedtls_threading_readdir_mutex` | none resolved | Declared only. Probably serializes `readdir`; unverified. |\n| `mbedtls_threading_gmtime_mutex` | `mbedtls_platform_gmtime_r` | Only on the `PLATFORM_UTIL_USE_GMTIME` branch, which serializes `gmtime()`. On the default `gmtime_r` path it isn't taken. |\n| `heap.mutex` (memory buffer allocator) | `buffer_alloc_calloc_mutexed`, `buffer_alloc_free_mutexed` | Serializes `calloc`/`free` over the single static heap. Free ignores lock failure and leaks rather than corrupt the heap. |\n\nThe index shows the callers that reach the pthread wrapper through the function-pointer table: entropy, CTR-DRBG, HMAC-DRBG, RSA, the SSL cache, cookie and ticket code, and X.509 path parsing. It does not resolve which mutex each of those call sites takes. The lock layer records one identity, `mutex->mutex` in `threading.c`, with scope unknown and zero nested holdings. So the table above is from names, call edges and the function-pointer graph, not from resolved lock identities.\n\n**Caveats**\n\n- The index doesn't record `mbedtls_threading_set_pthread`, so how the pthread implementation gets installed isn't verified.\n- The PSA global-data, RNG-data and readdir mutexes have no use sites in the index. Their protected state is unverified.\n- Zero nested lock holdings is a definitive result for this index, not a proof of deadlock-freedom.",
+  "ttft_ms": 1599,
+  "type": "result",
+  "duration_ms": 27066,
+  "uuid": "508552b0-d56c-47b4-b701-ddba4f8c5d39",
+  "ttft_stream_ms": 1361,
+  "time_to_request_ms": 88,
+  "first_content_frame_ms": 1361,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

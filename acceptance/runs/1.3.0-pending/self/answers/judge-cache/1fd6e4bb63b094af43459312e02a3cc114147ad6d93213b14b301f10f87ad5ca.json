@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the current checks but never says a single non-matching token was previously treated as proof of absence, or that this conflated \"nothing exists\" with \"didn't look there.\""
+}

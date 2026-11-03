@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Internal callers absorb it into the whole-repo tier with a WARNING.\nVERDICT: MISS\nWHY: The answer says a declared scope is used (tier 1) and that an invalid declaration falls to whole-repo for internal callers, but it never says that every failure to find a declaration falls through to indexing the whole repository. The CLI also refuses an invalid declaration rather than falling through."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Log context propagation.** Worker threads install a `HandleLogScope` so their logs land in the owning handle's session log.\nVERDICT: HIT\nWHY: The answer states that worker threads install a HandleLogScope so logs go to the owning handle's session log, which matches the item's substance. It doesn't say the scope is the first statement, but the mechanism and purpose are the same."
+}

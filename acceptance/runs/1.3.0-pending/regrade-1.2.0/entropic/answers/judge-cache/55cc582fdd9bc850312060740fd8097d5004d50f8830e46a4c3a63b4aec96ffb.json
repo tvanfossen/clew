@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"This is a two-phase \"ask for size, then fill\" pattern.\" and \"Nothing is retried after an error: the second call is the real call.\"\nVERDICT: HIT\nWHY: The answer identifies the double call as size probing rather than retry-on-failure, with exactly two calls and no retry after an error. It never names backoff, delay or an attempt counter explicitly, but \"nothing is retried\" and \"the second call runs unconditionally\" carry the same substance."
+}

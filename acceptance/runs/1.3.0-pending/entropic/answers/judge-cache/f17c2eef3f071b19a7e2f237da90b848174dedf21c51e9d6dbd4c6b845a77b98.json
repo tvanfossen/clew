@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes ExternalBridge::stop() joining threads, but says nothing about the HealthMonitor's shutdown being an atomic flag exchange plus a condition variable wake."
+}

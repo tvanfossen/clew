@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The double call is a size-probe, not retry logic.\" and \"Is it retry? No. ... the first call's negative return is the protocol's way of reporting size, so it is not a failure. The only failure check is on the second call, and that is not retried.\"\nVERDICT: HIT\nWHY: The answer concludes it's size negotiation (probe then fill, exactly two calls) rather than retry-on-failure, and notes the second call's failure isn't retried; absence of backoff/delay/counter is implied by this."
+}

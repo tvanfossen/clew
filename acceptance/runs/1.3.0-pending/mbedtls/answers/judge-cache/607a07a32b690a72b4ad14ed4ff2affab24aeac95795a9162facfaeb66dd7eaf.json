@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**`library/common.h:132`** defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` unconditionally. Its doc comment says the library may access its structs' private members. 129 library files include `common.h`, so the whole library compiles with the real field names.\"\nVERDICT: HIT\nWHY: The answer states that the shared header common.h turns the opt-out on, so all library translation units see the real (plain) member names."
+}

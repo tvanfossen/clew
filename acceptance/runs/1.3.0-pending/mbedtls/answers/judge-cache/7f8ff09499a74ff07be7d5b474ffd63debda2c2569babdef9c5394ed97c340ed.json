@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Two mechanisms, both gated on `MBEDTLS_PLATFORM_MEMORY`:\" ... \"So the runtime setter appears to exist only when `MBEDTLS_PLATFORM_MEMORY` is defined and the macro overrides are not.\"\nVERDICT: HIT\nWHY: The answer separates a runtime function-pointer pair (`mbedtls_platform_set_calloc_free`) from a compile-time macro pair (`MBEDTLS_PLATFORM_CALLOC_MACRO`/`FREE_MACRO`). It also says the runtime setter exists only when the macro overrides are not defined, which is mutual exclusivity, though it hedges that this is inferred."
+}

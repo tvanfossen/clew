@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers scope derivation (declared roots, whole-repo, git ignores) but never says that files within scope are further filtered by readability, such as the parse-built front end claiming file types doxygen cannot read or binary classification dropping files with misleading extensions."
+}

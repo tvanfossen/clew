@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If not viewable, the current user is removed from the channel locally.\" and \"only when not viewable: If the channel is the current one, it kicks the user out with `Events.CHANNEL_ARCHIVED`. It removes the current user from the channel.\" and \"If viewable, the local channel gets `delete_at` set to now, so it stays in the local DB as an archived channel.\"\nVERDICT: HIT\nWHY: The answer states that non-viewable archiving removes the user (and kicks them out if the channel is current), while viewable keeps the channel with delete_at set."
+}

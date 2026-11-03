@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.sh`, `.bash` ... `.cmake`, `CMakeLists.txt`\nVERDICT: HIT\nWHY: The table names the shell extensions (.sh, .bash) and the CMake extension (.cmake), and it lists CMakeLists.txt separately, so the file-name match is distinguished from the extension match. The answer also says claims() \"tests extension and file name only\"."
+}

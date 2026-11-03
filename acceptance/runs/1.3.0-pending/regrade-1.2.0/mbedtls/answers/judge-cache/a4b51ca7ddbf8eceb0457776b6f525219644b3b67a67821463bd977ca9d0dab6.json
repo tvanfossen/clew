@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_memory_buffer_alloc_init()` (`:566-576`) calls `mbedtls_platform_set_calloc_free` itself, using a mutex-wrapped variant when `MBEDTLS_THREADING_C` is on.\n\nVERDICT: MISS\n\nWHY: The answer says the buffer allocator's init calls the setter, but it never says it is the only in-tree user. It also never names `MBEDTLS_MEMORY_BUFFER_ALLOC_C` as the macro."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `--declare FILE`, or `options=` on `build_index()` / MCP `index(action=\"refresh\")` | 1 `explicit` | **Replaces** | All three go through `apply_options`\nVERDICT: HIT\nWHY: The answer places both the CLI route (flags, `--declare`) and the structured `options=` argument at tier 1 explicit, so a caller with no shell can still reach the top tier."
+}

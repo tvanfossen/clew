@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"\\\"Always allow/deny\\\" choices are written back to the YAML by `PermissionPersister`.\"\nVERDICT: MISS\nWHY: The answer mentions a PermissionPersister writing to YAML but never names config.local.yaml or contrasts it with the in-memory add_permission call."
+}

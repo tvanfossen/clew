@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler`, `llama_cpp_tokenizer`, `adapter_manager.cpp`, `grammar_registry.cpp`, `orchestrator.cpp`, `speculative_compat.cpp` and `secondary_model_loader.cpp` include `<llama.h>` or `llama_cpp_backend.h`.\nVERDICT: HIT\nWHY: The answer lists many entropic source files in the inference layer, facade, and public headers that touch llama.cpp. That shows the dependency spans a dozen or so files, not a single wrapper."
+}

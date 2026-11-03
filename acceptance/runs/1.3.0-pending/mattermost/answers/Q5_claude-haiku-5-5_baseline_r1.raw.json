@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 23176,
+  "stop_reason": "end_turn",
+  "session_id": "4929a42d-0bce-4c13-afa8-98171c2545b1",
+  "total_cost_usd": 0.01463848,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 50474,
+    "cache_read_input_tokens": 216968,
+    "output_tokens": 4746,
+    "output_tokens_details": {
+      "thinking_tokens": 1948
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 50474,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2710,
+        "cache_read_input_tokens": 61422,
+        "cache_creation_input_tokens": 1996,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1996
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4746,
+      "cacheReadInputTokens": 216968,
+      "cacheCreationInputTokens": 50474,
+      "webSearchRequests": 0,
+      "costUSD": 0.01463848,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1948,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 50474,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** `ServerDataOperator` is a mixin stack. Ten of its handler mixins live in `server_data_operator/handlers/`, and three live in product folders (agents, boards, playbooks). Every handler write funnels through one method, `BaseDataOperator.batchRecords`, which wraps `database.write(writer => writer.batch(...))`. `AppDataOperator` shares that base class, so it uses the same write path for the app database.\n\n**How the class is built**\n\n`server_data_operator/index.ts` does `mix(ServerDataOperatorBase).with(...13 mixins...)`. Each mixin is a factory `(superclass) => class extends superclass`, and `mix` applies them left to right (`app/utils/mix.ts`). The `interface ServerDataOperator extends ...HandlerMix` block merges the matching type declarations so the methods type-check. The constructor takes `(database, serverUrl?)`. `DatabaseManager` (`app/database/manager/index.ts:184`) creates one per server.\n\nThe inheritance chain is:\n\n```\nBaseDataOperator                    base_data_operator/index.ts\n  \u2514\u2500 ServerDataOperatorBase         server_data_operator/handlers/index.ts\n       \u2514\u2500 ServerDataOperator (mix)  server_data_operator/index.ts\n```\n\n**Where each handler is defined**\n\n| Mixin | Location |\n|---|---|\n| Category, Channel, CustomProfile, Group, Post, Properties, Team, TeamThreadsSync, Thread, User | `app/database/operator/server_data_operator/handlers/` |\n| Agents (`handleAIBots`, `handleAIThreads`) | `app/products/agents/database/operators/handlers/index.ts` |\n| Boards | `app/products/boards/database/operators/handlers/index.ts` |\n| Playbook | `app/products/playbooks/database/operators/handlers/index.ts` |\n\n`ServerDataOperatorBase` itself holds the generic handlers: `handleRole`, `handleCustomEmojis`, `handleSystem`, `handleConfigs`, `handleReactions`, `handleFiles`, and `execute`.\n\n**Who performs the database write**\n\nA typical handler does not write directly. The path is:\n\n1. `processRecords` (`base_data_operator/index.ts:51`) queries existing rows and splits the input into create, update and delete sets.\n2. `prepareRecords` (`:134`) runs each set through a transformer to build WatermelonDB model objects. Deletes become `prepareDestroyPermanently()`.\n3. `batchRecords` (`:191`) performs the write: `this.database.write(async (writer) => writer.batch(...models), description)`.\n\n`handleRecords` (`:224`) chains steps 1\u20133. It only calls `batchRecords` when `prepareRecordsOnly` is false, and the default is `true`. Handlers that take that flag return unsaved models, and the caller decides when to commit.\n\n`batchRecords` swallows errors by default and logs them. If the error is a corruption error, it emits `Events.DATABASE_CORRUPTION_DETECTED`. It rethrows only when `propagateError` is set.\n\n**What else shares that write path**\n\n- **`AppDataOperator`** extends the same `BaseDataOperator`, so `batchRecords`, `processRecords`, `prepareRecords` and `handleRecords` are shared with the app-level database.\n- **Product handlers** call `this.batchRecords` (agents, playbooks, and the channel bookmark, property, group, post and thread handlers).\n- **Outside the operator**, `playbooks/actions/websocket/runs.ts:111` and `playbooks/actions/local/property_fields.ts:47` call `operator.batchRecords` directly.\n- **Bypassing the operator:** some code calls `database.write` or `database.batch` directly, for example `post.ts:516`, `thread.ts:74`, `queries/servers/custom_profile.ts:137`, `actions/local/systems.ts:102` and many `actions/local/*` and `actions/remote/*` files. I only saw these call sites in grep output and did not read them, so I cannot say whether each one is deliberate. Any new write that skips `batchRecords` loses its error logging and corruption detection.\n\nI did not open the boards handler body or the `post.ts`/`thread.ts` direct-write sites. The statements about them come from file locations and grep results only.",
+  "ttft_ms": 1439,
+  "type": "result",
+  "duration_ms": 23668,
+  "uuid": "82452fe3-de69-4236-b881-37cb99084c12",
+  "ttft_stream_ms": 1235,
+  "time_to_request_ms": 122,
+  "first_content_frame_ms": 1236,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

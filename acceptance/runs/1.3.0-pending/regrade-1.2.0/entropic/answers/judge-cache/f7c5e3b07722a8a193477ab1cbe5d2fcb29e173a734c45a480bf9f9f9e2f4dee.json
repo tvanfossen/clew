@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"if `on_tool_call` is set, `approved` becomes `true` and the callback's result is discarded (the callback type returns `void`). So a host with a callback never blocks a call through that path.\"\nVERDICT: HIT\nWHY: The answer states the callback returns void and that approved is set true regardless, so the callback cannot refuse."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 20718,
+  "stop_reason": "end_turn",
+  "session_id": "59665161-6c2e-4541-ab34-3b2e6675ee66",
+  "total_cost_usd": 0.015491480000000002,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 59353,
+    "cache_read_input_tokens": 141508,
+    "output_tokens": 4410,
+    "output_tokens_details": {
+      "thinking_tokens": 1931
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 59353,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3426,
+        "cache_read_input_tokens": 56193,
+        "cache_creation_input_tokens": 3160,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3160
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 4410,
+      "cacheReadInputTokens": 141508,
+      "cacheCreationInputTokens": 59353,
+      "webSearchRequests": 0,
+      "costUSD": 0.015491480000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1931,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 59353,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Entropic has **10 first-party thread spawn sites** (the index's count for the patterns it searches: `pthread` and `std::thread`). Two of them are test-only, so 8 run in production. They fall into two groups: long-lived background workers and short-lived per-call helpers. Safety comes from mutexes around shared state, atomics for cancel flags, and join-before-return for the helpers. I found two gaps that the index does not settle.\n\n## Long-lived background threads\n\n| Thread | Spawned at | What it does | Shared state and guard |\n|---|---|---|---|\n| `ExternalBridge::accept_loop` | `external_bridge.cpp:796` (in `start`) | Polls the listen socket every 500 ms and gates each connection on `SO_PEERCRED` uid. | `client_threads_mutex_` guards the client-thread vector. |\n| Per-client serve thread | `external_bridge.cpp:945` | Runs `serve_client` for one MCP connection. | Same `client_threads_mutex_`. `stop()` drains the vector, calls `shutdown(SHUT_RDWR)` to unblock reads, then joins. |\n| Async-ask thread (`run_async_ask`) | `external_bridge.cpp:1158` | Detached thread that runs `entropic_run` for `entropic.ask`, then writes the sentinel and sends progress notifications. | `tasks_mutex_` guards `tasks_`. The sentinel is written while the lock is held, so an external reader sees the same terminal state the notification reports. |\n| `HealthMonitor::monitor_loop` | `health_monitor.cpp:92` | Produces health events. | `event_mutex_` guards the queue. `process_events()` swaps the queue out under the lock, then runs callbacks after releasing it. Callbacks run on the engine thread. |\n| `StdioTransport::stderr_reader_loop` | `transport_stdio.cpp:164` | Drains a child process's stderr. | `io_mutex_` guards I/O. |\n| `SSETransport::sse_reader_loop` | `transport_sse.cpp:107` | Reads the SSE stream. | `pending_mutex_` guards pending requests. |\n\n## Short-lived helper threads\n\nThese run for one call and are joined before the call returns:\n\n- `CancelFlagBridge` poller (`inference_c_api.cpp:385`), used by `entropic_inference_generate_with_cancel`.\n- Poller in `iface_generate_with_cancel` (`interface_factory.cpp:246`).\n- Observer in `ResponseGenerator::dispatch_batch_generate` (`response_generator.cpp:413`), which mirrors the engine's `interrupt_flag_` into the C-ABI `int` cancel flag.\n\nTheir lambdas capture locals by reference (`&done`, `&observer_done`, `&cancel_int`). That is safe only because each one is joined on the normal return path before those locals go out of scope.\n\nTest-only spawns (`listen_after_bind` in `transport_sse_test.cpp`, and the mock SSE server) are excluded above.\n\n## What keeps it safe\n\n1. **Shared maps and queues sit behind a named mutex.** Each background thread takes one of the locks listed above for each access. The index records 45 lock identities in the first-party code.\n2. **Lock-free flags use atomics.** `running_`, `done_`, `cancel_`, `observer_done` and `interrupt_flag_` are atomics.\n3. **Shutdown is ordered.** `ExternalBridge::stop()` sets `running_` false, closes the listen fd, joins the accept thread, then shuts down and joins each client thread. `HealthMonitor` drains its queue outside the lock. The short-lived helpers join unconditionally on return.\n4. **Log context follows the thread.** Each thread opens a `HandleLogScope` so its logs go to the owning handle's session log (gh#59).\n5. **Lock nesting is shallow.** The index records three two-lock pairs and no reversed pair, so no deadlock cycle shows up. However, two of those pairs have `resolved_sites=0`, which means the receiver was never verified, so I would not call the ordering confirmed.\n\n## Gaps I found\n\n- **Unsynchronised `int` cancel flag.** The helpers read `*cancel` and write `cancel_int` as plain `int`, with no atomic. The observer in `dispatch_batch_generate` writes it on one thread while the backend poller reads it on another. That is a data race under the C++ memory model, even if it is benign in practice on x86. The comment says the C ABI is `int*`-only, but an `std::atomic_ref` or a `.so`-safe atomic would fix it without changing the ABI shape.\n- **Detached async-ask thread is not joined by `stop()`.** `run_async_ask` captures `this` and `handle_` in a detached `std::thread`. It is not in `client_threads_`, so `stop()` does not wait for it. I did not verify whether `entropic_destroy` waits for in-flight tasks some other way. If it does not, destroying the handle while an ask is running is a use-after-free.\n- **Helpers have no exception guard.** If `orchestrator->generate` throws in `iface_generate_with_cancel`, the joinable `poller` destructor calls `std::terminate`. There is no RAII join guard.\n- **The `HealthMonitor` nesting row looks wrong.** The index attributes `event_mutex_ \u2192 adapter_mutex_` to `process_events`. The body I read holds only `event_mutex_`, and it invokes callbacks after releasing it, so that pair likely comes from a bad receiver match, not a real nesting.",
+  "ttft_ms": 824,
+  "type": "result",
+  "duration_ms": 21682,
+  "uuid": "52a2ee82-a6e9-41f2-81b1-b5f0f4cf4ded",
+  "ttft_stream_ms": 620,
+  "time_to_request_ms": 75,
+  "first_content_frame_ms": 620,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

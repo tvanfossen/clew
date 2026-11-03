@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The helper treats a missing value as enabled and only an explicit `'false'` as disabled.\nVERDICT: HIT\nWHY: The answer states that a missing setting means archived channels are viewable and that only an explicit 'false' disables them."
+}

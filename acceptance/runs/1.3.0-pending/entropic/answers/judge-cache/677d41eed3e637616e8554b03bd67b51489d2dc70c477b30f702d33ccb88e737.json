@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`do_count_tokens` (`:825`) \u2192 `InferenceBackend::count_tokens` \u2192 `entropic_inference_count_tokens` | Returns `0`. The C API has no error channel and only returns `len/4` if an exception is thrown. A consumer sees \"zero tokens,\" indistinguishable from empty text.\"\nVERDICT: HIT\nWHY: The answer states that the token-counting path returns 0 on failed tokenization with no error channel, which is the item's substance."
+}

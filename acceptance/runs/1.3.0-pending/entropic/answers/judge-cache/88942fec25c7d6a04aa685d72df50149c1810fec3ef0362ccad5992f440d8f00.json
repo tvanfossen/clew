@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**`char*` returns transfer ownership.** The caller must free them with `entropic_free()`.\" and \"**`const char*` returns belong to the handle.** They stay valid until the next call on that handle, so copy them immediately.\"\nVERDICT: HIT\nWHY: The answer states both halves: char* transfers ownership and is freed with entropic_free, and const char* stays handle-owned and valid only until the next call."
+}

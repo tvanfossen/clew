@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says a tool matching neither list runs by default. Its diagram shows \"otherwise \u2192 Permission denied\" when no callback is set. It only says a registered callback approves every call. It never states default-allow at the blocking gate."
+}

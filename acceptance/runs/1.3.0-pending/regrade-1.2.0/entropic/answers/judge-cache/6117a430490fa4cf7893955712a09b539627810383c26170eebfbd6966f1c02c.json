@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The threads that outlive a single call are all in the MCP bridge, the health monitor, the transports, and short-lived cancel pollers.\nVERDICT: HIT\nWHY: The answer lists thread creation across the external bridge, the health monitor, the MCP transports (SSE, stdio) and the inference-path pollers (`inference_c_api.cpp`, `interface_factory.cpp`), so it shows creation is spread out rather than centralised."
+}

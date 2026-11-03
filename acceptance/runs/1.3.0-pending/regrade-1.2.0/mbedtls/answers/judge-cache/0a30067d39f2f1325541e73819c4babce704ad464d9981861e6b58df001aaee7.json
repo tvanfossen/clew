@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With asm it is an empty `asm volatile(\"\" : \"+r\"(x))` barrier.\nVERDICT: HIT\nWHY: The answer states `mbedtls_ct_compiler_opaque()` uses an empty `asm volatile` with x as a \"+r\" input-output operand, and it describes the purpose as a barrier that stops the optimiser from learning the value."
+}

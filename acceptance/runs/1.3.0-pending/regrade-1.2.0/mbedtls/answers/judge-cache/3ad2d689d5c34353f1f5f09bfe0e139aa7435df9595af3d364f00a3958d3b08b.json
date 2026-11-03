@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_client2.c:8` and `programs/ssl/ssl_server2.c:8` define the macro as their first line, before any include. They use it to inspect internal SSL state\nVERDICT: HIT\nWHY: The answer states that example programs (ssl_client2, ssl_server2) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves, bypassing the gate."
+}

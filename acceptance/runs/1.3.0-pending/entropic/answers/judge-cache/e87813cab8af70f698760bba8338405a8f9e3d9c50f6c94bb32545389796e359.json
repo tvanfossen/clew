@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each thread body opens `HandleLogScope(log_id)`, so logs from worker threads land in the owning handle's session log.\nVERDICT: HIT\nWHY: The answer states each thread body opens a per-handle logging scope so logs go to the owning handle; \"first statement\" isn't stated, but the mechanism and its purpose are."
+}

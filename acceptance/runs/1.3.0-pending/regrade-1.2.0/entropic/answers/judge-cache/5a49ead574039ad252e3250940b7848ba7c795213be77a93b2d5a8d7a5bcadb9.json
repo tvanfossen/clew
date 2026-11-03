@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The two calls are a sizing probe followed by the real call. It is not retry logic. ... Nothing is retried. The first call is a measurement, and the second call does the work.\nVERDICT: HIT\nWHY: The answer explicitly concludes sizing probe plus fill call rather than retry, with exactly two calls and nothing retried."
+}

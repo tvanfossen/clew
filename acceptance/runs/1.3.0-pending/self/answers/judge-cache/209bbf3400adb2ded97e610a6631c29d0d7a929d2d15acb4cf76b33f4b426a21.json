@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | 2 declared | `.clew.yaml` at the repo root | Replaces the stated layer |\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` at the repo root as tier 2, but it never says that both entry points (CLI and MCP) discover it from the root. It also doesn't contrast this with plumbing it per section."
+}

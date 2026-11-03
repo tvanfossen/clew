@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `accept_loop` \u2192 per-client thread | `serve_client` per connection\nVERDICT: HIT\nWHY: The answer lists `ExternalBridge::start` \u2192 `accept_loop` as the accept thread and `accept_loop` \u2192 per-client thread running `serve_client` per connection. That is the two-level structure."
+}

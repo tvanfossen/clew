@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: None of the spawn sites is in `library/`. ... Five global mutexes are declared in `include/mbedtls/threading.h` and defined in `library/threading.c:182-190`\nVERDICT: HIT\nWHY: The answer says no spawn site is in library/ (nothing there creates a thread) and that library/threading.c defines the mutexes and pthread wrappers used by callers."
+}

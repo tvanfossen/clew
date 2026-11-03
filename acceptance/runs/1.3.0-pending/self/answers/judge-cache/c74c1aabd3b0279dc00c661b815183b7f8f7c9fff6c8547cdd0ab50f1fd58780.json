@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Facts and ecosystem layers: these accumulate under any stated tier. ... Flagging `--entry-patterns` used to drop `main`; under this rule `main` survives any stated tier.\" and \"Combines by | Replaces the stated layer ... Accumulates\"\nVERDICT: HIT\nWHY: The answer states stated tiers replace each other while discovered fact/ecosystem layers accumulate and survive any stated tier."
+}

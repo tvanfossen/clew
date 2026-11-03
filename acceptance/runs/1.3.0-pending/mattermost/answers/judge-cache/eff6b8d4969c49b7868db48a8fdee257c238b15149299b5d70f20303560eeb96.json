@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Before the network call, the post is already written locally with a `pending_post_id` and an id of `${userId}:${timestamp}`, so it shows in the list immediately. ... Most errors keep the post. It is saved with `failed: true`\nVERDICT: HIT\nWHY: The answer states the post is written locally before sending and on failure is kept and saved with `failed: true`."
+}

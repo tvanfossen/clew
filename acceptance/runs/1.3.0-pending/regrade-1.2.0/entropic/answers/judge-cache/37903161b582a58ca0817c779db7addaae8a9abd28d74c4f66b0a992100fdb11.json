@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A tool that matches both lists is approved and then denied at dispatch.\nVERDICT: MISS\nWHY: The answer describes the check order and deny enforcement, but never states that a tool matching neither list is not denied and runs (default-allow). It only says a callback or auto_approve approves; nothing about the neither-list case."
+}

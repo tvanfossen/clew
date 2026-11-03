@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: nested git trees are included and tagged rather than cut out\nVERDICT: HIT\nWHY: The answer explicitly says that in the default whole-repo scope, nested git trees are included and tagged rather than cut out."
+}

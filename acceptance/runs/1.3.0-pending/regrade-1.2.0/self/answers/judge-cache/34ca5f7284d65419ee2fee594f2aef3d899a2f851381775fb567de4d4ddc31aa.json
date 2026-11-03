@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The main way to say so is a `.clew.yaml` at the repo root, which is tier 2.\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as the repo-root tier-2 declaration but never says that both entry points (CLI and MCP) discover it from the root rather than having it plumbed per section."
+}

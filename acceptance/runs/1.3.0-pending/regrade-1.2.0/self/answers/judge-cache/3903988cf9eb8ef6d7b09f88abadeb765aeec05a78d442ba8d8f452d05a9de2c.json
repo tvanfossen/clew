@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"if the repo ships one, it still supplies ALIASES, PREDEFINED and filters, but its INPUT is replaced. The reason is measured: Mbed-TLS's `mbedtls.doxyfile` sets `INPUT = ../include` and `FILE_PATTERNS = *.h`, which indexes 1,571 header declarations and none of its 108 `library/*.c` implementations.\"\nVERDICT: HIT\nWHY: The answer says a shipped Doxyfile's INPUT is replaced and not used for scope. It gives the reason: the repo's documented subset (headers only) would be indexed instead of the whole tree."
+}

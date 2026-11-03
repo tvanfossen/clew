@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unknown top-level section refuses the build, with an error naming the allowed sections.\nVERDICT: MISS\nWHY: The answer covers only top-level unknown-section refusal; it never mentions a second refusal for an unknown key inside a valid section, nor a derived key refused with its reason."
+}

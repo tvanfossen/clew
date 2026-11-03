@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"In short: \"definitive\" is earned per call by checking the other corpora, and it is a claim about this index, not the working tree.\"\nVERDICT: HIT\nWHY: The answer says the definitive wording is earned per call by checking the unsearched corpora. It also describes how: `unsearched_corpus_hits` is computed by subtracting the searched kinds from the kinds the database holds."
+}

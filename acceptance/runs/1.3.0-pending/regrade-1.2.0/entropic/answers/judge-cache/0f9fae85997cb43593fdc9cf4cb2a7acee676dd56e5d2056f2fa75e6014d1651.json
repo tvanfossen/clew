@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Async ask worker (`<lambda>@1158`) | `ExternalBridge::run_async_ask` ... Accept loop | `ExternalBridge::start` ... Health monitor | `HealthMonitor::start` ... Stdio stderr reader | `StdioTransport::open` | SSE reader | `SSETransport::open` ... Cancel poller (`CancelFlagBridge`) | `inference_c_api.cpp:385`\nVERDICT: HIT\nWHY: The answer's spawn-site table lists thread creation across the external bridge, the MCP stdio/SSE transports, the health monitor and the inference cancel/batch paths. That shows it is spread over several subsystems rather than centralised."
+}

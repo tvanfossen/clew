@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is a source-level guard, not a security boundary: the struct definitions are still in the public headers, `sizeof` is still visible, and anyone can define the opt-out macro.\nVERDICT: HIT\nWHY: The answer says the guard works by renaming the member to `private_##member`, which causes a compile error. It also says the struct definitions and `sizeof` stay visible, so the layout is not hidden."
+}

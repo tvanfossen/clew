@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says YAML/JSON get path rows and keys aren't symbols, but never says markdown is deliberately excluded from path rows because it is prose and would inflate coverage counts."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions call_edges storing one row per extraction layer or duplicate rows for the same edge found by two detectors."
+}

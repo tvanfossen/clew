@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The call is approved if either: `loop_config_.auto_approve_tools` is set, or `ServerManager::is_explicitly_allowed()` matches an allow pattern. ... The allow list only skips the approval step.\nVERDICT: HIT\nWHY: The answer says the allow list only skips approval and that it is consulted in `ToolExecutor::check_approval` (`src/mcp/tool_executor.cpp`), while the matching lives in `ServerManager` and `PermissionManager` in different files."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never names PermissionManager as constructed from a PermissionsConfig passed to ServerManager. It only says patterns live in `permissions.allow`/`permissions.deny` and that how config lists reach `ServerManager::permissions_` at construction was \"Not traced\"."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"high = ret & 0xFF80 ... mbedtls_high_level_strerr() ... low = ret & ~0xFF80 ... mbedtls_low_level_strerr() ... join with \\\" : \\\"\"\nVERDICT: HIT\nWHY: The answer shows the code splits into a high-level module part and a low-level part, each rendered by its own function, and joins them with \" : \" when both are present."
+}

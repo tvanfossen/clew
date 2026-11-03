@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `code` | The server process loaded its modules before the source changed | Restarting the client only. Writes are refused until then. ... `data` | Database is older than the source | Rebuild. Done automatically on query.\nVERDICT: MISS\nWHY: The answer gives per-axis actions (rebuild, client restart, nothing for schema) but never says that this is why one flag would not have been enough."
+}

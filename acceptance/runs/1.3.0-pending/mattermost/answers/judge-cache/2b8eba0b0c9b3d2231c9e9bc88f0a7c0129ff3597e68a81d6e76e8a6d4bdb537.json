@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Before the network call, the post is written locally with a temporary `pending_post_id` and is shown in the UI as pending.\nVERDICT: HIT\nWHY: The answer states the post is written to the local database before sending, and that on failure it is kept as failed with `props.failed = true`."
+}

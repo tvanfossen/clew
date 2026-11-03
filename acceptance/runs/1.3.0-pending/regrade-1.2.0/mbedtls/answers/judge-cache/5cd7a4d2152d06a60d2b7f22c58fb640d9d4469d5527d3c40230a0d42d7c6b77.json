@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `tests/scripts/components-configuration-crypto.sh` runs `test_with_valgrind_constant_time` over `*constant_time*.data`. This is Valgrind memcheck, which reports any branch or address that depends on undefined (secret) data.\nVERDICT: MISS\nWHY: The answer describes Valgrind/MSan-based verification, but it never says the facility is off-by-default or that it is explicitly not part of the library API."
+}

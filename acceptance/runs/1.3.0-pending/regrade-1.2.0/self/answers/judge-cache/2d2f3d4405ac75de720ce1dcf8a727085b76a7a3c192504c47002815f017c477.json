@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Tier 1 | Explicit: a CLI flag, or the `options` argument for an embedding caller\" and \"Each top-level section takes the same shape as its standalone manifest\"\nVERDICT: MISS\nWHY: The answer never says the options names are the same words as the `.clew.yaml` section names and the diagnostics' wording; it only describes the tiers."
+}

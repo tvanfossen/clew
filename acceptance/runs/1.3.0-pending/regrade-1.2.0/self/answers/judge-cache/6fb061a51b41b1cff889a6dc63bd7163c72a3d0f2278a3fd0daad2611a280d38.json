@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | `data` | ... | `index(action='refresh')` | ... | `code` | ... | Restarting the MCP client only. A rebuild runs the old logic. |\nVERDICT: HIT\nWHY: The answer states that data is cleared by a refresh and code only by a client restart, since a rebuild runs the old logic. It never says why one flag would not have been enough, but the item is the different remedies."
+}

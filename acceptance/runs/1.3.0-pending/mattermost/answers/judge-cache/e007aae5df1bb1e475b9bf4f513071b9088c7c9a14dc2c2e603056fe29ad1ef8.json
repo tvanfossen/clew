@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Both handlers swallow every error in an empty `catch`, and the add path's `batchRecords` also drops write errors. ... A failed reaction write leaves no trace.\"\nVERDICT: HIT\nWHY: The answer explicitly states both handlers use an empty catch that swallows errors, so a failed write leaves no trace."
+}

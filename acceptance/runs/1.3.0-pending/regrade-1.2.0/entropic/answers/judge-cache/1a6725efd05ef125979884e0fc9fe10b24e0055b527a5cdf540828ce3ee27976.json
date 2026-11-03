@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions `PermissionManager::is_allowed` and where lists come from (YAML `permissions.allow/deny`), but never names PermissionsConfig or says ServerManager is constructed with it."
+}

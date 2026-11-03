@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists the CLI flags and the `.clew.yaml` section names, but it never says that the embedding-caller option names are the same words as the declaration file's section names and the diagnostics' words."
+}

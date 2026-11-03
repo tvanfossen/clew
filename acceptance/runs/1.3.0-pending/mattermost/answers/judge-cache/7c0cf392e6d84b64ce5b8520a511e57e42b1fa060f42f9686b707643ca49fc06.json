@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Only an explicit `\\\"false\\\"` turns that gate off. If the server omits the key, the app behaves as if archived channels are enabled.\"\nVERDICT: HIT\nWHY: The answer explicitly states that an absent setting means archived channels are viewable and only an explicit \"false\" disables them."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Any hit replaces the verdict with \"NOT DEFINITIVE \u2014 this index HOLDS matching rows that search does not read\" and names them... This check outranks everything else.\nVERDICT: HIT\nWHY: The answer says the \"definitive\" wording is granted only after a per-call query (`unsearched_corpora`) finds no unread-corpus matches. Any hit overrides it. So the confidence is earned per call, not tied to a result shape."
+}

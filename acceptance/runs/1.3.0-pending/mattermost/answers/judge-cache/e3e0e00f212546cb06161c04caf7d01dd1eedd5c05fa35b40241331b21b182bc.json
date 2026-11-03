@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every mixin handler above, including the agents, boards, and playbooks handlers, reaches the write through the inherited `batchRecords`.\nVERDICT: MISS\nWHY: The answer says handlers reach `batchRecords` by inheritance, but it never says that each mixin is constrained to extend `ServerDataOperatorBase`, which is the reason the item requires."
+}

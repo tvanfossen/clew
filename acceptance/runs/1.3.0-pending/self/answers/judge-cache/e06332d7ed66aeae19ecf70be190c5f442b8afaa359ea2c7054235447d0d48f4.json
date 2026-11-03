@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `code` | The server process loaded its modules before the source changed | Restarting the client only. Writes are refused until then. ... `data` | Database is older than the source | Rebuild. Done automatically on query.\nVERDICT: MISS\nWHY: The answer gives different clearing actions per axis (rebuild vs client restart), but never says this is why a single flag would not have been enough."
+}

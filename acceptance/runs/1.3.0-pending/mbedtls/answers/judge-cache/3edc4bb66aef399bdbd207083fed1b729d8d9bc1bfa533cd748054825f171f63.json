@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says how many sites use `MBEDTLS_PRIVATE` or that they are mostly in public headers. It only covers where the opt-out is defined (about 129 library files include `common.h`)."
+}

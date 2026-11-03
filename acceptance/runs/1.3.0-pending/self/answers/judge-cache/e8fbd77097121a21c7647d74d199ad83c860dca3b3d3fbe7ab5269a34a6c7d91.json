@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `code` notice says the *data* is still read live, but the *logic* is old and a rebuild cannot fix it. This is the gh#348 lesson: a notice that said \"the data is unaffected\" was read as reassurance, and a rebuild then dropped a pipeline layer.\nVERDICT: HIT\nWHY: The answer says the data is still read live while a build through the stale process uses old logic and dropped a pipeline layer, and it adds that `stale_code_refusal()` blocks writes. That covers the read/write asymmetry on the code axis."
+}

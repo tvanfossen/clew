@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Routing is by extension, and `CMakeLists.txt` is matched by name: ... `.sh`, `.bash`, `.cmake`, `CMakeLists.txt`\nVERDICT: HIT\nWHY: The answer lists the shell extensions (.sh, .bash) and the CMake extension (.cmake), and says CMakeLists.txt is matched by name rather than by extension."
+}

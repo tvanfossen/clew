@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that YAML and JSON (or any two languages) share one harvest partition, nor that a second partition would write empty payload rows per file per index."
+}

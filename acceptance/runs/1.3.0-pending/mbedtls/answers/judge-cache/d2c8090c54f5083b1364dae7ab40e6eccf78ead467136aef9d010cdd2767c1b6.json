@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says default pointers go to libc through function-pointer dispatch in platform.c, and never states that in a default build there is no indirection because the macros expand directly to calloc/free."
+}

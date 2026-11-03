@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Enable `MBEDTLS_PLATFORM_C` and `MBEDTLS_PLATFORM_MEMORY` but not the two macros.\nVERDICT: MISS\nWHY: The answer names MBEDTLS_PLATFORM_MEMORY as a gate for the allocator hooks, but it never says the option is commented out in the shipped mbedtls_config.h. It explicitly declines to verify the config header."
+}

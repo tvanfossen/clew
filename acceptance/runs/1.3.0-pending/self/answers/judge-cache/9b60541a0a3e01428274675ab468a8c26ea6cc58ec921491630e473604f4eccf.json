@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that the shell and CMake languages share a single harvest partition, and it gives no reason about a second partition writing empty payload rows."
+}

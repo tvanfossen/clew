@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states the general rule \"fix the corpus, not the sentence about the corpus\" (i.e., resolve coverage gaps by fixing what is indexed rather than rewording the claim); it only describes how to interpret empty results."
+}

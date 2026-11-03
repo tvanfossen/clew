@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**\"The repository does not define that name.\"** Strong, but only within the scope. ... **\"The repository does not contain that text.\"** Weak. The search matches names and `@brief` text, not function bodies, comments or prose.\"\nVERDICT: MISS\nWHY: The answer distinguishes in-scope definitive absence from weak/not-searched cases, but never states a grade for \"definitive for a reason that is not absence\" (e.g., a non-absence reason such as an empty-by-design or inapplicable result), so the three-grade distinction is missing."
+}

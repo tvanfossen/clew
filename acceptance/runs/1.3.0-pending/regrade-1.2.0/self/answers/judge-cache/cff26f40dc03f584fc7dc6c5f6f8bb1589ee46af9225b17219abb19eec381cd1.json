@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The list is empty when the index is current, and it is attached to a query reply only when the index is stale.\nVERDICT: MISS\nWHY: The answer says the staleness list is attached to a reply only when the index is stale, which gives the empty-when-current half but not the claim that the annotation rides on every query reply unprompted. It also says the agent \"should read the `target` and `staleness` fields on each reply\", but that is advice to the caller, not a statement that the annotation is attached to every reply by default."
+}

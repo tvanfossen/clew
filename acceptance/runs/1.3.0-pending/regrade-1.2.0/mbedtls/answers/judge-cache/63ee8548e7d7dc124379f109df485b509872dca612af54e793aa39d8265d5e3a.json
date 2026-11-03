@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `include/mbedtls/private_access.h` makes `MBEDTLS_PRIVATE(member)` expand to `private_##member` by default, and to plain `member` only when `MBEDTLS_ALLOW_PRIVATE_ACCESS` is defined.\nVERDICT: HIT\nWHY: The answer explicitly says the macro is defined in include/mbedtls/private_access.h and describes its expansion."
+}

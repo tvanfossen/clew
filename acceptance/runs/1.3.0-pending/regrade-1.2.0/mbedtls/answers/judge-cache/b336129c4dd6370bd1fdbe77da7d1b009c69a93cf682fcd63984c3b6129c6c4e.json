@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The table ties MBEDTLS_CT_ASM to MBEDTLS_HAVE_ASM and a GNU-style compiler. It never says the macro is derived internally instead of configured in mbedtls_config.h, and it doesn't mention compiler predefined macros."
+}

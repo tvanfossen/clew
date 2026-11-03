@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no file paths. It refers only to symbols and identifiers such as `CallEdge`, `_key_edge_rows`, `_refusal_note` and `callers_unresolved`, with no file paths.\n\nITEMS:\nNONE\nEND"
+}

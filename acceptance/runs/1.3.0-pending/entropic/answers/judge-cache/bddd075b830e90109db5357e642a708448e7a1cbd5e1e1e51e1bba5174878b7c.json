@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these directories as containing code that calls into llama.cpp:\n\nITEMS:\nsrc/inference\nsrc/facade\nEND"
+}

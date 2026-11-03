@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It runs its own lookup and a direct `destroyPermanently`.\" and \"It does **not** use the operator, `handleReactions`, `sanitizeReactions`, or the transformer.\" with \"`queryReaction(database, emoji_name, post_id, user_id).fetch()` ... `database.write \u2192 reaction[0].destroyPermanently()`\"\nVERDICT: HIT\nWHY: The answer states that the removal handler bypasses the operator, queries the reaction, and destroys it directly inside `database.write`."
+}

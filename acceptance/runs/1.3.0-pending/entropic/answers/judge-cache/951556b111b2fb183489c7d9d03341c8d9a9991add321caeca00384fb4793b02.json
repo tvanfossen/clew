@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **No colon** (`filesystem.*`): matches the tool name only. `*` covers every tool in that server. ... Patterns are stored as `tool` or `tool:arg`, matched with `fnmatch` (`permission_manager.cpp:101`)\nVERDICT: HIT\nWHY: The answer states that patterns are matched with fnmatch, take the form `tool` or `tool:arg` with a tool part and an argument part, and that a no-colon pattern matches the tool name only. It never says the split happens at the first colon, but the rest of the item is covered."
+}

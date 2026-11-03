@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `qualified` selector narrows `'call'` rows but not `'key'` rows, because the key join is on `memberdef.name`\nVERDICT: MISS\nWHY: The answer discusses qualified-selector narrowing and name-merging, but never contrasts a flat surface that selects by resolved identity with a traversal surface (chain_trace) that matches the focal side on the bare name."
+}

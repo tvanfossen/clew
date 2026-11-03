@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its second-call result is only checked for `n > 0`, so a failure there silently becomes an empty string.\nVERDICT: MISS\nWHY: The quoted text covers detokenize's second call; for tokenize, the answer says the second call \"runs on every invocation\" and failures return `{}`. It never says a negative result from the second call is terminal rather than retried."
+}

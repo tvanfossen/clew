@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes scope resolution (declaration, git-ignore, dot dirs) but never says that files within scope must be readable, nor names the parse-built front end for non-doxygen file types or binary classification of misleading extensions."
+}

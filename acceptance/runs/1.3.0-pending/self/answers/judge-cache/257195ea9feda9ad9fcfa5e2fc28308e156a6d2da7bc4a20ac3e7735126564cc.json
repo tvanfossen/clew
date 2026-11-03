@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the decision about which files enter the index is made in one place: `derive_scope` in `clew/scope.py:639`.\nVERDICT: HIT\nWHY: The answer explicitly names derive_scope in clew/scope.py as the single place where the scope decision is resolved."
+}

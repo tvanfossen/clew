@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Includes, `src/inference/` only: ... **Facade:** `src/facade/entropic.cpp` includes `llama_cpp_backend.h` and calls `llama_model_ptr()` and `llama_context_ptr()` on the backend\nVERDICT: HIT\nWHY: The answer says the dependency is concentrated in src/inference but also reaches into src/facade/entropic.cpp, outside the inference layer, so it is not fully contained there."
+}

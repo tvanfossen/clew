@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`code` | The running server process loaded clew before its source changed | Restarting the MCP client only\" and \"A stale process once rebuilt an index at an older version and dropped a layer while `status` reported it healthy, so writes from stale code are refused.\"\nVERDICT: MISS\nWHY: The answer says stale-code writes are refused, but it never says reads stay current because query tools open the database per call, so the read/write asymmetry is absent."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Deny list: `is_denied` runs in `ServerManager::execute` on every call, including calls the user approved in the callback. ... the deny list is the only real veto in that configuration.\nVERDICT: MISS\nWHY: The answer says the allow/approval gate (check_approval) also blocks execution and that two gates exist, rather than concluding that the deny list alone blocks execution via is_denied."
+}

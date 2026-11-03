@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The primitives are used in about 20 library files. Counts from grep: `rsa.c` 37, `bignum_core.c` 32, `cipher.c` 30, `bignum.c` 26, `ssl_msg.c` 24, `base64.c` 21, `psa_crypto.c` 9, `ssl_tls12_server.c` 8.\nVERDICT: HIT\nWHY: The answer states the primitives are used in about 20 library files, with per-file counts showing broad use."
+}

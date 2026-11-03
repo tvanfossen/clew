@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that files within the resolved scope are further filtered by readability, and it names neither the parse-built front end nor binary classification. It only says FILE_PATTERNS is forced to the doxygen defaults, which is not either filter."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`check_approval` only consults the allow list.\" and \"The allow list only skips the approval step. It never overrides deny, schema, or tier checks.\"\nVERDICT: HIT\nWHY: The answer says the allow list only skips approval rather than granting execution, and places its use in check_approval (tool_executor.cpp:161) while deny sits in ServerManager::execute in server_manager.cpp, a different file."
+}

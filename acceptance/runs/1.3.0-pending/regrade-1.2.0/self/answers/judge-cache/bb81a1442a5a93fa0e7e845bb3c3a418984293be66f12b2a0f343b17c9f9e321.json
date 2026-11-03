@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `doxygen-guard` `files:` pattern is deliberately not read. ... The Doxyfile is not consulted for `INPUT`. It still supplies `ALIASES` and `PREDEFINED`.\nVERDICT: MISS\nWHY: The answer says the Doxyfile's INPUT isn't consulted but gives no reason (the asymmetry where repos with a Doxyfile get only a subset while those without get everything); the \"deliberately not\" rationale it gives concerns the guard pattern, not INPUT."
+}

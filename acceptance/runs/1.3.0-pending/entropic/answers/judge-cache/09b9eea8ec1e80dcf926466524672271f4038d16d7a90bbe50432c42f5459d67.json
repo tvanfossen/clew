@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the two calls are in one function, not two places ... (`src/inference/llama_cpp_tokenizer.cpp:55` and `:61`, in `LlamaCppTokenizer::tokenize`)\"\nVERDICT: HIT\nWHY: The answer names the file, function, and line numbers of the two `llama_tokenize` calls and explains the size-then-fill mechanism."
+}

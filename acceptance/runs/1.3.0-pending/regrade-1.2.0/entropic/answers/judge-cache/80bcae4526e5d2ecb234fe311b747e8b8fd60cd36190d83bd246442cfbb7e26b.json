@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the reach is confined to `src/inference/llama_cpp_*` files plus test mocks, with no conclusion that part of the dependency sits outside src/inference."
+}

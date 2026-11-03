@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how empty results report their scope and the not-searched fields. It never states the general rule that you fix the corpus (what is indexed) and not the wording of claims about it."
+}

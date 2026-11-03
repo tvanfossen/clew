@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: External bridge accept loop | `src/facade/external_bridge.cpp:796` | Per bridge, joined in `stop()` ... Per-client serve thread | `external_bridge.cpp:945` | Per connection, reaped or joined in `stop()`\nVERDICT: HIT\nWHY: The answer lists an accept-loop thread and a per-connection client serve thread, and its shutdown note describes joining the accept thread and then the client threads. That covers the two-level structure, though it never says outright that the accept thread spawns the client threads."
+}

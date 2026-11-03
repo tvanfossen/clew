@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers scope derivation and notes that doxygen reads a forced default `FILE_PATTERNS` list. It never mentions the parse-built front end for file types doxygen can't read, and it never mentions binary classification dropping files whose extension lies about them."
+}

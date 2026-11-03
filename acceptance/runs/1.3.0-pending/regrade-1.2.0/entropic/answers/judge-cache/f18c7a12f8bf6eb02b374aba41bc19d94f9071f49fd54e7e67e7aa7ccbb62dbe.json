@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The first call passes a null buffer with capacity 0. It returns the negative of the required token count, which the code flips to a positive `n` (line 58). The code then allocates `n` slots and makes the second call... there is no loop, backoff, or second attempt at the same operation.\" and \"I wouldn't call it retry logic... A better description is 'size query, then fill.'\"\nVERDICT: HIT\nWHY: The answer identifies size negotiation (query then fill) rather than retry, noting no loop or backoff and exactly one second call, which covers the item."
+}

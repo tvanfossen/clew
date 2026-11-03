@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Async `entropic.ask` worker (lambda in `run_async_ask`) | `external_bridge.cpp:1158` | Detached; runs `entropic_run` for one task\nVERDICT: HIT\nWHY: The answer identifies the async ask worker as detached and flags that nothing ensures the bridge outlives it, so it has no join. It doesn't state that this is the only detached thread, but the other threads are described as joined, which implies it."
+}

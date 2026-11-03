@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says key rows merge in functions that write a key `fn` reads, but it never frames this as an inverted polarity between the two halves, and it doesn't say that a reader's \"callers\" are the functions whose writes it observes."
+}

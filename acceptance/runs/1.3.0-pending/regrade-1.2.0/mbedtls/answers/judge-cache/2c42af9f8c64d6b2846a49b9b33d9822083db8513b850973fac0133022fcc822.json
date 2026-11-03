@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_strerror()` in `library/error.c` splits the code into a high-level part and a low-level part, looks each up in a `switch`, and joins the strings with ` : `.\"\nVERDICT: HIT\nWHY: The answer states that a code has high-level and low-level parts and that both are rendered and joined with \" : \" when both are present (step 5 and the worked example)."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With asm available: `asm volatile(\"\" : \"+r\"(x))`.\nVERDICT: HIT\nWHY: The answer shows the empty asm volatile with \"+r\"(x) input-output operand used in mbedtls_ct_compiler_opaque to hide the value from the compiler, which conveys the optimisation-barrier purpose."
+}

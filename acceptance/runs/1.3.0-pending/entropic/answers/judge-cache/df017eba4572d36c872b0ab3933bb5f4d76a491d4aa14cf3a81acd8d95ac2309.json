@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer only mentions `_loader.find()` resolving the library and the `$ENTROPIC_LIB` / `entropic install-engine` hints. It never gives the resolution order of env overrides, then user directory, then system library cache, and it says nothing about two directory layouts per root."
+}

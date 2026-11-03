@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"inside the library, `MBEDTLS_PRIVATE(x)` is just `x`, so the library reads and writes its own fields directly\" and \"the default expansion is `private_##member`, so `ctx->MBEDTLS_PRIVATE(alg)` becomes `ctx->private_alg`\"\nVERDICT: HIT\nWHY: The answer contrasts code that defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` (plain member names) with ordinary consumers of the public headers (renamed `private_` names)."
+}

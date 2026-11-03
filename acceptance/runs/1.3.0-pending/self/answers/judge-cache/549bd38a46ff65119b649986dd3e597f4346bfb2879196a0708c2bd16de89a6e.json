@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each query reply carries these notices in its own payload.\nVERDICT: HIT\nWHY: The answer says every query reply carries the staleness notices, and that `staleness` is absent and `notices()` is empty when the index is current."
+}

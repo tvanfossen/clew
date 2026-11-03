@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Compile-time: define `MBEDTLS_PLATFORM_MEMORY` together with `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`\nVERDICT: MISS\nWHY: The answer never says the buffer allocator itself (MBEDTLS_MEMORY_BUFFER_ALLOC_C) requires MBEDTLS_PLATFORM_MEMORY; it only covers the compile-time macro route."
+}

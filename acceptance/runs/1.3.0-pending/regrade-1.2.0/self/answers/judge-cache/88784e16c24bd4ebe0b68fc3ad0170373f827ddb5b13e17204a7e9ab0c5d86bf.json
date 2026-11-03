@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unknown top-level section in `.clew.yaml` is refused by name. A misspelled key inside `index_scope` is also refused by name.\nVERDICT: MISS\nWHY: The answer mentions a misspelled key inside `index_scope` being refused by name, but never says a correctly-spelled derived key is refused with its reason rather than as unknown."
+}

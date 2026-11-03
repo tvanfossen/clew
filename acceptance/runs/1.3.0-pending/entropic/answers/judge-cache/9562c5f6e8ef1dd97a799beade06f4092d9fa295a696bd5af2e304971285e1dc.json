@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Mirrors the engine's interrupt flag into the C-ABI cancel int for one batch call\nVERDICT: HIT\nWHY: The answer says the observer thread mirrors the atomic interrupt flag into a plain C-ABI cancel int. It also notes the poller uses `std::atomic<bool>` while the backend reads a plain `int*`. Together these give the bridging purpose. It never says outright that the C ABI cannot carry an atomic, but the mechanism is stated."
+}

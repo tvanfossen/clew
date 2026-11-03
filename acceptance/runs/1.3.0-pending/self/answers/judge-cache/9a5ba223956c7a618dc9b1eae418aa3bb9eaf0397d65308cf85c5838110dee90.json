@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unknown top-level section refuses the build, with an error naming the allowed sections. The reason is that the build would otherwise use defaults while reporting the declaration was honoured.\nVERDICT: HIT\nWHY: The answer states that an unknown section is refused with the allowed sections named, and gives the reason: the build would otherwise use defaults while reporting the declaration was honoured."
+}

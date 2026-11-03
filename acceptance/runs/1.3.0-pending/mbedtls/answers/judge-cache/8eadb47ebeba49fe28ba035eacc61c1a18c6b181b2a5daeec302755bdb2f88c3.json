@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Compile-time macros. Define `MBEDTLS_PLATFORM_MEMORY`, `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`... Runtime. Call `mbedtls_platform_set_calloc_free(calloc_fn, free_fn)`... \"The index places it under the `MBEDTLS_PLATFORM_MEMORY` gate, so it exists only in pointer mode.\"\nVERDICT: MISS\nWHY: The answer separates compile-time macros from runtime function pointers, but it never states that the two are mutually exclusive. Its diagram has a macro mode with \"no runtime hook,\" which is not an explicit exclusivity claim."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.sh`, `.bash` | ... `.cmake`, `CMakeLists.txt` | Yes | One per `function()` ... and `register_paths` ... `.sh`, `.cmake` and `CMakeLists.txt` still get `path` rows\nVERDICT: HIT\nWHY: The answer names the shell extensions (.sh, .bash) and CMake extension (.cmake) plus CMakeLists.txt as a separate file-name match."
+}

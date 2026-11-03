@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `#define MBEDTLS_PRIVATE(member) private_##member` ... `#else #define MBEDTLS_PRIVATE(member) member` and \"By default, a struct member written as `MBEDTLS_PRIVATE(state)` is declared and named `private_state`.\"\nVERDICT: HIT\nWHY: The answer shows both macro branches and states that by default the member is renamed to private_*, while defining MBEDTLS_ALLOW_PRIVATE_ACCESS leaves the member name unchanged."
+}

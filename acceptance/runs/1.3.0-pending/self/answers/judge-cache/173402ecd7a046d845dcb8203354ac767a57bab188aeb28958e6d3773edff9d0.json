@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `not_indexed`: extensions the index holds but did not read (`.rs=2`, `.toml=2`, `.sql=1`, extensionless `=3`, and others).\nVERDICT: MISS\nWHY: The answer describes `not_indexed` (files the index holds but did not read), which is the reverse of the item. The item asks for file types that were in scope and produced no rows, so an empty result can be told apart from a file type that was never indexed. The answer never says the reply names in-scope file types that returned nothing."
+}

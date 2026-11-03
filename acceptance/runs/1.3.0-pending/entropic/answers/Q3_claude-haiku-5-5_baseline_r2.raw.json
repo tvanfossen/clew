@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 55963,
+  "stop_reason": "end_turn",
+  "session_id": "917ce08a-19ac-4db7-9126-55613490cd46",
+  "total_cost_usd": 0.01992099,
+  "usage": {
+    "input_tokens": 28,
+    "cache_creation_input_tokens": 37588,
+    "cache_read_input_tokens": 756009,
+    "output_tokens": 9681,
+    "output_tokens_details": {
+      "thinking_tokens": 3970
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37588,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3544,
+        "cache_read_input_tokens": 70187,
+        "cache_creation_input_tokens": 835,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 835
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 28,
+      "outputTokens": 9681,
+      "cacheReadInputTokens": 756009,
+      "cacheCreationInputTokens": 37588,
+      "webSearchRequests": 0,
+      "costUSD": 0.01992099,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3970,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 37588,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 25,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nThe call runs only if it clears three gates in order: a pre-tool hook, the precondition chain (which includes the approval check), and a deny check at dispatch. The allow list only skips the approval step. It never overrides deny, schema, or tier checks. In this tree, though, the interactive prompt path looks unwired, so a call that matches no allow pattern is refused unless `auto_approve` is set.\n\n## Flow for one call\n\n```\nprocess_single_call          tool_executor.cpp:729\n \u251c\u2500 PRE_TOOL hook            \u2192 \"Cancelled by hook\" if it returns true\n \u251c\u2500 check_call_preconditions tool_executor.cpp:667\n \u2502   \u251c\u2500 anti-spiral hard block\n \u2502   \u251c\u2500 check_schema         (args vs. JSON schema)\n \u2502   \u251c\u2500 MCP authorization\n \u2502   \u251c\u2500 tier allowed_tools   (gh#83, dispatch-time)\n \u2502   \u251c\u2500 duplicate-call check\n \u2502   \u2514\u2500 check_approval_pc \u2192 check_approval (tool_executor.cpp:161)\n \u2502        approved = auto_approve || is_explicitly_allowed(allow list)\n \u2502        if !approved and on_tool_call set \u2192 approved = true (notify only)\n \u2502        else \u2192 \"Permission denied\"\n \u2514\u2500 ServerManager::execute   server_manager.cpp:153\n     \u251c\u2500 is_denied(deny list) \u2192 \"Error: Permission denied for <tool>\"\n     \u2514\u2500 route to in-process server, or external MCP client\n```\n\nThree details matter here:\n\n- **Deny is the last gate.** It is checked in `ServerManager::execute`, after approval. `check_approval` only consults the allow list. So a call that matches both lists, or runs under `auto_approve`, is still refused at dispatch.\n- **`on_tool_call` looks unwired.** `callbacks_.on_tool_call` is the only route to \"approved\" besides the allow list and `auto_approve`. I found no assignment to it anywhere under `src/` (tests excluded). If it is really null, every non-allowed call is denied with \"No approval callback \u2014 denying\". Please check the C facade before relying on this.\n- **Even when the callback is set, it does not wait.** The code calls it and then sets `approved = true` unconditionally. Nothing blocks on a user answer in this path.\n\n## What a pattern does\n\nPatterns are `tool[:argpattern]`, split at the first `:`, and both halves use `fnmatch` with no flags. Config is `permissions: { allow: [...], deny: [...], auto_approve: bool }` (`config.h:589`, `loader.cpp:365`).\n\n- **Tool part** (before the colon) is matched against the fully qualified tool name. `filesystem.*` covers every filesystem tool. `git.commit` matches exactly one.\n- **No colon:** the tool-name match is enough, so the pattern covers every call to that tool.\n- **With a colon:** the whole pattern is matched against `tool_name:<arg>`, where `<arg>` comes from `args_to_pattern` (`server_manager.cpp:426`). That function takes the first key of the args object and uses its value if it is a string. Otherwise it uses `*`.\n- **Deny patterns use the same matching**, and the first match wins.\n\nTwo consequences:\n\n- **The argument is chosen by sort order, not by position.** nlohmann objects iterate in key order, so `write_file` with `{content, path}` would match against `content`, not `path`. I did not run this, so treat it as a reading of the code until tested.\n- **`*` crosses shell metacharacters.** `bash.execute:python*` matches `python x && rm -rf ~`. The bash server's own helper (`bash.cpp:200`, which produces `bash.execute:<base> *`) is not called on this path. `ServerManager::get_permission_pattern` has no callers, so the check above is the only one that runs.\n\n## Dead or unwired pieces\n\n- `set_permission_persist` stores the callback, but nothing calls `permission_persist_`. `PermissionPersister::save_permission` has no callers in `src/`. \"Always allow\" therefore does not persist.\n- `ServerManager::add_permission` has no callers in `src/` either, so runtime grants are not created from anywhere in the source.",
+  "ttft_ms": 1753,
+  "type": "result",
+  "duration_ms": 56690,
+  "uuid": "1122d85f-75f2-4797-8b63-f22b55584a27",
+  "ttft_stream_ms": 1408,
+  "time_to_request_ms": 124,
+  "first_content_frame_ms": 1408,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

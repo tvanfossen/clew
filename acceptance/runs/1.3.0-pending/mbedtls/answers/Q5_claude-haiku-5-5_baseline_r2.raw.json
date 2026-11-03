@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 52329,
+  "stop_reason": "end_turn",
+  "session_id": "1196b163-0862-4b4b-be0b-f0ad9042b427",
+  "total_cost_usd": 0.019600189999999997,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 48820,
+    "cache_read_input_tokens": 499919,
+    "output_tokens": 9670,
+    "output_tokens_details": {
+      "thinking_tokens": 4259
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 48820,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4317,
+        "cache_read_input_tokens": 63951,
+        "cache_creation_input_tokens": 383,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 383
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 20,
+      "outputTokens": 9670,
+      "cacheReadInputTokens": 499919,
+      "cacheCreationInputTokens": 48820,
+      "webSearchRequests": 0,
+      "costUSD": 0.019600189999999997,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4259,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 48820,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** mbedtls does not prove constant time at the instruction level. It makes the compiler's job harder and pins the critical instructions in assembly on four architectures. Everywhere else it relies on a C fallback that the header itself describes as \"observed\" to work. Timing verification is opt-in, and the reach is per-function, not library-wide. (Repo at `068ff08`.)\n\n**How it's enforced**\n\n- **Masks, not branches.** `mbedtls_ct_condition_t` is an all-ones or all-zeros word (`include/mbedtls/`, `library/constant_time_internal.h`). Secret conditions are built with `mbedtls_ct_bool`, which uses negate/or/shift, and selected with `mbedtls_ct_if`, which uses and/not/or. Block operations like `mbedtls_ct_memcpy_if` and `mbedtls_ct_zeroize_if` touch every byte regardless of the condition.\n- **Opacity barrier.** `mbedtls_ct_compiler_opaque()` (`constant_time_impl.h`) launders a value through an empty `asm volatile` or an XOR with a volatile zero, so the compiler cannot constant-fold or prove the condition.\n- **Hand-written asm.** `constant_time_impl.h` pins the instruction sequences for `mbedtls_ct_bool` and `mbedtls_ct_if` on 32-bit Arm/Thumb, AArch64, x86 and x86-64. Those are the only places where instruction selection is fixed.\n- **`mbedtls_ct_memcmp`** (`library/constant_time.c:67-116`) reads both buffers through `volatile` pointers so it cannot exit early, ORs the XOR differences together, and folds the result to an int without losing bits.\n\n**What happens on an unsupported compiler**\n\nSelection is purely preprocessor-driven. `MBEDTLS_CT_ASM` is defined only when `MBEDTLS_HAVE_ASM` is set and `__GNUC__` is present (armcc5 is excluded). Otherwise the code uses the C fallback: `mbedtls_ct_zero` as a volatile zero, with no asm barrier and no arch-specific mask code. There is no `#error` and no warning. MSVC, or any GCC/Clang build with `MBEDTLS_HAVE_ASM` off, silently gets the C path.\n\nTwo details I read from the preprocessor logic rather than tested:\n\n- The MemorySanitizer test mode refuses to build with asm (`check_config.h:250`), so the instrumented build is always the C path.\n- A GNU-compatible compiler on an arch not listed above (e.g. RISC-V) gets the generic asm barrier but no arch-specific mask code.\n\nThe header's own comment says the C fallback \"has been observed to be constant-time on latest gcc, clang and MSVC as of May 2023.\" That is an empirical observation, not a guarantee.\n\n**How it's checked**\n\n- No static tool (ct-verif, dudect or ctgrind) is wired into the repo.\n- Dynamic checks are opt-in and off by default: `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN` (clang MSan) and `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` (memcheck). They are commented out in `mbedtls_config.h:2123` and `:2142`, and CI enables them in `tests/scripts/components-sanitizers.sh`.\n- `tests/suites/test_suite_constant_time.function` checks functional correctness. Its constant-flow instrumentation comes from `TEST_CF_SECRET`/`TEST_CF_PUBLIC`, defined in `framework/tests/include/test/constant_flow.h`. That `framework/` submodule is empty in this checkout, so I could not inspect those macros or confirm the suite builds here.\n\n**How far it reaches**\n\nRoughly 79 files reference the facility. Primitive-use counts in `library/`:\n\n| Module | Uses | Role |\n|---|---|---|\n| `rsa.c` | 37 | PKCS#1 v1.5 unpadding, `mbedtls_ct_zeroize_if` on failure |\n| `bignum_core.c` / `bignum.c` | 32 / 26 | Limb operations; some documented as CT with respect to parameters |\n| `cipher.c` | 30 | CBC padding removal |\n| `ssl_msg.c` | 24 | TLS record MAC and padding checks, `mbedtls_ct_hmac`, `mbedtls_ct_memcmp` |\n| `base64.c` | 21 | Table-free encoding |\n| `ecp.c` | 15 | Comb recoding and parity fix; several functions are explicitly marked \"NOT constant-time\" |\n\n- **Zero direct uses:** `ecdsa.c`, `poly1305.c`, `sha256.c`, `des.c`, `dhm.c`, `ecjpake.c`. `aes.c` only matches \"round constants\".\n- Zero direct uses does not mean not constant time. ECDSA and similar code inherit whatever `bignum_core`/`ecp` guarantees, and I did not trace those call graphs.\n\nThe facility is a set of primitives used where the library has decided a secret matters. Its guarantee is per-function and documented in headers. Read the function's contract, not the module's.",
+  "ttft_ms": 2244,
+  "type": "result",
+  "duration_ms": 53054,
+  "uuid": "a8e89b9e-445f-472e-b105-53a8966166bf",
+  "ttft_stream_ms": 1852,
+  "time_to_request_ms": 176,
+  "first_content_frame_ms": 1852,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

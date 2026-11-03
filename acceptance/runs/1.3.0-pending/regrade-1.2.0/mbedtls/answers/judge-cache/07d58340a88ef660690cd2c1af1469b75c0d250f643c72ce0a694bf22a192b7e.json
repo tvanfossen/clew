@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/` contains no `pthread_create`, `std::thread` or `_beginthread`. The library never creates a thread.\nVERDICT: MISS\nWHY: The answer says the library creates no threads, but it frames the mutex abstraction as compiled out by default. It never says library/ supplies the mutex abstraction (threading layer) that threaded callers use."
+}

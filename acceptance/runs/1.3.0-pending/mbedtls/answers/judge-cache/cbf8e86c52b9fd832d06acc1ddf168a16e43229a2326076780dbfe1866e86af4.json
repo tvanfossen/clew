@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With assembly it is `asm volatile(\"\" : \"+r\"(x))`, so the compiler cannot see through the value.\nVERDICT: HIT\nWHY: The answer gives the empty asm volatile with a \"+r\" input-output operand as the barrier that hides the value from the compiler. It never says outright that no instruction is emitted, but an empty asm string implies it."
+}

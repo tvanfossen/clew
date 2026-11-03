@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With the compile-time macros set, `mbedtls_platform_set_calloc_free` is compiled out (`platform.c:20-22`); calling it then is a link error, not a silent no-op.\nVERDICT: HIT\nWHY: The answer says that on the macro path the setter is compiled out, so calling it is a link error and not a silent no-op. That matches \"neither declared nor compiled, rather than present and ignored\"."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It tries a fixed 256-byte stack buffer first. If llama.cpp returns a negative size, it allocates exactly that and calls again.\nVERDICT: HIT\nWHY: The answer states that detokenize tries a 256-byte stack buffer first and allocates only on a negative return. It also describes tokenize as probing the size before it fills the buffer."
+}

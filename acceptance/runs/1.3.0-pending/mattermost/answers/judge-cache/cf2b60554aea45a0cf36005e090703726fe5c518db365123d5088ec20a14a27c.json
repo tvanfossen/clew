@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Without it, every local reaction on the post that is absent from the one-item payload would be marked for deletion.\"\nVERDICT: HIT\nWHY: The answer states that skipSync prevents the single-reaction payload from being treated as the full set, which would otherwise delete the post's other reactions."
+}

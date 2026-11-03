@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Define the code** in the module's header, `include/mbedtls/<module>.h`, as a negative hex value with a Doxygen description... **Regenerate `library/error.c`.**... `library/error.c` is committed to git, so the regenerated file has to be committed too.\nVERDICT: HIT\nWHY: The answer says to add the Doxygen-documented #define to the public header and regenerate error.c via the generator, treating the headers as the source of truth rather than hand-editing error.c."
+}

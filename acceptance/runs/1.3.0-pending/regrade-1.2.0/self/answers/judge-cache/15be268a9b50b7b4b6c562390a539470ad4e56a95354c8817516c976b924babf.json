@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"YAML and JSON never get symbols.\" and \"`.yaml`, `.yml`, `.json` | Yes, always | Never, by design | None\"\nVERDICT: HIT\nWHY: The answer states that YAML/JSON are registered in the file set (path rows) but never get symbols, and contrasts this with shell/CMake, which get function rows when grammars are available."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 29091,
+  "stop_reason": "end_turn",
+  "session_id": "028f88e4-c801-4bb0-85f1-d1a89a8393b8",
+  "total_cost_usd": 0.009178559999999999,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 15275,
+    "cache_read_input_tokens": 324646,
+    "output_tokens": 5751,
+    "output_tokens_details": {
+      "thinking_tokens": 2515
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 15275,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2887,
+        "cache_read_input_tokens": 47490,
+        "cache_creation_input_tokens": 1258,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1258
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 5751,
+      "cacheReadInputTokens": 324646,
+      "cacheCreationInputTokens": 15275,
+      "webSearchRequests": 0,
+      "costUSD": 0.009178559999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2515,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 15275,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** neither call is retry logic. Both are the standard two-step size-query pattern for C APIs, and the failure path is a silent empty vector.\n\n## Why it calls twice\n\nThere are two sites, and they differ.\n\n**1. `LlamaCppTokenizer::tokenize`** (`src/inference/llama_cpp_tokenizer.cpp:55-63`)\n\n- Call 1 passes `nullptr` and a size of 0. llama.cpp answers with the negative of the required token count. This is a size probe, not an attempt that failed.\n- Call 2 allocates `n` slots and makes the real call.\n- The `if (n < 0) n = -n;` line is the only handling of the probe result.\n\nThe comment on line 44-45 calls call 2 \"the sized retry,\" which is misleading. Nothing was retried.\n\n**2. `LlamaCppTokenizer::detokenize`** (`llama_cpp_tokenizer.cpp:93-101`)\n\n- Call 1 uses a fixed 256-byte stack buffer. If the piece is longer, llama.cpp returns the negative required size.\n- Call 2 uses a heap buffer of that size.\n\nThis one is a real fallback for a too-small buffer, not a failure retry, and it does not fail for a transient reason.\n\nSo: a size probe followed by the real call, plus a buffer-growth fallback in detokenize. No backoff, no repeated attempt at the same operation, no retry of a failure.\n\n## What the caller receives on failure\n\n- `LlamaCppTokenizer::tokenize` logs an error with only the text length (line 65-66, which is the only log line on this path) and returns `{}`.\n- `{}` is also what it returns for empty input and for a null vocab (lines 52, 44). Callers cannot tell \"failed\" from \"empty.\"\n- `LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788-800`) returns `{}` when no tokenizer is wired too. The same vector means three different things.\n\nNote that call 2 in the tokenizer can only fail if something other than the size is wrong. The sized call normally succeeds, so the `actual < 0` branch is defensive.\n\n## What the callers do with it\n\nFlow for the failure case:\n\n```\nllama_tokenize (fails)\n  -> LlamaCppTokenizer::tokenize returns {}      (logs error, text length only)\n  -> LlamaCppBackend::tokenize returns {}\n  -> callers:\n     a. tokenize_text / do_count_tokens  -> 0 or empty  -> count_tokens() = 0\n     b. generate / generate_cancellable / stream / complete\n          -> tokens.size() is 0, no check\n          -> run_prefill(0 tokens): loop never runs, returns true\n          -> sampling begins with no prompt decoded\n     c. speculative / MTP paths\n          -> tokens.size() < 2  -> returns ENTROPIC_ERROR_GENERATE_FAILED\n```\n\nConsequences:\n\n- **Generation (b):** the plain generate and stream paths have no empty-token guard. I read `run_prefill` (`llama_cpp_backend.cpp:1484-1502`) and it reports success for zero tokens, so the failure becomes a silent bad generation instead of an error. This comes from reading the code. I did not run it against a model, so treat it as likely rather than confirmed.\n- **Counting (a):** `entropic_inference_count_tokens` (`src/inference/inference_c_api.cpp:548-560`) returns 0 on tokenizer failure. Its doc comment promises a `text_len/4` estimate \"on error,\" but that estimate is only used on the exception path. A caller budgeting context would see a zero-token prompt and could overfill the context.\n- **Speculative/MTP (c):** these are the only paths that check the result, and they reject it with an error code.\n\n## Recommended fixes (not applied; you asked a question, not for changes)\n\n1. Have `Tokenizer::tokenize` report failure distinctly (e.g. an error out-parameter or `std::optional`) so empty input and failure can be told apart.\n2. Add a guard in the generate and stream paths, matching the speculative/MTP `< 2` check, so failures return `ENTROPIC_ERROR_GENERATE_FAILED`.\n3. Make `count_tokens` fall back to the `text_len/4` estimate on failure, as its doc comment already says.\n4. Fix the misleading \"sized retry\" comment on line 44-45.",
+  "ttft_ms": 1011,
+  "type": "result",
+  "duration_ms": 29569,
+  "uuid": "b56115de-adf1-4a71-b9fd-3720885cf607",
+  "ttft_stream_ms": 811,
+  "time_to_request_ms": 124,
+  "first_content_frame_ms": 811,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

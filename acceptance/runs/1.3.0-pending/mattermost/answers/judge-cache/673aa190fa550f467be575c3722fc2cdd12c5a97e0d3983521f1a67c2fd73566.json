@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says `ServerDataOperator` is an interface extending the mixins, but it never explains that each handler has a same-named interface extending its `...Mix` type so the class is typed with all mixed-in methods."
+}

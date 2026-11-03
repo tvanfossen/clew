@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml`, `.yml`, `.json` | Yes | None, by design | Findable by name, counted in the file set. Never harvested.\nVERDICT: HIT\nWHY: The answer states YAML/JSON are registered (path row) with no symbols, and contrasts this with shell/CMake which do carry function/macro symbols, so the groups are treated differently."
+}

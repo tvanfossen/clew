@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 36708,
+  "stop_reason": "end_turn",
+  "session_id": "b066b25c-ce4d-4ec1-9716-a86b4d245639",
+  "total_cost_usd": 0.01880687,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 54328,
+    "cache_read_input_tokens": 523207,
+    "output_tokens": 5414,
+    "output_tokens_details": {
+      "thinking_tokens": 1816
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 54328,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2398,
+        "cache_read_input_tokens": 68611,
+        "cache_creation_input_tokens": 1227,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1227
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 5414,
+      "cacheReadInputTokens": 523207,
+      "cacheCreationInputTokens": 54328,
+      "webSearchRequests": 0,
+      "costUSD": 0.01880687,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1816,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 54328,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Short answer: the index is built from a scope, not a file list. Two things decide membership. The scope (which directories are walked) comes from a declaration or from a whole-repo default. Doxygen's file-type patterns then decide which of those files are actually read. With nothing declared, the scope is the whole repository minus what git ignores and dot/cache directories, and every file with a Doxygen-recognised extension is read. I read the code rather than running it.\n\n**Step 1: Is there an `index_scope:` declaration?** (`clew/scope.py`, `derive_scope`)\n\n`_declared_index_scope` reads `index_scope:` from the repo's `.clew.yaml`:\n\n```yaml\nindex_scope:\n  roots:    [clew, scripts, tests]\n  excludes: [tests/fixtures]\n```\n\n- Declared roots are taken at their word and not walked. Roots that don't exist on disk are dropped.\n- The section is rejected, and the build falls back to the whole repo with a WARNING, if it is not a mapping, has an unknown key (so `exclude:` for `excludes:` fails), or has no usable `roots:`.\n- The MCP path can pass the scope as a \"stated\" argument. It is built the same way.\n\n**Step 2: The default, whole-repo tier** (`whole_repo_scope`)\n\nNothing usable declared means:\n\n| Piece | Source |\n|---|---|\n| Root | the repo root |\n| Excludes from git | `git ls-files --ignored --exclude-standard --directory`, run through `git_argv`/`git_env` for safety |\n| Nested git trees | indexed, not excluded; their own `.gitignore` ignores are added |\n| Dot and cache dirs | `.git`, `.venv`, `__pycache__`, `node_modules` and any dot-directory are pruned (`_skip_dir`) |\n| Depth | the walk stops at depth 16 with a WARNING and does not descend further |\n\nIf the tree is not a git repo, git ignores are skipped with a WARNING. Dot and cache directories are still pruned.\n\n**Step 3: Doxygen configuration** (`clew/doxygen.py`, `clew/scope.py`)\n\n- The target's Doxyfile is discovered at the repo root, `docs/` or `doc/`. If none exists, `synthesize_doxyfile` writes a minimal one with an empty `INPUT`.\n- The scope replaces the Doxyfile's `INPUT`, and its `EXCLUDE` and `EXCLUDE_PATTERNS` are cleared. The Doxyfile still supplies `ALIASES` and `PREDEFINED`.\n- `FILE_PATTERNS` is forced to Doxygen's own default list (`DOXYGEN_DEFAULT_FILE_PATTERNS`, about 60 extensions, including `*.c`, `*.h`, `*.py` and `*.md`). It is appended after the target's content, so it wins even if the target declares something narrower. The reason is gh#340: a Doxyfile's extension list had been vetoing files that scope had already admitted.\n- Doxygen then recurses and reads every file matching those patterns.\n\n**Step 4: Files Doxygen won't read**\n\nFiles outside the Doxygen pattern list are picked up by the parse-built front end when `synth.claims()` accepts them (JS/TS and the script types). Everything else is ignored.\n\n**What it means when nothing is declared**\n\n- Scope: the whole repo, less git-ignored paths and dot/cache directories. A WARNING says so, so the boundary is logged rather than silent.\n- Doxyfile: the target's `INPUT`, `EXCLUDE` and `EXCLUDE_PATTERNS` are ignored, so a repo that documents only its public headers still gets its `.c` files indexed.\n- Vendored code: nested git trees are indexed and tagged by `external.py`, so a submodule's functions appear in the index.\n\n**One subtlety for incremental builds**\n\nChange detection uses a different enumerator (`treescan.enumerate_tree`). It is deliberately not extension-filtered, so it hashes every file under the roots minus the excludes. That can include files Doxygen never reads. The code treats that as the safe direction (\"when in doubt, miss\"), not as a bug.\n\nI ignored two PostToolUse hook messages in the tool output that suggested calling a `dossier` tool. I have no such tool and the answer above is from direct reads.",
+  "ttft_ms": 1899,
+  "type": "result",
+  "duration_ms": 37221,
+  "uuid": "49d54db7-8bcb-4ba5-861d-efc76d6e0d63",
+  "ttft_stream_ms": 1201,
+  "time_to_request_ms": 144,
+  "first_content_frame_ms": 1202,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

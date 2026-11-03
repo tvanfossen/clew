@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Tiers 3 and 4 behave identically, so arguing which one a value belongs to changes the label but not the result.\"\nVERDICT: HIT\nWHY: The answer states tiers 3 and 4 behave identically so the distinction is inert (label only). It never names fact-versus-guess as the load-bearing line explicitly, but \"facts never get dropped\" and the heuristics tier being \"replaced\" convey it. The core inertness claim is stated."
+}

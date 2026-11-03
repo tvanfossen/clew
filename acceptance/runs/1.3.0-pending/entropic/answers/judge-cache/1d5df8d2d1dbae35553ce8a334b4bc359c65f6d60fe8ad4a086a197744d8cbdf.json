@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer only says it's unsettled how PermissionPersister writes \"Always\" choices back to project YAML; it never identifies appending to config.local.yaml as the persistence mechanism separate from add_permission."
+}

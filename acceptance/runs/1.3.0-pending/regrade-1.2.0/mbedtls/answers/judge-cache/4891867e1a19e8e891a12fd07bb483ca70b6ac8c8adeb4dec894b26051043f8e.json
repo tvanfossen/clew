@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every library translation unit gets plain field names. ... That program gets plain names. ... `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS #define MBEDTLS_PRIVATE(member) private_##member #else #define MBEDTLS_PRIVATE(member) member`\nVERDICT: HIT\nWHY: The answer shows both branches and says opted-in code (library, programs) sees plain names while default consumers see `private_` names and get compile errors on plain access."
+}

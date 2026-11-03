@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Tier 1 | Explicit: a CLI flag, or the `options` argument for an embedding caller\" and \"Each top-level section takes the same shape as its standalone manifest\"\nVERDICT: MISS\nWHY: The answer never says the embedding caller's option names are the same words as the declaration file's section names or the diagnostics' wording."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_UNREAD_CORPUS`: \"NOT DEFINITIVE\u2026 this index HOLDS matching rows\u2026\" with counts by kind; `_DEFINITIVE`: \"a definitive empty result\u2026 Do not retry\"\nVERDICT: MISS\nWHY: The answer distinguishes definitive-for-scope from not-definitive, but it names no separate grade for \"definitive for a reason that is not absence\". The rows it lists as non-definitive are all unread-corpus, no-file-docs, or multi-token cases, none of which is that grade."
+}

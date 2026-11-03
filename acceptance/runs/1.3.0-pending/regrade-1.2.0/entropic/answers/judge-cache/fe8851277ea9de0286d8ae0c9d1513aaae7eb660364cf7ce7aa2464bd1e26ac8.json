@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A real failure and legitimately empty input look the same to the caller. The error log is the only signal.\nVERDICT: HIT\nWHY: The answer says failure and legitimately empty input are indistinguishable, and its caller table shows each caller treating an empty result as 0 tokens or an empty prompt with no guard or error check."
+}

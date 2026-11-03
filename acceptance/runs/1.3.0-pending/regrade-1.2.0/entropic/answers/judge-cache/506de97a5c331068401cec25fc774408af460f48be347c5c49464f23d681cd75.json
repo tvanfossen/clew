@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"They are a size-query-then-fill pair, not retry logic.\" and \"there is no loop, backoff, or second attempt at the same operation.\"\nVERDICT: HIT\nWHY: The answer identifies the two calls as size negotiation (query size, then fill), explicitly rejects retry, and notes there is no loop or backoff."
+}

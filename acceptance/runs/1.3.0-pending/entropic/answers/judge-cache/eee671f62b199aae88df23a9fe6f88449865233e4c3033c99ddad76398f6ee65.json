@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer concludes the opposite: a call matching no allow pattern is refused (default-deny) unless auto_approve is set, never saying an unmatched tool runs."
+}

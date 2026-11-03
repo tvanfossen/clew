@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"high = ret & 0xFF80 (module-class bits) ... low = ret & ~0xFF80 ... append \" : \" if high text exists ... a code combining an SSL error with a low-level error yields `\"SSL - \u2026 : AES - \u2026\"`\"\nVERDICT: HIT\nWHY: The answer explains the two layers (high-level module bits and low-level bits) and that mbedtls_strerror joins both with \" : \" when both are present."
+}

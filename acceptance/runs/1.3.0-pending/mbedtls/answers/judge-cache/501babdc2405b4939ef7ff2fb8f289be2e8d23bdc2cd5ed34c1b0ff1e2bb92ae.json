@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"high = ret & 0xFF80 (module-class bits) ... append \" : \" if high text exists ... mbedtls_low_level_strerr(ret) \u2192 \"AES - Invalid key length\"\" and \"a code combining an SSL error with a low-level error yields `\"SSL - \u2026 : AES - \u2026\"`.\"\nVERDICT: HIT\nWHY: The answer says a code carries high-level module and low-level parts, and that strerror renders both joined with \" : \" when both are present."
+}

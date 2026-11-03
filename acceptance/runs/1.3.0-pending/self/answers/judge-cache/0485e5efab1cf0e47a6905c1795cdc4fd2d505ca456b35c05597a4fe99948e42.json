@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml`, `.yml`, `.json` | Yes | None, by design | Findable by name, counted in the file set. Never harvested. ... \"Shell and CMake\" rows show symbols (functions/macros) are held.\nVERDICT: HIT\nWHY: The answer says YAML/JSON get path rows (in the file set) but no symbols, while shell and CMake do get symbols, so the two groups are treated differently."
+}

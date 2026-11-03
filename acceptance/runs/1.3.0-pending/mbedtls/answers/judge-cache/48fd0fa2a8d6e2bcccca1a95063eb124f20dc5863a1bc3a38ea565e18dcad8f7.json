@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says how many sites use MBEDTLS_PRIVATE or that they are overwhelmingly in the public headers. It cites only `aes.h` as an example and lists where the opt-out macro is defined."
+}

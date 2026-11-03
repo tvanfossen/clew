@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The asm paths are gated by `MBEDTLS_CT_ASM` (`constant_time_impl.h:42`). That needs `MBEDTLS_HAVE_ASM`, which is on in the shipped `mbedtls_config.h:52` and off in `configs/config-symmetric-only.h`, plus `__GNUC__` or `__ARMCC_VERSION`.\nVERDICT: MISS\nWHY: The answer says MBEDTLS_CT_ASM needs MBEDTLS_HAVE_ASM plus compiler macros, but it never says it is derived rather than a user-configured entry in mbedtls_config.h, so that point is left implicit."
+}

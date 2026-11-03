@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Only one screen shows a search field:** `search.tsx` is the only caller with `hasSearch={true}`. The `hasSearch` flag is what makes `NavigationHeader` render its search bar.\nVERDICT: HIT\nWHY: The answer states that `app/screens/home/search/search.tsx` is the only caller passing `hasSearch={true}`, which is the only one that enables the search field."
+}

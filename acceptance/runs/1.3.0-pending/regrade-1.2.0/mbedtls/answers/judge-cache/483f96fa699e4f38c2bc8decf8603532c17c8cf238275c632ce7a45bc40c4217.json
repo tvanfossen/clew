@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Library threads:** none. The index found four spawn sites, all in `programs/`\" and \"`MBEDTLS_THREADING_C` is commented out ... So `threading.c` compiles to nothing useful\"\nVERDICT: MISS\nWHY: The answer says the library has no threads of its own by default, but it never says the pthread example compiles to a stub main under that condition. It lists `ssl_pthread_server.c` as a spawn site with per-connection pthreads, which points the other way."
+}

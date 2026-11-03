@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 24838,
+  "stop_reason": "end_turn",
+  "session_id": "5d03a3f7-3577-4874-9d96-bbf462ff9530",
+  "total_cost_usd": 0.014225570000000003,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 42718,
+    "cache_read_input_tokens": 293977,
+    "output_tokens": 5482,
+    "output_tokens_details": {
+      "thinking_tokens": 2937
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 42718,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3101,
+        "cache_read_input_tokens": 70811,
+        "cache_creation_input_tokens": 8800,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 8800
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5482,
+      "cacheReadInputTokens": 293977,
+      "cacheCreationInputTokens": 42718,
+      "webSearchRequests": 0,
+      "costUSD": 0.014225570000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2937,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 42718,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the double call is a size probe, not retry logic. Tokenization failure returns an empty vector, and most callers handle that silently.\n\n## Why it calls twice\n\nThe \"two places\" are two functions in `LlamaCppTokenizer` (`src/inference/llama_cpp_tokenizer.cpp`), each making two llama.cpp calls. The backend itself doesn't make the second call.\n\n- **`LlamaCppTokenizer::tokenize`** (lines 49\u201371) calls `llama_tokenize` once with a null buffer and size 0. llama.cpp answers with a negative number giving the required token count, and the code negates it (`if (n < 0) n = -n;`). It allocates a vector of that size and calls `llama_tokenize` again to fill it. The second call runs unconditionally, whether or not the first one looked like a failure. This is a two-phase \"ask for size, then fill\" pattern.\n- **`LlamaCppTokenizer::detokenize`** (lines 86\u2013105) calls `llama_token_to_piece` with a 256-byte stack buffer. If that is too small, it resizes to the reported size and calls again. Its own comment says \"retry with exact size\". This is the only piece that fits the word \"retry\", and even there it means resize-and-redo, not retry-after-failure.\n\nSo for tokenize I would not call it retry logic. Nothing is retried after an error: the second call is the real call.\n\n## What the caller receives on failure\n\n1. The second `llama_tokenize` returns negative \u2192 `tokenize` logs `\"Tokenization failed for text of length N\"` and returns `{}`. The log has only the text length, not llama's return code or the text, so the actual cause is lost.\n2. `vocab_ == nullptr` also returns `{}`, with no log.\n3. `LlamaCppBackend::tokenize` (`src/inference/llama_cpp_backend.cpp:788`) returns `{}` when `tokenizer_` is unset, and otherwise copies the vector through.\n\nAn empty vector is therefore indistinguishable from legitimately empty input. The caller gets no error channel.\n\n## What the callers do with the empty vector\n\n| Caller | Behaviour on empty result |\n|---|---|\n| `do_count_tokens` | Returns `0`. The C API `entropic_inference_count_tokens` passes that straight through; its `len/4` fallback only fires on exceptions, not on tokenization failure. |\n| `tokenize_text` | Returns empty. Its doc says \"empty if COLD or error\". |\n| `compute_prefix_token_count` | Returns `0`, which feeds `prefill_dispatch` \u2192 `prefill_and_cache_prefix` with a zero-length prefix. I did not check what that does with zero. |\n| `do_complete` | Passes empty tokens straight to `decode_loop` \u2192 `run_prefill`. No empty check is visible in the index. |\n| `do_generate_text_only` / `do_generate_streaming_text_only` | Pass empty tokens to `run_prefill_cached`, which has no empty check. Failure surfaces only if prefill itself fails. |\n| `generate_mtp` / `generate_speculative_with_draft` | Check `tokens.size() < 2` and return `GENERATE_FAILED` with \"prompt must have at least 2 tokens\". **This misdiagnoses a tokenizer failure as a short prompt.** |\n\nTwo gaps stand out. The speculative and MTP paths report a llama tokenizer failure as a prompt-length error, and the tokenizer's own error log drops the llama return code. Both make a tokenizer failure hard to diagnose, which runs against the project's observability rules.\n\n**Limits of this read:** the index is built from doxygen and AST data, so some callers may be unresolved (`callers_unresolved` is nonzero on several entries). I did not read the bodies of `prefill_and_cache_prefix`, `run_prefill`, or `InferenceBackend::count_tokens`, so those rows are inferred, not verified.",
+  "ttft_ms": 1492,
+  "type": "result",
+  "duration_ms": 28648,
+  "uuid": "e3d1cebb-d896-4caf-9c0c-cb9076fb477b",
+  "ttft_stream_ms": 1213,
+  "time_to_request_ms": 458,
+  "first_content_frame_ms": 1214,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

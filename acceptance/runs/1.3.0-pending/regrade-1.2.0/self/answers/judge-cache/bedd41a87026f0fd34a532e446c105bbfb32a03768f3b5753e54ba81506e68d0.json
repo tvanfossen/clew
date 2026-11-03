@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Facts (tiers 3\u20134) are never displaced.** A stated tier only replaces the guesses underneath. So `main` survives even when someone passes `--entry-patterns`, which previously dropped it silently. Tiers 3 and 4 combine identically\nVERDICT: HIT\nWHY: The answer says stated tiers replace (tiers 1\u20132 replace, 3\u20134 accumulate) and that discovered facts are never displaced by stated input, e.g. `main` survives `--entry-patterns`."
+}

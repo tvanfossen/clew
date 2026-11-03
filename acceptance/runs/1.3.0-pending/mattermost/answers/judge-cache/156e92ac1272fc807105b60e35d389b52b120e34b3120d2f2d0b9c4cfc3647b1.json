@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each concrete handler is a factory that takes a superclass constrained to `Constructor<ServerDataOperatorBase>` and returns a subclass. ... `batchRecords` is the single write sink for the whole layer.\nVERDICT: HIT\nWHY: The answer states mixins are constrained to `Constructor<ServerDataOperatorBase>` and that all writes go through `batchRecords` in `BaseDataOperator`, which is the item's conclusion and its reason."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"READS ARE UNAFFECTED\" is not in the answer; the closest is \"The code notice says the query tools are still reading live data, so data changes appear immediately. What is stale is the process's logic and module constants\" together with \"Do not rebuild through a stale process. `stale_code_refusal()` returns a refusal message, and `build_or_refresh` calls it before touching an index.\"\nVERDICT: HIT\nWHY: The answer says query tools keep reading live data under a stale code process, and that a rebuild through that process is refused so it does not write with old logic. That is the read/write asymmetry. It never says query tools open the database per call, and it doesn't spell out that the build would write old pipeline logic."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The config comments say this explicitly: enable `MBEDTLS_THREADING_C` plus `MBEDTLS_THREADING_PTHREAD` (or `_ALT`) for any multithreaded use.\"\nVERDICT: HIT\nWHY: The answer names MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros that must be enabled to get mutex protection. It also shows THREADING_C gating every lock call."
+}

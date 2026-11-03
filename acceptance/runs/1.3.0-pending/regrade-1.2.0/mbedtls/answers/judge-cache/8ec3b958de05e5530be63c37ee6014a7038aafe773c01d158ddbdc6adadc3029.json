@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_PLATFORM_MEMORY` is off in `include/mbedtls/mbedtls_config.h:208`. The dispatch function `mbedtls_calloc` in `platform.c` is compiled only under that gate\"\nVERDICT: MISS\nWHY: The answer says the gate is off in the shipped config, but never says it is commented out in mbedtls_config.h. \"Off\" is not the same claim."
+}

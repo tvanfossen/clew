@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says a containment call was removed; it describes the whole-repo default and nested-tree inclusion, with no mention of removal versus dropped callers."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: allow (`PermissionManager::is_allowed`): a match skips the prompt. It does not grant execution past a deny match, because deny is checked again in `execute`.\nVERDICT: MISS\nWHY: The answer says allow skips the prompt and that it is used inside `check_approval`. But it never says the allow list is consulted only from `ToolExecutor::check_approval` in a different file. It also never says the allow list does not grant execution."
+}

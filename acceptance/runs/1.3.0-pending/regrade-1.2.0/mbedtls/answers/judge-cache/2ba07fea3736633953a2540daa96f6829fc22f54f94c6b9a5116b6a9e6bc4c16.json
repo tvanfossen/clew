@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Compile time.** Define `MBEDTLS_PLATFORM_MEMORY`, `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` together. The macros must be set as a pair. When both are present, `platform.c` drops the runtime setter entirely, so calling it fails to link.\"\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer pair set through `mbedtls_platform_set_calloc_free`. It also says the macro configuration removes the runtime setter, which makes the two mutually exclusive."
+}

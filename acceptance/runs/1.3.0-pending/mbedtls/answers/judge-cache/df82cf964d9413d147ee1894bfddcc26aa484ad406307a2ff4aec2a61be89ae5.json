@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: header include/mbedtls/*.h ... \u2502 scripts/generate_errors.pl (run by library/Makefile, ...) \u2502 + scripts/data_files/error.fmt (template) \u25bc library/error.c (generated, checked in)\nVERDICT: HIT\nWHY: The answer states error.c is generated from the headers by generate_errors.pl using error.fmt as its template."
+}

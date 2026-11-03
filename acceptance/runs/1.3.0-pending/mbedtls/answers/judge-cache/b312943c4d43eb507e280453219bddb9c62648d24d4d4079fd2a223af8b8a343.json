@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer only mentions a second `mbedtls_strerror` gated by MBEDTLS_ERROR_STRERROR_DUMMY but says it couldn't confirm which branch it is. It never says the dummy keeps the function linkable while the table is compiled out, and it never says the option is enabled by default."
+}

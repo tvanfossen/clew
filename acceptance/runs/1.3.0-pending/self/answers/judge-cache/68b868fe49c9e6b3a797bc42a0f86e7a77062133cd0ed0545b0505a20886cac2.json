@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Schema axis, index newer: \"Restart the MCP client. A rebuild cannot clear it.\" / \"`code` ... Restart the MCP client. A rebuild cannot clear it.\" / \"`data` ... `index(action='refresh')`\" / \"Rebuilding is unsafe here, not just ineffective.\"\nVERDICT: MISS\nWHY: The answer lists a different remedy per axis (refresh for data, restart for code), but it never says this is why a single flag would not have been enough."
+}

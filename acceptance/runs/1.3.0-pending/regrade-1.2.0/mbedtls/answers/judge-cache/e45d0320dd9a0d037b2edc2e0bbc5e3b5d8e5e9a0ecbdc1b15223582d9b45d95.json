@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library also ships its own consumer of the facility: the stack allocator in `library/memory_buffer_alloc.c`. `mbedtls_memory_buffer_alloc_init(buf, len)` (line ~568) sets the global pointers to its own `buffer_alloc_calloc` / `buffer_alloc_free`\nVERDICT: HIT\nWHY: The answer names the buffer allocator as the library's own consumer and says its init function installs its own functions over the global pointers. It doesn't use the words \"only in-tree user\", but \"its own consumer\" conveys that."
+}

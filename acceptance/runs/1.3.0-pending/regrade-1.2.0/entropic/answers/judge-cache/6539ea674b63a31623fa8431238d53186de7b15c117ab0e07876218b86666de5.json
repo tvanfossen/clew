@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The threads that outlive a single call are all in the MCP bridge, the health monitor, the transports, and short-lived cancel pollers.\nVERDICT: HIT\nWHY: The answer enumerates thread creation across the external bridge, health monitor, MCP transports (SSE, stdio) and the inference-path cancel pollers, showing it is spread across subsystems rather than centralised."
+}

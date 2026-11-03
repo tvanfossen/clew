@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never discusses a split that lets `import entropic` succeed before the engine is installed, or an install-engine subcommand. It only describes runtime loading of the `.so`."
+}

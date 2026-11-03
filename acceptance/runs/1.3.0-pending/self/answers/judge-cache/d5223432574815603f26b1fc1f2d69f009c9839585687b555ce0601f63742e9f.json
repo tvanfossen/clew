@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says each caller had an edge class of `call` and discusses reachability separately, but never states that callers/callees mix direct calls with shared-key dataflow neighbours distinguished by an `edge_class` field the consumer must read."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Its mutexes exist only when `MBEDTLS_THREADING_C` is enabled\" and \"`MBEDTLS_THREADING_PTHREAD` (line 2196) ... commented out\" and \"The index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` passed as flags.\"\nVERDICT: HIT\nWHY: The answer names both macros, with THREADING_C gating the mutexes and THREADING_PTHREAD selecting the pthread backend. It also notes the \"MBEDTLS_THREADING_PTHREAD not defined\" stub in `ssl_pthread_server.c`."
+}

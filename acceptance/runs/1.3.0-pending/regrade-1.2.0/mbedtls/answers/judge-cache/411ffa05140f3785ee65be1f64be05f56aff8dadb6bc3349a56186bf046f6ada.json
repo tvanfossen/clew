@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`programs/ssl/ssl_server2.c:8`, `programs/ssl/ssl_client2.c:8` | Defined at the top, before `ssl_test_lib.h`.\" and \"The example programs get full access. `ssl_server2.c` and `ssl_client2.c` read internal state without the explicit spelling.\"\nVERDICT: HIT\nWHY: The answer states that example programs (ssl_server2.c, ssl_client2.c) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves, gaining access to internals."
+}

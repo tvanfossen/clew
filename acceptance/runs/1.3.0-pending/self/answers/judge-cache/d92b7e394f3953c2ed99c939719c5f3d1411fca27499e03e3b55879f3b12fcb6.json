@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names one file path as taking part in stating, discovering, combining or recording a build option. It names `.clew.yaml` at the repo root, which is the standing declaration of conventions. It also mentions a Doxyfile, a generator manifest and a standalone manifest, but only as generic descriptions, not as paths. It names `resolve_layered` and test names, which are not file paths.\n\nITEMS:\n.clew.yaml\nEND"
+}

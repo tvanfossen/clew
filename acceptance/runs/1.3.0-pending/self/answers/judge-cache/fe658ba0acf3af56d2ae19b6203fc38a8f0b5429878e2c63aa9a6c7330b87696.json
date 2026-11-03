@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| 2 | `.clew.yaml` in the repo root | Replaces the stated layer |\" and \"Because the file is read from the repo root, both the CLI and the MCP server pick it up. The MCP server passes no flags, so the file is its only route to declared conventions.\"\n\nVERDICT: HIT\n\nWHY: The answer places `.clew.yaml` at tier 2 as the repo's own declaration, read from the repo root, and says both the CLI and the MCP server pick it up."
+}

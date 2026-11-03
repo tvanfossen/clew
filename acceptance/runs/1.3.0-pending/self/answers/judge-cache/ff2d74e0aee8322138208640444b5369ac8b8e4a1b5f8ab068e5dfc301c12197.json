@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A failed auto-refresh does not turn a good answer into an error. The query answers from the existing index, and the staleness notice is still attached.\nVERDICT: MISS\nWHY: The answer describes failed auto-refresh falling back gracefully, not that the staleness measurement itself never raises and degrades to no annotation."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions detokenize's 256-byte stack buffer or its heap fallback; it only mentions detokenize consumers appending empty strings."
+}

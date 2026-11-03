@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: 6. On failure, it sets `props.failed = true` again, or removes the post for the same three server errors.\nVERDICT: HIT\nWHY: The answer says retryFailedPost makes one new client.createPost call, with no retry constant or loop found, and on failure marks the post failed again or removes it for the same three errors. It never mentions backoff explicitly, but nothing in its description includes one."
+}

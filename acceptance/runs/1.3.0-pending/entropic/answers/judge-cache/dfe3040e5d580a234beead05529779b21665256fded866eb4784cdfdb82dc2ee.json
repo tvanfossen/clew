@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It takes the first string value of the JSON args object, or `*` if there are none.\nVERDICT: HIT\nWHY: The answer states that only the first string argument value reaches the pattern and that the pattern falls back to `*` when there is no string value. This covers the single-value and wildcard-collapse parts. It does not mention unparseable arguments, but the item is otherwise stated."
+}

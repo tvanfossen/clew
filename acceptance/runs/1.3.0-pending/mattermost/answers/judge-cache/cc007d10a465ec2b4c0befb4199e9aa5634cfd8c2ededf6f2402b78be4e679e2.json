@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists the mixin bases but never says a same-named interface extends each handler's `...Mix` type to give the class every mixed-in method. It even says the composition mechanism can't be confirmed."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**The Doxyfile is no longer a tier** (gh#333). A Doxyfile's `INPUT` is a documentation target, not a reasoning boundary. Repos with a Doxyfile used to get the narrower published-API subset, and repos without one got everything. Now both get the whole repository.\"\nVERDICT: HIT\nWHY: The answer says a Doxyfile's INPUT is not used to decide the indexed tree and gives the reason: repos with a Doxyfile would get only the documented subset while repos without one get everything."
+}

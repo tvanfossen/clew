@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_ts_language_for` (`clew/harvest.py:184`) calls `_grammar_available` (line 213). That returns False for an optional grammar missing from the substrate, and the route resolves to `None`. `tests/test_script_front_end.py:130` pins this degrade, so the build does not crash.\nVERDICT: MISS\nWHY: The answer does state that the build degrades without crashing. But it says the not-indexed report does not name those file types, which is the opposite of the item's conclusion that they are reported as not indexed."
+}

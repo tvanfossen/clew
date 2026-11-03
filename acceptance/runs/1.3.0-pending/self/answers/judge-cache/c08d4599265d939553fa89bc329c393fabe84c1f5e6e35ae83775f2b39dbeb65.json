@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `data` \u2014 \"A refresh fixes it.\"; `code` \u2014 \"Only a client restart clears it.\"; and \"Schema and code are never auto-refreshed. A build through an old process would re-stamp the index with old pipeline logic\"\nVERDICT: MISS\nWHY: The answer states per-axis remedies (refresh vs restart) but never explains that distinct actions are why a single flag would not suffice."
+}

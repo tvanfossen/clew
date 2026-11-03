@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is a source-level rename only: the struct layout and ABI do not change, so the define cannot alter binary compatibility.\nVERDICT: HIT\nWHY: The answer says the member is renamed (`private_##member`) so that direct access fails to compile, while layout stays unchanged, which matches breaking the member name rather than hiding the layout."
+}

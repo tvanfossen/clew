@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: External MCP accept loop | `src/facade/external_bridge.cpp:796` | Joined in `stop()` ; Per-client serve threads | `external_bridge.cpp:945` | Shut down via `shutdown(SHUT_RDWR)` and joined in `stop()`\nVERDICT: HIT\nWHY: The table names an accept-loop thread and separate per-client serve threads in the external bridge, with `stop()` shutting down client sockets and joining, which conveys the two-level structure."
+}

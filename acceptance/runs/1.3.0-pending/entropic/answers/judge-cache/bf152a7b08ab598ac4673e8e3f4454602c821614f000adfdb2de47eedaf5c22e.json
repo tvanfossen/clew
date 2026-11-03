@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Ten spawn sites in this repository run work off the caller's thread. ... `ExternalBridge::accept_loop` ... `HealthMonitor::monitor_loop` ... `StdioTransport::stderr_reader_loop` ... `SSETransport::sse_reader_loop` ... `ResponseGenerator::dispatch_batch_generate` ... `iface_generate_with_cancel`\n\nVERDICT: HIT\nWHY: The answer's table lists thread spawns across the external bridge, MCP stdio/SSE transports, the health monitor and inference-path cancel pollers. That shows creation is spread across subsystems, though it never says \"not centralised\" outright."
+}

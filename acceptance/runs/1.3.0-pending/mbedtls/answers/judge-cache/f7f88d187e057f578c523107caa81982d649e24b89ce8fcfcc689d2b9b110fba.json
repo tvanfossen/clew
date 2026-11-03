@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library never creates threads: no `pthread_create` or `std::thread` appears under `library/` or `include/`. The only pthread use is `programs/ssl/ssl_pthread_server.c`, which is an example program.\nVERDICT: MISS\nWHY: The answer says the library creates no threads, but it never says the pthread example compiles to a stub main when threading is off."
+}

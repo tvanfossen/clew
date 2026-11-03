@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Everything that uses a mutex sits behind `MBEDTLS_THREADING_C`, which is off by default.\" and \"`MBEDTLS_THREADING_PTHREAD` is also `off` by default\" and \"build with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD`\"\nVERDICT: HIT\nWHY: The answer names both macros as the gates for the mutex/threading code, and says to enable both to get threading support."
+}

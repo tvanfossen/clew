@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A text count finds about 444 matches for `mbedtls_ct_|constant_time` across 35 library files.\nVERDICT: HIT\nWHY: The answer states the ct primitives are used across ~35 library files with many modules listed (rsa, cipher, bignum, ssl_msg, base64, gcm, etc.), conveying broad consumption on the order of dozens of modules."
+}

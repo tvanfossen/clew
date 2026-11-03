@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Deny is enforced later, in `ServerManager::execute`.\" / \"`ServerManager::execute` \u2514\u2500 is_denied(deny list)? \u2192 \"Error: Permission denied for <tool>\" \u2514\u2500 route_tool_call\"\nVERDICT: MISS\nWHY: The answer says deny is checked in `ServerManager::execute` before routing. It never concludes that the deny list is the only list that blocks execution. It also says the allow list and callback are approval-side, and that an approval failure denies the call (\"Permission denied\") in `ToolExecutor`, so it describes two blocking points."
+}

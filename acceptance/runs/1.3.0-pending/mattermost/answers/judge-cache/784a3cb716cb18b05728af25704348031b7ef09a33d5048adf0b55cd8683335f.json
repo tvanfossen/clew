@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"On failure, applies the same rule as before: removes the post for the three errors above, otherwise marks it failed again.\"\nVERDICT: HIT\nWHY: The answer says the retry sends the post once more with no automatic retries and, on failure, removes it for the three errors or marks it failed again."
+}

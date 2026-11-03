@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Optimiser barrier** (`mbedtls_ct_compiler_opaque`, `:85`): with asm it is `asm volatile(\"\" : [x] \"+r\"(x) :)`, which hides the value from the optimiser.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the optimiser barrier that hides the value from the compiler, and places it in constant_time_impl.h at line 85."
+}

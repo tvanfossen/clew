@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is computed by subtracting the searched kinds from the kinds the database holds, so a new kind is picked up without an edit.\" and \"'definitive' is earned per call by checking the other corpora\"\nVERDICT: HIT\nWHY: The answer says the definitive wording is earned per call by checking unread corpora (unsearched_corpus_hits), not attached to a fixed result shape."
+}

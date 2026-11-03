@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `build_or_refresh` (`server.py:2277`) calls `stale_code_refusal` before any build. If the process predates its source, it returns `REFUSED:` and writes nothing. `force=True` does not get past that refusal.\nVERDICT: HIT\nWHY: The answer states the write path refuses (not warns), that the check runs before any build, and that force=True can't override it."
+}

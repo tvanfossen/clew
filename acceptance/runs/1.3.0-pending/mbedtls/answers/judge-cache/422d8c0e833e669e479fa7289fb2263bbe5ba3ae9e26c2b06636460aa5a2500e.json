@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: platform.c:25-32 falls back to `platform_calloc_uninit`, which always returns NULL. Every allocation then fails until the project calls `mbedtls_platform_set_calloc_free`.\nVERDICT: MISS\nWHY: The answer says the uninitialised calloc returns NULL, but it never states that the uninitialised free does nothing, so the item's fact is only half there."
+}

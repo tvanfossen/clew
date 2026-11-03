@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**`deny`** \u2014 `ServerManager::execute` returns an error without routing. It is checked after approval\" and \"Only the deny list can block a call in that setup.\"\nVERDICT: HIT\nWHY: The answer states that ServerManager::execute checks is_denied before routing, and that the approval step can't refuse (callback approves unconditionally), so the deny list is the only thing that blocks execution."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The part before the colon is an fnmatch glob on the tool name. For example, `filesystem.*` matches every filesystem tool. Without a colon, the tool-name match is enough.\nVERDICT: HIT\nWHY: The answer says `pattern_matches` splits at the first colon, uses fnmatch on the tool-name part, and that a pattern with no colon matches on the tool name alone."
+}

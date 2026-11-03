@@ -1,0 +1,143 @@
+{
+  "cell": "Q3_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.4666666666666667,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names PermissionManager and locates the allow and deny lists as coming from the PermissionsConfig the ServerManager is constructed with",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never names PermissionManager as a class, and it never says the allow and deny lists come from a PermissionsConfig that ServerManager is constructed with. It only refers to `permission_manager.cpp` as the file with the matching logic. || QUOTE: NONE | WHY: The answer never names PermissionManager as a class (only the file permission_manager.cpp) and never says the allow/deny lists come from a PermissionsConfig that ServerManager is constructed with. || QUOTE: NONE | WHY: The answer never names PermissionManager as a class or says the allow/deny lists come from a PermissionsConfig the ServerManager is constructed with. It only mentions the file `permission_manager.cpp` and the allow and deny checks.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the DENY list is the only one that blocks execution \u2014 ServerManager's execute path consults is_denied and nothing else before routing the call",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"**Deny** entries are checked in `ServerManager::execute`, after approval has already passed. A tool that matches both lists is approved and then denied at dispatch.\" and \"`ServerManager::execute` does a final deny check before routing. The allow list is a skip-prompt shortcut\" | WHY: The answer places the deny check in `ServerManager::execute` before routing, but it also lists several other gates (hook, schema, MCP authorization, tier allowlist, duplicate check) that can stop a call. It doesn't conclude that the deny list is the only list that blocks execution, or that `execute` consults nothing else. || QUOTE: \"**Deny** entries are checked in `ServerManager::execute`, after approval has already passed.\" and \"`ServerManager::execute` does a final deny check before routing\" | WHY: The answer places the deny check in ServerManager::execute but claims many other gates (hooks, schema, MCP authorization, tier allowlist, approval) also precede execution, and never concludes that the deny list is the only list that blocks execution. || QUOTE: \"**Deny** entries are checked in `ServerManager::execute`, after approval has already passed.\" and \"Only the deny list, the MCP keys, the tier allowlist, or `auto_approve` being off with no callback would stop it.\" | WHY: The answer says deny is checked in ServerManager::execute but also lists other blockers (schema, MCP auth, tier, hooks, duplicate). It does not conclude the deny list is the only list-based gate or that execute consults nothing else.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the ALLOW list does not grant execution but suppresses the approval step \u2014 it is consulted only from ToolExecutor::check_approval, in a different file",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"**Allow** entries are checked in `check_approval` and only let a call skip the prompt. They do not bypass the later deny check.\" | WHY: The answer says allow entries are consulted in `check_approval` (tool_executor.cpp) and only skip the prompt rather than granting execution. The deny check sits separately in server_manager.cpp. || QUOTE: \"**Allow** entries are checked in `check_approval` and only let a call skip the prompt. They do not bypass the later deny check.\" | WHY: The answer says allow entries are consulted in `check_approval` and only skip the prompt, not bypass the later deny check, and it puts the deny check in a different file (`server_manager.cpp`). || QUOTE: \"**Allow** entries are checked in `check_approval` and only let a call skip the prompt. They do not bypass the later deny check.\" | WHY: The answer says the allow list is only consulted in `check_approval` (tool_executor.cpp) and only lets a call skip the prompt, with deny enforced separately in server_manager.cpp. That covers the suppress-approval mechanism, the location and the different file.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the effective posture is default-ALLOW at the blocking gate \u2014 a tool matching neither list is not denied and runs",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says allow entries only skip the prompt and the deny list blocks at dispatch. It never concludes that a tool matching neither list is not denied and runs. It even says that with `auto_approve` off and no callback, the call would be stopped, which points the other way. || QUOTE: A tool that matches both lists is approved and then denied at dispatch. | WHY: The answer describes the check order and deny enforcement, but never states that a tool matching neither list is not denied and runs (default-allow). It only says a callback or auto_approve approves; nothing about the neither-list case. || QUOTE: NONE | WHY: The answer says the allow list only skips the prompt and the deny list is enforced later. It never concludes that a tool matching neither list is allowed and runs. It only says the approval callback doesn't gate anything.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the approval callback CANNOT refuse \u2014 it returns void, and the code sets approved to true unconditionally after firing it",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"if `on_tool_call` is set, `approved` becomes `true` and the callback's result is discarded (the callback type returns `void`). So a host with a callback never blocks a call through that path.\" | WHY: The answer states the callback returns void and that approved is set true regardless, so the callback cannot refuse. || QUOTE: \"if `on_tool_call` is set, `approved` becomes `true` and the callback's result is discarded (the callback type returns `void`). So a host with a callback never blocks a call through that path.\" | WHY: The answer states that the callback returns void and approved is set true regardless, so the callback cannot refuse. || QUOTE: \"if `on_tool_call` is set, `approved` becomes `true` and the callback's result is discarded (the callback type returns `void`). So a host with a callback never blocks a call through that path.\" | WHY: The answer states the callback returns void and approval is set true regardless of the callback, so it cannot refuse.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a pattern is matched with fnmatch, split at the first colon into a tool part and an argument part, and that a pattern with no colon matches on the tool name alone",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: Each entry is `tool_pattern` or `tool_pattern:arg_pattern`, matched with `fnmatch` (`permission_manager.cpp:101`): 1. The part before the first `:` is matched against the fully-qualified tool name... 2. With no `:`, a tool match is enough. `filesystem.*` covers every filesystem tool regardless of arguments. | WHY: The answer states fnmatch matching, a split at the first colon into tool and argument parts, and that a pattern with no colon matches on the tool name alone. || QUOTE: Each entry is `tool_pattern` or `tool_pattern:arg_pattern`, matched with `fnmatch` (`permission_manager.cpp:101`): 1. The part before the first `:` is matched against the fully-qualified tool name... 2. With no `:`, a tool match is enough. | WHY: The answer states fnmatch matching, a split at the first colon into tool and argument parts, and that a pattern with no colon matches on the tool name alone. || QUOTE: Each entry is `tool_pattern` or `tool_pattern:arg_pattern`, matched with `fnmatch` (`permission_manager.cpp:101`): 1. The part before the first `:` is matched against the fully-qualified tool name... 2. With no `:`, a tool match is enough. | WHY: The answer states fnmatch matching, splitting at the first colon into tool and argument parts, and that a pattern with no colon matches on the tool name alone.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that only ONE argument value ever reaches the pattern \u2014 the rest of the call's arguments are invisible to permission matching, and a non-string or unparseable argument collapses to a wildcard",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Arguments are reduced by `args_to_pattern` (`server_manager.cpp:426`) to the value of the first string-valued argument, or `*` if there is none. | WHY: The answer says only the first string argument is used and `*` is the fallback when none exists. It never says the other arguments are invisible to matching. It also never says that a non-string or unparseable argument collapses to a wildcard. || QUOTE: Arguments are reduced by `args_to_pattern` (`server_manager.cpp:426`) to the value of the first string-valued argument, or `*` if there is none. | WHY: The answer says only the first string argument is used, with `*` when there is none. It never says the other arguments are invisible to matching, and it never says a non-string or unparseable argument collapses to a wildcard.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that a decision can be PERSISTED for future sessions by appending to config.local.yaml, separately from the in-memory add_permission call",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions persisting permission decisions to config.local.yaml or a separate add_permission call. || QUOTE: NONE | WHY: The answer never mentions persisting decisions to config.local.yaml or any add_permission call; it covers only allow/deny matching order. || QUOTE: NONE | WHY: The answer never mentions persisting a decision to config.local.yaml or any separate persistence mechanism distinct from an in-memory add_permission call.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/permission_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/server_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/tool_executor.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 include/entropic/types/config.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": false,
+      "detail": "named 1 not in the set: ['src/mcp/mcp_authorization.cpp']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

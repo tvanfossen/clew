@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppTokenizer::tokenize` returns `{}`. The only signal is one `logger->error` line (line 65)... Nothing propagates an error code.\" and \"`count_tokens` and the C API `entropic_inference_count_tokens` return `0` too. A caller doing budget math sees \"zero tokens\" and thinks the prompt fits.\"\nVERDICT: HIT\nWHY: The answer says failure returns an empty vector with no error signal, so it is indistinguishable from a real empty result, and it says callers mostly don't check, e.g. \"No empty check exists at these sites\"."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"it is NOT a definitive negative either\"; \"Not in the indexed symbol layer: moderate, and only for the stated scope\"; \"Not in this repository: not entitled to that\"\nVERDICT: MISS\nWHY: The answer separates scope-limited confidence from non-definitive, but never names a grade of \"definitive for a reason that is not absence\" (e.g., a definitive empty because the thing is structurally unindexable or non-applicable)."
+}

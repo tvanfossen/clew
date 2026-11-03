@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It also requires `MBEDTLS_PLATFORM_MEMORY`, per the config doc.\nVERDICT: HIT\nWHY: The answer explicitly states the buffer allocator (MBEDTLS_MEMORY_BUFFER_ALLOC_C) requires MBEDTLS_PLATFORM_MEMORY, which is the substance of the item."
+}

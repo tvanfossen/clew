@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` and `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN` (`mbedtls_config.h:2109-2142`) are off by default.\nVERDICT: MISS\nWHY: The answer names the off-by-default valgrind/MSan constant-flow test options, but it never says this facility is explicitly not part of the library API, so it misses half of the item."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default, the field is renamed to `private_<name>`. Code that writes `ctx->md_info` fails to compile, while `ctx->MBEDTLS_PRIVATE(md_info)` still works inside the library. It is a naming gate, not a real access control.\nVERDICT: HIT\nWHY: The answer says the opacity is enforced by renaming the member (a compile error on the old name) and calls it a naming gate rather than real access control. It never says outright that the struct layout stays visible, but the field-renaming mechanism is stated."
+}

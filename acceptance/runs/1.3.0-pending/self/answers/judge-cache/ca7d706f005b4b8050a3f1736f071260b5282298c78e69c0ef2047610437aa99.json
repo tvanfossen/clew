@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Symbol search... 'NOT a definitive negative.'... Prose search... 'This IS a definitive empty result from the database'\"\nVERDICT: MISS\nWHY: The answer distinguishes two grades (not definitive vs. definitive for the scope), but it never describes a third grade, which is definitive for a reason other than absence."
+}

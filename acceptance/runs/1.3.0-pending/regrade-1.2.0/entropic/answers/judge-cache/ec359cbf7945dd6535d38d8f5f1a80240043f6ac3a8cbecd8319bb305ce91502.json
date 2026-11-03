@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppTokenizer::tokenize` returns `{}`. The only signal is one `logger->error` line (line 65). ... Nothing propagates an error code.\" and \"`count_tokens` ... return `0` too. A caller doing budget math sees \"zero tokens\" and thinks the prompt fits.\"\nVERDICT: MISS\nWHY: The answer says failure returns an empty vector with no error code and that most callers don't check, but it also reports that some callers do check (the `tokens.size() < 2` guards). It never says failure is indistinguishable from a legitimately empty result, and it never says no caller checks."
+}

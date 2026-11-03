@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The routing is capability-gated, so a `.sh` file resolves to no grammar. It is registered and searchable, with no symbols... The not-indexed report is stamped at build time. It says, for example, that 14 `.sh` files were in scope and none are in the index.\nVERDICT: HIT\nWHY: The answer says the build degrades without error when grammars are missing, routing is capability-gated, and the unindexed file types are reported as not indexed."
+}

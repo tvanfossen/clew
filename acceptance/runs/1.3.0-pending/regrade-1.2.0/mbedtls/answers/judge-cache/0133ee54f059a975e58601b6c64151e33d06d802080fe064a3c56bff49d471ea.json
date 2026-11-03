@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Mechanism** (`include/mbedtls/private_access.h`, lines 14\u201318): ... `MBEDTLS_PRIVATE(x)` expands to `private_x`\nVERDICT: HIT\nWHY: The answer names include/mbedtls/private_access.h, with line numbers, as the place where the MBEDTLS_PRIVATE macro is defined, and it describes how the macro expands."
+}

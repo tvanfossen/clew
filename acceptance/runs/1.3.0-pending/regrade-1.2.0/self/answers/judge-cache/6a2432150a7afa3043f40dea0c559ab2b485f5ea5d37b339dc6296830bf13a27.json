@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**`schema`:** `build_version` against `expected_build_version`. An index stamped newer than the server can never be cleared by a rebuild, because the rebuild re-stamps the same newer version.\"\nVERDICT: HIT\nWHY: The answer states that a newer-stamped index cannot be cleared by a rebuild because the rebuild re-stamps the same newer version."
+}

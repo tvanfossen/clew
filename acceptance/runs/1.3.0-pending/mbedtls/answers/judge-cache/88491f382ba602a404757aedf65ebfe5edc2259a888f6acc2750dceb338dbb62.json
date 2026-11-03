@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Compile time (zero overhead):** define `MBEDTLS_PLATFORM_MEMORY`, `MBEDTLS_PLATFORM_CALLOC_MACRO=my_calloc` and `MBEDTLS_PLATFORM_FREE_MACRO=my_free`. ... **Runtime:** define only `MBEDTLS_PLATFORM_MEMORY` and call `mbedtls_platform_set_calloc_free(my_calloc, my_free)`\"\nVERDICT: MISS\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer setter. It never says the two are mutually exclusive. It only says the macros can't be combined with `STD_CALLOC`/`STD_FREE`, which is a different constraint."
+}

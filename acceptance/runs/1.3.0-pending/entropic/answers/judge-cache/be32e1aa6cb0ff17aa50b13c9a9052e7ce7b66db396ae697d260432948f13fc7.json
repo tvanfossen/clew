@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Per the architecture doc, the `librentropic-inference-{cuda,vulkan,cpu}.so` variants link `llama.cpp` and implement `IInferenceBackend`. ... \"Direct C API\" (`docs/architecture-cpp.md`, External Dependencies).\nVERDICT: MISS\nWHY: The answer mentions \"Direct C API\" in passing and names `llama_decode` and `llama_log_path`, but never says the seam is free functions with a `llama_` prefix rather than C++ classes or inheritance, so the specific mechanism is absent."
+}

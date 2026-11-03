@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Three server errors are different: `DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR` and `PLUGIN_DISMISSED_POST_ERROR`. For those the post is removed instead of kept as failed.\nVERDICT: HIT\nWHY: The answer names all three errors and states the failed post is removed rather than kept."
+}

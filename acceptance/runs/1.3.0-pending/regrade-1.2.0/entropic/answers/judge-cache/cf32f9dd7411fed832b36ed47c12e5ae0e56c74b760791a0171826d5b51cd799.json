@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Empty is also a valid result for empty input with `add_special=false`, so a caller cannot tell \"failed\" from \"nothing to encode.\"\nVERDICT: HIT\nWHY: The answer says failure is an empty vector indistinguishable from legitimate empty, and that callers (generation, streaming, completion) don't check `tokens.empty()`."
+}

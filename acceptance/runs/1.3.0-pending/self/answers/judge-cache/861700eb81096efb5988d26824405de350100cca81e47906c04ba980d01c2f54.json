@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A definitive empty answer means only that no searched corpus in this index holds the token. It does not prove the file is absent from the tree.\" and \"'definitive' is earned per call by checking the other corpora, and it is a claim about this index, not the working tree.\"\nVERDICT: MISS\nWHY: The answer describes the current graded design and caveats on definitive negatives. It never says a single token matching nothing was previously treated as proof of absence, or frames the old behavior as conflating \"nothing exists\" with \"I did not look there.\""
+}

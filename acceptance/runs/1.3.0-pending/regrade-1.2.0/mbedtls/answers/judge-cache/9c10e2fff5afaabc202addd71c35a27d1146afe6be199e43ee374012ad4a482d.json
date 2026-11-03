@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If `MBEDTLS_THREADING_C` is on, it installs the mutexed variants and initializes `heap.mutex`.\nVERDICT: HIT\nWHY: The answer states that the buffer allocator's init installs mutexed variants under MBEDTLS_THREADING_C. The \"plain otherwise\" and \"compile time\" parts are only implied by the conditional."
+}

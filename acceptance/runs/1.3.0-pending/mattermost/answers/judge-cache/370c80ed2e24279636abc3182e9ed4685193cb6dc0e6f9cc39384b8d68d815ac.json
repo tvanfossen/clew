@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A single-reaction event contains one reaction, so without this flag every other reaction on the post would be deleted.\"\nVERDICT: HIT\nWHY: The answer states that skipSync prevents the single-reaction payload from being treated as the full set, which would otherwise delete all other reactions on the post."
+}

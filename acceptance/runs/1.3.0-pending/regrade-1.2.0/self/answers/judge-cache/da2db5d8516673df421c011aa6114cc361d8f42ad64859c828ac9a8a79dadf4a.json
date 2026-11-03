@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `clew/substrate.py` says the front ends \"register nothing\" and the miss report names those types as not indexed. ... The router refuses the route. `_ts_language_for(\"scripts/deploy.sh\")` returns `None` when bash is absent, and the test pins this.\nVERDICT: MISS\nWHY: The answer says the router refuses the route and cites docs claiming types are reported not indexed, but it then argues the code contradicts that. It doesn't conclude that a missing-grammar install degrades with those file types reported as not indexed."
+}

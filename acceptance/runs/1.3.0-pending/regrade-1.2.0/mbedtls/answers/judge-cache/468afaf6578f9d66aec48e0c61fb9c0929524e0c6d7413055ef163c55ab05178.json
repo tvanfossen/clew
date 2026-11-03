@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Compile-time. Enable `MBEDTLS_PLATFORM_MEMORY` and define `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`... Run-time. Enable `MBEDTLS_PLATFORM_MEMORY`, then call `mbedtls_platform_set_calloc_free(my_calloc, my_free)`\"\nVERDICT: MISS\nWHY: The answer distinguishes compile-time macros from run-time function pointers but never says they are mutually exclusive. It presents both as options under the same `MBEDTLS_PLATFORM_MEMORY` switch."
+}

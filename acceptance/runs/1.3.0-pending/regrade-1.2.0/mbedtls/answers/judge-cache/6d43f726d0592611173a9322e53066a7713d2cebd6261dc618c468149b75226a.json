@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If `MBEDTLS_THREADING_C` is on, it installs the mutexed variants and initializes `heap.mutex`.\nVERDICT: HIT\nWHY: The answer says the buffer allocator's init function installs the mutexed variants when MBEDTLS_THREADING_C is on, and it installs its own `buffer_alloc_calloc` and `buffer_alloc_free` otherwise. It never says the choice is made at compile time, but a preprocessor macro implies that."
+}

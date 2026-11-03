@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_client2.c:8` and `programs/ssl/ssl_server2.c:8` also define it. These are the sample programs, which read struct internals directly.\nVERDICT: HIT\nWHY: The answer says the sample programs define the opt-out macro themselves to access struct internals directly, which is the substance of the item."
+}

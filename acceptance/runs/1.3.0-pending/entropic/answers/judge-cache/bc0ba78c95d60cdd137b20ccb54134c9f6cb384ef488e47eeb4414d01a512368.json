@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `do_count_tokens` (`llama_cpp_backend.cpp:826`) | Returns `0`. A failed tokenization looks like a zero-token count.\nVERDICT: HIT\nWHY: The answer states that the token-counting function returns 0 on failed tokenization, with no error signal, so failure is indistinguishable from a real zero count."
+}

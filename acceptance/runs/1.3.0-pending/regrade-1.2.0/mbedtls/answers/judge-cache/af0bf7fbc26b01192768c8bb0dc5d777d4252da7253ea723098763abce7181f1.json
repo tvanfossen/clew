@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer says `MBEDTLS_ALLOW_PRIVATE_ACCESS` is defined in three real places. It also says `include/mbedtls/ssl.h` only mentions it in a doc comment, so I left that file out.\n\nITEMS:\nlibrary/common.h\nprograms/ssl/ssl_client2.c\nprograms/ssl/ssl_server2.c\nEND"
+}

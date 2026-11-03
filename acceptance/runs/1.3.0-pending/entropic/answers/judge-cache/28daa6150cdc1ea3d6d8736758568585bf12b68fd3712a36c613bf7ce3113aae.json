@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The first passes a null buffer and size 0, so llama.cpp answers with the negated token count it would need. The code uses that to allocate the vector.\"\nVERDICT: MISS\nWHY: The answer says the first call returns a negated count and that it's used to allocate, but it never says the code negates the return value to size the buffer. It also describes the value as a token count, not as the required buffer size returned as a negative number."
+}

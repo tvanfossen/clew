@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default it expands to `private_##member`, so `ctx.nr` no longer compiles and callers must go through the API. Renaming the field makes it a visible break in the source, not a silent one.\nVERDICT: HIT\nWHY: The answer says the macro renames the member (private_ prefix) so access fails at compile time, which is a name-breaking mechanism and not struct-layout hiding. It never says outright that the fields stay visible and sized, but the renaming mechanism and the compile-time failure are both stated."
+}

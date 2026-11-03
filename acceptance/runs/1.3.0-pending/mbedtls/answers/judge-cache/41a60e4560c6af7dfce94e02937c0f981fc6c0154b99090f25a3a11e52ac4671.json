@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: To add one, you add a `MBEDTLS_ERR_*` macro to the module's public header and let the CMake-driven generator rebuild `error.c`.\nVERDICT: MISS\nWHY: The answer says to add the macro to the public header and rebuild, but it never says the `/** */` doc comment supplies the text, and it explicitly says it couldn't verify where the description goes. It also hedges on whether `error.c` is generated and says not to hand-edit only the auto-generated region."
+}

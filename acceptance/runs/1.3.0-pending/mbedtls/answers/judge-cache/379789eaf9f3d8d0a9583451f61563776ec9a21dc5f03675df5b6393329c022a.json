@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says no threads in library/ (spawn sites all in programs/) but never frames library/ as supplying the mutex abstraction for threaded callers as a contrast. It lists mutexes and threading.h, but only as default-off compiled-out locking, not as the abstraction supplied for threaded callers."
+}

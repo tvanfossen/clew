@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Default (`MBEDTLS_ALLOW_PRIVATE_ACCESS` not defined): `MBEDTLS_PRIVATE(x)` expands to `private_x`... Opt-out (`MBEDTLS_ALLOW_PRIVATE_ACCESS` defined): `MBEDTLS_PRIVATE(x)` expands to `x`... in these translation units `MBEDTLS_PRIVATE(x)` is just `x`, so `ctx.x` compiles\n\nVERDICT: HIT\nWHY: The answer says that code defining the opt-out sees plain member names, and that ordinary code sees `private_x` names. It also says the escape hatch gives `bar.private_foo` in user code."
+}

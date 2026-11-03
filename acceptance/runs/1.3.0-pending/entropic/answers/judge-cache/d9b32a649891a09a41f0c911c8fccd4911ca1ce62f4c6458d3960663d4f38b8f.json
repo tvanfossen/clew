@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer only says `_loader.find()` resolves the library and mentions `$ENTROPIC_LIB` and `install-engine`; it gives no resolution order (env, user dir, system cache) and no two-layout detail."
+}

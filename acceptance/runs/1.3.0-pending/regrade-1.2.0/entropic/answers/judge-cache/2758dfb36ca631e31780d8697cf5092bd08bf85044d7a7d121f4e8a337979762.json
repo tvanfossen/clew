@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The first call passes `nullptr` and capacity `0`. llama.cpp reports the required count as a negative number... The second call is deterministic given the first, so there is nothing to retry.\nVERDICT: HIT\nWHY: The answer identifies the two-call pattern as a size query rather than retry logic, with exactly one deterministic second call and nothing retried."
+}

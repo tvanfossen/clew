@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"CLI flags, or the `options` argument for an embedding caller\" and \"Each section mirrors the standalone manifest format for that option.\"\nVERDICT: MISS\nWHY: The answer mentions the `options` argument and the declaration sections, but it never says the option names an embedding caller states are the same words as the section names and the diagnostics' words."
+}

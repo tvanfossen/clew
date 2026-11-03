@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Set `MBEDTLS_PLATFORM_MEMORY`, then define both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` in your `mbedtls_config.h`.\nVERDICT: MISS\nWHY: The answer says MBEDTLS_PLATFORM_MEMORY must be set to enable the facility, but it never says the option is commented out in the shipped mbedtls_config.h."
+}

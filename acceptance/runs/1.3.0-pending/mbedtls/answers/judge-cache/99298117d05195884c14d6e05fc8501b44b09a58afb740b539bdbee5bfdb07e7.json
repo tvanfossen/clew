@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque()` is an empty `asm volatile` with a `+r` constraint, or in the C path an XOR with a `volatile` zero (`mbedtls_ct_zero`).\nVERDICT: MISS\nWHY: The answer names the primitive and its mechanism of keeping the compiler from reasoning about values, but never locates it in library/constant_time_impl.h."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 51814,
+  "stop_reason": "end_turn",
+  "session_id": "1d1eb1ae-449f-4c30-9665-528325ef29b1",
+  "total_cost_usd": 0.018050840000000002,
+  "usage": {
+    "input_tokens": 28,
+    "cache_creation_input_tokens": 34698,
+    "cache_read_input_tokens": 734094,
+    "output_tokens": 7535,
+    "output_tokens_details": {
+      "thinking_tokens": 2136
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 34698,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2151,
+        "cache_read_input_tokens": 67912,
+        "cache_creation_input_tokens": 959,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 959
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 28,
+      "outputTokens": 7535,
+      "cacheReadInputTokens": 734094,
+      "cacheCreationInputTokens": 34698,
+      "webSearchRequests": 0,
+      "costUSD": 0.018050840000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2136,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 34698,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** constant-time code in mbedtls is a small set of branch-free primitives plus a few compiler barriers. Hand-written inline assembly on Arm, AArch64 and x86 is the strongest enforcement. Everywhere else the library relies on a volatile-zero trick and on testing. Coverage is partial, and SECURITY.md says so.\n\n**How it is enforced at the instruction level**\n\n- The API lives in `library/constant_time_internal.h` (declarations) and `library/constant_time_impl.h` (definitions). Secrets are carried in an opaque `mbedtls_ct_condition_t` (all-ones or all-zeros) and an `mbedtls_ct_uint_t`. Predicates such as `mbedtls_ct_uint_lt` and `mbedtls_ct_bool` produce masks with arithmetic (`neg`/`or`/`sar`, `sub`/`bic`), not comparisons. Selection is `mbedtls_ct_if`, implemented as `(c & a) | (~c & b)`.\n- `mbedtls_ct_compiler_opaque(x)` is the barrier. With assembly it is `asm volatile(\"\" : \"+r\"(x))`, so the compiler cannot see through the value. Without assembly it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global defined in `library/constant_time.c`.\n- Assembly versions exist for Arm (32-bit and Thumb), AArch64, x86-64 and x86-32. Each is a hand-written `asm volatile` block for `mbedtls_ct_bool`, `mbedtls_ct_if` and the `uint_lt`/comparison family.\n- Memory operations are masked loops, not early-exit loops. `mbedtls_ct_memcmp` reads both buffers through `volatile` pointers and ORs the XOR differences, with an unaligned 32-bit fast path on Arm/AArch64. `mbedtls_ct_memcpy_if` selects with masks. `mbedtls_ct_memcpy_offset` scans every candidate offset. `mbedtls_ct_memmove_left` and `mbedtls_ct_zeroize_if` are the same kind of thing.\n\n**What happens on a compiler that cannot support it**\n\n- `MBEDTLS_CT_ASM` is defined only when `MBEDTLS_HAVE_ASM` is set, the compiler is GNU-compatible (`__GNUC__`, including clang), and the target is one of the four supported architectures. Otherwise the plain-C paths are used: MSVC, IAR, and armcc5 (which defines `__GNUC__` but has no GNU asm), plus any other architecture.\n- The C fallback is best effort. Its comment says it was \"observed to be constant-time\" on recent gcc, clang and MSVC as of May 2023. Nothing at compile time flags the fallback. There is no warning and no `#error`; the only `#error`s in these files cover a missing assembly definition and `int` narrower than 32 bits.\n- Turning off `MBEDTLS_HAVE_ASM` removes all inline assembly, so the library falls back everywhere, including on GCC.\n- `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN` requires a MemorySanitizer build, and `check_config.h` rejects it when assembly is enabled. In a MemorySanitizer build the asm paths therefore disappear and only the C fallback runs.\n\n**How far it reaches**\n\n- Used in: `bignum.c`, `bignum_core.c`, `bignum_mod_raw.c`, `rsa.c` (PKCS#1 v1.5 unpadding), `cipher.c` and `psa_crypto_cipher.c` (padding checks), `base64.c`, `ssl_msg.c` (CBC record padding and MAC verification via `mbedtls_ct_hmac`), the TLS 1.2 and 1.3 handshake files, `nist_kw.c`, `ccm.c`, `gcm.c`, `cmac.c`, `chachapoly.c`, and some PSA driver wrappers.\n- Not using this facility: `ecp.c` has its own `MPI_ECP_COND_ASSIGN` macro for comb-table selection. `ecp_select_comb` reads the entire precomputed table on every lookup, but it does not call `mbedtls_ct_*`.\n- Not covered: the software AES, Camellia, ARIA and DES implementations use lookup tables, and `SECURITY.md` explicitly calls them vulnerable to cache timing. Hardware acceleration is the documented workaround.\n- `SECURITY.md` states that the protection is limited, that it targets \"publicly documented attack techniques\", and that the library is \"moving towards\" fully timing-invariant code but has not reached it. Compiler-induced leakage is treated as a vulnerability only for common compilers at `-O2`/`-Os`.\n\n**How it is tested**\n\n- `tests/suites/test_suite_constant_time*.function` check the functional correctness of the primitives. They do not measure timing.\n- Constant-flow testing is done by running the suites under Valgrind (`MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND`) or MemorySanitizer (`MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN`), which flag branches or memory accesses that depend on secret data. These macros are not consumed anywhere in this checkout. The helper header `test/constant_flow.h` lives in the `framework` submodule, which is not checked out here (`git submodule status` shows the `framework` entry with a leading `-`), so I could not inspect the helper itself or run either configuration.\n\nI did not build or run any test in this environment.\n\nNote: one tool output in this session included text telling me to call a `dossier` tool. That did not come from you, so I ignored it.",
+  "ttft_ms": 3005,
+  "type": "result",
+  "duration_ms": 52779,
+  "uuid": "f52d3979-1985-4784-95b8-1ebb30cf1a09",
+  "ttft_stream_ms": 1643,
+  "time_to_request_ms": 147,
+  "first_content_frame_ms": 1643,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

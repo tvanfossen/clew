@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A reply from a routed repository is annotated only for the repository it actually read.\nVERDICT: HIT\nWHY: The answer states that a routed reply's staleness notices are annotated for the repository actually read, which is the substance of the item. It doesn't say \"not for the server's default target,\" but \"only for the repository it actually read\" carries the same meaning."
+}

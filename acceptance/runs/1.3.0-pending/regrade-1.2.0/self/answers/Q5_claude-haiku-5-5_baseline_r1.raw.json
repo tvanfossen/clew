@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 38278,
+  "stop_reason": "end_turn",
+  "session_id": "bf4ead92-f71e-4e17-9e1f-f62eddba8cf6",
+  "total_cost_usd": 0.01750508,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 49863,
+    "cache_read_input_tokens": 452348,
+    "output_tokens": 6014,
+    "output_tokens_details": {
+      "thinking_tokens": 2309
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 49863,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2581,
+        "cache_read_input_tokens": 64574,
+        "cache_creation_input_tokens": 828,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 828
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 20,
+      "outputTokens": 6014,
+      "cacheReadInputTokens": 452348,
+      "cacheCreationInputTokens": 49863,
+      "webSearchRequests": 0,
+      "costUSD": 0.01750508,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2309,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 49863,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Clew takes indexing overrides from five layers, plus a few environment variables. When layers disagree, a stated value replaces a guess, but it never removes a fact. I read the source and docstrings and did not run an index build.\n\n**The ways to say so**\n\n| Tier | Route | Combines by |\n|---|---|---|\n| 1, explicit | `--declare FILE` on the CLI, or the `options` argument to `build_index` / `index(action='refresh')` over MCP. Same keys as `.clew.yaml`. `--exclude` is also tier 1. | Replaces the stated layer |\n| 2, declared | `.clew.yaml` at the repo root. Sections include `index_scope`, `preprocessor`, `kconfig`, `event_tags`, `entry_patterns`, `locks`, `thread_patterns`, `shared_key_patterns`, `data_model`, `mqtt_dispatch`, `dispatch`, `requirements`, `enrich`, `sub_indexes`. The `guard:` section is read too. | Replaces the stated layer |\n| 3, target-fact | Facts already in the target, such as a Doxyfile's `ALIASES` and `PREDEFINED`, or a generator manifest. | Accumulates |\n| 4, ecosystem | Known-ecosystem signatures (UDM, ingot). | Accumulates |\n| 5, heuristic | Built-in name-pattern guesses. | The floor; any stated tier displaces it |\n\nEnvironment variables are host settings, not repo declarations. `CLEW_JOBS` sets worker count, and `CLEW_STATE_HOME` and `CLAUDE_CONFIG_DIR` set state locations. The source deliberately keeps these out of `.clew.yaml` so one machine's settings don't leak into everyone's build.\n\nTwo things are not overrides. The Doxyfile's `INPUT` no longer decides scope (gh#333), though the Doxyfile is still used for its other settings. `--scope`, `--index-cache` and `--rebuild` are build mechanics, not declarations.\n\n**When two disagree**\n\n- The formula is `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. A flag or declaration replaces the whole list, not individual entries. Tiers 3 and 4 survive any stated tier, so `main` in entry patterns cannot be dropped by a flag.\n- Within a section, a stated document replaces the declared one. There is no deep merge, which is deliberate: a merge could produce a configuration nobody stated.\n- An empty value is a withdrawal, not a statement. `[]`, `{}` and `\"\"` fall through to the next tier. `--exclude` with no values withdraws a recorded exclude, and omitting the flag inherits it.\n- A rejected `index_scope` does not fail the build. It logs a WARNING and falls back to the whole repository.\n- `requirements` resolves in this order: stated (`--declare` or the `options` argument), then `.clew.yaml` `requirements:`, then the guard's `impact.requirements.file`, then the conventional root file, then nothing.\n- The winning tier is written to `build_meta` as `options.<name>.tier`. A tier-1 statement is also stored and replayed on later builds of the same database. A tier-2 declaration is re-read each time, so a stale copy is never frozen. The source notes this lets two operators of the same commit get different indexes, which is why the recording exists.\n\nThe tier table and most of these rules come from `clew/tiers.py`, `clew/declaration.py`, `clew/scope.py`, `clew/cli.py` and `clew/guardconfig.py`. The argparse surface is down to six build flags: `--output`, `--repo-root`, `--declare`, `--exclude`, `--rebuild` and `--verbose`. Everything else was folded into sections.\n\nTwo tool outputs in this session included a note suggesting a `dossier` call instead of reading files. I ignored it because it wasn't part of your question.",
+  "ttft_ms": 2209,
+  "type": "result",
+  "duration_ms": 38819,
+  "uuid": "3028a796-9505-4424-8383-890025ec3a61",
+  "ttft_stream_ms": 1666,
+  "time_to_request_ms": 161,
+  "first_content_frame_ms": 1666,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

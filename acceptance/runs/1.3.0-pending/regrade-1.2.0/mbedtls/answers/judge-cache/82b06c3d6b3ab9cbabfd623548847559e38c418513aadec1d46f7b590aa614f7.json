@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_` symbols are used in about 30 library files.\nVERDICT: HIT\nWHY: The answer says the constant-time primitives are used across about 30 library files, with a per-file table, so they are consumed broadly rather than in one or two modules. \"About 30\" is somewhat above \"on the order of twenty\", but it is the same order of magnitude and conveys the same breadth."
+}

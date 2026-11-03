@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: event.ts:163-165   switch on WebsocketEvents.REACTION_ADDED\n       \u2514\u2500 reactions.ts:21  handleReactionAddedToPostEvent(serverUrl, msg)\nVERDICT: HIT\nWHY: The answer names the event.ts switch dispatching REACTION_ADDED to handleReactionAddedToPostEvent. It doesn't name the function `handleWebSocketEvent`, but the dispatcher location and the mechanism are both given."
+}

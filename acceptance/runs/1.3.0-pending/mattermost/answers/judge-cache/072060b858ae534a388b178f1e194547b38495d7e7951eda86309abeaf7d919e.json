@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`NavigationHeader` forwards that ref unchanged to `NavigationSearch`, but only inside the `hasSearch &&` branch.\" and \"If `hasSearch` is false, the ref is silently dropped because `NavigationSearch` is never rendered.\"\nVERDICT: HIT\nWHY: The answer states that NavigationHeader forwards the ref to NavigationSearch only when `hasSearch` is true, and that the ref is dropped when it is false."
+}

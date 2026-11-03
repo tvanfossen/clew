@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The Python trampolines catch everything and print it, so nothing propagates into C.\nVERDICT: MISS\nWHY: The answer says trampolines catch and print all exceptions, but it never says a failed hook is treated as a pass-through; it even claims the opposite for the OOM case (rc=1 reported as success)."
+}

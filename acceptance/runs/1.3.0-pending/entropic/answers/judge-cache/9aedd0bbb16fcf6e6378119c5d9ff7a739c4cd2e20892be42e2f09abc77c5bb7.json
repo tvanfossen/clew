@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: That string comes from `args_to_pattern`: the value of the first string-valued argument, or `*` if there are no args or parsing fails.\nVERDICT: HIT\nWHY: The answer states that only the first string-valued argument reaches the pattern, and that missing or unparseable args become `*`. That matches the item's one-value and wildcard-collapse points. The rest of the call's arguments are implicitly invisible to matching, because only the first string value is used."
+}

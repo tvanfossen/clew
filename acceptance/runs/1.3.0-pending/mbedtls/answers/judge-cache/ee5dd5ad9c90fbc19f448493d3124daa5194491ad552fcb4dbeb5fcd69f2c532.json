@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says that without the opt-out the macro expands to `private_##member`, and that the opt-in code sees real names. It never says that an ordinary consumer of the public headers sees the renamed members while opted-in code sees plain names. It even says the test suites, which don't opt in, reach fields through mangled names, but it frames this as one expansion applied everywhere and not as two views for two consumers."
+}

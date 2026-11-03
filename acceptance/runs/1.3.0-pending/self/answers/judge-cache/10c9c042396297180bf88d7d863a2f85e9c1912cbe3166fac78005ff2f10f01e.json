@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`resolved = (tier1 or tier2 or tier5) union tier3 union tier4`\"\nVERDICT: HIT\nWHY: The answer names five numbered tiers (explicit flags, declared `.clew.yaml`, facts in target, ecosystem signatures, name-pattern heuristics) and describes how they combine rather than a single override."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(member)` expands to `private_##member`. With it defined, the macro expands to `member`.\nVERDICT: HIT\nWHY: The answer states the default renames to private_<member> and that defining the opt-out macro makes it expand to the bare member name."
+}

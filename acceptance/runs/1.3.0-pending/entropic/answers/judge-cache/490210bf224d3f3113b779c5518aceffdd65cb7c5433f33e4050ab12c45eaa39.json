@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_bindings.py` | generated from include/entropic/entropic.h by scripts/gen_bindings.py; each symbol pinned via _bind(name, restype, *argtypes)\nVERDICT: HIT\nWHY: The answer explicitly says the bindings are generated from the C header `entropic.h` by `scripts/gen_bindings.py`."
+}

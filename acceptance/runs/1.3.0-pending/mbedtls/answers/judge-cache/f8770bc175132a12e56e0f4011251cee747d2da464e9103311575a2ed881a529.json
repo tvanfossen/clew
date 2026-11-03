@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_THREADING_C` it installs a mutex-wrapped variant (`buffer_alloc_calloc_mutexed`, `:541-552`).\nVERDICT: MISS\nWHY: The answer says a mutexed variant is installed with threading, but never states that a plain pair is installed otherwise, nor that the choice is made at compile time inside the init function."
+}

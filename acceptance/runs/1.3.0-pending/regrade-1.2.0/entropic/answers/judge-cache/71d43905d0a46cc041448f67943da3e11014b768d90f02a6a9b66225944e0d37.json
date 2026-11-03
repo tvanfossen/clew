@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In `check_approval`, a registered callback sets `approved = true` unconditionally. The \"no callback \u2192 deny\" branch only applies when no callback is registered.\nVERDICT: HIT\nWHY: The answer states the callback is `void(*)(...)` and that approval is set to true unconditionally after it fires, so it cannot deny."
+}

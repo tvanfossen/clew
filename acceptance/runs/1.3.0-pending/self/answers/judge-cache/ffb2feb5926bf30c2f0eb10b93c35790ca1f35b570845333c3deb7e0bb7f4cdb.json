@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists definitive-for-scope and not-definitive cases but never states a middle grade of \"definitive for a reason that is not absence\" (e.g., a token or query that can't match for a structural reason)."
+}

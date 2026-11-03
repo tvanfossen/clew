@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says shell functions get a memberdef row with docs from the `#` block. It never says they are recorded without an argument list or return type, or that the language has neither."
+}

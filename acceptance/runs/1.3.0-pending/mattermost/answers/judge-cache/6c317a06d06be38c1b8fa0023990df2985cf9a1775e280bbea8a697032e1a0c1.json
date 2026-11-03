@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Sets the channel's `deleteAt` to now and keeps the user as a member.\" / \"Removes the current user from the channel locally.\" and \"If the user is viewing that channel, kicks them out with `CHANNEL_ARCHIVED`. Then removes the user from the channel.\"\nVERDICT: HIT\nWHY: The table states both branches: when viewable, the channel is kept and marked deleted; when not viewable, the user is removed, and kicked out if viewing the channel."
+}

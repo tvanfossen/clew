@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It ships one substitute, a buffer-based allocator. `mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566`) zeroes the heap context and calls `mbedtls_platform_set_calloc_free` to install its own functions.\" and \"`mbedtls_memory_buffer_alloc_init` is the only in-library caller of the setter that the index shows.\"\nVERDICT: HIT\nWHY: The answer names the buffer allocator's init function as the only in-library caller of the runtime setter, installing its own functions over the pointers."
+}

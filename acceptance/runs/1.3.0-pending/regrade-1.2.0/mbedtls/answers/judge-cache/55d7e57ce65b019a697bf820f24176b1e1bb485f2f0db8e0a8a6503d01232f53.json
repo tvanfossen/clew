@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_ct_compiler_opaque` is what stops the optimiser seeing through the mask. In the asm path it is `asm volatile(\"\" : [x] \"+r\"(x))`. In the C path it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global\" and \"The primitives live in `library/constant_time_impl.h`\"\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the compiler barrier and places the primitives in library/constant_time_impl.h. It never says outright that the function itself is defined there, but the context implies it."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The approval callback cannot veto. `on_tool_call` returns `void`. If it is registered, `check_approval` sets `approved = true` after calling it... The header comment at `permission_manager.h:6` says \"default-deny\", but that default only holds when no callback is registered.\"\nVERDICT: MISS\nWHY: The answer says a call passes when a callback is registered, but never concludes that a tool matching neither list runs by default. It leaves default-deny holding when no callback is registered."
+}

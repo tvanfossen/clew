@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says MBEDTLS_PLATFORM_MEMORY selects the runtime pointer path and that mbedtls_config.h documents related options, but never says it is commented out in the shipped config (i.e. off by default)."
+}

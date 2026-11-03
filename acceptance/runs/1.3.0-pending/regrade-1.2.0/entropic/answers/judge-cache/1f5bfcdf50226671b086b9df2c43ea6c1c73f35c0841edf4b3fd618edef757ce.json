@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:55`, `:61`) | `llama_tokenize(..., nullptr, 0, ...)` to get the count | `llama_tokenize(..., tokens.data(), n, ...)` to fill\nVERDICT: HIT\nWHY: The answer locates the two-call sizing pattern in llama_cpp_tokenizer.cpp, naming both call sites by line and describing the mechanism."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_CT_ASM` is defined only when `MBEDTLS_HAVE_ASM` is set and `__GNUC__` is present. Clang qualifies. MSVC, IAR, and armcc5 do not (`constant_time_impl.h:39-52`).\nVERDICT: HIT\nWHY: The answer says MBEDTLS_CT_ASM is defined from MBEDTLS_HAVE_ASM plus a compiler-predefined macro (`__GNUC__`), i.e. derived rather than set in the config file. It never says outright that it is not a config entry, but the derivation mechanism is stated."
+}

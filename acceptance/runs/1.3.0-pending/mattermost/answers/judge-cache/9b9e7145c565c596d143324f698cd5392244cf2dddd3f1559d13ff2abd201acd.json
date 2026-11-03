@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes failure handling (marking `props.failed`) but never says `createPost` returns success (`{data: true}`) to its caller despite the failed send."
+}

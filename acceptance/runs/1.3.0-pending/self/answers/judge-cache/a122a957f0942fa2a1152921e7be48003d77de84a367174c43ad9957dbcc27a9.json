@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer concludes the opposite: the missing grammars do not trigger a \"not indexed\" report, because the paths are registered anyway and no capability gate is consulted. It does not say the install degrades gracefully with a gate and a not-indexed disclosure."
+}

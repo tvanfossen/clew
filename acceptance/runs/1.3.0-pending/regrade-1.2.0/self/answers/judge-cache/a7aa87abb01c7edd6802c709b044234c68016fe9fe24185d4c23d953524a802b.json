@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `build_or_refresh` (`server.py:2199`) refuses to build when the process predates its source. This check runs before `force` and cannot be overridden.\nVERDICT: HIT\nWHY: The answer states that the write path refuses (not warns) and that the check runs ahead of `force` so it can't be overridden."
+}

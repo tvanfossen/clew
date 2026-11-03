@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no top-level directories as containing uses of MBEDTLS_PRIVATE. It names files such as `programs/ssl/ssl_context_info.c`, `programs/fuzz/fuzz_dtlsserver.c`, `tests/suites/...`, `library/...` and `include/mbedtls/...`, so those would be its directories. The question asks which top-level directories the answer says contain uses of MBEDTLS_PRIVATE. Read that way, these are the directories it ties to uses of the macro (as opposed to the opt-out define). The `programs` and `tests` paths are listed as using it explicitly. The `library` paths are cited as examples where `MBEDTLS_PRIVATE(x)` resolves to `x`, and `include` is where the macro is defined and referenced.\n\nITEMS:\nprograms\ntests\nlibrary\ninclude\nEND"
+}

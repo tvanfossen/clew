@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers only scope resolution (roots/excludes) and explicitly disclaims the later file-filtering stages. It never names the parse-built front end or binary classification as filters on which files reach the index."
+}

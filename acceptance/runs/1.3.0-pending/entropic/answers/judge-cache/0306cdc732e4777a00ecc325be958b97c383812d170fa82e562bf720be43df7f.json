@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Neither call retries a failed tokenization. The failure reaches callers as an empty vector or empty string\nVERDICT: MISS\nWHY: The answer says failure yields an empty return, but it never states that a negative result from the second call is terminal. It also notes the `actual < 0` branch is probably unreachable."
+}

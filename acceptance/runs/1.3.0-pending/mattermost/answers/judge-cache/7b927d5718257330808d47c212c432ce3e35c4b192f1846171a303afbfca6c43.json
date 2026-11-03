@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `skipSync` ... \"Returns `deleteReactions: []`. Stale reactions on the post are not pruned. This is the \"incremental add\" mode; a full post sync would pass `false`.\"\nVERDICT: MISS\nWHY: The answer describes skipSync as disabling pruning of stale reactions. It never says that without it the single incoming reaction would be treated as the post's complete set, so every other reaction on the post would be deleted."
+}

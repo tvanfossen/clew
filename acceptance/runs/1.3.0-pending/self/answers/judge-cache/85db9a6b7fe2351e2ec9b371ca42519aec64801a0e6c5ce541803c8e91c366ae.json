@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says one collapse function serves both the flat neighbour list and the traversal/chain surface; it only mentions per-pair rows and a UNIQUE constraint."
+}

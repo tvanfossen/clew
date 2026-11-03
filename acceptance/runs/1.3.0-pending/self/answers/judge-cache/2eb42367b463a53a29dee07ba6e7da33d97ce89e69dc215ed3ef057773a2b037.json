@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A declared Doxyfile contributes ALIASES and PREDEFINED only; its `INPUT` is replaced (`doxygen.py` around line 783). Without a Doxyfile, one is synthesized.\n\nVERDICT: MISS\n\nWHY: The answer says a declared Doxyfile's INPUT is replaced, but it never explains why: that using it would leave a repository with a Doxyfile with only its documented subset while one without gets the whole tree."
+}

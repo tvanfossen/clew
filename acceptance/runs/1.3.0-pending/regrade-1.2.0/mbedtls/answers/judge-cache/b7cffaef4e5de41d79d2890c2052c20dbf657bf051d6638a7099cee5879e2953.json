@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names three files that define the opt-out macro, `MBEDTLS_ALLOW_PRIVATE_ACCESS`:\n\n- `library/common.h` has an unconditional define at line 132.\n- `programs/ssl/ssl_client2.c` defines it at line 8.\n- `programs/ssl/ssl_server2.c` defines it at line 8.\n\nThe answer also mentions `include/mbedtls/private_access.h`, `ssl_context_info.c`, `fuzz_dtlsserver.c`, `ssl.h` and the migration guide. It doesn't say any of them defines the macro, so I left them out.\n\nITEMS:\nlibrary/common.h\nprograms/ssl/ssl_client2.c\nprograms/ssl/ssl_server2.c\nEND"
+}

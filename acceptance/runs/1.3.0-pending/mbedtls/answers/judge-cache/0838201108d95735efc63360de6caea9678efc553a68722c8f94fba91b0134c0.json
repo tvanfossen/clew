@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | The library itself. Internal sources that include it see the real field names.\nVERDICT: HIT\nWHY: The answer says the library defines the opt-out in the shared header `library/common.h`, so internal sources see real field names. The include-order caveat doesn't undo that."
+}

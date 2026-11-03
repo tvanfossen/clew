@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The client has a default of 3 exponential-backoff retries (`app/managers/network_manager.ts`, lines 68\u201371). But `app/client/rest/posts.ts` (line 46) sends `createPost` with `noRetry: true`\nVERDICT: HIT\nWHY: The answer states that the client defaults to 3 exponential-backoff retries set in the network manager, and that createPost opts out via noRetry."
+}

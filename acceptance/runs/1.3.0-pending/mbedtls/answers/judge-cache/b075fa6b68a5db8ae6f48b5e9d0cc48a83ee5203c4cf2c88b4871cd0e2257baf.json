@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `include/mbedtls/mbedtls_config.h` has both `MBEDTLS_THREADING_C` (line 3787) and `MBEDTLS_THREADING_PTHREAD` (line 2196) commented out.\nVERDICT: HIT\nWHY: The answer names both macros as the ones gating the threading code, stating they are commented out by default and that `library/threading.c` is guarded by `MBEDTLS_THREADING_C` and uses `MBEDTLS_THREADING_PTHREAD` for the pthread backend."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the graded empty reply and the \"not a definitive negative\" note, but never says a single token matching nothing was previously treated as proof of absence, so the historical confusion isn't stated."
+}

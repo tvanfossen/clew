@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 17143,
+  "stop_reason": "end_turn",
+  "session_id": "8bd5cddc-9f5e-44d7-bf5a-96a58305af2b",
+  "total_cost_usd": 0.0057654,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 14168,
+    "cache_read_input_tokens": 128770,
+    "output_tokens": 3287,
+    "output_tokens_details": {
+      "thinking_tokens": 2040
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 14168,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2483,
+        "cache_read_input_tokens": 49278,
+        "cache_creation_input_tokens": 4636,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4636
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 3287,
+      "cacheReadInputTokens": 128770,
+      "cacheCreationInputTokens": 14168,
+      "webSearchRequests": 0,
+      "costUSD": 0.0057654,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2040,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 14168,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 5,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What the answer contains.** For one function, `dossier` returns a `callers` list. Each row has a name, the file it sits in, a `source` (which extraction layer found it, such as `doxygen_sqlite` or `ast`), a `confidence` (`exact`, `resolved`, or weaker), and an `edge_class` (`call`, plus others). Test callers carry a `qualified` name. Alongside the list come `callers_unresolved`, the callees, the writers and readers, the requirements and covering tests, and the verbatim body.\n\n**Why it isn't a plain list of call sites:**\n\n1. **The name may not identify one function.** `dossier(\"main\")` resolved to `acceptance/__main__.py:main`, but reported 25 candidates and showed only 8. Its `callers` list includes `test_guard_main.py` tests, which call `clew/guard/main.py:main`, not the function the body belongs to. The reply says neighbour rows are shared across all same-named candidates. Re-ask with `qualified=` before attributing a caller to one function.\n\n2. **Confidence varies.** `_callers_of` shows the strongest confidence per (caller, callee) pair across layers, so a row may hide a weaker layer that also found the edge. Synthetic edges are only as strong as their premise: a virtual call's continuation through an interface method inherits the weakest link.\n\n3. **Not all edges are direct calls.** The `callers` list includes function-pointer dispatch (`test_callers_includes_fnptr_dispatch`) and interface continuation. On a variable, the same field is \"causal neighbours\", meaning writers as well as callers.\n\n4. **An empty list is not \"nothing calls this\".** The `_empty_callers_note` code (gh#4) exists because brace-initialised construction is not a call edge. `ProgressBar` showed `callers: []` while having one real caller. The note only fires when the name also resolves as a class, or when `callers_unresolved` is non-zero (refused callers, gh#15). A measured zero stays silent, so an empty list in an index that never measured refusals is not evidence of absence.\n\n5. **Scope limits.** Calls from files outside the indexed set (Makefiles, CI configs), and anything the extractors don't model, are invisible. The `target` and `not_searched` fields say what was read.\n\n**How I'd read it:** treat the list as \"the edges clew extracted, at these confidences, for this identity\", not as an exhaustive enumeration. Check `qualified` for ambiguous names, check `callers_unresolved` and the constructor note before concluding there are no callers, and treat `resolved` or fuzzy-premise edges as leads to verify in source.\n\nI checked this against three functions (`main`, `_empty_callers_note`, `_callers_of`) and the index's own docstrings. I did not independently verify the extractor behaviour beyond what those docstrings and tests state.",
+  "ttft_ms": 1684,
+  "type": "result",
+  "duration_ms": 17977,
+  "uuid": "305677c5-ca4a-4699-b52f-bb2183fb7c51",
+  "ttft_stream_ms": 716,
+  "time_to_request_ms": 128,
+  "first_content_frame_ms": 717,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

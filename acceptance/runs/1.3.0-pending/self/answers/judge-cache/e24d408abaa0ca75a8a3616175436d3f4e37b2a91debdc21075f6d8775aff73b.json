@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A CLI flag or declaration *replaces* only the guesses. Facts and ecosystem entries always survive.\" and \"you can correct our guesses; you cannot un-discover a fact.\"\nVERDICT: HIT\nWHY: The answer says stated tiers replace the guesses while discovered facts and ecosystem entries always accumulate and survive, which is the asymmetry the item describes."
+}

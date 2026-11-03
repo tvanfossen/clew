@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tiers 3 and 4 accumulate, so a declared `entry_patterns` replaces only the built-in guesses and leaves Doxyfile-derived facts in place. A declaration can correct a guess but cannot remove a fact.\nVERDICT: MISS\nWHY: The answer says tiers 3 and 4 both accumulate, but it never says the distinction between them is deliberately inert; its fact-versus-guess point is made about the declaration, not about tiers 3 and 4 combining identically."
+}

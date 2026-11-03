@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `argsstring` is empty because shell has no parameter list.\nVERDICT: MISS\nWHY: The answer says the argument list is empty because shell has no parameter list, but it never says shell has no return either, and the item needs both."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Declaration check (`scope.py:639`, `derive_scope`). It looks for `index_scope:` with `roots` and `excludes`.\nVERDICT: HIT\nWHY: The answer names `derive_scope` in `scope.py` as where the scope declaration is resolved."
+}

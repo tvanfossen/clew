@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: about 286 call occurrences across 29 library files\nVERDICT: HIT\nWHY: The answer states the primitives are used across 29 library files, which is roughly twenty-plus modules and clearly broad, with a table listing the areas."
+}

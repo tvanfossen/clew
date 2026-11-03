@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no top-level directories as containing uses of MBEDTLS_PRIVATE. It cites paths such as `include/mbedtls/`, `library/` and `programs/ssl/`. These are locations of the definition, the opt-in define sites and the example programs. The answer doesn't say they contain uses of the macro.\n\nITEMS:\nNONE\nEND"
+}

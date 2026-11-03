@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `options` argument for embedding callers (`clew/buildoptions.py`) | 1, explicit | Same as the flag | Lets MCP callers state values. The vocabulary matches `.clew.yaml`.\nVERDICT: MISS\nWHY: The answer says the options vocabulary matches `.clew.yaml`, but it never says the names are the same as the section names and the diagnostics' wording, so the diagnostics half is absent."
+}

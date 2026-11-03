@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The axes have different remedies, and the messages say so\" with table rows: data \u2192 \"`index(action='refresh')`\", code \u2192 \"Restart the MCP client. A rebuild is unsafe and cannot fix it.\"\nVERDICT: HIT\nWHY: The answer states data is cleared by a refresh/rebuild and code by a client restart, and says the axes have different remedies. It never says outright that one flag would not have been enough, but the distinct remedies carry the item's substance."
+}

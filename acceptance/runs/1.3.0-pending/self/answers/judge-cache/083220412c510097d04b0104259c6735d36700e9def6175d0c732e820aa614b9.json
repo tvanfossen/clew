@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tree-sitter (`harvest.py`) handles Python, Rust, C/C++, JS/TS, shell and CMake. `synth.py` claims JS/TS, shell, CMake and YAML/JSON.\nVERDICT: MISS\nWHY: The answer names front ends for non-Doxygen languages and says binaries are dropped. It never states that the resolved scope isn't the whole answer, or that the parse-built front end claims file types Doxygen can't read. It also doesn't mention classification dropping files whose extension misrepresents them."
+}

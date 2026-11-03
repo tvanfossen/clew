@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \".yaml, .yml, .json | A `path` row only. No `memberdef`, no harvest, no symbols.\" and \"Nothing in those files becomes a symbol.\"\nVERDICT: HIT\nWHY: The answer states YAML/JSON are registered as path rows only with no symbols, contrasted with shell/CMake, which get memberdef rows."
+}

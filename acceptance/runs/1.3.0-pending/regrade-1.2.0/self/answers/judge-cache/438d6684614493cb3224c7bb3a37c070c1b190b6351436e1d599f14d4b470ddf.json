@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`scope.not_indexed` lists extensions that exist in the tree but were never indexed. Here that is `.rs=2`, `.toml=2`, `.lock=1`, `.sql=1`, `.csv=3`\"\nVERDICT: MISS\nWHY: The item asks for the file types that were in scope and produced no rows. The answer names only the extensions that were not indexed, plus the extensions that were indexed, but never the in-scope types that returned nothing."
+}

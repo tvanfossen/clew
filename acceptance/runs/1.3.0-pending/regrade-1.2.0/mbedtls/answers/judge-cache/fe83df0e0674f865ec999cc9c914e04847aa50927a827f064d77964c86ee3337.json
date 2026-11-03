@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default it expands to `private_##m`, so the member is declared as `private_m` in the public header. ... Inside those translation units `MBEDTLS_PRIVATE(m)` becomes plain `m`\nVERDICT: HIT\nWHY: The answer states the default expansion to private_<member> and that with MBEDTLS_ALLOW_PRIVATE_ACCESS defined the macro becomes the plain member name."
+}

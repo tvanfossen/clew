@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library spawns no threads of its own and that only the example programs do. It does not conclude that a default build creates no threads at all, and it does not say the pthread example compiles to a stub main under default config. It even says the index was built with threading on."
+}

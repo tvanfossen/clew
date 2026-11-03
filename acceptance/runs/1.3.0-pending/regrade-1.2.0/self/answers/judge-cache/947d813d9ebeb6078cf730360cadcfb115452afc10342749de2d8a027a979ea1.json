@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The code notice says a rebuild cannot fix it and the client must restart.\" and \"`stale_code_refusal` (`freshness.py:531`) refuses every write from a process that predates its source, and `force` cannot override it.\"\nVERDICT: MISS\nWHY: The answer says writes are refused from a stale-code process, but never states that reads stay current because query tools open the database per call, so the read/write asymmetry is absent."
+}

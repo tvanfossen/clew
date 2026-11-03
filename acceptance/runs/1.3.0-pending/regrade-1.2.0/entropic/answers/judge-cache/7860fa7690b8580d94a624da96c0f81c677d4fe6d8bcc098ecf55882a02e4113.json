@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A call with no allow match, no `auto_approve`, and a registered callback still runs unless it is on the deny list.\nVERDICT: HIT\nWHY: The answer says that a tool matching no allow entry and not on the deny list still runs when a callback is registered, so the blocking gate is effectively default-allow. That is the substance of the item, though the answer limits it to the case where a callback is registered."
+}

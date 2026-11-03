@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 16425,
+  "stop_reason": "end_turn",
+  "session_id": "28c73745-434a-423a-8e04-5767f08f25e0",
+  "total_cost_usd": 0.00484295,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 7925,
+    "cache_read_input_tokens": 163615,
+    "output_tokens": 3242,
+    "output_tokens_details": {
+      "thinking_tokens": 1843
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 7925,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2231,
+        "cache_read_input_tokens": 42402,
+        "cache_creation_input_tokens": 5269,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5269
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3242,
+      "cacheReadInputTokens": 163615,
+      "cacheCreationInputTokens": 7925,
+      "webSearchRequests": 0,
+      "costUSD": 0.00484295,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1843,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 7925,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 4,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer is a list of direct callers with provenance, not a list of call sites. For `git_argv` (`clew/gitenv.py:89`) the depth-1 reply has seven callers: `_detect_git_version`, `_git_ls_files`, `_gitignored_paths`, `_is_dependency_of_parent`, `run_git`, `tracked_files`, and one test. Each row carries an edge class (`call`), a source (`ast`, resolved), and a file. The reply also gives `callers_unresolved: 0`, `callees: []`, the requirement it serves (REQ-DDB-CONFIG-001), the covering test, liveness, and the function body.\n\nReading it as a list of call sites goes wrong in several ways:\n\n1. **Direct callers are not everything that reaches the function.** Most of the seven are wrappers. The depth-3 upstream walk shows `run_git` is reached by `get_diff`, `get_file_at_revision`, `get_merge_base` and `_rev_parse_head`, and those reach `derive_sub_indexes`, `whole_repo_scope`, `find_source_files`, `validate_file` and others. `git_argv` is effectively reached from the whole git layer.\n\n2. **The walk is capped per node.** Depth-3 nodes carry `omitted` counts: `run_git` omits 5 and `derive_sub_indexes` omits 13. Those are the parts of the graph the reply did not print, so the upstream picture is bounded and incomplete.\n\n3. **Edges come from two sources with different confidence.** Many edges are `ast`/`resolved`, but others are `doxygen_sqlite`/`exact`, for example `_nested_trees_recursive \u2192 _gitignored_paths` and `get_diff \u2192 run_git`. Both are static. Calls through function pointers, dispatch tables, or the tool being invoked by git itself do not appear as edges.\n\n4. **The list mixes production and test callers.** `test_the_disarmed_key_list_reaches_the_argv` is listed alongside production callers, so a count of callers is not a count of production use.\n\n5. **`callers_unresolved: 0` does not prove the security invariant.** The rule is that no git call site builds its own argv. A bypass would be a call that never calls `git_argv`, so it would produce no edge at all. The reply cannot show that absence; `tests/test_security_surface.py` checks it by scanning source, which is a different mechanism.\n\n6. **Empty callees does not mean the function is pure.** `callees: []` means no callee resolved to an indexed project function. The body only uses list operations and a module-level `GIT_COMMAND_VALUED_KEYS`, and `reads: []` does not record that global. A change to the key list would not show up in this answer.\n\n7. **Thread and requirement entries are not callers.** The reply also lists a thread (`_first_build_worker`, `ast_spawn`, medium confidence) and a requirement. They describe reachability and intent, not call relationships.\n\nThe answer is only as current as the index, and this reply carried no `staleness` block, so it was current. Used properly, the reply tells you what the graph says reaches a function, with its provenance and caps, and it should be checked against source for any claim about absence.",
+  "ttft_ms": 1735,
+  "type": "result",
+  "duration_ms": 17459,
+  "uuid": "597c705b-6fa7-454f-adaa-26842af5f06b",
+  "ttft_stream_ms": 524,
+  "time_to_request_ms": 100,
+  "first_content_frame_ms": 524,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

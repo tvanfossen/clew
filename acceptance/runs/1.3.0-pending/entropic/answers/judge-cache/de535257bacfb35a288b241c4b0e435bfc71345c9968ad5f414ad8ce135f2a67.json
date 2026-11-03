@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says there are two gates (approval allow list at ToolExecutor, deny at ServerManager::execute) and that the deny list is \"the only real veto\" only when a callback is wired. It doesn't conclude that the deny list is the only list blocking execution or that ServerManager consults only is_denied."
+}

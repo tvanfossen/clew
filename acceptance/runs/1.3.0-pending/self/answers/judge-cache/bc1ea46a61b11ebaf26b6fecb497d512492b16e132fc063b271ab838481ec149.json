@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each row has a name, the file it sits in, a `source` ..., a `confidence` ..., and an `edge_class` (`call`, plus others). ... \"Not all edges are direct calls. The `callers` list includes function-pointer dispatch ... and interface continuation.\"\nVERDICT: MISS\nWHY: The answer mentions `edge_class` values and non-call edges but never states that the list mixes direct calls with shared-key dataflow or that consumers must read `edge_class` to tell them apart."
+}

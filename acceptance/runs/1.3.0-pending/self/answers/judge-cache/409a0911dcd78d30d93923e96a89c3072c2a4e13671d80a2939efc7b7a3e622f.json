@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says `not_indexed` groups gaps by extension, and the scope block lists extensions. It never says the reply names file types that were in scope and produced no rows, so it doesn't separate \"not in the repo\" from \"file type not indexed\"."
+}

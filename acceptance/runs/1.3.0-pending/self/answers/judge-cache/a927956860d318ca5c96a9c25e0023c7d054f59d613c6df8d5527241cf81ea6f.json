@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The section is rejected, and the build falls back to the whole repo with a WARNING, if it is not a mapping, has an unknown key (so `exclude:` for `excludes:` fails), or has no usable `roots:`.\nVERDICT: MISS\nWHY: The answer covers a declared index_scope and fallback on invalid sections, but it never states that the declaration is preferred or that every failure to find one (including absent or missing) falls through to whole-repo indexing."
+}

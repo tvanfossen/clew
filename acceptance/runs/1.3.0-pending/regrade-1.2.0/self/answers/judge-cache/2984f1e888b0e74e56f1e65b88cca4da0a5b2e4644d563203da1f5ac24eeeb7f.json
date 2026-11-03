@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`schema`, server older than index, or `code`: restart the MCP client. Rebuilding does nothing for these, and the message says so.\" and \"Rebuild if the db is older. If the db is *newer* than the server, only a client restart helps.\"\nVERDICT: HIT\nWHY: The answer states that when the index is newer than the server, rebuilding doesn't clear the schema staleness and only a client restart helps. The \"re-stamps the same newer version\" reason is not given, but the unresolvable-by-rebuild substance is."
+}

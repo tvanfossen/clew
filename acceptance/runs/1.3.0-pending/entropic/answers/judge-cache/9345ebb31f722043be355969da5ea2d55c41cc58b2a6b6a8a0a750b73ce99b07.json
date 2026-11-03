@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is a two-phase sizing call. Nothing loops, backs off, or re-tries on failure.\" and \"The second call is unconditional.\"\nVERDICT: HIT\nWHY: The answer identifies a size-then-fill pattern, not retry, with no loop or backoff and a single unconditional second call."
+}

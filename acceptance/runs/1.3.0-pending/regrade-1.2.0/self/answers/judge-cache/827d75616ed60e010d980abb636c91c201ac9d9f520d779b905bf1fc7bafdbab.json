@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes six table rows collapsed into five tier numbers (1 covers both the CLI flag and the `options` argument, then 2, 3, 4 and 5), but it also says \"four ways\" and never names five tiers as the mechanism."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Callbacks run on the engine thread via `process_events()`, not on the monitor thread. ... `event_mutex_` guards the queue ... health events are queued and delivered on the engine thread, so consumer code never runs on the monitor thread.\nVERDICT: HIT\nWHY: The answer states that health events are queued under `event_mutex_` and that callbacks are delivered on the engine thread through `process_events()`, not on the monitor thread."
+}

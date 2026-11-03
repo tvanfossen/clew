@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Tier 3/4, facts the repo already wrote** | ... | Accumulate; no declaration removes them | and \"**Tier 5, built-in heuristics** ... any stated tier displaces them\"\nVERDICT: HIT\nWHY: The answer says discovered layers (tiers 3/4) accumulate and survive any declaration, while stated tiers displace one another (stated value wins per section/replaces the file's block)."
+}

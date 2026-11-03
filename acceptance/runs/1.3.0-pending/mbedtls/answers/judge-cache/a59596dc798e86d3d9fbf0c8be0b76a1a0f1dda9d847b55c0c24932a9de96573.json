@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes two substitution routes, but it never states that they are mutually exclusive. Its wording also doesn't fit the item: option 2 is a runtime setter (`mbedtls_platform_set_calloc_free`), and the answer doesn't describe it as a pair of function pointers that is the exclusive alternative to the macro pair. The nearest statement is that the config check forbids `MBEDTLS_PLATFORM_STD_CALLOC` alongside the macros, which is a different constraint."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that the option names used by embedding callers (`options=` on `build_index()`, MCP refresh) are the same words as the `.clew.yaml` section names or the diagnostics' wording. It only says all routes use the same validation and the same section format."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788-800`) forwards that empty vector. It also returns empty when `tokenizer_` is null.\nVERDICT: HIT\nWHY: The answer says the backend wrapper returns an empty vector both for a failed tokenization (forwarded from the tokenizer) and when `tokenizer_` is null. It also says the empty result \"is not distinguishable from a legitimate empty input\", which covers the point that the two cases look the same."
+}

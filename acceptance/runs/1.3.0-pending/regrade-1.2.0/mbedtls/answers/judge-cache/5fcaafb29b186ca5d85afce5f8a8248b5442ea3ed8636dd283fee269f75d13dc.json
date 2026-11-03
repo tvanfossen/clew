@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says that without MBEDTLS_ERROR_C the function is a stub, but it never says MBEDTLS_ERROR_C is enabled in the shipped mbedtls_config.h or that a default build includes the string table."
+}

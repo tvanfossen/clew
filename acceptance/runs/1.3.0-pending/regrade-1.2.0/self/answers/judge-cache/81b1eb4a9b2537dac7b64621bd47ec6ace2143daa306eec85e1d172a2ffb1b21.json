@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses `source` as the extraction layer on `CallEdge` rows but never says call_edges stores one row per layer, nor that the same logical edge from two detectors is stored twice."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The user retries it by hand with \\\"Try Again\\\", and each tap makes one send attempt.\" and \"**What retrying does** (`retryFailedPost`, ...) - Triggered from the failed-post button ..., via the \\\"Try Again\\\" item in the bottom sheet.\"\nVERDICT: HIT\nWHY: The answer says there is no automatic retry, the user triggers a retry through \"Try Again\", and it names `retryFailedPost` as the function that handles it."
+}

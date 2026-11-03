@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Facts from tiers 3 and 4 are kept under any stated tier.\" and \"Facts cannot be replaced this way, so a declaration cannot un-discover a fact.\" and the table marking tiers 1, 2 as \"Replaces the stated layer\" vs 3, 4 \"Accumulates\"\nVERDICT: HIT\nWHY: The answer states stated tiers replace each other while discovered fact layers accumulate and survive any stated tier, which cannot un-discover them."
+}

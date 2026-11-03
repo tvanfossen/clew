@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Facts and ecosystem entries (tiers 3 and 4) are never displaced by any stated tier, so `main` survives a user-stated entry-pattern list.\nVERDICT: HIT\nWHY: The answer says stated tiers (1, 2) replace one another, while tiers 3 and 4 accumulate and are never displaced by any stated tier. That is the asymmetry the item asks for."
+}

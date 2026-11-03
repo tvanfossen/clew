@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It reads `index_scope:` from `.clew.yaml`, and falls back to the whole repo when that is absent.\" and \"A present but unusable declaration is refused at build time (`cli.py:807`), not silently replaced.\"\nVERDICT: MISS\nWHY: The answer says a declared index_scope is read and the whole repo is the fallback when it is absent. But it says an unusable declaration is refused, not replaced. That contradicts the item's claim that every failure to find one falls through to the whole repository."
+}

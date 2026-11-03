@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Entropic has 10 thread spawn sites in its own source ... `ExternalBridge::accept_loop`, `HealthMonitor::monitor_loop`, `StdioTransport::stderr_reader_loop`, `SSETransport::sse_reader_loop`, `ResponseGenerator::dispatch_batch_generate` observer ... Source for the findings: `src/facade/external_bridge.cpp`, `src/core/response_generator.cpp`, `src/inference/interface_factory.cpp`, `src/inference/inference_c_api.cpp`, `src/mcp/health_monitor.cpp`.\nVERDICT: HIT\nWHY: The table lists thread spawns in the external bridge, MCP transports (stdio/SSE), the health monitor and the inference/response paths, so it shows thread creation spread across subsystems."
+}

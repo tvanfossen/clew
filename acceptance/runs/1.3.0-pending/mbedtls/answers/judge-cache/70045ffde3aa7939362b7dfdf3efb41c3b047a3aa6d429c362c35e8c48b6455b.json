@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is a source-level rename only: the struct layout and ABI do not change, so the define cannot alter binary compatibility.\nVERDICT: HIT\nWHY: The answer says the mechanism is a compile-time member rename (`private_##member`) that causes compile errors, while the struct layout stays unchanged."
+}

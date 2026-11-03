@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_loader.py     ctypes.CDLL(librentropic.so)  (search order: $ENTROPIC_LIB, ENTROPIC_HOME, ~/.entropic, ldconfig)`\nVERDICT: MISS\nWHY: The answer lists a search order of env overrides, then ~/.entropic, then ldconfig, but it never says two directory layouts are tried per root."
+}

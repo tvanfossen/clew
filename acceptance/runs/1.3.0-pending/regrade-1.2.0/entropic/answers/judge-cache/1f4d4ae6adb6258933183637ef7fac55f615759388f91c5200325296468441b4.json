@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index shows 9 spawn sites in production code, plus one in a test mock.\nVERDICT: HIT\nWHY: The answer's table lists thread spawns across the external bridge, the health monitor, the MCP transports (stdio and SSE) and the inference path (cancel pollers, interrupt observer). That shows spawning spread across subsystems, not centralised."
+}

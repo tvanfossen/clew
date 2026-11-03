@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_data_stale` returns false when the process does not match its source, so an auto-refresh never runs the build that could corrupt the index. `stale_code_refusal()` is the guard every write path calls first.\nVERDICT: MISS\nWHY: The answer explains that writes from stale code are refused, but it never states that reads stay current because query tools open the database per call. The read/write asymmetry on the code axis is therefore absent."
+}

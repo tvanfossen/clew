@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A stale process reads live data correctly but runs old logic when it writes.\"\nVERDICT: HIT\nWHY: The answer states the code-axis asymmetry: a stale process reads current data but runs old logic on writes. It also says a build through a stale process would drop pipeline layers. The \"query tools open the database per call\" mechanism is not spelled out, but the read/write asymmetry itself is."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"This states what the index covers: file count, whether the scope was declared or derived from the whole repo, the extensions and top-level directories, and excludes.\"\nVERDICT: MISS\nWHY: The scope block lists the extensions the index covers. The answer never says the reply names the in-scope file types that produced no rows, so it doesn't show \"not in the repo\" apart from \"that file type isn't indexed\" in the way the item requires."
+}

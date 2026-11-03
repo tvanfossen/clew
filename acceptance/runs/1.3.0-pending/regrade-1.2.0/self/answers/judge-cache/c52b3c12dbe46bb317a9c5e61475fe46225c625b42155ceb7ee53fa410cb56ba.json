@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tiers 3 and 4 always accumulate. No stated value removes a fact the repo itself provides... `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`\nVERDICT: MISS\nWHY: The answer shows tiers 3 and 4 are unioned together, but it never says they combine identically, that the difference between them is deliberately inert, or that the real line is fact versus guess."
+}

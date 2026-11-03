@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Four more reach llama only through `llama_cpp_backend.h`: `interface_factory`, `secondary_model_loader`, `inference_c_api` and the facade's `entropic.cpp`.\nVERDICT: MISS\nWHY: The answer says reach is heavy in src/inference and that headers outside leak llama types. It never says the dependency is concentrated in inference but not contained, and it gives no count of reaching files outside src/inference."
+}

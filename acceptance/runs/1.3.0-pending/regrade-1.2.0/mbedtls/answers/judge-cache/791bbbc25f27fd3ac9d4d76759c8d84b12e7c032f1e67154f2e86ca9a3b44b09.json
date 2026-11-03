@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque` (`:85`) hides the value from the optimiser. With assembly it is `asm volatile(\"\" : [x] \"+r\" (x))`... This stops the compiler from folding a known constant into a branch.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the primitive hiding values from the compiler and places it in `library/constant_time_impl.h` (line 85)."
+}

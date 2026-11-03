@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Calls `client.createPost` once more, with the same single-attempt setting.\" and \"On failure, it either deletes the post (same three error codes) or sets `failed` again.\"\nVERDICT: HIT\nWHY: The answer says `retryFailedPost` makes a single new attempt (`retryLimit: 0`, no loop or backoff) and on failure either deletes the post for the same three errors or marks it failed again."
+}

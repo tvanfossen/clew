@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 21658,
+  "stop_reason": "end_turn",
+  "session_id": "2d1eecf2-ea42-4991-adec-c44e40e47dd5",
+  "total_cost_usd": 0.008771000000000001,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 20918,
+    "cache_read_input_tokens": 276420,
+    "output_tokens": 3644,
+    "output_tokens_details": {
+      "thinking_tokens": 1479
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 20918,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1156,
+        "cache_read_input_tokens": 56937,
+        "cache_creation_input_tokens": 825,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 825
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3644,
+      "cacheReadInputTokens": 276420,
+      "cacheCreationInputTokens": 20918,
+      "webSearchRequests": 0,
+      "costUSD": 0.008771000000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1479,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 20918,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** llama.cpp is vendored as a git submodule and linked into the inference library. Its reach into entropic's source is confined to the `src/inference/llama_cpp_*` files, plus test mocks. The public C headers under `include/entropic/` don't expose it. I answered from the index only, so I could not read the CMake bodies or the submodule itself.\n\n**How it's brought in**\n\n- **Submodule:** `src/inference/llama_cpp_backend.cpp` is documented as \"Pinned against llama.cpp submodule b8420.\"\n- **CMake wiring:** `src/inference/CMakeLists.txt` says the inference library \"Links against llama.cpp, nlohmann/json, and spdlog.\" I could not see the link lines, so I can't say whether it uses `add_subdirectory` or `target_link_libraries` on a submodule target.\n- **Stale comment:** `extern/CMakeLists.txt` says external deps are fetched via `FetchContent`, and that \"llama.cpp is a submodule but NOT built in v1.8.0.\" That comment predates the current v2.9.20 tree and is probably out of date, so don't rely on it for the current build mode.\n\n**How far it reaches**\n\n- **Inside the llama.cpp layer:** `LlamaCppBackend` (`src/inference/llama_cpp_backend.{h,cpp}`) uses the llama.cpp C API directly (`llama_model_load_from_file`, `llama_init_from_model`, `llama_decode`, `llama_chat_apply_template`, and related calls). It also has multi-sequence batching, speculative and MTP decoding, multimodal (mtmd), and LoRA adapter support. Its header says it is \"Internal to inference .so.\"\n- **Adapters:** `LlamaCppSampler` / `LlamaCppSamplerFactory` wrap `llama_sampler` chains. `LlamaCppTokenizer` wraps `llama_vocab`. Both borrow pointers owned by the model or context, and the header comments state the destruction order that the backend must enforce.\n- **Outside the layer:** The public surface reports no llama.cpp types. The `llama`-matching names I could see in `include/` were limited to `llama_log_path`, a config variable. My search was capped at 50 rows, so I can't rule out other hits. The rest of the matches were in `src/` and `tests/`.\n- **Tests:** `tests/unit/inference/` mocks llama.cpp functions at link time (for example `llama_adapter_lora_init`, `llama_model_get_vocab`, and `llama_vocab_*`), so unit tests don't need the real library.\n\n**Gaps:** The index can't show the CMake link lines, the submodule's contents, or whether `llama.h` at the repo root is the vendored header or something else. It also doesn't cover CI. Reading `src/inference/CMakeLists.txt`, the top-level `CMakeLists.txt`, and `.gitmodules` would settle the build mechanism.",
+  "ttft_ms": 1621,
+  "type": "result",
+  "duration_ms": 23607,
+  "uuid": "4b59ad22-849b-45f9-85b6-ceaa5eac0357",
+  "ttft_stream_ms": 1446,
+  "time_to_request_ms": 93,
+  "first_content_frame_ms": 1446,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

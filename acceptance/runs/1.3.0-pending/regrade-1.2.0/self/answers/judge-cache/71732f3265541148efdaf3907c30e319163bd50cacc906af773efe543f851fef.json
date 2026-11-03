@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| `code` | fingerprints disagree | Restart the client. A rebuild cannot clear it. |\" and \"`index(action='refresh')`\" for data\nVERDICT: HIT\nWHY: The answer's table and steps show data is cleared by a rebuild and code by a client restart, with \"a rebuild cannot clear it\" showing the axes need different cures. It never says outright that this is why one flag would not have been enough, but the different-cure substance is there."
+}

@@ -1,0 +1,14 @@
+For `git_argv` (clew/gitenv.py:89), the reply had seven callers, each a function name with its file and an edge class of `call`. All seven resolved through the AST, and `callers_unresolved` is 0. The reply also carried the function's signature, brief, liveness, the thread it can run on, the requirement it satisfies (REQ-DDB-CONFIG-001), one covering test, and its verbatim body.
+
+It is a set of caller-to-callee edges, not a list of call sites. Several things make it wrong to read it as one:
+
+- **No call-site lines.** Each caller is the enclosing function, such as `run_git` or `tracked_files`. The reply gives that function's file, not the line where it calls `git_argv`. It also doesn't say whether the call is inside a loop, a branch, or behind a condition.
+- **Tests are callers too.** `test_the_disarmed_key_list_reaches_the_argv` appears alongside production code, so the list mixes product paths with test paths.
+- **Empty callees doesn't mean no calls.** `callees` is `[]` here, yet the body calls `list`, `extend` and `GIT_COMMAND_VALUED_KEYS`. Those are not indexed functions, so they sit in `external_callees`, which this reply omitted. A zero-length callee list only means nothing resolved to an indexed function.
+- **Depth 1 only.** The default answer shows immediate callers. Transitive callers need `depth` 2 with `direction` back. The neighbour list is also capped by `max_neighbors` (default 8). Seven callers is under the cap, so this list looks complete, but the reply does not state that it is.
+- **Name resolution can merge.** A bare name can match several signatures. An `ambiguous` block would say so, and the neighbour rows would then be shared across them. Without `qualified`, a same-name method elsewhere could be counted here.
+- **Indirect calls can be missing.** The edges come from static resolution. Function pointers, callbacks and dynamic dispatch are not guaranteed to appear, and `callers_unresolved` only counts edges the resolver saw and failed to bind.
+- **Reachability is not a caller edge.** The `threads` field says the function can run on `clew-first-build-`, a pthread spawned at `server.py:1440`, but with medium confidence. That is reachability, not a call from a caller, and it is reported separately.
+- **Liveness is not usage.** `liveness: live` says the function is reachable from something, not that a production path exercises it.
+
+What the reply does not give is execution conditions, argument values, or whether a call site is guarded. For claims about how the disarming is enforced, the callers list is weaker evidence than the requirement and the test that asserts that no call site builds its own argv. Those are the fields to cite.

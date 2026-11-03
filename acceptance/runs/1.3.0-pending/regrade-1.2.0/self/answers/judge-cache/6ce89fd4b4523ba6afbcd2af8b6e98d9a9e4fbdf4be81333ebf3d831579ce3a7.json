@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"For `callers`/`callees` only, `edge_class='key'` rows: shared-key dataflow, not calls.\" and \"'key' rows are not calls. A key neighbour writes or reads a shared value with no call between them.\" and \"Check `edge_class`, `confidence`, `source` and `qualified`\"\nVERDICT: HIT\nWHY: The answer states that callers/callees mix direct-call rows with `edge_class='key'` shared-key dataflow rows, and tells the consumer to check `edge_class`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says posting uses `noRetry: true` but never states that requests in general retry (exponential, limit 3, via the network manager). It admits it did not read `doFetch`."
+}

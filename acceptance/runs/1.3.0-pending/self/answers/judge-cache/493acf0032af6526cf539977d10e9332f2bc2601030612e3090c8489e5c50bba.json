@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`unsearched_corpus_hits`: rows the query would have matched in a corpus `search` does not read... computed by subtracting the searched kinds from the kinds the database holds\" and \"'definitive' is earned per call by checking the other corpora\"\nVERDICT: HIT\nWHY: The answer says the definitive wording is earned per call by querying unread corpora (unsearched_corpus_hits), and it is not tied to a fixed result shape."
+}

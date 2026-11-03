@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the two calls are in one function, not two places... (`src/inference/llama_cpp_tokenizer.cpp:55` and `:61`, in `LlamaCppTokenizer::tokenize`)... The first `llama_tokenize` call passes a null buffer and size 0... allocates a vector of that size and calls `llama_tokenize` again to fill it.\"\nVERDICT: HIT\nWHY: The answer names the file, function, and line numbers of the size-then-fill two-call `llama_tokenize` pattern."
+}

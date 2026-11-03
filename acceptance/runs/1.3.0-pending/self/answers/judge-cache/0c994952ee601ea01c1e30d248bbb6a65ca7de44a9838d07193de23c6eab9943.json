@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"target facts (tier 3) and ecosystem signatures (tier 4) accumulate, and no stated tier removes them. Heuristics (tier 5) are the only layer a stated value displaces.\" and \"`resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. In plain terms, you can correct clew's guesses, but you cannot un-discover a fact.\"\nVERDICT: HIT\nWHY: The answer states stated tiers replace each other (flag replaces declaration, whole-section replacement) while discovered layers (tiers 3 and 4) accumulate and survive any stated value."
+}

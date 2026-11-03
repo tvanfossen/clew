@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the pthread server file is gated on MBEDTLS_THREADING_C and not built by default, but it never concludes that a default build creates no threads or that the example compiles to a stub main."
+}

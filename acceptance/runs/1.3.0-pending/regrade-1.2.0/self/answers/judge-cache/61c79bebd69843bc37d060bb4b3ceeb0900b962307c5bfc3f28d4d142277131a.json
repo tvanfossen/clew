@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| 1 | Explicit: a CLI flag, or the `options` argument for an embedding caller | Replaces the stated layer |\" ... \"| 3 | Target facts: ... | Accumulates |\" ... \"**Tiers 3 and 4 never get displaced.** A stated tier cannot remove a fact someone else already wrote.\"\nVERDICT: HIT\nWHY: The answer says stated tiers replace the stated layer, while discovered tiers 3\u20134 accumulate and can't be displaced by any stated tier."
+}

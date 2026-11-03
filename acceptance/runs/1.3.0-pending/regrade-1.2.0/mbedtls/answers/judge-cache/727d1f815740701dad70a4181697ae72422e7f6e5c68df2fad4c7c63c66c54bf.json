@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Using `mbedtls_ct_*` calls as the measure, about 286 call occurrences across 29 library files\"\nVERDICT: HIT\nWHY: The answer states the primitives are used across 29 library files, which is on the order of twenty or more modules, and it breaks the use down by area in a table."
+}

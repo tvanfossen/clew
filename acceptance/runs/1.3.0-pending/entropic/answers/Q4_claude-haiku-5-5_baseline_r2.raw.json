@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 45818,
+  "stop_reason": "end_turn",
+  "session_id": "a5ad8ce5-5606-452d-b2d5-a6705a352431",
+  "total_cost_usd": 0.01902989,
+  "usage": {
+    "input_tokens": 26,
+    "cache_creation_input_tokens": 36767,
+    "cache_read_input_tokens": 682789,
+    "output_tokens": 9692,
+    "output_tokens_details": {
+      "thinking_tokens": 3992
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 36767,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3475,
+        "cache_read_input_tokens": 68533,
+        "cache_creation_input_tokens": 1648,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1648
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 26,
+      "outputTokens": 9692,
+      "cacheReadInputTokens": 682789,
+      "cacheCreationInputTokens": 36767,
+      "webSearchRequests": 0,
+      "costUSD": 0.01902989,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3992,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 36767,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Several threads run off the caller's thread, and most of them are guarded by mutexes, atomics, or joins. Two spots I checked don't hold up under the documented contract: nothing enforces one run per handle, and a detached async worker can outlive the bridge that owns it.\n\n**Threads that run off the caller's thread**\n\n| Thread | Where | What it does |\n|---|---|---|\n| External bridge accept loop | `src/facade/external_bridge.cpp:796` | Accepts MCP client sockets |\n| Per-client thread | `external_bridge.cpp:945` | Serves one client, owned by `client_threads_` |\n| Detached async ask worker | `external_bridge.cpp:1158`, `.detach()` at 1222 | Runs `entropic_run` on the handle, then broadcasts progress |\n| Cancel-flag poller | `src/inference/inference_c_api.cpp:385` | Bridges `int*` cancel to `std::atomic<bool>` at 10 ms |\n| Generator observer | `src/core/response_generator.cpp:413` | Mirrors `interrupt_flag_` into the batch cancel int |\n| Interface poller | `src/inference/interface_factory.cpp:246` | Same cancel bridging, for the interface path |\n| Health monitor | `src/mcp/health_monitor.cpp:92` | Polls MCP servers, queues events |\n| SSE reader | `src/mcp/transport_sse.cpp:107` | Reads the server-sent event stream |\n| Stdio stderr forwarder | `src/mcp/transport_stdio.cpp:164` | Forwards child stderr |\n\n**What keeps it safe**\n\n- **Documented per-handle contract.** `include/entropic/entropic.h:20` says calls are thread-safe, serialized per handle, or init/destroy only. The state-observer doc (line 469) says callbacks may fire from the async worker and must be thread-safe.\n- **Lock split on the run path.** Most API calls take `HandleApiLock` (`src/facade/engine_handle.h:172`). `entropic_run` deliberately does not (gh#109), so `entropic_interrupt` from another thread doesn't block behind a long turn. Interrupt and pause are atomics (`engine.h:1415`).\n- **Stale observer callbacks.** `attach_phase_observer` and `detach_phase_observer` bump `observer_gen_` under `tasks_mutex_`. `phase_observer_cb` compares generations and drops late callbacks (`external_bridge.cpp:1077\u20131124`).\n- **Task state and sentinel.** Final task status and the sentinel file are written together under `tasks_mutex_` before the completion notification goes out (`external_bridge.cpp:1171\u20131183`).\n- **Broadcast.** Subscribers are snapshotted under `subscribers_mutex_`, sends use `MSG_DONTWAIT | MSG_NOSIGNAL` without the lock held, and dead fds are pruned afterwards (`external_bridge.cpp:1285`).\n- **Health events.** Monitor-thread events go into a queue under `event_mutex_`, and the callbacks run on the engine thread via `process_events()` (`health_monitor.cpp:118`).\n- **Backend.** State is atomic. Load and unload take `transition_mutex_`, evaluation takes `eval_mutex_`, and generation runs concurrently with neither (`backend.h:11\u201317`).\n- **Joins and RAII.** `CancelFlagBridge` joins in its destructor. `HealthMonitor::stop()` notifies and joins. `ExternalBridge::stop()` closes the listen socket, joins accept, shuts down client fds, then joins client threads. Log scope is propagated into each spawned thread (`HandleLogScope`).\n\n**Gaps I found**\n\n1. **Per-handle serialization is not enforced.** `entropic_run` takes no lock and never checks `running_flag_` (`src/facade/entropic.cpp:1974`). `AgentEngine::run_turn` sets the flag and doesn't check it first (`src/core/engine.cpp:2831`). `ENTROPIC_ERROR_ALREADY_RUNNING` is defined and documented in `entropic.h:267` and `:368`, but no code returns it. An async ask and a sync ask on the same handle can therefore enter `run_turn` at the same time, which the header says must not happen. I did not run this, and I did not read `run_drain_loop`, so I can't rule out a guard there.\n2. **`running_flag_` is not exception-safe.** `run_turn` clears the flag only on normal return. If the drain loop throws, the flag stays true, and `queue_user_message` will keep accepting messages on an idle handle.\n3. **Detached async workers can outlive the bridge.** The worker captures `this` and the handle. `stop()` joins only the accept and client threads, not the async workers. `entropic_destroy` calls `stop()` and then tears down the orchestrator (`entropic.cpp:1884\u20131894`). If an async ask is running at destroy time, the worker can touch freed memory. The only wait for in-flight workers is the best-effort ~1 s poll in the context-clear cancel path (`external_bridge.cpp:434\u2013459`), which doesn't run on destroy. The backlog proposal `P2-20260429-001` already describes the unbounded detached threads.\n\nGaps 1 and 3 are the ones to confirm first. A test that starts an async ask, then calls a sync run or `entropic_destroy`, would show whether they're real. `tests/concurrency/test_thread_safety.cpp` exists, but I didn't read it, so I can't say whether it covers either case.",
+  "ttft_ms": 865,
+  "type": "result",
+  "duration_ms": 46531,
+  "uuid": "43744710-e678-4f31-b011-39d690800210",
+  "ttft_stream_ms": 603,
+  "time_to_request_ms": 114,
+  "first_content_frame_ms": 603,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

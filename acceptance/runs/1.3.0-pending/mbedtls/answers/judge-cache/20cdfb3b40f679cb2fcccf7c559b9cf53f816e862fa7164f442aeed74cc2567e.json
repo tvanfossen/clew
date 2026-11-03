@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Enable `MBEDTLS_PLATFORM_MEMORY` and define both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`... `mbedtls_memory_buffer_alloc_init()` serves allocations from a caller-supplied buffer and never calls libc.\nVERDICT: MISS\nWHY: The answer never says the buffer allocator itself requires MBEDTLS_PLATFORM_MEMORY. It says it calls `mbedtls_platform_set_calloc_free()`, but it never states that this needs the option enabled."
+}

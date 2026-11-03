@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`schema`, index older than server: call `index(action='refresh', force=True)`. ... `code`: a rebuild cannot clear this. Reads are still correct because the DB is opened per call. Writes are refused, and `force` does not override the refusal\"\nVERDICT: MISS\nWHY: The answer says data needs a refresh and code can't be cleared by a rebuild, but it never says that code needs a client restart. It also never says that this difference is why a single flag wouldn't be enough."
+}

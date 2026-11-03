@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the tool compares the index against the source tree and the running server, reports each mismatch as a named \"axis\" with the action that clears it\" and the table with `data`, `schema`, `code` axes\nVERDICT: HIT\nWHY: The answer explicitly names three distinct staleness axes (data, schema, code) with separate checks and remedies, rather than a single flag."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_HAVE_ASM` undefined, or the compiler is not GNU-style (MSVC, IAR, old armcc) | `MBEDTLS_CT_ASM` is not defined.\nVERDICT: MISS\nWHY: The table ties `MBEDTLS_CT_ASM` to `MBEDTLS_HAVE_ASM` and the compiler. It never says the macro is derived rather than configured, never mentions compiler predefined macros, and never says it is not set in `mbedtls_config.h`."
+}

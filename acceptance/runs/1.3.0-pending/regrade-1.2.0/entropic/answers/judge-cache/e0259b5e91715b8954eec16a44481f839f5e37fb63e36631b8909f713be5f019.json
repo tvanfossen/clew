@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The argument side comes from `args_to_pattern`, which takes only the **first** JSON member of the arguments. If it is a string, that value is used; otherwise the argument is treated as `*`. Patterns therefore match the first argument, not all of them.\nVERDICT: HIT\nWHY: The answer states that only the first argument reaches the pattern and that a non-string value becomes `*`. It doesn't mention unparseable arguments, but \"the rest of the arguments are invisible\" and \"non-string collapses to a wildcard\" are both there."
+}

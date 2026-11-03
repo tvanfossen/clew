@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Deny** entries are checked in `ServerManager::execute`, after approval has already passed.\" and \"Only the deny list, the MCP keys, the tier allowlist, or `auto_approve` being off with no callback would stop it.\"\nVERDICT: MISS\nWHY: The answer says deny is checked in ServerManager::execute but also lists other blockers (schema, MCP auth, tier, hooks, duplicate). It does not conclude the deny list is the only list-based gate or that execute consults nothing else."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 24542,
+  "stop_reason": "end_turn",
+  "session_id": "ea427b88-cd5f-4aba-b723-65ac61b4f3f3",
+  "total_cost_usd": 0.007609590000000001,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 22981,
+    "cache_read_input_tokens": 100329,
+    "output_tokens": 4019,
+    "output_tokens_details": {
+      "thinking_tokens": 2367
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 22981,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2663,
+        "cache_read_input_tokens": 41040,
+        "cache_creation_input_tokens": 2096,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2096
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 4019,
+      "cacheReadInputTokens": 100329,
+      "cacheCreationInputTokens": 22981,
+      "webSearchRequests": 0,
+      "costUSD": 0.007609590000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2367,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 22981,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 4,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the caller list tells you which functions contain a resolved call to `git_argv`. It does not tell you where in those functions the call sits, what arguments it receives, or whether the call runs at all.\n\nI checked this against `git_argv` (`clew/gitenv.py:89`), which the AGENTS.md names as the single git-argv choke point.\n\n**What the reply holds for `git_argv`**\n\n| Field | Value | What it actually claims |\n|---|---|---|\n| `callers` | 7 entries, each with name, file, `edge_class: call`, `confidence: resolved` | Seven functions contain a statically resolved call to it. |\n| `callees` | empty | No indexed callee. The body only loops over a constant and builds a list, so this fits. |\n| `threads` | `clew-first-build-` (pthread), `confidence: medium` | Reachability from a spawn point. It is not a call edge. |\n| `requirements` | `REQ-DDB-CONFIG-001` | An annotation the function claims to satisfy. |\n| `covering_tests` | `test_mqtt_dispatch_accepts_an_inline_document_not_only_a_path` | See below. This looks wrong. |\n| `writes` / `reads` / `overrides` | empty | Present and empty, so they were measured as empty. |\n| `callers_unresolved`, `context_undecidable` | 0 | No known gaps in the caller set. |\n\n**What would make it wrong to read as a plain list of call sites**\n\n1. **Callers are per function, not per site.** A grep finds 8 actual call sites: `clew/scope.py:865`, `clew/scope.py:1199`, `clew/guard/main.py:314`, `clew/guard/tags.py:56`, `clew/guard/git.py:72`, `clew/propose/notindexed.py:97`, plus the test file. The reply gives seven function names and no lines. Several sites in one function collapse into one entry.\n\n2. **It says nothing about arguments.** `clew/guard/git.py:72` calls `git_argv(*cmd[1:])`, so the git subcommand comes from whatever `run_git` was handed. To learn what actually runs, you have to follow `run_git`'s own callers. Depth 1 only shows the immediate edge.\n\n3. **Direct edges only.** Transitive reach needs `depth \u2265 2` with `direction: back`. A caller of a caller is not in this answer.\n\n4. **Non-call references may be absent.** The edge class is `call`. A function passed as a value, stored in a table, or reached through `getattr` may not appear here. I did not test those cases; they are where I would look first for a missing edge.\n\n5. **The covering test is a bad attribution.** `test_mqtt_dispatch_accepts_an_inline_document_not_only_a_path` (`tests/test_r1_richness.py:859`) tests MQTT dispatch loading an inline document. It has nothing to do with git argv. The test that does exercise `git_argv`, `tests/test_security_surface.py`, is missing from `covering_tests`. So requirement and coverage links are weaker evidence than the caller list and should not be read as proof of coverage.\n\n6. **Different fields have different evidence.** `callers` is a static call edge. `threads` is spawn reachability at medium confidence. `requirements` and `covering_tests` are annotation links. They sit side by side in one reply and look equally authoritative.\n\n**Rule of thumb:** treat the caller list as a starting set for grep and for `depth: 2` back-walks, and verify each site before relying on it. The reply is strongest on \"who calls this\" and weakest on \"what does it receive\" and \"what covers it\".",
+  "ttft_ms": 3177,
+  "type": "result",
+  "duration_ms": 24838,
+  "uuid": "33a75316-026c-4d71-84d7-bbb8c196f642",
+  "ttft_stream_ms": 2172,
+  "time_to_request_ms": 75,
+  "first_content_frame_ms": 2172,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

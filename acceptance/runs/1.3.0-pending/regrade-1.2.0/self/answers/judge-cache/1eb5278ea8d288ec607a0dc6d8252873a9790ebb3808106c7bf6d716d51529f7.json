@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Nested git trees (submodules, vendored clones) are included, not excluded. `external.py` tags their rows afterward.\nVERDICT: HIT\nWHY: The answer explicitly says nested git trees are included in the scope and tagged afterward by external.py."
+}
