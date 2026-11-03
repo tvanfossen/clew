@@ -134,19 +134,20 @@ MEMBER_KIND = {"function": "function", "macro": "macro definition", "variable": 
 ## Version 5: `stage_version` 5 — interface signatures and object-literal functions.
 ## Version 6: `stage_version` 6 — named closures inside functions, scoped under them.
 ## Version 7: `stage_version` 7 — typed class members (fields, constructor parameter properties).
+## Version 8: `stage_version` 8 — the payload carries the file's line count for `__module__`.
 ##
 ## @brief Per-file harvester for JS/TS definitions.
-## @version 7
+## @version 8
 class _JsSymbolHarvester(Harvester):
     """Rowid-free (names, spans, raw docs), so it caches on content like every stage.
     A non-JS file yields an empty payload.
 
     @brief JS/TS definitions harvester.
-    @version 7
+    @version 8
     """
 
     stage = STAGE_JS_SYMBOLS
-    stage_version = 7
+    stage_version = 8
     label = "js/ts definitions"
 
     ## @brief Harvest one file's definitions.
@@ -499,10 +500,12 @@ class _Writer:
         two definitions share."""
         return int(self.conn.execute("INSERT INTO refid (refid) VALUES (?)", (key,)).lastrowid)
 
+    ## Version 3: writes each JS/TS file's `__module__` row.
+    ##
     ## Version 2: writes typed class members as `kind='variable'` rows.
     ##
     ## @brief Write one file's harvested classes and functions.
-    ## @version 2
+    ## @version 3
     ## @dg_internal
     def file(self, path_rowid: int, payload: dict[str, Any], prefix: str = "js") -> None:
         rel = self.conn.execute("SELECT name FROM path WHERE rowid = ?", (path_rowid,)).fetchone()[
@@ -518,6 +521,12 @@ class _Writer:
         ## call-edge layer reads to resolve `this.svc.getUser()` through the receiver's type.
         for var in payload.get("variables", []):
             self._function(path_rowid, module, var, local.get(var["cls"]), prefix)
+        if payload.get("lines"):
+            from .jsast import MODULE_CALLER
+
+            module_row = {"name": MODULE_CALLER, "cls": "", "line": 1, "end": payload["lines"]}
+            module_row.update(col=0, args="", ret="", static=0, doc="")
+            self._function(path_rowid, module, module_row, None, prefix)
 
     ## @brief Insert one class-like compounddef row.
     ## @return Its rowid.

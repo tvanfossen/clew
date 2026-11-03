@@ -31,6 +31,19 @@ from typing import Any
 ## `translation_unit`, Rust's `source_file`; this is how a harvester tells them apart.
 JS_ROOT = "program"
 
+## The per-file definition module-level code is credited to. Module-level code — HOC wiring such as
+## `withObservables([], ({database}) => ({x: observeFoo(database)}))`, `export default` chains,
+## top-level statements — runs at import, and a call there had no enclosing function, so it was
+## dropped with no edge and no refusal. `synth` writes one such row per JS/TS file spanning it whole;
+## the innermost-span rule means any named function still wins. `\w`-only, so a module's bare calls
+## still resolve lexically to the module's own functions.
+MODULE_CALLER = "__module__"
+
+## Node kinds tree-sitter-bash produces and no JS/TS grammar does.
+_BASH_ONLY = frozenset(
+    {"command", "command_name", "variable_assignment", "pipeline", "redirected_statement", "word"}
+)
+
 ## Class-like declarations, and the doxygen compound kind each becomes.
 _COMPOUND_KINDS = {
     "class_declaration": "class",
@@ -41,14 +54,23 @@ _COMPOUND_KINDS = {
 }
 
 
+## Version 2: a `program`-rooted tree holding a bash-only node kind is not JS — bash roots there too.
+##
 ## @brief Whether a tree is JavaScript / TypeScript.
 ## @param tree A parsed tree.
-## @return True for a `program`-rooted tree.
-## @version 1
+## @return True for a `program`-rooted tree with no bash-only node.
+## @version 2
 ## @dg_internal
 def is_js_tree(tree: Any) -> bool:
-    """@brief JS/TS/TSX trees are rooted at `program`."""
-    return tree.root_node.type == JS_ROOT
+    """`program` IS ALSO BASH'S ROOT, so the root alone called every shell script JavaScript.
+    A node kind only bash has settles it; `tree.kinds` lists every kind the parse produced.
+
+    @brief JS/TS/TSX trees are rooted at `program` and contain no bash-only node.
+    """
+    if tree.root_node.type != JS_ROOT:
+        return False
+    kinds = getattr(tree, "kinds", None) or ()
+    return not any(kind in _BASH_ONLY for kind in kinds)
 
 
 ## @brief Decoded text of a node, or "" for None.
@@ -233,11 +255,13 @@ def _constraint_class(func: Any, type_name: str) -> str:
     return ""
 
 
+## Version 3: the payload carries the file's line count (`lines`) for the `__module__` row.
+##
 ## @brief Every function and class a JS/TS file defines.
 ## @param tree Parsed program tree.
 ## @param src_bytes The file's bytes.
 ## @return {"functions": [...], "classes": [...]}, each entry a JSON-safe dict.
-## @version 2
+## @version 3
 ## @req REQ-DDB-PIPE-012
 def harvest_definitions(tree: Any, src_bytes: bytes) -> dict[str, list[dict[str, Any]]]:
     """Positions are 1-based lines and 0-based columns, as doxygen writes them. A doc
@@ -252,6 +276,8 @@ def harvest_definitions(tree: Any, src_bytes: bytes) -> dict[str, list[dict[str,
     spec = LANGUAGE_SPECS["typescript"]
     out: dict[str, list[dict[str, Any]]] = {"functions": [], "classes": [], "variables": []}
     _walk(tree.root_node, spec, None, out)
+    ## THE FILE'S LENGTH, so `synth` can write the per-file `__module__` caller (see MODULE_CALLER).
+    out["lines"] = src_bytes.count(b"\n") + 1
     return out
 
 

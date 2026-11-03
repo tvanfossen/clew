@@ -1738,7 +1738,9 @@ class _CallSiteHarvester(Harvester):
     ## 10: `this.m()` inside a TypeScript mixin class carries the mixin's name as its qualifier;
     ## a payload cached at 9 carries none, and the inherited lookup could never engage.
     ## 11: JS/TS member sites carry whether the receiver is an imported module (8th element).
-    stage_version = 11
+    ## 12: a bash script is no longer mistaken for JavaScript (`is_js_tree` v2), so its payload
+    ## changes path; a payload cached at 11 would keep the JS reading.
+    stage_version = 12
     label = "tree-sitter"
 
     ## @brief Harvest one file's call sites.

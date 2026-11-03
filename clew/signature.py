@@ -246,6 +246,9 @@ from .tiers import OPTIONS_META_PREFIX
 ##     * a typed TS class member (`svc: UserService`, `constructor(private svc: UserService)`)
 ##       is a variable row with its type; a call through one typed as an INTERFACE is a fuzzy edge
 ##       to each implementation — bounded by the declared type, never picking the bound one.
+##     * every JS/TS file has a `__module__` function row spanning it, so a call in module-level
+##       code (HOC wiring, `export default` chains) has a caller instead of being dropped. Found
+##       by the 1.3.0 grid: `observeCanViewArchivedChannels` showed no callers on mattermost.
 ##     * a call site is credited to the INNERMOST function containing it, not the first in list
 ##       order, which was an accident of row order and credited a mixin's calls to its factory.
 CLEW_BUILD_VERSION = 9
