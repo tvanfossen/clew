@@ -171,6 +171,7 @@ from .requirements import (
 )
 from .pydocs import enrich_python_docstrings
 from .rustdoc import run_rustdoc, uses_rustdoc
+from .code_text import record_code_text
 from .generated import record_self_declared
 from .synth import emit_definitions as emit_synth_definitions
 from .synth import register_paths as register_synth_paths
@@ -1885,6 +1886,8 @@ def _doxygen_meta(args) -> dict[str, str]:
     return meta
 
 
+## Version 63: builds the code-text corpus after the self-declared scan.
+##
 ## @brief Run every build stage against one (temp) output DB path.
 ## @param timer Stage timer; one `mark` closes each stage below. A fresh one when omitted.
 ## 59 -> 60: the configuration-default stage joined, directly beside the gates — the two are
@@ -1893,7 +1896,7 @@ def _doxygen_meta(args) -> dict[str, str]:
 ## doxygen failure instead of losing the whole index, and stamps the outcome into diagnostics.
 ## v62: records self-declared generated files after the parse front end, over every indexed
 ## file and not only JS/TS, since the front end returns early on a tree with no JS/TS.
-## @version 62
+## @version 63
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -2056,6 +2059,8 @@ def _build_stages(
     ## OUTSIDE it, because it returns early on a tree with no JS/TS or script file — and a C tree
     ## commits generated files too. Timed with it rather than as a stage of its own.
     record_self_declared(output, repo_root)
+    ## THE CODE-TEXT CORPUS, after every row that names a function body exists.
+    record_code_text(output, repo_root)
     timer.mark("synth_definitions")
     ## gh#18 part 3, and INDEPENDENT of the line above on purpose: a gate on a symbol no
     ## Kconfig declares is dead code behind a symbol nobody can set, which is a finding

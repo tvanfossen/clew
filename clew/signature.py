@@ -251,6 +251,8 @@ from .tiers import OPTIONS_META_PREFIX
 ##       by the 1.3.0 grid: `observeCanViewArchivedChannels` showed no callers on mattermost.
 ##     * a class composed by a heritage call (`extends mix(Base).with(A, B)`) has every argument
 ##       class as a base; mattermost's `ServerDataOperator` recorded none.
+##     * a `code_text` FTS5 table holds every function's body terms (contentless — snippets are
+##       read from the file), behind `search(corpus='code')`. An index without it says so.
 ##     * a call site is credited to the INNERMOST function containing it, not the first in list
 ##       order, which was an accident of row order and credited a mixin's calls to its factory.
 CLEW_BUILD_VERSION = 9
