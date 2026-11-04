@@ -2494,7 +2494,8 @@ class QueryTools:
             Field(
                 description=(
                     "What to read. 'symbols' (default) for functions, variables, macros, types "
-                    "and per-file docs; 'prose' for the repo's markdown, full-text; 'code' for "
+                    "and per-file docs; 'prose' for the repo's markdown and reStructuredText, "
+                    "full-text; 'code' for "
                     "the functions whose BODY contains the words — a literal, a config key, a "
                     "string no symbol is named for. Or enumerate "
                     "a whole layer: 'locks', 'threads', 'files', 'config'. Each row's `kind` is "
