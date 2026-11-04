@@ -123,7 +123,12 @@ _TYPE_FILE = 1
 ## vocabulary string, not ours"). `tests/test_member_kind_parity.py` holds the two
 ## together, because that module is on the READ side and importing it here would stand the
 ## pipeline's layering on its head.
-MEMBER_KIND = {"function": "function", "macro": "macro definition", "variable": "variable"}
+MEMBER_KIND = {
+    "function": "function",
+    "macro": "macro definition",
+    "variable": "variable",
+    "typedef": "typedef",
+}
 
 
 ## Version 2: `stage_version` 2, because a `forwardRef`/`memo`-wrapped component is now a
@@ -136,6 +141,7 @@ MEMBER_KIND = {"function": "function", "macro": "macro definition", "variable": 
 ## Version 7: `stage_version` 7 — typed class members (fields, constructor parameter properties).
 ## Version 8: `stage_version` 8 — the payload carries the file's line count for `__module__`.
 ## Version 9: `stage_version` 9 — a heritage call (`mix(Base).with(A, B)`) contributes its bases.
+## Version 10: `stage_version` 10 — module-level constants and type aliases are definitions.
 ##
 ## @brief Per-file harvester for JS/TS definitions.
 ## @version 9
@@ -148,7 +154,7 @@ class _JsSymbolHarvester(Harvester):
     """
 
     stage = STAGE_JS_SYMBOLS
-    stage_version = 9
+    stage_version = 10
     label = "js/ts definitions"
 
     ## @brief Harvest one file's definitions.

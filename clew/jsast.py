@@ -292,7 +292,7 @@ def _constraint_class(func: Any, type_name: str) -> str:
 ## @param tree Parsed program tree.
 ## @param src_bytes The file's bytes.
 ## @return {"functions": [...], "classes": [...]}, each entry a JSON-safe dict.
-## @version 3
+## @version 4
 ## @req REQ-DDB-PIPE-012
 def harvest_definitions(tree: Any, src_bytes: bytes) -> dict[str, list[dict[str, Any]]]:
     """Positions are 1-based lines and 0-based columns, as doxygen writes them. A doc
@@ -307,11 +307,15 @@ def harvest_definitions(tree: Any, src_bytes: bytes) -> dict[str, list[dict[str,
     spec = LANGUAGE_SPECS["typescript"]
     out: dict[str, list[dict[str, Any]]] = {"functions": [], "classes": [], "variables": []}
     _walk(tree.root_node, spec, None, out)
+    bound = {f["name"] for f in out["functions"] if not f["cls"]}
+    out["variables"].extend(_module_values(tree.root_node, bound))
     ## THE FILE'S LENGTH, so `synth` can write the per-file `__module__` caller (see MODULE_CALLER).
     out["lines"] = src_bytes.count(b"\n") + 1
     return out
 
 
+## Version 4: module-level constants and type aliases are definitions (`_module_values`).
+##
 ## Version 6: imports the shared `_produced_class` from the gate's parser.
 ##
 ## Version 5: collects typed class members for receiver resolution.
@@ -397,6 +401,73 @@ def _typed_members(node: Any, cls: str | None) -> list[dict[str, Any]]:
             if r
         ]
     return []
+
+
+## @brief A file's module-level constants and type aliases, as variable and typedef records.
+## @param root The program node.
+## @param bound Names the file already defines as module-level functions.
+## @return Records; a type alias carries `kind='typedef'`.
+## @version 1
+## @dg_internal
+def _module_values(root: Any, bound: set[str]) -> list[dict[str, Any]]:
+    """WHAT A READER LOOKS UP AND THE INDEX DID NOT HOLD: `export type SearchRef = {...}` and
+    `const WebsocketEvents = {REACTION_ADDED: ...}` were definitive negatives on mattermost-mobile,
+    while a shell agent read both from the file.
+
+    MODULE LEVEL ONLY — a function's locals are its body, which `dossier` returns. A binding whose
+    value is a function is already a function row (`bound`), and a destructuring pattern names no
+    single thing, so neither is written here.
+
+    @brief Harvest module constants and type aliases.
+    @return Records.
+    @version 1
+    """
+    out: list[dict[str, Any]] = []
+    for child in root.children:
+        node = (
+            child.child_by_field_name("declaration") if child.type == "export_statement" else child
+        )
+        if node is None:
+            continue
+        if node.type == "type_alias_declaration":
+            record = _value_binding(node, node.child_by_field_name("name"), "typedef")
+            value = node.child_by_field_name("value")
+            text = _text(value)
+            record["ret"] = text if "\n" not in text else ""
+            out.append(record)
+        elif node.type in ("lexical_declaration", "variable_declaration"):
+            out.extend(
+                _value_binding(node, d.child_by_field_name("name"), "variable", d)
+                for d in node.named_children
+                if d.type == "variable_declarator"
+                and d.child_by_field_name("name") is not None
+                and d.child_by_field_name("name").type == "identifier"
+                and _text(d.child_by_field_name("name")) not in bound
+                and getattr(d.child_by_field_name("value"), "type", "") not in _FUNCTION_VALUES
+            )
+    return out
+
+
+## @brief One module-level binding as a declaration record.
+## @version 1
+## @dg_internal
+def _value_binding(node: Any, name_node: Any, kind: str, declarator: Any = None) -> dict[str, Any]:
+    """@brief A module binding record. @return Record."""
+    annotation = (declarator or node).child_by_field_name("type")
+    line = node.start_point[0] + 1
+    return {
+        "name": _text(name_node),
+        "cls": "",
+        "line": line,
+        "end": node.end_point[0] + 1,
+        "col": node.start_point[1],
+        "args": "",
+        "ret": _text(annotation).lstrip(":").strip(),
+        "static": 0,
+        "doc": "",
+        "decl": True,
+        "kind": kind,
+    }
 
 
 ## @brief One typed member as a variable record, or None when it carries no type.

@@ -3501,6 +3501,9 @@ def test_no_served_text_is_ever_truncated() -> None:
         ("VERBATIM SOURCE", "the fact whose absence sent a session to grep for 20 turns"),
         ("max_body_lines", "how to read past a truncated body"),
         ("USE `search`", "what to do without a name"),
+        ## 1.3.0, FROM THE TS-FIX2 TRANSCRIPTS: an index-only agent read `retryPolicyConfiguration`
+        ## in a body and never followed it to the object that set it — a shell agent grepped.
+        ("corpus='code'", "the route from a key or literal seen in a body to where it is set"),
         ## M9, 1.1.0 SECURITY AUDIT. clew's thesis is putting a third party's prose into a
         ## model's context with authority, so the framing has to be IN the served text, where
         ## the reader is. It is not a filter and `docs/SECURITY.md` says so; it is the one

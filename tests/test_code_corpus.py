@@ -184,3 +184,38 @@ def test_an_inflected_word_finds_its_stem(tmp_path: Path) -> None:
     _run_pipeline(_build_argparser().parse_args(["--output", str(out), "--repo-root", str(repo)]))
     rows = QueryTools(lambda: out, lambda: repo).search("retries", corpus="code")["results"]
     assert rows and rows[0]["name"] == "buildRequestOptions", rows
+
+
+## @brief A dotted query — a member access as the reader saw it — matches, never errors.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_dotted_query_matches_its_parts(tmp_path: Path) -> None:
+    """FROM THE 1.3.0-TS-FIX2 TRANSCRIPTS: `props.failed` and `WebsocketEvents.REACTION_ADDED`
+    raised inside the tool. The tokenizer splits on `.`, so a quoted token became a PHRASE, and a
+    `detail=none` table cannot answer a phrase. A member access is what a reader copies out of a
+    body, across every language (`ssl->state`, `self.config`), so it must match its parts.
+
+    @brief config.retryPolicyConfiguration -> createClient.
+    @return None.
+    @version 1
+    """
+    rows = _tools(tmp_path).search("config.retryPolicyConfiguration", corpus="code")["results"]
+    assert rows and rows[0]["name"] == "createClient", rows
+
+
+## @brief An empty symbol search names the code corpus as where a key or literal lives.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_an_empty_symbol_search_points_at_the_code_corpus(tmp_path: Path) -> None:
+    """FROM THE 1.3.0-TS-FIX2 TRANSCRIPTS: `search("REACTION_ADDED")` — an object property — read
+    "definitive empty" and named only the prose corpus, so agents fell back to reading files.
+
+    @brief The note names corpus='code'.
+    @return None.
+    @version 1
+    """
+    reply = _tools(tmp_path).search("retryLimit")
+    assert reply["count"] == 0, reply
+    assert "corpus='code'" in reply["note"], reply["note"]

@@ -49,6 +49,7 @@ from .models import (
     GenerationArg,
     GenerationRule,
     IndexScope,
+    MergedDeclaration,
     ProseHit,
     ProseSearch,
 )
@@ -1212,11 +1213,13 @@ def _compound_candidates(ranked: list[tuple]) -> list[ClassCandidate]:
     return list(seen.values())[:MAX_CANDIDATES]
 
 
+## Version 5: names the same-name compounds of other kinds it merges with (`merged`).
+##
 ## @brief Look up a class/struct by name, preferring project over STL noise.
 ## @param db Database path or open connection.
 ## @param name Class name, bare or qualified (`PolygonWidget` or `demo::shape::PolygonWidget`).
 ## @return The best-ranked ClassEntry (carrying the rejected candidates), or None when nothing matches.
-## @version 4
+## @version 5
 ## @req REQ-DDB-QUERY-001
 ## @req REQ-DDB-QUERY-010
 def lookup_class(db: DbSource, name: str, repo_root: Path | str | None = None) -> ClassEntry | None:
@@ -1268,7 +1271,40 @@ def lookup_class(db: DbSource, name: str, repo_root: Path | str | None = None) -
             declaration=(
                 None if repo_root is None else compound_declaration(conn, best[0], repo_root)
             ),
+            merged=_merged(conn, ranked, best, repo_root),
         )
+
+
+## @brief The compounds sharing the chosen one's qualified name under another kind.
+## @param conn Open connection.
+## @param ranked Every matching compound row, ranked.
+## @param best The chosen row.
+## @param repo_root Working tree for declaration heads, or None.
+## @return MergedDeclaration rows; empty when nothing merges with the chosen compound.
+## @version 1
+## @dg_internal
+def _merged(
+    conn: sqlite3.Connection, ranked: list[tuple], best: tuple, repo_root: Path | str | None
+) -> list[MergedDeclaration]:
+    """@brief Same-name other-kind compounds. @return Rows."""
+    seen: set[str] = set()
+    out = []
+    for row in ranked:
+        if row[1] != best[1] or row[2] == best[2] or row[2] in seen:
+            continue
+        seen.add(row[2])
+        out.append(
+            MergedDeclaration(
+                kind=row[2],
+                file=row[3],
+                line=row[4] or None,
+                bases=_hierarchy(conn, row[0])[0],
+                declaration=(
+                    None if repo_root is None else compound_declaration(conn, row[0], repo_root)
+                ),
+            )
+        )
+    return out
 
 
 ## Top-level directories listed before the reply says it stopped. Generous because a rollup is a

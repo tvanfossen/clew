@@ -353,10 +353,12 @@ def compound_declaration(
     )
 
 
+## Version 2: counts bracket depth, so a `;` ending a member does not end the statement.
+##
 ## @brief Cut a line window at the first statement terminator.
 ## @param lines The window read from the declaring file.
-## @return The lines up to and including the first one containing a semicolon.
-## @version 1
+## @return The lines up to and including the first `;` (or closing brace) at bracket depth zero.
+## @version 2
 ## @dg_internal
 def _to_terminator(lines: list[str]) -> list[str]:
     """Kept as its own function so the heuristic has ONE name and one place to be wrong
@@ -364,12 +366,26 @@ def _to_terminator(lines: list[str]) -> list[str]:
     ever needs to understand string literals, it changes here and the disclosure keeps
     working unaltered.
 
+    BRACKETS ARE BALANCED FIRST (1.3.0): a `;` inside an open `{`/`(`/`[` ends a member, not
+    the statement. A TypeScript type alias's members each end in `;`, so the first-`;` rule
+    showed one member of mattermost-mobile's `SearchRef`. A statement whose `{`/`[` closes at the
+    END of a line ends there too — a semicolon-free TypeScript file's — but not at a closing `)`,
+    which is where a C function-pointer declarator ends before its `= binding;` line.
+
     @brief Trim a declaration window to its first terminated statement.
     @return The trimmed window; the whole window when no terminator appears.
-    @version 1
+    @version 2
     """
+    depth = 0
+    opened = False
     for i, line in enumerate(lines):
-        if ";" in line:
+        for ch in line:
+            if ch in "{([":
+                depth, opened = depth + 1, True
+            elif ch in "})]":
+                depth -= 1
+        closed = opened and line.rstrip().endswith(("}", "]"))
+        if depth <= 0 and (";" in line or closed):
             return lines[: i + 1]
     return lines
 

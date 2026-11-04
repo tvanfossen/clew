@@ -126,12 +126,17 @@ NOTE_BUDGET = 1200
 ## to 902 bytes against a 900-byte budget that exists because a client truncates a served
 ## string in silence. The room was bought back by compressing prose rather than by raising
 ## the cap: a new corpus is load-bearing content and the adjectives around it were not.
+##
+## THE CODE CORPUS IS NAMED TOO (1.3.0): mattermost-mobile index-only agents searched symbols for
+## `REACTION_ADDED` — an object property — read "definitive empty", and only some went on to the
+## code corpus that held it.
 _SEARCHED = (
     "Searched: names + @brief of "
     + ", ".join(kind for kind, _tier in q.SEARCHED_MEMBERDEF_KINDS)
     + "; macro expansions; class/struct/union; the config symbols this repo gates on; "
     "file docs. NOT searched: markdown or Kconfig prose — that is "
-    "search(corpus='prose'), where a conceptual phrase often lands."
+    "search(corpus='prose'), where a conceptual phrase often lands; function bodies — a "
+    "key, literal or object property — are search(corpus='code')."
 )
 
 ## Said when the index predates the file-level documentation corpus. An absent corpus

@@ -133,6 +133,8 @@ _COMPOUND = re.compile(
     r"[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+|[a-z]+[A-Z][A-Za-z0-9]*|[A-Z][a-z0-9]+[A-Z][A-Za-z0-9]*"
 )
 _PART = re.compile(r"[A-Z]?[a-z0-9]+|[A-Z]+(?![a-z])")
+## One query word, as the tokenizer cuts it: letters, digits, `_` and `$`.
+_QUERY_WORD = re.compile(r"[\w$]+")
 
 
 ## @brief The distinct word parts of every compound identifier in a body.
@@ -160,6 +162,9 @@ def _lines(path: Path) -> list[str] | None:
         return None
 
 
+## Version 3: a query is split into words as the tokenizer splits them, so a dotted member
+## access matches its parts instead of failing as an unsupported phrase.
+##
 ## Version 2: ranks test-scope code last, guarded against a missing `test_scope`.
 ##
 ## @brief Functions whose bodies contain every word, smallest body first; None when no corpus.
@@ -168,7 +173,7 @@ def _lines(path: Path) -> list[str] | None:
 ## @param limit Maximum hits.
 ## @param repo_root Where to read snippet lines from; None leaves snippets empty.
 ## @return Hits, or None when this index has no code corpus.
-## @version 2
+## @version 3
 ## @utility
 def search_code(
     conn: sqlite3.Connection, text: str, limit: int, repo_root: Path | None = None
@@ -189,7 +194,9 @@ def search_code(
     present = conn.execute("SELECT 1 FROM sqlite_master WHERE name = ?", (TABLE,)).fetchone()
     if not present:
         return None
-    tokens = [t for t in text.replace('"', " ").split() if t]
+    ## A MEMBER ACCESS MATCHES ITS PARTS: the tokenizer splits `props.failed` at the dot, so a
+    ## quoted token became a phrase, which a `detail=none` table refuses — inside the tool.
+    tokens = _QUERY_WORD.findall(text)
     if not tokens:
         return []
     query = " AND ".join(f'"{t}"' for t in tokens)

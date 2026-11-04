@@ -738,11 +738,13 @@ def _receiver_class(type_text: str) -> str:
     return "" if words[0] in _NOT_A_CLASS else words[0]
 
 
+## Version 2: a parse-built variable is receiver evidence only as a class member.
+##
 ## @brief Declared types of every member variable, keyed by the variable's own name.
 ## @param conn Open connection to the database being built.
 ## @return Mapping of variable name to the set of class names it may denote; empty when the
 ##         table carries no `type` column.
-## @version 1
+## @version 2
 ## @dg_internal
 def _receiver_types(conn: sqlite3.Connection) -> dict[str, set[str]]:
     """THE RECEIVER'S TYPE IS ALREADY IN THE INDEX, which is the whole basis of this layer.
@@ -757,7 +759,7 @@ def _receiver_types(conn: sqlite3.Connection) -> dict[str, set[str]]:
 
     @brief Index member-variable names to their declared classes.
     @return Name-to-classes mapping.
-    @version 1
+    @version 2
     """
     ## DEGRADES ON A TABLE WITHOUT THE COLUMN rather than raising. A minimal fixture, and any
     ## index predating this layer, has a `memberdef` with no `type` — receiver resolution simply
@@ -766,9 +768,24 @@ def _receiver_types(conn: sqlite3.Connection) -> dict[str, set[str]]:
     columns = {str(row[1]) for row in conn.execute("PRAGMA table_info(memberdef)")}
     if not {"type", "kind", "name"} <= columns:
         return {}
+    ## A PARSE-BUILT VARIABLE COUNTS ONLY AS A CLASS MEMBER. Typing is keyed by the bare member
+    ## name, so a TypeScript module constant — a test file's `const client: Other` — would type
+    ## every `client.x()` in the tree; measured on mattermost-mobile it erased 370 functions'
+    ## refused-site counts. doxygen's rows are unchanged.
+    from .vocabulary import SYMBOL_SOURCE_COLUMN, SYMBOL_SOURCE_PARSE
+
+    member_only = ""
+    has_member = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'member'"
+    ).fetchone()
+    if SYMBOL_SOURCE_COLUMN in columns and has_member:
+        member_only = (
+            f" AND (COALESCE({SYMBOL_SOURCE_COLUMN}, '') <> '{SYMBOL_SOURCE_PARSE}' "
+            "OR rowid IN (SELECT memberdef_rowid FROM member))"
+        )
     types: dict[str, set[str]] = {}
     for name, type_text in conn.execute(
-        "SELECT name, COALESCE(type, '') FROM memberdef WHERE kind = 'variable'"
+        "SELECT name, COALESCE(type, '') FROM memberdef WHERE kind = 'variable'" + member_only
     ):
         klass = _receiver_class(str(type_text))
         if klass:

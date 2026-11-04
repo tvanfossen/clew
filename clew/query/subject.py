@@ -112,13 +112,16 @@ def _is_macro(conn: sqlite3.Connection, name: str) -> bool:
     return bool(macro_definitions_conn(conn, name))
 
 
-## @brief Every `kind='variable'` memberdef row for a name, definition-preferring.
+## Version 3: reads any one memberdef kind, so a typedef shares the variable's machinery.
+##
+## @brief Every memberdef row of one kind (default `variable`) for a name, definition-preferring.
 ## @param conn Open connection.
 ## @param name Bare symbol name.
+## @param kind The memberdef kind to read: `variable` or `typedef`.
 ## @return Rows of (rowid, type, definition, file, line, static, extern, initializer, brief, detail).
-## @version 2
+## @version 3
 ## @dg_internal
-def _variable_rows(conn: sqlite3.Connection, name: str) -> list[tuple]:
+def _variable_rows(conn: sqlite3.Connection, name: str, kind: str = "variable") -> list[tuple]:
     """ORDERED DEFINITION-FIRST, by the same rule `function_candidates` uses and for the
     same reason: an `extern` declaration in a header and the definition in a translation
     unit are one variable seen twice, and the definition is the row that carries the
@@ -168,9 +171,9 @@ def _variable_rows(conn: sqlite3.Connection, name: str) -> list[tuple]:
         f"COALESCE(p.name,''), {line}, {flags['static']}, {flags['extern']}, "
         f"{text['initializer']}, {text['briefdescription']}, {text['detaileddescription']} "
         "FROM memberdef m LEFT JOIN path p ON p.rowid = m.file_id "
-        "WHERE m.name=? AND m.kind='variable' "
+        "WHERE m.name=? AND m.kind=? "
         f"ORDER BY {extern} ASC, {body} DESC, m.rowid",
-        (name,),
+        (name, kind),
     ).fetchall()
 
 
@@ -326,6 +329,7 @@ _PROBES = {
     ),
     "macro": _is_macro,
     "variable": lambda conn, name: bool(_variable_rows(conn, name)),
+    "typedef": lambda conn, name: bool(_variable_rows(conn, name, "typedef")),
     "class": _is_compound,
     "requirement": _is_requirement,
     "lock": _is_lock,
@@ -555,15 +559,19 @@ def _enum_subject(
     )
 
 
-## @brief Build the variable section for a name.
+## Version 2: also builds a typedef's section — a type alias is read exactly as a variable is,
+## by its declared type and the declaration statement at each site.
+##
+## @brief Build the variable (or typedef) section for a name.
 ## @param conn Open connection.
 ## @param name Bare variable name.
 ## @param repo_root Working tree, or None to skip the declaration excerpts.
-## @return The VariableSubject, or None when the name names no variable.
-## @version 1
+## @param kind `variable`, or `typedef`.
+## @return The VariableSubject, or None when the name names no such row.
+## @version 2
 ## @dg_internal
 def _variable_subject(
-    conn: sqlite3.Connection, name: str, repo_root: Path | str | None
+    conn: sqlite3.Connection, name: str, repo_root: Path | str | None, kind: str = "variable"
 ) -> VariableSubject | None:
     """EVERY SITE, not the chosen one. The header's `extern` row and the translation
     unit's definition answer different questions, and on the case this exists for they
@@ -580,7 +588,7 @@ def _variable_subject(
     @return VariableSubject or None.
     @version 1
     """
-    rows = _variable_rows(conn, name)
+    rows = _variable_rows(conn, name, kind)
     if not rows:
         return None
     sites = tuple(
@@ -698,9 +706,11 @@ _KIND_ALIASES: dict[str, tuple[str, ...]] = {
 ##
 ## SAYING "unknown kind" AND STOPPING IS WHAT COST THE ROUND TRIP. A refusal that names the
 ## alternative costs the same message and ends the search.
-_KIND_NO_SUBJECT: dict[str, str] = {
-    "typedef": "a typedef has no dossier — the `search` row already carries all the index holds",
-}
+##
+## `typedef` WAS HERE AND IS NOT ANY MORE (1.3.0), the third time this list shrank: a TypeScript
+## type alias is a typedef row, and "the `search` row already carries all the index holds" was
+## false for every one of them — a search row has no type and no line.
+_KIND_NO_SUBJECT: dict[str, str] = {}
 
 
 ## @brief The chosen subject kind, validated against what the name actually resolves to.
@@ -1278,6 +1288,12 @@ _BUILDERS = {
     "function": lambda ctx: {"function": _dossier_conn(*ctx.function_args)},
     "macro": lambda ctx: {"function": _macro_subject(ctx.conn, ctx.subject)},
     "variable": lambda ctx: {"variable": _variable_subject(ctx.conn, ctx.subject, ctx.repo_root)},
+    ## A TYPEDEF IS READ AS A VARIABLE IS: its type and each declaration statement. Measured on
+    ## mattermost-mobile, `dossier("SearchRef")` was a definitive negative for a 1,341-strong
+    ## kind of TypeScript definition; C typedefs had only a bare search row.
+    "typedef": lambda ctx: {
+        "variable": _variable_subject(ctx.conn, ctx.subject, ctx.repo_root, "typedef")
+    },
     "class": lambda ctx: {"compound": lookup_class(ctx.conn, ctx.subject, ctx.repo_root)},
     "requirement": lambda ctx: {"requirement": req_trace(ctx.conn, ctx.subject)},
     "lock": lambda ctx: {"lock": _lock_subject(ctx.db, ctx.subject)},

@@ -1398,8 +1398,29 @@ class ClassCandidate:
     line: int | None
 
 
+## @brief The other half of a merged declaration: a same-named compound of another kind.
+## @version 1
+@dataclass(frozen=True)
+class MergedDeclaration:
+    """TYPESCRIPT MERGES a class and an interface of one name into one type — the way a
+    mixin-composed class is typed — so a reader asking about the class needs the interface's
+    bases too. Carried on the class entry rather than left as a bare candidate row.
+
+    @brief A merged same-name declaration.
+    @version 1
+    """
+
+    kind: str
+    file: str
+    line: int | None
+    bases: list[str] = field(default_factory=list)
+    declaration: BodyExcerpt | None = None
+
+
+## Version 3: carries `merged`, the same-named compounds of other kinds.
+##
 ## @brief A class/struct with its members and inheritance neighbours.
-## @version 2
+## @version 3
 @dataclass(frozen=True)
 class ClassEntry:
     """One compound definition: identity, declaring file, brief, its members,
@@ -1427,6 +1448,9 @@ class ClassEntry:
     ## where every language states what a class inherits or composes. None when no repository
     ## root was given or the file could not be read.
     declaration: BodyExcerpt | None = None
+    ## THE OTHER DECLARATIONS MERGED UNDER THIS QUALIFIED NAME, of another kind. Empty for every
+    ## language without declaration merging, and for a TypeScript class with no interface twin.
+    merged: list[MergedDeclaration] = field(default_factory=list)
 
 
 ## @brief One annotated hop in a causal chain (a call or key edge).
@@ -2186,6 +2210,9 @@ SUBJECT_KINDS: tuple[str, ...] = (
     "thread",
     "class",
     "variable",
+    ## 1.3.0. Right after `variable`, whose section it shares; a name that is both a type and a
+    ## value (TypeScript allows it) reads as the value first, as a bare name usually means.
+    "typedef",
     ## gh#6. AFTER `variable`, because doxygen files an enum's TYPE as `enumeration` and
     ## nothing else claims that kind — so the order only matters for a name that is both,
     ## and a variable is the commoner reading of a bare name.

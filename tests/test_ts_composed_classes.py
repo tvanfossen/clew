@@ -28,11 +28,15 @@ from clew.cli import _build_argparser, _run_pipeline
 from clew.jsast import harvest_definitions
 from clew.query.corpus import lookup_class
 
+## `AMix`/`BMix` are declared, as a real tree declares each mixin's interface: a base link is
+## only drawn to a compound the index holds.
 _SRC = b"""\
 type Constructor<T> = new (...args: any[]) => T;
 export class Base { batch() { return 1; } }
 export const AHandler = <T extends Constructor<Base>>(s: T) => class extends s { a() { return 1; } };
 export const BHandler = <T extends Constructor<Base>>(s: T) => class extends s { b() { return 2; } };
+export interface AMix { a(): number }
+export interface BMix { b(): number }
 export interface Operator extends AMix, BMix {}
 export class Operator extends mix(Base).with(AHandler, BHandler) { run() { return 3; } }
 """
@@ -96,6 +100,34 @@ def test_a_class_dossier_shows_its_declaration_and_prefers_the_class(tmp_path: P
     assert reply["kind"] == "class", reply.get("kind")
     text = "\n".join(reply["declaration"]["lines"])
     assert "mix(Base).with(AHandler, BHandler)" in text, reply.get("declaration")
+
+
+## @brief A class dossier names its merged same-name interface, with that interface's bases.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_class_dossier_names_its_merged_interface(tmp_path: Path) -> None:
+    """FROM THE 1.3.0-TS-FIX2 TRANSCRIPTS: with the class now chosen, index-only agents still
+    missed that `interface ServerDataOperator extends ...Mix` types the composed class — the
+    interface was one line in `candidates`, with no bases. TypeScript MERGES the two declarations
+    into one type, so the class dossier carries the other half: its kind, line, bases and head.
+
+    @brief Operator's dossier has `merged` = the interface, bases AMix and BMix.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server.tools_query import QueryTools
+
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    (repo / "src/op.ts").write_text(_SRC.decode(), encoding="utf-8")
+    out = tmp_path / "clew.db"
+    _run_pipeline(_build_argparser().parse_args(["--output", str(out), "--repo-root", str(repo)]))
+    reply = QueryTools(lambda: out, lambda: repo).dossier("Operator")
+    merged = reply.get("merged")
+    assert merged and merged[0]["kind"] == "interface", reply
+    assert merged[0]["bases"] == ["src::op::AMix", "src::op::BMix"], merged
+    assert "extends AMix, BMix" in "\n".join(merged[0]["declaration"]["lines"]), merged
 
 
 ## @brief A Python class dossier carries its `class X(Base):` line too.

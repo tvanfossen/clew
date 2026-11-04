@@ -1163,6 +1163,9 @@ _DOSSIER_LISTS = (
     ## trim drops alternate profiles and keeps the row that answers "what does the default build
     ## do". Reordering that sort would make this budget lossy in the one way that matters.
     "config_defaults",
+    ## 1.3.0. A class's merged same-name declarations: one in practice (a TypeScript interface
+    ## twin), but each row is independent, so a trim drops whole declarations, never half of one.
+    "merged",
     ## gh#372 — the lists the NON-FUNCTION subject kinds contribute. A key that is not in
     ## this tuple is a list nothing can trim, so a subject kind added without its lists
     ## reintroduces the unbounded payload one kind at a time. Named here rather than
