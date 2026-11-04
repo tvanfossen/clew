@@ -78,7 +78,7 @@ layers and then report success.
 | Layer | Answers |
 |---|---|
 | Structure | "what is this symbol?" — doxygen symbol tables, briefs, extents |
-| Prose | "*why* does this subsystem exist?" — README/docs markdown, FTS5-indexed |
+| Prose | "*why* does this subsystem exist?" — README/docs markdown and reStructuredText, FTS5-indexed |
 | Call graph | "who calls this, and how sure are we?" — doxygen ×2 + tree-sitter, every edge carrying `source` + `confidence` |
 | Callbacks | "who reaches it through a function pointer?" — registration→dispatch resolution |
 | Shared-key dataflow | "writing this key affects whom?" — data-model / queue edges the call graph cannot see |

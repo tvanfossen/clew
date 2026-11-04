@@ -2416,7 +2416,7 @@ class QueryTools:
             Field(
                 description=(
                     "What to read. 'symbols' (default) for functions, variables, macros, types "
-                    "and per-file docs; 'prose' for the repo's markdown, full-text. Or enumerate "
+                    "and per-file docs; 'prose' for the repo's markdown and reStructuredText, full-text. Or enumerate "
                     "a whole layer: 'locks', 'threads', 'files', 'config'. Each row's `kind` is "
                     "what you pass to dossier verbatim."
                 )
