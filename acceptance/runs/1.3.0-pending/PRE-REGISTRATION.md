@@ -175,3 +175,40 @@ that re-asked only errored samples (errors are never cached, so successes replay
 **Grading will be paced across usage windows.** One grid's judging (~3,900 real k=3 samples)
 does not fit a single window; each grading pass starts after a confirmed reset, with repair passes
 between, until the judge error rate is under 2%. Every repair pass is disclosed in RESULTS.md.
+
+## Addendum 2, 2026-11-04 — written before the second re-run, after the gate was NOT met
+
+**The grid at `2697f35` was graded, analysed and published in this directory** (`b004e42`): the
+pre-registered gate was NOT met (held-16 `index_only` −0.38 against the comparator's −0.05;
+mattermost-mobile `index_only` −10.26). The owner ruled the release would not ship on it, and
+rescoped 1.3.0 to TypeScript quality, then to the open issues and pull requests. That result stays
+here, unaltered. **The second re-run writes to its own directory**, so the two are never mixed.
+
+**What changed in the tool since `2697f35`**, each recorded in its commit with its measurement:
+
+| commit | change | can move the held 16? |
+|---|---|---|
+| `4206fb4` | module-level JS/TS code has a caller, the file's `__module__`; `is_js_tree` no longer reads bash as JS | no (parse-built only) |
+| `0b1a40b` | depth-1 `max_neighbors` cap (default 25), disclosed | **yes** — reply shape, every language |
+| `b9d8b9f` | heritage-call bases (`mix(A).with(B)`); candidates keyed by (name, kind) | no |
+| `dfc14ff` `41d2337` | `search(corpus='code')`: full-text over function bodies, identifier parts, stemming, test code last | **yes** — a new corpus on every target |
+| `0b18ed7` | a class dossier carries its declaration head; a class outranks a same-name interface | **yes** — class replies, every language |
+| `cc86524` | TS type aliases and module constants are definitions; `typedef` is a dossier subject; a class names its merged interface; dotted code queries split; empty-search note and server instructions name the code corpus; bracket-aware declaration excerpts | **yes** — `typedef` subject and excerpts are cross-language |
+| `07fce31` | binding extents (`decl_extent`), untyped class fields, signature candidate lines | no |
+| `67ea6c3` | guard `#ifdef` duplicates (#63), hygiene in worktrees (#64), no `/tmp` leak | no (gate, not index) |
+| `092bfe5` (PR #59) | a bare C call to a declared-and-defined function resolves to the pair | **yes** — mbedtls call edges 6,212 → 10,642 with `aa982ce` |
+| `aa982ce` | an error-recovered C definition ends where its braces close; no keyword is a function (#62) | **yes** — mbedtls: 10 `if` rows → 0, three swallowed functions recovered |
+| `2f56bb8` (PR #65) | lang-parsing-substrate 0.12 → 0.17; reStructuredText is prose | **yes** — the parser under every language |
+| `65db819` (PR #60) | GitHub Actions versions | no (CI only) |
+| `3d3bb8e` | a requirement's dossier lists every indexed line naming it (`mentioned_in`) | **yes** — the self target's requirements |
+
+**The held-16 delta therefore measures more than TypeScript work.** Several changes reach C, C++
+and Python indexes and replies; the largest single movement is mbedtls's call graph. The delta is
+read against all of them, and no part of it is attributed to one change.
+
+**Unchanged:** the rubrics, the grader (`72a6c7bd363d`, frozen), the judge and answering models,
+the seed, the replicate count, Decisions A and B, and the comparator (`regrade-1.2.0/`, this
+directory).
+
+**Disk.** Each judge call persists a CLI session transcript (KNOWN-DEFECTS 4); 48,412 of them
+filled the machine's disk once. `scripts/prune_judge_sessions.py` runs after every grading pass.
