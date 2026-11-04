@@ -297,3 +297,35 @@ def mattermost_db(mattermost_checkout: Path, tmp_path_factory: pytest.TempPathFa
     args.no_index_cache = True
     _run_pipeline(args)
     return out
+
+
+## A held C acceptance target. URL and pin READ FROM ITS RUBRIC, as mattermost's are.
+MBEDTLS_RUBRIC = REPO_ROOT / "acceptance/targets/mbedtls/questions.yaml"
+
+
+## @brief A read-only checkout of mbedtls at its rubric's pinned commit.
+## @param tmp_path_factory pytest's session-scoped temp directory factory.
+## @return Path to the checkout.
+## @version 1
+@pytest.fixture(scope="session")
+def mbedtls_checkout(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Fetched exactly as `mattermost_checkout` is: one commit by SHA, refusing anything else.
+
+    @brief Fetch the pinned C target once per session.
+    @version 1
+    """
+    import yaml
+
+    rubric = yaml.safe_load(MBEDTLS_RUBRIC.read_text(encoding="utf-8"))
+    sha = rubric["commit"]
+    root = tmp_path_factory.mktemp("mbedtls-pinned")
+    _git(root, "init", "--quiet", ".")
+    _git(root, "remote", "add", "origin", f"https://github.com/{rubric['target']}.git")
+    _git(root, "fetch", "--quiet", "--depth", "1", "origin", sha)
+    _git(root, "checkout", "--quiet", "FETCH_HEAD")
+    head = _git(root, "rev-parse", "HEAD").strip()
+    if head != sha:
+        raise CloneUnavailableError(
+            f"fetched {head} but the rubric pins {sha} — refusing to test an unpinned tree"
+        )
+    return root
