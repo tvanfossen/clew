@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import logging
+import difflib
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -364,13 +365,60 @@ def check_req_coverage(
 #  function whose signature itself changed since HEAD is treated as new (no match found)
 #  rather than matched to a differently-shaped prior version — the same "skip if absent"
 #  behaviour as a genuinely new function.
-#  @version 2.0
+#
+#  Version 3.0 (gh#63): a LIST per key, in file order. One file can define the same function
+#  twice under exclusive `#ifdef`/`#else` branches; a dict kept only the last copy, so every
+#  earlier copy was compared with it — a false "body changed" on a byte-identical file, and a
+#  missed unbumped edit when the copies carried different versions.
+#  @version 3.0
 #  @dg_internal
-#  @return Mapping from (enclosing_class, name, signature) to the HEAD-side Function
+#  @return Mapping from (enclosing_class, name, signature) to that identity's Functions, in order
 def _index_by_identity(
     functions: list[Function],
-) -> dict[tuple[str | None, str, str], Function]:
-    return {(f.enclosing_class, f.name, f.signature): f for f in functions}
+) -> dict[tuple[str | None, str, str], list[Function]]:
+    index: dict[tuple[str | None, str, str], list[Function]] = {}
+    for f in functions:
+        index.setdefault((f.enclosing_class, f.name, f.signature), []).append(f)
+    return index
+
+
+## @brief Pair one identity's current copies with its HEAD copies.
+#  @details Copies are paired BY OCCURRENCE when both sides hold the same number — `#ifdef`
+#  branches are rarely reordered. When a copy was added or removed, identical bodies pair first,
+#  then the remaining copies by body similarity; a current copy left with no HEAD copy is new.
+#  @version 1.0
+#  @dg_internal
+#  @return Mapping from id(current Function) to its HEAD Function, absent when it is new
+def _pair_copies(
+    current: list[Function], head: list[Function], ctx: VersionCheckContext
+) -> dict[int, Function]:
+    if len(current) == len(head):
+        return {id(c): h for c, h in zip(current, head)}
+    pairs: dict[int, Function] = {}
+    free = list(head)
+    for func in current:
+        text = _body_text(func, ctx.lines)
+        same = next((h for h in free if _body_text(h, ctx.head_lines) == text), None)
+        if same is not None:
+            pairs[id(func)] = same
+            free.remove(same)
+    for func in (c for c in current if id(c) not in pairs):
+        if not free:
+            break
+        best = max(free, key=lambda h, f=func: _similarity(f, h, ctx))
+        pairs[id(func)] = best
+        free.remove(best)
+    return pairs
+
+
+## @brief Body-text similarity of a current copy to a HEAD copy.
+#  @version 1.0
+#  @dg_internal
+#  @return Ratio in [0, 1]
+def _similarity(func: Function, head: Function, ctx: VersionCheckContext) -> float:
+    return difflib.SequenceMatcher(
+        None, _body_text(func, ctx.lines), _body_text(head, ctx.head_lines)
+    ).ratio()
 
 
 ## @brief Extract a function's definition-through-body source text.
@@ -451,7 +499,10 @@ def _check_one_version(
 #  when a version value is textually common (e.g. "1.0") — the differ can pair it as
 #  unchanged context even for a brand-new function, producing false positives, and can
 #  leave a genuinely changed body's version line out of a hunk, producing false negatives.
-#  @version 2.1
+#
+#  Version 2.2 (gh#63): a same-identity duplicate (`#ifdef`/`#else` copies) is paired with its
+#  own HEAD copy via `_pair_copies`, not with whichever copy was parsed last.
+#  @version 2.2
 #  @req REQ-DDB-GUARD-002
 #  @return Violations for functions whose body changed since HEAD without a version bump
 def check_version_staleness(
@@ -481,11 +532,15 @@ def check_version_staleness(
         head_lines=head_content.splitlines(),
     )
     head_index = _index_by_identity(head_functions)
+    current_index = _index_by_identity(functions)
+
+    paired: dict[int, Function] = {}
+    for key, copies in current_index.items():
+        paired.update(_pair_copies(copies, head_index.get(key, []), ctx))
 
     violations: list[Violation] = []
     for func in functions:
-        head_func = head_index.get((func.enclosing_class, func.name, func.signature))
-        violation = _check_one_version(func, head_func, ctx)
+        violation = _check_one_version(func, paired.get(id(func)), ctx)
         if violation is not None:
             violations.append(violation)
 

@@ -25,3 +25,13 @@ the instrument should move judging to its own quota.
 The token reductions here reproduce 1.2.0's published −38.2% / −53.4% exactly by summing cells.
 1.2.0's published wall figure (−41.7%) does not reproduce that way (−37.7%), so its method is
 unrecorded. Wall time is omitted from this run's headline for that reason.
+
+## 4. Judge calls persist a CLI session each (found 2026-11-04)
+
+Every `claude -p` judge call is saved as a session transcript under
+`~/.claude/projects/<cwd slug>/`; nothing reads them, since verdicts are cached in each run's
+`judge-cache`. 48,412 had accumulated (14.9 GB) and filled the machine's disk. The fix is
+`--no-session-persistence` on the judge's argv, but `acceptance/grader/` is frozen at the
+pre-registered fingerprint `72a6c7bd363d` for this grid, and the fingerprint hashes the grader's
+source. Until the next release unfreezes it, run `scripts/prune_judge_sessions.py` after each
+grading pass.

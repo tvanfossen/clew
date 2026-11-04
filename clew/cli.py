@@ -1700,7 +1700,8 @@ def _is_rust_only_repo(repo_root: Path) -> bool:
 ## @return Path to the doxygen SQLite output (cached or freshly generated).
 ## v13: the skip path records `doxygen_status = skipped` on args, so the stamp can tell
 ## "skipped, no C here" from "ran" and from "failed" — before, skipping was an INFO line only.
-## @version 13
+## v14: the empty stand-in database is written beside the index, not into a leaked `mkdtemp`.
+## @version 14
 ## @dg_internal
 def _doxygen_stage(
     doxyfile: Path,
@@ -1776,7 +1777,7 @@ def _doxygen_stage(
             len(in_scope),
         )
         args.doxygen_status = DOXYGEN_SKIPPED
-        return _empty_doxygen_database()
+        return _empty_doxygen_database(args)
     if cache is None:
         return _run_doxygen_from_args(doxyfile, args, predefined)
     summary = cache.scan(in_scope)
@@ -1829,7 +1830,8 @@ DOXYGEN_FAILED = "failed"
 ## @param preprocessor Preprocessor configuration.
 ## @param timer Stage timer.
 ## @return A doxygen-schema database: real, or empty when doxygen did not run or failed.
-## @version 1
+## Version 2: the empty stand-in database is written beside the index, not into a leaked `mkdtemp`.
+## @version 2
 ## @dg_internal
 def _doxygen_or_partial(doxyfile, repo_root, args, cache, preprocessor, timer) -> Path:
     """ONE DOXYGEN CRASH USED TO COST THE WHOLE INDEX. `run_doxygen` exited the process, so a
@@ -1861,7 +1863,7 @@ def _doxygen_or_partial(doxyfile, repo_root, args, cache, preprocessor, timer) -
         )
         args.doxygen_status = DOXYGEN_FAILED
         args.doxygen_reason = exc.reason
-        return _empty_doxygen_database()
+        return _empty_doxygen_database(args)
 
 
 ## @brief The doxygen facts to stamp, or nothing when this build has no doxygen stage.
@@ -2506,17 +2508,29 @@ def _doxygen_has_source(in_scope: dict[str, Path]) -> bool:
     )
 
 
+## Version 2: written into the build's own doxygen scratch directory, not a fresh `mkdtemp`.
+##
 ## @brief A fresh, empty database carrying doxygen's schema, standing in for its output.
+## @param args Parsed build arguments; they locate the build's doxygen scratch directory.
 ## @return Path to the database.
-## @version 1
+## @version 2
 ## @dg_internal
-def _empty_doxygen_database() -> Path:
-    """@brief Doxygen's schema with no rows, for a build doxygen has nothing to add to."""
-    import tempfile
+def _empty_doxygen_database(args: argparse.Namespace) -> Path:
+    """IN THE BUILD'S OWN SCRATCH DIRECTORY, beside the index, and replaced each build. It was a
+    `mkdtemp` nothing removed: one directory per TypeScript build and per test that ran one, and
+    1,649 of them were in `/tmp` when the owner's disk filled. Its own file name, so it never
+    overwrites a real doxygen output a warm cache may still serve.
 
+    @brief Doxygen's schema with no rows, for a build doxygen has nothing to add to.
+    @return Path to the database.
+    @version 2
+    """
     from .rustdoc import create_doxygen_schema
 
-    path = Path(tempfile.mkdtemp(prefix="clew-nodoxygen-")) / "doxygen_sqlite3.db"
+    out = _doxygen_out_dir(args)
+    out.mkdir(parents=True, exist_ok=True)
+    path = out / "nodoxygen_sqlite3.db"
+    path.unlink(missing_ok=True)
     create_doxygen_schema(path).close()
     return path
 

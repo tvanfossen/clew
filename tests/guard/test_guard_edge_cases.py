@@ -457,3 +457,71 @@ class TestTypedefReturnsAndMacroQualifiers:
         functions = parse_c(content)
         assert len(functions) == 1
         assert functions[0].name == "create_node"
+
+
+def _copy(guard: str, version: str, body: str) -> str:
+    """One `get_status` definition under a preprocessor guard line."""
+    return (
+        f"{guard}\n/**\n * @brief Report status.\n * @version {version}\n * @return code\n */\n"
+        f"int get_status(int *old)\n{{\n    {body}\n}}\n"
+    )
+
+
+def _stale(head: str, current: str) -> list:
+    """Run the staleness check of `current` against `head` as C."""
+    return check_version_staleness(
+        parse_c(current), "a.c", CONFIG_DEFAULTS, current, parse_c(head), head
+    )
+
+
+class TestPreprocessorDuplicates:
+    """gh#63: a function defined twice under exclusive `#ifdef` branches is TWO definitions.
+
+    The HEAD index was a dict keyed by (class, name, signature), so the last copy won and every
+    earlier copy was compared against it: a false "body changed" on a byte-identical file, and a
+    missed unbumped edit when the copies carry different versions.
+    """
+
+    _BOTH = (
+        _copy("#ifdef FEATURE_X", "1", "return *old + 1;")
+        + _copy("#else", "1", "return *old + 2;")
+        + "#endif\n"
+    )
+
+    def test_unchanged_ifdef_else_duplicate_is_clean(self):
+        assert _stale(self._BOTH, self._BOTH) == []
+
+    def test_unchanged_separate_ifdef_blocks_are_clean(self):
+        src = (
+            _copy("#ifdef A", "1", "return 1;")
+            + "#endif\n"
+            + _copy("#ifdef B", "1", "return 2;")
+            + "#endif\n"
+        )
+        assert _stale(src, src) == []
+
+    def test_first_copy_edited_without_bump_differing_versions_is_flagged(self):
+        head = _copy("#ifdef X", "1", "return 1;") + _copy("#else", "2", "return 2;") + "#endif\n"
+        current = head.replace("return 1;", "return 99;")
+        violations = _stale(head, current)
+        assert len(violations) == 1 and violations[0].line == 7, violations
+
+    def test_second_copy_edited_without_bump_is_flagged_alone(self):
+        current = self._BOTH.replace("return *old + 2;", "return *old + 3;")
+        violations = _stale(self._BOTH, current)
+        assert len(violations) == 1 and violations[0].line == 17, violations
+
+    def test_first_copy_edited_with_bump_is_clean(self):
+        current = self._BOTH.replace("return *old + 1;", "return 9;").replace(
+            " * @version 1\n", " * @version 2\n", 1
+        )
+        assert _stale(self._BOTH, current) == []
+
+    def test_added_copy_leaves_existing_copies_clean(self):
+        head = _copy("#ifdef X", "1", "return 1;") + "#endif\n"
+        current = head + _copy("#ifdef Y", "1", "return 5;") + "#endif\n"
+        assert _stale(head, current) == []
+
+    def test_removed_copy_leaves_remaining_copy_clean(self):
+        current = _copy("#ifdef FEATURE_X", "1", "return *old + 1;") + "#endif\n"
+        assert _stale(self._BOTH, current) == []

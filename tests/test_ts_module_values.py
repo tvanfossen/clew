@@ -224,3 +224,26 @@ def test_a_constant_excerpt_covers_its_recorded_extent(tmp_path: Path) -> None:
     site = _extent_tools(tmp_path).dossier("Events")["sites"][0]["declaration"]
     assert site["lines"][-1] == "};" and site["truncated"] is False, site
     assert len(site["lines"]) == 14, site
+
+
+## @brief A build with nothing for doxygen leaves nothing behind in the system temp directory.
+## @param tmp_path Pytest temporary directory.
+## @param monkeypatch Pytest monkeypatch fixture.
+## @return None.
+## @version 1
+def test_a_doxygen_less_build_leaves_no_temp_directory(tmp_path: Path, monkeypatch) -> None:
+    """FOUND WHEN THE OWNER'S DISK FILLED: 1,649 `clew-nodoxygen-*` directories in `/tmp`, one per
+    TypeScript build and per test that builds one, each made by `mkdtemp` and never removed. The
+    stand-in database belongs in the build's own doxygen scratch directory, beside the index.
+
+    @brief No clew-nodoxygen-* directory is created.
+    @return None.
+    @version 1
+    """
+    import tempfile
+
+    scratch = tmp_path / "systemp"
+    scratch.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(scratch))
+    _tools(tmp_path)
+    assert not list(scratch.glob("clew-nodoxygen-*")), list(scratch.iterdir())

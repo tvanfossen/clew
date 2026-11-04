@@ -132,22 +132,37 @@ def untracked_but_covered(repo: Path) -> list[str]:
 
 
 ##
+# Version 2 (gh#64): the hooks directory is git's answer (`rev-parse --git-path hooks`), so a
+# linked worktree and `core.hooksPath` are found where git actually runs the hook from.
+#
 # @brief Report whether pre-commit's own commit-time hook is installed.
 # @param repo Repository root.
-# @return True when `.git/hooks/pre-commit` is pre-commit's generated hook.
-# @version 1
+# @return True when git's hooks directory holds pre-commit's generated hook.
+# @version 2
 def commit_hook_installed(repo: Path) -> bool:
-    """Asks about CONTENT, not existence — see `_PRE_COMMIT_MARKERS`. A worktree's `.git` is a
-    file pointing elsewhere rather than a directory, in which case the hook path cannot be
-    resolved this way and the honest answer is False: not "no hook", but "this check cannot
-    confirm one", and the two agree on the action.
+    """Asks about CONTENT, not existence — see `_PRE_COMMIT_MARKERS`.
+
+    THE PATH IS ASKED OF GIT. It used to be built as `.git/hooks/pre-commit`, and in a linked
+    worktree `.git` is a FILE: the check failed even after `pre-commit install` — the remedy it
+    printed — had written the hook to git's common directory, so every commit from a worktree
+    failed. `git rev-parse --git-path hooks` follows the worktree to the common directory and
+    honours `core.hooksPath`. When git cannot answer, the answer is False: "cannot confirm".
 
     @brief Is pre-commit's hook installed.
     @param repo Repository root.
     @return True when it is.
-    @version 1
+    @version 2
     """
-    hook = repo / ".git" / "hooks" / "pre-commit"
+    result = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "--git-path", "hooks"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        return False
+    hooks = Path(result.stdout.strip())
+    hook = (hooks if hooks.is_absolute() else repo / hooks) / "pre-commit"
     if not hook.is_file():
         return False
     text = hook.read_text("utf-8", errors="replace")
