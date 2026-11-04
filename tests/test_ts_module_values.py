@@ -131,3 +131,96 @@ def test_a_typed_module_constant_does_not_type_another_files_receiver(tmp_path: 
         "m.rowid IN (SELECT callee_rowid FROM call_edges))"
     ).fetchall()
     assert rows, "the client.getRoute() site was dropped by an unrelated module constant's type"
+
+
+## @brief An interface signature candidate reports its own line, never the bodiless sentinel.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_signature_candidate_reports_its_line(tmp_path: Path) -> None:
+    """FROM THE 1.3.0-TS-FIX2 TRANSCRIPTS: every `dossier("createPost")` listed
+    `ClientPostsMix.createPost` with `line_start: -1` — the `bodystart` a bodiless signature row
+    is written with, leaking onto the wire as if it were a line. A declaration reports where it is
+    declared.
+
+    @brief The signature's candidate line is its declaration line.
+    @return None.
+    @version 1
+    """
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    (repo / "src/posts.ts").write_text(
+        "export interface PostsMix {\n    createPost: (p: string) => number;\n}\n"
+        "export function createPost(p: string) { return 1; }\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "clew.db"
+    _run_pipeline(_build_argparser().parse_args(["--output", str(out), "--repo-root", str(repo)]))
+    reply = QueryTools(lambda: out, lambda: repo).dossier("createPost")
+    lines = {c["qualified"]: c["line_start"] for c in reply["candidates"]}
+    assert lines.get("src.posts.PostsMix.createPost") == 2, reply["candidates"]
+
+
+_EVENTS = "export const Events = {\n" + "".join(f"    E{i}: 'e{i}',\n" for i in range(12)) + "};\n"
+_MANAGER = """\
+export class Manager {
+    private DEFAULT_CONFIG = {
+        retryPolicyConfiguration: {retryLimit: 3},
+    };
+    run() { return 1; }
+}
+"""
+
+
+## @brief Build a fixture of a long constants object and a class with an untyped config field.
+## @param tmp_path Pytest temporary directory.
+## @return QueryTools.
+## @version 1
+def _extent_tools(tmp_path: Path) -> QueryTools:
+    """@brief Build. @return Tools."""
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    (repo / "src/events.ts").write_text(_EVENTS, encoding="utf-8")
+    (repo / "src/manager.ts").write_text(_MANAGER, encoding="utf-8")
+    out = tmp_path / "clew.db"
+    _run_pipeline(_build_argparser().parse_args(["--output", str(out), "--repo-root", str(repo)]))
+    return QueryTools(lambda: out, lambda: repo)
+
+
+## @brief A code hit inside a constant or a class field names that binding, not `__module__`.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_code_hit_inside_a_binding_names_the_binding(tmp_path: Path) -> None:
+    """FROM THE 1.3.0-TS-FIX2 TRANSCRIPTS: `retryPolicyConfiguration` in mattermost's
+    `NetworkManagerSingleton.DEFAULT_CONFIG` came back as `network_manager.__module__`, a whole
+    file, so an agent had nothing to hand to `dossier` but the file.
+
+    @brief E7 -> Events; retryLimit -> DEFAULT_CONFIG (an UNTYPED field, which was not indexed).
+    @return None.
+    @version 1
+    """
+    tools = _extent_tools(tmp_path)
+    hit = tools.search("E7", corpus="code")["results"][0]
+    assert (hit["name"], hit["kind"]) == ("Events", "variable"), hit
+    hit = tools.search("retryLimit", corpus="code")["results"][0]
+    assert (hit["name"], hit["kind"]) == ("DEFAULT_CONFIG", "variable"), hit
+    assert tools.dossier("DEFAULT_CONFIG").get("subject_kind") == "variable"
+
+
+## @brief A constant's declaration excerpt is its whole statement, as recorded, not 8 lines.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_constant_excerpt_covers_its_recorded_extent(tmp_path: Path) -> None:
+    """FROM THE SAME RUN: `WebsocketEvents` came back truncated at eight lines — the cap that
+    bounds a GUESSED statement end. A parse-built binding's end is known, so the excerpt reads to
+    it under the ordinary body cap.
+
+    @brief Events' excerpt ends with `};` and is not truncated.
+    @return None.
+    @version 1
+    """
+    site = _extent_tools(tmp_path).dossier("Events")["sites"][0]["declaration"]
+    assert site["lines"][-1] == "};" and site["truncated"] is False, site
+    assert len(site["lines"]) == 14, site

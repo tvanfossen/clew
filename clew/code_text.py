@@ -33,6 +33,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .jsast import MODULE_CALLER
+from .synth import DECL_EXTENT
 
 ## The FTS5 table, and its tokenizer: identifiers keep `_` and `$`.
 TABLE = "code_text"
@@ -61,13 +62,14 @@ class CodeHit:
     snippet: str
 
 
+## Version 3: indexes parse-built constants and typedefs by their recorded extent.
 ## Version 2: indexes each compound identifier's parts too.
 ##
 ## @brief Rebuild the code-text corpus from the index's function rows and the source files.
 ## @param db_path The database under construction.
 ## @param repo_root Repository root the indexed paths are relative to.
 ## @return Number of function bodies indexed.
-## @version 2
+## @version 3
 ## @utility
 def record_code_text(db_path: Path, repo_root: Path) -> int:
     """READS EACH FILE ONCE, however many functions it holds, and indexes each function's own
@@ -90,7 +92,7 @@ def record_code_text(db_path: Path, repo_root: Path) -> int:
             "JOIN path p ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) "
             "WHERE m.kind = 'function' AND m.bodystart > 0 AND m.bodyend >= m.bodystart "
             "ORDER BY p.name"
-        ).fetchall()
+        ).fetchall() + _binding_rows(conn)
         lines_of: dict[str, list[str] | None] = {}
         covered: dict[str, set[int]] = {}
         for _rowid, rel, start, end, name in rows:
@@ -120,6 +122,35 @@ def record_code_text(db_path: Path, repo_root: Path) -> int:
         return len(batch)
     finally:
         conn.close()
+
+
+## @brief Parse-built constants and typedefs with a recorded extent, as corpus rows.
+## @param conn Open connection.
+## @return (rowid, path, first line, last line, name) rows; empty without `decl_extent`.
+## @version 1
+## @dg_internal
+def _binding_rows(conn: sqlite3.Connection) -> list[tuple]:
+    """A HIT INSIDE A CONSTANT NAMES THE CONSTANT: mattermost's retry policy sits in the class
+    field `DEFAULT_CONFIG`, and the corpus answered with the whole file's `__module__`.
+
+    @brief Binding rows.
+    @return Rows.
+    """
+    if not _has_table(conn, DECL_EXTENT):
+        return []
+    return conn.execute(
+        "SELECT m.rowid, p.name, m.line, e.end_line, m.name FROM memberdef m "
+        f"JOIN {DECL_EXTENT} e ON e.memberdef_rowid = m.rowid "
+        "JOIN path p ON p.rowid = m.file_id WHERE m.line > 0 AND e.end_line >= m.line"
+    ).fetchall()
+
+
+## @brief Whether a table exists.
+## @version 1
+## @dg_internal
+def _has_table(conn: sqlite3.Connection, name: str) -> bool:
+    """@brief Table presence. @return True when present."""
+    return bool(conn.execute("SELECT 1 FROM sqlite_master WHERE name = ?", (name,)).fetchone())
 
 
 ## TEST CODE RANKS LAST: production code is what a reader asks about, and the e2e helper named
@@ -162,6 +193,7 @@ def _lines(path: Path) -> list[str] | None:
         return None
 
 
+## Version 4: a binding's span is its declaration line through its recorded extent.
 ## Version 3: a query is split into words as the tokenizer splits them, so a dotted member
 ## access matches its parts instead of failing as an unsupported phrase.
 ##
@@ -173,7 +205,7 @@ def _lines(path: Path) -> list[str] | None:
 ## @param limit Maximum hits.
 ## @param repo_root Where to read snippet lines from; None leaves snippets empty.
 ## @return Hits, or None when this index has no code corpus.
-## @version 3
+## @version 4
 ## @utility
 def search_code(
     conn: sqlite3.Connection, text: str, limit: int, repo_root: Path | None = None
@@ -191,8 +223,7 @@ def search_code(
     @return Hits or None.
     @version 1
     """
-    present = conn.execute("SELECT 1 FROM sqlite_master WHERE name = ?", (TABLE,)).fetchone()
-    if not present:
+    if not _has_table(conn, TABLE):
         return None
     ## A MEMBER ACCESS MATCHES ITS PARTS: the tokenizer splits `props.failed` at the dot, so a
     ## quoted token became a phrase, which a `detail=none` table refuses — inside the tool.
@@ -200,13 +231,18 @@ def search_code(
     if not tokens:
         return []
     query = " AND ".join(f'"{t}"' for t in tokens)
-    has_scope = conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'test_scope'").fetchone()
-    order = "(m.bodyend - m.bodystart)"
-    if has_scope:
+    ## A BINDING'S SPAN is its declaration line through its recorded end; a function's is its body.
+    start, end, extent = "m.bodystart", "m.bodyend", ""
+    if _has_table(conn, DECL_EXTENT):
+        start = "(CASE WHEN m.bodystart > 0 THEN m.bodystart ELSE m.line END)"
+        end = "COALESCE(e.end_line, m.bodyend)"
+        extent = f"LEFT JOIN {DECL_EXTENT} e ON e.memberdef_rowid = m.rowid "
+    order = f"({end} - {start})"
+    if _has_table(conn, "test_scope"):
         order = f"{_TEST_LAST}, {order}"
     rows = conn.execute(
-        "SELECT m.name, m.definition, m.kind, p.name, m.bodystart, m.bodyend "
-        f"FROM {TABLE} JOIN memberdef m ON m.rowid = {TABLE}.rowid "
+        f"SELECT m.name, m.definition, m.kind, p.name, {start}, {end} "
+        f"FROM {TABLE} JOIN memberdef m ON m.rowid = {TABLE}.rowid {extent}"
         "JOIN path p ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) "
         f"WHERE {TABLE} MATCH ? ORDER BY {order} LIMIT ?",
         (query, max(1, limit)),

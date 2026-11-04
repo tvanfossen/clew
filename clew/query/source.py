@@ -28,6 +28,7 @@ from ._common import (
     function_candidates,
     is_overloaded,
     symbol_provenance,
+    table_exists,
 )
 from .models import BodyExcerpt, SourceListing
 
@@ -246,13 +247,15 @@ def body_excerpt(
 DECLARATION_MAX_LINES = 8
 
 
+## Version 2: a declaration whose end the build recorded is read to that end, under the body cap.
+##
 ## @brief A bounded excerpt of the SOURCE LINE a symbol is declared on.
 ## @param conn Open connection to the index.
 ## @param rowid The memberdef rowid whose declaration site to read.
 ## @param repo_root Working-tree root the recorded paths are relative to.
 ## @param max_lines Cap on the lines carried back.
 ## @return BodyExcerpt covering the declaration statement, or None when it cannot be read.
-## @version 1
+## @version 2
 ## @req REQ-DDB-QUERY-001
 def declaration_excerpt(
     conn: sqlite3.Connection,
@@ -289,6 +292,9 @@ def declaration_excerpt(
     if row is None or not row[0] or not row[1]:
         return None
     file, start = row[0], int(row[1])
+    known = _recorded_end(conn, rowid)
+    if known is not None and known >= start:
+        return _known_extent(Path(repo_root).expanduser(), file, start, known)
     cap = max(1, min(max_lines, DECLARATION_MAX_LINES))
     result = _read_body(Path(repo_root).expanduser(), file, start, start + cap - 1, cap)
     if result is None or not result[0]:
@@ -300,6 +306,56 @@ def declaration_excerpt(
         end_line=start + len(lines) - 1,
         total_lines=len(lines),
         truncated=len(lines) == cap and ";" not in lines[-1],
+        lines=tuple(lines),
+    )
+
+
+## @brief The recorded last line of a parse-built declaration, or None when unknown.
+## @param conn Open connection.
+## @param rowid The memberdef rowid.
+## @return The end line, or None (no table, no row: extent unknown).
+## @version 1
+## @dg_internal
+def _recorded_end(conn: sqlite3.Connection, rowid: int) -> int | None:
+    """@brief Read decl_extent. @return End line or None."""
+    from ..synth import DECL_EXTENT
+
+    if not table_exists(conn, DECL_EXTENT):
+        return None
+    row = conn.execute(
+        f"SELECT end_line FROM {DECL_EXTENT} WHERE memberdef_rowid = ?", (rowid,)
+    ).fetchone()
+    return int(row[0]) if row else None
+
+
+## @brief A declaration read over its recorded extent, capped like a body.
+## @param root Working-tree root.
+## @param file Declaring file.
+## @param start First line.
+## @param end Recorded last line.
+## @return BodyExcerpt, or None when unreadable.
+## @version 1
+## @dg_internal
+def _known_extent(root: Path, file: str, start: int, end: int) -> BodyExcerpt | None:
+    """THE END IS KNOWN, SO NOTHING IS GUESSED: a TypeScript constants object or type alias is
+    read to its recorded last line. The 8-line cap bounds a GUESSED end, and it cut mattermost's
+    `WebsocketEvents` mid-object; this reads under the ordinary body cap, and says when it stops.
+
+    @brief Read a known-extent declaration.
+    @return BodyExcerpt or None.
+    """
+    span = end - start + 1
+    cap = min(span, DEFAULT_BODY_LINES)
+    result = _read_body(root, file, start, start + cap - 1, cap)
+    if result is None or not result[0]:
+        return None
+    lines = result[0]
+    return BodyExcerpt(
+        file=file,
+        start_line=start,
+        end_line=start + len(lines) - 1,
+        total_lines=span,
+        truncated=len(lines) < span,
         lines=tuple(lines),
     )
 

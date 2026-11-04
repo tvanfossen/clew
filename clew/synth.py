@@ -142,6 +142,7 @@ MEMBER_KIND = {
 ## Version 8: `stage_version` 8 — the payload carries the file's line count for `__module__`.
 ## Version 9: `stage_version` 9 — a heritage call (`mix(Base).with(A, B)`) contributes its bases.
 ## Version 10: `stage_version` 10 — module-level constants and type aliases are definitions.
+## Version 11: `stage_version` 11 — untyped class fields are members; a binding records its end.
 ##
 ## @brief Per-file harvester for JS/TS definitions.
 ## @version 9
@@ -154,7 +155,7 @@ class _JsSymbolHarvester(Harvester):
     """
 
     stage = STAGE_JS_SYMBOLS
-    stage_version = 10
+    stage_version = 11
     label = "js/ts definitions"
 
     ## @brief Harvest one file's definitions.
@@ -410,7 +411,8 @@ def _write_generation(conn: sqlite3.Connection, source_file: str, rules: list) -
 ## @return (functions written, classes written).
 ## v4: also writes `generated_files` from the CMake branch's `generated` records, and creates
 ## that table unconditionally so an empty layer is distinguishable from an absent one.
-## @version 4
+## v5: creates `decl_extent` unconditionally, and clears it, as it does `generated_files`.
+## @version 5
 ## @req REQ-DDB-PIPE-012
 def emit_definitions(db_path: Path, repo_root: Path, cache: Any = None) -> tuple[int, int]:
     """@brief Turn the cached js_symbols payloads into rows."""
@@ -425,6 +427,8 @@ def emit_definitions(db_path: Path, repo_root: Path, cache: Any = None) -> tuple
         ## tell the two apart. `test_fixture_fidelity` caught it.
         ensure_generated_files_table(conn)
         conn.execute("DELETE FROM generated_files")
+        ensure_decl_extent_table(conn)
+        conn.execute(f"DELETE FROM {DECL_EXTENT}")
         if not _has_claimed_path(conn):
             conn.commit()
             return 0, 0
@@ -460,6 +464,25 @@ def emit_definitions(db_path: Path, repo_root: Path, cache: Any = None) -> tuple
         generated_rows,
     )
     return writer.functions, writer.classes
+
+
+## THE LAST LINE OF A PARSE-BUILT VARIABLE OR TYPEDEF DECLARATION. Not `bodyend`: a dozen readers
+## treat a positive `bodystart` as "this row is a function with a body", and a constant is not one.
+## Read by the code corpus (a hit inside a constant names it) and by the declaration excerpt (the
+## statement's real end, not a guessed one). Absent table or row = extent unknown.
+DECL_EXTENT = "decl_extent"
+
+
+## @brief Create the declaration-extent table if missing.
+## @param conn Open connection.
+## @version 1
+## @utility
+def ensure_decl_extent_table(conn: sqlite3.Connection) -> None:
+    """@brief Create decl_extent."""
+    conn.execute(
+        f"CREATE TABLE IF NOT EXISTS {DECL_EXTENT} ("
+        "memberdef_rowid INTEGER PRIMARY KEY, end_line INTEGER NOT NULL)"
+    )
 
 
 ## @brief Whether any registered file is one this front end claims.
@@ -556,9 +579,10 @@ class _Writer:
         return rowid
 
     ## Version 2: a `decl` record (an interface signature) is written bodiless, start and end -1.
+    ## Version 3: a variable or typedef records its last line in `decl_extent`.
     ##
     ## @brief Insert one function memberdef row, and its member link.
-    ## @version 2
+    ## @version 3
     ## @dg_internal
     def _function(
         self,
@@ -599,6 +623,11 @@ class _Writer:
                 SYMBOL_SOURCE_PARSE,
             ),
         )
+        if fn.get("kind") in ("variable", "typedef"):
+            self.conn.execute(
+                f"INSERT INTO {DECL_EXTENT} (memberdef_rowid, end_line) VALUES (?, ?)",
+                (rowid, fn["end"]),
+            )
         if owner is not None:
             self.conn.execute(
                 "INSERT OR IGNORE INTO member (scope_rowid, memberdef_rowid, prot, virt) "

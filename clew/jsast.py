@@ -362,23 +362,26 @@ def _walk(node: Any, spec: Any, cls: str | None, out: dict[str, list[dict[str, A
 
 
 ## Version 2: a mixin class's base is its declared constraint type, not the parameter it extends.
+## Version 3 (body): an UNTYPED field is a member too, with an empty type.
 ##
-## @brief A class's typed members: fields, and constructor parameter properties.
+## @brief A class's data members: fields, and constructor parameter properties.
 ## @param node Any child node the walk visits.
 ## @param cls The enclosing class name, or None.
-## @return Variable records, each with its declared type in `ret`.
-## @version 1
+## @return Variable records, each with its declared type (possibly empty) in `ret`.
+## @version 3
 ## @dg_internal
 def _typed_members(node: Any, cls: str | None) -> list[dict[str, Any]]:
     """THE RECEIVER'S DECLARED TYPE, which is what lets `this.svc.getUser()` be resolved at all.
     Two forms: a typed field (`repo: UserService;`), and a constructor parameter property
     (`constructor(private readonly svc: UserService)`) — the shape dependency injection takes.
     A field whose value is a function is a method and handled elsewhere; an untyped field
-    carries no type and is skipped.
+    is STILL A MEMBER (1.3.0): mattermost's `NetworkManagerSingleton.DEFAULT_CONFIG` holds the
+    retry policy, and a field nobody typed was a field the index did not have. Its empty type is
+    ignored by receiver typing, which reads only a type it can name.
 
-    @brief Harvest typed class members.
+    @brief Harvest class data members.
     @return Records.
-    @version 1
+    @version 2
     """
     if not cls:
         return []
@@ -470,22 +473,24 @@ def _value_binding(node: Any, name_node: Any, kind: str, declarator: Any = None)
     }
 
 
-## @brief One typed member as a variable record, or None when it carries no type.
-## @version 1
+## Version 2: an untyped member is recorded too, and its end is the declaration's last line.
+##
+## @brief One member as a variable record, or None when it has no name.
+## @version 2
 ## @dg_internal
 def _variable_record(node: Any, name_node: Any, cls: str) -> dict[str, Any] | None:
-    """@brief A typed variable record. @return Record or None."""
+    """@brief A member variable record. @return Record or None."""
     annotation = node.child_by_field_name("type")
     type_text = _text(annotation).lstrip(":").strip()
     name = _text(name_node)
-    if not type_text or not name:
+    if not name:
         return None
     line = node.start_point[0] + 1
     return {
         "name": name,
         "cls": cls,
         "line": line,
-        "end": line,
+        "end": node.end_point[0] + 1,
         "col": node.start_point[1],
         "args": "",
         "ret": type_text,
