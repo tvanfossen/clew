@@ -172,6 +172,7 @@ from .requirements import (
 from .pydocs import enrich_python_docstrings
 from .rustdoc import run_rustdoc, uses_rustdoc
 from .code_text import record_code_text
+from .req_mentions import record_req_mentions
 from .generated import record_self_declared
 from .synth import emit_definitions as emit_synth_definitions
 from .synth import register_paths as register_synth_paths
@@ -1898,7 +1899,8 @@ def _doxygen_meta(args) -> dict[str, str]:
 ## doxygen failure instead of losing the whole index, and stamps the outcome into diagnostics.
 ## v62: records self-declared generated files after the parse front end, over every indexed
 ## file and not only JS/TS, since the front end returns early on a tree with no JS/TS.
-## @version 63
+## v64: records every indexed file line naming a known requirement (`req_mentions`).
+## @version 64
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -2320,6 +2322,9 @@ def _build_stages(
     timer.mark("req_edges")
     import_req_test_edges(output)
     timer.mark("req_test_edges")
+    ## EVERY INDEXED LINE THAT NAMES A KNOWN REQUIREMENT: docs, diagrams, build files, comments.
+    record_req_mentions(output, repo_root, requirements_yaml)
+    timer.mark("req_mentions")
 
     # Python entry points are STRUCTURAL, not name-shaped: a `__main__` guard's
     # callee has doxygen attributing the guard call to the function ITSELF, so it

@@ -775,10 +775,11 @@ class Implementer:
 @dataclass(frozen=True)
 class ReqTrace:
     """One requirement's full trace: its metadata, the functions that
-    implement it (with liveness), and the covering test functions.
+    implement it (with liveness), the covering test functions, and every
+    indexed file line that names it.
 
-    @brief Requirement trace (metadata + implementers + tests).
-    @version 1
+    @brief Requirement trace (metadata + implementers + tests + mentions).
+    @version 2
     """
 
     req_id: str
@@ -788,6 +789,22 @@ class ReqTrace:
     priority: str
     implementers: list[Implementer] = field(default_factory=list)
     tests: list[str] = field(default_factory=list)
+    ## EVERY INDEXED FILE LINE NAMING THE ID outside a `@req` tag and the catalog: design docs,
+    ## diagrams, CMake, notes. None when the index predates the mentions pass — absent, not empty.
+    mentioned_in: list[ReqMention] | None = None
+
+
+## @brief One indexed file line that names a requirement.
+## @version 1
+@dataclass(frozen=True)
+class ReqMention:
+    """@brief A requirement mention (file, line, the line's text).
+    @version 1
+    """
+
+    file: str
+    line: int
+    text: str
 
 
 ## @brief A bounded verbatim excerpt of one function's body.

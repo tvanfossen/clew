@@ -75,6 +75,7 @@ from .models import (
     OriginSplit,
     OverrideRef,
     ReqEdge,
+    ReqMention,
     ReqTrace,
     SymbolHit,
     SymbolRef,
@@ -1980,9 +1981,11 @@ def _req_implementers(conn: sqlite3.Connection, req_id: str, tests: set[str]) ->
     ]
 
 
-## @brief Requirement traceability: metadata + implementers + covering tests.
-## @return ReqTrace bundling the requirement's metadata (empty strings when absent), its implementing functions, and covering test names.
-## @version 2
+## Version 3: also every indexed file line naming the id (`mentioned_in`), from `req_mentions`.
+##
+## @brief Requirement traceability: metadata + implementers + covering tests + mentions.
+## @return ReqTrace bundling the requirement's metadata (empty strings when absent), its implementing functions, covering test names and mentions.
+## @version 3
 ## @req REQ-DDB-QUERY-001
 def req_trace(db: DbSource, req_id: str) -> ReqTrace:
     """Trace one requirement to its implementing functions (with liveness)
@@ -1990,7 +1993,7 @@ def req_trace(db: DbSource, req_id: str) -> ReqTrace:
     requirements table has no matching row (a bare @req literal still traces).
 
     @brief Build a ReqTrace for one requirement id.
-    @version 2
+    @version 3
     """
     with connect(db) as conn:
         meta = None
@@ -2013,6 +2016,17 @@ def req_trace(db: DbSource, req_id: str) -> ReqTrace:
             else []
         )
         implementers = _req_implementers(conn, req_id, set(tests))
+        mentions = (
+            [
+                ReqMention(file=str(r[0]), line=int(r[1]), text=str(r[2]))
+                for r in conn.execute(
+                    "SELECT file, line, text FROM req_mentions WHERE req_id=? ORDER BY file, line",
+                    (req_id,),
+                )
+            ]
+            if table_exists(conn, "req_mentions")
+            else None
+        )
     block, title, acceptance, priority = meta if meta else ("", "", "", "")
     return ReqTrace(
         req_id=req_id,
@@ -2022,6 +2036,7 @@ def req_trace(db: DbSource, req_id: str) -> ReqTrace:
         priority=priority,
         implementers=implementers,
         tests=tests,
+        mentioned_in=mentions,
     )
 
 

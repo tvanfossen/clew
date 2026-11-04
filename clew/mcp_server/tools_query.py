@@ -890,7 +890,8 @@ def _candidates_capped(db: Path | None, payload: dict[str, Any]) -> dict[str, An
 ## @return The flat payload, or None when nothing resolved.
 ## v6: a `config` section's `found` is reconciled on the way out — it means "a Kconfig FILE was
 ## located", which collides with what `found` means on every other reply this surface sends.
-## @version 6
+## v7: a requirement's `mentioned_in` is dropped when the index never scanned for mentions.
+## @version 7
 ## @dg_internal
 def _flatten_subject(built: Any, db: Path | None = None, depth: int = 1) -> dict[str, Any] | None:
     """FLAT, NOT NESTED, and the reason is the budget rather than taste. Every trimmer on
@@ -909,7 +910,7 @@ def _flatten_subject(built: Any, db: Path | None = None, depth: int = 1) -> dict
 
     @brief Serialize a subject dossier to its flat wire form.
     @return Flat payload dict, or None.
-    @version 5
+    @version 6
     """
     if built is None:
         return None
@@ -925,6 +926,10 @@ def _flatten_subject(built: Any, db: Path | None = None, depth: int = 1) -> dict
     ## the search route alone is exactly how this one stayed broken.
     if built.kind == "config":
         payload = _config_found_on_the_wire(payload)
+    ## AN INDEX THAT NEVER SCANNED FOR MENTIONS has no field, not a null one: `mentioned_in: []`
+    ## and `mentioned_in: null` would both read as "nothing names this requirement".
+    if built.kind == "requirement" and payload.get("mentioned_in") is None:
+        payload.pop("mentioned_in", None)
     if built.also:
         payload["also"] = list(built.also)
     if built.chain is not None:
@@ -1166,6 +1171,9 @@ _DOSSIER_LISTS = (
     ## 1.3.0. A class's merged same-name declarations: one in practice (a TypeScript interface
     ## twin), but each row is independent, so a trim drops whole declarations, never half of one.
     "merged",
+    ## 1.3.0. A requirement's mentions across the indexed files: one row per line, independent,
+    ## and on a widely cited requirement there can be dozens.
+    "mentioned_in",
     ## gh#372 — the lists the NON-FUNCTION subject kinds contribute. A key that is not in
     ## this tuple is a list nothing can trim, so a subject kind added without its lists
     ## reintroduces the unbounded payload one kind at a time. Named here rather than
