@@ -219,3 +219,59 @@ def test_an_empty_symbol_search_points_at_the_code_corpus(tmp_path: Path) -> Non
     reply = _tools(tmp_path).search("retryLimit")
     assert reply["count"] == 0, reply
     assert "corpus='code'" in reply["note"], reply["note"]
+
+
+## @brief A C function only AST recovery finds is in the corpus too.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_recovered_c_function_body_is_searchable(tmp_path: Path) -> None:
+    """FROM THE 1.3.0-FINAL GRID: mbedtls's code corpus held 1,052 of 4,127 function bodies. The
+    corpus was built before `recover_ast_symbols`, so every function doxygen's preprocessor skipped
+    — all 234 in `library/ssl_tls.c`, under `#if defined(...)` — was invisible to code search, and
+    index-only agents spent turns on empty results.
+
+    @brief A body under an undefined `#if` is found by its literal.
+    @return None.
+    @version 1
+    """
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    (repo / "src/guarded.c").write_text(
+        "#if defined(FEATURE_UNSET)\n"
+        "int guarded_send(void)\n{\n    return GUARDED_RETRY_LIMIT_MARKER;\n}\n#endif\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "clew.db"
+    _run_pipeline(_build_argparser().parse_args(["--output", str(out), "--repo-root", str(repo)]))
+    rows = QueryTools(lambda: out, lambda: repo).search(
+        "GUARDED_RETRY_LIMIT_MARKER", corpus="code"
+    )["results"]
+    assert rows and rows[0]["name"] == "guarded_send", rows
+
+
+## @brief A query word is a prefix: `MBEDTLS_ERR_` finds a body using `MBEDTLS_ERR_SSL_BAD_INPUT`.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_query_word_matches_as_a_prefix(tmp_path: Path) -> None:
+    """FROM THE 1.3.0-FINAL GRID: mbedtls index-only agents searched `MBEDTLS_ERR_` and `mbedtls_ct_`
+    — a family by its prefix, the way C names families — and got nothing, because the tokenizer
+    keeps `_` inside a word and a word matched only whole. Every one of those empty replies cost
+    the agent more turns of guessing.
+
+    @brief A trailing-underscore family prefix finds its members.
+    @return None.
+    @version 1
+    """
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    (repo / "src/err.c").write_text(
+        "int check(int x)\n{\n    if (x) return MBEDTLS_ERR_SSL_BAD_INPUT;\n    return 0;\n}\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "clew.db"
+    _run_pipeline(_build_argparser().parse_args(["--output", str(out), "--repo-root", str(repo)]))
+    rows = QueryTools(lambda: out, lambda: repo).search("MBEDTLS_ERR_", corpus="code")["results"]
+    assert rows and rows[0]["name"] == "check", rows
+    assert "MBEDTLS_ERR_SSL_BAD_INPUT" in rows[0]["snippet"], rows[0]

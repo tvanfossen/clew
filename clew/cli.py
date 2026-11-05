@@ -1900,7 +1900,8 @@ def _doxygen_meta(args) -> dict[str, str]:
 ## v62: records self-declared generated files after the parse front end, over every indexed
 ## file and not only JS/TS, since the front end returns early on a tree with no JS/TS.
 ## v64: records every indexed file line naming a known requirement (`req_mentions`).
-## @version 64
+## v65: the code corpus is built after AST recovery, so recovered C bodies are searchable.
+## @version 65
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -2063,8 +2064,6 @@ def _build_stages(
     ## OUTSIDE it, because it returns early on a tree with no JS/TS or script file — and a C tree
     ## commits generated files too. Timed with it rather than as a stage of its own.
     record_self_declared(output, repo_root)
-    ## THE CODE-TEXT CORPUS, after every row that names a function body exists.
-    record_code_text(output, repo_root)
     timer.mark("synth_definitions")
     ## gh#18 part 3, and INDEPENDENT of the line above on purpose: a gate on a symbol no
     ## Kconfig declares is dead code behind a symbol nobody can set, which is a finding
@@ -2325,6 +2324,11 @@ def _build_stages(
     ## EVERY INDEXED LINE THAT NAMES A KNOWN REQUIREMENT: docs, diagrams, build files, comments.
     record_req_mentions(output, repo_root, requirements_yaml)
     timer.mark("req_mentions")
+    ## THE CODE-TEXT CORPUS, AFTER `recover_ast_symbols`: it was built beside the parse front end,
+    ## before recovery wrote the C functions doxygen's preprocessor skipped — measured on mbedtls
+    ## in the 1.3.0-final grid, 1,052 of 4,127 bodies were searchable and none of ssl_tls.c's 234.
+    record_code_text(output, repo_root)
+    timer.mark("code_text")
 
     # Python entry points are STRUCTURAL, not name-shaped: a `__main__` guard's
     # callee has doxygen attributing the guard call to the function ITSELF, so it

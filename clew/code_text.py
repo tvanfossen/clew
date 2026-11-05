@@ -193,6 +193,7 @@ def _lines(path: Path) -> list[str] | None:
         return None
 
 
+## Version 5: a query word also matches as a prefix (`MBEDTLS_ERR_` finds its family).
 ## Version 4: a binding's span is its declaration line through its recorded extent.
 ## Version 3: a query is split into words as the tokenizer splits them, so a dotted member
 ## access matches its parts instead of failing as an unsupported phrase.
@@ -205,7 +206,7 @@ def _lines(path: Path) -> list[str] | None:
 ## @param limit Maximum hits.
 ## @param repo_root Where to read snippet lines from; None leaves snippets empty.
 ## @return Hits, or None when this index has no code corpus.
-## @version 4
+## @version 5
 ## @utility
 def search_code(
     conn: sqlite3.Connection, text: str, limit: int, repo_root: Path | None = None
@@ -230,7 +231,10 @@ def search_code(
     tokens = _QUERY_WORD.findall(text)
     if not tokens:
         return []
-    query = " AND ".join(f'"{t}"' for t in tokens)
+    ## EACH WORD MATCHES WHOLE (through the stemmer, so `retries` finds `retry`) OR AS A PREFIX,
+    ## so a family named by its prefix — `MBEDTLS_ERR_`, `mbedtls_ct_` — finds its members. A
+    ## prefix term is not stemmed, which is why both forms are asked.
+    query = " AND ".join(f'("{t}" OR "{t}"*)' for t in tokens)
     ## A BINDING'S SPAN is its declaration line through its recorded end; a function's is its body.
     start, end, extent = "m.bodystart", "m.bodyend", ""
     if _has_table(conn, DECL_EXTENT):
