@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Option A, compile time. Define both macros in your user config... Option B, runtime. Define only `MBEDTLS_PLATFORM_MEMORY`, then call `mbedtls_platform_set_calloc_free(my_calloc, my_free)`... The macros take precedence over the runtime setter, and `platform.c` drops its pointer code entirely in that case.\"\nVERDICT: HIT\nWHY: The answer separates a compile-time macro pair from a runtime function-pointer pair. It also says the macros take precedence and `platform.c` drops its pointer code when they are defined, so the two are alternatives, not combined."
+}

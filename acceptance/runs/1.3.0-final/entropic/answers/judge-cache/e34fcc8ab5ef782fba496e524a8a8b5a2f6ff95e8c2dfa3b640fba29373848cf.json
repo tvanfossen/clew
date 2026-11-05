@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"When tokenization fails, the caller gets an empty vector, which is indistinguishable from empty input, and most callers never check for it.\"\nVERDICT: HIT\nWHY: The answer states that a failed tokenization yields an empty vector indistinguishable from empty input. It adds that callers don't check, and the table backs this up: callers proceed with the empty vector without checking it."
+}

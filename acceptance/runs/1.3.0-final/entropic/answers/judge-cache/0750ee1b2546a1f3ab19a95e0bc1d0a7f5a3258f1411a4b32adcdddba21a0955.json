@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Paths where the answer says a thread is created, written as it gives them (the answer spells out only the first three of these in full, as `file:line` references):\n\nITEMS:\nexternal_bridge.cpp\nhealth_monitor.cpp\ninference_c_api.cpp\ninterface_factory.cpp\nresponse_generator.cpp\nEND"
+}

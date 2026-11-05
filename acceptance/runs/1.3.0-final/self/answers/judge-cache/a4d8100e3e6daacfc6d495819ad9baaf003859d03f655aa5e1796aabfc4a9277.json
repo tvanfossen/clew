@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the fallback scope carries a reason/explanation of which scope was used and why; it only describes the tiers and says a rejected declaration refuses the build rather than silently widening."
+}

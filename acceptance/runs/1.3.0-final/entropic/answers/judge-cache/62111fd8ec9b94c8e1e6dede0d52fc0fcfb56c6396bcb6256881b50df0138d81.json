@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Shutdown is a flag (`running_`) checked by the predicate of that wait.\nVERDICT: MISS\nWHY: The answer says `running_` is a flag checked by the `wake_cv_` wait predicate, and that stop and join are explicit. It never says the flag is set with an atomic exchange or that `HealthMonitor::stop()` wakes the cv and then joins the thread."
+}

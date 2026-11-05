@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: MBEDTLS_PLATFORM_MEMORY off (default) \u2192 #define mbedtls_calloc calloc (include/mbedtls/platform.h:166)\nVERDICT: HIT\nWHY: The answer states that in the default build mbedtls_calloc is a preprocessor macro defined directly as calloc. The quoted line doesn't show free, but the diagram covers the default build's calloc mapping and the answer's remark that the compile-time macro option has \"no indirection\" supports the same reading."
+}

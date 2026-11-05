@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: when `MBEDTLS_ALLOW_PRIVATE_ACCESS` is not defined, `MBEDTLS_PRIVATE(member)` expands to `private_##member`... The header declares the struct fields through this macro, so a default consumer's `ctx->MBEDTLS_PRIVATE(state)` refers to `private_state`, and the real name `state` is invisible to it. ... `library/common.h:132` ... Every library `.c`/`.h` that includes `common.h` ... sees the real member names.\nVERDICT: HIT\nWHY: The answer states that code defining the opt-out sees real member names, while default consumers of the public headers see the mangled `private_` names."
+}

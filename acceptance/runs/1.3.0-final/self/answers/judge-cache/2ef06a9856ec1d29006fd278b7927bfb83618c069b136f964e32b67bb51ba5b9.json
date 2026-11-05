@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Arguments are empty because shell has no parameter list (`clew/shast.py`).\nVERDICT: MISS\nWHY: The answer says arguments are empty because shell has no parameter list, but it never says the return is also absent because the language has neither."
+}

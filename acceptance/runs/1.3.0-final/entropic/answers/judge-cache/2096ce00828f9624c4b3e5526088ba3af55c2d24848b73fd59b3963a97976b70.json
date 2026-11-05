@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Spawned threads create a `HandleLogScope` with the owning handle's `log_id` (gh#59), so their logs land in the right session.\nVERDICT: HIT\nWHY: The answer states that spawned threads create a per-handle log scope tied to the owning handle's log_id so logs route correctly. It doesn't say the scope is the first statement, but the mechanism and its purpose match the item."
+}

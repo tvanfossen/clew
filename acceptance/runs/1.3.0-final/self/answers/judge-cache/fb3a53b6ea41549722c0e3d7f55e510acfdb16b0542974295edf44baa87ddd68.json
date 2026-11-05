@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Write paths refuse until then. `stale_code_refusal()` is called by `build_or_refresh` and `_first_build_refusal`, and it does not accept an override; `force` does not bypass it.\nVERDICT: HIT\nWHY: The answer says write paths refuse rather than warn, and that the refusal ignores `force`. The ordering ahead of the build decision is implied by `force` not bypassing it."
+}

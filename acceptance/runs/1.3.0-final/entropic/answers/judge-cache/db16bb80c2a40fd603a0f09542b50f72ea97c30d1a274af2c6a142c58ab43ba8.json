@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its use is confined to the seven `src/inference/llama_cpp_*` files plus the one factory call in `inference_c_api.cpp`.\nVERDICT: MISS\nWHY: The answer says the dependency is narrow, confined to about seven files plus one call. That is the opposite of the item, which says it reaches roughly a dozen files."
+}

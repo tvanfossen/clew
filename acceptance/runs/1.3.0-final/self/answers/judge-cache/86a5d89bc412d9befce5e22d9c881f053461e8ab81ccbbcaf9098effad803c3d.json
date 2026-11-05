@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `QueryTools._staleness()` attaches it to the payload and shrinks it to fit a size budget.\nVERDICT: MISS\nWHY: The answer says the notice is shrunk to fit a budget but never says that wording is degraded rather than the warning dropped."
+}

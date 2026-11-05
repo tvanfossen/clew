@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library has no locks and creates no threads, but it never mentions the pthread example or that it compiles to a stub main."
+}

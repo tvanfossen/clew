@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says to enable MBEDTLS_PLATFORM_MEMORY to use the setter, but never says the buffer allocator itself requires it, so enabling it alone isn't enough to route the library's allocations through it."
+}

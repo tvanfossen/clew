@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python never links against the engine. It loads `librentropic.so` at runtime with `ctypes` and calls the C ABI directly. No C++ types cross the boundary.\nVERDICT: HIT\nWHY: The answer states ctypes loading librentropic.so at runtime with no linking; it does not mention any compiled extension module, which is consistent with \"no compiled extension\" (the answer explicitly says it never links)."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise `MBEDTLS_CT_ASM` is undefined and the code uses the C fallback.\nVERDICT: MISS\nWHY: The answer lists the conditions (HAVE_ASM, `__GNUC__`, architecture) under which the asm path is chosen, but never states that MBEDTLS_CT_ASM is a derived macro rather than a config entry."
+}

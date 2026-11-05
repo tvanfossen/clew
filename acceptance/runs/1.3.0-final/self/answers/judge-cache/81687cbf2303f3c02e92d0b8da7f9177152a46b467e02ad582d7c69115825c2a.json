@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The reply separates the two cases by what it searched, not by a single flag.\" and \"`note`: the server's verdict on this specific miss. For a single-token symbol miss it says 'a definitive empty result from the database,' and it names the corpora it did not read\"\nVERDICT: HIT\nWHY: The answer says the note is a verdict on this specific miss, based on what was searched and which corpora were not read, not on a flag or result shape."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppTokenizer::tokenize` returns `{}` if `vocab_` is null or the second call returns a negative value.\"\nVERDICT: HIT\nWHY: The answer states that a negative result from the second call makes tokenize return an empty vector, and it says there is no retry, so the failure is terminal."
+}

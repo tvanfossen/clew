@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the monitor thread runs a periodic check loop and mentions `event_mutex_` in `HealthMonitor::process_events`, but it never states that the status callback is not invoked from the monitor thread, or that events are queued under a mutex and drained by the caller."
+}

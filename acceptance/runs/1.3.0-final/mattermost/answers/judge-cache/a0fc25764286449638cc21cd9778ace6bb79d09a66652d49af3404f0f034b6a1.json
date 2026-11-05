@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Sends `include_deleted_channels: true` with post search\nVERDICT: HIT\nWHY: The answer's table row 6 states that post search sends `include_deleted_channels` to the server, true when viewable and false otherwise."
+}

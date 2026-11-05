@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says patterns match against a \"tool:args\" string built by args_to_pattern, but never states that only one argument value reaches the pattern or that non-string/unparseable arguments collapse to a wildcard."
+}

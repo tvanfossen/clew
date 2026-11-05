@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The library itself spawns nothing.\" and \"The mutexes are global objects in `library/threading.c` with `MUTEX_INIT`\" (also: \"The library reaches it through the `mbedtls_mutex_lock` function pointer\")\nVERDICT: HIT\nWHY: The answer says the library creates no threads, and it also says `library/threading.c` supplies the mutex abstraction that threaded callers use."
+}

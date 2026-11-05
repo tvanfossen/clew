@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| 1 | CLI flag, or the `options` argument for embedding callers |\" through \"| 5 | Name-pattern heuristics, the floor | Replaced by any stated tier |\"\nVERDICT: HIT\nWHY: The answer's table lists five numbered precedence tiers: CLI/options, `.clew.yaml`, stated facts, ecosystem signatures, and name-pattern heuristics. This shows layered resolution rather than a single override. The intro's \"four plus one side input\" wording is slightly inconsistent, but the five tiers are still stated."
+}

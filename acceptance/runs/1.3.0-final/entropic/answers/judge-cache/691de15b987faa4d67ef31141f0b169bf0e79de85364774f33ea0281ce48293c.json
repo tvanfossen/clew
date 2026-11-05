@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppBackend::tokenize` passes the empty vector straight through (`llama_cpp_backend.cpp:788-800`). It also returns `{}` when no tokenizer is wired. So a failure is indistinguishable from legitimately empty input\"\nVERDICT: HIT\nWHY: The answer says the backend wrapper passes through the empty vector from a failed tokenization and also returns `{}` when no tokenizer is wired, so the two cases share the same value."
+}

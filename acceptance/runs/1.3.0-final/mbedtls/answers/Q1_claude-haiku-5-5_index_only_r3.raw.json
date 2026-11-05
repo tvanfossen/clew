@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 26632,
+  "stop_reason": "end_turn",
+  "session_id": "36ed38a7-565a-4217-8b13-7bf618b74699",
+  "total_cost_usd": 0.00913758,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 24682,
+    "cache_read_input_tokens": 160188,
+    "output_tokens": 5197,
+    "output_tokens_details": {
+      "thinking_tokens": 2668
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24682,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4056,
+        "cache_read_input_tokens": 42202,
+        "cache_creation_input_tokens": 20710,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 20710
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 5197,
+      "cacheReadInputTokens": 160188,
+      "cacheCreationInputTokens": 24682,
+      "webSearchRequests": 0,
+      "costUSD": 0.00913758,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2668,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 24682,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nIn the default configuration, the library runs no concurrency of its own and takes no locks. Any concurrency comes from the application calling it. The mutexes only exist when `MBEDTLS_THREADING_C` is enabled, and then they protect a small set of library globals plus the heap.\n\n## Default configuration\n\n- `MBEDTLS_THREADING_C` defaults to off (`include/mbedtls/mbedtls_config.h:3787`).\n- `MBEDTLS_THREADING_PTHREAD` defaults to off (`include/mbedtls/mbedtls_config.h:2196`).\n- With both off, `library/threading.c` (gated at lines 18\u2013193) compiles to nothing, and the heap wrappers in `memory_buffer_alloc.c:540\u2013564` are not compiled in.\n- The four thread spawn sites the index found are all in `programs/`, not `library/`:\n\n| Thread | Spawn site | Gate / platform |\n|---|---|---|\n| `handle_ssl_connection` (pthread) | `programs/ssl/ssl_pthread_server.c:277` | `MBEDTLS_THREADING_PTHREAD` |\n| `TimerProc` (Win32) | `programs/test/benchmark.c:430` | Windows timing alarm |\n| `sighandler` (ISR) | `programs/test/benchmark.c:444` via `mbedtls_set_alarm` | timing alarm |\n| `term_handler` (ISR) | `programs/ssl/ssl_server2.c:1699` | signal handler |\n\nThe library spawns nothing, so under default settings it runs on whatever threads the caller provides.\n\n## When threading is enabled\n\n**Caveat:** the index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` set by the operator, so the lock and thread rows below describe a threaded build, not the shipped default.\n\nWhat runs concurrently:\n- Application threads (in the test server, one pthread per client connection, `ssl_pthread_server.c:277`) each drive their own `mbedtls_ssl_context` through handshake and I/O. The handler reaches about 1,094 functions, so it touches most of the library.\n- Shared library state is touched from those threads at the same time.\n\nWhat the mutexes protect, per the index:\n\n| Lock | Declared | Protects / used by |\n|---|---|---|\n| `mbedtls_threading_key_slot_mutex` | `threading.c:188` | PSA key slots. `psa_unregister_read_under_mutex` (`psa_crypto_slot_management.c:931`) holds it around `psa_unregister_read`. Its callers include most `psa_*` entry points in `psa_crypto.c`. |\n| `mbedtls_threading_psa_globaldata_mutex` | `threading.c:189` | PSA global data. Declared; I did not confirm which functions take it. |\n| `mbedtls_threading_psa_rngdata_mutex` | `threading.c:190` | PSA RNG data. Declared; users not confirmed. |\n| `mbedtls_threading_gmtime_mutex` | `threading.c:185` | Serialises `gmtime`-style calls. Users not confirmed. |\n| `mbedtls_threading_readdir_mutex` | `threading.c:182` | Serialises `readdir`-style calls. Users not confirmed. |\n| `heap.mutex` | `memory_buffer_alloc.c` (`buffer_alloc_calloc_mutexed` 541, `buffer_alloc_free_mutexed` 554) | The buffer allocator's heap. |\n\nThe heap wrapper has an explicit policy: on a free-path lock failure it leaks rather than touch the heap, because \"corrupting the heap seems worse than losing memory\" (`memory_buffer_alloc.c:554\u2013563`).\n\nThe lock on `mutex->mutex` in `threading_mutex_lock_pthread` (`threading.c:81`) is the only lock identity the layer records, and it is the pthread wrapper itself, not any of the globals above.\n\n## What is not protected\n\n- **Per-connection objects.** The index shows no lock on `mbedtls_ssl_context` or other per-connection state. Sharing one context between threads is the caller's responsibility.\n- **`mbedtls_timing_alarmed`.** `mbedtls_set_alarm` writes it from the test harness, and the alarm/signal paths run asynchronously. It is not under any mutex I could see. I did not inspect `TimerProc` or `term_handler` to confirm how the flag is set.\n\n## Gaps in what the index can show\n\n- The lock layer records only one identity (`mutex->mutex`). Acquisitions of the `mbedtls_threading_*` globals go through macros (`PSA_THREADING_CHK_RET(mbedtls_mutex_lock(&\u2026))`) and are not modelled as locks. The \"0 nestings\" result therefore does not prove the absence of lock-order problems.\n- Mapping the gmtime, readdir, and PSA globaldata/rngdata mutexes to their callers needs a source read. The index confirms their declarations only.",
+  "ttft_ms": 1965,
+  "type": "result",
+  "duration_ms": 27378,
+  "uuid": "12197d1a-e2bf-4e01-ade4-c870da40e468",
+  "ttft_stream_ms": 1789,
+  "time_to_request_ms": 69,
+  "first_content_frame_ms": 1789,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

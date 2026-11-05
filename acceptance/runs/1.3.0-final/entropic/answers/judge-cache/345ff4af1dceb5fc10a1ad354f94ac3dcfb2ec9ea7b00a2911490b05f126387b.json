@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"This is deterministic: one probe, one fill. Nothing is retried after a failure.\"\nVERDICT: HIT\nWHY: The answer says `tokenize` is a size-query-then-fill pattern, not retry on failure. It says there is one probe and one fill, and nothing is retried after a failure. That covers the item's size-negotiation conclusion and the single second call. It never lists backoff, delay or attempt counter by name, but \"nothing is retried\" and \"deterministic\" convey the same thing."
+}

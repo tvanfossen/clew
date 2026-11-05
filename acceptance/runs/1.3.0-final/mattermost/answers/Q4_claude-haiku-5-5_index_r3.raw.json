@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 38466,
+  "stop_reason": "end_turn",
+  "session_id": "1ad3f6c0-3356-4daa-a4a2-0459907436e7",
+  "total_cost_usd": 0.01336552,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 37071,
+    "cache_read_input_tokens": 356762,
+    "output_tokens": 4765,
+    "output_tokens_details": {
+      "thinking_tokens": 1155
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37071,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1945,
+        "cache_read_input_tokens": 82274,
+        "cache_creation_input_tokens": 1156,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1156
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4765,
+      "cacheReadInputTokens": 356762,
+      "cacheCreationInputTokens": 37071,
+      "webSearchRequests": 0,
+      "costUSD": 0.01336552,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1155,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 37071,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The app treats this setting as a single boolean gate, and only an explicit `'false'` turns archived-channel viewing off. If the server omits the key, the app behaves as if it is enabled.\n\n**The gate**\n\n`app/queries/servers/system.ts:304` defines `archivedChannelsViewable = (value?) => value !== 'false'`. It is wrapped by `canViewArchivedChannels` (async, line 306) and `observeCanViewArchivedChannels` (observable, line 310, with `distinctUntilChanged`). Both read the `ExperimentalViewArchivedChannels` row from the server config table. The comment at lines 297\u2013303 says the setting is deprecated: servers newer than v10.11 stopped sending it, while older supported servers (down to v5.26.2) still send it and may have turned it off.\n\n**Where the behaviour depends on it**\n\n| Location | When the flag is viewable (true, or absent) | When it is `'false'` |\n|---|---|---|\n| `app/actions/remote/channel.ts:1397` (`archiveChannel`) | Sets local `delete_at` so the channel stays visible as archived | Removes the current user from the channel locally |\n| `app/actions/websocket/channel.ts:463` (channel-deleted WebSocket handler) | Keeps the archived channel in the local DB | If the user is viewing it, kicks them out with `CHANNEL_ARCHIVED`, then removes the membership |\n| `app/actions/remote/search.ts:62\u201373` (`searchPosts`) | Sends `include_deleted_channels: true` to the server | Sends `false` |\n| `app/screens/channel_settings/archive/index.ts` and `archive.tsx:109\u2013121` | Uses the \"can view archived\" confirmation message; calls `close(false)` after archiving | Uses the \"cannot view\" message; calls `close(true)` after archiving |\n| `app/screens/browse_channels/index.ts:21` and `browse_channels.tsx:190` | Passes `canShowArchivedChannels` into the search handler and shows the archived-channels option in the browse UI | Hides the option. The screen still renders if shared channels are enabled |\n| `app/screens/browse_channels/browse_channels.tsx:126\u2013144` (`onSelectChannel`) | Archived channels skip `joinChannel` and call `fetchMyChannel` then `switchToChannelById` | Not gated by the flag itself. The comment assumes the flag is on, because archived channels only appear in browse when it is |\n| `app/screens/home/channel_list/categories_list/categories/header/index.ts:15\u201322` and `app/database/models/server/category.ts:107\u2013118` | Counts archived channels as \"has channels\", except that a current archived channel always counts | Counts only channels with `delete_at === 0` |\n\n`browse_channels/channel_dropdown.tsx` and `dropdown_slideup.tsx` also take `canShowArchivedChannels` and conditionally render the archived option.\n\n**When the server does not send the setting**\n\nThe value is `undefined`, and `archivedChannelsViewable(undefined)` returns `true`. So the app behaves as if archived channels are enabled everywhere in the table above. This is confirmed by unit tests in `app/queries/servers/system.test.ts:692\u2013717` for both the query and observable forms. The Detox side agrees: `detox/shared/server-baseline.ts:80` marks the key `absentIsBaseline: true`, and `detox/e2e/support/server_api/system.ts:139\u2013144` says \"Mobile treats a missing ExperimentalViewArchivedChannels as enabled\". Only a successful config payload with the value missing is treated this way. Failed fetches keep polling.\n\n**Points to note**\n\n- The app does not check server version to decide this. It relies on the server omitting the key on newer servers, which is an assumption in the code comment. I did not verify the server side.\n- The TODO at `system.ts:302` plans to delete these helpers once servers at or below v10.11 are dropped, after which archived channels are always viewable.\n- Only a `'false'` string turns the feature off. Other values such as `'0'` or `'False'` are treated as enabled, since the check is an exact string comparison.",
+  "ttft_ms": 2098,
+  "type": "result",
+  "duration_ms": 39134,
+  "uuid": "ab821b51-8215-460c-a9db-fe811001573f",
+  "ttft_stream_ms": 1899,
+  "time_to_request_ms": 61,
+  "first_content_frame_ms": 1900,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

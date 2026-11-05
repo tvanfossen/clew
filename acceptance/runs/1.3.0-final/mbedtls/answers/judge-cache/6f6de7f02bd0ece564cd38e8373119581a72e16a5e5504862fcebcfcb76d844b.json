@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_zero` becomes `volatile mbedtls_ct_uint_t = 0` (`constant_time.c:23-27`), and the opaque barrier becomes `x ^ mbedtls_ct_zero`.\nVERDICT: HIT\nWHY: The answer says the no-asm fallback of the opaque barrier XORs with the volatile zero global `mbedtls_ct_zero`, which names the global. It does not use the word \"extern\", but the substance is there."
+}

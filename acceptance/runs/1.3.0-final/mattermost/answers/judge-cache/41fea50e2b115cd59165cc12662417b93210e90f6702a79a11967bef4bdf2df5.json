@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `archivedChannelsViewable(value) = value !== 'false'`. Only the exact string `'false'` turns the feature off.\nVERDICT: HIT\nWHY: The answer says an absent value is treated as \"true\" (viewable), and only the exact string 'false' disables it."
+}

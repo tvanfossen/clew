@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Calls `client.createPost` with the original content... On failure, sets `failed: true` again. The same two server errors remove the post instead.\nVERDICT: HIT\nWHY: The answer describes retryFailedPost as a single re-send with no automatic loop (retryLimit 0), re-marking the post failed or removing it on the special server errors."
+}

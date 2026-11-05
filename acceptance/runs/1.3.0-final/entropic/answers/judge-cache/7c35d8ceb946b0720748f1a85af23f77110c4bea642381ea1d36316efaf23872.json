@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Async `entropic.ask` worker | `src/facade/external_bridge.cpp:1158` | Detached | ... Detached async workers can outlive the handle. The worker in `run_async_ask` captures `this` (the bridge) and `handle_`... It is detached and not tracked. `ExternalBridge::stop()` drains only the client threads... I found no wait for async workers on that path.\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as the detached thread (all others are joined) and notes it is untracked with no join, so it outlives its caller and the handle."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Mixed edge types. Rows can be direct calls, function-pointer dispatch, or writers feeding the function through shared data. Treating all of them as \"who calls this\" overstates direct invocation. The `edge_class` and `confidence` fields are there to separate them.\"\nVERDICT: HIT\nWHY: The answer states that callers mix direct calls with shared-data writers (dataflow) and that the `edge_class` field distinguishes them."
+}

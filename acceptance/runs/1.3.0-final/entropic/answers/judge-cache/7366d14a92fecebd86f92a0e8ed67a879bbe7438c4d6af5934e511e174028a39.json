@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It calls the C API directly (`llama_model_load_from_file`, `llama_init_from_model`, `llama_decode`, `llama_sampler_chain`, `llama_chat_apply_template`, per its file doc).\nVERDICT: HIT\nWHY: The answer says the backend calls llama.cpp's C API directly and lists `llama_`-prefixed free functions, which is the seam the item asks for."
+}

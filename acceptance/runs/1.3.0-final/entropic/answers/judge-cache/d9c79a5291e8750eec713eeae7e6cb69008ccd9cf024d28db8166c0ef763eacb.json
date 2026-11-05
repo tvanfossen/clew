@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Tokenize (lines 55 and 61).** llama.cpp's `llama_tokenize` takes a caller-supplied output buffer. When the buffer is too small it returns the negative of the required count, so the code does: 1. Call with a null buffer and size 0 to learn the token count... 2. Allocate a `std::vector` of that size and call again to fill it.\nVERDICT: HIT\nWHY: The answer names the file and describes the two-call size-query-then-fill pattern in tokenize and detokenize, with line numbers."
+}

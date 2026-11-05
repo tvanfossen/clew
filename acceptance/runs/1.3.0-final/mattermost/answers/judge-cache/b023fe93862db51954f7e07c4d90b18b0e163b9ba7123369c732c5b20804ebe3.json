@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Files that render `NavigationHeader`** (imported from `@components/navigation_header`): 10 files.\"\nVERDICT: HIT\nWHY: The answer never names the separate `Header` component. But it filters strictly on the `NavigationHeader` import, and its list leaves out the navigation hook and thread route that render `Header` directly. So it does not count those renderers."
+}

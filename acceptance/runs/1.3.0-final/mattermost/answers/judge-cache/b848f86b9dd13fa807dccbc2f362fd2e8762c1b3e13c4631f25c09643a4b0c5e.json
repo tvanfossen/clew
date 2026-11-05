@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It rebuilds the API payload from the stored model with `toApi()` and calls `client.createPost` again... On failure, it marks the post failed again. The same three removal cases apply, so a deleted root or read-only Town Square removes the post instead.\"\nVERDICT: MISS\nWHY: The answer says retry marks failed again or removes it, but it doesn't conclude there is exactly one attempt with no loop or backoff. It says the default network retry policy might apply and that it didn't check this, which undercuts the \"no loop or backoff\" claim."
+}

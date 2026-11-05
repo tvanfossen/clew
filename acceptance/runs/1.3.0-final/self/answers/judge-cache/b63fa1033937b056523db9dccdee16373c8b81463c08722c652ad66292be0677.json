@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`_ts_language_for` (`clew/harvest.py:184`) returns None for `.sh` and `CMakeLists.txt` when `bash` or `cmake` is absent... `clew/query/corpus.py` (`_not_indexed`...) reads a report stamped at build time by `_not_indexed_scope`... It names the in-scope file types that produced no rows\"\nVERDICT: HIT\nWHY: The answer describes the capability gate (`has_language`) in the router, which routes to nothing instead of raising, and says those file types are reported as not indexed."
+}

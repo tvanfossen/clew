@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Add a `#define MBEDTLS_ERR_<MODULE>_<NAME>` with a negative value to the module's public header (for example `include/mbedtls/aes.h`)... Do not edit the `case` lines in `library/error.c`. They are regenerated at build time from the headers, so a manual edit is lost.\nVERDICT: MISS\nWHY: The answer gives the header-define and don't-edit-error.c parts, but it never says the define must be /** */-documented or that the description comes from that doc comment. It also explicitly says it could not verify where the description text comes from."
+}

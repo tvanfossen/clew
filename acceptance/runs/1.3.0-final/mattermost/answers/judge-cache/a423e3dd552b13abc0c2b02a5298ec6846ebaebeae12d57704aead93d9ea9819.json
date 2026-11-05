@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Sends `client.createPost` again, with the same redaction-epoch capture as the first attempt. ... On failure, it logs, then either removes the post (for the same three server errors) or sets `failed = true` again.\nVERDICT: HIT\nWHY: The answer describes a single new createPost attempt on retry, and on failure either removes the post for the same three errors or marks it failed again. The \"no loop or backoff\" part is covered by the single-send description plus the earlier note that the send has retries disabled."
+}

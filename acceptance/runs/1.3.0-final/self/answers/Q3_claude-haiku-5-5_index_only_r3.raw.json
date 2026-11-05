@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 12127,
+  "stop_reason": "end_turn",
+  "session_id": "14f11592-9c55-4227-b135-23059bf26cc9",
+  "total_cost_usd": 0.00991647,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 34082,
+    "cache_read_input_tokens": 184577,
+    "output_tokens": 2507,
+    "output_tokens_details": {
+      "thinking_tokens": 523
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 34082,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1490,
+        "cache_read_input_tokens": 62417,
+        "cache_creation_input_tokens": 9890,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 9890
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2507,
+      "cacheReadInputTokens": 184577,
+      "cacheCreationInputTokens": 34082,
+      "webSearchRequests": 0,
+      "costUSD": 0.00991647,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 523,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 34082,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** clew detects staleness on three separate axes, attaches a notice to every query reply, and the notice tells the caller which action clears it. Queries also refresh the data axis automatically before answering when it is safe to do so.\n\n**How it knows.** Each axis is measured by a different check, and they are defined in `clew/mcp_server/freshness.py`:\n\n| Axis | Meaning | How it is measured | Cleared by |\n|---|---|---|---|\n| `data` | Indexed sources changed since the build | `db_status` reports `source_changed_files` (`_data_notice`) | `index(action='refresh')` |\n| `schema` | Build version differs from the server's expected version (`_schema_notice`) | Compares `build_version` with the server's expected build version | Refresh with `force=True` if the index is older. If the index is *newer* than the server, a rebuild cannot clear it, so the caller must restart the MCP client. |\n| `code` | The running process loaded clew before its source tree changed (`_code_notice`) | Compares the process fingerprint with the on-disk source fingerprint (`code_identity`) | Only restarting the MCP client. Rebuilding does not help. |\n\nData is read live because query tools open the database per call. What goes stale on the `code` axis is the process's logic and module-level constants, not the data.\n\n**What the caller gets.**\n- `staleness_notices` (`clew/mcp_server/server.py`) rides on every query reply as a list of `{axis, message}`. It is empty when the index is current, so a current index adds nothing to the payload.\n- Each message names the action that clears it. The `code` message says a rebuild cannot fix it. The `schema` message gives the direction-specific advice.\n- The reply is trimmed to fit the payload budget (`_staleness_within_budget`), with a compact or minimal message when space is tight. Notices are attached only for the repository that actually answered, so a derived target's staleness is never reported beside another repository's data.\n- A \"not found\" answer on a drifted index carries `_UNEARNED_BY_DRIFT`: the answer is not definitive, the caller should refresh and ask again, and it should check the `code` axis if the refresh did not run.\n\n**What the caller does.**\n1. Read the notice and act on the axis it names.\n2. For `data`, call `index(action='refresh')`. Queries already refresh a stale data axis before answering (`_auto_refresh` \u2192 `_refresh_stale`). A background loop (`keep_current` \u2192 `refresh_touched`) also refreshes indexes in the session's working set on an interval. The refresh is deduplicated under a per-target build lock with a bounded wait. If the wait times out or the build fails, the query answers from the existing index and the staleness notice still rides along.\n3. For `schema` with an older index, refresh with `force=True`.\n4. For `code`, or for a `schema` index newer than the server, restart the MCP client. Rebuilding does not clear either one.\n5. If a symbol is missing on a drifted index, refresh and ask again before concluding it does not exist.\n\n**Writes are guarded.** `stale_code_refusal` makes `build_or_refresh` refuse when the process predates its source, and `force=True` does not override that. The reason is recorded in the code: a stale process reads current data but writes with old pipeline logic, and one measured case dropped a build layer and then reported the index healthy. The refusal tells the caller to restart the client and then refresh with `force=True`.\n\n**Limitation I could not check from the index:** the `db_status` body in `clew/mcp_server/state.py` and the `status` tool wiring. I relied on the documented behaviour in the `freshness.py` module docs and the function docs. Some dossier results were flagged `anchor_mismatch`, so I cite functions by name rather than by line number.",
+  "ttft_ms": 1146,
+  "type": "result",
+  "duration_ms": 13049,
+  "uuid": "02ceeeab-6dd0-4ebf-8d91-4a4628086d8f",
+  "ttft_stream_ms": 614,
+  "time_to_request_ms": 70,
+  "first_content_frame_ms": 614,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

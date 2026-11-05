@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the reply separates the two cases by asking the database before it speaks. A bare \"definitive\" is only sent when the index shows nothing the search could have matched.\" and \"The unread-kind check is derived by subtraction from the kinds actually in the database\"\nVERDICT: HIT\nWHY: The answer says the strong wording depends on a per-call database check for rows in kinds `search` doesn't read. It also contrasts this with `_many`, which attaches the default by result shape."
+}

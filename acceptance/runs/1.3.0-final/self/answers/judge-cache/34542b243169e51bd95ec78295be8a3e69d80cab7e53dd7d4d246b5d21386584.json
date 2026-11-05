@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"a `not_indexed` list with counts (`.rs=2`, `.toml=2`, `.sql=1`, `.csv=3`, `.lock=1`, `.jsonl=1`, `.motor=1`, no-extension=3, and so on)\"\nVERDICT: MISS\nWHY: The answer describes `not_indexed` file types (ones skipped) and what was searched, but never says the reply names file types that were in scope and produced no rows. That is a different fact from the skipped-extension list."
+}

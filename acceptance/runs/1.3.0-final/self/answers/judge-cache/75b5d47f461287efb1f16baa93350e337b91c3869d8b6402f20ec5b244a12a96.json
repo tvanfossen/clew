@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**One row per endpoint.** Two layers finding the same edge produce one row, reporting the strongest `source` and `confidence`. The row doesn't say the other layer disagreed.\"\nVERDICT: HIT\nWHY: The answer states that multiple layers' variants collapse into one row per endpoint carrying the strongest source and confidence."
+}

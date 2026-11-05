@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Pre-commit runs `gen-bindings --check` and fails on drift.\nVERDICT: HIT\nWHY: The answer states that the generator (`scripts/gen_bindings.py`) is checked by a pre-commit `gen-bindings --check` hook that fails on drift, which matches the item's mechanism of re-running the generator and detecting differences."
+}

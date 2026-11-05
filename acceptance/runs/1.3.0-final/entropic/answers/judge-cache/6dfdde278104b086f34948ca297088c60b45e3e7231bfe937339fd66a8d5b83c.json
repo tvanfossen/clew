@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::start` ... `HealthMonitor::start` (`health_monitor.cpp:92`) ... `StdioTransport::open` (`:164`) ... `SSETransport::open` (`:107`) ... `CancelFlagBridge` ctor (`inference_c_api.cpp:385`) ... `ResponseGenerator::dispatch_batch_generate` (`response_generator.cpp:413`)\nVERDICT: HIT\nWHY: The table lists thread spawn sites across the external bridge, health monitor, stdio/SSE transports and inference path, so it shows creation is spread across subsystems. It never says outright that this means creation isn't centralised."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names only one file path as a thread-creation site: `external_bridge.cpp:1158`. The path is written with a line number attached, so I've listed it as the answer gives it.\n\nITEMS:\nexternal_bridge.cpp:1158\nEND"
+}

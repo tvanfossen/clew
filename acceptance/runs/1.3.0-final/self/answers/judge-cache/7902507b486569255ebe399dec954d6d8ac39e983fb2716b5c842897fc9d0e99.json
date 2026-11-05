@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \".clew.yaml at the repo root | Replaces the stated layer\" (tier 2 in table) and \"`.clew.yaml` holds one section per option, and the section name is the option name.\"\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as tier 2 at the repo root, but never says that both entry points discover it from the repo root rather than plumbing it per section."
+}

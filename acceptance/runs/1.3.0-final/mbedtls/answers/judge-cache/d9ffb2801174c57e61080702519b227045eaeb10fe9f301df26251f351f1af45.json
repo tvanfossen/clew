@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_memory_buffer_alloc_init()` (`library/memory_buffer_alloc.c:566-576`) calls `mbedtls_platform_set_calloc_free()` itself. It installs the mutex-wrapped variant when `MBEDTLS_THREADING_C` is on, and the plain one otherwise.\"\nVERDICT: HIT\nWHY: The answer states the init function installs the mutex-wrapped pair under MBEDTLS_THREADING_C and the plain pair otherwise. The compile-time choice is implied by the macro condition."
+}

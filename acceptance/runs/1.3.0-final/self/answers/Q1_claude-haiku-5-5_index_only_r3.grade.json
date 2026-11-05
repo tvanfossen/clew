@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_only_r3",
+  "arm": "index_only",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.25,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: The decision is made in `clew/scope.py`, through `derive_scope`. | WHY: The answer explicitly names `derive_scope` in `clew/scope.py` as where the scope decision is resolved, and it gives the line number and the entry-point role. || QUOTE: The decision is made in `clew/scope.py`, through `derive_scope`. | WHY: The answer explicitly names `derive_scope` in `clew/scope.py` as the entry point where the scope decision is made. || QUOTE: The decision is made in `clew/scope.py`, through `derive_scope`. | WHY: The answer explicitly names `derive_scope` in `clew/scope.py` as where the scope decision is made.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"If the declaration is usable, its roots and excludes become the scope. If it is present but rejected, `derive_scope` logs a WARNING and falls through to the whole-repo tier... If nothing is declared, `whole_repo_scope(root)` ... takes over.\" | WHY: The answer says a declared `index_scope` is used when usable and that both a rejected declaration and no declaration fall through to whole-repo indexing, which covers \"every failure to find one falls through.\" || QUOTE: \"If the declaration is usable, its roots and excludes become the scope. If it is present but rejected, `derive_scope` logs a WARNING and falls through to the whole-repo tier... If nothing is declared, `whole_repo_scope(root)` ... takes over.\" | WHY: The answer states that a declared `index_scope` is used first and that both a rejected declaration and a missing one fall through to whole-repo indexing. || QUOTE: If the declaration is usable, its roots and excludes become the scope. If it is present but rejected, `derive_scope` logs a WARNING and falls through to the whole-repo tier... If nothing is declared, `whole_repo_scope(root)` takes over. | WHY: The answer says a declared `index_scope` is used when usable. A rejected declaration, or no declaration, falls through to the whole-repo tier. This matches the item's \"declared preferred, failures fall through to whole repo\" substance.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: \"If it is present but rejected, `derive_scope` logs a WARNING and falls through to the whole-repo tier, with the rejection reason carried into that tier's reason string.\" | WHY: The answer says that a rejection reason is carried into the whole-repo tier's reason string, and that a test checks the reason names `index_scope` and `.clew.yaml`. It never says the fallback's reason explains which scope was used and why, or that an unstated scope is never silently guessed. || QUOTE: \"If it is present but rejected, `derive_scope` logs a WARNING and falls through to the whole-repo tier, with the rejection reason carried into that tier's reason string.\" | WHY: The answer only says the rejection reason is carried into the whole-repo tier's reason string. It never says the fallback always carries a reason saying which scope was used and why. The one mention of a reason in the no-declaration case is the test checking that the reason names `index_scope` and `.clew.yaml`, which doesn't state the mechanism the item requires.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: The Doxyfile's `INPUT` is not consulted. Since gh#333 it is a documentation target, not a reasoning boundary. | WHY: The answer says INPUT is not consulted and calls it a documentation target. It never gives the item's reason: a repository that ships a Doxyfile would get only its documented subset, while one without gets its whole tree. || QUOTE: The Doxyfile's `INPUT` is not consulted. Since gh#333 it is a documentation target, not a reasoning boundary. | WHY: The answer says INPUT isn't consulted and calls it a documentation target, but it never states the specific reason: that a repo shipping a Doxyfile would get only its documented subset while one without gets the whole tree. || QUOTE: The Doxyfile's `INPUT` is not consulted. Since gh#333 it is a documentation target, not a reasoning boundary. | WHY: The answer says INPUT isn't consulted and calls it a \"documentation target, not a reasoning boundary\", but it never gives the required reason: a repo shipping a Doxyfile would get only its documented subset, while a repo with none gets its whole tree.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Its single root is the repository itself, and nested git trees are included. | WHY: The answer says nested git trees are included, but never states they are tagged (e.g., labeled as nested/vendored) instead of excluded, so the specific tagging mechanism is absent. || QUOTE: Its single root is the repository itself, and nested git trees are included. | WHY: The answer says nested git trees are included in the whole-repo root, but it never says they are tagged (for example as sub-indexes). The item needs both parts, so it resolves to MISS. || QUOTE: Its single root is the repository itself, and nested git trees are included. | WHY: The answer says nested git trees are included and walked specially, but it never says they are tagged. The item needs both indexed and tagged, so this is only part of it.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it only describes the current scope derivation and no removal of a call versus dropping its callers. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it describes the whole-repo scope behavior and a stale docstring, not that removal. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it only describes the scope decision logic.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer covers only path-level scope (gitignore, dot-dirs, depth) and explicitly says it did not confirm the per-extension filter. It names neither the parse-built front end nor binary classification. || QUOTE: NONE | WHY: The answer says it did not confirm the per-extension file filter and names neither the parse-built front end nor binary classification as filters on which files reach the index. || QUOTE: NONE | WHY: The answer covers the scope tiers and explicitly admits it did not confirm the per-extension filter. It names neither the parse-built front end claiming doxygen-unreadable types nor binary classification dropping files with misleading extensions.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

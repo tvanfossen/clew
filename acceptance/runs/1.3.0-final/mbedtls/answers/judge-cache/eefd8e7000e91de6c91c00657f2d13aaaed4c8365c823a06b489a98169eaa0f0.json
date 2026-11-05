@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Verification is by Valgrind, not by inspection.** `test_with_valgrind_constant_time` runs `tests/suites/*constant_time*.data` under Valgrind.\nVERDICT: MISS\nWHY: It mentions Valgrind-based testing, but never says the facility is off-by-default, built on MSan/valgrind as a separate facility, or that it is explicitly not part of the library API."
+}

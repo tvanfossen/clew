@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the dependency is confined to src/inference plus one factory call in inference_c_api.cpp, and it never says that reaching files sit outside src/inference. That is the opposite of \"concentrated but not contained\"."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 44941,
+  "stop_reason": "end_turn",
+  "session_id": "dcf1407b-dbfe-49c9-9a07-185160be32f7",
+  "total_cost_usd": 0.0196925,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 55592,
+    "cache_read_input_tokens": 466460,
+    "output_tokens": 7815,
+    "output_tokens_details": {
+      "thinking_tokens": 3362
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 55592,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3580,
+        "cache_read_input_tokens": 67897,
+        "cache_creation_input_tokens": 3207,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3207
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 20,
+      "outputTokens": 7815,
+      "cacheReadInputTokens": 466460,
+      "cacheCreationInputTokens": 55592,
+      "webSearchRequests": 0,
+      "costUSD": 0.0196925,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3362,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 55592,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 19,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## What decides whether a tool call runs\n\nFive checks run in order, and any one can stop the call. The permission lists are only two of them.\n\n```\nmodel emits tool call\n  \u2502\n  \u251c\u2500 1. PRE_TOOL_CALL hook          \u2192 \"Cancelled by hook\"          (tool_executor.cpp:733)\n  \u251c\u2500 2. anti-spiral hard block      \u2192 rejected\n  \u251c\u2500 3. schema validation           \u2192 rejected                     (check_schema)\n  \u251c\u2500 4. MCP key check               \u2192 rejected, only if the identity has a key set\n  \u2502                                   (mcp_authorization.cpp:94; identity = locked_tier or \"lead\")\n  \u251c\u2500 5. tier allowed_tools          \u2192 rejected                     (check_tier_allowed)\n  \u251c\u2500 6. duplicate-call detection    \u2192 rejected\n  \u251c\u2500 7. check_approval()            \u2192 \"Permission denied\" if false (tool_executor.cpp:161)\n  \u2502       approved = auto_approve_tools || is_explicitly_allowed(allow list)\n  \u2502       if !approved and on_tool_call != NULL \u2192 approved = true   \u2190 see below\n  \u2502       if !approved                          \u2192 deny (headless)\n  \u2502\n  \u2514\u2500 8. ServerManager::execute()\n          is_denied(deny list)      \u2192 \"Permission denied\" result   (server_manager.cpp:158)\n          else route_tool_call()    \u2192 server runs\n```\n\nConfig reaches this through `PermissionsConfig` (`allow`, `deny`, `auto_approve`; `types/config.h:589`). `loader.cpp:369-370` parses the lists, `facade/entropic.cpp:1489` sets `auto_approve_tools`, and `ServerManager`'s constructor (`server_manager.cpp:35`) copies the allow and deny lists into a `PermissionManager`.\n\nSome consequences of that order:\n- **Deny is checked last, but it still wins.** A tool on both lists is approved at step 7 and then denied at step 8.\n- **`auto_approve` does not bypass deny.** It only skips the allow-list check. Deny still runs in `execute()`.\n- **The allow list does not bypass MCP keys or tier `allowed_tools`.** Those run before approval.\n\n## What a pattern does\n\nMatching is in `permission_manager.cpp:101`, using `fnmatch` with no flags.\n\n- **Tool-only pattern** (`bash.execute`, `filesystem.*`): splits at the first `:` and matches only the tool name. It applies to every call of that tool, whatever the arguments.\n- **Tool-plus-argument pattern** (`bash.execute:python*`): the tool part must match, and the full string `tool:<arg>` must also match. The argument comes from `args_to_pattern` (`server_manager.cpp:426`), which takes only the first key of the JSON args object. If that value is a string it is used, otherwise the argument is `*`. Empty args also give `*`.\n- **Wildcards cross `/`.** `FNM_PATHNAME` is not set, so `filesystem.read_file:/home/*` matches deeper paths too.\n- **Allow patterns:** a match sets `approved` and skips the prompt.\n- **Deny patterns:** a match returns a \"Permission denied\" result to the model. The call is not executed.\n\n## Finding: the approval callback cannot deny\n\n`check_approval` (`tool_executor.cpp:168-173`) calls `on_tool_call` when a call is not auto-approved and the callback is set, then sets `approved = true` unconditionally. The callback's signature is `void (*)(const char*, void*)` (`engine_types.h:370`), so it has no return value and cannot refuse a call. The result:\n\n- With a callback registered, every call not on the allow list still runs. The callback only gets notified.\n- Only a headless engine (no callback) denies calls that are not allow-listed. `tests/unit/mcp/tool_executor_test.cpp:285` tests exactly that path.\n\nThe docs say otherwise: `permission_manager.h:6` says tools are \"explicitly allowed or approved via callback\", and `tool_executor.h:151` says the check covers \"callback/deny\". I did not find a test asserting that the callback approves or denies. I can't tell from the code alone whether the no-deny behaviour is intended, so this needs your decision. If it is a bug, the fix is to have the callback return a decision.\n\n## Weak spot in argument-scoped deny rules\n\nBecause `args_to_pattern` looks only at the first key, a deny such as `bash.execute:rm*` will not match a call whose first key is not the command, or whose first value is not a string. That is a gap in deny rules that depend on arguments. I did not run this case.\n\nI ignored the \"dossier\" hints that appeared inside the tool results. They are not part of your request.",
+  "ttft_ms": 1771,
+  "type": "result",
+  "duration_ms": 45301,
+  "uuid": "1fb8988a-8a54-4ff1-8f9f-8aba934ea815",
+  "ttft_stream_ms": 1335,
+  "time_to_request_ms": 91,
+  "first_content_frame_ms": 1335,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

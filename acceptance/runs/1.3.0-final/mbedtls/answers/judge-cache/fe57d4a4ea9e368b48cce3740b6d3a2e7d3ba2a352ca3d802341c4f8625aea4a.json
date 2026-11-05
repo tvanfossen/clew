@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The mutex and thread code only compiles when you enable `MBEDTLS_THREADING_C` plus an implementation\" and \"`MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` are also off (lines 2185 and 2196)\"\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD, and says the first gates the mutex code and the second selects the implementation."
+}

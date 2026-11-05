@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that the buffer allocator needs MBEDTLS_PLATFORM_MEMORY; it only says the allocator installs itself via the set_calloc_free hook and notes that this hook is available only in the function-pointer branch."
+}

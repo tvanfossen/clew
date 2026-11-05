@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every query reply carries a `staleness` list of `{axis, message}` entries when anything is stale, and omits it when current.\nVERDICT: HIT\nWHY: The answer states the staleness annotation is on every query reply and absent when the index is current, which matches the item's substance."
+}

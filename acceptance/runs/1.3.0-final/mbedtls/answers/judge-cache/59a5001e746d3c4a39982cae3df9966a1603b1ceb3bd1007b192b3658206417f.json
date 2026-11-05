@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (default) | `calloc`\nVERDICT: MISS\nWHY: The answer discusses MBEDTLS_PLATFORM_MEMORY as the option controlling allocator substitution and says it is off by default, but it never says it is commented out in the shipped mbedtls_config.h."
+}

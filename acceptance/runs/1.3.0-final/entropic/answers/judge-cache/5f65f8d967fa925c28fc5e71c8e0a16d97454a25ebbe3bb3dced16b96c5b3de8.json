@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists `llama_*` types and `<llama.h>` includes but never identifies the seam as llama.cpp's C API of free `llama_`-prefixed functions, as opposed to C++ classes or inheritance."
+}

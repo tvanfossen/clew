@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"mbedtls_high_level_strerr(ret) ... if ret & ~0xFF80 \u2260 0 ? (low-level part = 0x0020) ... append \" : \" ... buf = \"RSA - Bad input parameters to function : AES - Invalid key length\"\"\nVERDICT: HIT\nWHY: The answer explains a code splits into high-level module and low-level parts and that mbedtls_strerror renders both joined with \" : \" when both are present."
+}

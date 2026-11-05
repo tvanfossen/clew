@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says that `MBEDTLS_PLATFORM_MEMORY` gates the runtime and compile-time overrides. It never says the option is commented out in the shipped `mbedtls_config.h`. It only describes the default as \"`MBEDTLS_PLATFORM_MEMORY` off\"."
+}

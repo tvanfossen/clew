@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the buffer allocator (MBEDTLS_MEMORY_BUFFER_ALLOC_C) requires MBEDTLS_PLATFORM_MEMORY. It only says init calls the setter, which exists only in the function-pointer branch, and it never frames that as a config dependency."
+}

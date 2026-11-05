@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [{post_id, reactions:[reaction]}] })\n\nQUOTE: prepareRecordsOnly false \u2192 batchRecords(batchRecords, 'handleReactions')\n\nVERDICT: HIT\nWHY: The answer states that the add path calls the operator's `handleReactions`, which prepares Reaction records and writes them with `batchRecords`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its use is confined to the seven `src/inference/llama_cpp_*` files plus the one factory call in `inference_c_api.cpp`.\nVERDICT: MISS\nWHY: The answer says the dependency is confined to about seven files in one layer, which is the opposite of the item's claim that it reaches roughly a dozen of entropic's source files rather than one wrapper."
+}

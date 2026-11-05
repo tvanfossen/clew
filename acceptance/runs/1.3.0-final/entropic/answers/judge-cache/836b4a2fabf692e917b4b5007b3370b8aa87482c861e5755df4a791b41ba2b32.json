@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Retry would mean repeating a failed call, possibly with backoff or changed input, in the hope of a different result. Neither site does that. The second call is a deterministic follow-up with the size llama.cpp just reported.\"\nVERDICT: HIT\nWHY: The answer concludes it is size negotiation (two-pass sizing/resize), not retry. It rules out backoff and changed input, and it says there is one deterministic second call. It never says \"no attempt counter\" or \"no delay\" explicitly, but that substance is covered."
+}

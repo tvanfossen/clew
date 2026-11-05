@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Data is read live because query tools open the database per call. What goes stale on the `code` axis is the process's logic and module-level constants, not the data. ... a stale process reads current data but writes with old pipeline logic, and one measured case dropped a build layer and then reported the index healthy.\nVERDICT: HIT\nWHY: The answer states reads stay current because query tools open the database per call, while a stale process's build writes with old pipeline logic."
+}

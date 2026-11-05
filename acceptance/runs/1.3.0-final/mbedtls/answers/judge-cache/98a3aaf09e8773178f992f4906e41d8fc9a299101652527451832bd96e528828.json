@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without asm it XORs with a `volatile` global, `mbedtls_ct_zero`, which the compiler must assume could change.\nVERDICT: HIT\nWHY: The answer states that without asm the opaque function XORs with a volatile global `mbedtls_ct_zero`, and names the global. It also says this is the same function, `mbedtls_ct_compiler_opaque()`."
+}

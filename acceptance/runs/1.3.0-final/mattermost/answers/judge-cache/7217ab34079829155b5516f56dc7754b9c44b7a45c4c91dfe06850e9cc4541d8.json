@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It forwards it only to `<NavigationSearch ref={ref}>` when `hasSearch` is true (line 134).\nVERDICT: HIT\nWHY: The answer states NavigationHeader forwards the ref only to NavigationSearch when `hasSearch` is true. The \"otherwise attached to nothing\" part follows from \"only\", so the mechanism is covered."
+}

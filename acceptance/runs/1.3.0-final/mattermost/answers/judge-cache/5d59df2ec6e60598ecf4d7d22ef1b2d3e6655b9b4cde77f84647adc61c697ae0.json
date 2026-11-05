@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the post POST passes noRetry (retryLimit 0), but it never states that requests in general retry with exponential backoff, limit 3, set by the network manager."
+}

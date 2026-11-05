@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Only `SearchScreen` renders a search field.\"\nVERDICT: HIT\nWHY: The answer names `app/screens/home/search/search.tsx` (SearchScreen) as the only caller that enables the search field via `hasSearch={true}`."
+}

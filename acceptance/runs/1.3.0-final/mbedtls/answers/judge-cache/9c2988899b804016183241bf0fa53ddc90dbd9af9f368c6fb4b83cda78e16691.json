@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (default) | `calloc` / `free`, as macros\n\nVERDICT: MISS\n\nWHY: The answer says that with MBEDTLS_PLATFORM_MEMORY off (the default), the names resolve to libc. It never says the flag is commented out in the shipped mbedtls_config.h, and \"off (default)\" is not that specific fact."
+}

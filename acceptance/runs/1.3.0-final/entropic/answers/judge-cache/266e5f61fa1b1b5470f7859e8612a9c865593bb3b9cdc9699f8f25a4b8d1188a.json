@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The handle log scope is propagated, so logs route to the owning session.\nVERDICT: MISS\nWHY: The answer says log scope is propagated for two threads (serve_client, run_async_ask), but it never says that every thread body installs a per-handle logging scope as its first statement. It also notes that the stdio, SSE and other bodies are not in the index."
+}

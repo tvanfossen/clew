@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its thread function is gated on `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD`, which are both off by default\nVERDICT: HIT\nWHY: The answer explicitly names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the gating macros for the pthread server's thread function."
+}

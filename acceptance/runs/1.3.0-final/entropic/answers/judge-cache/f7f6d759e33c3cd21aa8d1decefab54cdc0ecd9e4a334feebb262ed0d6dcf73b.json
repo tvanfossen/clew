@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It isn't retry logic. Nothing is re-attempted after a failure, no inputs change, there's no backoff, and the first call's result is always used.\"\nVERDICT: HIT\nWHY: The answer calls it a size-probe followed by a fill, not a retry, and notes there is no backoff and the first call's result is always used. This matches the item's size-negotiation conclusion. \"Exactly one second call\" is stated as the single fill call after the probe."
+}

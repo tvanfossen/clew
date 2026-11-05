@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ServerDataOperator` is declared at `app/database/operator/server_data_operator/index.ts:40` as `class ServerDataOperator extends mix(ServerDataOperatorBase).with(...)`, mixing in 13 handler classes.\nVERDICT: HIT\nWHY: The answer explicitly states that ServerDataOperator extends `mix(ServerDataOperatorBase).with(...)`, composing the handler classes through mixins rather than declaring the handlers itself."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The cancel int is kept as an `int*` so no `std::atomic` crosses the `.so` boundary.\nVERDICT: HIT\nWHY: The answer says the observer thread mirrors the interrupt flag (atomic) into a C-ABI cancel int, and that the int is kept plain because no `std::atomic` can cross the `.so` boundary. That is the bridging rationale the item asks for."
+}

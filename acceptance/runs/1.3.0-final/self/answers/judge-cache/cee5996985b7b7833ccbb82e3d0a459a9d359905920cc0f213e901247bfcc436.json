@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer separates a definitive empty result (for the scope searched) from a NOT definitive one (a multi-token miss). It never describes a third grade, an empty reply that is definitive for a reason other than absence."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Log: the reason string records which tier was used and why, so the build log says \"no index_scope is declared \u2026 the whole repository is the index scope\".\nVERDICT: HIT\nWHY: The answer states the fallback scope carries a reason string recording which tier was used and why, so the choice is explicit rather than guessed."
+}

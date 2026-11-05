@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/error.c` is marked as auto-generated, between the `Begin/End Auto-Generated Code` markers in the template `scripts/data_files/error.fmt`. The Perl script: ... Globs `include/mbedtls/*.h`\nVERDICT: HIT\nWHY: The answer states error.c is generated from the public headers by scripts/generate_errors.pl using the error.fmt template."
+}

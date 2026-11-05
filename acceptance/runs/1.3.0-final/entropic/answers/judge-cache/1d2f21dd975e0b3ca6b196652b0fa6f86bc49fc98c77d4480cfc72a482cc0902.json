@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Table listing \"External MCP accept loop\" (`external_bridge.cpp`), \"Health monitor\" (`health_monitor.cpp:92`), \"MCP stdio stderr reader\" (`transport_stdio.cpp`), \"MCP SSE reader\" (`transport_sse.cpp`), and \"Short-lived cancel pollers\" (`inference_c_api.cpp`, `interface_factory.cpp`, `response_generator.cpp`)\nVERDICT: HIT\nWHY: The answer enumerates thread creation sites across the external bridge, MCP transports, health monitor and inference path, which shows creation is spread across subsystems, though it doesn't say so in words."
+}

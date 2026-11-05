@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The layer is used in roughly 30 library files, and some sensitive paths deliberately bypass it.\nVERDICT: HIT\nWHY: The answer states the primitives are used across roughly 30 library files, backed by a table spanning many modules, so it conveys broad consumption rather than confinement to one or two modules."
+}

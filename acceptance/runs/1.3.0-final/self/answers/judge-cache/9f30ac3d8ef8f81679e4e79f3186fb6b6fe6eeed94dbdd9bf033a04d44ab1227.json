@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**\"Not in this repository\"** holds only when the reply has no `not_searched`, the corpus matches what you are looking for, and no other corpus outside search's reach could hold it. The search tool's own wording claims certainty only in that case.\"\nVERDICT: HIT\nWHY: The answer says the certainty claim is conditional per reply on `not_searched` and on whether any corpus outside search's reach could hold the match. That is earned per call from what was not read, not attached to a result shape."
+}

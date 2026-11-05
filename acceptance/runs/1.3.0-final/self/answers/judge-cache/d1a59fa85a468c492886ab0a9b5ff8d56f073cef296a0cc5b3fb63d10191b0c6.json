@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The module's own rule is that \"nothing matched\" is only a negative once the code has checked the other corpora and found nothing there.\"\nVERDICT: MISS\nWHY: The answer describes the current graded-emptiness design but never says that a single no-hit token was previously treated as proof of absence, nor frames the old behavior as conflating \"nothing exists\" with \"I did not look there.\""
+}

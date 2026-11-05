@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A TypeScript `interface ServerDataOperator extends ...Mix` declaration (`index.ts:23-38`) merges in the method types, so callers see every handler method on the one object.\nVERDICT: HIT\nWHY: The answer states that a same-named interface extends the `...Mix` types, merging each handler's method types into the class so it is typed with all of them."
+}

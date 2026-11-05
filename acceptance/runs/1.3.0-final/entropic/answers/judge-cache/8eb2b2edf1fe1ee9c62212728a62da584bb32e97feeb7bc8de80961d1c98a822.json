@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says `_loader.py` finds and loads `librentropic.so` but never describes the resolution order (env overrides, user directory, system library cache, or two layouts per root)."
+}

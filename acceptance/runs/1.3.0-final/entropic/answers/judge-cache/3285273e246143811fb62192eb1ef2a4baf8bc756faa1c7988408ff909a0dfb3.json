@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python talks to the engine through `ctypes` over the C ABI of `librentropic.so`. There is no pybind11, cffi, or compiled extension.\nVERDICT: HIT\nWHY: The answer names ctypes over librentropic.so as the mechanism and explicitly says no compiled extension is involved."
+}

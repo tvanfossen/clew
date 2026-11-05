@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains how to interpret empty results by scope, but never says that a single-token miss was previously treated as proof of absence or that this was a fixed bug conflating \"nothing exists\" with \"didn't look.\""
+}

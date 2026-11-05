@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: approved = auto_approve_tools || is_explicitly_allowed(allow list) ... \"Allow patterns: a match sets `approved` and skips the prompt.\"\nVERDICT: MISS\nWHY: The answer says allow matches skip the prompt, but it never says that allow doesn't grant execution, and it doesn't say the list is consulted only from check_approval in a different file. It actually places the allow-list check in tool_executor.cpp while the permission_manager.cpp matching is described separately."
+}

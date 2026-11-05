@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **1. Compile-time (one fixed allocator).** Define `MBEDTLS_PLATFORM_MEMORY` in the config, plus `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`... **2. Run-time (swap at startup).** ... `mbedtls_platform_set_calloc_free(my_calloc, my_free);`\nVERDICT: MISS\nWHY: The answer distinguishes a compile-time macro pair from a runtime function-pointer pair. However, it never states that the two are mutually exclusive. It only implies that the function-pointer layer is compiled in when the macros are not supplied, and hedges that as unverified."
+}

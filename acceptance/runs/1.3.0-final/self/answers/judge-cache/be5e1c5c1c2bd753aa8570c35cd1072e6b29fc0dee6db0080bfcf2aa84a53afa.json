@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Nested git trees are not excluded.** Since gh#333 they are indexed and tagged by `external.py`, so a call that crosses into a vendored library is still traced.\"\nVERDICT: HIT\nWHY: The answer states nested git trees are indexed and tagged rather than excluded from scope."
+}

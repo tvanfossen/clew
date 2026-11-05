@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp is a git submodule, pinned to commit **b8420**, and linked directly into the inference library.\nVERDICT: MISS\nWHY: The answer says llama.cpp is a git submodule, but it never gives the location extern/llama.cpp. It also says it can't confirm how the submodule is wired in."
+}

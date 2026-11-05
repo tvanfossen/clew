@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The two sample programs are the notable case. They are not library code, but they reach into `ssl` and `conf` internals. A field rename or layout change in `ssl.h` can break those programs even though a normal application would be protected.\"\nVERDICT: HIT\nWHY: The answer states that the example programs (ssl_client2.c, ssl_server2.c) define the opt-out macro themselves and thereby reach past the public API into internals."
+}

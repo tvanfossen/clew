@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`archivedChannelsViewable(value) = value !== 'false'`. Only the exact string `'false'` turns the feature off.\" and \"The app treats an absent value the same as `\"true\"`: archived channels stay viewable.\"\nVERDICT: HIT\nWHY: The answer states that an absent setting yields viewable archived channels and that only an explicit 'false' disables it."
+}

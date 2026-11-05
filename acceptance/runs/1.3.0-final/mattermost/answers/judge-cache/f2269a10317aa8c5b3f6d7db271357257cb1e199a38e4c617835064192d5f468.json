@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names three paths outside `handlers/` that define handler mixins of `ServerDataOperator`.\n\nITEMS:\napp/products/agents/database/operators/handlers/index.ts\napp/products/boards/database/operators/handlers/index.ts\napp/products/playbooks/database/operators/handlers/index.ts\nEND"
+}

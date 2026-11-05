@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A no-row reply is not one answer. It tells you what was read and what was skipped, and the confidence depends on which of those applies.\"\nVERDICT: HIT\nWHY: The answer says the strength of an empty result is decided per call from what the reply reports as read and not read (the `note`, `scope` and `not_searched` fields), not from the empty shape alone."
+}

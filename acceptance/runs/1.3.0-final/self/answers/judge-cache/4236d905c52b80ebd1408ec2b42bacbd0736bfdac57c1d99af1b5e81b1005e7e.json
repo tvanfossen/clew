@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is \"everything that causally precedes `fn`\": direct call edges (`edge_class='call'`) plus writers of shared keys whose values `fn` reads (`edge_class='key'`). ... The docstring tells you to check `edge_class` on every row\nVERDICT: HIT\nWHY: The answer states that one list mixes direct call edges and shared-key edges, distinguished by an `edge_class` field the consumer must check."
+}

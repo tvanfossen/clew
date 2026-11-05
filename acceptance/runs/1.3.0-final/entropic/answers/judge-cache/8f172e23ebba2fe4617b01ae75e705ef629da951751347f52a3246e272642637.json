@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no directories under `src/` outright. It does name `src/facade/CMakeLists.txt`, `facade/entropic.cpp` and \"the inference layer\", so I listed those two directories.\n\nITEMS:\nfacade\ninference\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_server2.c:8` | Defined before `ssl_test_lib.h`, so the whole translation unit has full field access. ... They are compiled against the public headers but read and write internal SSL state ... These programs are the in-tree test drivers ... they are sample code, and copying them means copying a dependence on internals\nVERDICT: HIT\nWHY: The answer states that example programs (ssl_server2.c, ssl_client2.c) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves to reach internal state beyond the public API."
+}

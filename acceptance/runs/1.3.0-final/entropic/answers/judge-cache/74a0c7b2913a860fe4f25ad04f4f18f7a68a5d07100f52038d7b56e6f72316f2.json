@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`.gitmodules` registers `extern/llama.cpp` (ggml-org/llama.cpp). The gitlink is pinned at `20a04b2`.\"\nVERDICT: HIT\nWHY: The answer states llama.cpp is a git submodule at extern/llama.cpp, registered in .gitmodules and pinned by gitlink, which makes it a submodule rather than vendored, copied or fetched."
+}

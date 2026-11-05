@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer separates \"searched and empty\" from \"never indexed\" (`not_indexed` extensions). It never says the reply names in-scope file types that produced no rows. Its `extensions` mention only gives the indexed file count."
+}

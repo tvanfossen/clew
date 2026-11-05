@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nclew/synth.py\nclew/substrate.py\nclew/harvest.py\ntest_not_indexed_report.py\nclew/requirements.py\nEND"
+}

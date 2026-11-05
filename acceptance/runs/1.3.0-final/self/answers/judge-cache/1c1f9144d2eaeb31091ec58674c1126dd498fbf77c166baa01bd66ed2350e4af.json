@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `args` always empty\nVERDICT: MISS\nWHY: The answer says shell args are always empty but never says that no return is recorded or that this is because the language has neither."
+}

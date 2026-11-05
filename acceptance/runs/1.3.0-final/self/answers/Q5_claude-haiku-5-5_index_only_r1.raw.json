@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 17975,
+  "stop_reason": "end_turn",
+  "session_id": "bbc23e1f-fe7a-4c2f-ab9c-51242f91ad82",
+  "total_cost_usd": 0.010630740000000001,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 37436,
+    "cache_read_input_tokens": 152924,
+    "output_tokens": 3227,
+    "output_tokens_details": {
+      "thinking_tokens": 1407
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37436,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2424,
+        "cache_read_input_tokens": 51090,
+        "cache_creation_input_tokens": 5024,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5024
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3227,
+      "cacheReadInputTokens": 152924,
+      "cacheCreationInputTokens": 37436,
+      "webSearchRequests": 0,
+      "costUSD": 0.010630740000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1407,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 37436,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Ways to say so, from strongest to weakest.** `clew/tiers.py` defines five tiers. Stated values (tiers 1 and 2) are the ones that can override clew's guesses.\n\n| Tier | Source | Combines by |\n|---|---|---|\n| 1 explicit | CLI flags, or the structured `options` argument for embedding callers (`clew/buildoptions.py`) | Replaces the stated layer |\n| 2 declared | `.clew.yaml` at the repo root, found from `--repo-root` | Replaces the stated layer |\n| 3 target-fact | Facts the repo already wrote, such as a Doxyfile's ALIASES/PREDEFINED or a generator manifest | Accumulates |\n| 4 ecosystem | Known-ecosystem signatures (UDM, ingot) | Accumulates |\n| 5 heuristic | Name-pattern matching, the provisional floor | Replaces the stated layer |\n\n- **Tier 1 (CLI or `options`).** Per-run flags. Only tier-1 values are recorded for replay. The `options` argument matches the `.clew.yaml` vocabulary, and every declaration section can be stated this way.\n- **Tier 2 (`.clew.yaml`).** The repo's standing declaration. Sections include `shared_key_patterns`, `thread_patterns`, `mqtt_dispatch`, `doxyfile`, `kconfig`, `preprocessor`, `requirements`, `sub_indexes` and `dispatch`. The `guard:` section configures the doc gate, and the index never reads it. A standalone manifest file uses the same parser as the section.\n- **Tiers 3 and 4.** Not declared by the repo; they are read from what the repo already has or from its ecosystem.\n- **Tier 5.** Heuristics, which any stated tier displaces.\n- **Helper.** `propose_declaration` drafts a commented `.clew.yaml`. It does not overwrite an existing file without `force`.\n\n**When two disagree**\n\n- **Flag vs. declaration (1 vs. 2).** The flag wins for that run. Declared values are the default, and the flag is a one-off override.\n- **Stated vs. guesses (1 or 2 vs. 5).** The stated value replaces the guesses entirely.\n- **Facts and ecosystem (3 and 4).** These accumulate and survive every stated tier, so a `--entry-patterns` flag cannot drop `main`. Tiers 3 and 4 combine identically, so an argument over which one a value belongs to changes the label only.\n- **Empty values.** An empty explicit list `[]` is a withdrawal, not a statement. It falls through to the declaration and then to the guesses. `None` means the flag was absent. An empty `options` mapping changes nothing and is not an error. An empty per-manifest mapping such as `shared_key_patterns: {}` falls back to the declaration.\n- **Bad input.** `apply_options` validates the whole mapping before assigning anything, so one bad entry refuses the whole thing rather than half-applying it.\n- **Missing declared path.** A `doxyfile` that is stated but missing is refused. It does not fall back to indexing the whole repo.\n- **Visibility.** The winning tier and the resolved values are stored in `build_meta`, so you can see which tier won.\n\n**Caveats.** The `resolve_layered` record is flagged `anchor_mismatch`, so its line numbers may be stale, though its docstring matched the rule above. I did not read the body of `_stated_layer` or the full `buildoptions.py` docstring, which was truncated. The precedence statements above come from docstrings and tests, not from reading the code paths.",
+  "ttft_ms": 1386,
+  "type": "result",
+  "duration_ms": 18505,
+  "uuid": "d6cdbd33-97cf-4eb7-b5e4-55a2846283c1",
+  "ttft_stream_ms": 1132,
+  "time_to_request_ms": 74,
+  "first_content_frame_ms": 1132,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

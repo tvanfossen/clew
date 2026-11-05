@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The code message says a rebuild cannot fix it, and that only a client restart loads current code.\nVERDICT: HIT\nWHY: The answer states that data is cleared by a refresh/rebuild while code needs a client restart (and that rebuild can't clear schema/code). It also notes the reason for separate axes: a build from a stale process would re-stamp the index with old logic."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The scope is then applied by `_fold_scope_into_args` (`cli.py:739`). It sets the INPUT to the root, sets EXCLUDE to the excludes, and sets `replace_input`, so the target Doxyfile's INPUT is discarded.\nVERDICT: MISS\nWHY: The answer says the target Doxyfile's INPUT is discarded, but it never explains why. It doesn't say that using the Doxyfile's INPUT would give a repository that ships one only its documented subset, while a repository that ships none would get its whole tree."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Binaries** are removed by `lang_parsing_substrate.classify_file` before doxygen reads them. There is no size limit, so a large generated `.c` file is still read.\nVERDICT: MISS\nWHY: The answer does list binary classification as a later filter, but it never says that it drops files whose extension lies about them. It also never mentions a parse-built front end claiming file types doxygen cannot read, so it does not name either filter with the mechanism the item requires."
+}

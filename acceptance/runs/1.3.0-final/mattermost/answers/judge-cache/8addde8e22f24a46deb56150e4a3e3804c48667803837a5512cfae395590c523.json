@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Tapping it opens a bottom sheet with \"Try Again\" (`post.failed.retry`) and \"Delete Message\". \"Try Again\" calls `retryFailedPost` (`app/actions/remote/post.ts:228\u2013307`)\"\nVERDICT: HIT\nWHY: The answer says retry is manual, triggered by the user choosing \"Try Again\" on the failed post, which calls `retryFailedPost`. It also says no automatic retry occurs."
+}

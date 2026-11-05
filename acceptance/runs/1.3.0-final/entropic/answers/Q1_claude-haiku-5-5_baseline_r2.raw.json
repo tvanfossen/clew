@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 33710,
+  "stop_reason": "end_turn",
+  "session_id": "16408397-a30e-4e5f-9376-809970906897",
+  "total_cost_usd": 0.00862765,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 14122,
+    "cache_read_input_tokens": 278135,
+    "output_tokens": 6041,
+    "output_tokens_details": {
+      "thinking_tokens": 2942
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 14122,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2800,
+        "cache_read_input_tokens": 46528,
+        "cache_creation_input_tokens": 1110,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1110
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 6041,
+      "cacheReadInputTokens": 278135,
+      "cacheCreationInputTokens": 14122,
+      "webSearchRequests": 0,
+      "costUSD": 0.00862765,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2942,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 14122,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Why it calls llama.cpp twice\n\nThere are two sizing calls, in two places, and neither is retry logic.\n\n- **`LlamaCppTokenizer::tokenize`** (`src/inference/llama_cpp_tokenizer.cpp:55-63`): the first `llama_tokenize` call passes a null buffer. llama.cpp answers with the negative of the required token count. The code allocates that many slots and calls again to fill them. This is a standard two-pass sizing protocol.\n- **`LlamaCppTokenizer::detokenize`** (`:93-103`): the first `llama_token_to_piece` call uses a fixed 256-byte stack buffer. If the piece doesn't fit, llama.cpp returns the negative required size, and the code resizes and calls again. This is buffer growth.\n\nRetry would mean repeating a failed call, possibly with backoff or changed input, in the hope of a different result. Neither site does that. The second call is a deterministic follow-up with the size llama.cpp just reported. The `detokenize` comment says \"retry\", but the behaviour is a resize.\n\n## What the caller receives on failure\n\n`tokenize` returns an empty `std::vector<int32_t>` in two cases:\n\n- `vocab_` is null (`:52`). It returns silently, with no log.\n- The second `llama_tokenize` returns negative (`:64-68`). It logs an error with the text length, not the content, then returns `{}`.\n\n`LlamaCppBackend::tokenize` passes the empty vector straight through (`llama_cpp_backend.cpp:788-800`). It also returns `{}` when no tokenizer is wired. So a failure is indistinguishable from legitimately empty input, and the only signal is one log line from the tokenizer.\n\nWhat each caller does with the empty vector:\n\n| Caller (`llama_cpp_backend.cpp`) | Behaviour on empty tokens |\n|---|---|\n| `do_count_tokens` (`:825`) and the system-prompt count (`:2066`) | Return `0`. The count is silently wrong and no error is raised. |\n| `generate`, `generate_cancellable`, `stream` (`:2561`, `:2643`, `:2728`) | Log \"0 input tokens\" and carry on. `decode_loop` calls `run_prefill` with zero tokens. That is a no-op that returns `true` (`:1484-1503`), so generation proceeds. No tokenization error reaches the caller. |\n| `complete` (`:3947`) | No check at all. Same path as above. |\n| Speculative (`:3593`) and MTP (`:3921`) | Check `size() < 2` and return `ENTROPIC_ERROR_GENERATE_FAILED` with \"must have at least 2 tokens\". The error code is real, but the message blames the prompt. The actual cause only appears in the tokenizer's log line. |\n| Batch path (`:1911`) | Empty vectors make the shared prefix 0, so `batch_is_viable` fails (`batch_util.h:80-89`) and the request falls off the batch fast path. I did not trace the per-request fallback in full. |\n\nI did not confirm what `step_token` reads when nothing has been decoded. `run_prefill` clears the KV memory first, so generation on an empty context is likely to produce garbage output or an error. Treat that as a suspicion until a test confirms it.\n\n## Recommendation\n\nThe sizing calls are fine. The problem is that failure and empty input share one return value, and the generation entry points never check for it. Two changes would fix this:\n\n1. Make `tokenize` return an error-bearing result (`std::optional` or a status plus vector) so a failure can't be mistaken for an empty prompt.\n2. Add an explicit empty-prompt check at each generation entry point, so it returns `ENTROPIC_ERROR_GENERATE_FAILED` with an accurate message instead of decoding nothing.\n\nI haven't changed any code. I can write the failing tests first if you want that.\n\nI also ignored a PostToolUse note after reading `tokenizer.h` that suggested a `dossier` tool. It isn't in my loaded tool set and wasn't part of your request.",
+  "ttft_ms": 1472,
+  "type": "result",
+  "duration_ms": 34063,
+  "uuid": "3550cb4d-a757-4d00-ab68-4063733456b9",
+  "ttft_stream_ms": 1357,
+  "time_to_request_ms": 135,
+  "first_content_frame_ms": 1357,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

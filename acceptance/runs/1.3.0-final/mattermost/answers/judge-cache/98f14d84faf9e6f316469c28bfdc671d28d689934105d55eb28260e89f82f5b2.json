@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`skipSync: true` | add path, `websocket/reactions.ts:28` | `sanitizeReactions` returns `deleteReactions: []`. Without it, `deleteReactions` would be every stored reaction on the post not in the one-element list, so a single `reaction_added` would delete all other users' reactions.\"\nVERDICT: HIT\nWHY: The answer states that without skipSync the single incoming reaction would be treated as the full list, and all other reactions on the post would be deleted."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"src/inference/ \u2500\u2500\u2500\u2500 #include <llama.h> \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba llama.cpp / llama_cpp_backend.{h,cpp} (+ common/chat/sampling/speculative/mtmd) / orchestrator.cpp, adapter_manager.cpp, grammar_registry.cpp, speculative_compat.cpp / tool_call_markers.h (includes chat.h)\" and \"Confined to `src/inference/`.\"\nVERDICT: MISS\nWHY: The answer names about 7 files and says the dependency is \"confined to src/inference/\" plus facade and tests. It does not convey a spread of roughly a dozen of entropic's own source files, and it frames the dependency as a small, contained footprint."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Schema, index older than server:** call `index(action='refresh', force=True)`.\" / \"**Schema, index newer than server:** a rebuild re-stamps the same version and cannot clear `stale`. Restart the MCP client.\" / \"**Code:** only a client restart helps.\"\nVERDICT: MISS\nWHY: The answer lists per-axis remedies (refresh for data, restart for code), but never explains that this difference is why a single flag would not have sufficed."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names directories only by file path, so I listed the top-level directory of each file it says uses `MBEDTLS_PRIVATE`: `include/mbedtls/private_access.h`, `library/common.h`, and `programs/ssl/ssl_context_info.c`. It also names `docs/3.0-migration-guide.md`, but only as the source of the guidance, not as a file that uses the macro, so I left `docs` out. The test-suite `.function` files are named only as unverified, with no directory given.\n\nITEMS:\ninclude\nlibrary\nprograms\nEND"
+}

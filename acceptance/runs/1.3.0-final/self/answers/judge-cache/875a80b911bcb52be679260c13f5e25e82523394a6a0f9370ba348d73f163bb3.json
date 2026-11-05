@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It holds **function-level rows only for shell and CMake**... YAML and JSON are never parsed, so they carry no symbols on any install.\" The table also gives `.yaml/.yml/.json` a \"Yes, ungated\" `path` row and \"Never\" for function rows.\nVERDICT: HIT\nWHY: The answer says YAML and JSON are registered as `path` rows but carry no symbols, while shell and CMake get function rows, so the two groups are treated differently."
+}

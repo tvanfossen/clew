@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788-800`) returns `{}` when no tokenizer is wired and otherwise forwards the vector. It adds nothing.\" and \"`LlamaCppTokenizer::tokenize` returns `{}` if `vocab_` is null or the second call returns a negative value.\" and \"So failure is indistinguishable from empty input.\"\nVERDICT: HIT\nWHY: The answer says the backend wrapper returns `{}` when no tokenizer is wired and forwards the tokenizer's empty vector on failure. It also says failure can't be told apart from the empty result. That covers the item's claim that both cases give the same empty value."
+}

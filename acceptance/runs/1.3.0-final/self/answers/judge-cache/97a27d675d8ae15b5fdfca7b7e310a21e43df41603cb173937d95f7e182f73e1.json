@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.clew.yaml` at the repo root (`clew/declaration.py`) | Standing, re-read on every build\nVERDICT: MISS\nWHY: The answer identifies `.clew.yaml` as the tier-2 standing declaration at the repo root. It never says that both entry points (CLI and MCP) discover it, or that it isn't plumbed per section."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says threads are only in programs/ and that library/threading.c provides the mutex abstraction only when enabled, but it never states plainly that nothing in library/ creates a thread as a contrast with library/ supplying mutexes to threaded callers."
+}

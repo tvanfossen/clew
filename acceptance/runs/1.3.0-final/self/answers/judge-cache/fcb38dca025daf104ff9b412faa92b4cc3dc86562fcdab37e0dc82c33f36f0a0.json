@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The Doxyfile does not set scope. Its `INPUT` is replaced, and only its aliases, predefines and similar settings are kept. Scope is its own decision, not a documentation target.\nVERDICT: MISS\nWHY: The answer says the Doxyfile's INPUT is replaced and doesn't set scope. It never gives the reason: a repo with a Doxyfile would get only its documented subset, while a repo without one would get its whole tree."
+}

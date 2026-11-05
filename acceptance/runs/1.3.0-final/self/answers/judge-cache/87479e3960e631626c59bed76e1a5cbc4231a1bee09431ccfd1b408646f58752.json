@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Not read: the Doxyfile's `INPUT`, `FILE_PATTERNS` and `EXCLUDE` no longer decide scope.\nVERDICT: MISS\nWHY: The answer says the Doxyfile's INPUT no longer decides scope but never explains why (documented subset for repos with a Doxyfile versus whole tree for repos without one)."
+}

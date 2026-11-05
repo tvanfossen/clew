@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The module's own rule is that 'nothing matched' is only a negative once the code has checked the other corpora and found nothing there.\"\nVERDICT: HIT\nWHY: The answer says a single-token miss is not proof of absence when the index holds rows in an unread corpus. It also separates \"nothing exists\" from \"I did not look here\" through the `not_indexed` signal. It never says this was the earlier behavior, but the mechanism is stated."
+}

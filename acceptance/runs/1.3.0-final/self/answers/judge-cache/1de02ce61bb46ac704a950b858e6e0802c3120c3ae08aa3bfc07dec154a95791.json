@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The winning tier is recorded in `build_meta`. Only tier-1 statements are recorded for replay.\nVERDICT: MISS\nWHY: It says the winning tier is recorded in build_meta but never says the record is derived from the stored rows rather than stamped as a separate summary."
+}

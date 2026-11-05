@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The reply is trimmed to fit the payload budget (`_staleness_within_budget`), with a compact or minimal message when space is tight.\nVERDICT: HIT\nWHY: The answer states the staleness notice is fitted to the payload budget by using a compact or minimal message (degraded wording) when space is tight, so the warning is kept rather than dropped."
+}

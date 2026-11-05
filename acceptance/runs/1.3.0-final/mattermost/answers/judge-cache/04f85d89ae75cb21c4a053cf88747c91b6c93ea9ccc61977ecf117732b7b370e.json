@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every handler funnels into one function, `BaseDataOperator.batchRecords` (`app/database/operator/base_data_operator/index.ts:191`). ... The base is `ServerDataOperatorBase` ..., which extends `BaseDataOperator`.\nVERDICT: MISS\nWHY: The answer says all handlers funnel into `batchRecords` and that the base extends `BaseDataOperator`. It never says the mixins are constrained to extend `ServerDataOperatorBase`, which is the reason the item gives."
+}

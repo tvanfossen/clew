@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `retryFailedPost` in `post.ts:228` runs when the user taps the failed post (its caller is `app/components/post_list/post/body/failed/index.tsx`).\nVERDICT: HIT\nWHY: The answer says there are zero automatic retries and that `retryFailedPost` runs only on user action on the failed post, which is the item's substance. It does not use the \"Try Again\" label."
+}

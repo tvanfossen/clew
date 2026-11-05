@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`skipSync: true` | add path, set in `reactions.ts:21` | `sanitizeReactions` returns early at `reaction.ts:42-44`, before computing `deleteReactions`. The add path never deletes other reactions on the post. Without this flag, any local reaction absent from the payload would be marked for destruction.\"\nVERDICT: HIT\nWHY: The answer says skipSync prevents deletion of other reactions on the post, and that without it local reactions absent from the single-reaction payload would be destroyed."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It installs its own functions by calling `mbedtls_platform_set_calloc_free`.\nVERDICT: HIT\nWHY: The answer says the buffer allocator's init function (`mbedtls_memory_buffer_alloc_init`) installs itself via the runtime setter. It never says \"only in-tree user\", but it presents the allocator as \"the built-in example of substitution\" and the setter's only named library-internal user."
+}

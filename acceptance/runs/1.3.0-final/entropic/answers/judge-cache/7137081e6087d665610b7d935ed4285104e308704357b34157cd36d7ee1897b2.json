@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It tries a 256-byte stack buffer with `llama_token_to_piece`. If that returns negative, the negative value is the required size, so it allocates exactly that and calls again.\nVERDICT: HIT\nWHY: The answer states detokenize tries a 256-byte stack buffer first and allocates only on a negative return, and it contrasts this with tokenize's probe-then-fill sizing."
+}

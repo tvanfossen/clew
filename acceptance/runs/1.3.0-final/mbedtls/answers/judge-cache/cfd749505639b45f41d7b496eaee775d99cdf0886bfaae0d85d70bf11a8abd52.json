@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_server2.c:8` | define at the top of the file | The example server reads the real fields directly. (and ssl_client2.c: \"same\")\nVERDICT: HIT\nWHY: The answer states that the example programs ssl_server2.c and ssl_client2.c define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves, so they use the real field names."
+}

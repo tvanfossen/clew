@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Runtime additions go through `add_permission`, and `PermissionPersister` writes them back to the YAML config.\nVERDICT: MISS\nWHY: It mentions a persister writing back to YAML but never names config.local.yaml or an append-based persistence of \"Always Allow\" decisions separate from add_permission, so the specific mechanism is absent."
+}

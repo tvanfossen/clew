@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The build logs the reason for the whole-repo fallback.\nVERDICT: HIT\nWHY: The answer states the whole-repo fallback logs a reason, conveying that the scope used is explained rather than silently guessed."
+}

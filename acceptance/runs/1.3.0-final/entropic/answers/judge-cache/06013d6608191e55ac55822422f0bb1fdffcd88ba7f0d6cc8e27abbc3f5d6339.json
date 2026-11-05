@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Bindings are generated** from `entropic.h` by `scripts/gen_bindings.py` (`inv gen-bindings`, enforced by a pre-commit `--check`).\nVERDICT: HIT\nWHY: The answer states the bindings are generated from the header and that drift is enforced by a pre-commit `--check`, which matches the regenerate-and-diff mechanism."
+}

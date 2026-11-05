@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Shutdown is a flag (`running_`) checked by the predicate of that wait.\nVERDICT: MISS\nWHY: The answer says shutdown is a flag checked in the wait predicate, but it never describes the atomic exchange or the condition-variable notify. It also never says that `HealthMonitor::stop()` joins the thread. Its \"joined\" remark is generic and doesn't name the monitor."
+}

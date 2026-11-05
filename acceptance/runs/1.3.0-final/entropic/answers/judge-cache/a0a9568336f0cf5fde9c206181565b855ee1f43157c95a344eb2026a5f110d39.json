@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Started by `start()`, stopped by `stop()` (`running_.exchange(false)`, `wake_cv_.notify_all()`, then join).\nVERDICT: HIT\nWHY: The answer states that stop() does an atomic `running_.exchange(false)`, wakes the condition variable with `notify_all()`, and then joins the thread."
+}

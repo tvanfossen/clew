@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: This call does not set `noRetry`, so the client's default retry policy applies to it.\nVERDICT: MISS\nWHY: The answer says posting opts out via `noRetry` and that a default retry policy exists. It never gives the exponential backoff, the limit of 3, or the network manager as the source of that policy."
+}

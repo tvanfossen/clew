@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Detached async worker outlives its owner. The worker at `external_bridge.cpp:1158` captures `this` and runs `.detach()` at `:1222`. Nothing I read joins it.\"\nVERDICT: HIT\nWHY: The answer identifies the async ask worker as detached and states it outlives its owner with no join. It doesn't say it is the only detached thread, but the item's substance (detached, no join, outlives scope) is stated."
+}

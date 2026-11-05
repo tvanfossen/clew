@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions MBEDTLS_ERROR_STRERROR_DUMMY only as a gate and guesses at a dummy variant, without stating it keeps the function linkable or that it is enabled by default."
+}

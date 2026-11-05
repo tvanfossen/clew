@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The library spawns nothing, so under default settings it runs on whatever threads the caller provides.\" and \"With both off, `library/threading.c` ... compiles to nothing\" plus the lock table showing `library/threading.c` declaring `mbedtls_threading_*_mutex` and \"`MBEDTLS_THREADING_C` ... then they protect a small set of library globals plus the heap.\"\nVERDICT: HIT\nWHY: The answer states that the library spawns no threads (all spawn sites are in programs/) and that library/threading.c supplies the mutex abstraction and locks used by threaded callers."
+}

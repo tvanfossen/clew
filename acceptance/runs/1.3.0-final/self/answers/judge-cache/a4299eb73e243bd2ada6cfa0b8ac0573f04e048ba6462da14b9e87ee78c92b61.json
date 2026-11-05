@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The provider never raises. If measurement fails, the reply goes out without a notice rather than turning into an error.\"\nVERDICT: HIT\nWHY: The answer states that the staleness provider never raises and a failed measurement yields no annotation instead of an error reply."
+}

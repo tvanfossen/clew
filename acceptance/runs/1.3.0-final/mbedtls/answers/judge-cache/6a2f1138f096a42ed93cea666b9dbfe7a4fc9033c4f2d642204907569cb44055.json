@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_THREADING_C` it installs mutex-wrapped versions.\nVERDICT: HIT\nWHY: The answer states that the buffer allocator's init installs mutex-wrapped functions under MBEDTLS_THREADING_C. It also implies plain functions otherwise, though that part is less explicit, and the compile-time choice is not stated outright."
+}

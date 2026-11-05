@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 17884,
+  "stop_reason": "end_turn",
+  "session_id": "28a34d3b-2967-4e33-961c-31c4e6c966ea",
+  "total_cost_usd": 0.009801299999999999,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 32984,
+    "cache_read_input_tokens": 153570,
+    "output_tokens": 3336,
+    "output_tokens_details": {
+      "thinking_tokens": 1586
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 32984,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2498,
+        "cache_read_input_tokens": 49732,
+        "cache_creation_input_tokens": 3492,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3492
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3336,
+      "cacheReadInputTokens": 153570,
+      "cacheCreationInputTokens": 32984,
+      "webSearchRequests": 0,
+      "costUSD": 0.009801299999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1586,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 32984,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Clew takes repo-specific indexing conventions from five tiers. Each tier either **replaces** the layer below it or **accumulates** with it, and the resolved set is `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. Tiers 1, 2 and 5 are interchangeable \"stated\" layers, and tiers 3 and 4 always stay in. The rule lives in `clew/tiers.py` (`resolve_layered`, `_stated_layer`).\n\n| Tier | Source | Combines by |\n|---|---|---|\n| 1 explicit | CLI flag (`--shared-key-patterns`, `--thread-patterns`, `--mqtt-dispatch`, `--data-model`, `--doxyfile`, `--entry-patterns`, `--extra-input`, \u2026) or the `options` argument for embedding callers | replaces the stated layer |\n| 2 declared | `<repo>/.clew.yaml`, with the same sections and format as the standalone manifests | replaces the stated layer |\n| 3 target-fact | facts the repo already has: Doxyfile ALIASES/PREDEFINED, generator manifests, language/platform entry points | accumulates |\n| 4 ecosystem | known-ecosystem signatures (UDM, ingot) | accumulates |\n| 5 heuristic | name-pattern guesses, the floor | replaces the stated layer |\n\nThe `.clew.yaml` route matters most for MCP callers, because the MCP server passes no CLI flags. `.clew.yaml` is discovered from the repo root that both entry points already receive. `guard:` is read by the doxygen gate, not the indexer. The old `.doxygen-guard.yaml` is no longer read, with no fallback. `clew/declaration.py` rejects unknown top-level keys by name. `propose_declaration` drafts a commented `.clew.yaml` you can review first.\n\nRun mechanics such as `--scope`, `--index-cache` and `--rebuild` are deliberately not declarable. They describe one run, not the repository.\n\n**When two disagree**\n\n- **Flag vs. declaration:** the flag wins for that option. The `.clew.yaml` value is discarded for that run, not merged. `test_explicit_flag_wins_over_the_declaration` pins this.\n- **Declaration vs. heuristic:** the declaration wins and the guesses are dropped. Facts from tier 3 and 4 survive, so `main` survives any `--entry-patterns`. Earlier, `--entry-patterns` silently dropped `main` because flags replaced and declarations extended. That was fixed by making both stated tiers replace only tier 5.\n- **Empty list:** `explicit=[]` is a withdrawal, not a statement. It falls through to the declaration, then to the guesses. This is how a recorded flag gets undone without deleting the database.\n- **Declared pattern vs. built-in default:** the declaration wins. A bug once let the default's accessor class stamp the edge. The test now asserts the outcome, not list order.\n- **Scope:** the test docstring gives declaration > `guard` > Doxyfile. A stated `doxyfile:` path must exist. A missing path is an error, not a silent fall-through to whole-repo indexing.\n- **Tier 3 vs. tier 4:** these combine identically. Calling a fact an ecosystem signature or the reverse changes the label, not the resolved set.\n- **Replay:** only a tier-1 statement is recorded for replay.\n\nOne caveat: the index flags `resolve_layered` and `_stated_layer` with `anchor_mismatch`, so the file changed after the index was built. The behaviour above comes from the indexed docs and tests, and I did not re-read the current source to confirm the bodies still match.",
+  "ttft_ms": 1843,
+  "type": "result",
+  "duration_ms": 18464,
+  "uuid": "52409ffc-788c-4469-b507-6863348c28cf",
+  "ttft_stream_ms": 1299,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1299,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

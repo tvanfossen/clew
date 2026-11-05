@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`clew/tiers.py` defines five tiers.\" with the table listing \"1 explicit\", \"2 declared\", \"3 target-fact\", \"4 ecosystem\", \"5 heuristic\"\nVERDICT: HIT\nWHY: The answer names five precedence tiers and their resolution order, not a single override."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `HealthMonitor::stop` sets `running_` to false, notifies the condition variable, then joins.\nVERDICT: HIT\nWHY: The answer states stop() sets the running_ atomic to false, notifies the condition variable, and joins the thread. \"Atomic flag exchange\" is covered by the flag set, and the join is explicit."
+}

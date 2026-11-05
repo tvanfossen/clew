@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `<arg>` is built by `args_to_pattern`, which takes the value of the first JSON member of the arguments, or `*` if the args are empty, not an object, or the first value is not a string.\nVERDICT: HIT\nWHY: The answer states that only the first argument value is used to build the pattern, and that empty, non-object or non-string args become `*`. Its point 2 also says matching is positional and tests the wrong value, which covers the rest of the arguments being invisible."
+}

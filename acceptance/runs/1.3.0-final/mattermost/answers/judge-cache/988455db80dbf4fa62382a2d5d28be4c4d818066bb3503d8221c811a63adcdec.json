@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Both wrap the whole body in `try { \u2026 } catch { // Do nothing }`. A parse error or DB error is swallowed with no log.\nVERDICT: HIT\nWHY: The answer states both handlers use an empty catch that swallows errors with no log, which covers a failed write leaving no trace."
+}

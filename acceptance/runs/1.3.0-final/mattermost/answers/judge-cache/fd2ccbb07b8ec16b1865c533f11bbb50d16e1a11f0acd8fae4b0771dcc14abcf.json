@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When `hasSearch` is true, it renders `<NavigationSearch {...searchProps} hideHeader theme topStyle ref={ref} />`. ... It does not attach the ref to its own `Animated.View`.\nVERDICT: HIT\nWHY: The answer states that NavigationHeader forwards its ref to NavigationSearch, which is rendered only when hasSearch is true, and that the ref is not attached to the header's own view. It does not say outright that the ref attaches to nothing when hasSearch is false, but that follows directly from those two statements."
+}

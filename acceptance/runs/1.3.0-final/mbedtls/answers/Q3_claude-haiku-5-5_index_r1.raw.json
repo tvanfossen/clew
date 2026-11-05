@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 23718,
+  "stop_reason": "end_turn",
+  "session_id": "0b2fc1c9-190d-4083-80db-619b137650e6",
+  "total_cost_usd": 0.01201621,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 38143,
+    "cache_read_input_tokens": 214861,
+    "output_tokens": 4476,
+    "output_tokens_details": {
+      "thinking_tokens": 1329
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 38143,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2080,
+        "cache_read_input_tokens": 56503,
+        "cache_creation_input_tokens": 1884,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1884
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4476,
+      "cacheReadInputTokens": 214861,
+      "cacheCreationInputTokens": 38143,
+      "webSearchRequests": 0,
+      "costUSD": 0.01201621,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1329,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 38143,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## What gets called\n\nEvery allocation inside the library goes through `mbedtls_calloc()` / `mbedtls_free()`, never libc directly. Which function that resolves to depends on configuration:\n\n```\nlibrary code: mbedtls_calloc(n, sz)\n        \u2502\n        \u251c\u2500 MBEDTLS_PLATFORM_MEMORY off (default)\n        \u2502     \u2192 #define mbedtls_calloc calloc          (include/mbedtls/platform.h:166)\n        \u2502\n        \u251c\u2500 MBEDTLS_PLATFORM_MEMORY on, CALLOC_MACRO + FREE_MACRO both defined\n        \u2502     \u2192 #define mbedtls_calloc MBEDTLS_PLATFORM_CALLOC_MACRO   (platform.h:143)\n        \u2502\n        \u2514\u2500 MBEDTLS_PLATFORM_MEMORY on, no macros\n              \u2192 real function library/platform.c:47\n                  \u2192 (*mbedtls_calloc_func)(n, size)   runtime function pointer\n```\n\nIn the third case the pointers start as `MBEDTLS_PLATFORM_STD_CALLOC` / `MBEDTLS_PLATFORM_STD_FREE` (platform.c:24\u201345). If those are not defined, they become stubs: calloc returns NULL and free does nothing. So a build with `MBEDTLS_PLATFORM_MEMORY` but no standard functions allocates nothing unless the project installs its own. The config header documents this precedence (mbedtls_config.h:160\u2013190).\n\n## How a project substitutes its allocator\n\nTwo options, and the compile-time one wins if both are present (platform.c:16\u201319).\n\n**Compile time.** Enable `MBEDTLS_PLATFORM_MEMORY` and define both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` in the user config, e.g. `#define MBEDTLS_PLATFORM_CALLOC_MACRO my_calloc`. Both must be set together. The library then calls your functions directly, with no indirection.\n\n**Runtime.** Enable `MBEDTLS_PLATFORM_MEMORY` without the macros. Then call once, before any library allocation:\n\n```c\nmbedtls_platform_set_calloc_free(my_calloc, my_free);   // platform.c:57\n```\n\nThis just assigns the two static pointers. Nothing checks that you did it. Any allocation before the call goes to the default stub.\n\n## What the library does with the facility\n\nThe library itself ships one allocator to plug into it: `mbedtls_memory_buffer_alloc_init(buf, len)` (memory_buffer_alloc.c:566). It:\n\n1. Zeroes its global `heap` context and initialises a mutex when `MBEDTLS_THREADING_C` is on.\n2. Calls `mbedtls_platform_set_calloc_free()` with its own wrappers: `buffer_alloc_calloc_mutexed` / `buffer_alloc_free_mutexed` when threading is on, otherwise the unlocked pair.\n3. Carves its heap out of the caller's buffer, aligning it first.\n\nSo the library's own heap is just one more substitute, installed through the same runtime hook. Points to keep in mind:\n\n- **Global state.** There is one `heap` per process, and each init call overwrites the pointers. Two buffers cannot be active at once.\n- **Mutexing.** Only the threaded variant locks around alloc and free, and a failed lock returns NULL from calloc. A free that cannot take the lock is silently dropped, which the code comments call \"losing memory\" rather than corrupting the heap.\n- **A libc leak in one configuration.** With `MBEDTLS_MEMORY_BACKTRACE`, `buffer_alloc_free` calls libc `free(hdr->trace)` directly (memory_buffer_alloc.c:404). Its trace buffer is not allocated through the substitutable hook.\n- **Library-wide use.** A grep of `library/*.c` for direct `calloc(` or `free(` found only comments and that trace call. Calls such as `ecp_mul_comb`, `aes_ctx_alloc` and `asn1_get_sequence_of_cb` all go through `mbedtls_calloc`. The index shows 147 call sites of `mbedtls_calloc`.\n\nI did not check the `programs/` or `tests/` trees for direct libc use, and I did not check the ext/TF-M configs beyond their comments. The claim that the library never calls libc allocators is limited to `library/`.",
+  "ttft_ms": 1853,
+  "type": "result",
+  "duration_ms": 24382,
+  "uuid": "50992917-8a59-4e60-833e-4a3d556e13a2",
+  "ttft_stream_ms": 1408,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1408,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each client gets its own `ClientThread`, held in `client_threads_` under `client_threads_mutex_`. ... `ExternalBridge::accept_loop` (`:945`) | per-client `serve_client`\nVERDICT: HIT\nWHY: The answer describes `accept_loop` spawned from `start`, and `accept_loop` spawning a per-client `serve_client` thread for each accepted fd. That is the two-level accept-then-per-client structure."
+}

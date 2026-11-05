@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Guards the `deleteReactions` branch, so no stale rows are destroyed. ... If the local DB holds a reaction the server has since removed, the add event will not clean it up.\nVERDICT: HIT\nWHY: The answer says that `skipSync: true` makes `sanitizeReactions` return only creates with `deleteReactions` empty, so existing reactions are not deleted. That is the same mechanism the item describes."
+}

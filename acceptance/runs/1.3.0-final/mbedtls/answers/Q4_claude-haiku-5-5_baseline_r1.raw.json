@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 22853,
+  "stop_reason": "end_turn",
+  "session_id": "b176573a-85dc-46e9-8171-2de017038474",
+  "total_cost_usd": 0.011505379999999999,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 34407,
+    "cache_read_input_tokens": 222328,
+    "output_tokens": 4799,
+    "output_tokens_details": {
+      "thinking_tokens": 1680
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 34407,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2873,
+        "cache_read_input_tokens": 48226,
+        "cache_creation_input_tokens": 1694,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1694
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4799,
+      "cacheReadInputTokens": 222328,
+      "cacheCreationInputTokens": 34407,
+      "webSearchRequests": 0,
+      "costUSD": 0.011505379999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1680,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 34407,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The string comes from a generated lookup table in `library/error.c`, and the table is built from the doc comments on the `MBEDTLS_ERR_*` defines in `include/mbedtls/*.h`. I read the code but did not build or run anything.\n\n**Runtime path**\n\n```\nmbedtls_strerror(ret, buf, buflen)                     library/error.c:792\n  \u251c\u2500 buflen == 0 \u2192 return; else memset(buf, 0)\n  \u251c\u2500 ret = -ret                       (make it positive)\n  \u251c\u2500 high = ret & 0xFF80             (3-bit module ID)\n  \u2502    \u2514\u2500 mbedtls_high_level_strerr(ret)  \u2192 \"CIPHER - Bad input parameters\" | NULL\n  \u2502         NULL \u2192 \"UNKNOWN ERROR CODE (%04X)\"\n  \u2502       if high == SSL fatal alert \u2192 return (don't translate the low part)\n  \u251c\u2500 low = ret & ~0xFF80             (7-bit low-level code)\n  \u2502    \u2514\u2500 if low == 0 \u2192 return\n  \u2502       if high was written: append \" : \"\n  \u2502    \u2514\u2500 mbedtls_low_level_strerr(ret)  \u2192 \"AES - ...\" | NULL \u2192 \"UNKNOWN ERROR CODE\"\n  \u2514\u2500 buf now holds e.g. \"X509 - ... : ASN1 - ...\"\n```\n\nThe header comment in `include/mbedtls/error.h` documents the layout: 1 sign bit, 3 bits of high-level module ID, 5 bits of module-specific code, 7 bits of low-level code. A single return value can carry one high-level and one low-level code, which is why the output can be a two-part string joined by ` : `.\n\nBoth lookup functions are `switch` statements with `case -(MBEDTLS_ERR_X):` labels, wrapped in `#if defined(MBEDTLS_<MOD>_C)` guards. If a module is compiled out, its codes fall through to `UNKNOWN ERROR CODE`. If `MBEDTLS_ERROR_C` is off, `mbedtls_strerror` writes an empty string.\n\n**How the switch is generated**\n\n`scripts/generate_errors.pl` scans `include/mbedtls/*.h` with a regex for `#define MBEDTLS_ERR_<NAME> -0x....`. It takes the description from either a `/** ... */` comment before the define or a `/**< ... */` comment after it, and writes the result into `library/error.c` through the template `scripts/data_files/error.fmt`. The module name is the first word after `MBEDTLS_ERR_`, with three renames: `MPI` becomes `BIGNUM`, `CTR` becomes `CTR_DRBG`, and `HMAC` becomes `HMAC_DRBG`.\n\n**What a contributor has to do to add one**\n\n1. **Add the define** in the module's public header, for example `include/mbedtls/dhm.h`:\n   ```c\n   /** Making of the DHM parameters failed. */\n   #define MBEDTLS_ERR_DHM_MAKE_PARAMS_FAILED  -0x3180\n   ```\n   - Give it exactly one doc comment, either before or after. The generator dies if it finds neither or both.\n   - Pick an unused value in the module's range. The allocation table in `error.h` lists the ranges. I didn't check whether anything enforces that table beyond the duplicate check below.\n   - The description is what ends up in the user-visible string. Write it as a short sentence without a trailing period; the generator strips one.\n2. **Make sure the module is known to the generator.** `generate_errors.pl` keeps two hard-coded lists, `@low_level_modules` and `@high_level_modules`. A prefix not on either list makes the script print `Do not know how to handle` and exit 1. A brand-new module needs adding to the right list, and possibly to the `define_name` and `include_name` mappings.\n3. **Regenerate `library/error.c`.** Run `perl scripts/generate_errors.pl` from the repo root, or use `scripts/make_generated_files.bat` on Windows. Do not hand-edit `error.c`.\n4. **Pass the checks.** The generator fails on a duplicate code value. `tests/scripts/check-generated-files.sh` (line 135 covers `error.c`) fails if the committed file is stale. It runs in CI, so commit the regenerated file.\n5. **Add a test and a changelog entry if it is user-visible.** `ChangeLog.d/00README.md` says to add an entry for user-visible changes. I did not locate the test suite file that covers error strings, so verify that before writing a test.",
+  "ttft_ms": 889,
+  "type": "result",
+  "duration_ms": 23214,
+  "uuid": "1f42aee2-b3d8-4835-acaa-ed5a277a8c78",
+  "ttft_stream_ms": 715,
+  "time_to_request_ms": 129,
+  "first_content_frame_ms": 715,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

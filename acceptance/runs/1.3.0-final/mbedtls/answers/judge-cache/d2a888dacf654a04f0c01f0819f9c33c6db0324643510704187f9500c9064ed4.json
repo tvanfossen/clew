@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The index found four spawn sites, all in `programs/`, and none in `library/`.\" and the table of mutexes (`mbedtls_threading_key_slot_mutex`, etc.) under \"What the locks protect when threading is enabled\"\nVERDICT: MISS\nWHY: The answer says no thread creation in library/, but it never states that library/ supplies the mutex abstraction (threading.c / mbedtls_threading_mutex_t) for threaded callers. It only lists which locks the library uses internally, not that it provides the abstraction."
+}

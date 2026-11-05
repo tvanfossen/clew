@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h` | 132 | The library's own internal sources ... \"Defining it before the headers are included makes `MBEDTLS_PRIVATE(x)` expand to the real name `x`\" ... \"If it is unconditional, every library source that includes `common.h` gets direct access.\"\nVERDICT: HIT\nWHY: The answer says the library defines the opt-out in the shared `library/common.h`, so library sources see real member names. It hedges only on whether the define is conditional."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A caller passes the return value to `mbedtls_strerror(int ret, char *buf, size_t buflen)` (declared in `include/mbedtls/error.h`, defined at `library/error.c:792`).\"\nVERDICT: HIT\nWHY: The answer names mbedtls_strerror as the entry point and places its definition in library/error.c at line 792."
+}

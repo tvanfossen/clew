@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Index newer than server:** restart the MCP client. A rebuild re-stamps the same newer version, so `stale` cannot clear.\"\nVERDICT: HIT\nWHY: The answer explicitly says that when the index is newer than the server, a rebuild re-stamps the same newer version, so staleness cannot clear."
+}

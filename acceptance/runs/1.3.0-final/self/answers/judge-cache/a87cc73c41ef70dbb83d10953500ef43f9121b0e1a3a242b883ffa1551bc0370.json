@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **One row per endpoint.** Two layers finding the same edge produce one row, reporting the strongest `source` and `confidence`.\nVERDICT: MISS\nWHY: The answer says the opposite: it claims duplicates from two layers are collapsed into one row, rather than stored once per layer."
+}

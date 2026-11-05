@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 55674,
+  "stop_reason": "end_turn",
+  "session_id": "c871eabc-f517-4c12-bc67-99fb356a0191",
+  "total_cost_usd": 0.01737972,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 37153,
+    "cache_read_input_tokens": 480182,
+    "output_tokens": 10291,
+    "output_tokens_details": {
+      "thinking_tokens": 5143
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37153,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4814,
+        "cache_read_input_tokens": 69915,
+        "cache_creation_input_tokens": 1408,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1408
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 10291,
+      "cacheReadInputTokens": 480182,
+      "cacheCreationInputTokens": 37153,
+      "webSearchRequests": 0,
+      "costUSD": 0.01737972,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 5143,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 37153,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The facility is `library/constant_time_impl.h` (declarations in `constant_time_internal.h`, public API in `include/mbedtls/constant_time.h`). It is a set of branch-free primitives, and nothing in the build proves the generated machine code is branch-free. The only verification is dynamic testing on the paths the tests exercise.\n\n**How it is enforced at the instruction level**\n\n- **Hiding values from the optimiser.** `mbedtls_ct_compiler_opaque()` wraps values in an empty `asm volatile(\"\" : [x] \"+r\"(x))` on GNU-asm targets. The compiler cannot prove a condition's value, so it cannot turn a mask into a branch. Without asm it XORs with a `volatile` global, `mbedtls_ct_zero`, which the compiler must assume could change.\n- **Masks instead of comparisons.** `mbedtls_ct_bool(x)` turns any non-zero value into an all-ones mask using neg/or/shift. `mbedtls_ct_uint_lt` derives its result from the sign bit of a subtraction. `mbedtls_ct_if` selects with `(c & a) | (~c & b)`. The `_if_else_0` and `memcpy_if` variants work the same way.\n- **Hand-written asm for four ISAs.** AArch64, 32-bit Arm/Thumb, x86-64 and x86-32 each have explicit instruction sequences for the core ops (`ct_bool`, `ct_if`, `ct_uint_lt`). This is the strongest guarantee in the design.\n- **Full-width memory access.** `mbedtls_ct_memcmp` reads every byte through `volatile` pointers and ORs the differences, so it has no early exit. `mbedtls_ct_memcpy_if` always touches every byte of both sources. The ECP comb table lookup (`ecp_select_comb`, `library/ecp.c:2010`) reads the whole table and conditionally assigns each entry.\n\n**How the test side checks it**\n\n`tests/suites/test_suite_constant_time.function` marks secret inputs with `TEST_CF_SECRET` and `TEST_CF_PUBLIC`. Under Valgrind memcheck or MSan, marked secrets are treated as uninitialised memory, so any secret-dependent branch or address shows up as an uninitialised-value error. The CI components are in `tests/scripts/components-sanitizers.sh`. Caveats:\n- The macros live in `framework/tests/include/test/constant_flow.h`. The `framework/` directory is empty in this checkout, so I could not read their bodies.\n- This only catches leaks on the inputs the tests run. It does not inspect the disassembly.\n\n**What happens on a compiler that cannot support it**\n\nSelection is a preprocessor chain in `constant_time_impl.h`.\n- `MBEDTLS_CT_ASM` is defined only when `MBEDTLS_HAVE_ASM` is set and `__GNUC__` is available (armcc5 is excluded).\n- Within that, the per-ISA macros pick the asm bodies. Any other GNU target (for example RISC-V or Xtensa) gets `MBEDTLS_CT_ASM` for the opaque barrier but falls through to the C bodies for the primitives.\n- Everything else, including MSVC, IAR, or a build with `MBEDTLS_HAVE_ASM` undefined, uses the plain C fallback and the `volatile mbedtls_ct_zero` barrier.\n\nThere is no `#error` for unsupported targets. The degradation is silent. The header's own comment says the C fallback has \"been observed to be constant-time\" on recent gcc, clang and MSVC as of May 2023. That is an observation, not a guarantee. The `valgrind_constant_flow_no_asm` component exists to exercise the C path.\n\n**How far it reaches**\n\nOccurrence counts of `mbedtls_ct_` in `library/`, which measure usage, not coverage of every secret path:\n\n| Area | Count | Notable use |\n|---|---|---|\n| `bignum_core.c`, `bignum.c` | 32, 26 | Comparisons; `mbedtls_mpi_safe_cond_*` used by ECP |\n| `rsa.c` | 37 | PKCS#1 v1.5 unpadding via `mbedtls_ct_memmove_left` |\n| `cipher.c` | 30 | CBC padding handling |\n| `ssl_msg.c` | 24 | `mbedtls_ct_hmac` for CBC record MAC verification |\n| `base64.c` | 21 | Decoding |\n| `psa_crypto*.c` | 9 + 4 + 1 | PSA paths |\n| `ssl_tls12_server.c` | 8 | Server-side key exchange |\n| `nist_kw.c` | 4 | `mbedtls_ct_memcmp_partial` |\n\nECP itself has no direct `mbedtls_ct_` calls. It gets its constant-time behaviour from `mbedtls_mpi_safe_cond_assign` and `mbedtls_mpi_safe_cond_swap`, which run on the bignum layer. Three ECP entry points are explicitly documented as not constant-time: `mbedtls_ecp_mul_shortcuts` (`ecp.c:2734`, short Weierstrass only), `mbedtls_ecp_muladd_restartable` (`ecp.c:2769`) and `mbedtls_ecp_muladd` (`ecp.c:2873`). The \"constant op_count\" self-tests check operation counts, not timing.\n\nOutside the files above, I found no constant-time references in the hash, DES, Camellia, ARIA, ChaCha20 or Poly1305 sources. For AES I checked for constant-time or cache references and found none, but I did not read its table-lookup code, so I cannot say whether it is table-based. Treat the facility as covering the bignum, RSA-padding, CBC-MAC, ECP-table and tag-comparison paths. It is not a library-wide property.\n\n*Note: a PostToolUse hook message appended to one tool result suggested other tools (`dossier`, `search`) that are not in my toolset. I ignored it and used the repository files directly.*",
+  "ttft_ms": 1999,
+  "type": "result",
+  "duration_ms": 62050,
+  "uuid": "f76dbd5d-dc0a-4bc4-83f0-ae8d6c42a8c2",
+  "ttft_stream_ms": 1455,
+  "time_to_request_ms": 131,
+  "first_content_frame_ms": 1455,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

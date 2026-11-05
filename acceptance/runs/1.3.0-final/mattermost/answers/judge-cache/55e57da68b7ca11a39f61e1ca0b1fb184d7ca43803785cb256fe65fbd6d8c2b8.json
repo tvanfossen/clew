@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It rebuilds the API payload from the stored model with `toApi()` and calls `client.createPost` again. ... On failure, it marks the post failed again. The same three removal cases apply, so a deleted root or read-only Town Square removes the post instead.\"\nVERDICT: HIT\nWHY: The answer states a single new createPost call from retryFailedPost, with failure re-marking the post failed or removing it for the same three errors. The \"no loop or backoff\" part is only implied, but the single attempt and failure handling are both stated."
+}

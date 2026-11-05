@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 14678,
+  "stop_reason": "end_turn",
+  "session_id": "8826ef77-861f-4f70-b9f3-7c70838dc7b2",
+  "total_cost_usd": 0.013075149999999999,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 46970,
+    "cache_read_input_tokens": 217815,
+    "output_tokens": 3004,
+    "output_tokens_details": {
+      "thinking_tokens": 935
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 46970,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1927,
+        "cache_read_input_tokens": 62675,
+        "cache_creation_input_tokens": 4535,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4535
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3004,
+      "cacheReadInputTokens": 217815,
+      "cacheCreationInputTokens": 46970,
+      "webSearchRequests": 0,
+      "costUSD": 0.013075149999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 935,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 46970,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the file set is decided by one resolver, `clew/scope.py`. A repo that declares `index_scope:` in its `.clew.yaml` gets exactly those roots. A repo that declares nothing gets the whole repository, minus what git ignores and minus dot and cache directories. There is no Doxyfile tier any more.\n\n```\nbuild starts\n   \u2502\n   \u25bc\nderive_scope(repo_root, stated?)          clew/scope.py:639\n   \u2502\n   \u251c\u2500 tier 1: stated by caller (MCP options)  \u2500\u2510\n   \u251c\u2500 tier 2: .clew.yaml  index_scope:         \u251c\u2500\u25ba _declared_index_scope  (scope.py:991)\n   \u2502                                          \u2500\u2518     usable? \u2192 DerivedScope(source=declared)\n   \u2502                                                 malformed? \u2192 _Rejected \u2192 whole repo, reason says why\n   \u2502\n   \u2514\u2500 nothing declared \u2500\u25ba whole_repo_scope       (scope.py:683)\n                              roots    = (repo_root,)\n                              excludes = git-ignored paths\n                                         + nested-repo ignores\n                                         + dot/cache dirs (_pruned_dirs)\n```\n\n**When something is declared (tier 2)**\n\n- The section is `index_scope:` with `roots:` (required, repo-relative) and an optional `excludes:`.\n- Each root is checked against disk. A root that doesn't exist is dropped. If no root survives, the declaration is rejected.\n- Unknown keys are rejected by name. `exclude:` for `excludes:` is refused rather than silently ignored.\n- A declared root is taken at its word and never walked. A nested clone under it is indexed without being noticed. `external.py` tags those rows afterwards so they stay distinguishable.\n- The `reason` names the file it was read from, or the caller for a stated scope.\n\n**When nothing is declared (the default)**\n\n- The scope is the whole repository, including nested git trees. The reason is logged at WARNING, so an unchosen boundary is never mistaken for a chosen one.\n- Excluded are the paths `git ls-files --others --ignored --exclude-standard` reports, collected from the parent and from each nested repo. Git is queried through `git_argv`/`git_env` so a cloned repo's `.git/config` can't run code.\n- The walk also excludes any directory whose name starts with `.`, plus `__pycache__` and `node_modules` (`_SKIP_DIR_NAMES`). It stops at a nested git tree, keeping that tree's own top-level dot directories, and stops at depth 16 with the cut-off directories recorded.\n- If git is missing or the tree isn't a repo, nothing is excluded and a warning says so. The scope is wider than intended, not empty.\n\n**Where the file set is consumed**\n\n- For a doxygen build, the derived roots and excludes feed doxygen's INPUT and EXCLUDE.\n- For a parse-built target (Rust, JS/TS), where there is no doxygen enumeration, `_scanned_files` in `clew/cli.py:2483` reads the exact `DerivedScope` the build applied and walks it under the same excludes. Otherwise a `node_modules` or vendored tree could be published even though the owner declared a narrower scope.\n\n**Doxyfile role**\n\nThe repo's Doxyfile is still read, but only for ALIASES, PREDEFINED and similar settings. Its `INPUT` is ignored (gh#333). The reason is that a Doxyfile documents the published API, and using its INPUT as the reasoning boundary meant a repo that documented itself got a smaller index. On Mbed-TLS, honouring `INPUT = ../include` indexed headers and none of the `library/*.c` implementations.\n\n**Stale comments to fix**\n\n`_declared_index_scope`'s docstring still says a missing declaration \"drops the resolution to the Doxyfile's own INPUT\". That contradicts `derive_scope`, which now goes straight to the whole repo. I read the code, not the behaviour at runtime, so I did not confirm the fallback path with a build. The `_skip_dir` comment about \"cache directories\" is also broader than the two names in `_SKIP_DIR_NAMES`, since the rule also covers every dot-directory.",
+  "ttft_ms": 1112,
+  "type": "result",
+  "duration_ms": 15824,
+  "uuid": "f4e177c3-9f0d-407a-80c3-08b723410166",
+  "ttft_stream_ms": 631,
+  "time_to_request_ms": 77,
+  "first_content_frame_ms": 631,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers only path-level scope (gitignore, dot-dirs, depth) and explicitly says it did not confirm the per-extension filter. It names neither the parse-built front end nor binary classification."
+}

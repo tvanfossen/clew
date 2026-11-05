@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the query surface returns one row per neighbour (collapsing multiple layer variants to the strongest evidence). It only notes that multiple calls from one function collapse into one edge, which is a different mechanism."
+}

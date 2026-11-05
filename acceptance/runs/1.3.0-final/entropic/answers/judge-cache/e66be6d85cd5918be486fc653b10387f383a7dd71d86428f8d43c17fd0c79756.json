@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | `SSETransport::sse_reader_loop` | `SSETransport::open` | Reads the SSE stream | Joined (`transport_sse.cpp:139`) | and | `StdioTransport::stderr_reader_loop` | `StdioTransport::open` | Drains child stderr | Joined (`transport_stdio.cpp:219`) |\nVERDICT: HIT\nWHY: The answer lists both the SSE transport's reader thread and the stdio transport's stderr-draining thread, each spawned in its own transport's open()."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Plain `ssl->state` then fails to compile, and the layout is unchanged.\nVERDICT: HIT\nWHY: The answer says `MBEDTLS_PRIVATE` mangles the member name (`private_##member`) so plain access fails at compile time, with the struct layout unchanged. That matches the item."
+}

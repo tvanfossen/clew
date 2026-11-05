@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"if !approved and on_tool_call set \u2192 approved = true   \u2190 callback is notify-only\" and \"The callback's return value is never read. Registering `on_tool_call` makes every non-denied call run.\"\nVERDICT: HIT\nWHY: The answer states the callback cannot refuse: its return is ignored and approval is set to true when it is registered."
+}

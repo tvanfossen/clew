@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_THREADING_C` defaults to off. ... `MBEDTLS_THREADING_PTHREAD` is also off by default (`mbedtls_config.h:2196`).\"\nVERDICT: MISS\nWHY: The answer says both are off by default but hedges that this is likely a commented-out `#define` to \"confirm against the header\". It never states that the shipped header leaves both macros undefined, so a default build defines neither."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 28905,
+  "stop_reason": "end_turn",
+  "session_id": "c2f617c3-caa9-43c1-af2c-c7da38639529",
+  "total_cost_usd": 0.017554390000000003,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 54771,
+    "cache_read_input_tokens": 414059,
+    "output_tokens": 4916,
+    "output_tokens_details": {
+      "thinking_tokens": 1267
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 54771,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2602,
+        "cache_read_input_tokens": 67837,
+        "cache_creation_input_tokens": 7177,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7177
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 4916,
+      "cacheReadInputTokens": 414059,
+      "cacheCreationInputTokens": 54771,
+      "webSearchRequests": 0,
+      "costUSD": 0.017554390000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1267,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 54771,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** The add path writes one `Reaction` row through the server operator, with `skipSync: true`, which suppresses deletions. The remove path does not use the operator at all. It queries the matching row and calls `destroyPermanently()` directly inside a `database.write`. Neither path uses `prepareRecordsOnly`.\n\n## Reaction added: call chain\n\n```\nWebSocket frame (event = 'reaction_added')\n \u2514\u2500 client.setEventCallback            app/managers/websocket_manager.ts:112\n     \u2514\u2500 handleWebSocketEvent(serverUrl, msg)   app/actions/websocket/event.ts:44\n         \u2502  switch(msg.event) \u2192 case REACTION_ADDED        (~line 163)\n         \u2514\u2500 handleReactionAddedToPostEvent(serverUrl, msg)  app/actions/websocket/reactions.ts:21\n             \u251c\u2500 DatabaseManager.getServerDatabaseAndOperator(serverUrl)\n             \u251c\u2500 reaction = JSON.parse(msg.data.reaction)    // data.reaction is a JSON string\n             \u2514\u2500 operator.handleReactions({\n                  prepareRecordsOnly: false,\n                  skipSync: true,\n                  postsReactions: [{post_id, reactions:[reaction]}] })\n                  \u2502  app/database/operator/server_data_operator/handlers/index.ts:124\n                  \u251c\u2500 sanitizeReactions({database, post_id, rawReactions, skipSync})\n                  \u2502     app/database/operator/utils/reaction.ts:22\n                  \u2502     \u2022 loads every Reaction row for post_id\n                  \u2502     \u2022 builds map key `${userId}-${emojiName}`\n                  \u2502     \u2022 raw not in map \u2192 createReactions.push({raw})\n                  \u2502     \u2022 skipSync === true \u2192 return {createReactions, deleteReactions: []}\n                  \u251c\u2500 if createReactions: prepareRecords({createRaws, transformer: transformReactionRecord, tableName: REACTION})\n                  \u2502     base_data_operator/index.ts:134 \u2192 transformer(action=CREATE)\n                  \u2502     transformers/reaction.ts:19 \u2192 prepareBaseRecord \u2192 collections.get(REACTION).prepareCreate\n                  \u2502     (_raw.id = server reaction id, userId, postId, emojiName, createAt)\n                  \u2514\u2500 batchRecords(...)  \u2192 database.write(writer.batch(...))   base_data_operator/index.ts:191\n```\n\nErrors are swallowed in the outer `try/catch` (`// Do nothing`), and `batchRecords` logs a warning and does not rethrow by default. A failed write is therefore silent to the caller.\n\n## Reaction removed: call chain\n\n```\nWebSocket frame (event = 'reaction_removed')\n \u2514\u2500 handleWebSocketEvent  case REACTION_REMOVED         event.ts:166\n     \u2514\u2500 handleReactionRemovedFromPostEvent              reactions.ts:39\n         \u251c\u2500 database = DatabaseManager...(serverUrl).database   (no operator)\n         \u251c\u2500 msgReaction = JSON.parse(msg.data.reaction)\n         \u251c\u2500 queryReaction(database, emoji_name, post_id, user_id).fetch()\n         \u2514\u2500 if found: database.write(() => reaction[0].destroyPermanently())\n```\n\nThis path does not call `handleReactions`, `sanitizeReactions`, or any transformer. It has no `skipSync` or `prepareRecordsOnly` flags. It matches on the composite key `(emoji_name, post_id, user_id)` rather than on the server ID. If no row matches, it does nothing.\n\n## Flags that change what gets written\n\n| Flag | Where | Effect |\n|---|---|---|\n| `skipSync: true` | add path, set in `reactions.ts:21` | `sanitizeReactions` returns early at `reaction.ts:42-44`, before computing `deleteReactions`. The add path never deletes other reactions on the post. Without this flag, any local reaction absent from the payload would be marked for destruction. |\n| `prepareRecordsOnly` | `handleReactions`, `handlers/index.ts:124-171` | `false` in the add path, so the batch is written. When `true`, the records are returned without being written. Nothing in this path sets it to `true`. |\n| `deleteReactions?.length && !skipSync` | `handlers/index.ts:~152` | Double-guards deletion. The add path never reaches it. |\n| Existence check in `sanitizeReactions` | `reaction.ts:33-36` | If a row for the same user and emoji already exists locally, nothing is created. A duplicate `reaction_added` is idempotent. |\n\nWithin the add path, the only write is `create` with the server-supplied ID. The update branch is not used.\n\n## Does \"removed\" take the same path?\n\nNo, in three ways:\n\n1. **Different entry point.** It uses `handleReactionRemovedFromPostEvent` (`reactions.ts:39`), not the operator.\n2. **Different lookup key.** It matches on `(user_id, emoji_name, post_id)` rather than on the server ID.\n3. **Different write.** It calls `destroyPermanently()` directly in a `database.write`, not `batchRecords` via `prepareDestroyPermanently`.\n\nThe sync-handler rule in CLAUDE.md (diff existing rows against the incoming set, then destroy stale ones) applies to full-sync handlers. The `skipSync` flag is what keeps the add path out of that diff logic. The remove path is a targeted delete, so it does not need the diff.\n\n## Caveats\n\n- I did not read the body of `handleWebSocketEvent`'s `REACTION_ADDED` and `REACTION_REMOVED` cases in full. The index shows both cases call the handlers above, and the dossier's callee list confirms it.\n- The `reaction_added` payload shape (`msg.data.reaction` as a JSON string) is inferred from the two handlers' `JSON.parse` calls. I did not check it against the server's payload.",
+  "ttft_ms": 1509,
+  "type": "result",
+  "duration_ms": 30779,
+  "uuid": "8fc2cfeb-371b-476c-af85-9dc82490bdd1",
+  "ttft_stream_ms": 1215,
+  "time_to_request_ms": 55,
+  "first_content_frame_ms": 1215,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

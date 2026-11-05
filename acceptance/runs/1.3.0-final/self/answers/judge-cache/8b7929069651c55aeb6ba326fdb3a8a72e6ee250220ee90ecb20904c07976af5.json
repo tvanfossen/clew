@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes five tiers but counts them as \"four ways to state \u2026 plus two built-in layers\" (six), and its table lists a different set of five (CLI flags, `.clew.yaml`, target facts, ecosystem signatures, name heuristics). It never states that resolution runs through five named precedence tiers rather than a single override, and it describes a flag-wins override for replacing options."
+}

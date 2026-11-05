@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The permission lists are read in two places: `check_approval` for allow and `ServerManager::execute` for deny.\nVERDICT: MISS\nWHY: The answer says allow is read in `check_approval` (a different file from the deny check), but it never says the allow list doesn't grant execution and only suppresses the approval step. It says the opposite of the \"suppress the prompt\" framing: a callback can approve anything not on the allow list."
+}

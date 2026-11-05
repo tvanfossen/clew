@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the failed-send handling (marks post failed locally) but never says `createPost` returns `{data: true}` or reports success to its caller."
+}

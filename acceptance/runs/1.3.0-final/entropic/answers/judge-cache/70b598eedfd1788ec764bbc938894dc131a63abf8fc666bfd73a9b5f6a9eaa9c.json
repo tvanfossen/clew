@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | `char*` return / `char**` out-param | Ownership transfers to the caller | Caller, with `entropic_free()` | and | `const char*` return | Owned by the handle, valid until the next call on that handle | Nobody. Don't free it. |\nVERDICT: HIT\nWHY: The answer's table states both halves: a returned char* transfers ownership and is freed with entropic_free, and a const char* stays handle-owned and is valid only until the next call on that handle."
+}

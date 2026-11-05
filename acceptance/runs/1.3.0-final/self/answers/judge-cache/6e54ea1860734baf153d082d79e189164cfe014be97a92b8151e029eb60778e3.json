@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `CMakeLists.txt`, `.cmake` | yes | yes: `function` and `macro`\nVERDICT: HIT\nWHY: The answer names `.sh`/`.bash` for shell and `CMakeLists.txt` alongside `.cmake`, and it says `_ts_language_for` returns None \"for `.sh` and `CMakeLists.txt`\". That covers the shell and CMake extensions and the file-name match for CMakeLists.txt."
+}

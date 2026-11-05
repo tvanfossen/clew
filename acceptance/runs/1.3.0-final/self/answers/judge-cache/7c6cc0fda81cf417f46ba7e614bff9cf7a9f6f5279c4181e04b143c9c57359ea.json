@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Writes are refused when the code axis is stale. `stale_code_refusal` returns a `REFUSED:` message, and `force` does not bypass it.\nVERDICT: HIT\nWHY: The answer says the write path refuses (not warns) on stale code and that `force` cannot bypass it. It doesn't say the refusal is placed ahead of the build decision, but a refusal that `force` can't override implies that placement."
+}

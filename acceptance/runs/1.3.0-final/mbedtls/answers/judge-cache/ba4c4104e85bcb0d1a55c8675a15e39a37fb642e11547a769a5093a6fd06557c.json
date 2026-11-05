@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists benchmark.c's Win32 `TimerProc` with gate \"not checked\" and never says it is Windows-only or gated on a platform condition."
+}

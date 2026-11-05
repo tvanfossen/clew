@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Mirrors the engine's atomic `interrupt_flag_` into the int cancel flag. Stops on `observer_done`. It is joined before return.\nVERDICT: HIT\nWHY: The answer states the observer thread mirrors an atomic into the int cancel flag, and elsewhere says the int crosses the .so boundary by design, which covers the bridging purpose."
+}

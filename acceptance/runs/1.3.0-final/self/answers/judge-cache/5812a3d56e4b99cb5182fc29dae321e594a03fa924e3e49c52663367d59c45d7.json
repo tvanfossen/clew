@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses interpreting empty-result scope and confidence, and never states the general rule \"fix the corpus, not the sentence about the corpus.\""
+}

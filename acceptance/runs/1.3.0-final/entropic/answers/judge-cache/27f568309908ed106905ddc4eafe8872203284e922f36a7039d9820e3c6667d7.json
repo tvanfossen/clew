@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never discusses why the package/engine split exists, `import entropic` succeeding before the engine is installed, or an install-engine subcommand."
+}

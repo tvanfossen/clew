@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An empty `std::vector<int32_t>`. The seam logs an error with the text length, then returns `{}`.\nVERDICT: MISS\nWHY: The answer says failure returns an empty vector, but never says this is the same value returned when no tokenizer is wired at all; it only equates failure with empty input."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the asm branch is gated by `MBEDTLS_HAVE_ASM && __GNUC__`. It never mentions `MBEDTLS_CT_ASM` or says that macro is derived rather than set in the config file."
+}

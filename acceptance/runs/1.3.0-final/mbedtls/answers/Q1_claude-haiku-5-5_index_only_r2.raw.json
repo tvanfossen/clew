@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 26595,
+  "stop_reason": "end_turn",
+  "session_id": "9df8d7b4-d2f3-4a91-b9a7-0e5f62c32007",
+  "total_cost_usd": 0.007759720000000001,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 17973,
+    "cache_read_input_tokens": 159932,
+    "output_tokens": 5130,
+    "output_tokens_details": {
+      "thinking_tokens": 2955
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 17973,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3731,
+        "cache_read_input_tokens": 43138,
+        "cache_creation_input_tokens": 13065,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 13065
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 5130,
+      "cacheReadInputTokens": 159932,
+      "cacheCreationInputTokens": 17973,
+      "webSearchRequests": 0,
+      "costUSD": 0.007759720000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2955,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 17973,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer: in the default configuration, the library runs no internal locks and creates no threads. Any concurrency is the caller's responsibility.**\n\n**Why the default has no locking**\n\n- `MBEDTLS_THREADING_C` defaults to off. The index reads the default from `include/mbedtls/mbedtls_config.h:3787`. Its gate covers `library/threading.c` (lines 18\u2013193), and every mutex in the library sits behind that gate.\n- `MBEDTLS_THREADING_PTHREAD` is also off by default (`mbedtls_config.h:2196`).\n- Caveat: the index was built with both macros passed as flags (`configured_macros`). So the lock and thread layers I read describe that build, not the shipped default. The index also reports no definition site for `MBEDTLS_THREADING_C`, so the \"off\" reading likely comes from a commented-out `#define`. Confirm against the header.\n\n**What runs concurrently**\n\n| Context | Thread or signal | Gate | Under default config |\n|---|---|---|---|\n| `programs/ssl/ssl_pthread_server.c:277` | `handle_ssl_connection`, one pthread per connection | whole file gated by `MBEDTLS_THREADING_C` (lines 24\u2013492) | not built |\n| `programs/test/benchmark.c:430,444` | `TimerProc` (Win32), `sighandler` (alarm) | not checked | test tool only |\n| `programs/ssl/ssl_server2.c:1699` | `term_handler` signal handler | not checked | test tool only |\n\nThe only spawn in the index that touches shared state is the per-connection pthread server. It is a sample program, not library code. The library itself spawns nothing.\n\n**What the mutexes protect, when threading is enabled**\n\nThe lock layer shows one acquisition: `threading_mutex_lock_pthread` at `library/threading.c:81`. The library reaches it through the `mbedtls_mutex_lock` function pointer, so its callers resolve as indirect calls. The index lists about 38 callers, including:\n\n- **CTR_DRBG, HMAC_DRBG and entropy** (`ctr_drbg.c`, `hmac_drbg.c`, `entropy.c`): the shared RNG state.\n- **SSL session cache, cookie and ticket** (`ssl_cache.c`, `ssl_cookie.c`, `ssl_ticket.c`): server-side session state.\n- **PSA key slots** (`psa_crypto*.c`): global key-slot table.\n- **Memory buffer allocator** (`memory_buffer_alloc.c`, `buffer_alloc_*_mutexed`): allocator state.\n- **`gmtime` and `readdir`** (`platform_util.c`, `x509_crt.c`): non-reentrant libc calls.\n- **Debug output** (`debug.c`, `my_mutexed_debug`): serialized logging.\n\nThe mutexes are global objects in `library/threading.c` with `MUTEX_INIT`:\n\n- `mbedtls_threading_key_slot_mutex` (line 188): protects the key-slot table. The clearest case is `psa_unregister_read_under_mutex` (`psa_crypto_slot_management.c:931\u2013947`), which locks around `psa_unregister_read` and is a no-op without threading.\n- `mbedtls_threading_psa_globaldata_mutex` (line 189): PSA global data.\n- `mbedtls_threading_psa_rngdata_mutex`, `mbedtls_threading_gmtime_mutex`, `mbedtls_threading_readdir_mutex`: RNG, `gmtime` and `readdir`.\n\nThe index does not record which call sites take the global-data, RNG, `gmtime` or `readdir` mutexes. Those are read through `mbedtls_mutex_lock(&\u2026)`, which the lock layer does not model.\n\n**What the index cannot settle**\n\n- Whether the library has unguarded shared mutable state in the default build. The index has no shared-state layer that would answer this, so I can't confirm it either way.\n- Whether a caller using one object from several threads is safe. Nothing in the index says the library promises that.",
+  "ttft_ms": 1598,
+  "type": "result",
+  "duration_ms": 27123,
+  "uuid": "55203a6b-afd4-423b-8418-539c0b860f55",
+  "ttft_stream_ms": 1200,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1200,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

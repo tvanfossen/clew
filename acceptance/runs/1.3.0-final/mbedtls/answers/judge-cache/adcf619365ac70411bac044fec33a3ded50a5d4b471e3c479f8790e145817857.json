@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Macro in `platform.h:143-144`. Resolved at each call site. ... This route needs no runtime registration and does not link the platform wrapper. ... `platform.c:16-19` drops the runtime setter entirely when both macros are defined.\n\nVERDICT: MISS\nWHY: The answer says the setter is dropped from platform.c under the macros, but never states that mbedtls_platform_set_calloc_free is neither declared nor compiled on the macro path."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The facility is used across about 35 library files, but it is not uniform\" and \"444 `mbedtls_ct_*` or `constant_time` occurrences across 35 files in `library/`\"\nVERDICT: HIT\nWHY: The answer states the primitives are used across ~35 library files, which conveys broad consumption (well beyond one or two modules, at or above the ~20 scale)."
+}

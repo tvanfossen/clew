@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Occurrence counts of `mbedtls_ct_` in `library/`, which measure usage, not coverage of every secret path: table listing bignum_core.c, bignum.c, rsa.c, cipher.c, ssl_msg.c, base64.c, psa_crypto*.c, ssl_tls12_server.c, nist_kw.c\nVERDICT: MISS\nWHY: The answer lists about 8\u201310 areas and says the facility \"is not a library-wide property,\" never conveying broad use across roughly twenty modules."
+}

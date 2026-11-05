@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `scope.py:derive_scope` is the single entry point (`scope.py:634`). | WHY: The answer names derive_scope in scope.py as the single entry point where the scope decision is made. || QUOTE: `scope.py:derive_scope` is the single entry point (`scope.py:634`). | WHY: The answer names derive_scope in scope.py as the single entry point where scope is decided, which matches the item.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"If `roots:` is missing or empty, or the section has an unknown key or isn't a mapping, the build refuses and exits 1 ... It does not silently fall back to whole-repo\" | WHY: The answer says a declared scope is preferred and that no section means whole-repo. It also says a malformed declaration makes the build refuse and not fall back, which contradicts \"every failure falls through\". || QUOTE: If there is no section at all, `whole_repo_scope` applies (`scope.py:683`). | WHY: The answer says a declared scope wins, but it says a malformed or empty declaration makes the build refuse and exit 1 instead of falling back. It says whole-repo applies only when there is no section at all. That contradicts the item's claim that every failure to find a declaration falls through to the whole repository.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: The build logs the reason for the whole-repo fallback. | WHY: The answer states that the whole-repo fallback logs a reason, conveying that the fallback carries a reason for the scope used rather than being silently guessed. || QUOTE: The build logs the reason for the whole-repo fallback. | WHY: The answer states that the fallback logs a reason for the whole-repo scope choice, conveying that the fallback carries a reason explaining which scope was used. || QUOTE: The build logs the reason for the whole-repo fallback. | WHY: The answer states the whole-repo fallback logs a reason, conveying that the scope used is explained rather than silently guessed.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: The Doxyfile does not set scope. Its `INPUT` is replaced, and only its aliases, predefines and similar settings are kept. Scope is its own decision, not a documentation target. | WHY: The answer says the Doxyfile's INPUT is replaced and doesn't set scope. It never gives the reason: a repo with a Doxyfile would get only its documented subset, while a repo without one would get its whole tree. || QUOTE: The Doxyfile does not set scope. Its `INPUT` is replaced, and only its aliases, predefines and similar settings are kept. Scope is its own decision, not a documentation target. | WHY: The answer says INPUT is replaced and the Doxyfile doesn't set scope. It never gives the reason the item requires: a repo with a Doxyfile would get only its documented subset, while a repo without one would get its whole tree. || QUOTE: The Doxyfile does not set scope. Its `INPUT` is replaced, and only its aliases, predefines and similar settings are kept. Scope is its own decision, not a documentation target. | WHY: The answer says the Doxyfile's INPUT is replaced and doesn't set scope. It never gives the reason: a repo with a Doxyfile would get only its documented subset, while one without would get the whole tree.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Nested git trees are indexed and tagged, not excluded. | WHY: The answer explicitly states that nested git trees are indexed and tagged rather than excluded. || QUOTE: Nested git trees are indexed and tagged, not excluded. | WHY: The answer states outright that nested git trees are indexed and tagged rather than excluded from scope. || QUOTE: Nested git trees are indexed and tagged, not excluded. | WHY: The answer explicitly states nested git trees are indexed and tagged rather than excluded.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions a containment call being removed versus left in place with callers dropped; it covers index scope only. || QUOTE: NONE | WHY: The answer never discusses a containment call being removed rather than left in place with its callers dropped; it only describes index scope. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed versus left in place with callers dropped; it only covers index scope derivation.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: Each file in scope is classified with `lang_parsing_substrate.classify_file`. Anything classified binary is dropped before doxygen or any parser sees it (`filetypes.py`, `cli.py:_drop_binary_files`). ... JS/TS and other claimed types (`synth.py:claims`) are not read by doxygen. They come from the parse-built front end, using the same scanned file set. | WHY: The answer names both filters, binary classification dropping files and the parse-built front end claiming types doxygen can't read, as steps applied to files within the resolved scope. || QUOTE: Each file in scope is classified with `lang_parsing_substrate.classify_file`. Anything classified binary is dropped before doxygen or any parser sees it; also \"JS/TS and other claimed types (`synth.py:claims`) are not read by doxygen. They come from the parse-built front end\" | WHY: The answer names both filters: binary classification dropping files and the parse-built front end claiming types doxygen doesn't read. It does not mention extensions that lie, but the item only requires naming at least one filter. || QUOTE: Anything classified binary is dropped before doxygen or any parser sees it (`filetypes.py`, `cli.py:_drop_binary_files`). ... JS/TS and other claimed types (`synth.py:claims`) are not read by doxygen. They come from the parse-built front end, using the same scanned file set. | WHY: The answer names both filters (binary classification dropping files, and the parse-built front end claiming types doxygen can't read) as steps applied after scope resolution. Its binary-filter description doesn't mention extensions that lie, but the item only requires naming at least one of the two filters.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

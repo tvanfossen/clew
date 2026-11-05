@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says allow only skips the prompt and deny is enforced later, but never concludes that a tool matching neither list is not denied and runs. Its flow also shows `!approved \u2192 \"Permission denied\"`, which implies default-deny at the gate."
+}

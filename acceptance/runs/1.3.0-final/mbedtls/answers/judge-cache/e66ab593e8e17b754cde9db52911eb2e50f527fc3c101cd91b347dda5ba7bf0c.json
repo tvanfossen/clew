@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names two top-level directories that contain uses of `MBEDTLS_PRIVATE`: `library` (for example `library/ecdh.c:150`) and `programs` (for example `programs/ssl/ssl_context_info.c`). It also mentions `include` as the place where public structs declare their fields through the macro, and `docs` only as the location of the migration guide.\n\nITEMS:\nlibrary\nprograms\ninclude\nEND"
+}

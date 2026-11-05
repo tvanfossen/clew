@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Enable `MBEDTLS_PLATFORM_MEMORY` and leave the `_MACRO` options undefined\" (runtime) vs. \"Enable `MBEDTLS_PLATFORM_MEMORY` and define both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`\" (compile time)\nVERDICT: MISS\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer setter. It never says the two are mutually exclusive, and it admits it can't confirm that the macro mode excludes the runtime pointers."
+}

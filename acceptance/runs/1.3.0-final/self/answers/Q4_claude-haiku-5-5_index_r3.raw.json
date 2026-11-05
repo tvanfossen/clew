@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 23134,
+  "stop_reason": "end_turn",
+  "session_id": "fb7839bf-41c9-40bc-8999-08b5749ed569",
+  "total_cost_usd": 0.0032147599999999997,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 4925,
+    "cache_read_input_tokens": 79686,
+    "output_tokens": 2865,
+    "output_tokens_details": {
+      "thinking_tokens": 1676
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 4925,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2559,
+        "cache_read_input_tokens": 39843,
+        "cache_creation_input_tokens": 4925,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4925
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2865,
+      "cacheReadInputTokens": 79686,
+      "cacheCreationInputTokens": 4925,
+      "webSearchRequests": 0,
+      "costUSD": 0.0032147599999999997,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1676,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 4925,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What's in the answer.** For `main` (resolved to `acceptance/__main__.py:644`), `dossier` returned a `callers` list where each row has a name, file, `confidence` (every row here was `exact`), `edge_class` (`call`), and `source` (`doxygen_sqlite`). Test methods also carry a `qualified` name. Beside the list sit `callers_unresolved` (0 here), `context_undecidable`, `_limited` (25 callers exist, 10 shown), and the `covering_tests` and `requirements` fields, which tell you what exercises the function, not who calls it. `search` describes the callers relation as \"its callers plus the writers it reads from,\" so it can also include dataflow writers, not just call sites. The `edge_class` field and the test `test_callers_includes_fnptr_dispatch` show that function-pointer dispatch is also counted as a caller.\n\n**What would make it wrong to read it as a list of call sites:**\n\n1. **Name collisions.** The reply reported 8 candidate identities of 25 total named `main`. The contract says neighbour rows are shared across every identity that matches the name, and the `callers` here include a C test file (`tests/data/csample/test/test_sound.c`) and `scripts/hook_probe.py`'s `_report`. I did not verify whether those actually reach `acceptance/__main__.py:main`. Oddly, no `ambiguous` block appeared, even though the tool says that block marks multi-signature matches. Re-asking with `qualified=` is the fix.\n\n2. **Truncation.** `max_neighbors` defaults to 10 and the reply discloses that 25 exist. A short list is not a complete list unless `_limited` is absent.\n\n3. **Unresolved is not zero.** A call that failed to resolve to an indexed function does not appear as a caller. It is counted in `callers_unresolved`. The repo's own test `test_an_empty_callers_list_reports_what_was_refused` exists because an empty `callers: []` can mean \"nothing calls it\" or \"every caller failed to resolve.\" Only the count distinguishes them.\n\n4. **Static, not runtime.** The list is what the index resolved at build time. Calls through a Makefile, CI config, shell script, or anything outside the indexed file set will not appear. The MCP instructions say this explicitly.\n\n5. **Mixed edge types.** Rows can be direct calls, function-pointer dispatch, or writers feeding the function through shared data. Treating all of them as \"who calls this\" overstates direct invocation. The `edge_class` and `confidence` fields are there to separate them.\n\n6. **Tests are callers too.** Most rows for `main` are test functions. For impact analysis, filter by file or `qualified` to separate production callers from test callers.\n\n**Bottom line:** the answer is a set of resolved, build-time edges with confidence and edge-class labels, plus disclosed gaps (unresolved count, truncation, name-shared identities). Read it as \"these resolved edges exist,\" not \"these are all the callers.\" Use `qualified=` on ambiguous names and check `callers_unresolved` before concluding that nothing calls a function.",
+  "ttft_ms": 2958,
+  "type": "result",
+  "duration_ms": 23377,
+  "uuid": "75594e25-d374-4c2a-817d-f7c5ef8aee20",
+  "ttft_stream_ms": 1306,
+  "time_to_request_ms": 69,
+  "first_content_frame_ms": 1306,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

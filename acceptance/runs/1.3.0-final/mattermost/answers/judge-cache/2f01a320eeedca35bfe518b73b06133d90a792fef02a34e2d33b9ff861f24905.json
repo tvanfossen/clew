@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A matching `interface ServerDataOperator extends ...Mix` declaration (line 23) merges the handler types in for typing.\nVERDICT: HIT\nWHY: The answer states that a same-named interface extends the `...Mix` types and merges handler types into the class for typing."
+}

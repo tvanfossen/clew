@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Both calls are in `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`): 1. The first call passes a null buffer and size 0. llama.cpp answers with a negative number whose magnitude is the required token count... then calls `llama_tokenize` again to fill them.\nVERDICT: HIT\nWHY: The answer names the file, function and line range of the two-call llama_tokenize size-then-fill pattern."
+}

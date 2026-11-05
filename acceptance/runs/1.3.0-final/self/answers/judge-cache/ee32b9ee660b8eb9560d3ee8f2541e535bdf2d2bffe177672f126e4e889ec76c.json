@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how the current reply distinguishes scope from absence, but never says that a single-token miss was previously treated as proof of absence (the historical flaw); it does not explain that prior behavior."
+}

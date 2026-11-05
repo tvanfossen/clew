@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"All server handlers reach the write through `batchRecords`, directly or via `execute`.\" and \"`ServerDataOperatorBase` extends `BaseDataOperator`\"\nVERDICT: MISS\nWHY: The answer says handlers reach `batchRecords` via `ServerDataOperatorBase`, but it never says each mixin is constrained to extend `ServerDataOperatorBase`. It also admits it did not confirm whether `handleRecords` writes on its own path."
+}

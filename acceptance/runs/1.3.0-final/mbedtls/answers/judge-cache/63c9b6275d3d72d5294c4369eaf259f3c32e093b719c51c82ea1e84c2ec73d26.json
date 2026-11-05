@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_server2.c:8` | Defined before `ssl_test_lib.h`. The test server reads and writes fields directly. | `programs/ssl/ssl_client2.c:8` | Same, for the test client.\nVERDICT: HIT\nWHY: The answer names example programs (ssl_server2.c, ssl_client2.c) that define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves to access fields directly, which is the opt-out reaching past the public API."
+}

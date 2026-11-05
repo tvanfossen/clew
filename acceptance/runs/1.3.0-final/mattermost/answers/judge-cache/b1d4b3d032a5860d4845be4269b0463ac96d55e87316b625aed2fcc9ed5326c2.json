@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is not retried automatically: the send is made with retries disabled.\" and \"`ClientPosts.createPost` ... sends the request with `noRetry: true`.\"\nVERDICT: HIT\nWHY: The answer explicitly states the create-post request is not retried automatically and is sent with retries disabled (retryLimit: 0)."
+}

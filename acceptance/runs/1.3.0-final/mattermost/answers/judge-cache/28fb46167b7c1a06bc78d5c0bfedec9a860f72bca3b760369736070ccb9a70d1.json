@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"This is correct for a single-reaction event, which carries only one reaction, not the full post list. Without this flag, the handler would delete every other reaction on the post.\"\nVERDICT: HIT\nWHY: The answer states that skipSync prevents the single-reaction payload from being treated as the full set, and that without it every other reaction on the post would be deleted."
+}

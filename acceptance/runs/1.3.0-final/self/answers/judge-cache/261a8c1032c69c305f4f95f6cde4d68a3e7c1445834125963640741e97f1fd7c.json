@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**\"Not indexed symbol with this name\"** \u2014 high, but only inside the stated scope... **\"Repository does not contain it\"** \u2014 low to medium.\"\nVERDICT: MISS\nWHY: The answer distinguishes in-scope definitive empties from out-of-scope ones, but never names the \"definitive for a reason that is not absence\" grade (an empty reply that is definitive because of something other than absence), nor a distinct \"not definitive\" grade as a reply-level classification."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: writes the post locally first, with a temporary `pending_post_id`, so it appears in the UI before the network call. ... Otherwise, saves the post with `props.failed: true`\nVERDICT: HIT\nWHY: The answer states the post is written locally before the network send, and on failure it is kept and saved with `props.failed: true`."
+}

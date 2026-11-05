@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A clew index can go stale in three independent ways, and each query reply reports which of them applies.\" and \"Staleness is measured on three axes by `db_status`... - **data:** ... - **schema:** ... - **code:**\"\nVERDICT: HIT\nWHY: The answer explicitly states three independent staleness axes and names them as data, schema, and code."
+}

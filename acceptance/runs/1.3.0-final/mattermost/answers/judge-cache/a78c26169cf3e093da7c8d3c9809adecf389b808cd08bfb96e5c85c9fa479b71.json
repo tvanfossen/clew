@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`skipSync === true` \u2192 return {createReactions, deleteReactions: []}\" and \"The add path never deletes other reactions on the post. Without this flag, any local reaction absent from the payload would be marked for destruction.\"\nVERDICT: HIT\nWHY: The answer states that skipSync prevents the single incoming reaction from being treated as the full set, so other reactions on the post aren't deleted. It says that without the flag, local reactions absent from the payload would be destroyed."
+}

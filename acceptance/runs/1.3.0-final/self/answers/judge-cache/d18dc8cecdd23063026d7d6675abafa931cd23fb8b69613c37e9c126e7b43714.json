@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml`/`.yml`/`.json` | Yes | None, by design\nVERDICT: HIT\nWHY: The answer states YAML/JSON are in the file set (path row \"Yes\", indexed files with symbol_count 0) but carry no symbols, while shell and CMake get function-level rows, so the two groups are treated differently."
+}

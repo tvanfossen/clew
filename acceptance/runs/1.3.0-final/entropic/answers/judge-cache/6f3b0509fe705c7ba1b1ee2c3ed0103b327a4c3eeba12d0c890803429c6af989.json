@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::run_async_ask` (`external_bridge.cpp:1158`) runs `entropic_run` in a detached thread.\nVERDICT: MISS\nWHY: The answer says run_async_ask uses a detached thread, but it never calls it the ONE detached thread. It also never says that the thread outlives its caller's scope with no join. It describes the other threads as joined, which implies a contrast, but it doesn't state that point."
+}

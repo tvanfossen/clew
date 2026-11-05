@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`LlamaCppTokenizer::tokenize`** (`src/inference/llama_cpp_tokenizer.cpp:55-63`): the first `llama_tokenize` call passes a null buffer. llama.cpp answers with the negative of the required token count. The code allocates that many slots and calls again to fill them. This is a standard two-pass sizing protocol.\nVERDICT: HIT\nWHY: The answer names the file and function, with line ranges, and describes the two-call sizing pattern in both tokenize and detokenize."
+}

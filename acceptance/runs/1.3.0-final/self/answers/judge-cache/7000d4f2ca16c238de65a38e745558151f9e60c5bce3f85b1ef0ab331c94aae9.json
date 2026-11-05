@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says a multi-token miss is \"NOT a definitive negative\" and that a miss only covers what was searched. It never says an empty result was previously treated as proof of absence, and it doesn't present the fix as a correction of that earlier behaviour."
+}

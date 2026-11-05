@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Which show a search field:** only `screens/home/search/search.tsx`. It passes `hasSearch={true}` (line 467). The other callers either omit `hasSearch` or pass `hasSearch={false}`\nVERDICT: HIT\nWHY: The answer explicitly states that only the search screen enables the search field, naming the file and the `hasSearch={true}` mechanism."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Two near-misses are not render sites. `app/hooks/navigation_header.tsx` (`useAppNavigationHeader`) takes a `hasSearch` argument but renders the separate `Header` component. `app/routes/(authenticated)/thread.tsx` also renders `Header`, not `NavigationHeader`.\nVERDICT: HIT\nWHY: The answer explicitly excludes the navigation hook and the thread route as renderers of NavigationHeader, noting they render the separate `Header` component."
+}

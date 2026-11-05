@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index can tell it is out of date on three separate axes. Each axis has a different cause and a different fix... | `data` | ... | `schema` | ... | `code` |\nVERDICT: HIT\nWHY: The answer explicitly states staleness has three distinguishable axes and names them data, schema, and code."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The wait is on `wake_cv_` with a `!running_` predicate.\nVERDICT: MISS\nWHY: The answer mentions the monitor's condition-variable wait and an atomic `running_`, but it never says stop() does an atomic exchange plus a CV wake, and it never says stop() joins the monitor thread."
+}

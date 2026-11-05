@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes `not_indexed` (file types never read) and the corpora searched. It never says the reply names file types that were in scope but produced no rows."
+}

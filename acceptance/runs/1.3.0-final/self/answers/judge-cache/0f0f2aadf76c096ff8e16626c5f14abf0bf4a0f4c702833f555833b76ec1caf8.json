@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Query replies carry the same `staleness` block and name the target they answered from.\nVERDICT: MISS\nWHY: The answer says replies name their target but never states that a routed reply is annotated for the repository actually read rather than the server's default target."
+}

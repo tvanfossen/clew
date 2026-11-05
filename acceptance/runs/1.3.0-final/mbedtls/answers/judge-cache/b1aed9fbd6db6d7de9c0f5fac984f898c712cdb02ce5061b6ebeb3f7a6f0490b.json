@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The two sample programs are the notable case. They are not library code, but they reach into `ssl` and `conf` internals.\" and \"`programs/ssl/ssl_client2.c` | 8 | Bundled sample/test client\"\nVERDICT: HIT\nWHY: The answer states that example programs (ssl_client2.c, ssl_server2.c) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves and so reach past the public API, which is the item's substance."
+}

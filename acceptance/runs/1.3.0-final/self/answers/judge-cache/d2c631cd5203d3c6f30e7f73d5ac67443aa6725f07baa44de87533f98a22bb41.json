@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the reply collapses layers to the strongest evidence per endpoint, but it never says a ranking in the vocabulary module (rather than SQL) decides which layer's provenance the collapsed row reports."
+}

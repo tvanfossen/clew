@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 22847,
+  "stop_reason": "end_turn",
+  "session_id": "7fee8825-0073-43ca-810e-7bcc6c6319d4",
+  "total_cost_usd": 0.009372789999999999,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 23314,
+    "cache_read_input_tokens": 277679,
+    "output_tokens": 3864,
+    "output_tokens_details": {
+      "thinking_tokens": 1396
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 23314,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2011,
+        "cache_read_input_tokens": 59065,
+        "cache_creation_input_tokens": 2491,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2491
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3864,
+      "cacheReadInputTokens": 277679,
+      "cacheCreationInputTokens": 23314,
+      "webSearchRequests": 0,
+      "costUSD": 0.009372789999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1396,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 23314,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Runtime path: negative int to string**\n\n1. A caller passes the return value to `mbedtls_strerror(int ret, char *buf, size_t buflen)` (declared in `include/mbedtls/error.h`, defined at `library/error.c:792`). It returns `void`; the result is written into `buf`.\n2. It returns early if `buflen == 0`, zeroes `buf`, and negates `ret` if it is negative. Mbed TLS error codes are negative, so `MBEDTLS_ERR_AES_BAD_INPUT_DATA` (`-0x0021`, `include/mbedtls/aes.h`) is handled as `0x0021`.\n3. The code is split by mask. The high-level part is `ret & 0xFF80` (the module, e.g. CIPHER, DHM, SSL). The low-level part is `ret & ~0xFF80` (the specific error within it).\n4. The high-level part goes to `mbedtls_high_level_strerr()` (`error.c:174`). It is a `switch` over the module masks, returning strings like `\"CIPHER - Authentication failed (for AEAD modes)\"`. If that module's case is not compiled in, or the value is unknown, the buffer gets `UNKNOWN ERROR CODE (%04X)`.\n5. If the code is an SSL fatal alert, `mbedtls_strerror` returns after the high-level text and does not decode the low-level part.\n6. The low-level part goes to `mbedtls_low_level_strerr()` (`error.c:537`), which is another `switch` over the specific codes, with the same unknown-code fallback.\n7. If both parts exist, they are joined as `\"<high> : <low>\"` in `buf`. The join is skipped if there is less than 5 bytes of room, and the output is truncated to `buflen`.\n\nThe `error.c` file is not hand-written. `library/CMakeLists.txt:134` runs `scripts/generate_errors.pl` as a custom command. Its inputs are the public headers (`error_headers`) and `scripts/data_files/error.fmt`, and its output is `${CMAKE_CURRENT_BINARY_DIR}/error.c`. The `case` blocks are marked `/* Begin Auto-Generated Code. */`.\n\nEach module's section is wrapped in its own `#if defined(MBEDTLS_xxx_C)`. That is why the switches are gated on `MBEDTLS_ERROR_C` and `MBEDTLS_ERROR_STRERROR_DUMMY`. `mbedtls_strerror` also has a second definition at `error.c:867`, which I take to be the dummy variant for builds that omit the strings. I did not confirm its body.\n\n**Adding a new error string**\n\nPer the index, the work is:\n\n1. Add a `#define MBEDTLS_ERR_<MODULE>_<NAME>` with a negative value to the module's public header (for example `include/mbedtls/aes.h`). Use an unused value in that module's band, and keep the high-level part consistent with the module's existing codes.\n2. Do not edit the `case` lines in `library/error.c`. They are regenerated at build time from the headers, so a manual edit is lost.\n3. Make sure the regenerated `error.c` contains the new `case` under the module's `#if` guard.\n\n**What I could not verify**\n\n- The index holds only the doc comment of `scripts/generate_errors.pl`, not its body. So I cannot say how the description text is taken from the header (a doc comment, or a string in `error.fmt`), or how the header scan picks up `MBEDTLS_ERR_*` names. Read the script before writing a new code.\n- Build wiring outside CMake (Makefile) is not in the index.\n- For a doc-level picture, `docs/psa-transition.md` says PSA has no equivalent to `mbedtls_strerror`, and `programs/util/strerror.c` is a CLI that prints the string for a code. That confirms the usage, not the generator.",
+  "ttft_ms": 1881,
+  "type": "result",
+  "duration_ms": 23836,
+  "uuid": "877f2ef5-5609-4b89-9936-0464bcee96b1",
+  "ttft_stream_ms": 1121,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1121,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

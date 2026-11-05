@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Until then, `build_or_refresh` refuses (server.py:2278, `stale_code_refusal`), `force` cannot override the refusal, and `_data_stale` checks `matches_source` first so auto-refresh never attempts a build that could drop layers.\nVERDICT: HIT\nWHY: The answer states the write path refuses (not warns) and that `force` cannot override the refusal, which conveys the refusal-before-build-decision placement."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"it is the value of the first JSON key if that value is a string, otherwise `*`.\" and \"Deny patterns with args only see the first key.\"\nVERDICT: HIT\nWHY: The answer states that only the first key's string value reaches the pattern (the other arguments are never matched) and that a non-string value becomes `*`. It does not mention unparseable arguments, but the item's core substance is covered."
+}

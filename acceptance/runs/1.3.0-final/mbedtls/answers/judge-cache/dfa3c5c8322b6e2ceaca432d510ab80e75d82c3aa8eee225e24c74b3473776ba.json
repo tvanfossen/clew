@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Otherwise they are stubs: calloc returns NULL and free does nothing (`platform.c:25-42`).\"\nVERDICT: HIT\nWHY: The answer states the pointers' defaults are stubs where calloc returns NULL and free does nothing, which is the substance of the item."
+}

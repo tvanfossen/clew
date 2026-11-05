@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The search tool's own wording claims certainty only in that case.\"\nVERDICT: MISS\nWHY: The answer says certainty depends on the reply's coverage fields. It never says the tool computes this per call by querying which corpora it did not read, as opposed to tying the wording to a result shape."
+}

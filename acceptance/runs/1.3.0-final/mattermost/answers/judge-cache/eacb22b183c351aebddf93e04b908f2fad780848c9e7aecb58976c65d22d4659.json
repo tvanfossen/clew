@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The \"failed\" component (`app/components/post_list/post/body/failed/index.tsx:48`) calls `retryFailedPost` (`post.ts:228`) when the user taps it.\nVERDICT: HIT\nWHY: The answer says retry is manual, triggered only when the user taps the failed post, and names `retryFailedPost`. It never says \"Try Again\" by name, but the mechanism is the same."
+}

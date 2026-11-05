@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `HealthMonitor::stop` sets `running_` to false, notifies the condition variable, then joins.\nVERDICT: HIT\nWHY: The answer states that stop() sets the running_ atomic flag, notifies the condition variable, and joins the thread. That covers the flag exchange, the condition variable wake, and the join. The answer never says the flag change is an exchange operation, but the substance is there."
+}

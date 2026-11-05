@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Files of other types, such as `.rs`, `.toml`, or `.sql`, are listed there as outside the index.\"\nVERDICT: MISS\nWHY: The answer describes `scope` listing extensions and `not_indexed` for files outside the index. The item asks for the reply to name file types that were in scope and produced no rows, and the answer doesn't say that."
+}

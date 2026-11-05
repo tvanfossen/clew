@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A multi-token query can come back empty even when each token occurs in the repository, because matching requires every token to appear in one searchable unit.\nVERDICT: MISS\nWHY: The item requires that a single token matching nothing was previously treated as proof of absence (a before/after fix); the answer discusses multi-token misses and coverage but never states that history."
+}

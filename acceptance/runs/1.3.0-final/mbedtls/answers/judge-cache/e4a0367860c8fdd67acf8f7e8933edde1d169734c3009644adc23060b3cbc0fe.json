@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_ERROR_C` off, it returns an empty string.\nVERDICT: MISS\nWHY: The answer only says what happens when MBEDTLS_ERROR_C is off; it never says the option is enabled in the shipped mbedtls_config.h or that the table is present in a default build."
+}

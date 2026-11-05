@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Enable `MBEDTLS_PLATFORM_MEMORY` and leave the `_MACRO` options undefined.\" and \"Enable `MBEDTLS_PLATFORM_MEMORY` and define both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`.\" and \"The index does not show the exact branch that excludes the runtime pointers in this mode, so I'd verify that\"\nVERDICT: MISS\nWHY: The answer separates compile-time macros from runtime function pointers, but it never says the two are mutually exclusive. It explicitly says it can't confirm the macro mode excludes the runtime pointers."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If the index is *newer* than the server, a rebuild cannot clear it, so the caller must restart the MCP client.\" and \"For `code`, or for a `schema` index newer than the server, restart the MCP client. Rebuilding does not clear either one.\"\nVERDICT: HIT\nWHY: The answer states that a schema-axis index newer than the server cannot be cleared by rebuilding and needs a client restart. It doesn't give the re-stamping reason, but the unresolvable-by-rebuild substance is there."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says there are no automatic retries for posts, but never states that requests in general retry with exponential backoff, limit 3, set by the network manager."
+}

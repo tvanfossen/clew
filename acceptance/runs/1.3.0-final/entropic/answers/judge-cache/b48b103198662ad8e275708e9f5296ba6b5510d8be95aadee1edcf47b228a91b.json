@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no file paths. It mentions only symbols, config keys and function names, such as `ToolExecutor::check_approval` and `ServerManager::execute`.\n\nITEMS:\nNONE\nEND"
+}

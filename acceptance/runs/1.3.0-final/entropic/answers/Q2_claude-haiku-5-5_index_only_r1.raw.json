@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 14591,
+  "stop_reason": "end_turn",
+  "session_id": "1bfb3bb3-17a4-4834-92f6-2caf52a6a323",
+  "total_cost_usd": 0.010536120000000001,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 38716,
+    "cache_read_input_tokens": 148662,
+    "output_tokens": 2611,
+    "output_tokens_details": {
+      "thinking_tokens": 809
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 38716,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1498,
+        "cache_read_input_tokens": 49236,
+        "cache_creation_input_tokens": 8160,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 8160
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2611,
+      "cacheReadInputTokens": 148662,
+      "cacheCreationInputTokens": 38716,
+      "webSearchRequests": 0,
+      "costUSD": 0.010536120000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 809,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 38716,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How it's brought in:** llama.cpp is a git submodule, pinned to commit **b8420**, and linked directly into the inference library. There is no wrapper package. `docs/roadmap.md` (v1.8.0) records the decision: \"llama.cpp as git submodule (direct linkage, no wrapper)\". The pin is stated in the file header of `src/inference/llama_cpp_backend.cpp`. The index does not contain the CMake wiring itself (no `CMakeLists.txt` symbols or submodule config are queryable), so how the submodule is added and linked is something I can't confirm from here. Read the root `CMakeLists.txt` and `.gitmodules` for that.\n\n**How far it reaches into entropic's source:** narrowly, and only in the inference layer.\n\n- **Direct llama.cpp users (7 files in `src/inference/`):**\n  - `llama_cpp_backend.{h,cpp}`: the main consumer. It calls the C API directly (`llama_model_load_from_file`, `llama_init_from_model`, `llama_decode`, `llama_sampler_chain`, `llama_chat_apply_template`, per its file doc). It also covers multi-sequence batching, speculative decoding, MTP heads, and multimodal (mtmd).\n  - `llama_cpp_sampler.{h,cpp}`: wraps a `llama_sampler` chain.\n  - `llama_cpp_tokenizer.{h,cpp}`: wraps `llama_vocab` and tokenize/detokenize.\n- **One outside touchpoint:** `inference_c_api.cpp` (`entropic_create_inference_backend`) constructs `LlamaCppBackend`. That is the only place the rest of the engine reaches the llama-backed class.\n- **Not in the public surface:** the header doc says the backend is \"internal to inference .so, not exposed across boundaries.\" Design rule 1 and the \"no third-party headers in interface contracts\" standard keep llama types out of `include/entropic/`. I found no llama symbols under `include/`, `python/` or `examples/`.\n- **Tests:** several unit tests (`tests/unit/inference/adapter_manager_test.cpp`, `speculative_compat_test.cpp`, `vocab_only_smoke_test.cpp`) define mock `llama_*` functions and override them at link time. The model tests in `tests/model/` exercise the real library.\n\n**Summary:** the dependency is a pinned submodule linked straight into the inference library. Its use is confined to the seven `src/inference/llama_cpp_*` files plus the one factory call in `inference_c_api.cpp`. It does not appear in the public headers, the Python wrapper, or the examples.",
+  "ttft_ms": 1471,
+  "type": "result",
+  "duration_ms": 15264,
+  "uuid": "f896c5de-0afc-46f9-a14a-a90d8b7c4427",
+  "ttft_stream_ms": 1112,
+  "time_to_request_ms": 61,
+  "first_content_frame_ms": 1112,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

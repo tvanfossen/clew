@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp answers with the negated token count it would need, which the code flips to a positive `n`. The second call allocates a vector of that size and fills it.\nVERDICT: HIT\nWHY: The answer states the first call returns a negated required count (negative) and the code flips it to a positive n to size the second call's buffer."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PRIVATE` is a name-mangling macro... `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS #define MBEDTLS_PRIVATE(member) private_##member #else #define MBEDTLS_PRIVATE(member) member` ... \"`library/common.h:132` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` unconditionally, so every library `.c` ... sees plain field names\" and \"External applications: Plain `->field` is a compile error.\"\nVERDICT: HIT\nWHY: The answer shows both macro branches and states that code defining the opt-out sees plain names while ordinary external consumers see the mangled `private_` names."
+}

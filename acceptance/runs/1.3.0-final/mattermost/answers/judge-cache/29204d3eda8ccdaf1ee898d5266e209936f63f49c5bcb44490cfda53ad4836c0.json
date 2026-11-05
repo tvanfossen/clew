@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: skipSync: true (added path) | sanitizeReactions | Returns early, before computing deleteReactions. Only creates are produced. ... \"Guards the deleteReactions branch, so no stale rows are destroyed.\"\nVERDICT: MISS\nWHY: The answer says skipSync suppresses deletions, but it never states the reason. That reason is that the single incoming reaction would otherwise be treated as the post's complete set, so every other reaction on the post would be deleted."
+}

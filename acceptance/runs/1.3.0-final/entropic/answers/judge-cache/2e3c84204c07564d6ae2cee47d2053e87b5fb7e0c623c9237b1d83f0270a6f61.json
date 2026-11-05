@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`HealthMonitor::process_events` swaps the event queue out under `event_mutex_`, then invokes the status callback after releasing the lock. The index's own doc comment says it runs on the engine thread.\"\nVERDICT: HIT\nWHY: The answer says the monitor loop queues health events, process_events drains the queue under a mutex and invokes the callback on the engine (caller) thread rather than the monitor thread."
+}

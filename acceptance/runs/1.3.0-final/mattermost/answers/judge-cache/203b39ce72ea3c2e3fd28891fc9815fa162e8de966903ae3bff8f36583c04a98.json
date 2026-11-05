@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is not retried automatically at all: there is one `createPost` attempt per send.\nVERDICT: HIT\nWHY: The answer states outright that the create-post request is sent once with no automatic retries."
+}

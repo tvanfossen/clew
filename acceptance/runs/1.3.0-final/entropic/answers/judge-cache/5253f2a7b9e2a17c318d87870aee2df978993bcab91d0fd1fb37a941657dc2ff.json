@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"llama.cpp is a git submodule at `extern/llama.cpp`, built from source into `librentropic.so` via `add_subdirectory`.\"\nVERDICT: HIT\nWHY: The answer explicitly states llama.cpp is a git submodule at extern/llama.cpp, and contrasts it with the other dependencies that come from FetchContent."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The pre-commit `--check` fails on drift.\nVERDICT: HIT\nWHY: The answer says `scripts/gen_bindings.py` generates the bindings from the header and that a pre-commit `--check` fails on drift. That is the substance of the item, even though it doesn't spell out \"re-runs and diffs\"."
+}

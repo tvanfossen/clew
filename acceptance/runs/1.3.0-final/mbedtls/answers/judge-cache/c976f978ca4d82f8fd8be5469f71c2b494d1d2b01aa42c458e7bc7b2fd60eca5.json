@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `component_release_test_valgrind_constant_flow` (`tests/scripts/components-sanitizers.sh:72`) builds a release configuration with `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND`, runs `make memcheck`... This is dynamic and path-specific: it only checks the code paths the suites exercise, and only in builds that define the test macro.\nVERDICT: MISS\nWHY: The answer describes Valgrind/MemSan testing and that it requires a test macro, but never states that it's an off-by-default facility explicitly not part of the library API."
+}

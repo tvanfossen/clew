@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unknown section name is refused by name with `DeclarationError`.\nVERDICT: MISS\nWHY: The answer only mentions refusal of an unknown section name; it never describes an unknown key inside a valid section, nor a correctly-spelled derived key being refused with its reason."
+}

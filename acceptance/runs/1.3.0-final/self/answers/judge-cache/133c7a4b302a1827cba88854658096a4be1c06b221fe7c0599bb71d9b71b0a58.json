@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`.clew.yaml`** holds one section per option, and the section name is the option name.\nVERDICT: HIT\nWHY: The answer says that `.clew.yaml` section names are the option names, and that the `options` argument is how embedding callers state them. That ties the caller's option names to the declaration file's section names. The answer does not say the diagnostics use the same words, but it does say an unknown section name is \"refused by name\", which is close enough that I still count this as a HIT."
+}

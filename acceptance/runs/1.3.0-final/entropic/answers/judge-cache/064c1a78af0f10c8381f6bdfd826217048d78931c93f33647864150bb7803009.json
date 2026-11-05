@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says ServerManager::execute checks the deny list but also describes an approval gate (allow list, auto_approve, callback) and tier/MCP checks before it, so it doesn't conclude that deny is the only blocking list consulted."
+}

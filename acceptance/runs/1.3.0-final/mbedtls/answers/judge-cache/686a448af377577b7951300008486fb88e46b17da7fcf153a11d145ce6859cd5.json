@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | The library's internal utility header. Any library source that includes it gets direct field access to every `MBEDTLS_PRIVATE` member. This is the main opt-out.\nVERDICT: HIT\nWHY: The answer says the library's shared internal header turns the opt-out on, so library sources including it get plain member access."
+}

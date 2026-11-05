@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every handler's write goes through `BaseDataOperator.batchRecords`, which is the one place that calls `database.write(writer => writer.batch(...))`\nVERDICT: MISS\nWHY: The answer says every handler's write goes through `batchRecords`. It names the `ServerDataOperatorBase` extends `BaseDataOperator` structure and the mixin composition. It never says the mixins are constrained to extend `ServerDataOperatorBase` as the reason writes go through the inherited method. It also lists writes that bypass `batchRecords`, which contradicts the item's conclusion."
+}

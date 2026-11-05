@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 29804,
+  "stop_reason": "end_turn",
+  "session_id": "e3ee9198-00a4-4f59-8d7d-83677abc172d",
+  "total_cost_usd": 0.013012190000000002,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 42832,
+    "cache_read_input_tokens": 288459,
+    "output_tokens": 3120,
+    "output_tokens_details": {
+      "thinking_tokens": 1125
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 42832,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1659,
+        "cache_read_input_tokens": 61848,
+        "cache_creation_input_tokens": 1227,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1227
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3120,
+      "cacheReadInputTokens": 288459,
+      "cacheCreationInputTokens": 42832,
+      "webSearchRequests": 0,
+      "costUSD": 0.013012190000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1125,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 42832,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** a failed post stays in the local database, marked as failed, with no automatic retries. Only a manual \"Try Again\" retries it, and that re-sends it as a fresh create request.\n\n**1. What happens on failure**\n\n`createPost` (`app/actions/remote/post.ts:74`) saves the post locally first, under a pending ID (`pending_post_id`), so it shows in the UI. If `client.createPost` throws, the code takes one of two paths:\n\n- **Deleted root post, town square read-only, or plugin-dismissed post** (`ServerErrors.DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR`, `PLUGIN_DISMISSED_POST_ERROR`): the post is removed with `removePost`. It is not kept as a failed post.\n- **Any other error**: the post is rewritten with `props.failed = true` and saved. For a CRT reply, a thread is also created from it. A `BOR_DENIED_BY_POLICY_ERROR` additionally expires the cached render-permissions entry.\n\n**2. Automatic retries: zero**\n\n`ClientPosts.createPost` (`app/client/rest/posts.ts:46`) passes `noRetry: true`. In `buildRequestOptions` (`app/client/rest/tracking.ts:383`) that sets `retryPolicyConfiguration = {retryLimit: 0}`, so the network layer does not retry the POST. The only caller of `retryFailedPost` is the failed-post bottom sheet's \"Try Again\" action (`app/components/post_list/post/body/failed/index.tsx:48`). Nothing retries on reconnect or on a timer.\n\n**3. What \"retry\" does**\n\nRetry is a user action that calls `retryFailedPost` (`app/actions/remote/post.ts:228`):\n\n1. It builds a new API post from the stored one, with `failed: false`, `create_at` and `update_at` set to now, and `id` blanked.\n2. It updates the local record to show the pending state, keeping the original `create_at` and updating `update_at`.\n3. It calls `client.createPost` again. This is a fresh POST, which the server treats as a new post. The only link back to the original is `pending_post_id`, and the code does not check whether the server already has the post.\n4. On success, it writes the server-created post and updates the channel's last-post time (unless it is a CRT reply).\n5. On failure, the same branch rules apply again: server-error cases remove the post, and anything else marks it failed again.",
+  "ttft_ms": 12181,
+  "type": "result",
+  "duration_ms": 30823,
+  "uuid": "f9d8121b-c208-468a-b33c-bfdcc8f0664b",
+  "ttft_stream_ms": 11834,
+  "time_to_request_ms": 58,
+  "first_content_frame_ms": 11834,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

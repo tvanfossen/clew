@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the current graded-emptiness design, including multi-token conjunction notes. It never says that a single non-matching token was previously treated as proof of absence, or that this confused \"nothing exists\" with \"I did not look there\"."
+}

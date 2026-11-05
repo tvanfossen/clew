@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `prepareRecordsOnly: false` makes `handleReactions` call `batchRecords`, which runs `database.write`. ... `prepareRecords(createRaws, transformReactionRecord)` \u2502 \u2514\u2500 prepareCreate ... \u2514\u2500 batchRecords \u2192 database.write(writer.batch)\nVERDICT: HIT\nWHY: The answer states the add goes through the operator's `handleReactions`, which prepares Reaction records (prepareRecords with transformReactionRecord) and writes them via `batchRecords`."
+}

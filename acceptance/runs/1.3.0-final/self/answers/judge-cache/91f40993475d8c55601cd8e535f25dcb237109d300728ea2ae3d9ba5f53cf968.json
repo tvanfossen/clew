@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: One row is stored per layer per pair, but the reply collapses them to the strongest evidence per endpoint (`CallEdge` docstring). Clew's own index has 520 rows for 260 distinct pairs, so a row count is not a relationship count.\nVERDICT: HIT\nWHY: The answer states that call_edges stores one row per layer per pair, and the 520 rows for 260 pairs figure shows the same edge is stored twice when two layers find it."
+}

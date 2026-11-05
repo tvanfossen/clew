@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If the second call returns negative, log `\"Tokenization failed for text of length N\"` and return `{}`.\" and \"Neither is a retry in the sense of re-attempting a failed operation. Nothing loops\"\nVERDICT: HIT\nWHY: The answer states that a negative second-call result for tokenize is logged and returns an empty vector, with no retry or loop, which is the terminal-empty behavior the item asks for."
+}

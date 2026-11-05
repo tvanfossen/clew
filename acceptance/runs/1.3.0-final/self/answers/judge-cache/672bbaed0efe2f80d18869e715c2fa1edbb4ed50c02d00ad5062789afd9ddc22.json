@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: File types that were in scope but not indexed are recorded at build time. `cli._not_indexed_scope` (`clew/cli.py:2646`) compares the scanned files against the `path` rows and stores `ext=count` entries... The query side reads that record... An index built before the record existed shows no `not_indexed` key, which reads as \"not recorded\" rather than \"nothing missed\".\nVERDICT: HIT\nWHY: The answer says the empty reply's scope payload carries `not_indexed` extension counts for in-scope files that produced no rows, so \"absent from repo\" and \"type not indexed\" can be told apart."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says a containment call was removed; it only notes a stale docstring about a Doxyfile fallback and that the Doxyfile INPUT tier is gone."
+}

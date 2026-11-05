@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 14485,
+  "stop_reason": "end_turn",
+  "session_id": "09304325-6d80-4881-9e7d-280b40e88ead",
+  "total_cost_usd": 0.009643450000000001,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 32081,
+    "cache_read_input_tokens": 175945,
+    "output_tokens": 2934,
+    "output_tokens_details": {
+      "thinking_tokens": 732
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 32081,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2086,
+        "cache_read_input_tokens": 59379,
+        "cache_creation_input_tokens": 10260,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 10260
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2934,
+      "cacheReadInputTokens": 175945,
+      "cacheCreationInputTokens": 32081,
+      "webSearchRequests": 0,
+      "costUSD": 0.009643450000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 732,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 32081,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## How Python reaches the engine\n\nPython does not talk to a Python-side engine object. It loads the shared library `librentropic.so` with `ctypes` and calls the C ABI in `include/entropic/entropic.h` directly.\n\n- **Loading:** `python/src/entropic/_loader.py` finds and loads `librentropic.so` (`load()`, `find()`). `python/src/entropic/_bindings.py` is generated from the C header by `scripts/gen_bindings.py`, and it has a `_bind(name, restype, *argtypes)` helper that sets `restype` and `argtypes` on each symbol from the loaded library. The file's banner says \"generated, do not edit.\"\n- **Lazy import:** `python/src/entropic/__init__.py` resolves binding names lazily (PEP 562 `__getattr__`), so `entropic install-engine` can run before the `.so` exists on disk.\n- **No wrapper class:** the package exposes flat functions such as `entropic_create`, `entropic_configure_dir`, `entropic_run_streaming` and `entropic_destroy`. There is no `EntropicEngine` class; the docstring says the C ABI is the public surface.\n- **Enums and structs:** IntEnums and `ctypes.Structure` types are mirrored by hand or generated, and `tests/unit/test_bindings_abi.py` checks them against the C headers so they cannot drift silently.\n- **Callbacks:** C function-pointer typedefs are `ctypes.CFUNCTYPE` objects, such as `HOOK_CB`, `TOKEN_CB` and `COMPACTOR_CB`.\n\nThe C side is a facade. `include/entropic/entropic.h` says all functions are pure C with no C++ types crossing the boundary. Exceptions do not cross the boundary either: errors come back as `entropic_error_t` codes plus `entropic_last_error(handle)`.\n\n## Memory rules across the boundary\n\n| Direction | Rule | Source |\n|---|---|---|\n| C \u2192 caller, `char*` return | Ownership transfers to the caller. Free with `entropic_free()`. | `entropic.h` \"Memory ownership\" |\n| `const char*` return | Owned by the handle. Valid only until the next call on that handle. | `entropic.h` |\n| Caller \u2192 engine, buffer the engine will free | Must be allocated with `entropic_alloc()`, which is `malloc`. Example: a hook's `modified_json`. | `entropic.h`, `src/facade/entropic.cpp` |\n| `entropic_run` result | `*result_json` is caller-owned and must be freed with `entropic_free()`. On an internal exception the engine still returns partial context in `*result_json` and the caller must free it too. | `entropic_run` doc and body |\n| `entropic_free(NULL)` | No-op. | `entropic_free` doc |\n| Input strings | Borrowed for the duration of the call only. The engine copies what it keeps. | `i_mcp_server.h`, `i_inference_backend.h` |\n| Stream token pointers | Valid only during the callback. Copy them to keep them. | `i_inference_backend.h` |\n| Handle lifetime | `entropic_destroy` invalidates the handle. Destroy is single-threaded and must not race other calls on that handle. | `entropic_destroy` doc |\n\nTwo rules matter most for Python:\n\n1. **Allocator pairing.** Memory the engine hands out must be freed with `entropic_free`, and memory the engine will free must come from `entropic_alloc`. Mixing these with Python's own allocator is wrong. The index shows `hooks.py` doing this correctly via `_alloc_c_string`, which calls `entropic_alloc`.\n2. **Callback lifetime.** `hooks.py` documents the foot-gun directly. A `CFUNCTYPE` wrapper passed inline to `entropic_register_hook` is dropped when the call returns, and later invocations from C then dereference freed memory. The module keeps a per-handle registry that holds the wrappers alive. Any other Python callback registered with the engine needs the same treatment.\n\n## Gaps in what I could verify\n\n- The index shows `entropic_run` and `entropic_free` in the C layer and that `_bindings.py` binds `entropic_free` as a symbol. It does not show a Python call site that frees `result_json` after `entropic_run`. I'm inferring that Python follows the documented contract. Check the high-level Python callers before relying on it.\n- `_bindings.py` is generated, so edits belong in `scripts/gen_bindings.py` and not in the output file.",
+  "ttft_ms": 861,
+  "type": "result",
+  "duration_ms": 15368,
+  "uuid": "9eef2396-1dc7-4a42-9c06-e62c07bb2f70",
+  "ttft_stream_ms": 705,
+  "time_to_request_ms": 61,
+  "first_content_frame_ms": 705,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

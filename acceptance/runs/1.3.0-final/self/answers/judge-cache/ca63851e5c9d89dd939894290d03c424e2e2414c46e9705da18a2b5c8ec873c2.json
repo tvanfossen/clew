@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`scope`: the covered shape. Here that is 426 files, whole-repo, with `top_levels`, the indexed `extensions`, and `not_indexed` with counts\" and \"anything in a `not_indexed` extension (a `.rs` or `.toml` file, say) was never looked at. The reply cannot say the thing is absent.\"\nVERDICT: HIT\nWHY: The answer says an empty reply lists the indexed extensions and the not-indexed ones. That lets \"absent from the repo\" be told apart from \"file type never indexed\"."
+}

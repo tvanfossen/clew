@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 44990,
+  "stop_reason": "end_turn",
+  "session_id": "38950c51-dbef-48ad-8dbe-f4a6f7df3e55",
+  "total_cost_usd": 0.0126673,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 18960,
+    "cache_read_input_tokens": 498530,
+    "output_tokens": 7776,
+    "output_tokens_details": {
+      "thinking_tokens": 3803
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 18960,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3517,
+        "cache_read_input_tokens": 58042,
+        "cache_creation_input_tokens": 762,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 762
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 20,
+      "outputTokens": 7776,
+      "cacheReadInputTokens": 498530,
+      "cacheCreationInputTokens": 18960,
+      "webSearchRequests": 0,
+      "costUSD": 0.0126673,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3803,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 18960,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** in the default build, the library takes no mutexes at all, and nothing inside it is designed to run concurrently. The mutex and thread code only compiles when you enable `MBEDTLS_THREADING_C` plus an implementation, and the default config doesn't.\n\n**Default config**\n\n- `MBEDTLS_THREADING_C` is commented out (`include/mbedtls/mbedtls_config.h:3787`). `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` are also off (lines 2185 and 2196).\n- `library/threading.c` is wrapped entirely in `#if defined(MBEDTLS_THREADING_C)`, so it compiles to nothing. The `mbedtls_mutex_*` function pointers and the global mutexes don't exist.\n- Every lock site I checked is guarded by `MBEDTLS_THREADING_C`: entropy, CTR_DRBG, HMAC_DRBG, the SSL session cache, tickets and cookies, the buffer allocator, PSA, and `gmtime`.\n- So with defaults, the library has no locking. Its own docs say the same: `ssl_cache.h` marks functions \"Thread-safe if MBEDTLS_THREADING_C is enabled\".\n\n**What actually runs concurrently by default**\n\nThe only threads in the repository are in `programs/`, not in `library/`. The index finds four spawn sites, all first-party:\n\n| Spawn site | Kind | Role |\n|---|---|---|\n| `programs/ssl/ssl_pthread_server.c:277` | pthread | one thread per accepted connection, running `handle_ssl_connection` |\n| `programs/test/benchmark.c:430` | Win32 timer | `TimerProc`, the alarm used for timing |\n| `programs/test/benchmark.c:444` | signal | `sighandler`, the alarm handler |\n| `programs/ssl/ssl_server2.c:1699` | signal | `term_handler`, a termination handler |\n\nIf a program shares a context (a session cache, ticket context, or RNG) across its pthreads, nothing serialises access. I did not check whether `ssl_pthread_server` shares any such object. The signal handlers run asynchronously against the main code, and no library state is protected from them.\n\n**What is protected when you enable `MBEDTLS_THREADING_C`**\n\nEnabling it means choosing exactly one implementation (`check_config.h:1007`). With pthreads, these are the protected items:\n\n- **Process-global state (`threading.c`):**\n  - `mbedtls_threading_readdir_mutex` (`MBEDTLS_FS_IO`): the readdir path. I saw the declaration only.\n  - `mbedtls_threading_gmtime_mutex` (non-POSIX builds): guards the fallback `gmtime` path in `platform_util.c:189\u2013201`.\n  - `mbedtls_threading_key_slot_mutex` (PSA): protects the key-slot table. It is held across destroy (`psa_crypto.c:1310`), create and load (`1801`, `1927`), and slot wipe (`2022`).\n  - `mbedtls_threading_psa_globaldata_mutex` (PSA): protects the initialisation flags (`psa_crypto.c:141\u2013165`).\n  - `mbedtls_threading_psa_rngdata_mutex` (PSA): protects RNG state (`psa_crypto.c:8030\u20138083`, `8384\u20138396`). The comments at `7982` and `7996` say the caller must already hold it.\n- **Per-object mutexes:** each object guards its own state with one mutex, taken and released inside one function body.\n  - Entropy context: `entropy.c:93, 179, 254, 294`\n  - CTR_DRBG: `ctr_drbg.c:703`\n  - HMAC_DRBG: `hmac_drbg.c:388`\n  - SSL session cache: `ssl_cache.c:84, 259, 331`\n  - SSL tickets: `ssl_ticket.c:330, 445`\n  - SSL cookies: `ssl_cookie.c:249, 332`\n  - Heap allocator: `memory_buffer_alloc.c:540\u2013564`, which wraps calloc and free on `heap.mutex`.\n- **Lock nesting:** the index reports zero two-lock holdings, so no critical section calls into code that takes a second lock. That is a database result, not a deadlock-freedom proof.\n\n**Caveats**\n\n- The index's lock layer shows one identity, `mutex->mutex` in `threading.c`. The library calls go through function pointers (`mbedtls_mutex_lock` is a variable), so the index doesn't attribute the per-object and PSA locks to their objects. The list above comes from reading the source with grep, not from the index.\n- Everything here is static reading. I did not build with `MBEDTLS_THREADING_C` enabled or run any test under threads.",
+  "ttft_ms": 2361,
+  "type": "result",
+  "duration_ms": 45615,
+  "uuid": "22c93fb6-53ac-4e49-aeb1-e3d5e687b45c",
+  "ttft_stream_ms": 1762,
+  "time_to_request_ms": 69,
+  "first_content_frame_ms": 1763,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

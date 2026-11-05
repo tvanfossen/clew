@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names two file paths as part of the call-edge machinery. Both are cited as locations of example functions, `callers` and `_empty_callers_note`. It also mentions `tests/test_wire.py`, but only as the place where a variable named `callers` is defined. That file doesn't store, collapse, filter, or shape call edges.\n\nITEMS:\nclew/query/symbols.py\nclew/mcp_server/tools_query.py\nEND"
+}

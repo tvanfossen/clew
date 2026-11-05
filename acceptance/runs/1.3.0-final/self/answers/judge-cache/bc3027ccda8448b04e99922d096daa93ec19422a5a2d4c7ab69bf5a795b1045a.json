@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A failed or stalled refresh falls back to answering from the existing index, with the notice attached.\nVERDICT: MISS\nWHY: The answer describes refresh failure fallback and `code_identity` treating an unreadable tree as a match, but it never says staleness measurement itself never raises and degrades to no annotation."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says \"Try Again\" calls `retryFailedPost` and that no automatic retry occurs. It also says the retry call itself uses the network layer's default retry policy, which muddies the claim. It never states that a retry happens only on the user's \"Try Again\" choice."
+}

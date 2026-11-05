@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Define the code** in `include/mbedtls/<module>.h`... `/** Invalid key length. */ #define MBEDTLS_ERR_AES_INVALID_KEY_LENGTH -0x0020`\" and \"**Regenerate.** ... `perl scripts/generate_errors.pl`\" and \"Don't hand-edit `error.c`.\"\nVERDICT: HIT\nWHY: The answer says to add a documented #define to the module header, regenerate with the generator, and not hand-edit error.c."
+}

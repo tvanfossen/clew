@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 29667,
+  "stop_reason": "end_turn",
+  "session_id": "01db14f3-080c-4db7-a1a9-805ccecc6834",
+  "total_cost_usd": 0.01289318,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 35642,
+    "cache_read_input_tokens": 304258,
+    "output_tokens": 5442,
+    "output_tokens_details": {
+      "thinking_tokens": 1826
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 35642,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2346,
+        "cache_read_input_tokens": 74719,
+        "cache_creation_input_tokens": 1583,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1583
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5442,
+      "cacheReadInputTokens": 304258,
+      "cacheCreationInputTokens": 35642,
+      "webSearchRequests": 0,
+      "costUSD": 0.01289318,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1826,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 35642,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The setting is a single boolean, and the app treats it as \"on\" unless the server explicitly sends `'false'`. Everything that depends on it goes through one helper, so the absent-setting case is the same everywhere.\n\n**The gate.** `app/queries/servers/system.ts:304` defines `archivedChannelsViewable = (value) => value !== 'false'`. It is wrapped by `canViewArchivedChannels` (async, line 306) and `observeCanViewArchivedChannels` (observable, line 310). The raw value comes from the locally stored client config row (`getConfigValue` / `observeConfigValue`, lines 170 and 266).\n\n**Where the behaviour depends on it:**\n\n| # | Location | When viewable (true) | When `'false'` |\n|---|---|---|---|\n| 1 | `app/actions/websocket/channel.ts:463` (`handleChannelDeletedEvent`) | Channel is only marked archived locally; the user stays a member | If it is the current channel, kick the user out with `CHANNEL_ARCHIVED`; then remove the user from the channel |\n| 2 | `app/actions/remote/channel.ts:1397` (`archiveChannel`) | After the server call, set `delete_at` to now and keep the channel | Remove the current user from the channel instead |\n| 3 | `app/screens/channel_settings/archive/archive.tsx:109` and `:121` | Show the \"can view archived\" confirmation text; on success, `close(false)` stays on the screen | Show the \"cannot view archived\" text; on success, `close(true)` pops to root |\n| 4 | `app/screens/browse_channels/index.ts:21` \u2192 `browse_channels.tsx:190` and `channel_dropdown.tsx:67` / `dropdown_slideup.tsx:74` | The \"Archived channels\" filter item is shown; the dropdown appears if archived or shared channels are enabled | The archived item is hidden |\n| 5 | `app/actions/remote/search.ts:62` and `:73` | Sends `include_deleted_channels: true` with post search | Sends `false`, so deleted-channel posts are excluded |\n| 6 | `app/screens/home/channel_list/categories_list/categories/header/index.ts:15` \u2192 `app/database/models/server/category.ts:107-115` | A category counts archived channels as \"has channels\" (the current channel always counts) | Only non-archived channels count |\n\nNot gated, but worth knowing: `browse_channels.tsx:139` has an archived-channel branch that uses `fetchMyChannel` instead of `joinChannel`. It runs whenever an archived channel is selected, so it only happens in practice when the archived filter is reachable.\n\n**When the server does not send the setting.** `observeCanViewArchivedChannels` emits `true`, and `canViewArchivedChannels` resolves `true`. Every row in the table above therefore takes the \"viewable\" branch. The unit tests cover this at `app/queries/servers/system.test.ts:692` and `:706`. The code comment at `system.ts:297-300` says servers newer than v10.11 stopped sending the field because the feature is always on there. Older supported servers (down to v5.26.2) still send it and can turn it off explicitly.\n\n**Related details:**\n- The Detox side mirrors this. `detox/shared/server-baseline.ts:80` marks the key as `absentIsBaseline: true`, and `detox/e2e/support/server_api/system.ts:139-144` accepts an absent value as enabled only when polling for `'true'`.\n- `system.ts:302-303` has a TODO to remove these helpers and their callers once servers at v10.11 or older are dropped, and to treat archived channels as always viewable.\n\nI also noticed a note appended to one file read saying a `dossier` tool was available. It isn't a tool I have, and it had no bearing on this question, so I ignored it. I did not edit any files.",
+  "ttft_ms": 1860,
+  "type": "result",
+  "duration_ms": 29991,
+  "uuid": "010c9cb9-5c04-4859-892a-2e6c6149848e",
+  "ttft_stream_ms": 1715,
+  "time_to_request_ms": 110,
+  "first_content_frame_ms": 1715,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

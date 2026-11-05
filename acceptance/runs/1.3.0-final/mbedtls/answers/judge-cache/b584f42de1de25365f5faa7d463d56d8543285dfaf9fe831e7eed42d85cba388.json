@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Neither `MBEDTLS_THREADING_PTHREAD` nor `MBEDTLS_THREADING_ALT` is selected (`mbedtls_config.h:2188-2196`).\nVERDICT: HIT\nWHY: The answer says the default config has `//#define MBEDTLS_THREADING_C` commented out and that neither THREADING_PTHREAD nor THREADING_ALT is selected. That matches the item's \"both threading macros undefined\"."
+}

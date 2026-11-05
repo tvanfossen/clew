@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`ExternalBridge::accept_loop` (`src/facade/external_bridge.cpp:796`, started by `ExternalBridge::start`) uses `poll()` with a 500ms timeout so it can see shutdown. Each accepted client gets its own thread, which is stored in `client_threads_` under `client_threads_mutex_`.\"\nVERDICT: HIT\nWHY: The answer describes one accept thread (accept_loop) spawning a separate serve_client thread for each accepted client."
+}

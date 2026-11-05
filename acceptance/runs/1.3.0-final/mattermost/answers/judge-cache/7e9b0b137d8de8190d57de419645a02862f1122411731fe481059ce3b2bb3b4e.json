@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Only an explicit `'false'` turns the feature off.\" and \"`getConfigValue` returns `undefined`, so `archivedChannelsViewable(undefined)` returns `true`.\"\nVERDICT: HIT\nWHY: The answer states that an absent setting yields viewable (true) and only the exact string 'false' disables it."
+}

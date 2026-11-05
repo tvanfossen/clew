@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists several downgrade gates but never says they are ordered most-specific first or explains that a matching row in an unread corpus outranks index-wide statements. It only says unread corpora are \"checked first\"."
+}

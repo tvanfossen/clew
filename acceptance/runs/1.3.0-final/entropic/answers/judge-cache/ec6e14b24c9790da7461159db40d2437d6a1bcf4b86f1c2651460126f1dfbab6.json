@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Deny list**: consulted only in step d, after approval has already happened. A match returns an error result and the tool never runs.\" and \"Anything not on the deny list therefore runs once a frontend is attached.\"\nVERDICT: HIT\nWHY: The answer says ServerManager::execute checks is_denied before routing, that the allow list only affects prompting, and that nothing else blocks execution beyond the deny list when a frontend is attached."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler`, `llama_cpp_tokenizer`, `speculative_compat.cpp`, `adapter_manager.cpp`, `orchestrator.cpp`, `grammar_registry.cpp`, and `tool_call_markers.h` (`chat.h`).\nVERDICT: HIT\nWHY: The answer lists about nine direct-include files and four indirect ones, plus headers and tests. That adds up to roughly a dozen files, and the answer says the reach goes beyond a single wrapper."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Confidence should follow the scope, not the empty result.\"\nVERDICT: MISS\nWHY: The answer tells the reader to judge confidence from the scope and the note's NOT-searched list. It never says the server earns the \"definitive\" wording on each call by checking which corpora it did not read. It also describes the same \"definitive\" note appearing on both zero-row replies, which reads as wording attached to the result shape."
+}

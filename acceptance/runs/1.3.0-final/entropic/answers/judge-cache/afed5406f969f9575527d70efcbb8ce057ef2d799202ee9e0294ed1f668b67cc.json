@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::accept_loop` | `ExternalBridge::start` ... `HealthMonitor::monitor_loop` | `HealthMonitor::start` ... `StdioTransport::stderr_reader_loop` | `StdioTransport::open` | `SSETransport::sse_reader_loop` | `SSETransport::open` ... `ResponseGenerator::dispatch_batch_generate` observer\nVERDICT: HIT\nWHY: The table lists thread spawn sites across the external bridge, the MCP transports (stdio and SSE), the health monitor and the inference path. It shows creation spread across subsystems, though it never says so in as many words."
+}

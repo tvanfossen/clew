@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how the emptiness grading works. It never states the general rule that a wrong verdict means fixing the corpus rather than the wording about the corpus. The \"derived by subtraction, not hand-maintained\" remark is related but is not that rule."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no top-level directories as containing uses of MBEDTLS_PRIVATE. It gives file paths under `library/`, `programs/` and `include/`. But those paths are where the opt-out is defined or where the macro is described. They are not stated as directories containing uses of MBEDTLS_PRIVATE.\n\nThe one explicit use it cites is `ssl->MBEDTLS_PRIVATE(state)` at `include/mbedtls/ssl.h:5148`, in an inline accessor. That puts a use in `include/`.\n\nITEMS:\ninclude\nEND"
+}

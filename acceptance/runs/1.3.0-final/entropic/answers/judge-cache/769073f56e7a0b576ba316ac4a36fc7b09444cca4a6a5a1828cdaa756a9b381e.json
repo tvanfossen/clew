@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It loads the shared library at runtime through `ctypes`, and the C ABI is the only boundary.\nVERDICT: HIT\nWHY: The answer states Python reaches librentropic.so via ctypes.CDLL, and that Python never links against the C++ code. That leaves no room for a compiled extension module."
+}

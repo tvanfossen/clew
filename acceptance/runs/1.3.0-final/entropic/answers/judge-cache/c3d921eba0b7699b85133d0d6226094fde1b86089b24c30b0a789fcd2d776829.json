@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Binding symbols are imported lazily, so the install step can run before the library exists.\nVERDICT: HIT\nWHY: The answer states that the loader and bindings are lazy so the install step can run before the engine library exists, which is the item's conclusion about why `install-engine` ships in the same package."
+}

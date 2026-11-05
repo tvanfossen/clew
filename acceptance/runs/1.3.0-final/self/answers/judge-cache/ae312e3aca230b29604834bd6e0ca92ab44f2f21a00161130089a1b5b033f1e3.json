@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Schema, index older than server:** call `index(action='refresh', force=True)`. **Schema, index newer than server:** a rebuild re-stamps the same version and cannot clear `stale`. Restart the MCP client. **Code:** only a client restart helps. Data is read live per call, so the query tools are current. Only the process's logic is old.\nVERDICT: HIT\nWHY: The answer says a rebuild clears data staleness, while code staleness is cleared only by a client restart. That is the item's substance, though it never says outright that this is why one flag wouldn't do."
+}

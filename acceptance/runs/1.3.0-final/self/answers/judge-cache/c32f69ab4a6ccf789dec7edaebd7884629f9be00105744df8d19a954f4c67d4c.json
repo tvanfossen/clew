@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.sh` `.bash` ... `.cmake`, `CMakeLists.txt` | yes | one per `function()`\nVERDICT: HIT\nWHY: The answer's table names the shell extensions (.sh, .bash) and the CMake ones (.cmake plus CMakeLists.txt, which it lists by file name)."
+}

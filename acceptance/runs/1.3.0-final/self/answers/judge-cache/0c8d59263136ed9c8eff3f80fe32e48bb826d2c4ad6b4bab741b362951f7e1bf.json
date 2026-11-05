@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unknown section in `.clew.yaml` raises `DeclarationError`. An unknown option key or a misspelled entry key in `options` raises `BuildOptionError`.\nVERDICT: MISS\nWHY: The answer covers unknown sections and unknown keys in options, but never says a correctly-spelled derived key is refused with its reason rather than as unknown."
+}

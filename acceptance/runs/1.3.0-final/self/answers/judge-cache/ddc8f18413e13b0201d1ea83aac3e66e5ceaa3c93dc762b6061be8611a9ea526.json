@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the docs use the measured Mbed-TLS case to show that honouring its `INPUT` indexed 1,571 headers and none of the 108 `library/*.c` implementations. ... It no longer supplies `INPUT`. The Doxyfile is only a documentation target\nVERDICT: MISS\nWHY: The answer says the Doxyfile's INPUT is no longer used and gives a Mbed-TLS example. It never states the item's reason, which is that a repo shipping a Doxyfile would get only its documented subset while a repo with none gets its whole tree."
+}

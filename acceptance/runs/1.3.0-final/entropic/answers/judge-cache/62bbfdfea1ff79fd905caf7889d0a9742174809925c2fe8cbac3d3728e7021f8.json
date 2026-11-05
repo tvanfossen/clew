@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions config.local.yaml or persisting a decision by appending to it; it only says runtime persistence isn't wired and patterns come from config."
+}

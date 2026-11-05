@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the pattern is split at the first `:`. The left side is fnmatched against the tool name. With no `:`, that is the whole test (tool-level).\"\nVERDICT: HIT\nWHY: The answer states the pattern is split at the first colon, the left (tool) part is fnmatched against the tool name, and a colon-less pattern matches on tool name alone; the argument part is also covered."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A registered `on_tool_call` callback approves everything that is not denied, which contradicts the header's \"default-deny\" description.\nVERDICT: MISS\nWHY: The answer says default-allow only when an `on_tool_call` callback is registered, and says nothing about a tool that matches neither list with no callback, so it doesn't state the item's unconditional default-allow posture."
+}

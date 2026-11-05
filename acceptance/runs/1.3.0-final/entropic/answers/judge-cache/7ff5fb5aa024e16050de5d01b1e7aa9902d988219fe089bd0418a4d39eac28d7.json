@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Engine returns `char*` (e.g. `entropic_run` result, `entropic_list_*`, `entropic_metrics_json`) | Ownership transfers to the caller | Caller, with `entropic_free()` ... Engine returns `const char*` (e.g. `entropic_last_error`, `entropic_version`) | Owned by the engine or handle, valid until the next call | Nobody. Do not free\nVERDICT: HIT\nWHY: The table states that a returned char* transfers ownership and is freed with entropic_free, and that a const char* is engine/handle-owned and valid only until the next call."
+}

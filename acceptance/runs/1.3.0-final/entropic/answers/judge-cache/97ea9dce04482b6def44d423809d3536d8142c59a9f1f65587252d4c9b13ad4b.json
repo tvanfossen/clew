@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The header contract (`include/entropic/inference/tokenizer.h:45-52`) says \"empty on failure or empty input\", so the caller can't tell the two apart.\" and \"**Summary:** A tokenizer failure is indistinguishable from empty input.\"\nVERDICT: HIT\nWHY: The answer states failure is indistinguishable from empty input and details that callers (except speculative/MTP paths) don't check it. The item says \"no caller checks\", and the answer says only the speculative paths guard, which is close enough to the substance of the mechanism."
+}

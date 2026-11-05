@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Asm is enabled only when `MBEDTLS_HAVE_ASM` is set, the compiler is GCC-compatible (`__GNUC__`), and it is not ARMCC older than 6.\"\nVERDICT: MISS\nWHY: The answer describes the conditions for enabling asm but never says MBEDTLS_CT_ASM is derived rather than user-configured in mbedtls_config.h; it only refers to \"When `MBEDTLS_CT_ASM` is defined\"."
+}

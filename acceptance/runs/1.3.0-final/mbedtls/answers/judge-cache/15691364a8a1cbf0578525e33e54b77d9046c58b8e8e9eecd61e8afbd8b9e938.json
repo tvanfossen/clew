@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It needs `MBEDTLS_PLATFORM_C` and `MBEDTLS_PLATFORM_MEMORY`, and it replaces the `calloc`/`free` calls rather than adding to them.\nVERDICT: HIT\nWHY: The answer says the buffer allocator (memory_buffer_alloc) needs MBEDTLS_PLATFORM_MEMORY, and it also says that enabling that option installs the hook through which allocations are routed."
+}

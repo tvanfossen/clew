@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 32637,
+  "stop_reason": "end_turn",
+  "session_id": "31058310-f2cd-4948-bf82-59eebf9a15e6",
+  "total_cost_usd": 0.012919880000000002,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 37914,
+    "cache_read_input_tokens": 148978,
+    "output_tokens": 7693,
+    "output_tokens_details": {
+      "thinking_tokens": 5028
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37914,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 6467,
+        "cache_read_input_tokens": 50165,
+        "cache_creation_input_tokens": 6431,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6431
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 7693,
+      "cacheReadInputTokens": 148978,
+      "cacheCreationInputTokens": 37914,
+      "webSearchRequests": 0,
+      "costUSD": 0.012919880000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 5028,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 37914,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nLibrary code never calls `calloc`/`free` directly. It calls `mbedtls_calloc` and `mbedtls_free`, which are macros in `include/mbedtls/platform.h`. What they expand to depends on build configuration:\n\n```\nlibrary code\n  \u2514\u2500 mbedtls_calloc(n, size) / mbedtls_free(p)          [platform.h macros]\n       \u251c\u2500 MBEDTLS_PLATFORM_MEMORY off (default)\n       \u2502    \u2514\u2500 expands to libc calloc / free             [platform.h ~163-168]\n       \u251c\u2500 MBEDTLS_PLATFORM_MEMORY on, macros supplied\n       \u2502    \u2514\u2500 expands to MBEDTLS_PLATFORM_CALLOC_MACRO /\n       \u2502       MBEDTLS_PLATFORM_FREE_MACRO               [platform.h ~138-145]\n       \u2514\u2500 MBEDTLS_PLATFORM_MEMORY on, macros not supplied\n            \u2514\u2500 platform.c function shims \u2192 runtime function pointers\n                 mbedtls_calloc_func  (default MBEDTLS_PLATFORM_STD_CALLOC)\n                 mbedtls_free_func\n```\n\n## How a project substitutes its allocator\n\nThere are two mechanisms.\n\n**1. Compile-time (one fixed allocator).** Define `MBEDTLS_PLATFORM_MEMORY` in the config, plus `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` naming the project's functions. The index shows no shipped definition for the two macros, so the project must supply them. `tests/configs/user-config-malloc-0-null.h` is an in-tree example of a user config that turns on `MBEDTLS_PLATFORM_MEMORY`.\n\n**2. Run-time (swap at startup).** Keep `MBEDTLS_PLATFORM_MEMORY` set and call:\n\n```c\nmbedtls_platform_set_calloc_free(my_calloc, my_free);\n```\n\nThis is `library/platform.c:57-63`. It stores the two pointers in the static `mbedtls_calloc_func` and `mbedtls_free_func` (`platform.c:44`, initialised to `MBEDTLS_PLATFORM_STD_CALLOC`). `mbedtls_calloc` and `mbedtls_free` at `platform.c:47-55` just dispatch through those pointers.\n\nThe index does not show the exact `#if` expression on `platform.c` lines 20\u201364. It only lists `MBEDTLS_PLATFORM_MEMORY`, `_CALLOC_MACRO` and `_FREE_MACRO` as gates. My reading is that the function-pointer layer is compiled in when `MBEDTLS_PLATFORM_MEMORY` is on and the two macros are not supplied. Confirm that against `platform.c` 18\u201322 and `platform.h` 136\u2013170 before relying on it.\n\n## What the library does with the facility\n\nThe library itself never calls `mbedtls_platform_set_calloc_free`. The index shows exactly one caller: `mbedtls_memory_buffer_alloc_init` (`library/memory_buffer_alloc.c:566-600`). That is the bundled fixed-buffer allocator, and it is the only in-library user of the hook.\n\n`mbedtls_memory_buffer_alloc_init(buf, len)`:\n- Zeroes its static `heap` context and, if `MBEDTLS_THREADING_C` is defined, initialises a mutex.\n- Installs its own `buffer_alloc_calloc` / `buffer_alloc_free`, or the `_mutexed` wrappers when threading is on, via `mbedtls_platform_set_calloc_free`.\n- Aligns `buf` to `MBEDTLS_MEMORY_ALIGN_MULTIPLE`, zeroes it, and writes the first block header with magic values.\n\nThings to know about that design:\n- **Silent failure on small buffers.** The function returns `void`. If `len` is below the minimum, it still installs the pointers before the length check and returns without initialising the heap. A caller cannot detect that from the return value.\n- **Global state.** The heap is a single static context, so only one buffer allocator can be active per process.\n- **Ownership contract.** Library APIs that allocate, such as `mbedtls_oid_from_numeric_string` (\"must be freed by the caller using mbedtls_free()\"), return memory that must go back through the same substituted free. A project that swaps `free` but frees library-allocated memory with libc `free` will corrupt its heap.\n\n## Not verified\n\n- The exact `#if` conditions in `platform.h` and `platform.c`.\n- The `buffer_alloc_calloc` / `buffer_alloc_free` bodies, which would show the allocation policy.\n- The `mbedtls_free_func` initialiser, which I did not query.",
+  "ttft_ms": 736,
+  "type": "result",
+  "duration_ms": 33177,
+  "uuid": "2c58d494-15f1-44a1-9f39-5828f9168752",
+  "ttft_stream_ms": 555,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 555,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

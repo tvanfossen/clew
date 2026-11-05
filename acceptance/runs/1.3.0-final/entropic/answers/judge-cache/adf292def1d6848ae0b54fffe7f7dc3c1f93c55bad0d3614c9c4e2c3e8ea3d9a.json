@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `watched_mutex_` and `event_mutex_`, `wake_cv_` for shutdown. The monitor thread only queues events.\nVERDICT: MISS\nWHY: The answer mentions a CV used for shutdown, but it never says the shutdown is an atomic flag exchange, and it never says stop() joins the monitor thread."
+}

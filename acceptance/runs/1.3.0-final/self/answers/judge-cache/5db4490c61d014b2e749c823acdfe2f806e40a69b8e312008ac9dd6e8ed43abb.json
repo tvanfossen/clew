@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The symbols reply carries a `scope` block: 426 indexed files, the top-level directories, the indexed extensions (`.c .cpp .h .json .md .py .yaml`), and a `not_indexed` list with counts (`.rs=2`, `.toml=2`, `.sql=1`, no-extension=3, and so on).\"\nVERDICT: MISS\nWHY: The item asks for the in-scope file types that were searched and produced no rows. The answer describes indexed extensions and a `not_indexed` list of files outside the index, but never says the reply names in-scope types that returned zero rows."
+}

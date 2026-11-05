@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions clew/mcp_server/emptiness.py or otherwise locates the grading code in that file."
+}

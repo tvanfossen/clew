@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It installs its own functions by calling `mbedtls_platform_set_calloc_free`. It uses the mutexed variants when `MBEDTLS_THREADING_C` is on.\nVERDICT: MISS\nWHY: The answer says mutexed variants are used under MBEDTLS_THREADING_C but doesn't state the plain pair otherwise or that the choice is made at compile time inside the init function."
+}

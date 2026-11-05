@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Under Valgrind memcheck or MSan, marked secrets are treated as uninitialised memory, so any secret-dependent branch or address shows up as an uninitialised-value error. The CI components are in `tests/scripts/components-sanitizers.sh`.\nVERDICT: MISS\nWHY: The answer describes the MSan/valgrind testing facility, but never says it is off by default or explicitly not part of the library API."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler`, `llama_cpp_tokenizer`, `speculative_compat.cpp`, `adapter_manager.cpp`, `orchestrator.cpp`, `grammar_registry.cpp`, and `tool_call_markers.h` (`chat.h`).\nVERDICT: HIT\nWHY: The answer lists about nine files that directly include llama headers, plus four more that include them indirectly and three headers with llama types. That shows the dependency spreads across roughly a dozen files rather than sitting in one wrapper."
+}

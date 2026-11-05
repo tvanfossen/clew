@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Library sources | `library/common.h:132` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` | Every library `.c` includes `common.h`, and `ssl_misc.h` includes it before `mbedtls/ssl.h`... Internal code uses real field names.\nVERDICT: HIT\nWHY: The answer states that the shared header common.h defines the opt-out, so every library .c file sees the real (plain) member names."
+}

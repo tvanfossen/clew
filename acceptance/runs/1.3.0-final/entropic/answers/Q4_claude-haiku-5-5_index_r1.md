@@ -1,0 +1,20 @@
+Ten threads are spawned by first-party code (the index reports no vendored or unresolved spawn sites). They fall into three groups, and each group has a different safety mechanism.
+
+| Thread (spawn site) | Purpose | What keeps it safe |
+|---|---|---|
+| `ExternalBridge::accept_loop` (`external_bridge.cpp:796`) | Accepts MCP socket clients | Polls with a 500 ms timeout so it can see `running_` flip. Rejects peers whose uid doesn't match (`SO_PEERCRED`, gh#34). Joined in `stop()` after `running_=false` and closing the listen fd. |
+| `ExternalBridge` per-client `serve_client` threads (`external_bridge.cpp:945`) | One thread per connected client | Each thread closes its own fd and sets `finished`. `reap_finished_clients_locked()` joins them under `client_threads_mutex_`. `stop()` drains the list, `shutdown(SHUT_RDWR)`s each fd to unblock reads, then joins. |
+| `ExternalBridge::run_async_ask` worker (`external_bridge.cpp:1158`) | Runs an async `entropic.ask` | Task state is written under `tasks_mutex_`. The sentinel file is written under that same lock, before the progress notification. Logs are scoped to the owning handle via `HandleLogScope`. |
+| `HealthMonitor::monitor_loop` (`health_monitor.cpp:92`) | Polls MCP server health and reconnects | Started by `start()`, stopped by `stop()` (`running_.exchange(false)`, `wake_cv_.notify_all()`, then join). Events go through `event_mutex_` into a queue. `process_events()` swaps the queue out under the lock and runs callbacks on the engine thread, so callbacks never run on the monitor thread. |
+| `StdioTransport::stderr_reader_loop` (`transport_stdio.cpp:164`) and `SSETransport::sse_reader_loop` (`transport_sse.cpp:107`) | Drain child stderr; read SSE events | Each has its own `io_mutex_` or `pending_mutex_` for shared state. These are joined in `close()`. |
+| `CancelFlagBridge` poller (`inference_c_api.cpp:385`), `iface_generate_with_cancel` poller (`interface_factory.cpp:246`), `ResponseGenerator::dispatch_batch_generate` observer (`response_generator.cpp:413`) | Short-lived 10 ms pollers that mirror an interrupt flag into the C-ABI `int*` cancel flag | Stack-scoped. They share only atomics (`done`, `observer_done`, `cancel_flag`) and are joined before the function returns. The `int` cancel flag crosses the `.so` boundary as a plain `int`, with no `std::atomic` in the ABI. |
+
+Things that keep the cross-thread state safe, from the lock data:
+
+- **Locks are mostly RAII and single-holder.** Most sections in the dossiers are `form: raii, mode: exclusive` on one mutex, and the lock-nesting data shows only three ordered pairs across 6 call sites.
+- **The one nesting that matters:** `HealthMonitor::event_mutex_` → `AdapterManager::adapter_mutex_` (via `swap` in `process_events`, line 122), and `MCPAuthorizationManager::auth_mutex_` → `MCPKeySet::key_mutex_` (in `check_access`). I saw no opposite-order acquisition for either pair, so I found no deadlock risk in them. The index marks these pairs as resolved_sites=0, so the call receivers aren't verified and this is a read-based conclusion.
+- **Shared state is guarded by the owning object's own mutex.** `ExternalBridge` uses `tasks_mutex_`, `client_threads_mutex_`, and `subscribers_mutex_`. A static `s_bound_sockets` set is guarded by `s_bound_sockets_mu`, so two bridges in one process can't bind the same socket path.
+
+One gap I found while reading:
+
+- **`run_async_ask` detaches its worker** (`external_bridge.cpp:1222`, `}).detach();`). The lambda captures `this`, and `stop()` does not track or join it. If the bridge is destroyed while an async ask is still running, the worker can touch `tasks_mutex_`, `handle_`, and `broadcast_notification` on a freed object. I haven't confirmed this with a test or a sanitizer run. It is the one spot where the lifetime guarantee I'd expect from the other threads isn't visible in the code. The fix would be to track these workers the way client threads are tracked, and join them in `stop()`.

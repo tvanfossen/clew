@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Query has more than one token | \"NOT definitive\". Per-token hit counts show which token matched nothing... The conjunction emptied it, not necessarily the repo.\n\nVERDICT: MISS\n\nWHY: The answer describes the current graded design. It never says a single token matching nothing was previously treated as proof of absence, and it never frames the confusion between \"nothing exists\" and \"I did not look there.\" Its multi-token note is about conjunction, which is a different point."
+}

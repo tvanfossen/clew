@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It installs its own pair through the runtime setter (`memory_buffer_alloc.c:572-575`), which is Option B used by the library on itself.\nVERDICT: MISS\nWHY: The answer says the buffer allocator installs itself via the setter from its init function, but it never states that it is the only in-tree user of the setter."
+}

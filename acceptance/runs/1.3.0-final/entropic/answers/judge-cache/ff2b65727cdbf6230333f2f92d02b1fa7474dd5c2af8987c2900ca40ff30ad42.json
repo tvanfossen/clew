@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its header says not to edit it, and the pre-commit `gen-bindings --check` fails on drift.\nVERDICT: HIT\nWHY: The answer states that a pre-commit `gen-bindings --check` hook fails on drift between the generated bindings and the header. It never says the hook re-runs the generator and diffs, but a `--check` on a generator that fails on drift is that mechanism, so I counted it."
+}

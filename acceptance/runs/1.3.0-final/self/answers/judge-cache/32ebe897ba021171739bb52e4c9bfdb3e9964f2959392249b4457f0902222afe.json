@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nclew/declaration.py\nclew/buildoptions.py\nclew/toolchain.py\ncli.py\nclew/tiers.py\nclew/scope.py\ntoolchain.toml\nsuppress.toml\n.clew.yaml\npyproject.toml\nEND"
+}

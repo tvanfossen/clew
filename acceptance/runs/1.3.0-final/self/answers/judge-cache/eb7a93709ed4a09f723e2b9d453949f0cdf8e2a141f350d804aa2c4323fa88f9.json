@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer grades by confidence (strong, weak, none) and never separates \"definitive for a reason that is not absence\" from \"definitive for the scope\" and \"not definitive\"."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A registered `on_tool_call` callback approves everything that is not denied, which contradicts the header's \"default-deny\" description.\"\nVERDICT: HIT\nWHY: The answer concludes that, with a callback registered, any tool not on the deny list is approved and runs. That is default-allow at the gate, and the answer says it contradicts the \"default-deny\" header."
+}

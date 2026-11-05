@@ -1,0 +1,103 @@
+{
+  "cell": "Q2_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5384615384615384,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "states that llama.cpp is brought in as a git SUBMODULE at extern/llama.cpp, rather than vendored, copied or fetched by the build",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `.gitmodules` maps `extern/llama.cpp` to `ggml-org/llama.cpp`... llama.cpp is the only one that is a submodule and built as a subdirectory. | WHY: The answer states llama.cpp is a git submodule at extern/llama.cpp, contrasting it with the other dependencies that are fetched via FetchContent. || QUOTE: \"llama.cpp is a git submodule at `extern/llama.cpp`, built from source into `librentropic.so` via `add_subdirectory`.\" | WHY: The answer explicitly states llama.cpp is a git submodule at extern/llama.cpp, and contrasts it with the other dependencies fetched via FetchContent. || QUOTE: \"llama.cpp is a git submodule at `extern/llama.cpp`, built from source into `librentropic.so` via `add_subdirectory`.\" | WHY: The answer explicitly states llama.cpp is a git submodule at extern/llama.cpp, and contrasts it with the other dependencies that come from FetchContent.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the dependency reaches roughly a dozen files of entropic's own source, not one wrapper",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer lists many inference files plus a facade file, but it never states that the dependency reaches roughly a dozen of entropic's own source files. It describes the reach qualitatively and gives no count or summary of that breadth. || QUOTE: NONE | WHY: The answer lists many inference-layer files plus facade and public headers, but never states that the dependency touches roughly a dozen of entropic's source files as a count or aggregate.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the dependency is CONCENTRATED in the inference layer but NOT contained by it \u2014 a minority of the reaching files sit outside src/inference",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Inside `src/inference/` (deep). Most of the llama.cpp surface is here ... Facade (shallow). `src/facade/entropic.cpp` includes `llama_cpp_backend.h` and calls `dynamic_cast<LlamaCppBackend*>` | WHY: The answer says most of the llama.cpp surface is in src/inference and also names the facade (src/facade/entropic.cpp) as a minority of call sites outside it, so the dependency is concentrated but not contained. || QUOTE: Most of the llama.cpp surface is here: `llama_cpp_backend.{h,cpp}` ... Facade (shallow). `src/facade/entropic.cpp` includes `llama_cpp_backend.h` ... Public headers (leaks at the type level). `include/entropic/inference/orchestrator.h`, `adapter_manager.h` and `speculative_compat.h` forward-declare `struct llama_model`... | WHY: The answer says the surface is mostly in src/inference but also reaches the facade and public headers outside it, so it is concentrated there but not contained. || QUOTE: Facade (shallow). `src/facade/entropic.cpp` includes `llama_cpp_backend.h` and calls `dynamic_cast<LlamaCppBackend*>` | WHY: The answer says most of the llama.cpp surface is in `src/inference/`, and it also lists reaching files outside it (the facade's `entropic.cpp`, public headers). That makes the dependency concentrated but not contained.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the seam as llama.cpp's C API \u2014 free functions with an llama_ prefix \u2014 rather than C++ classes or inheritance",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says the seam is llama.cpp's C API (free `llama_`-prefixed functions); it only names headers, a `dynamic_cast<LlamaCppBackend*>` facade call, and forward-declared `llama_model` types. || QUOTE: NONE | WHY: The answer never characterizes the seam as llama.cpp's C API of free `llama_`-prefixed functions; it only mentions `llama.h` includes, forward-declared `llama_` structs, and a `dynamic_cast` on its own backend class. || QUOTE: NONE | WHY: The answer never says the seam is llama.cpp's C API of llama_-prefixed free functions. It mentions only `llama.h`, `llama_model_ptr()`, and forward-declared `struct llama_model`. It also notes a `dynamic_cast<LlamaCppBackend*>`, which is entropic's own class.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 inference",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 config",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 core",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 facade",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

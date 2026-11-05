@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tiers 3 and 4 combine identically, so an argument over which one a value belongs to changes the label only.\nVERDICT: MISS\nWHY: The answer says tiers 3 and 4 combine identically and the distinction only changes the label, but it never says the load-bearing line is fact-versus-guess."
+}

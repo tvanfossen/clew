@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions lazy re-exports that avoid loading the .so on import, but never concludes the split exists so `import entropic` works before the engine is installed, nor mentions an install-engine subcommand."
+}

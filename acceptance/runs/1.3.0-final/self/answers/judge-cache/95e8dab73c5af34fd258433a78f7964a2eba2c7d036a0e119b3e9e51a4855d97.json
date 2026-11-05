@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`schema`, stamped older than the server: rebuild with `force=True`. Stamped newer: rebuilding cannot clear it, so restart the MCP client. - `code`: reads are fine but writes are unsafe, so restart the client. A rebuild cannot fix it.\"\nVERDICT: MISS\nWHY: The answer says data needs refresh and code needs a client restart, but never argues that distinct clearing actions are the reason one flag would not have been enough."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `inv gen-bindings --check` fails on drift\nVERDICT: MISS\nWHY: The answer says a check fails on drift, but it names an `inv` task, not a pre-commit check, and doesn't say it re-runs the generator and diffs."
+}

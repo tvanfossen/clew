@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A repo that shipped a Doxyfile used to get only its published-API subset, which punished documenting itself.\nVERDICT: HIT\nWHY: The answer states the Doxyfile's INPUT no longer decides scope and explains the reason: a repo shipping a Doxyfile would get only its documented-API subset. It does not spell out the contrast with a repo that ships none, but the substance is there."
+}

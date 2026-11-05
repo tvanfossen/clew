@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Enable only `MBEDTLS_PLATFORM_MEMORY` (which requires `MBEDTLS_PLATFORM_C`), then call the setter before any allocation\"\nVERDICT: MISS\nWHY: The answer never says the buffer allocator itself requires MBEDTLS_PLATFORM_MEMORY. It says only that PLATFORM_MEMORY requires PLATFORM_C, and that is a different dependency."
+}

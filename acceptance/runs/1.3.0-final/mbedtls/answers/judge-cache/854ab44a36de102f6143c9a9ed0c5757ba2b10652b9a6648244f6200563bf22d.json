@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library spawns no threads (`pthread_create` absent), but it never states that `library/` supplies the mutex abstraction for threaded callers. It frames the mutex layer as only present when `MBEDTLS_THREADING_C` is enabled."
+}

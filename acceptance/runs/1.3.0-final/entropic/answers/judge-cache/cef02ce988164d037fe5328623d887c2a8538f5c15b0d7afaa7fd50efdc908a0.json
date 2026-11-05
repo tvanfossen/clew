@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A negative `actual` here is the only real failure check.\nVERDICT: MISS\nWHY: The answer says a negative second-call result is a failure and that the function returns an empty vector. It never says that this return is terminal or that no further attempt is made. It also argues the pair is not retry logic."
+}

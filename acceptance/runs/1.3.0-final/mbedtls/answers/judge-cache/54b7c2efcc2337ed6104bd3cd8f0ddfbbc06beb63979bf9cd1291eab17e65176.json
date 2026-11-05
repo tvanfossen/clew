@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Initialises the mutex if `MBEDTLS_THREADING_C` is set. 3. Calls `mbedtls_platform_set_calloc_free()` with `buffer_alloc_calloc_mutexed` / `buffer_alloc_free_mutexed`, or the unmutexed pair.\"\nVERDICT: MISS\nWHY: The answer says init installs a mutexed or unmutexed pair, but it never says the choice is tied to MBEDTLS_THREADING_C at compile time. It ties only the mutex initialisation to that flag."
+}

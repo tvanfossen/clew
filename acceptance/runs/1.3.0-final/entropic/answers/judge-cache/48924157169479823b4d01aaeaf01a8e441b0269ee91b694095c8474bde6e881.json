@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: So a failure is indistinguishable from legitimately empty input, and the only signal is one log line from the tokenizer.\nVERDICT: MISS\nWHY: The answer states the indistinguishability, but it doesn't say that no caller checks for it. It shows some callers do check: the speculative and MTP paths check `size() < 2` and return an error, though with a misleading message."
+}

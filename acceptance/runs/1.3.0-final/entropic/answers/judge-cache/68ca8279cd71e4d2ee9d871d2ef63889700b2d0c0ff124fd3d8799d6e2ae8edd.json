@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Allow list**: consulted only in step 6a. A match skips the prompt. It does not run anything by itself.\nVERDICT: HIT\nWHY: The answer states the allow list only suppresses the prompt and doesn't execute, consulted only in check_approval (tool_executor.cpp), separate from the server_manager.cpp deny check."
+}

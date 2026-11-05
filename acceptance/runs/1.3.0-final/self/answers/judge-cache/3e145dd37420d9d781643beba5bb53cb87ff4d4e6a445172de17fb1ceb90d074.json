@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Schema: when the index is newer than the server, the message says rebuilding cannot clear the flag and the client must restart.\"\nVERDICT: HIT\nWHY: The answer states that when the index is newer than the server, a rebuild cannot clear the schema-axis flag. It does not give the re-stamping reason, but it does state the unresolvable-by-rebuild substance."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 17418,
+  "stop_reason": "end_turn",
+  "session_id": "8e03eef3-1547-44c7-977e-4e0f78716642",
+  "total_cost_usd": 0.014417180000000002,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 50693,
+    "cache_read_input_tokens": 231158,
+    "output_tokens": 3932,
+    "output_tokens_details": {
+      "thinking_tokens": 1058
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 50693,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2146,
+        "cache_read_input_tokens": 68234,
+        "cache_creation_input_tokens": 1137,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1137
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3932,
+      "cacheReadInputTokens": 231158,
+      "cacheCreationInputTokens": 50693,
+      "webSearchRequests": 0,
+      "costUSD": 0.014417180000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1058,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 50693,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nClew does not decide inclusion file by file. It resolves one **index scope** before the build starts. That scope is either a declaration in the repo's own `index_scope:` section, or the whole repository minus what git ignores. The resulting roots and excludes are handed to doxygen (or to the parse-built front end for JS/TS and Rust), and whatever survives is what the index holds.\n\n## How the decision is made\n\n```\nbuild starts\n  \u2502\n  \u251c\u2500 .clew.yaml has index_scope:?  (clew/scope.py derive_scope)\n  \u2502     \u251c\u2500 yes, usable  \u2192 roots = declared dirs that exist; excludes = declared\n  \u2502     \u251c\u2500 yes, but unusable \u2192 rejected (unknown key, not a mapping, no roots)\n  \u2502     \u2502                     \u2192 logged as a WARNING, falls to whole-repo tier\n  \u2502     \u2514\u2500 no section   \u2192 whole-repo tier\n  \u2502\n  \u251c\u2500 Doxyfile: repo's own (ALIASES/PREDEFINED only) or synthesized (empty INPUT)\n  \u2502\n  \u2514\u2500 doxygen / parse front end walks roots, honouring excludes\n```\n\n- **Declared scope is the only tier that is a decision about the index.** `_declared_index_scope` reads `roots:` and `excludes:`. Roots are taken at their word and never walked, so a clone of another repo under a declared root is indexed. A root that does not exist is dropped. Unknown keys reject the whole section (fail closed) rather than being silently ignored.\n- **The Doxyfile's `INPUT` no longer decides scope.** This changed in gh#333. The Doxyfile is a documentation target, not a reasoning boundary. A repo that shipped a Doxyfile used to get only its published-API subset, which punished documenting itself. Its `ALIASES` and `PREDEFINED` are still used.\n\n## When nothing is declared\n\n`derive_scope` falls through to `whole_repo_scope`, which is the default tier, not a last resort. Its single root is the repository itself. It subtracts:\n\n1. **Git-ignored paths**, from `git ls-files --ignored --exclude-standard --directory`. Git is invoked through `git_argv`/`git_env` so a target's own `.git/config` cannot run code. The ignore list is also collected inside each nested git tree, because a submodule's `.gitignore` is invisible to the parent.\n2. **Dot and cache directories** anywhere in the tree, via `_skip_dir`: any name starting with `.`, plus `__pycache__` and `node_modules`.\n3. **Depth cutoff**: the walk stops at depth 16 (`_MAX_DEPTH`). Directories past that are taken wholesale and recorded, so the scope can say where it stopped.\n\nNested git trees (vendored deps, submodules) are **included**, not excluded. `external.py` tags their rows afterward so two codebases in one index can still be told apart in an answer. The gate's `files:` pattern (doxygen-guard) is deliberately not read. That pattern answers what must be documented, not what should be indexed.\n\nThe reason string records that the whole repo was used and why, and it is logged. This matters because a declaration that exists but yields no roots must not be reported as \"none declared.\"\n\n## Build-side consequences with no declaration\n\n- **No Doxyfile:** `synthesize_doxyfile` writes a minimal one with `PROJECT_NAME`, an absolute `OUTPUT_DIRECTORY`, `STRIP_FROM_PATH` set to the repo root, and an empty `INPUT`. The scope then supplies `INPUT`. `STRIP_FROM_PATH` is what keeps stored paths repo-relative; without it, rows held absolute build-machine paths.\n- **JS/TS/Rust (parse-built front end):** `_scanned_files` walks `[repo_root]` under the same excludes. The index's own inventory notes that a file whose extension no grammar handles is not indexed at all, so \"in scope\" and \"indexed\" are not the same set.\n- **Extra excludes:** the operator's `extra_exclude` and the toolchain skips are also applied at this stage, according to the `_scanned_files` docs.\n\n## Things I could not confirm\n\nI did not read the body of the file-extension or grammar filter, or the toolchain skip logic, so I cannot give their exact rules. The `docs/languages/C_INTEGRATION.md` section \"The three things that decide what gets indexed\" names `INPUT`, `EXCLUDE`/`EXCLUDE_PATTERNS` and `FILE_PATTERNS` as the C-side knobs, but I did not read its full text. This answer reflects the index's records for `clew/scope.py`, `clew/doxygen.py` and `clew/cli.py` as of this target.",
+  "ttft_ms": 1150,
+  "type": "result",
+  "duration_ms": 18050,
+  "uuid": "8000c823-c7e1-4258-a1fa-6d3956ec4c47",
+  "ttft_stream_ms": 671,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 671,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

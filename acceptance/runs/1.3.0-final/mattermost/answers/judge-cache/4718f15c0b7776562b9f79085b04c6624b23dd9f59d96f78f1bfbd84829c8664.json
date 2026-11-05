@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When `hasSearch` is true it renders `<NavigationSearch {...searchProps} hideHeader theme topStyle ref={ref} />` at around line 128.\nVERDICT: HIT\nWHY: The answer says NavigationHeader is a forwardRef that passes the ref to NavigationSearch only when `hasSearch` is true. It also says most callers leave `hasSearch` false, so there is no search field for the ref to reach. It never says outright that the ref is attached to nothing in that case, but that follows directly from the conditional rendering it describes."
+}

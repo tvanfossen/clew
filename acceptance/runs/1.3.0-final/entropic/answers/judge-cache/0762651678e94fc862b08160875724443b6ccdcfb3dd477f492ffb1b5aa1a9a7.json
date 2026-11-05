@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `int` cancel flag crosses the `.so` boundary as a plain `int`, with no `std::atomic` in the ABI.\nVERDICT: HIT\nWHY: The answer says the observer/poller threads mirror an interrupt flag into the C-ABI `int*` cancel flag, and that the ABI carries a plain `int` with no `std::atomic`. That is the atomic-to-int bridging purpose the item asks for."
+}

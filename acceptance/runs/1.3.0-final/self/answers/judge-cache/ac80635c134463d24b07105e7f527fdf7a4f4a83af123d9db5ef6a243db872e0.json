@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `qualified`: an optional argument that selects one of several same-named functions. It filters `'call'` rows but not `'key'` rows.\nVERDICT: MISS\nWHY: The answer says `qualified` filters call rows but not key rows, but it never says the flat surface selects the focal side by resolved identity while the traversal surface still matches on the bare name."
+}

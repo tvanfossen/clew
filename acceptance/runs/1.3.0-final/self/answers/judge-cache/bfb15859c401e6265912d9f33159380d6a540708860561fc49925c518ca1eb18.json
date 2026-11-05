@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: .clew.yaml has index_scope:?  (clew/scope.py derive_scope)\nVERDICT: HIT\nWHY: The answer explicitly places the scope decision in `derive_scope` in clew/scope.py, and says it falls through to `whole_repo_scope` when nothing is declared."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The code is split in two.** `error.h` documents the layout: the high bits name a module (`0xFF80`), and the low 7 bits are a low-level error (`0x007F`). An error can carry both, so the output is `HIGH : LOW`.\"\nVERDICT: HIT\nWHY: The answer states that a code has a high-level module part and a low-level part, and that strerror outputs both joined with \" : \" when both are present."
+}

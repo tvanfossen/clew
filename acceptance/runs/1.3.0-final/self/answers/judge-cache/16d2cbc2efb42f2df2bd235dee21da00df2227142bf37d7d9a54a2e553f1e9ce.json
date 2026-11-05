@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how scope and notes separate \"not in repo\" from \"not looked there,\" but never says that a single-token miss was previously treated as proof of absence, which is the historical-change fact the item requires."
+}

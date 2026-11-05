@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`stale_code_refusal()` (`freshness.py:531`) makes write paths refuse while the code is stale.\" and \"a server running older code would rebuild with that old pipeline logic and could drop layers while reporting health.\"\nVERDICT: MISS\nWHY: The answer covers the write-side risk of rebuilding with old logic, but it never says reads stay current because query tools open the database per call. The only mention of reads is a caveat that the index may be out of date."
+}

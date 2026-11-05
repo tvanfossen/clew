@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The permission lists are read in two places: `check_approval` for allow and `ServerManager::execute` for deny.\nVERDICT: MISS\nWHY: The answer says the allow list is read only in `check_approval`, but it never says the allow list does not grant execution or only suppresses the approval step. It also says the deny check in `execute` is the authoritative gate."
+}

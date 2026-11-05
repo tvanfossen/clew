@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 50019,
+  "stop_reason": "end_turn",
+  "session_id": "98a0d773-9ba3-4e11-b792-46df269ac62a",
+  "total_cost_usd": 0.01845299,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 37971,
+    "cache_read_input_tokens": 589279,
+    "output_tokens": 9928,
+    "output_tokens_details": {
+      "thinking_tokens": 4906
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37971,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3805,
+        "cache_read_input_tokens": 77429,
+        "cache_creation_input_tokens": 434,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 434
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 20,
+      "outputTokens": 9928,
+      "cacheReadInputTokens": 589279,
+      "cacheCreationInputTokens": 37971,
+      "webSearchRequests": 0,
+      "costUSD": 0.01845299,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4906,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 37971,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 22,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index holds a file row for every YAML, JSON, shell and CMake file it is handed, plus function and macro definitions for shell and CMake. YAML and JSON contribute no symbols at all. On an installation whose parser lacks the bash or cmake grammar, shell and CMake files are still registered but yield no definitions, and the not-indexed report does not name them. That is the one place the code breaks its own \"absence is not emptiness\" rule.\n\n**What the index holds, by type**\n\n| Type | `path` row (file set) | Symbols | Source |\n|---|---|---|---|\n| `.sh`, `.bash` | yes | `memberdef` for `name() {\u2026}` and `function name {\u2026}` only; `args` always empty | `clew/shast.py:9-12`, `clew/synth.py:62` |\n| `.cmake`, `CMakeLists.txt` | yes | `function` and `macro` definitions, the macro mapped to doxygen's \"macro definition\" | `clew/cmakeast.py:9-14`, `clew/synth.py:69` |\n| `.yaml`, `.yml`, `.json` | yes | none; \"registered and never harvested\" | `clew/synth.py:12-15`, `:71-80` |\n\nShell definitions carry the `#` comment block directly above them as their description. A block separated by a blank line documents nothing.\n\nThe index does not hold a YAML or JSON key, a value, or any structure within the file. It does not hold shell variables or arbitrary commands. I did not verify whether shell or CMake call sites produce call edges; the harvesters I read emit definitions only.\n\n**This repository.** It is clew itself, which is Python. A glob found no `.sh`, `.cmake` or `CMakeLists.txt` files. Its YAML and JSON files (`.github/workflows/*.yml`, `hooks/hooks.json`, `.clew.yaml`, and others) appear in the files corpus with `symbol_count: 0`. So the shell-and-CMake premise in the question does not describe this repo. Its YAML and JSON are present but empty.\n\n**What an installation without the grammars does**\n\nThe code path is:\n\n1. `register_synth_paths` runs unconditionally on every scanned file (`clew/cli.py:1909`).\n2. `claims()` decides on extension alone (`clew/synth.py:191-199`). It never asks whether a grammar exists. So `.sh`, `.cmake` and YAML/JSON all get `path` rows whatever the substrate holds.\n3. The shared parse routes `.sh` to `substrate:bash` and `.cmake` to `substrate:cmake`. `_ts_language_for` returns None when the optional key is absent (`clew/harvest.py:203`, `_OPTIONAL_KEYS` at `:145`). No parse runs and no `memberdef` rows are written.\n4. The not-indexed report counts only scanned files that lack a `path` row (`clew/cli.py:2668-2684`). Shell and CMake files have one, so they are never named.\n\nResult: a shell-heavy repo on a substrate without `bash` or `cmake` shows its `.sh` files as in the file set with zero symbols, and nothing says they were skipped. That is the silent-empty failure the AGENTS.md \"absence is not emptiness\" section warns about. I read this from the code and did not run a degraded install to confirm it.\n\nYAML and JSON are never routed to a grammar (they are absent from `_TS_GRAMMARS`, `harvest.py:118-128`), so the presence or absence of the `yaml` and `json` keys changes nothing for clew. They behave the same on every install.\n\n**A doc/code mismatch.** `synth.py:14` says YAML and JSON are \"named by the not-indexed report.\" The code does not do that: they always get `path` rows, so the report never names them.\n\n**Is the degrade signal used?** `substrate.missing_languages` is the one function that reports absent grammars. The index shows no resolved callers, but four unresolved call sites mean that is not proof of non-use. I did not find a consumer that surfaces it to the user.\n\n**This install.** The clew project venv (`/home/tvanfossen/Projects/clew/.venv`) has `bash`, `cmake`, `yaml` and `json` compiled in, so the degraded path does not apply here.\n\n**Suggested fix.** Make `claims()` consult `_grammar_available` for the optional shell and CMake keys, so an absent grammar leaves those files out of `path` and into the not-indexed report. Fix the `synth.py:14` comment or make YAML and JSON actually reported. Neither change is made.",
+  "ttft_ms": 2494,
+  "type": "result",
+  "duration_ms": 50724,
+  "uuid": "1e456361-660e-45da-9781-3294df07cec2",
+  "ttft_stream_ms": 1010,
+  "time_to_request_ms": 70,
+  "first_content_frame_ms": 1010,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

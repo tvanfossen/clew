@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In C it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` zero the compiler cannot fold away.\nVERDICT: HIT\nWHY: The answer says that in the C (non-asm) path `mbedtls_ct_compiler_opaque` XORs with the volatile zero `mbedtls_ct_zero`. That is the same function falling back, and it names the global. It never says \"extern\", but the mechanism and the global are both identified."
+}

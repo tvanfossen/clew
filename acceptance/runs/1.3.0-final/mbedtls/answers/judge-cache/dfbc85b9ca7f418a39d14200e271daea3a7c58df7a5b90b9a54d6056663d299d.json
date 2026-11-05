@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names only `library` and `programs` as top-level directories that use `MBEDTLS_PRIVATE`. It also mentions `include` and `docs`, but only as the locations of the macro definition, the deprecation note and the migration guide. It names the test-suite `.function` files but gives no directory for them.\n\nITEMS:\nlibrary\nprograms\nEND"
+}

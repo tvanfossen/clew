@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp is the only dependency vendored as a git submodule... `.gitmodules` points `extern/llama.cpp` at `ggml-org/llama.cpp`.\nVERDICT: HIT\nWHY: The answer states llama.cpp is a git submodule at extern/llama.cpp (via .gitmodules), contrasted with FetchContent for other dependencies."
+}

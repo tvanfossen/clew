@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the file is compiled only when MBEDTLS_ERROR_C or the dummy is set, but never states that MBEDTLS_ERROR_C is enabled in the shipped default config."
+}

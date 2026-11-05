@@ -1,0 +1,93 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_only_r2",
+  "arm": "index_only",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 1.0,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "locates the two-call pattern in src/inference/llama_cpp_tokenizer.cpp",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `llama_tokenize(vocab, text, len, nullptr, 0, ...)` passes no output buffer. llama.cpp answers with the negative of the required token count... It allocates `vector<int32_t>(n)` and calls `llama_tokenize` again with that buffer to fill it. | WHY: The answer names the two-call size-query-then-fill pattern in `LlamaCppTokenizer::tokenize` and gives the file `src/inference/llama_cpp_tokenizer.cpp` with line numbers. || QUOTE: `llama_tokenize(vocab, text, len, nullptr, 0, ...)` passes no output buffer. llama.cpp answers with the negative of the required token count... It allocates `vector<int32_t>(n)` and calls `llama_tokenize` again with that buffer to fill it. | WHY: The answer names the file and describes the two-call size-query-then-fill pattern in tokenize (lines 49-71) and the two-call buffer retry in detokenize. || QUOTE: `llama_tokenize(vocab, text, len, nullptr, 0, ...)` passes no output buffer. llama.cpp answers with the negative of the required token count, and the code flips it to a positive size. It allocates `vector<int32_t>(n)` and calls `llama_tokenize` again with that buffer to fill it. | WHY: The answer identifies the two-call size-query-then-fill pattern in `llama_cpp_tokenizer.cpp` (lines 49-71) for `tokenize`, and also covers `detokenize`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the first call returns the REQUIRED BUFFER SIZE as a negative number, and that the code negates it to size the buffer for the second call",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: llama.cpp answers with the negative of the required token count, and the code flips it to a positive size. | WHY: The answer states that the first (null-buffer) call returns the negative of the required size and the code flips it to positive to size the buffer for the second call. || QUOTE: \"llama.cpp answers with the negative of the required token count, and the code flips it to a positive size.\" | WHY: The answer states that the first (null-buffer) call returns the negative of the required size and the code flips it to positive to allocate the buffer for the second call. || QUOTE: \"llama.cpp answers with the negative of the required token count, and the code flips it to a positive size.\" | WHY: The answer states the first call (null buffer) returns the negative required size and that the code flips it to positive to size the second call's buffer.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that this is SIZE NEGOTIATION rather than retry-on-failure \u2014 there is no backoff, no delay, no attempt counter, and exactly one second call",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"This is deterministic: one probe, one fill. Nothing is retried after a failure.\" | WHY: The answer says `tokenize` is a size-query-then-fill pattern, not retry on failure. It says there is one probe and one fill, and nothing is retried after a failure. That covers the item's size-negotiation conclusion and the single second call. It never lists backoff, delay or attempt counter by name, but \"nothing is retried\" and \"deterministic\" convey the same thing. || QUOTE: \"This is deterministic: one probe, one fill. Nothing is retried after a failure.\" | WHY: The answer concludes the tokenize double call is size-query-then-fill, not retry-on-failure, with exactly one probe and one fill. It does not mention backoff, delay or an attempt counter, but the core conclusion is stated. || QUOTE: \"The two calls in `LlamaCppTokenizer` are a size-query-then-fill pattern, not retry logic.\" / \"This is deterministic: one probe, one fill. Nothing is retried after a failure.\" | WHY: The answer concludes tokenize's double call is size negotiation, not retry-on-failure, with one probe and one fill (exactly one second call).",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a negative or non-positive result from the SECOND call is terminal \u2014 it returns empty rather than attempting again",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The second result is used if positive, and otherwise the function returns an empty string. Its own doc says so: \"Empty when vocab_ is null or the retry decode returned non-positive.\" | WHY: The answer states that a non-positive result from the second call in detokenize returns empty and is not retried. It says the same for tokenize: \"If the second call returns negative, it logs ... and returns `{}`.\" || QUOTE: The second result is used if positive, and otherwise the function returns an empty string. Its own doc says so: \"Empty when vocab_ is null or the retry decode returned non-positive.\" | WHY: The answer states that a non-positive second-call result in `detokenize` returns empty with no further attempt, and that a negative second call in `tokenize` logs and returns `{}`. || QUOTE: \"The second result is used if positive, and otherwise the function returns an empty string. Its own doc says so: \\\"Empty when vocab_ is null or the retry decode returned non-positive.\\\"\" | WHY: States that a non-positive second call in detokenize returns empty with no further attempt, and says \"Neither retries on failure.\"",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that detokenize tries a fixed 256-byte STACK buffer first and only heap-allocates when the token does not fit, whereas tokenize always sizes before writing",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: It tries a 256-byte stack buffer with `llama_token_to_piece`. If that returns negative, the negative value is the required size, so it allocates exactly that and calls again. | WHY: The answer states detokenize tries a 256-byte stack buffer first and allocates only on a negative return, and it contrasts this with tokenize's probe-then-fill sizing. || QUOTE: It tries a 256-byte stack buffer with `llama_token_to_piece`. If that returns negative, the negative value is the required size, so it allocates exactly that and calls again. | WHY: The answer states detokenize tries a 256-byte stack buffer first and allocates only on negative return, while tokenize is described as probe-size-then-fill every time. || QUOTE: It tries a 256-byte stack buffer with `llama_token_to_piece`. If that returns negative, the negative value is the required size, so it allocates exactly that and calls again. | WHY: The answer states detokenize tries a 256-byte stack buffer first and only allocates the exact size on overflow, and contrasts it with tokenize's probe-then-fill sizing call.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the backend's wrapper returns an EMPTY container for a failed tokenization, the same value it returns when no tokenizer is wired at all",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"`LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788`) forwards the empty vector. If no tokenizer is wired it also returns `{}`, so \"no tokenizer\", \"llama.cpp error\" and \"empty prompt\" all look the same.\" | WHY: The answer states the backend wrapper forwards an empty vector on failed tokenization and returns the same `{}` when no tokenizer is wired. || QUOTE: \"`LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788`) forwards the empty vector. If no tokenizer is wired it also returns `{}`, so \"no tokenizer\", \"llama.cpp error\" and \"empty prompt\" all look the same.\" | WHY: The answer states the backend wrapper returns an empty vector both for a failed tokenization and when no tokenizer is wired, so the two cases are indistinguishable. || QUOTE: \"`LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788`) forwards the empty vector. If no tokenizer is wired it also returns `{}`, so \"no tokenizer\", \"llama.cpp error\" and \"empty prompt\" all look the same.\" | WHY: The answer says the backend wrapper forwards an empty vector on failure and returns the same `{}` when no tokenizer is wired.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that a failed tokenization is therefore indistinguishable from a legitimately empty result, and that no caller checks for it",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"When tokenization fails, the caller gets an empty vector, which is indistinguishable from empty input, and most callers never check for it.\" | WHY: The answer states failed tokenization is indistinguishable from empty input and that callers don't check it. \"Most callers\" is slightly hedged, but the table shows none of the callers checks. || QUOTE: \"When tokenization fails, the caller gets an empty vector, which is indistinguishable from empty input, and most callers never check for it.\" | WHY: The answer says failure yields an empty vector indistinguishable from empty input, and that most callers never check. The table of callers backs this up. \"Most\" is slightly weaker than the item's \"no caller\", but the substance is there. || QUOTE: \"When tokenization fails, the caller gets an empty vector, which is indistinguishable from empty input, and most callers never check for it.\" | WHY: The answer states that a failed tokenization yields an empty vector indistinguishable from empty input. It adds that callers don't check, and the table backs this up: callers proceed with the empty vector without checking it.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the token-counting path reports ZERO for a failed tokenization rather than signalling an error",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `do_count_tokens` (`:825`) | Returns `0`. A count of zero is returned for a tokenizer failure, with no error signal. | WHY: The answer states that the token-counting path (`do_count_tokens`) returns 0 on tokenizer failure with no error signal. || QUOTE: `do_count_tokens` (`:825`) | Returns `0`. A count of zero is returned for a tokenizer failure, with no error signal. | WHY: The answer explicitly states the count-tokens path returns 0 on tokenizer failure with no error signal.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

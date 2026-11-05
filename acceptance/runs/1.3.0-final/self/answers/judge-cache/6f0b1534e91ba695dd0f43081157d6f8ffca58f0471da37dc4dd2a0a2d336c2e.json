@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `memberdef` for `name() {\u2026}` and `function name {\u2026}` only; `args` always empty\nVERDICT: MISS\nWHY: The answer says shell args are always empty but never says the return is also absent, and it gives no reason (the language has neither)."
+}

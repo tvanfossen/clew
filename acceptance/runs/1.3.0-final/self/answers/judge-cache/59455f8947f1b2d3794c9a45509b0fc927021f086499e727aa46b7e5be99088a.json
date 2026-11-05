@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `data` ... Clearing action `index(action='refresh')`; `code` ... \"Restart the MCP client only. A rebuild does not help.\" Also: \"Retrying a refresh cannot clear a `code` or newer-schema problem.\"\nVERDICT: HIT\nWHY: The answer says data is cleared by a refresh (rebuild) and code only by a client restart, and that a rebuild can't clear the code axis. That's the substance of the item, even though it never says outright that one flag wouldn't have been enough."
+}

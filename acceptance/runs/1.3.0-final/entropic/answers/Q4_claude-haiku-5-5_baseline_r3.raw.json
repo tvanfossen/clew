@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 60648,
+  "stop_reason": "end_turn",
+  "session_id": "fd94f36a-0f9f-4d97-b219-b0ad412349e1",
+  "total_cost_usd": 0.01939369,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 39544,
+    "cache_read_input_tokens": 593119,
+    "output_tokens": 11103,
+    "output_tokens_details": {
+      "thinking_tokens": 4433
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 39544,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3534,
+        "cache_read_input_tokens": 71923,
+        "cache_creation_input_tokens": 1078,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1078
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 11103,
+      "cacheReadInputTokens": 593119,
+      "cacheCreationInputTokens": 39544,
+      "webSearchRequests": 0,
+      "costUSD": 0.01939369,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4433,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 39544,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 31,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The engine runs work on several background threads. Most of them are guarded by mutexes, atomics, and join-on-stop, but one path can outlive its object.\n\n**Background threads**\n\n| Thread | Where | Shared state and guard |\n|---|---|---|\n| External MCP accept loop | `src/facade/external_bridge.cpp:796` | `running_` atomic; `s_bound_sockets_mu` for the socket registry. Peer UID is checked with SO_PEERCRED before a serve thread starts (line 929). |\n| Per-client serve threads | `external_bridge.cpp:945` | `client_threads_mutex_` for the vector; per-thread `finished` atomic; `subscribers_mutex_` for the fd set. |\n| Async `entropic.ask` worker | `external_bridge.cpp:1158`, **detached** | `tasks_mutex_` guards the task registry. The sentinel is written under that lock (line 1183). |\n| Health monitor | `src/mcp/health_monitor.cpp:92` | `watched_mutex_` guards the watch map; `event_mutex_` guards the event queue. Callbacks are queued and run on the engine thread via `process_events()` (`server_manager.cpp:710`). |\n| MCP stdio stderr reader | `src/mcp/transport_stdio.cpp:164` | Joined in `close()`. `io_mutex_` guards writes. |\n| MCP SSE reader | `src/mcp/transport_sse.cpp:107` | Joined in `close()`. `pending_mutex_` correlates responses. |\n| Short-lived cancel pollers | `inference_c_api.cpp:385`, `interface_factory.cpp:246`, `response_generator.cpp:413` | Each is joined before the call returns. Each uses an atomic \"done\" flag. |\n\n**What keeps them safe**\n\n- **Engine flags are atomics.** `interrupt_flag_`, `pause_flag_` and `running_flag_` are `std::atomic` (`include/entropic/core/engine.h:1415-1446`). The header documents interrupt and pause as thread-safe.\n- **The non-blocking run path takes no `api_mutex`.** The comments at `entropic.cpp:1984` and `2622` say this is deliberate (gh#109), so interrupt and queue calls can land during a long turn. Mid-generation queueing relies on the engine's own `queue_mutex_`.\n- **Cross-thread callbacks are marshalled.** The health monitor queues events and the engine thread drains them. The async worker's state observer (`external_bridge.cpp:1072`) takes `tasks_mutex_` and uses a generation counter so stale callbacks are ignored.\n- **Notifications don't block workers.** `broadcast_notification` sends with `MSG_DONTWAIT | MSG_NOSIGNAL` and drops slow or dead subscribers (line 1296), so one slow client can't stall the worker.\n- **Shutdown is ordered.** `ExternalBridge::stop()` (`external_bridge.cpp:826`) clears `running_`, closes the listen fd, joins the accept thread, shuts down each client fd, and then joins the client threads. The stdio and SSE transports and the health monitor are joined on close or destruction.\n\n**Hazards I found**\n\n1. **Detached async worker can outlive the handle (likely use-after-free).** The worker captures `this` (the bridge) and `handle_`, and is started with `.detach()` at line 1222. Nothing tracks it. `stop()` does not cancel or wait for it. `entropic_destroy` (`entropic.cpp:1877-1904`) stops and resets the bridge, then runs `delete handle`. If an ask is still running, the worker then calls `entropic_run(handle_)`, `update_task_phase`, and `broadcast_notification` on freed memory. The backlog proposal `.claude/proposals/BACKLOG/P2-20260429-001-async-bridge-io-architecture.md` already describes the unbounded detached-thread pattern. I did not find a fix in the code. I haven't run this, so it is inferred from reading the code.\n2. **The `int*` cancel flag is a plain data race.** The pollers read `*cancel` and the observer writes `cancel_int = 1` (`response_generator.cpp:416`) with no atomic. The C++ memory model makes this undefined behaviour even though it usually works. The fix is to make the flag `std::atomic<int>` or use `std::atomic_ref`.\n3. **`HealthMonitor::status_callback_` is unguarded.** `set_status_callback` assigns it with no lock (`health_monitor.cpp:78`). This is only safe if it is set before `start()`.\n\nI did not run the concurrency tests in `tests/concurrency/test_thread_safety.cpp`, so the claims about safety are from reading the code, not from test results.",
+  "ttft_ms": 1894,
+  "type": "result",
+  "duration_ms": 61070,
+  "uuid": "7097fbf9-8374-4902-b2f4-283cd0eb4457",
+  "ttft_stream_ms": 1444,
+  "time_to_request_ms": 105,
+  "first_content_frame_ms": 1444,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

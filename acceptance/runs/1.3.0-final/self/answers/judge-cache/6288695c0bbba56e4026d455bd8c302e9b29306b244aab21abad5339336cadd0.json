@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `code` | ... | Restart the MCP client only. A rebuild does not help. ... `data` | ... | `index(action='refresh')`\nVERDICT: HIT\nWHY: The answer assigns refresh to the data axis and a client restart (not a rebuild) to the code axis, and states that \"Each axis has a different cause and a different fix, so the caller has to act differently for each.\""
+}

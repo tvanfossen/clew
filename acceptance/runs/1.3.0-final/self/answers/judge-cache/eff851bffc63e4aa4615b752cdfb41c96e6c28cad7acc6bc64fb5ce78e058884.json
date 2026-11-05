@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `clew/declaration.py` rejects unknown top-level keys by name.\nVERDICT: MISS\nWHY: The answer mentions only top-level unknown-key refusal; it never describes a second refusal for unknown keys inside a section, nor a correctly-spelled derived key being refused with its reason."
+}

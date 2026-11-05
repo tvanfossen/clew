@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 12612,
+  "stop_reason": "end_turn",
+  "session_id": "72f28f8b-bc45-42d6-9591-69ebb0fe2bd0",
+  "total_cost_usd": 0.0020276400000000003,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 1046,
+    "cache_read_input_tokens": 76504,
+    "output_tokens": 2106,
+    "output_tokens_details": {
+      "thinking_tokens": 1177
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 1046,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1569,
+        "cache_read_input_tokens": 38252,
+        "cache_creation_input_tokens": 1046,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1046
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2106,
+      "cacheReadInputTokens": 76504,
+      "cacheCreationInputTokens": 1046,
+      "webSearchRequests": 0,
+      "costUSD": 0.0020276400000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1177,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 1046,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 2,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A no-row reply is not one answer. It tells you what was read and what was skipped, and the confidence depends on which of those applies.\n\n**What the reply says (I ran a nonsense-token probe against this repo to check):**\n\n- **`note`** states the verdict. For this probe it said the result is \"a definitive empty result from the database, NOT an error,\" and it lists what was searched (names, `@brief`s, macros, typedefs, enums, classes, config symbols, file docs) and what was not (markdown and Kconfig prose, and function bodies). It also tells you not to retry.\n- **`scope`** says what the index covers: 426 files, whole-repo, with the extensions it read and a `not_indexed` list with counts (`.rs=2`, `.toml=2`, `.sql=1`, `.csv=3`, `.lock=1`, `.jsonl=1`, `.motor=1`, no-extension=3, and so on).\n- **`target`** names the repository that answered. Here it was the expected repo.\n- **`not_searched`** is the key that lists skipped parts of a split index. It was absent here, which is the normal case for a whole-repo index.\n\n**Confidence by case:**\n\n| Situation | What an empty result licenses |\n|---|---|\n| Symbol corpus, `target` is right, the file's extension is in `scope` | Strong. \"Not a symbol in this repo's indexed files.\" |\n| Name lives in a `not_indexed` extension (e.g. a `.rs` or `.toml` file) | None. The file was never read, so the miss says nothing. |\n| Concept or phrase, searched only in `symbols` | Weak. The note points to `corpus='prose'` for conceptual phrases. |\n| Literal, key or string, searched only in `symbols` | Weak. Those live in bodies, so use `corpus='code'`. |\n| Something in a Makefile, CI config or other non-indexed file | None. The tool says this is outside its reach. |\n| Result came back with a `not_searched` key | Only the parts it lists were skipped. Check those before concluding. |\n\n**Practical rule:** check `target` and `scope` first. Then match the place the thing lives to a corpus the tool actually read. Only then treat the empty result as \"this repo doesn't contain it.\" For a concept, try `prose`. For a literal, try `code`. For anything in an unindexed extension, read the file directly, because the index cannot settle it.\n\nThis matches the codebase's \"absence is not emptiness\" principle: an empty result from a corpus that was read is evidence, and one from a corpus that was never read is not.",
+  "ttft_ms": 3134,
+  "type": "result",
+  "duration_ms": 12831,
+  "uuid": "6d72d0bc-264a-491a-b618-ccd448fbc2bd",
+  "ttft_stream_ms": 1139,
+  "time_to_request_ms": 69,
+  "first_content_frame_ms": 1139,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

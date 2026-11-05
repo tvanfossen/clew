@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says llama.cpp's reach \"stops at `src/inference/` and the tests\" and doesn't say a minority of the reaching files sit outside src/inference, which is the opposite of the item's conclusion."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: ExternalBridge::accept_loop ... HealthMonitor::monitor_loop ... StdioTransport::stderr_reader_loop ... SSETransport::sse_reader_loop ... ResponseGenerator::dispatch_batch_generate observer ... iface_generate_with_cancel poller\nVERDICT: HIT\nWHY: The table lists thread spawns across the external bridge, health monitor, MCP transports (stdio/SSE) and inference path, showing they are spread across subsystems; the answer doesn't state \"decentralised\" in so many words, but the substance is present."
+}

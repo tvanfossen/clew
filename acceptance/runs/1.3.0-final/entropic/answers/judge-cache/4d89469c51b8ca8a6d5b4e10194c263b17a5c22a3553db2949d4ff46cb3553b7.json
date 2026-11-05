@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `do_count_tokens` (`:825`) | Returns `0`. | Count of 0 for a failed tokenization.\nVERDICT: HIT\nWHY: The answer states the count-tokens path returns 0 on failed tokenization instead of signalling an error, and notes the doc/code mismatch."
+}

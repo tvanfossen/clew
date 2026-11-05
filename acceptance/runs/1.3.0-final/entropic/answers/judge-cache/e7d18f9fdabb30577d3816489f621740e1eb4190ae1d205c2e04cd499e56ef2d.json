@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Detokenize (lines 93 and 99).** The same pattern with `llama_token_to_piece`. It tries a 256-byte stack buffer first. If that returns negative, it allocates the exact required size and calls again.\nVERDICT: HIT\nWHY: The answer states detokenize tries a 256-byte stack buffer first and allocates only on failure, and contrasts it with tokenize, which queries the size first with a null buffer."
+}

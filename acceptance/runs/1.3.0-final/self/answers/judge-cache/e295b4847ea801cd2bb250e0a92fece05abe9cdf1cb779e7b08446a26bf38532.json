@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A missing grammar routes to `None` and nothing raises.\" and \"The file stays in the file set with no symbols.\" But the answer argues that the not-indexed report probably doesn't name them: \"Those files would therefore not be counted, and the report would not name them.\"\nVERDICT: MISS\nWHY: The answer says a missing grammar degrades without raising, but it concludes the not-indexed report likely fails to list those files, so it doesn't conclude they are reported as not indexed."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: External MCP accept loop | `src/facade/external_bridge.cpp:796` ... Per-client serve threads | `external_bridge.cpp:945`; also \"Peer UID is checked with SO_PEERCRED before a serve thread starts (line 929)\" and \"joins the accept thread ... then joins the client threads\"\nVERDICT: HIT\nWHY: The answer lists an accept-loop thread and per-client serve threads started after accepting a connection, which conveys the two-level structure."
+}

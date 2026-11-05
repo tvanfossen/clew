@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nscripts/generate_errors.pl\nscripts/data_files/error.fmt\ninclude/mbedtls/ (the public headers, named as `error_headers`, e.g. include/mbedtls/aes.h)\nlibrary/CMakeLists.txt\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each handler is a mixin function of the form `const XHandler = <TBase extends Constructor<ServerDataOperatorBase>>(superclass) => class extends superclass {...}`.\nVERDICT: HIT\nWHY: The answer says every handler write funnels through `BaseDataOperator.batchRecords`, via `ServerDataOperatorBase`, which extends `BaseDataOperator`. It also says each mixin is constrained to `Constructor<ServerDataOperatorBase>`. The one exception it names, a direct `database.write` call in `app/actions/websocket/reactions.ts`, is outside the handlers."
+}

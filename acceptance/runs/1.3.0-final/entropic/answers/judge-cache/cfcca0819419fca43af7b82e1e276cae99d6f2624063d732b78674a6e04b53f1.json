@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses only tokenize's two-phase sizing and never mentions detokenize's fixed 256-byte stack buffer with heap fallback."
+}

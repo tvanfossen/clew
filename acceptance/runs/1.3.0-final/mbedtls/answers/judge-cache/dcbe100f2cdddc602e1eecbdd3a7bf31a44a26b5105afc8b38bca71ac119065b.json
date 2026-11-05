@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Define it in the public header for its module, `include/mbedtls/<module>.h`. Write `#define MBEDTLS_ERR_<MODULE>_<NAME>  -0x\u2026` with a Doxygen description... Regenerate `library/error.c`... Nobody edits `error.c` by hand.\"\nVERDICT: HIT\nWHY: The answer says to add the Doxygen-documented #define to the public header and regenerate error.c, and it says error.c is never hand-edited."
+}

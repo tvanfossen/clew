@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library starts no threads (pthread_create appears nowhere), but it never says library/ supplies the mutex abstraction for threaded callers. It says the threading layer is compiled out by default, and the threading.h function-pointer mention is only about the ALT mechanism."
+}

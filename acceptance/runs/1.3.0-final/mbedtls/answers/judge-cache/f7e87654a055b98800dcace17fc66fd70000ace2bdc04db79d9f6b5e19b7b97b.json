@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `pthread_create` appears nowhere in `library/` or `include/`.\nVERDICT: MISS\nWHY: The answer says the library starts no threads and THREADING_C is off, but it never mentions a pthread example compiling to a stub main under that condition."
+}

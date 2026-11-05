@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The library's own allocator uses the same hook. `mbedtls_memory_buffer_alloc_init()` (`library/memory_buffer_alloc.c:566-576`) calls `mbedtls_platform_set_calloc_free()` itself.\"\nVERDICT: MISS\nWHY: The answer says the buffer allocator's init calls the setter, but never says it is the only in-tree user, and the item requires that exclusivity."
+}

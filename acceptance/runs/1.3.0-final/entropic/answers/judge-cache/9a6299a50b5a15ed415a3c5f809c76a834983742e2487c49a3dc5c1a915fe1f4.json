@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The callback is `void(*)(const char*, void*)`, so it cannot return a verdict. `check_approval` sets `approved = true` immediately after calling it. In this code, a registered callback approves every call and only notifies.\nVERDICT: HIT\nWHY: The answer states the callback returns void so it can't refuse, and that approved is set to true unconditionally after it fires."
+}

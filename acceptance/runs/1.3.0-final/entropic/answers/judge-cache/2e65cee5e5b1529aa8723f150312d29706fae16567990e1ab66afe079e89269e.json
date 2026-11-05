@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Shutdown is a flag (`running_`) checked by the predicate of that wait.\nVERDICT: MISS\nWHY: The answer says shutdown is a flag checked by the wait predicate, but it never says the flag is an atomic exchange or that a condition variable wake is issued. It also never says stop() joins the monitor thread, only that joined workers are joined generally."
+}

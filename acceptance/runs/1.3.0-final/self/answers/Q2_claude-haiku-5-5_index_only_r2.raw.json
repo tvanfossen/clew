@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 10437,
+  "stop_reason": "end_turn",
+  "session_id": "c939d054-be56-4655-9b77-a6ee4f0f07ed",
+  "total_cost_usd": 0.00243134,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 4237,
+    "cache_read_input_tokens": 76504,
+    "output_tokens": 1637,
+    "output_tokens_details": {
+      "thinking_tokens": 406
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 4237,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1149,
+        "cache_read_input_tokens": 38252,
+        "cache_creation_input_tokens": 4237,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4237
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 1637,
+      "cacheReadInputTokens": 76504,
+      "cacheCreationInputTokens": 4237,
+      "webSearchRequests": 0,
+      "costUSD": 0.00243134,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 406,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 4237,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 4,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply separates the two cases with fields, not with the row count. An empty result is never read as a plain \"no\".\n\n**What the index checks, and what it says when it finds nothing**\n\n- **`target`** names the repository that answered. Every reply carries it, so you can see which index was searched.\n- **`not_searched`** names any part of the repository the reply did not read. In a split repository, each vendored dependency has its own index, and a first-party miss says it covered only first-party. The routing tests cover this case: a first-party miss is scoped, and unbuilt parts are listed as not searched.\n- **`scope`** on a symbol-corpus miss gives the covered shape: file count, top-level directories, extensions, and `not_indexed` with counts. Files of other types, such as `.rs`, `.toml`, or `.sql`, are listed there as outside the index.\n- **A `note` on the symbol corpus** says plainly that the empty result is \"NOT a definitive negative.\" It also reports per-token hits. A multi-token query can come back empty even when each token occurs in the repository, because matching requires every token to appear in one searchable unit. In this case `not_searched=3` and `empty=204` both matched, but no single symbol carried both.\n\n**Which corpus was read decides what the miss means**\n\n- **`symbols`** covers function, variable, macro, type and per-file doc names and their briefs. It does not cover markdown or Kconfig prose, and it does not cover function bodies. A miss there does not rule out a string literal inside a body.\n- **`prose`** covers markdown and reStructuredText. It ranks rather than requiring every token, so a conceptual phrase is more likely to land.\n- **`code`** covers function bodies, which is where keys, literals and strings are found.\n- **Roster corpora** (`locks`, `threads`, `config`, `files`) enumerate a whole layer. A miss there is a real absence within what that layer records. `files` counts only what the index holds, not the whole tree.\n\n**Confidence each answer deserves**\n\n- **\"Not in this repository\"** holds only when the reply has no `not_searched`, the corpus matches what you are looking for, and no other corpus outside search's reach could hold it. The search tool's own wording claims certainty only in that case.\n- **\"I did not look where it lives\"** is what `not_searched`, a `scope` that excludes its file type, or a corpus mismatch tells you. That is a statement about coverage, not about the code. Treat it as a reason to rerun the query in the right corpus or read the file directly.\n- **A symbol miss with a multi-token query** is weak evidence. Retry with the two most distinctive tokens, or use `prose`, before concluding anything.\n\n**Limits of this answer**\n\nI answered from the index only: the search and dossier replies for `search`, the `not_searched` documentation, and the empty-result note. I did not confirm that the reply text for the split-repository case appears exactly as I describe. The phrasing above comes from the routing docs and tests as the index reports them.",
+  "ttft_ms": 2862,
+  "type": "result",
+  "duration_ms": 10724,
+  "uuid": "77d7bad7-995b-4bf8-811e-f332cef08c40",
+  "ttft_stream_ms": 1688,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1688,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

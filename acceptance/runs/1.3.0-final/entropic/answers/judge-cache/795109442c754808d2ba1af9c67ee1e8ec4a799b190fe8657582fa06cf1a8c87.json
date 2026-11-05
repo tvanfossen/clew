@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With a callback and no allow match, the call is approved, and the callback is only a notification.\nVERDICT: MISS\nWHY: The answer says the approval step grants a call not on the allow list when a callback is registered, but it never concludes that a tool matching neither list runs. Without a callback it says such a call is denied, and its closing questions cast the gap as a callback-denial and ordering problem. It never states that default-allow is the effective posture at the blocking gate."
+}

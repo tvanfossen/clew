@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A pattern with a colon (`bash.execute:git *`) splits at the first `:`. The tool half must match the tool name.\" and \"A pattern with no colon (`filesystem.*`) matches the tool name only.\" and \"Patterns are `fnmatch` globs\"\nVERDICT: HIT\nWHY: The answer states fnmatch matching, a split at the first colon into tool and argument parts, and that a colon-less pattern matches on the tool name alone."
+}

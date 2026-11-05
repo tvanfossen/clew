@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how empty results are now qualified (not_searched, scope, notes), but never states that a single-token no-match was previously treated as proof of absence or that this conflated \"nothing exists\" with \"didn't look there.\""
+}

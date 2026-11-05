@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Both handlers swallow every error. A failed reaction write leaves the local DB out of step with the server with no log line.\"\nVERDICT: HIT\nWHY: The answer states both handlers use an empty catch (`try/catch {}` on add, \"swallowed the same way (empty `catch`)\" on remove), so a failed write leaves no trace."
+}

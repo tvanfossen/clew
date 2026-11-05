@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Add the macro to the module's public header (e.g. `include/mbedtls/cipher.h`)... Regenerate the switch cases in `library/error.c`. The two switch bodies are marked `/* Begin Auto-Generated Code. */`... Do not hand-edit that block.\nVERDICT: MISS\nWHY: The answer gives the header-plus-regenerate workflow and warns against hand-editing the block. It never says the string comes from the header's `/** */` doc comment, and it admits it doesn't know where the description text comes from."
+}

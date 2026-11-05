@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says nothing about an unknown key inside a valid section being refused, nor a correctly-spelled derived key being refused with its reason. It only mentions that `apply_options` rejects the whole mapping on one bad entry, which is not the item's substance."
+}

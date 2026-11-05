@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions `Header` from `navigation_header/header.tsx` or says it is excluded from the NavigationHeader renderers. It only lists the files that render `<NavigationHeader>`."
+}

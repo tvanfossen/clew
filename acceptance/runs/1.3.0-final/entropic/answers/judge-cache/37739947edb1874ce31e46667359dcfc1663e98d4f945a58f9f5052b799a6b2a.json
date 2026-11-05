@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`llama_cpp_backend.{h,cpp}` (includes `llama.h`, ...), `llama_cpp_sampler`, `llama_cpp_tokenizer`, `grammar_registry`, `adapter_manager`, `speculative_compat`, `orchestrator`, `tool_call_markers.h`, and `inference_c_api.cpp`\"\nVERDICT: HIT\nWHY: The answer lists about a dozen of entropic's own files across inference, facade and public headers, so it shows the dependency spreads well beyond one wrapper."
+}

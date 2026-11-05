@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`skipSync` | `handleReactions` | Guards the `deleteReactions` branch, so no stale rows are destroyed.\" and \"skipSync \u2192 return {createReactions, deleteReactions: []}\"\nVERDICT: MISS\nWHY: The answer says skipSync suppresses deletion of stale rows, but never states that without it the single incoming reaction would be treated as the post's complete set and delete all other reactions."
+}

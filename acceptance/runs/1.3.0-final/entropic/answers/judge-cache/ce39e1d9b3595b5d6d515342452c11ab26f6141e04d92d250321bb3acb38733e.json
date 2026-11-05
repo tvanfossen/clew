@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Anything not on the deny list therefore runs once a frontend is attached.\nVERDICT: HIT\nWHY: The answer states that a tool matching neither list (not allow-listed, not denied) is approved and runs when a callback is wired, so the prompt is \"a notification, not a gate\"."
+}

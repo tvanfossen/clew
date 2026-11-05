@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With a callback wired, the default is effectively allow-with-notification.\nVERDICT: HIT\nWHY: The answer says that with a callback wired, a tool matching neither list is effectively allowed and runs, and that only the deny list stops a call."
+}

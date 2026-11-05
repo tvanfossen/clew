@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `entropic/__init__.py        PEP 562 lazy re-exports (don't load the .so on import)`\nVERDICT: MISS\nWHY: The answer notes lazy re-exports avoid loading the .so on import, but never concludes that this lets `import entropic` succeed before the engine is installed or that it enables an install-engine subcommand."
+}

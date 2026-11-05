@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`library/threading.c` compiles to nothing without `MBEDTLS_THREADING_C`.\" and \"`pthread_create` appears nowhere in `library/` or `include/`.\"\nVERDICT: MISS\nWHY: The answer says no threads are created, but it presents the mutex layer as compiled out by default, not as an abstraction library/ supplies for threaded callers. The table of locks and the function-pointer note come close, but the answer never states the contrast the item asks for."
+}

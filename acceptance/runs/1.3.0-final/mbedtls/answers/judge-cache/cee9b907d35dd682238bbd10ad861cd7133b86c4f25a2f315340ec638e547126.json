@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PRIVATE(member)` is a rename, not an access control... expands to `private_##member`... the real name `state` is invisible to it.\nVERDICT: HIT\nWHY: The answer says opacity comes from renaming the member at preprocessing time, not from access control. It doesn't say outright that the struct layout stays visible and sized. But \"rename, not an access control\" and the macro declaring the fields show the layout is not hidden, so I count the substance as stated."
+}

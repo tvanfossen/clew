@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If `roots:` is missing or empty, or the section has an unknown key or isn't a mapping, the build refuses and exits 1 ... It does not silently fall back to whole-repo\"\nVERDICT: MISS\nWHY: The answer says a declared scope is preferred and that no section means whole-repo. It also says a malformed declaration makes the build refuse and not fall back, which contradicts \"every failure falls through\"."
+}

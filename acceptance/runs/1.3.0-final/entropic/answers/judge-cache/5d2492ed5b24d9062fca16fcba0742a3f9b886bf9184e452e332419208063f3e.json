@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the \"15% layer\" over the raw C API. Owns `llama_model*`, `llama_context*`, `llama_vocab*`\" and \"LoRA via `llama_adapter_lora_*`\"\nVERDICT: HIT\nWHY: The answer identifies llama.cpp's raw C API with llama_-prefixed free functions and types (llama_tokenize, llama_adapter_lora_*) as the layer entropic wraps, not C++ class inheritance."
+}

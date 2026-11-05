@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `code`: reads are fine but writes are unsafe, so restart the client. A rebuild cannot fix it.\nVERDICT: HIT\nWHY: The answer states that on the code axis reads are fine while writes (rebuilds) are unsafe. It does not give the per-call database open as the reason, but the read/write asymmetry itself is there, including that a rebuild is refused."
+}

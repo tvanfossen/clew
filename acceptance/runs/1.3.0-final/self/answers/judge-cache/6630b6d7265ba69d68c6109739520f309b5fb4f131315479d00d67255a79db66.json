@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `staleness_notices` (`clew/mcp_server/server.py`) rides on every query reply as a list of `{axis, message}`. It is empty when the index is current, so a current index adds nothing to the payload.\nVERDICT: HIT\nWHY: The answer states the notice rides on every query reply and is empty when the index is current."
+}

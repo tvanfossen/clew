@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The server's \\\"definitive\\\" wording is accurate relative to the scope the reply enumerates, not to the repository as a whole. The `scope` and `not searched` clauses are what cap the confidence.\"\nVERDICT: MISS\nWHY: The answer ties \"definitive\" to the reply's enumerated scope and the corpora it names as not read. It never says the wording is computed per call from a query of which corpora went unread, as opposed to being attached to a result shape."
+}

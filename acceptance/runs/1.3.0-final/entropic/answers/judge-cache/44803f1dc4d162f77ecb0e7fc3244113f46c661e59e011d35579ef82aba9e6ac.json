@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788`) | Passes it through. Also returns `{}` when no tokenizer is wired. | Same ambiguity, one layer up.\nVERDICT: HIT\nWHY: The answer says the backend wrapper passes through the empty result on failed tokenization and also returns `{}` when no tokenizer is wired, which is the same empty-container value, and it notes the ambiguity."
+}

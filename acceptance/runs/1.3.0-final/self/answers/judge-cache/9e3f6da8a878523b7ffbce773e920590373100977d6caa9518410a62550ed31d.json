@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It sets the INPUT to the root, sets EXCLUDE to the excludes, and sets `replace_input`, so the target Doxyfile's INPUT is discarded.\nVERDICT: MISS\nWHY: The answer says the Doxyfile's INPUT is discarded, but it never explains the reason: that a repo shipping a Doxyfile would otherwise get only its documented subset while a repo without one gets its whole tree."
+}

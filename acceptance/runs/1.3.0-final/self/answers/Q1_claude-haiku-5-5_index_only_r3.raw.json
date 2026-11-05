@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 23332,
+  "stop_reason": "end_turn",
+  "session_id": "4a24bdde-69e6-449e-9036-a45e62edcf12",
+  "total_cost_usd": 0.009230809999999999,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 29203,
+    "cache_read_input_tokens": 181141,
+    "output_tokens": 3156,
+    "output_tokens_details": {
+      "thinking_tokens": 1088
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 29203,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1975,
+        "cache_read_input_tokens": 59102,
+        "cache_creation_input_tokens": 8334,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 8334
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3156,
+      "cacheReadInputTokens": 181141,
+      "cacheCreationInputTokens": 29203,
+      "webSearchRequests": 0,
+      "costUSD": 0.009230809999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1088,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 29203,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Under the no-declaration case the answer is simple: the whole repository is the index root, minus what git ignores and minus dot and cache directories. The decision is made in `clew/scope.py`, through `derive_scope`.\n\n**How the decision is made**\n\n1. `derive_scope(repo_root)` (`clew/scope.py:639`) is the single entry point. It clears the depth-limit record first, then asks `_declared_index_scope` for a declaration.\n2. `_declared_index_scope` (`clew/scope.py:991`) reads an `index_scope:` section from the repo's `.clew.yaml`. The only keys it accepts are `roots` and `excludes` (`_INDEX_SCOPE_KEYS`, line 406). Any other key refuses by name. A `roots:` list is required, and each root must exist on disk; missing roots are dropped with a warning. A malformed section returns a `_Rejected` reason instead of quietly falling through.\n3. If the declaration is usable, its roots and excludes become the scope. If it is present but rejected, `derive_scope` logs a WARNING and falls through to the whole-repo tier, with the rejection reason carried into that tier's reason string. The CLI and MCP refresh paths call `declared_scope_rejection` first and refuse the build instead, so a rejected declaration does not silently widen the index in those paths.\n4. If nothing is declared, `whole_repo_scope(root)` (`clew/scope.py:683`) takes over.\n\n**What the whole-repo tier does**\n\n- Its single root is the repository itself, and nested git trees are included.\n- Excludes come from `git ls-files --others --ignored --exclude-standard --directory`, run through `git_argv` and `git_env` so a target's own `.git/config` cannot execute code (`_gitignored_paths`, line 845). The same ignore sweep is repeated inside each nested git tree, because the parent's git cannot see a submodule's `.gitignore`.\n- Dot-directories and `__pycache__` / `node_modules` are added as explicit EXCLUDE entries (`_pruned_dirs`, line 908; `_skip_dir`, line 490). The reason is that the whole-repo root is handed to doxygen unwalked, so a rule that only pruned a walk would never apply.\n- The walk stops at nested git trees, taking only their top-level dot-directories, and stops at a depth of 16 (`_MAX_DEPTH`). Anything deeper is recorded in `_DEPTH_LIMITED`.\n- The Doxyfile's `INPUT` is not consulted. Since gh#333 it is a documentation target, not a reasoning boundary. The Doxyfile still supplies ALIASES and PREDEFINED. The doxygen-guard `files:` pattern is not read either, because it answers what must be documented, not what should be indexed.\n\nThe tests agree with this. `test_no_declaration_yields_the_whole_repo` (`tests/test_scope.py:130`) checks that an undeclared repo gets `SOURCE_WHOLE_REPO`, roots `(repo,)`, and a reason that names `index_scope` and `.clew.yaml`. `test_dot_directories_are_excluded_from_the_whole_repo_scope` (line 157) checks that `.venv` is excluded and `src` is not.\n\n**Two things I could not settle from the index**\n\n- The docstring on `_declared_index_scope` still says a missing declaration \"drops the resolution to the Doxyfile's own INPUT\". That contradicts `derive_scope` and `whole_repo_scope`, which say the Doxyfile tier is gone. The code path matches the newer description, so the docstring looks stale.\n- I did not confirm whether doxygen `FILE_PATTERNS` (the file-type filter) applies under the whole-repo tier, or how `treescan.py`'s `_matches_file_patterns` and `roots_matching_no_file_pattern` fit in. So the answer above covers which trees and paths are in or out, not the full per-extension filter.",
+  "ttft_ms": 2000,
+  "type": "result",
+  "duration_ms": 24218,
+  "uuid": "4d6cf034-065d-4f68-8e9f-fcfaef5f3602",
+  "ttft_stream_ms": 1279,
+  "time_to_request_ms": 74,
+  "first_content_frame_ms": 1279,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The facility is used across bignum, RSA, ciphers, MACs/AEAD, and SSL/PSA\" (plus the \"How far it reaches\" table listing callers across bignum, RSA, CMAC, cipher, GCM, CCM, ChaCha20-Poly1305, NIST KW, SSL and PSA)\nVERDICT: HIT\nWHY: The answer says the primitives are used widely across many separate modules, not just one or two. It gives no exact count, but the breadth is clear."
+}

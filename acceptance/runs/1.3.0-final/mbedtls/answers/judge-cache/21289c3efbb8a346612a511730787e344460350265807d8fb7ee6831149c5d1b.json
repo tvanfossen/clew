@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A project can replace them at compile time or at run time.\" and \"`mbedtls_platform_set_calloc_free(calloc_func, free_func)` ... It is only available in the function-pointer branch\" and \"**Macros defined** (`MBEDTLS_PLATFORM_MEMORY` on): ... The wrapper functions in `platform.c` are compiled out.\"\nVERDICT: HIT\nWHY: The answer separates compile-time macros (CALLOC_MACRO/FREE_MACRO) from the run-time function-pointer setter. It says the setter exists only in the function-pointer branch, which is not compiled when the macros are defined, so the two are mutually exclusive."
+}

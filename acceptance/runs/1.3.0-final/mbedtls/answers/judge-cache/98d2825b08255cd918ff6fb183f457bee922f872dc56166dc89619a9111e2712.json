@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (default) | `calloc` ... \"Enable only `MBEDTLS_PLATFORM_MEMORY`\"\nVERDICT: MISS\nWHY: The answer treats MBEDTLS_PLATFORM_MEMORY as a gating option and says it is off by default, but it never says it is commented out in the shipped mbedtls_config.h."
+}

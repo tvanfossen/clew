@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With both off, `library/threading.c` (gated at lines 18\u2013193) compiles to nothing... The four thread spawn sites the index found are all in `programs/`, not `library/`... The library spawns nothing, so under default settings it runs on whatever threads the caller provides.\n\nVERDICT: MISS\n\nWHY: The answer says the library spawns no threads by default. But it never says the pthread example compiles to a stub main under the default build. It says the example is gated on `MBEDTLS_THREADING_PTHREAD` and lists it as a spawn site, without giving that consequence."
+}

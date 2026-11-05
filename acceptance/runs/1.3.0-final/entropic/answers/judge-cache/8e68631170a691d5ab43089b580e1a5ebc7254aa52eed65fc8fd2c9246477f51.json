@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Argument value: `args_to_pattern` (`server_manager.cpp:426`) takes the first JSON key's value, if it is a string. ... If there is no string arg, or parsing fails, the value is `*`.\nVERDICT: HIT\nWHY: The answer states that only the first argument's string value is used for pattern matching, and that a non-string or unparseable argument becomes `*`. It does not say outright that the other arguments are invisible, but taking only the first key's value implies it."
+}

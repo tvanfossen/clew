@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the winning tier for each option is recorded in `build_meta` (`options.<name>.tier`), and the scope reason is logged, so you can see which tier won after the fact.\nVERDICT: MISS\nWHY: The answer says the tier is recorded in build_meta but never says the record is derived from stored rows rather than stamped as a separate summary."
+}

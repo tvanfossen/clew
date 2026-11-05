@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library itself ships one allocator to plug into it: `mbedtls_memory_buffer_alloc_init(buf, len)` (memory_buffer_alloc.c:566). It: ... 2. Calls `mbedtls_platform_set_calloc_free()` with its own wrappers\nVERDICT: HIT\nWHY: The answer says the buffer allocator's init function installs itself via the runtime setter and calls it the one allocator the library ships. It doesn't name MBEDTLS_MEMORY_BUFFER_ALLOC_C, but the file and function identify it."
+}

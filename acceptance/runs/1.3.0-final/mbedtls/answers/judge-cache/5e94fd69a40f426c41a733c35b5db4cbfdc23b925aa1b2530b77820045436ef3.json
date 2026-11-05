@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the tables are compiled only under MBEDTLS_ERROR_C but never states it is enabled in the shipped default mbedtls_config.h."
+}

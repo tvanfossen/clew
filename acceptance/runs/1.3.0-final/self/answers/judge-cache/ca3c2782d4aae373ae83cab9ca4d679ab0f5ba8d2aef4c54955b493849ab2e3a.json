@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The repo's own `.clew.yaml` (`preprocessor:`, `index_scope:`, `entry_patterns:`, `kconfig:`, `shared_key_patterns:`, and so on) | Replaces the guesses\" (Tier 2)\nVERDICT: MISS\nWHY: The answer identifies `.clew.yaml` as tier 2 but never says it is discovered from the repo root by both entry points (CLI and MCP) rather than plumbed per section."
+}

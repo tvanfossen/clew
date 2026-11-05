@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says bad input refuses the whole mapping and that a missing doxyfile is refused, but it never mentions an unknown key inside a well-named section, or a correctly-spelled derived key being refused with its reason rather than as unknown."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Generation** (`scripts/gen_bindings.py`): parses `entropic.h` and `types/*.h` by hand, with no pycparser, and emits `_bindings.py` and `_bindings_manifest.py`. Pre-commit runs `gen-bindings --check` and fails on drift.\nVERDICT: HIT\nWHY: The answer states the bindings are generated from the C header by scripts/gen_bindings.py, and labels `_bindings.py` as a generated shim (do not edit)."
+}

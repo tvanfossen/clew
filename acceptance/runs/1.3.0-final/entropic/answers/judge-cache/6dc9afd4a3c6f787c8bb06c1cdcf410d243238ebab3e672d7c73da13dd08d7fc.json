@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"External bridge accept loop | `src/facade/external_bridge.cpp:796` | Bridge `start()` to `stop()` | Listen socket, client list | `stop()` closes the listen fd and joins the accept thread.\" and \"Per-client serve thread | `src/facade/external_bridge.cpp:945` | One per connected client | `client_threads_` under `client_threads_mutex_`\"\nVERDICT: HIT\nWHY: The answer lists an accept-loop thread and a separate per-client serve thread, one per connected client, which conveys the two-level structure."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer names `case REACTION_ADDED \u2192 handleReactionAddedToPostEvent` at event.ts:163 but never names `handleWebSocketEvent` as the dispatcher function."
+}

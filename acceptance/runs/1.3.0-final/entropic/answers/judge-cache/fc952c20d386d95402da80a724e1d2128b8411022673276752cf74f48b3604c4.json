@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"With no callback and no allow match, the call is denied.\"\nVERDICT: MISS\nWHY: The answer says a tool matching neither list is denied when no callback is registered, and it never concludes the effective posture is default-allow. It only notes that a registered callback approves every call."
+}

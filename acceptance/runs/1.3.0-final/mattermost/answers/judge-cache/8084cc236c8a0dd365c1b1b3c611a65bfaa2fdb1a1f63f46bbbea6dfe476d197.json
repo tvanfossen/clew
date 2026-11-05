@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`AppDataOperator`.** It extends the same `BaseDataOperator` (`app/database/operator/app_data_operator/index.ts:15`) and inherits `batchRecords`, `processRecords`, `prepareRecords`, and `handleRecords` for the global app database.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as extending BaseDataOperator and inheriting the shared write path (batchRecords) for the app-level database."
+}

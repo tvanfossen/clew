@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A declared `index_scope` is used only if it is usable. ... A rejected declaration is refused at the CLI with exit 1 ... It is not silently widened.\nVERDICT: MISS\nWHY: The answer says that a rejected declaration is refused, not widened. That contradicts the item's claim that every failure to find a declaration falls through to indexing the whole repository. The answer's fallback applies only when nothing is declared, and it never says that failures fall through."
+}

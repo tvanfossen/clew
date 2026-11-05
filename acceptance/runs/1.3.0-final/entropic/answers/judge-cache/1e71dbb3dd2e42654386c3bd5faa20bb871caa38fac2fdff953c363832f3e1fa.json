@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: tests/unit, tests/model \u2500\u2500 #include <llama.h> directly (8+ files)\nVERDICT: MISS\nWHY: The answer says llama is confined to `src/inference/` and names about 8 files, but it never says the dependency reaches roughly a dozen files of entropic's own source. It also frames the dependency as confined, not broad."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `mbedtls_ct_*` identifiers appear in 27 library files, about 240 occurrences in total.\nVERDICT: HIT\nWHY: The answer states the primitives appear in 27 library files, which is on the order of twenty modules, and it lists the broad set of consumers."
+}

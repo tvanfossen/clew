@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names three files as spawn sites. Only the first creates a thread: it starts a pthread per client. The answer lists the other two as signal or timer handlers.\n\nITEMS:\nprograms/ssl/ssl_pthread_server.c\nprograms/ssl/ssl_server2.c\nprograms/test/benchmark.c\nEND"
+}

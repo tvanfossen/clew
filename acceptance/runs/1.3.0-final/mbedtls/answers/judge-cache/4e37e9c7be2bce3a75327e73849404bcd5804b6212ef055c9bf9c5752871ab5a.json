@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(member)` expands to `private_##member`, so `ctx->MBEDTLS_PRIVATE(state)` becomes `ctx->private_state`.\nVERDICT: MISS\nWHY: The answer states the default rename to private_<member>, but never says that defining MBEDTLS_ALLOW_PRIVATE_ACCESS makes the macro expand to the bare member name. It only says that defining it gives \"the same access\" and that the library uses \"real field names\", which is not the explicit expansion the item requires."
+}

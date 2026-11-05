@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Generation (`scripts/gen_bindings.py`): parses `entropic.h` and `types/*.h` by hand, with no pycparser, and emits `_bindings.py` and `_bindings_manifest.py`.\nVERDICT: MISS\nWHY: The answer mentions both generated files but never explains the deliberate split, that the manifest is names-only and imports no ctypes while the bindings module loads the library."
+}

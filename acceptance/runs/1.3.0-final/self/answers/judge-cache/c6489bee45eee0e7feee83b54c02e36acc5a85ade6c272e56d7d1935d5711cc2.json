@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `code` ... \"Restart the MCP client only. A rebuild does not help.\" and `data` ... \"`index(action='refresh')`\"\nVERDICT: MISS\nWHY: The answer gives the per-axis clearing actions (refresh for data, restart for code), but it never says this is why a single flag would not have been enough."
+}

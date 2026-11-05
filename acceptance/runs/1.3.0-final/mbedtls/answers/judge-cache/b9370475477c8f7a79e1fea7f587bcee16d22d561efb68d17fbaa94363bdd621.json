@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `include/mbedtls/private_access.h` is the whole mechanism: ... `#define MBEDTLS_PRIVATE(member) private_##member`\nVERDICT: HIT\nWHY: The answer names include/mbedtls/private_access.h as the file holding the MBEDTLS_PRIVATE macro and quotes its definition."
+}

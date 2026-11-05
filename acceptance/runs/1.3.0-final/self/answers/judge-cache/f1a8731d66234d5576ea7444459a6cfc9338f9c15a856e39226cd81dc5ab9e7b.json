@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.clew.yaml` holds one section per option, and the section name is the option name.\nVERDICT: MISS\nWHY: The answer says section names equal option names, but doesn't state that embedding callers' option names are the same words as the section names and the diagnostics' words."
+}

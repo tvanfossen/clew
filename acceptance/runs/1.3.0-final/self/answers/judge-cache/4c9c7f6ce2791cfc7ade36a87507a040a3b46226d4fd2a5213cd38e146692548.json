@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Shell and CMake files have one, so they are never named.\nVERDICT: MISS\nWHY: The answer says a missing grammar leaves the files registered with no symbols and unreported, and it calls that a silent-empty failure. The item says the router consults a capability gate and the file types are reported as not indexed, so the answer contradicts it."
+}

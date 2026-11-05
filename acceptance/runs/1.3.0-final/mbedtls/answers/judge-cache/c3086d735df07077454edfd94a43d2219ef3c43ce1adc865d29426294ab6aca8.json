@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library spawns no threads. The four spawn sites the index found are all in `programs/`... The lock functions are function pointers (`threading.c`), defaulting to pthread. `MBEDTLS_THREADING_ALT` replaces them.\n\nVERDICT: HIT\n\nWHY: The answer says the library spawns no threads (spawn sites are only in programs/), and it also says library/ provides the mutex abstraction (threading.c lock function pointers, with the mutexes used by threaded callers)."
+}

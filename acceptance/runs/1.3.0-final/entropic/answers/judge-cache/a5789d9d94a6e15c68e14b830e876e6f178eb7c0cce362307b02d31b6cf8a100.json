@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::stop()` (`external_bridge.cpp:826`) closes the listen fd, joins the accept thread, `shutdown(SHUT_RDWR)`s each client to unblock reads, then joins them.\nVERDICT: MISS\nWHY: The answer describes ExternalBridge::stop() joining threads, but says nothing about the monitor's (HealthMonitor) shutdown being an atomic flag exchange plus a condition variable wake."
+}

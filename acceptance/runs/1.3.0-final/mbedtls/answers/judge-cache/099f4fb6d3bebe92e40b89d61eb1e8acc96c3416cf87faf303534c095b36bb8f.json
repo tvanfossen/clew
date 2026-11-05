@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Defining it before the headers are included makes `MBEDTLS_PRIVATE(x)` expand to the real name `x`, so those translation units read and write fields directly.\nVERDICT: HIT\nWHY: The answer says that without the define the macro expands to `private_##member` (so ordinary consumers see renamed fields), and that with it defined the macro expands to the plain name `x`. That covers both views for the two kinds of consumer."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Check | Source ... `data` | ... `schema` | ... `code` ; \"It checks three separate things, reports them as three named axes\"\nVERDICT: HIT\nWHY: The answer explicitly says staleness is reported as three named axes and names them: data, schema, and code."
+}

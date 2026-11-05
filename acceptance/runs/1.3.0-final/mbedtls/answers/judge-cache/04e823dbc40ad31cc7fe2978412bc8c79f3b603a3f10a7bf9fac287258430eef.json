@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"defines it as `private_##member` when `MBEDTLS_ALLOW_PRIVATE_ACCESS` is not defined, and as plain `member` when it is. A consumer who writes `ctx.reseed_counter` gets a compile error because the field is actually called `private_reseed_counter`.\"\nVERDICT: HIT\nWHY: The answer states that code defining the macro sees plain member names, while ordinary consumers see the `private_`-renamed ones, so access by plain name fails to compile."
+}

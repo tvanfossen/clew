@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Nested git trees (vendored deps, submodules) are **included**, not excluded. `external.py` tags their rows afterward so two codebases in one index can still be told apart in an answer.\"\nVERDICT: HIT\nWHY: The answer explicitly says nested git trees are included in the index and tagged afterward by external.py rather than excluded."
+}

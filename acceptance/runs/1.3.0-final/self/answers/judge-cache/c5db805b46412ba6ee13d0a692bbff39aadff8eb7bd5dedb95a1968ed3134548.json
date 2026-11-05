@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its single root is the repository itself, and nested git trees are included.\nVERDICT: MISS\nWHY: The answer says nested git trees are included and walked specially, but it never says they are tagged. The item needs both indexed and tagged, so this is only part of it."
+}

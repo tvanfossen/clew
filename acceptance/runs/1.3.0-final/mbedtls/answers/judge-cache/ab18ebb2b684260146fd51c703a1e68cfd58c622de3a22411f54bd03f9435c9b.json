@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise it returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global.\nVERDICT: HIT\nWHY: The answer says the fallback in the same function (`mbedtls_ct_compiler_opaque`) XORs with the volatile global `mbedtls_ct_zero` when assembly is unavailable. It names that global."
+}

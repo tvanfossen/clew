@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Schema: when the index is newer than the server, the message says rebuilding cannot clear the flag and the client must restart.\"\nVERDICT: HIT\nWHY: The answer states that when the index is newer than the server, rebuilding cannot clear the schema staleness and a client restart is needed."
+}

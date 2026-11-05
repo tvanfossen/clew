@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: There is no automatic retry, so the send happens once.\nVERDICT: HIT\nWHY: The answer explicitly says there is no automatic retry and the send happens once, backed by `noRetry: true` and `retryLimit: 0`."
+}

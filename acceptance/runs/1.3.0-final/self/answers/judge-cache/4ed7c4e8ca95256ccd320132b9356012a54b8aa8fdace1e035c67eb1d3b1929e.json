@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The module's own rule is that \"nothing matched\" is only a negative once the code has checked the other corpora and found nothing there.\"\nVERDICT: MISS\nWHY: The answer describes the current grading, but it never says that a single-token miss was previously treated as proof of absence, nor does it frame that as confusing \"nothing exists\" with \"I did not look there\"."
+}

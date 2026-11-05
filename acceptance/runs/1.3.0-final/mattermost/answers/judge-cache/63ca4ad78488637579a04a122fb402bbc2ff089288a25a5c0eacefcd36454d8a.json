@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Calls `client.createPost` again. This is a fresh POST, so the server assigns a new post ID.\" and \"On failure, it sets `failed: true` again, unless the error is one of the three terminal errors above, in which case it removes the post.\"\nVERDICT: HIT\nWHY: The answer describes retryFailedPost as a single new createPost call (with no retries, retryLimit 0) that on failure re-marks the post failed or removes it for the same three errors."
+}

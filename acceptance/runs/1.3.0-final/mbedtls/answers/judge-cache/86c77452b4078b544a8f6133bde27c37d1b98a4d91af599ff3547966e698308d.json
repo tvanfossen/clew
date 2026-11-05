@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque()` (`:85-92`) is `asm volatile(\"\" : [x] \"+r\"(x))`. The compiler must treat the output as an unknown register value, so it cannot constant-fold a secret condition or rewrite the mask arithmetic into a branch.\nVERDICT: HIT\nWHY: The answer identifies the empty `asm volatile(\"\")` with a `\"+r\"` in-out register operand, and says it acts as an opaque barrier against compiler reasoning. It never says outright that no instruction is emitted, but an empty asm string implies it."
+}

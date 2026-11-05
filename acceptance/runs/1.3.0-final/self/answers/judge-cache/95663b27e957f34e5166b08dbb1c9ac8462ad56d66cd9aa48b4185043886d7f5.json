@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"That scope is either a declaration in the repo's own `index_scope:` section, or the whole repository minus what git ignores.\" and \"yes, but unusable \u2192 rejected (unknown key, not a mapping, no roots) \u2192 logged as a WARNING, falls to whole-repo tier\" and \"`derive_scope` falls through to `whole_repo_scope`\"\nVERDICT: HIT\nWHY: The answer states that a declared index_scope is used first and that unusable declarations or the absence of one fall through to indexing the whole repository."
+}

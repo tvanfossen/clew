@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says \"Always allow/deny\" persistence is not wired and nothing is saved across sessions. It never mentions appending to config.local.yaml as a persistence mechanism."
+}

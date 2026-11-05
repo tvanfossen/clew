@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"When it is defined, the wrapper expands to the plain member name.\" and \"In the default configuration it expands to `private_##member`... the rename makes direct access fail to compile.\"\nVERDICT: HIT\nWHY: The answer states that code defining MBEDTLS_ALLOW_PRIVATE_ACCESS (library, sample programs) sees plain member names, and that default consumers of the public headers see the `private_`-renamed members."
+}

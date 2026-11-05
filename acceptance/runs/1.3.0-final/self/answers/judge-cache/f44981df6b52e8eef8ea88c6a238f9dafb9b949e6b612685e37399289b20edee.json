@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Facts the target already wrote, such as a Doxyfile's `ALIASES` and `PREDEFINED` | Accumulates.\" and \"**Facts and ecosystem signatures:** these never lose to a stated tier. They are unioned with whatever is stated, so a `--entry-patterns` flag cannot drop `main`.\" and \"Stated values usually replace the built-in guesses. Facts written by the target and ecosystem signatures always accumulate.\"\nVERDICT: HIT\nWHY: The answer explicitly contrasts replacing stated tiers with accumulating facts/ecosystem layers that survive whatever is stated."
+}

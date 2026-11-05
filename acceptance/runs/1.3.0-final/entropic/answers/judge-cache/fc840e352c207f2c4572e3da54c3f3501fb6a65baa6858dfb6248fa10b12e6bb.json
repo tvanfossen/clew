@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The detached async-ask thread captures `this` and `handle_`, and nothing joins it. | Async-ask worker | `ExternalBridge::run_async_ask` (`:1142`) | Runs `entropic_run` for `entropic.ask` | **Detached** (`:1222`)\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as the one detached thread (all others are joined) and states that nothing joins it, so it outlives its caller."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_THREADING_C` it installs mutex-wrapped versions.\nVERDICT: MISS\nWHY: The answer says the mutex-wrapped versions are installed under `MBEDTLS_THREADING_C`. It never says a plain pair is installed otherwise, and it doesn't say the choice is made at compile time inside the init function."
+}

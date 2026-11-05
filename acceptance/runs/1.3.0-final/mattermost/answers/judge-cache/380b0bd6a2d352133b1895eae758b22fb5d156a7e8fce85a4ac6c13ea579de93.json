@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The user retries by tapping the failed-post control, which calls `retryFailedPost`.\nVERDICT: HIT\nWHY: The answer says the retry is not automatic, is triggered by the user's tap on the failed post, and calls `retryFailedPost`. It never names the \"Try Again\" label, but the user-initiated mechanism and the function are both stated."
+}

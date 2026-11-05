@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Declaration vs. facts:** facts always survive. Stating `entry_patterns` displaces only the name-pattern guesses, so `main` stays reachable whatever you declare.\" and \"a stated value replaces the layer below it, but facts are never removed.\"\nVERDICT: HIT\nWHY: The answer says stated tiers replace one another, while facts (discovered layers) accumulate and survive whatever is declared."
+}

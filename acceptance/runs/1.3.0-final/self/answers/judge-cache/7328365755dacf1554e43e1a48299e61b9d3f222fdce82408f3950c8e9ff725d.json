@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Resolution is by name, not identity. Several unrelated file-private helpers with the same name collapse into one node, and their edges merge at full confidence. `candidates` disambiguates which symbol you asked about, not its edges\nVERDICT: MISS\nWHY: The answer says resolution is by name and that candidates don't disambiguate edges, but it never contrasts a flat surface that selects by resolved identity with a traversal surface that matches on bare name."
+}

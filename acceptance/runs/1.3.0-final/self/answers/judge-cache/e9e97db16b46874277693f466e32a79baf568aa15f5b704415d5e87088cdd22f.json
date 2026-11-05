@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Query replies carry the same `staleness` block and name the target they answered from.\" and \"Current indexes get no `staleness` key at all.\"\nVERDICT: HIT\nWHY: The answer states that query replies carry the staleness block, and that a current index has no `staleness` key. That covers both halves: the annotation rides on every query reply, and it is empty (absent) when the tool is current."
+}

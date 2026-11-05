@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: each with a file, `edge_class: call`, and `confidence: resolved`.\nVERDICT: MISS\nWHY: The answer mentions `edge_class: call` on callers but never says that the lists mix direct calls with shared-key dataflow edges, or that a consumer must read `edge_class` to tell them apart."
+}

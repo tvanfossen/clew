@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Async-ask worker | `ExternalBridge::run_async_ask` (`:1142`) | Runs `entropic_run` for `entropic.ask` | **Detached** (`:1222`)\" and \"**The detached async-ask thread captures `this` and `handle_`, and nothing joins it.**\"\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as the detached thread and states nothing joins it, noting the lifetime hazard."
+}

@@ -1,0 +1,103 @@
+{
+  "cell": "Q2_claude-haiku-5-5_index_r1",
+  "arm": "index",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.3076923076923077,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "states that llama.cpp is brought in as a git SUBMODULE at extern/llama.cpp, rather than vendored, copied or fetched by the build",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: llama.cpp is a **vendored git submodule**, built from source in-tree. ... `.gitmodules` maps `extern/llama.cpp` to `ggml-org/llama.cpp`. | WHY: The answer states llama.cpp is a git submodule at extern/llama.cpp (via .gitmodules) and contrasts it with FetchContent dependencies; \"vendored\" is used loosely but the submodule mechanism and location are stated. || QUOTE: llama.cpp is a **vendored git submodule**, built from source in-tree. ... `.gitmodules` maps `extern/llama.cpp` to `ggml-org/llama.cpp`. | WHY: The answer states llama.cpp is a git submodule at extern/llama.cpp (via .gitmodules) and not a FetchContent dependency. || QUOTE: llama.cpp is a **vendored git submodule**, built from source in-tree. ... `.gitmodules` maps `extern/llama.cpp` to `ggml-org/llama.cpp`. | WHY: The answer states llama.cpp is a git submodule at extern/llama.cpp (via .gitmodules) and not a FetchContent dependency, so the item's substance is present.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the dependency reaches roughly a dozen files of entropic's own source, not one wrapper",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: \"src/inference/ \u2500\u2500 concrete llama.h / common / mtmd usage llama_cpp_backend, _sampler, _tokenizer, orchestrator, adapter_manager, speculative_compat, grammar_registry, inference_c_api, interface_factory\" | WHY: The answer lists about nine files in src/inference/ plus the facade, but it stresses that the usage is \"confined to src/inference/\" and never says the dependency reaches roughly a dozen files rather than one wrapper. || QUOTE: NONE | WHY: The answer says the dependency is confined to `src/inference/` plus the facade and lists about nine files there. It never says the dependency reaches roughly a dozen files of entropic's own source, and it gives no count. || QUOTE: Every file that includes `llama.h`, `chat.h`, `sampling.h`, `speculative.h`, or `mtmd.h` is in that directory or the facade. | WHY: The answer lists about nine files in src/inference plus the facade and says it is confined there. It never states that the dependency reaches roughly a dozen files, and it frames it as confined rather than broad.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the dependency is CONCENTRATED in the inference layer but NOT contained by it \u2014 a minority of the reaching files sit outside src/inference",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Confined to `src/inference/` for the actual API calls. Every file that includes `llama.h`, `chat.h`, `sampling.h`, `speculative.h`, or `mtmd.h` is in that directory or the facade. ... `src/facade/entropic.cpp` includes the concrete backend header and downcasts to `LlamaCppBackend` | WHY: The answer says the dependency is mostly confined to src/inference and leaks into the facade. It never says it is concentrated but not contained, and it never says a minority of the reaching files sit outside src/inference. || QUOTE: Confined to `src/inference/` for the actual API calls. Every file that includes `llama.h`, `chat.h`, `sampling.h`, `speculative.h`, or `mtmd.h` is in that directory or the facade. ... `src/facade/entropic.cpp` includes the concrete backend header and downcasts to `LlamaCppBackend` | WHY: The answer says the dependency is mostly in src/inference and leaks upward, but it never gives a count or proportion showing a minority of the reaching files sit outside it. It also calls the dependency \"confined\" there, which cuts against \"not contained\".",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the seam as llama.cpp's C API \u2014 free functions with an llama_ prefix \u2014 rather than C++ classes or inheritance",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never characterizes the seam as llama.cpp's C API or free functions with a llama_ prefix. It only says the code calls \"concrete llama.h / common / mtmd usage\" and that llama types are forward-declared. || QUOTE: NONE | WHY: The answer never says the seam is llama.cpp's C API (free `llama_`-prefixed functions); it only mentions includes, forward-declared types, and the concrete `LlamaCppBackend` class. || QUOTE: NONE | WHY: The answer never says the seam is llama.cpp's C API (free `llama_`-prefixed functions); it only describes include locations and forward-declared llama types.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 inference",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 config",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 core",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 facade",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

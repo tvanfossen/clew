@@ -1,0 +1,103 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_only_r2",
+  "arm": "index_only",
+  "rubric_version": "3.1.0",
+  "rubric_digest": "bbf6195f605be452",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.55,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the gating macros",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `MBEDTLS_THREADING_C` defaults to off. ... `MBEDTLS_THREADING_PTHREAD` is also off by default (`mbedtls_config.h:2196`). | WHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros that gate the threading code, and says the library's mutexes sit behind the first one. || QUOTE: `MBEDTLS_THREADING_C` defaults to off. ... `MBEDTLS_THREADING_PTHREAD` is also off by default (`mbedtls_config.h:2196`). | WHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros controlling threading and gating the locks. || QUOTE: `MBEDTLS_THREADING_C` defaults to off. ... `MBEDTLS_THREADING_PTHREAD` is also off by default (`mbedtls_config.h:2196`). | WHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros controlling the threading/locking code, and it says the library's mutexes sit behind the MBEDTLS_THREADING_C gate.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the shipped mbedtls_config.h leaves BOTH threading macros undefined, so a default build defines neither",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"`MBEDTLS_THREADING_C` defaults to off... `MBEDTLS_THREADING_PTHREAD` is also off by default (`mbedtls_config.h:2196`)... The index also reports no definition site for `MBEDTLS_THREADING_C`, so the \"off\" reading likely comes from a commented-out `#define`. Confirm against the header.\" | WHY: The answer states that both threading macros are off by default in the shipped mbedtls_config.h, so a default build defines neither. The hedge about confirming against the header doesn't remove that claim. || QUOTE: \"`MBEDTLS_THREADING_C` defaults to off... `MBEDTLS_THREADING_PTHREAD` is also off by default (`mbedtls_config.h:2196`)... so the \"off\" reading likely comes from a commented-out `#define`. Confirm against the header.\" | WHY: The answer says both threading macros are off by default in the shipped mbedtls_config.h, so a default build defines neither. It hedges on the commented-out `#define` but still states the substance.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that a default build of mbedtls creates no threads at all, and that the pthread example compiles to a stub main under that condition",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says threading is off by default and the pthread server is \"not built,\" but it never concludes that a default build creates no threads at all or that the pthread example compiles to a stub main. || QUOTE: NONE | WHY: The answer says the default has no locking and the pthread server is not built, but it never concludes that a default build creates no threads and that the pthread example compiles to a stub main. || QUOTE: The only spawn in the index that touches shared state is the per-connection pthread server. It is a sample program, not library code. The library itself spawns nothing. | WHY: The answer says the library spawns nothing and the pthread server is \"not built\" under default config, but it never concludes that a default build creates no threads at all or that the pthread example compiles to a stub main.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states BOTH halves of the contrast: that nothing in library/ creates a thread, AND that library/ nonetheless supplies the mutex abstraction used by threaded callers",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"The library itself spawns nothing.\" and \"The mutexes are global objects in `library/threading.c` with `MUTEX_INIT`\" (also: \"The library reaches it through the `mbedtls_mutex_lock` function pointer\") | WHY: The answer says the library creates no threads, and it also says `library/threading.c` supplies the mutex abstraction that threaded callers use. || QUOTE: \"The only spawn in the index that touches shared state is the per-connection pthread server. It is a sample program, not library code. The library itself spawns nothing.\" and \"The mutexes are global objects in `library/threading.c` with `MUTEX_INIT`\" | WHY: The answer says the library spawns no threads and that `library/threading.c` supplies the mutex layer, which many library modules use through `mbedtls_mutex_lock`. || QUOTE: \"The library itself spawns nothing.\" and \"The mutexes are global objects in `library/threading.c` with `MUTEX_INIT`\" | WHY: The answer states that the library spawns no threads (only sample programs do) and that library/threading.c supplies the mutex abstraction (`mbedtls_mutex_lock`, global mutexes) used when threading is enabled.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 programs/ssl/ssl_pthread_server.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 programs/test/benchmark.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the benchmark timer thread as Windows-only, gated on a platform condition rather than on the threading config",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer lists benchmark.c's Win32 `TimerProc` with gate \"not checked\" and never says it is Windows-only or gated on a platform condition. || QUOTE: `programs/test/benchmark.c:430,444` | `TimerProc` (Win32), `sighandler` (alarm) | not checked | test tool only | WHY: The answer lists TimerProc as Win32 but states the gate was \"not checked\" and never says it's gated on a platform condition rather than the threading config. || QUOTE: NONE | WHY: The answer lists benchmark.c's TimerProc (Win32) alongside the alarm sighandler, with gate \"not checked\", and never states the timer thread is Windows-only and gated on a platform condition.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies debug_mutex as serialising debug output so that concurrent connections do not interleave their logging",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: **Debug output** (`debug.c`, `my_mutexed_debug`): serialized logging. | WHY: The answer lists debug output as serialized under a mutex but never names `debug_mutex` or says it prevents concurrent connections' logging from interleaving. || QUOTE: **Debug output** (`debug.c`, `my_mutexed_debug`): serialized logging. | WHY: The answer lists debug output as serialized logging under mutex callers, but never names `debug_mutex` or states that it prevents concurrent connections' logging from interleaving. || QUOTE: **Debug output** (`debug.c`, `my_mutexed_debug`): serialized logging. | WHY: The answer lists debug output as serialized logging under mutexes, but never names debug_mutex or says it prevents concurrent connections' logging from interleaving.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

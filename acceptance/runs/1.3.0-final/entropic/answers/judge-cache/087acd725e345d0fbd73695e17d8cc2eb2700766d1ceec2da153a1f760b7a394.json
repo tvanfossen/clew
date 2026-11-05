@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: External bridge accept loop ... `external_bridge.cpp:796` ... Per-client MCP serve threads | `external_bridge.cpp:945`, reaped in `reap_finished_clients_locked()`; `stop()` joins the accept thread and client threads.\nVERDICT: HIT\nWHY: The answer lists the accept loop thread and separate per-client serve threads in the external bridge, with the accept thread creating them (client list reaped and joined in stop()). That is the two-level structure."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never names clew/mcp_server/emptiness.py or any file where the empty-result grading is implemented; it only describes the behavior."
+}

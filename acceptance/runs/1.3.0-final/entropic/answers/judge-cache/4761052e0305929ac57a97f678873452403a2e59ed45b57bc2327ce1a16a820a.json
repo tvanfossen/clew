@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`ExternalBridge::run_async_ask` (`:1158`) | detached async-ask worker\" and \"`run_async_ask` uses a detached `std::thread` that captures `this`. The index shows no join or ownership record for it. Whether the bridge outlives it in shutdown is not shown.\"\nVERDICT: MISS\nWHY: The answer identifies the async-ask worker as detached with no join record, but it never says it is the ONE detached thread (it implies others are joined or owned) and never states that it outlives its caller's scope. It leaves shutdown behavior as an open question."
+}

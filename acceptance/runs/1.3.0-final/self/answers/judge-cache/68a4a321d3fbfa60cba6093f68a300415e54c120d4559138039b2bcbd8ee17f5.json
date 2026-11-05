@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**One row per endpoint identity, not per site.** `_direct_call_edges` collapses duplicates across layers and across a function's declaration and definition rows. A caller that invokes `fn` five times appears once.\"\nVERDICT: HIT\nWHY: The answer states that rows are deduplicated per endpoint across layers, collapsing the layer variants into one row per neighbour. It does not say that the row keeps the strongest evidence."
+}

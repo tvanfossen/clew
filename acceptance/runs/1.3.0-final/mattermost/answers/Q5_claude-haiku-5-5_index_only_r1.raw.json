@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 17588,
+  "stop_reason": "end_turn",
+  "session_id": "207533ad-7ed8-4a60-a923-201bcd32b2dc",
+  "total_cost_usd": 0.01489214,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 53743,
+    "cache_read_input_tokens": 219804,
+    "output_tokens": 3889,
+    "output_tokens_details": {
+      "thinking_tokens": 1595
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 53743,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2252,
+        "cache_read_input_tokens": 59405,
+        "cache_creation_input_tokens": 10451,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 10451
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3889,
+      "cacheReadInputTokens": 219804,
+      "cacheCreationInputTokens": 53743,
+      "webSearchRequests": 0,
+      "costUSD": 0.01489214,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1595,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 53743,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How `ServerDataOperator` is built**\n\n`ServerDataOperator` is declared at `app/database/operator/server_data_operator/index.ts:40` as `class ServerDataOperator extends mix(ServerDataOperatorBase).with(...)`, mixing in 13 handler classes. Its constructor takes `(database: Database, serverUrl?: string)` (line 55). A matching `interface ServerDataOperator extends ...Mix` declaration (line 23) merges the handler types in for typing. The mixin chain sits on `ServerDataOperatorBase`, which extends `BaseDataOperator`.\n\nHandler mixins:\n\n| Handler | Defined in |\n|---|---|\n| CategoryHandler, ChannelHandler, CustomProfileHandler, GroupHandler, PostHandler, PropertiesHandler, TeamHandler, TeamThreadsSyncHandler, ThreadHandler, UserHandler | `app/database/operator/server_data_operator/handlers/*.ts` (same folder as the class) |\n| `ServerDataOperatorBase` (base, plus `handleRole`, `handleCustomEmojis`, `handleSystem`, `handleConfigs`, `handleReactions`, `handleFiles`, `execute`) | `app/database/operator/server_data_operator/handlers/index.ts:31` |\n| AgentsHandler | `app/products/agents/database/operators/handlers/index.ts` |\n| BoardsHandler | `app/products/boards/database/operators/handlers/index.ts` |\n| PlaybookHandler | `app/products/playbooks/database/operators/handlers/index.ts` |\n\nSo three product handlers (agents, boards, playbooks) live outside the operator folder. The `*Mix` interface types I saw in the merged declaration are presumably in each handler file, but I did not confirm their locations.\n\n**Who performs the actual database write**\n\nThe write is done in one place: `BaseDataOperator.batchRecords` (`app/database/operator/base_data_operator/index.ts:191`). It calls `this.database.write(async (writer) => writer.batch(...models))`. On failure it logs a warning, emits `DATABASE_CORRUPTION_DETECTED` if the error is a corruption error, and rethrows only when `propagateError` is set.\n\nA handler write flows through this chain:\n\n```\nhandleX (e.g. PostHandler.handlePosts)\n  \u2192 handleRecords / prepareRecords / _createOrUpdate\u2026   (build WatermelonDB models)\n  \u2192 batchRecords(models)  only if prepareRecordsOnly is false\n      \u2192 database.write(writer => writer.batch(...))\n```\n\nHandler methods default to `prepareRecordsOnly`, so they often return prepared models without writing. `handleRecords` defaults `prepareRecordsOnly = true` (`base_data_operator/index.ts:224`), and the write happens only when a caller passes `false`.\n\n**What else shares that write path**\n\n- **`BaseDataOperator`'s other methods.** `handleRecords` and `prepareRecords` both feed `batchRecords`.\n- **`AppDataOperator`** extends `BaseDataOperator`, so it inherits the same `batchRecords` for the global app database. This is the only other confirmed consumer of the base class.\n- **Callers of `batchRecords` (per the index, 32 total, 25 shown):** the `PostHandler` internals (`_createOrUpdateScheduledPost`, `_deleteScheduledPostByIds`, `_createPostsInChannelRecord`, `_mergePostInChannelChunks`), `ServerDataOperatorBase.execute`, and handlers across Channel, Group, Thread, User, Properties, TeamThreadsSync, and the three product handlers (AgentsHandler, PlaybookHandler). Those with `handleRecords` as a caller (39 total, 25 shown) include the Category, Channel, Team, CustomProfile, Boards, and Agents handlers, plus `AppDataOperator.handleGlobal` and `handleInfo`.\n- **Not verified:** `app/actions/local/ephemeral_mode/cleanup.ts` has three entries named `batchRecords` (`cleanupAiThreads`, `cleanupPlaybookRuns`, `autoCacheCleanup`). The index marks them as candidates without bodies, so I could not confirm whether they call this method or are separate local names.\n\nThe index answered from the `dossier` output above. I did not read source files, so the exact `Mix` locations and the cleanup-file question are the gaps.",
+  "ttft_ms": 927,
+  "type": "result",
+  "duration_ms": 18518,
+  "uuid": "f4d22110-d270-4648-8d95-42beefb3bc21",
+  "ttft_stream_ms": 575,
+  "time_to_request_ms": 65,
+  "first_content_frame_ms": 575,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

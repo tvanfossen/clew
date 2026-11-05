@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`edge_class`**: `'call'` means a direct caller. `'key'` means a function that writes a shared key the target reads. A `'key'` row does not call the target and may run on another thread. The docstring says to check this on every row.\nVERDICT: HIT\nWHY: The answer states that rows mix direct calls and shared-key writers, distinguished by `edge_class`, which the consumer must check on every row."
+}

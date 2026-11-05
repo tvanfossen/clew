@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Captures the redaction epoch, then calls `client.createPost` once. ... On failure, it applies the same rules as above: the three removal errors delete the post, and anything else sets `failed` back to true.\"\nVERDICT: HIT\nWHY: The answer says retryFailedPost makes a single createPost call and, on failure, either removes the post for the three errors or marks it failed again."
+}

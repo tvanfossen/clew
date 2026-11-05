@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never concludes that the public API surface is the single function mbedtls_ct_memcmp. It mentions the public header `include/mbedtls/constant_time.h` but doesn't say what it exposes, and it presents the other primitives without calling them internal."
+}

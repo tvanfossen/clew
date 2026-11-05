@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The second call only runs once, and it runs with the size the first call reported, so nothing is retried.\nVERDICT: MISS\nWHY: The answer says the second call isn't retried and that a negative second result returns `{}` with an ERROR log. It never states that this negative result is terminal as opposed to triggering another attempt, so the item's specific claim is only implied."
+}

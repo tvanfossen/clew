@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788-800`) returns `{}` when `tokenizer_` is unset, and otherwise passes the vector through.\nVERDICT: MISS\nWHY: The answer says the backend wrapper returns `{}` when no tokenizer is wired. It also says the inner tokenizer returns `{}` on failure. It never says the two cases return the same value, so the backend wrapper's failed-tokenization return is not tied to the no-tokenizer return."
+}

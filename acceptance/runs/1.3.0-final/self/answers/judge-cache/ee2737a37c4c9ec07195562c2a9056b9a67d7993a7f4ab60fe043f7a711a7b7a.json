@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Two layers finding the same edge produce one row, reporting the strongest `source` and `confidence`.\"\nVERDICT: MISS\nWHY: The answer says the opposite: it claims duplicate detections collapse into one row, whereas the item says call_edges stores one row per layer, so the same edge is stored twice."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `createPost` in `app/actions/remote/post.ts:74` writes the post to the local database before calling the server, under a `pending_post_id`. If `client.createPost` throws (lines 154\u2013199), it: ... Rebuilds the post with `props.failed: true` and an updated `update_at`. Saves it to the database\nVERDICT: HIT\nWHY: The answer states the post is written locally before the send and is kept and saved with `props.failed: true` on failure."
+}

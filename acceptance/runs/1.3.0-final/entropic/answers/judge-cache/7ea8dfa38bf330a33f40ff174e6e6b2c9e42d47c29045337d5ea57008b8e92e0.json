@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the value of the first string-valued argument, where \"first\" means alphabetically first key because nlohmann objects are sorted maps. If the first arg isn't a string or there are no args, it becomes `*`.\" and \"Only the first string argument is matched. Any other argument is invisible to both lists.\"\nVERDICT: HIT\nWHY: The answer states that only one argument value reaches the pattern, that other arguments are invisible to matching, and that a non-string or missing argument becomes the wildcard `*`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Allow** (`is_explicitly_allowed` \u2192 `PermissionManager::is_allowed`): returns true if any allow entry matches. Its only effect is to skip the prompt.\" and \"approved = auto_approve_tools || ServerManager::is_explicitly_allowed(name, args)   \u2190 allow list\" under `ToolExecutor::check_approval`\nVERDICT: HIT\nWHY: The answer says the allow list's only effect is skipping the prompt and that it is consulted in `ToolExecutor::check_approval`, while deny is enforced separately in `ServerManager::execute`. The different-file point is implied by the `ToolExecutor` versus `ServerManager` split, not stated outright."
+}

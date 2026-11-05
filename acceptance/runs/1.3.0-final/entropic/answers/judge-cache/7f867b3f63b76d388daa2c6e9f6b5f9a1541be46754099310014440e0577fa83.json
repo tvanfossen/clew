@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::start` (`external_bridge.cpp:796`) ... `HealthMonitor::start` (`health_monitor.cpp:92`) ... `StdioTransport::open` (`:164`) ... `SSETransport::open` (`:107`) ... `CancelFlagBridge` ctor (`inference_c_api.cpp:385`)\nVERDICT: HIT\nWHY: The table lists thread spawn sites across the external bridge, MCP transports (stdio/SSE), health monitor and inference path, showing creation is distributed rather than centralised, though it never says so explicitly."
+}

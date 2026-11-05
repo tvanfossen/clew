@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [...] }) ... createReactions \u2192 prepareRecords(transformReactionRecord, tableName REACTION) ... prepareRecordsOnly is false \u2192 batchRecords(...)\nVERDICT: HIT\nWHY: The answer states the added reaction goes through the operator's handleReactions, which prepares Reaction records and writes them via batchRecords."
+}

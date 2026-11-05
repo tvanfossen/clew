@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer separates a macro-based compile-time path from a runtime setter, but it never says the two are mutually exclusive. It says the setter exists \"only in the function-pointer branch\", which implies exclusivity without stating it. It also describes the compile-time path as a single macro pair, not as a pair of macros versus a pair of function pointers."
+}

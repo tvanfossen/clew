@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On an install without bash and cmake: ... **Not-indexed report:** silent. `cli._not_indexed_scope` counts a file as missing only when it has no `path` row. Since those rows exist, nothing is named.\nVERDICT: MISS\nWHY: The answer says that without the grammars, function rows are dropped but those files are not reported as not indexed. That contradicts the item's conclusion that the files are reported as not indexed, and the answer never mentions a router capability gate being consulted before routing."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions that provenance of a collapsed row is chosen by a ranking in the vocabulary module rather than SQL."
+}

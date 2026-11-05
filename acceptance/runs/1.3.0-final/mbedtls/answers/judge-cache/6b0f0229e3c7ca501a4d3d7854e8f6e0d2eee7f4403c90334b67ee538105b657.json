@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Defining it before the headers are included makes `MBEDTLS_PRIVATE(x)` expand to the real name `x`, so those translation units read and write fields directly.\nVERDICT: HIT\nWHY: The answer says that when the gate is not defined the macro expands to `private_##member`, and that when it is defined the macro expands to the plain name. It also says ordinary external code writing `ssl->state` won't compile, so the two consumers see different views."
+}

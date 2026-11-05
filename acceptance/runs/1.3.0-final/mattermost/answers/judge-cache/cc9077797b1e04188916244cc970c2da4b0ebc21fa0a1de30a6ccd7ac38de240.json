@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without this flag, the handler would delete every other reaction on the post.\nVERDICT: HIT\nWHY: The answer says skipSync is correct because the event carries only one reaction, not the full post list, and that without it every other reaction on the post would be deleted."
+}

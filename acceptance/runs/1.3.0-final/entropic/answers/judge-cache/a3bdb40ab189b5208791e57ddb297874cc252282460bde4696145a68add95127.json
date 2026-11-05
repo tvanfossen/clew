@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The deny list is the only hard stop, and it is checked after approval.\" and \"`ServerManager::execute` always checks the deny list.\" and \"With a callback wired, the only thing that stops a call is the deny list.\"\nVERDICT: HIT\nWHY: The answer says the deny list is the only hard stop and that ServerManager::execute checks it at dispatch before routing, which matches the item's substance."
+}

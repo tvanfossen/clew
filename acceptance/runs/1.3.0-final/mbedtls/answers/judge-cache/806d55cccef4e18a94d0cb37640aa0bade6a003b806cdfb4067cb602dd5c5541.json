@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its init, `mbedtls_memory_buffer_alloc_init()` (line 566), zeroes the static heap, sets the calloc/free pair to its own functions through `mbedtls_platform_set_calloc_free()` (lines 572 and 575)... This is the only place the library installs an allocator itself.\nVERDICT: HIT\nWHY: The answer names the buffer allocator's init function as installing its own calloc/free via the runtime setter, and says it is the only in-tree place that does so."
+}

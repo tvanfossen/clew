@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `archiveChannel`) | Sets local `delete_at` so the channel stays visible as archived | Removes the current user from the channel locally; and `searchPosts`... websocket row: \"Keeps the archived channel in the local DB | If the user is viewing it, kicks them out with `CHANNEL_ARCHIVED`, then removes the membership\"\nVERDICT: HIT\nWHY: The table states that when archived channels aren't viewable, the user is removed and kicked out if viewing it. When viewable, the channel is kept and marked with `delete_at`, which is \"marked deleted\"."
+}

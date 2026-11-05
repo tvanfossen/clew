@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The axis token survives when the payload is over budget. The prose is compacted in three tiers.\nVERDICT: HIT\nWHY: The answer states that the axis token is kept while the prose is compacted in tiers when the payload is over budget. That means the warning is kept and only its wording is degraded."
+}

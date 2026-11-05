@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A disagreement here only changes labels, not the resolved set.\nVERDICT: MISS\nWHY: The answer says tiers 3 and 4 accumulate, but it never says they combine identically, that the distinction between them is deliberately inert, or that the load-bearing line is fact-versus-guess."
+}

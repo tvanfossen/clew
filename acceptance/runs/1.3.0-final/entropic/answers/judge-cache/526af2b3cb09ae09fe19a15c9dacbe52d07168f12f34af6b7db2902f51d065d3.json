@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Caller-provided buffers the engine will free must come from the engine's allocator.** Hook `modified_json` is the case here: `_build_trampoline` in `python/src/entropic/hooks.py` calls `entropic_alloc()`, and the engine frees the result.\"\nVERDICT: HIT\nWHY: The answer states the rule that buffers the engine frees must be allocated with entropic_alloc and points to the Python side's `_build_trampoline` in hooks.py."
+}

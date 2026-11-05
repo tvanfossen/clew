@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Data:** call `index(action='refresh')`.\" and \"**Code:** only a client restart helps. Data is read live per call, so the query tools are current. Only the process's logic is old.\"\nVERDICT: HIT\nWHY: The answer gives a different remedy for each axis (a refresh for data, a client restart for code) and says a rebuild cannot clear the newer-schema and code axes. It never says outright that this is why one flag wasn't enough, but the different-remedies substance is there."
+}

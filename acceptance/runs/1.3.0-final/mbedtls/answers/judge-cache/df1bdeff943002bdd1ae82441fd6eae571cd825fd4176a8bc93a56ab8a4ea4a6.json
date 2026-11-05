@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If that define is set, the default is `platform_calloc_uninit` (`platform.c:25-33`), which always returns NULL. The same applies to free (`platform.c:36-45`).\nVERDICT: MISS\nWHY: The answer says the uninit calloc returns NULL and that the same applies to free, but it never states that the uninit free does nothing. It also says the failure applies to calloc and free as a pair, not that the pointers' defaults fail instead of falling back."
+}

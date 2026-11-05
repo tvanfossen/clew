@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `python/src/entropic/_bindings.py` is generated from the C header by `scripts/gen_bindings.py`\nVERDICT: HIT\nWHY: The answer explicitly says the bindings file is generated from the C header by scripts/gen_bindings.py and that edits belong in the generator, not the output."
+}

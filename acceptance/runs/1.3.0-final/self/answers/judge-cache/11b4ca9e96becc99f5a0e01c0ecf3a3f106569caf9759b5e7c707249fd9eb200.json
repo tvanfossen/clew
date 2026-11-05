@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: CLI flags (`--scope`, `--extra-input`, `--extra-exclude`, `--doxyfile`, `--shared-key-patterns`, \u2026) or the `options` argument for embedding callers and MCP\nVERDICT: HIT\nWHY: The tier 1 row states it is reachable via CLI flags or the `options` argument for embedding callers, covering both entry points."
+}

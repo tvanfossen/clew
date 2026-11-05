@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `args` is always empty, since shell has no parameter list.\nVERDICT: MISS\nWHY: The answer says shell has no parameter list, but it never says shell has no return, so only half of the item is stated."
+}

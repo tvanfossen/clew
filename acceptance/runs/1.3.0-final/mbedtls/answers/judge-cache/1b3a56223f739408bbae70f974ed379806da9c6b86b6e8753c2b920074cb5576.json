@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PRIVATE(member)` expands to `private_##member`... `MBEDTLS_ALLOW_PRIVATE_ACCESS` ... sees the real member names.\nVERDICT: HIT\nWHY: The answer states the default expansion to `private_##member` and says that defining the opt-out (`MBEDTLS_ALLOW_PRIVATE_ACCESS`) exposes the real member names, which matches the item."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `useAppNavigationHeader` (`app/hooks/navigation_header.tsx`) renders the lower-level `Header`, not `NavigationHeader`, so it is not in the list above.\nVERDICT: HIT\nWHY: The answer excludes the navigation hook's `Header` renderer from the NavigationHeader list. It did not mention the thread route's `Header` as an exclusion, but its caveat covers `ThreadRoute` partially."
+}

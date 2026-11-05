@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The only spawn in the index that touches shared state is the per-connection pthread server. It is a sample program, not library code. The library itself spawns nothing.\nVERDICT: MISS\nWHY: The answer says the library spawns nothing and the pthread server is \"not built\" under default config, but it never concludes that a default build creates no threads at all or that the pthread example compiles to a stub main."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nclew/query/models.py\nclew/vocabulary.py\nsymbols.py\nCPP_INTEGRATION.md\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is a source-level compatibility boundary, not a security one. The struct layout is unchanged, and `ctx->private_state` still compiles for anyone who types it.\"\nVERDICT: HIT\nWHY: The answer explains that `MBEDTLS_PRIVATE` renames members to `private_##member`, so ordinary access fails to compile. It also says the struct layout is unchanged and the fields are still accessible."
+}

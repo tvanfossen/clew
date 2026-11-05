@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Files the answer says define the opt-out (`#define MBEDTLS_ALLOW_PRIVATE_ACCESS`):\n\n- `library/common.h` is defined unconditionally at line 132.\n- `programs/ssl/ssl_client2.c` is defined before any include.\n- `programs/ssl/ssl_server2.c` is defined the same way.\n\nI left out `library/ssl_debug_helpers_generated.c`. The answer says it only gets the opt-out indirectly, by including `ssl_misc.h`, which includes `common.h`. I also left out `programs/ssl/ssl_context_info.c`, because the answer says it does not define the opt-out.\n\nITEMS:\nlibrary/common.h\nprograms/ssl/ssl_client2.c\nprograms/ssl/ssl_server2.c\nEND"
+}

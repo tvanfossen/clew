@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library creates no threads, but it describes the mutex abstraction as compiled out by default and never says that library/ supplies the mutex abstraction for threaded callers."
+}

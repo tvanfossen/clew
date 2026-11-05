@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that the option names used by embedding callers (build_index options) are the same words as the `.clew.yaml` section names and the diagnostics' wording."
+}

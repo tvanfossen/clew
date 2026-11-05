@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists many call sites across bignum, RSA, AEAD, TLS, base64 and more, but never states that the primitives are used by roughly twenty modules. It gives only examples."
+}

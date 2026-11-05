@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that staleness measurement cannot raise or that a failed measurement degrades to no annotation; it only notes that unreadable trees count as current and that refresh falls back to answering with the notice intact."
+}

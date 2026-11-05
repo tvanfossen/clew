@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer concludes the dependency is confined to src/inference (seven files plus one factory call in the same layer) and never says a minority of reaching files sit outside it."
+}

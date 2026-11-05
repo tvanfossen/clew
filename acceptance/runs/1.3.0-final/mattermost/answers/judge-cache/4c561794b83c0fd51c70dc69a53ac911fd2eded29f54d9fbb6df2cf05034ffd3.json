@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Calls `client.createPost` again. This call does not set `noRetry`, so the client's default retry policy applies to it.\" and \"On failure, sets `failed: true` again. The same server errors that remove a post in `createPost` also remove it here.\"\nVERDICT: MISS\nWHY: The answer gives the failure handling (marks failed again, removes on same errors) but says the retry call uses the client's default retry policy, which contradicts the \"exactly one attempt, no loop or backoff\" conclusion."
+}

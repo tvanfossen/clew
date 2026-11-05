@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The second result is used if positive, and otherwise the function returns an empty string. Its own doc says so: \"Empty when vocab_ is null or the retry decode returned non-positive.\"\nVERDICT: HIT\nWHY: The answer states that a non-positive second-call result in `detokenize` returns empty with no further attempt, and that a negative second call in `tokenize` logs and returns `{}`."
+}

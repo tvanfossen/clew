@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: XORs it with a `volatile` global zero (C path)\nVERDICT: MISS\nWHY: The answer mentions XOR with a volatile global zero in the C path, but it never names the global (e.g. `mbedtls_ct_zero`) and never says it is extern. The item requires identifying the global."
+}

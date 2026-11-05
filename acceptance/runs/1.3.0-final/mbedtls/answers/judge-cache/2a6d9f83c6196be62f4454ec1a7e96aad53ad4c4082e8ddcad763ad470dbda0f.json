@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_PRIVATE` is a name-mangling macro... `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS #define MBEDTLS_PRIVATE(member) private_##member #else #define MBEDTLS_PRIVATE(member) member` ... in a default build the field is really named `private_state`... every library `.c` that includes `common.h` sees plain field names... `ssl_server2.c` ... define the macro before any include, so they get plain names.\"\nVERDICT: HIT\nWHY: The answer shows both expansions and says that code defining the macro sees plain names while ordinary external consumers see the `private_`-prefixed names."
+}

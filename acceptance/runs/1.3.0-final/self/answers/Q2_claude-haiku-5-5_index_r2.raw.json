@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 15899,
+  "stop_reason": "end_turn",
+  "session_id": "6d86535b-6d5e-4f89-9938-ae57638222ae",
+  "total_cost_usd": 0.00239252,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 1889,
+    "cache_read_input_tokens": 79732,
+    "output_tokens": 2434,
+    "output_tokens_details": {
+      "thinking_tokens": 1294
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 1889,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1968,
+        "cache_read_input_tokens": 39866,
+        "cache_creation_input_tokens": 1889,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1889
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2434,
+      "cacheReadInputTokens": 79732,
+      "cacheCreationInputTokens": 1889,
+      "webSearchRequests": 0,
+      "costUSD": 0.00239252,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1294,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 1889,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 4,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply separates the two cases by what it searched, not by a single flag. I ran three empty queries against this repo to see the shapes.\n\n**What an empty reply carries**\n\n- **`note`**: the server's verdict on this specific miss. For a single-token symbol miss it says \"a definitive empty result from the database,\" and it names the corpora it did not read: markdown and Kconfig prose, and function bodies. For a multi-token miss it instead says it is \"NOT a definitive negative either\" and lists per-token hits.\n- **`scope`**: the covered shape. Here that is 426 files, whole-repo, with `top_levels`, the indexed `extensions`, and `not_indexed` with counts (`.rs=2`, `.toml=2`, `.csv=3`, `.sql=1`, no-extension=3, and others).\n- **`target`**: the repository the answer came from. A miss against the wrong target is meaningless.\n- **`token_hits`** (multi-token only): per-token counts, so you can see which word emptied the conjunction.\n- **`staleness`**: absent here, which means the index is current. If it were stale, the block would appear on this reply.\n\n**The three shapes**\n\n| Query | Corpus | Reply says | Confidence it supports |\n|---|---|---|---|\n| `zzqx\u2026` | symbols (default) | definitive for names, `@brief`, macros, typedefs, enums, classes, config symbols, file docs | High, but only for those things |\n| `zzqx\u2026` | `code` (bodies) | \"definitive empty result\" | Moderate: a literal absent from every indexed function body |\n| `zzqx\u2026 missingtoken` | symbols | \"NOT a definitive negative\"; both tokens are 0 | None yet. Retry each token alone |\n\n**How much each answer is worth**\n\n- **\"Not in the repo,\" high confidence:** a single-token miss in the right corpus, with `target` correct, no `staleness` block, and the file type inside `extensions`.\n- **\"Not in the symbols I searched\":** a symbol-corpus miss does not rule out a string in a function body, in prose, or in a Kconfig help. Search `prose` or `code` before concluding anything.\n- **\"Not in function bodies\":** this misses globals, initialisers, macros outside functions, and anything in an unindexed file type. Treat it as \"no function body contains this.\"\n- **Nothing at all:** anything in a `not_indexed` extension (a `.rs` or `.toml` file, say) was never looked at. The reply cannot say the thing is absent. Fall back to `Grep` or `Read` on those files.\n\nThe server's \"definitive\" wording is accurate relative to the scope the reply enumerates, not to the repository as a whole. The `scope` and `not searched` clauses are what cap the confidence. Read them before turning an empty result into a claim about the code.",
+  "ttft_ms": 2436,
+  "type": "result",
+  "duration_ms": 16122,
+  "uuid": "58effb9b-71fc-456a-b069-6994e092ba32",
+  "ttft_stream_ms": 1185,
+  "time_to_request_ms": 69,
+  "first_content_frame_ms": 1185,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

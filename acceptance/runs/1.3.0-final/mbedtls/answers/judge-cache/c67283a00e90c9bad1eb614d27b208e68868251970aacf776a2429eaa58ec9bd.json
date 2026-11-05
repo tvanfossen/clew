@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The only spawn in the index that touches shared state is the per-connection pthread server. It is a sample program, not library code. The library itself spawns nothing.\" and \"The mutexes are global objects in `library/threading.c` with `MUTEX_INIT`\"\nVERDICT: HIT\nWHY: The answer says the library spawns no threads and that `library/threading.c` supplies the mutex layer, which many library modules use through `mbedtls_mutex_lock`."
+}

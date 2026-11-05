@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It's a size-probe followed by a fill, not a retry... Nothing is re-attempted after a failure, no inputs change, there's no backoff, and the first call's result is always used.\"\nVERDICT: HIT\nWHY: The answer concludes it's size negotiation rather than retry, noting no backoff and two calls (probe then fill). It doesn't mention an attempt counter, but the substance is stated."
+}

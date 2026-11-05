@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: if found: database.write(() => reaction[0].destroyPermanently())\nVERDICT: HIT\nWHY: The answer says the removed path bypasses the operator, queries the reaction via queryReaction, and destroys it with a direct database.write."
+}

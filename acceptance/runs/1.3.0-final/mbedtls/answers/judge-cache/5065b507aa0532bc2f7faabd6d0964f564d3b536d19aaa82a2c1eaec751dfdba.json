@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With both off, `library/threading.c` (gated at lines 18\u2013193) compiles to nothing... The four thread spawn sites the index found are all in `programs/`, not `library/`... The library spawns nothing\n\nVERDICT: MISS\n\nWHY: The answer says the library spawns no threads by default, but it never states that the pthread example compiles to a stub main under a default build. It instead lists `ssl_pthread_server.c:277` as a spawn site gated on `MBEDTLS_THREADING_PTHREAD`."
+}

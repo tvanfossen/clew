@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The note's wording depends on what was actually checked\" and \"'NOT DEFINITIVE', with the rows named and counted (`_UNREAD_CORPUS`)\"\nVERDICT: HIT\nWHY: The answer states that the empty-search note's strength is determined per reply by checking whether the index holds matching rows in corpora `search` doesn't read, rather than by the result shape alone."
+}

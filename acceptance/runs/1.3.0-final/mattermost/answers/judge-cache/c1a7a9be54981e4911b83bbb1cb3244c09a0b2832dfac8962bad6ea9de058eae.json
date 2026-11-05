@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says requests generally retry with exponential backoff and a limit of 3 set by the network manager; it only says posting sets noRetry and that it did not verify the default policy."
+}

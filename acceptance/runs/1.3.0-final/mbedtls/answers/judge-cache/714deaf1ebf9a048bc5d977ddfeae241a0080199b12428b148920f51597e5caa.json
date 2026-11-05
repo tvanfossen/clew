@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The outer guard also accepts `MBEDTLS_ERROR_STRERROR_DUMMY` (`error.c:12`). I did not read that dummy branch, so I can't say what it compiles.\nVERDICT: MISS\nWHY: The answer names the macro but explicitly says it doesn't know what it does, and never says it keeps mbedtls_strerror linkable or that it is enabled by default."
+}

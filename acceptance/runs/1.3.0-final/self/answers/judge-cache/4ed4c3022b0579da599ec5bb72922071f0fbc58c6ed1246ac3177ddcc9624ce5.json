@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`_OPTIONAL_KEYS` is `{bash, cmake}`. `_grammar_available` returns False for those, so the route resolves to no grammar. The build does not crash... The router is capability-gated, so a missing grammar yields no parse error.\" and \"The build stamps `not_indexed` and `not_indexed_count`...\"\nVERDICT: HIT\nWHY: The answer says a missing grammar degrades gracefully through a capability-gated router, with no crash, and that those file types are then reported as not indexed."
+}

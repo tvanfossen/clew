@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (default) | `calloc` / `free`, as macros | `platform.h:166-167`\nVERDICT: HIT\nWHY: The table states that in the default config (PLATFORM_MEMORY off) mbedtls_calloc/mbedtls_free become macros expanding directly to calloc/free."
+}

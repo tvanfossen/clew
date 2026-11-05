@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `scripts/generate_errors.pl` scans `include/mbedtls/*.h` with a regex for `#define MBEDTLS_ERR_<NAME> -0x....`. ... and writes the result into `library/error.c` through the template `scripts/data_files/error.fmt`.\nVERDICT: HIT\nWHY: The answer states error.c is generated from the public headers by generate_errors.pl using error.fmt as the template, and says not to hand-edit it."
+}

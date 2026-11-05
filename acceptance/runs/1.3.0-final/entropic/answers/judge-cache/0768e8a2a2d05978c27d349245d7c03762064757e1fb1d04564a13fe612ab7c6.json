@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python reaches the engine through a plain `ctypes` binding over the C ABI in `include/entropic/entropic.h`. There is no C++ or pybind layer\nVERDICT: HIT\nWHY: The answer names ctypes over the shared library `librentropic.so` and explicitly says there is no C++ or pybind extension layer."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.sh`, `.bash` | Yes, ungated | Yes, if the bash grammar is present ... `CMakeLists.txt`, `.cmake` | Yes, ungated\nVERDICT: HIT\nWHY: The answer names the shell extensions (.sh, .bash) and the CMake extension (.cmake), and lists CMakeLists.txt separately by file name. It also notes that CMakeLists.txt is not found by extension (\"`_ts_language_for` returns `None` for `.sh` and `CMakeLists.txt`\")."
+}

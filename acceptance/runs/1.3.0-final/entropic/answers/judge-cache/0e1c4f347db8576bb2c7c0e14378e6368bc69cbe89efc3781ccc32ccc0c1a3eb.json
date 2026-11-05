@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The deny check in `execute` is the authoritative gate, since nothing reaches a server without passing it.\nVERDICT: MISS\nWHY: The answer says the deny list is enforced in ServerManager::execute but also says the allow list gates approval earlier, so it doesn't conclude that deny is the only list that blocks execution."
+}

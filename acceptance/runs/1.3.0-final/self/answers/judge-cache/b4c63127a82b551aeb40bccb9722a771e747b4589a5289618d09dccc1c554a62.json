@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_callers_of` in `clew/dispatch_edges.py:194` shows the same caller can appear once per extraction layer, and the strongest confidence is kept.\nVERDICT: MISS\nWHY: The answer says the same caller can appear once per layer and that the strongest confidence is kept. That contradicts the item's claim of one row per neighbour, and it describes the dispatch-edge helper, not the query surface."
+}

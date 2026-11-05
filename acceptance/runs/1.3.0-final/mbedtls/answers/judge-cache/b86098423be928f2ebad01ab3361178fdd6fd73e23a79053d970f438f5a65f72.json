@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Add the define** in the module's public header, for example `include/mbedtls/dhm.h`: ... Give it exactly one doc comment ... **Regenerate `library/error.c`.** Run `perl scripts/generate_errors.pl` ... Do not hand-edit `error.c`.\"\nVERDICT: HIT\nWHY: The answer says to add the doc-commented define to the public header, re-run the generator, and not hand-edit error.c."
+}

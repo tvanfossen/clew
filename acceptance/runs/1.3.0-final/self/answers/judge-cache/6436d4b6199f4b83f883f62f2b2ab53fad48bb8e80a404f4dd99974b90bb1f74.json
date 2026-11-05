@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The code message says a rebuild cannot fix it, and that only a client restart loads current code.\nVERDICT: HIT\nWHY: The answer says a data notice is fixed by refresh and a code notice only by a client restart. It also says a rebuild cannot clear schema or code staleness, and that the schema and code axes are never auto-refreshed. That separates the remedies by axis. It never says outright that this is why a single flag would not have been enough, but the mechanism is there."
+}

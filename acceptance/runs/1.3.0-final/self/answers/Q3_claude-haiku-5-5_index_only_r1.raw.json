@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 16366,
+  "stop_reason": "end_turn",
+  "session_id": "9738e6e2-25aa-4079-95d3-e6961ac4dac3",
+  "total_cost_usd": 0.01333961,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 51947,
+    "cache_read_input_tokens": 163041,
+    "output_tokens": 2638,
+    "output_tokens_details": {
+      "thinking_tokens": 530
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 51947,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1542,
+        "cache_read_input_tokens": 62036,
+        "cache_creation_input_tokens": 8589,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 8589
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2638,
+      "cacheReadInputTokens": 163041,
+      "cacheCreationInputTokens": 51947,
+      "webSearchRequests": 0,
+      "costUSD": 0.01333961,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 530,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 51947,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A clew index can go stale in three independent ways, and each query reply reports which of them applies. The tool both reports the staleness and, for the most common case, fixes it before answering. The caller only has to act in the cases the tool cannot fix itself.\n\n**How it knows**\n\nStaleness is measured on three axes by `db_status` (`clew/mcp_server/state.py`) and `notices` (`clew/mcp_server/freshness.py`):\n\n- **data:** the index is older than the source. `db_status` checks whether source files have changed since the build (file mtimes, not just the version stamp). This is the common case, for example editing a file without rebuilding.\n- **schema:** the index was stamped by a newer build than this process expects. A rebuild re-stamps the same newer version, so it cannot clear this.\n- **code:** the running server process predates the source tree. `code_identity()` compares the process fingerprint with the current source fingerprint. It reports `matches_source: false` only on positive evidence that the two differ. An unreadable tree counts as a match, so the tool does not raise false alarms.\n\n**What it tells the caller**\n\n- `staleness_notices()` (`server.py`) returns a list of `{axis, message}`. It is empty when the index is current. The list is ordered data, then schema, then code.\n- The notices ride in the payload of every query reply, as a `staleness` block. It is absent when current. `_staleness` and `_staleness_within_budget` (`tools_query.py`) size the text to fit. When the payload is large they fall back to a compact message, \"stale \u2014 call status\" at minimum.\n- A query against a non-definitive miss carries a warning, `_UNEARNED_BY_DRIFT`. It says a symbol that is missing may be missing only because the index is stale, and that the caller should refresh and ask again before concluding the symbol does not exist.\n- `index(action='status')` returns the full diagnosis, including `stale`, `build_version` against `expected_build_version`, `source_changed_files`, `newest_changed_source`, and `code.matches_source`. The design says not to open a session with it, because each reply already reports its own staleness.\n\n**What the tool does about it**\n\n- **Data staleness is fixed automatically.** `_answering_with_refresh` wraps each query tool. Before answering, `_auto_refresh` checks the target (and sub-index, when one is named). If `_data_stale` is true, `_refresh_stale` rebuilds the index under the repository's build lock, with a bounded wait (`_LOCK_WAIT_SECONDS`). The rebuild is deduplicated: after the lock is acquired, it re-checks staleness, so concurrent queries produce one build. A failed or stalled refresh falls back to answering from the existing index, with the notice attached. An absent index is built in the background.\n- **Schema and code staleness are never auto-refreshed.** `_data_stale` returns false if `matches_source` is false. A build through an outdated process would run old pipeline logic and re-stamp the index with it, dropping layers. `stale_code_refusal` (`freshness.py`) refuses writes in that case, and `force=True` does not bypass the refusal.\n\n**What the caller does**\n\n1. Normally nothing. A data-stale query refreshes itself before answering.\n2. If a reply still carries a data notice, the refresh did not run or failed. The caller should call `index(action='refresh')` and ask again. Do not conclude a symbol is absent from a miss while the notice is live.\n3. For a schema notice, a rebuild does not help. The caller needs to check the index against the expected build version.\n4. For a code notice, the caller restarts the MCP client so the process loads the current code, then calls `index(action='refresh', force=True)`. A rebuild from the stale process is refused.\n\n**Caveats**\n\nThese answers come only from the index. I did not read the source files. Several dossier results carried `anchor_mismatch: true` (for example `_staleness`, `test_build_or_refresh_refuses_when_the_process_predates_its_source`, and `notices`), which means the file changed after the index was built. Their line numbers and bodies may not match the current source. The behaviour described above is from the docstrings, bodies and tests the index returned, so it should be confirmed against the source if you depend on exact details.",
+  "ttft_ms": 1923,
+  "type": "result",
+  "duration_ms": 17584,
+  "uuid": "f354a424-4bc1-42f2-9a6b-5a261b9c5bad",
+  "ttft_stream_ms": 1327,
+  "time_to_request_ms": 79,
+  "first_content_frame_ms": 1327,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

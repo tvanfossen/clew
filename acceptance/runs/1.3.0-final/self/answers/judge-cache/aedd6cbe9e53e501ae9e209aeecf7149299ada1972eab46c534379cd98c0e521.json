@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`.clew.yaml` at the repo root, one section per convention (`index_scope:`, `shared_key_patterns:`, ... ) | Replaces the guesses.\" (Tier 2 row)\nVERDICT: MISS\nWHY: The answer places `.clew.yaml` at tier 2 at the repo root, but never says both entry points (CLI and MCP) discover it from the root rather than plumbing it per section, so that part of the item is absent."
+}

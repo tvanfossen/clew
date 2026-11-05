@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the surface returns one row per neighbour with variants collapsed to the strongest evidence. It only notes that callers are listed by function name and that ambiguous names share rows."
+}

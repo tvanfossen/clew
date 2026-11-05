@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The rule is the five-tier one in `clew/tiers.py`: \"you can correct our guesses; you cannot un-discover a fact.\"\nVERDICT: MISS\nWHY: The answer mentions a \"five-tier\" rule but lists only four places, never names five precedence tiers, and describes the mechanism as explicit > declared > heuristic with accumulating facts."
+}

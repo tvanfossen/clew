@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `options` argument uses the same vocabulary as `.clew.yaml`, and every declaration section can be stated that way.\nVERDICT: HIT\nWHY: The answer states that the embedding caller's `options` argument uses the same vocabulary as the `.clew.yaml` section names. It says nothing about the diagnostics using those words, but the item's core fact is that the option names and section names are the same words, and that is stated."
+}

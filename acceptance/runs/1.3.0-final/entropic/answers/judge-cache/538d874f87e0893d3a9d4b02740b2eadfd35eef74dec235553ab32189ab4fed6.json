@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the health monitor is joined on close/destruction but never describes the atomic flag exchange plus condition variable wake shutdown mechanism."
+}

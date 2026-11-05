@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Handlers never call `database.write` themselves. Most go through `handleRecords` or `processRecords`/`prepareRecords`, and some call `this.batchRecords` directly\n\nVERDICT: MISS\n\nWHY: The answer says every write funnels through `batchRecords` in `BaseDataOperator`. It never says this holds because each mixin is constrained to extend `ServerDataOperatorBase`. It says the mixins wrap the previous class as subclasses, but does not name that constraint as the reason."
+}

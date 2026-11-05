@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | `#define MBEDTLS_ALLOW_PRIVATE_ACCESS` | Every library `.c`/`.h` that includes `common.h` (the library translation units, plus several test and fuzz files) sees the real member names. This is the main opt-out.\nVERDICT: HIT\nWHY: The answer states that library-internal code enables the opt-out in the shared header `common.h`, so every library translation unit sees the real member names."
+}

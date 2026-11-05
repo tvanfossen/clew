@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library's threading code is off by default but never concludes that a default build creates no threads or that the pthread example compiles to a stub main."
+}

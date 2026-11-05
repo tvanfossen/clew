@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the \\\"15% layer\\\" over the raw C API. Owns `llama_model*`, `llama_context*`, `llama_vocab*`... LoRA via `llama_adapter_lora_*`... `llama_tokenize`\"\nVERDICT: HIT\nWHY: The answer names the raw C API with llama_-prefixed functions (llama_tokenize, llama_adapter_lora_*) and types as what the wrapper sits over."
+}

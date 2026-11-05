@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`do_count_tokens`** (`:825`) returns 0. `entropic_inference_count_tokens` (`inference_c_api.cpp:548`) passes that 0 straight to the C caller. The `len/4` estimate only runs when an exception is thrown, so a llama.cpp failure reads as a zero-token count.\nVERDICT: HIT\nWHY: The answer states that the token-counting path returns 0 on tokenization failure, with no error signalled to the caller."
+}

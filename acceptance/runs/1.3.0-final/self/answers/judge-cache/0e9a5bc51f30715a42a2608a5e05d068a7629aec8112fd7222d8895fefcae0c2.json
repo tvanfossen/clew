@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions validation of options as a whole and malformed-file handling, but never describes an unknown key inside a valid section being refused, nor a correctly-spelled derived key refused with its reason instead of as unknown."
+}

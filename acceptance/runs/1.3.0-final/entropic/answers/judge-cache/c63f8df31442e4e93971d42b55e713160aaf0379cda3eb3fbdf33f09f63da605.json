@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`do_count_tokens` (`:825`) | returns 0 | The C API `entropic_inference_count_tokens` returns 0 as a valid count. ... This is a silent undercount.\"\nVERDICT: HIT\nWHY: The answer states that the token-counting path (`do_count_tokens`) returns 0 as a valid count when tokenization fails, with no error signalled."
+}

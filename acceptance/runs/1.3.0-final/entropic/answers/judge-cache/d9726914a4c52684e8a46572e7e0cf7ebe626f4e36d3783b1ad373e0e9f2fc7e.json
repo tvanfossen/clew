@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: PEP 562 lazy re-exports (don't load the .so on import)\nVERDICT: MISS\nWHY: The answer says imports are lazy and don't load the .so, but it never concludes this exists so `import entropic` works before the engine is installed, or that this lets an install-engine subcommand ship in the same package."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that measuring staleness cannot raise or that a failed measurement degrades to no annotation. It only notes that an unreadable tree counts as a match, and that a failed refresh falls back to the existing index. Neither is the same fact."
+}

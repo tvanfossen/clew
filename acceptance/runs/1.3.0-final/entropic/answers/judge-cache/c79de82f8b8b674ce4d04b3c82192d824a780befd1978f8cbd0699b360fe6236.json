@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With a callback registered, every call not on the allow list still runs. The callback only gets notified.\nVERDICT: MISS\nWHY: The answer says a non-allow-listed tool runs only when a callback is registered, and is denied when headless. It also says a tool on neither list is denied by deny-list logic only if it matches deny. It never concludes that the effective posture is default-allow at the blocking gate."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the code-axis notice declares the data not stale and that a stale process must not run a build that could drop layers. It never says reads stay current because query tools open the database per call, so the read/write asymmetry is not stated."
+}

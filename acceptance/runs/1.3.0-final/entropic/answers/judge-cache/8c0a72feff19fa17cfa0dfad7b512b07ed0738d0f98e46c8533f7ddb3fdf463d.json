@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Exceptions never cross into C.** Trampolines catch everything, print a traceback, and return 0 (pass-through).\nVERDICT: HIT\nWHY: The answer states that hook trampolines catch all exceptions and return 0 as pass-through, so exceptions never unwind into the C engine."
+}

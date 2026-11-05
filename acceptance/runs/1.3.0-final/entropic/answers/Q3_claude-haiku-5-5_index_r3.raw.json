@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 49419,
+  "stop_reason": "end_turn",
+  "session_id": "5f3aac1d-6d87-40f7-811e-2a1132e8fb68",
+  "total_cost_usd": 0.01754121,
+  "usage": {
+    "input_tokens": 26,
+    "cache_creation_input_tokens": 32585,
+    "cache_read_input_tokens": 709711,
+    "output_tokens": 7849,
+    "output_tokens_details": {
+      "thinking_tokens": 2690
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 32585,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2391,
+        "cache_read_input_tokens": 70482,
+        "cache_creation_input_tokens": 1279,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1279
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 26,
+      "outputTokens": 7849,
+      "cacheReadInputTokens": 709711,
+      "cacheCreationInputTokens": 32585,
+      "webSearchRequests": 0,
+      "costUSD": 0.01754121,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2690,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 32585,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 28,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** The allow and deny lists are checked in two different places. The allow list only decides whether the user is prompted. The deny list is enforced later, inside the dispatcher. And in the current code, a call that isn't allow-listed is approved anyway whenever a frontend callback is wired, so the prompt is a notification, not a gate.\n\n### Flow\n\n```\nmodel emits tool call\n  \u2514\u2500 ToolExecutor::check_call_preconditions           src/mcp/tool_executor.cpp:667\n       1. anti-spiral hard block\n       2. check_schema (argument validation)\n       3. check_mcp_authorization                      (not inspected)\n       4. check_tier_allowed (tier allowed_tools)\n       5. check_duplicate\n       6. check_approval_pc \u2192 check_approval           :161\n            a. auto_ok = auto_approve_tools || ServerManager::is_explicitly_allowed (allow list)\n            b. if !auto_ok and on_tool_call set \u2192 call the callback, approved = true\n            c. if !auto_ok and no callback \u2192 denied (\"headless\")\n  \u2514\u2500 execute_tool \u2192 ServerManager::execute            src/mcp/server_manager.cpp:153\n       d. is_denied(tool, \"tool:args\") \u2192 return \"Error: Permission denied\" JSON\n       e. route_tool_call \u2192 the MCP server runs\n```\n\n### What each list does\n\nBoth lists hold `PermissionManager` patterns (`include/entropic/mcp/permission_manager.h`, `src/mcp/permission_manager.cpp`):\n\n- **Bare pattern, e.g. `filesystem.*`**: `fnmatch`s against the fully-qualified tool name only. Matches every call to that tool, whatever its arguments.\n- **Pattern with a colon, e.g. `bash.execute:python*`**: the part before the first colon must match the tool name. The full pattern must also match the string `tool:args`, built by `args_to_pattern`. The argument format wasn't read, so the example's intent is taken from the header comment.\n- **Allow list**: consulted only in step 6a. A match skips the prompt. It does not run anything by itself.\n- **Deny list**: consulted only in step d, after approval has already happened. A match returns an error result and the tool never runs. A pattern in both lists still gets denied, because step d always runs.\n- **`auto_approve_tools`** (`config.permissions.auto_approve`, wired at `src/facade/entropic.cpp:1489`) skips the allow-list check but not the deny check.\n\n### Things the code shows that you may not expect\n\n1. **The callback doesn't deny.** `on_tool_call` returns `void`, so when it is wired, `check_approval` sets `approved = true` after notifying it. The only real denial in the approval step is the headless case (no callback, not allowed). Anything not on the deny list therefore runs once a frontend is attached.\n2. **Deny is enforced after approval.** Step d runs inside `ServerManager::execute`, which is downstream of `check_approval`. So a denied call still reaches the approval hook and is reported as approved to `ON_PERMISSION_CHECK` observers, then blocked.\n3. **\"Always allow/deny\" persistence is not wired.** `set_permission_persist` has no callers, and nothing in `src/` invokes `permission_persist_`. The `PermissionPersister` exists but nothing calls `save_permission`. The `ALWAYS_ALLOW`/`ALWAYS_DENY` response path described in `engine_types.h:561` has no implementation in `src/`, so no pattern is saved across sessions.\n4. **`get_permission_pattern` is off the gating path.** Its only callers are the destructor and tests. Gating uses `args_to_pattern` through `is_explicitly_allowed`/`is_denied`, so per-server overrides such as `BashServer::get_permission_pattern` don't affect the decision.\n\nWhere the lists come from: `permissions.allow` / `permissions.deny` / `permissions.auto_approve` are parsed in `src/config/loader.cpp:365` and passed to `ServerManager`'s constructor, which builds the `PermissionManager` (`src/mcp/server_manager.cpp:35`).\n\nIf you want a hard prompt gate, `on_tool_call` would need a return value (or a blocking response path) that `check_approval` honours. As written, that gate doesn't exist.",
+  "ttft_ms": 2859,
+  "type": "result",
+  "duration_ms": 49952,
+  "uuid": "f20f275f-b4db-4c57-afce-1c735a688e11",
+  "ttft_stream_ms": 2664,
+  "time_to_request_ms": 62,
+  "first_content_frame_ms": 2664,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

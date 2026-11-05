@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how the emptiness verdicts are built. It never states the general rule that the fix for a misleading empty result is to change what is searched, not the sentence describing it. The nearest remark, that a new kind downgrades the verdict without an edit, is only a mechanism detail."
+}

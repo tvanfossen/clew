@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Nine spawn sites in `src/` run on a thread other than the caller's. | `ExternalBridge::accept_loop` ... `HealthMonitor::monitor_loop` ... `SSETransport::sse_reader_loop` ... `StdioTransport::stderr_reader_loop` ... Cancel poller ... `ResponseGenerator::dispatch_batch_generate`\nVERDICT: HIT\nWHY: The answer lists spawn sites across the external bridge, MCP transports (SSE/stdio), health monitor and inference path, showing creation is spread across subsystems, though it doesn't explicitly say \"not centralised.\""
+}

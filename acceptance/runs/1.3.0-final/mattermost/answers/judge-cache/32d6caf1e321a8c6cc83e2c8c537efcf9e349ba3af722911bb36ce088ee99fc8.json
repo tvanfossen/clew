@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `AppDataOperator` (`app/database/operator/app_data_operator/index.ts`) extends `BaseDataOperator` directly. Its `handleInfo` and `handleGlobal` use the same `handleRecords` \u2192 `batchRecords` path against the global app database.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as a direct BaseDataOperator subclass sharing the handleRecords\u2192batchRecords write path for the global app database."
+}

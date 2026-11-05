@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The same empty vector comes back when the vocab pointer is null or when no tokenizer is wired (`llama_cpp_backend.cpp:795`).\"\nVERDICT: HIT\nWHY: The answer says failed tokenization returns an empty vector, the same value returned when no tokenizer is wired."
+}

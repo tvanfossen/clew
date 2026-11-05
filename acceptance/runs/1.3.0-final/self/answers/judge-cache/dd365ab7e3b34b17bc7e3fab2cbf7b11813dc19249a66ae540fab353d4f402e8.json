@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no file paths in the sense asked. It mentions `.clew.yaml` (the declaration file) and `.doxygen-guard.yaml` (no longer read), and the \"standalone manifest\" and Doxyfile appear without paths.\n\nITEMS:\n.clew.yaml\n.doxygen-guard.yaml\nEND"
+}

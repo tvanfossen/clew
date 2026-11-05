@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Engine-returned `char*` belong to the caller.** Functions such as `entropic_run(handle, input, char** result_json)` allocate the result. The caller must release it with `entropic_free()`.\" and \"**Strings the engine hands out as `const char*` belong to the handle.** `entropic_last_error()` is the example. The pointer stays valid until the next call on that handle, and the caller must not free it.\"\nVERDICT: HIT\nWHY: The answer states both halves: a returned `char*` is caller-owned and freed with `entropic_free`, and a `const char*` is handle-owned and valid only until the next call."
+}

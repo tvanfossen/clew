@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 30601,
+  "stop_reason": "end_turn",
+  "session_id": "486baa06-4230-48fd-a08d-068bc994a16e",
+  "total_cost_usd": 0.021093980000000005,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 68568,
+    "cache_read_input_tokens": 406148,
+    "output_tokens": 6635,
+    "output_tokens_details": {
+      "thinking_tokens": 3185
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 68568,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2399,
+        "cache_read_input_tokens": 86113,
+        "cache_creation_input_tokens": 2697,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2697
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 6635,
+      "cacheReadInputTokens": 406148,
+      "cacheCreationInputTokens": 68568,
+      "webSearchRequests": 0,
+      "costUSD": 0.021093980000000005,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3185,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 68568,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## How the dependency is brought in\n\nllama.cpp is a **vendored git submodule**, built from source in-tree. It is not a FetchContent dependency like spdlog, ryml, json, or httplib.\n\n- **Source:** `.gitmodules` maps `extern/llama.cpp` to `ggml-org/llama.cpp`. The checked-out commit is `20a04b22`.\n- **Build:** `extern/CMakeLists.txt` calls `add_subdirectory(llama.cpp EXCLUDE_FROM_ALL)`, then adds `llama.cpp/tools/mtmd` for multimodal support. It sets `LLAMA_BUILD_COMMON=ON` and `LLAMA_BUILD_TOOLS=OFF`, and it switches on `GGML_CUDA` when `ENTROPIC_HAS_CUDA` is set. Tests, examples, and the server are off.\n- **Absorption:** the facade (`src/facade/CMakeLists.txt`) links `llama`, `mtmd`, and `llama-common` as `PRIVATE` with `LINK_ONLY`. They end up statically inside `librentropic.so`, and consumers never link llama directly.\n- **Stale comments:** `extern/CMakeLists.txt` still says \"NOT built in v1.8.0\" and \"Pinned at b8420\". Both contradict the current build and the recorded pin bump, so they should be fixed.\n\n## How far it reaches into entropic's source\n\n```\n public C ABI (entropic.h)    \u2500\u2500 no llama types (doc mentions only)\n public C++ headers           \u2500\u2500 forward-declare llama_model / llama_context /\n include/entropic/inference/     llama_adapter_lora; raw pointers in signatures\n interfaces/i_inference_backend.h, backend.h \u2500\u2500 abstract, no llama\n \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n src/inference/                \u2500\u2500 concrete llama.h / common / mtmd usage\n   llama_cpp_backend, _sampler, _tokenizer, orchestrator, adapter_manager,\n   speculative_compat, grammar_registry, inference_c_api, interface_factory\n src/facade/entropic.cpp       \u2500\u2500 includes llama_cpp_backend.h; dynamic_casts to\n                                  LlamaCppBackend for LoRA adapter ops\n src/core, src/config, src/mcp, src/storage, src/types\n                               \u2500\u2500 no llama includes (comments and config keys only)\n python/                       \u2500\u2500 wrapper generated from entropic.h; no llama\n```\n\n- **Confined to `src/inference/`** for the actual API calls. Every file that includes `llama.h`, `chat.h`, `sampling.h`, `speculative.h`, or `mtmd.h` is in that directory or the facade.\n- **Leaks upward in three places:**\n  1. `src/facade/entropic.cpp` includes the concrete backend header and downcasts to `LlamaCppBackend` at about lines 2922, 2964, and 2996. That skips the interface layer, which your architecture doc says layers should not do.\n  2. `orchestrator.cpp:82` constructs `std::make_shared<LlamaCppBackend>()` directly rather than going through `interface_factory`.\n  3. The public `include/entropic/inference/*.h` headers (orchestrator, adapter_manager, sampler, speculative_compat) name llama structs and pass `llama_context*` and `llama_model*` through their signatures. They do not include `llama.h`, so this is a type-name leak, not a link dependency.\n- **Core, config, MCP, storage, and types** never include llama. `src/config/loader.cpp` only reads llama.cpp-named knobs such as `llama_log_path`.\n- **Tests** include llama headers directly and link `llama` for vocab-only and real-model paths.\n\nScope note: I checked includes by grep and read the relevant CMake files. I did not build the project, so the link behaviour is from the CMake source, not a verified link.",
+  "ttft_ms": 835,
+  "type": "result",
+  "duration_ms": 30998,
+  "uuid": "0ee6bd0b-c776-4c72-837b-1945f523c879",
+  "ttft_stream_ms": 604,
+  "time_to_request_ms": 62,
+  "first_content_frame_ms": 604,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

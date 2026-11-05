@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | Defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` unconditionally. Library sources include `common.h` before the public headers (e.g. `library/aes.c:14` before `mbedtls/aes.h` at line 20), so the library sees real member names everywhere.\nVERDICT: HIT\nWHY: The answer states that a shared internal header (common.h) turns on the opt-out, so library sources see plain member names."
+}

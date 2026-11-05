@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Code axis: \"Only a client restart; a rebuild is not safe\"; Data axis: \"`index(action='refresh')`\"; Schema: \"Rebuild for older; restart client for newer\"\nVERDICT: HIT\nWHY: The answer's table and \"What the caller still has to do\" section state that data is cleared by a refresh/rebuild while code is cleared only by a client restart. It does not explicitly say why one flag would not have been enough, but the differing remedies per axis are stated."
+}

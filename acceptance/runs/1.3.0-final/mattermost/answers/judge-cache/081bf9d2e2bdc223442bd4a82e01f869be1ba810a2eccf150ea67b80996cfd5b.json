@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Both websocket handlers swallow errors with an empty `catch`. That hides failures, and it conflicts with the project rule to log errors with context. A malformed payload or a DB error leaves no trace.\"\nVERDICT: HIT\nWHY: The answer states both handlers use an empty catch that swallows errors, leaving no trace of DB failures."
+}

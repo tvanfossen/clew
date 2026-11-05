@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Calls `removeCurrentUserFromChannel`, so the channel is dropped locally; If it is the current channel, runs `handleKickFromChannel(..., CHANNEL_ARCHIVED)`; always removes the user from the channel locally\nVERDICT: HIT\nWHY: The table states that when archived channels aren't viewable (`'false'`), the user is removed from the channel and kicked out if it is the current channel. When viewable, the channel is kept and `delete_at` is stamped, which means marked deleted."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**\"Always allow/deny\" persistence is not wired.** `set_permission_persist` has no callers, and nothing in `src/` invokes `permission_persist_`. The `PermissionPersister` exists but nothing calls `save_permission`.\"\nVERDICT: MISS\nWHY: The answer says persistence is not wired and never mentions appending to config.local.yaml as the mechanism for persisting a decision, so the item's fact is absent."
+}

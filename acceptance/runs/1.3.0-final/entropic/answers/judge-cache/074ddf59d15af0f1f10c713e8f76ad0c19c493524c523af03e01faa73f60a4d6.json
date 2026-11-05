@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: This is the usual two-pass protocol for sizing a buffer. The second call is not retried on the same input after a failure, and nothing loops.\nVERDICT: HIT\nWHY: The answer identifies the two calls as sizing then fill (size negotiation), not retry logic, and notes no loop or retry, with exactly two calls."
+}

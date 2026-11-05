@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 18183,
+  "stop_reason": "end_turn",
+  "session_id": "b82afa3e-515a-479e-8452-8792cbc3fe2e",
+  "total_cost_usd": 0.00809047,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 28081,
+    "cache_read_input_tokens": 102217,
+    "output_tokens": 2903,
+    "output_tokens_details": {
+      "thinking_tokens": 1610
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 28081,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2315,
+        "cache_read_input_tokens": 45310,
+        "cache_creation_input_tokens": 1449,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1449
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 2903,
+      "cacheReadInputTokens": 102217,
+      "cacheCreationInputTokens": 28081,
+      "webSearchRequests": 0,
+      "costUSD": 0.00809047,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1610,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 28081,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 4,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the caller list is a graph of symbol-level edges, each carrying a confidence and a source. It is not a list of call sites, and an empty or short list does not prove nothing calls the function.\n\nI checked this with two `dossier` calls, on `dossier` and `_budgeted_dossier` in this repo.\n\n**What an entry contains**\n\nEach caller or callee is a symbol, not a line. From the `_budgeted_dossier` reply, an entry carries:\n- `name` and `qualified` name\n- `file`\n- `edge_class`, here `call`\n- `confidence`, here `exact`\n- `source`, here `doxygen_sqlite`\n\nThe same reply also carries the function's other panels: `writes`, `reads`, `overrides`, `overridden_by`, `threads`, `requirements`, `covering_tests`, `liveness` and the verbatim `body`. Those are separate facts about the function, not part of its call list.\n\n**What makes it wrong to read as call sites**\n\n1. **No line numbers.** A caller says \"`dossier` calls it\", not \"line 2140 calls it\". Several calls from one function collapse into one edge. The output I received has no per-call line field.\n2. **Empty does not mean unused.** `dossier` came back with `callers: []` because its name also resolves to a class, so it is probably a constructor. The reply warns that brace-initialised construction is not modelled as a call edge. The same applies to calls through function pointers. The `dossier` docstring cites `mbedtls_mutex_lock`, which is a function pointer, so `dossier` on it misses its real call paths.\n3. **Ambiguous names share neighbours.** When a name matches several signatures, the neighbour lists are shared across all of them. You have to re-ask with `qualified` before attributing a caller to one overload.\n4. **Lists are capped and trimmed.** `max_neighbors` limits each list. Oversized replies are trimmed by `_budgeted_dossier`, which says so in a `_limited` block. The `dossier` docstring cites a 125,559-byte reply for a symbol with 331 callers. Check `_limited` and `total_available` before counting.\n5. **Unresolved calls are absent from `callees`.** Calls that do not resolve to an indexed function are counted separately (`callers_unresolved`, `external_callees`). They are not listed as callees.\n6. **Freshness is per reply.** The `dossier` reply carried `anchor_mismatch: true`, meaning the file changed since the index was built and the body's line range may not be the function's. The edges come from the index, so they can lag the working tree too.\n7. **Edge classes differ.** Callers are not only `call` edges. Shared-key dataflow also appears, and `edge_class` tells them apart. Check it before reading a caller as a caller.\n\n**What to take from it:** use the caller list to find who is connected to a function, and read `confidence`, `source` and `edge_class` on each entry. Use an empty list as \"no edge was recorded\", not \"no caller exists\". Before concluding there are no users, search the name and check `candidates` and `callers_note`.",
+  "ttft_ms": 2024,
+  "type": "result",
+  "duration_ms": 18618,
+  "uuid": "1bbd956a-0ac8-4c65-908b-03e97c717061",
+  "ttft_stream_ms": 1200,
+  "time_to_request_ms": 80,
+  "first_content_frame_ms": 1200,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

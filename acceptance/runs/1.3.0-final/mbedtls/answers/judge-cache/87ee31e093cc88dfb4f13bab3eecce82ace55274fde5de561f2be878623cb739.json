@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"which default to stubs (`platform_calloc_uninit` returns NULL, `platform_free_uninit` does nothing). So with `MBEDTLS_PLATFORM_MEMORY` on and nothing installed, every allocation fails.\"\nVERDICT: HIT\nWHY: The answer states that the uninitialised pointer defaults are stubs: calloc returns NULL and free does nothing, so allocation fails rather than falling back."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer cites uses of `MBEDTLS_PRIVATE` only in files under `include`: `include/mbedtls/ssl.h`, `include/mbedtls/cipher.h` and `include/psa/crypto_struct.h`. It mentions `library` and `programs` only as places that define the `MBEDTLS_ALLOW_PRIVATE_ACCESS` gate, not as places that use the macro, so I left them out.\n\nITEMS:\ninclude\nEND"
+}

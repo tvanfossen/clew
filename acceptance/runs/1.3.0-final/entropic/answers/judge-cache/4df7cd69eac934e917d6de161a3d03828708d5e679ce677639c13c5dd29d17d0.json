@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: About a dozen files include `<llama.h>`: `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler`, `llama_cpp_tokenizer`, `speculative_compat`, `adapter_manager`, `grammar_registry`, `orchestrator`, `inference_c_api` (calls `llama_log_set`), and `secondary_model_loader`.\nVERDICT: HIT\nWHY: The answer states that about a dozen of entropic's own source files include llama.h and lists them, which shows the reach goes beyond a single wrapper."
+}

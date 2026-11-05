@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It does not call `handleReactions`, `sanitizeReactions`, `prepareRecords`, or the transformer.\" and \"queries the one matching row and calls `destroyPermanently()` inside `database.write`\"\nVERDICT: HIT\nWHY: The answer states the removed handler bypasses the operator, queries the reaction, and destroys it via a direct `database.write`."
+}

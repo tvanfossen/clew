@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Calls `setChannelDeleteAt(now)`, so the archived channel stays in the local DB | Calls `removeCurrentUserFromChannel`, so the channel is dropped locally\n\nThe archiveChannel row says the channel is kept with `delete_at` set when viewable and `removeCurrentUserFromChannel` is called when `'false'`. The websocket row says the user is kicked via `handleKickFromChannel` if it is the current channel and removed locally. The answer never says \"marked deleted\" in those words, but \"setChannelDeleteAt\" and \"stamps delete_at\" cover it.\n\nVERDICT: HIT\nWHY: The answer states both branches: non-viewable removes the user (and kicks if current channel), viewable keeps the channel with delete_at set."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists several files and layers touching llama.cpp but never states that the dependency reaches roughly a dozen of entropic's source files, and it frames the reach as bounded to `src/inference/` and tests."
+}

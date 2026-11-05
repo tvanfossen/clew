@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The search tool's own wording claims certainty only in that case.\" (that is, only when the reply has no `not_searched` and no other corpus outside search's reach could hold a match). The answer's opening also says: \"The reply separates the two cases with fields, not with the row count.\"\nVERDICT: HIT\nWHY: The answer says certainty is claimed only when the per-reply check of unread corpora comes back clean, and it contrasts this with going by row count. That is per-call earning, not wording tied to a result shape."
+}

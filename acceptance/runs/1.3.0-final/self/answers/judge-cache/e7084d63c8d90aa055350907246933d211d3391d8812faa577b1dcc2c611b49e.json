@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes grading empty results and stamping unindexed scope. It never states the rule that the fix is to index the missing corpus rather than reword the note about it. Its closest line (\"nothing matched\" is only a negative once the other corpora are checked) is a different rule."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Adding a new string means adding a header `#define` and regenerating `error.c`, not editing it by hand.\nVERDICT: HIT\nWHY: The answer says to add a doxygen-documented `#define` in the module's public header under `include/mbedtls/` and regenerate `error.c` with the generator script, and it says not to hand-edit `error.c`."
+}

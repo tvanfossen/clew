@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \".yaml`, `.yml`, `.json` | yes | no, by design | no\" and \"`.yaml` or `.sh` file gets its `path` row on any install. A YAML file is 'findable by name' and that is all.\" and \"Their grammars only offer `block_mapping_pair` and `pair`. Writing those as `memberdef` rows would put every `steps:` key into the namespace\"\nVERDICT: HIT\nWHY: The answer says YAML/JSON files are registered in the file set (path row) but have no symbols by design, in contrast to shell/CMake which get definitions."
+}

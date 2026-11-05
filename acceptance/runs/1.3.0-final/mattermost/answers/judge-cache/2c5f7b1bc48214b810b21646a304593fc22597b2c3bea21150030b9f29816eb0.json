@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: handleWebSocketEvent            app/actions/websocket/event.ts:44\n  switch(msg.event) case REACTION_ADDED\n  \u2502\n  \u25bc\nhandleReactionAddedToPostEvent  app/actions/websocket/reactions.ts:21\nVERDICT: HIT\nWHY: The answer names handleWebSocketEvent as the dispatcher switching on REACTION_ADDED and routing to handleReactionAddedToPostEvent."
+}

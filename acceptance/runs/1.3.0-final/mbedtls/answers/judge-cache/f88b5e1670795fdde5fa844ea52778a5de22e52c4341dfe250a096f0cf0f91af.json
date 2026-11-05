@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library spawns nothing, so under default settings it runs on whatever threads the caller provides.\nVERDICT: MISS\nWHY: The answer says the library spawns no threads by default, but it never says the pthread example compiles to a stub main under that condition. It also lists `ssl_pthread_server.c:277` as a spawn site gated on `MBEDTLS_THREADING_PTHREAD`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"With a callback registered, the only way a call is refused is the deny list.\" (also: \"`check_approval` sets `approved = true` after calling it\")\nVERDICT: HIT\nWHY: The answer says the host callback cannot deny, so an unmatched tool is approved and runs and only the deny list refuses. That is default-allow at the gate, though the answer qualifies it with a no-callback denial."
+}

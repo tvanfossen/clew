@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `skipSync: true` | add path (hardcoded) | `sanitizeReactions` returns early with `deleteReactions: []`, so the add event never deletes stale reactions for that post. Only the create set is computed.\nVERDICT: HIT\nWHY: The answer explains that skipSync stops deletion of other reactions on the post (the sync-diff treating the payload as complete set), and contrasts with full sync, which deletes local rows missing from the payload."
+}

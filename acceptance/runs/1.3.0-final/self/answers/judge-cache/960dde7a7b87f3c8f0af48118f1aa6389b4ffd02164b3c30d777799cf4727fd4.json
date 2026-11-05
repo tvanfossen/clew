@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers scoped misses (`not_searched`, `scope`) and a not-definitive note, but never names a grade for definitive-for-a-reason-other-than-absence (e.g., a corpus mismatch that rules out the file type), so the three-way split isn't stated."
+}

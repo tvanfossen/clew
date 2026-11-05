@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Nested git trees are indexed and tagged, not excluded.\nVERDICT: HIT\nWHY: The answer states outright that nested git trees are indexed and tagged rather than excluded from scope."
+}

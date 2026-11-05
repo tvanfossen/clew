@@ -1,0 +1,163 @@
+{
+  "cell": "Q5_claude-haiku-5-5_index_only_r1",
+  "arm": "index_only",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5294117647058824,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "identifies ctypes over librentropic.so as the mechanism, with no compiled extension module involved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: Python reaches the engine through a plain `ctypes` binding over the C ABI in `include/entropic/entropic.h`. There is no C++ or pybind layer | WHY: The answer states ctypes over the shared library `librentropic.so` is the mechanism and says there is no C++/pybind layer, so no compiled extension module is involved. || QUOTE: Python reaches the engine through a plain `ctypes` binding over the C ABI in `include/entropic/entropic.h`. There is no C++ or pybind layer | WHY: The answer names ctypes over the shared library `librentropic.so` and explicitly says there is no C++ or pybind extension layer. || QUOTE: Python reaches the engine through a plain `ctypes` binding over the C ABI in `include/entropic/entropic.h`. There is no C++ or pybind layer | WHY: Names ctypes over the shared library librentropic.so and explicitly states no pybind/C++ extension layer is involved.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the bindings are GENERATED from the C header by scripts/gen_bindings.py, not hand-written",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: `scripts/gen_bindings.py` (run via the `gen_bindings` task in `tasks.py`) parses the header and generates the ctypes declarations, so the Python side tracks the header rather than being hand-maintained. | WHY: The answer says the ctypes bindings are generated from the C header by scripts/gen_bindings.py rather than hand-maintained. || QUOTE: `scripts/gen_bindings.py` (run via the `gen_bindings` task in `tasks.py`) parses the header and generates the ctypes declarations, so the Python side tracks the header rather than being hand-maintained. | WHY: The answer says the bindings are generated from the C header by scripts/gen_bindings.py rather than hand-maintained. || QUOTE: `scripts/gen_bindings.py` (run via the `gen_bindings` task in `tasks.py`) parses the header and generates the ctypes declarations, so the Python side tracks the header rather than being hand-maintained. | WHY: The answer states the bindings are generated from the C header by scripts/gen_bindings.py rather than hand-maintained.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that drift between the header and the bindings is caught by a pre-commit check that re-runs the generator and diffs",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: `scripts/gen_bindings.py` (run via the `gen_bindings` task in `tasks.py`) parses the header and generates the ctypes declarations, so the Python side tracks the header rather than being hand-maintained. | WHY: The answer names the generator script but never says a pre-commit check re-runs it and diffs the output to catch drift. || QUOTE: NONE | WHY: The answer says gen_bindings.py generates bindings from the header, but it never says a pre-commit check re-runs the generator and diffs to catch drift. || QUOTE: `scripts/gen_bindings.py` (run via the `gen_bindings` task in `tasks.py`) parses the header and generates the ctypes declarations, so the Python side tracks the header rather than being hand-maintained. | WHY: The answer names the generator but never says a pre-commit check re-runs it and diffs to catch drift.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that the generated surface is SPLIT IN TWO on purpose \u2014 a names-only manifest that imports no ctypes, and the real bindings module that loads the library",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says gen_bindings.py generates ctypes declarations but never mentions a names-only manifest that imports no ctypes versus a separate bindings module that loads the library. || QUOTE: NONE | WHY: The answer mentions a generator script producing ctypes declarations and lazy binding imports, but never describes a split into a names-only manifest (no ctypes) and a separate bindings module that loads the library. || QUOTE: NONE | WHY: The answer says gen_bindings.py generates ctypes declarations but never describes a split between a names-only manifest with no ctypes import and a bindings module that loads the library.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the split exists so `import entropic` succeeds before the engine is on disk, which is what makes an install-engine subcommand shippable inside the same package",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Binding symbols are imported lazily, so the install step can run before the library exists. | WHY: The answer states that lazy binding import lets the install-engine step run before the library exists. That is the substance of the item: the package can be imported and the install command shipped inside it before the engine is on disk. || QUOTE: Binding symbols are imported lazily, so the install step can run before the library exists. | WHY: The answer says that lazy binding imports let the install step run before the library exists, and that is the substance of the item. It mentions `entropic install-engine` shipping in the CLI. || QUOTE: Binding symbols are imported lazily, so the install step can run before the library exists. | WHY: The answer states that the loader and bindings are lazy so the install step can run before the engine library exists, which is the item's conclusion about why `install-engine` ships in the same package.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "describes the loader's resolution order as environment overrides first, then a default user directory, then the system library cache \u2014 with two directory layouts tried per root",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: `$ENTROPIC_LIB`, then `$ENTROPIC_HOME` (nested and flat layouts), then `~/.entropic/`, then the system `ldconfig` cache | WHY: The answer gives the order of env overrides, then the user directory, then the system cache, but it says \"nested and flat layouts\" only for `$ENTROPIC_HOME`. The item requires two layouts tried per root, so the answer gestures at part of it and the item resolves to MISS. || QUOTE: `$ENTROPIC_LIB`, then `$ENTROPIC_HOME` (nested and flat layouts), then `~/.entropic/`, then the system `ldconfig` cache | WHY: The answer gives the order of env overrides, then the user directory, then the system cache. But it ties \"nested and flat layouts\" only to `$ENTROPIC_HOME`, not to two layouts tried per root. || QUOTE: `$ENTROPIC_LIB`, then `$ENTROPIC_HOME` (nested and flat layouts), then `~/.entropic/`, then the system `ldconfig` cache | WHY: The answer gives the order of env overrides, then the user directory, then the system cache. But it ties \"nested and flat layouts\" only to `$ENTROPIC_HOME`, not to every root, so the \"two layouts tried per root\" part isn't stated.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states the engine-to-caller rule: a returned char* transfers ownership and is freed with entropic_free, while a const char* stays owned by the handle and is only valid until the next call on it",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Any `char*` the engine returns transfers ownership. It must be released with `entropic_free()`... **`const char*` returns are borrowed.** They are owned by the handle and valid only until the next call on that handle. | WHY: The answer states both halves: a returned char* is caller-owned and freed with entropic_free, and a const char* is handle-owned and valid only until the next call on that handle. || QUOTE: Any `char*` the engine returns transfers ownership. It must be released with `entropic_free()` ... **`const char*` returns are borrowed.** They are owned by the handle and valid only until the next call on that handle. | WHY: The answer states both halves: a returned char* is caller-owned and freed with entropic_free, while a const char* stays handle-owned and is valid only until the next call on that handle. || QUOTE: Any `char*` the engine returns transfers ownership. It must be released with `entropic_free()`... **`const char*` returns are borrowed.** They are owned by the handle and valid only until the next call on that handle. | WHY: The answer states both halves: a returned char* is caller-owned and freed with entropic_free, and a const char* is handle-owned and valid only until the next call.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states the caller-to-engine rule as the SECOND direction: a buffer the engine will free must be allocated with entropic_alloc, and shows where the Python side does that",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"**Caller-provided buffers the engine will free must come from the engine's allocator.** Hook `modified_json` is the case here: `_build_trampoline` in `python/src/entropic/hooks.py` calls `entropic_alloc()`, and the engine frees the result. Memory from Python's own allocator must never be handed to the engine to free.\" | WHY: The answer states the rule that engine-freed buffers must be allocated with entropic_alloc and names the Python location (`_build_trampoline` in hooks.py). || QUOTE: \"**Caller-provided buffers the engine will free must come from the engine's allocator.** Hook `modified_json` is the case here: `_build_trampoline` in `python/src/entropic/hooks.py` calls `entropic_alloc()`, and the engine frees the result.\" | WHY: The answer states the rule that buffers the engine frees must be allocated with entropic_alloc and points to the Python side's `_build_trampoline` in hooks.py.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that the hook trampoline swallows every Python exception rather than letting it unwind into the C engine, treating a failed hook as a pass-through",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: \"**Exceptions never cross into C.** The hook trampoline catches every Python exception, prints the traceback, and returns pass-through (`rc = 0`). A hook that raises is silently skipped\" | WHY: The answer states the trampoline catches all Python exceptions and returns pass-through rc=0, matching the item. || QUOTE: \"**Exceptions never cross into C.** The hook trampoline catches every Python exception, prints the traceback, and returns pass-through (`rc = 0`). A hook that raises is silently skipped, which hides failures; that is a real trade-off.\" | WHY: The answer states that the trampoline catches all Python exceptions and returns pass-through (rc=0), so a failed hook is treated as a pass-through. || QUOTE: \"**Exceptions never cross into C.** The hook trampoline catches every Python exception, prints the traceback, and returns pass-through (`rc = 0`). A hook that raises is silently skipped\" | WHY: The answer states the trampoline catches all Python exceptions and returns pass-through rc=0 on failure.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the files that make up the Python-to-engine boundary \u2014 python/src/entropic/_loader.py",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that make up the Python-to-engine boundary \u2014 python/src/entropic/_bindings.py",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that make up the Python-to-engine boundary \u2014 python/src/entropic/_bindings_manifest.py",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that make up the Python-to-engine boundary \u2014 python/src/entropic/__init__.py",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that make up the Python-to-engine boundary \u2014 include/entropic/entropic.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that make up the Python-to-engine boundary \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": false,
+      "detail": "named 4 not in the set: ['python/src/entropic/hooks.py', 'scripts/gen_bindings.py', 'src/facade/entropic.cpp', 'tasks.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

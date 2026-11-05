@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The only retry is the user's.\" and \"It is triggered from the failed post's bottom sheet, \"Try Again\" (`app/components/post_list/post/body/failed/index.tsx:46-49`).\" and \"(`retryFailedPost`, `post.ts:228-307`)\"\nVERDICT: HIT\nWHY: The answer says there is no automatic retry, that the user's \"Try Again\" action is the only retry, and that it calls `retryFailedPost`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In the default configuration it expands to `private_##member`, so `ctx->MBEDTLS_PRIVATE(state)` compiles to `ctx->private_state`. ... the rename makes direct access fail to compile.\nVERDICT: HIT\nWHY: The answer states that the compile-time mechanism is renaming the member to `private_<name>`, which breaks direct access. It does not say that the struct layout stays visible. The item's core is the member-name break at compile time, and the answer gives that."
+}

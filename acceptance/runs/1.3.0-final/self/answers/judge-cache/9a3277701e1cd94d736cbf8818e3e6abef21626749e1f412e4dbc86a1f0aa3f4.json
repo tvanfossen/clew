@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Bad input.** `apply_options` validates the whole mapping before assigning anything, so one bad entry refuses the whole thing rather than half-applying it.\nVERDICT: MISS\nWHY: The answer never says an unknown section is refused by name against the allowed set. It also doesn't give the reason that ignoring it would build with defaults while claiming the declaration was honoured."
+}

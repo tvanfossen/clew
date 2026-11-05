@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_server2.c:8` and `ssl_client2.c:8` define the macro before any include, so they get plain names.\nVERDICT: HIT\nWHY: The answer states that sample programs (ssl_server2.c, ssl_client2.c) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves, and it contrasts them with ssl_context_info.c, which does not."
+}

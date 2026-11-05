@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Default (`MBEDTLS_PLATFORM_MEMORY` off):** `include/mbedtls/platform.h:163-167` makes `mbedtls_calloc` a macro for `calloc` and `mbedtls_free` a macro for `free`. The library calls libc directly.\"\nVERDICT: HIT\nWHY: The answer states that in the default build mbedtls_calloc/mbedtls_free are macros for calloc/free and the library calls libc directly, which means no indirection."
+}

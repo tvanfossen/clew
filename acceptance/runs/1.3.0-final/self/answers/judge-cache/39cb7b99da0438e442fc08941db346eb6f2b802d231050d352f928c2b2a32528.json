@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Binaries are removed by `lang_parsing_substrate.classify_file` before doxygen reads them. ... `FILE_PATTERNS` is forced to doxygen's own default list\nVERDICT: MISS\nWHY: The answer lists binary removal and doxygen's extension list as filters, but doesn't say the parse-built front end claims types doxygen can't read, and doesn't say binary classification catches files whose extension lies about them. The item asks for one of those two filters to be named with its mechanism, so the answer only gestures at it."
+}

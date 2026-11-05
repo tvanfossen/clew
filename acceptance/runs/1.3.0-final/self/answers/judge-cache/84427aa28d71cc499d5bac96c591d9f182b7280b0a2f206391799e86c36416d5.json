@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The decision lives in `clew/scope.py`, mainly `derive_scope` (line 639).\nVERDICT: HIT\nWHY: The answer names derive_scope in clew/scope.py as where the scope decision is made."
+}

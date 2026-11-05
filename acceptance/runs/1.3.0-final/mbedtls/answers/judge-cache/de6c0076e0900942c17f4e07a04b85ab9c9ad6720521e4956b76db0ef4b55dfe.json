@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When it is defined, the wrapper expands to the plain member name. ... In the default configuration it expands to `private_##member`... Application code in the wild never gets it unless it defines the macro itself before including mbedtls headers.\n\nVERDICT: HIT\nWHY: The answer states that defining MBEDTLS_ALLOW_PRIVATE_ACCESS gives plain member names, while the default configuration gives private_-renamed names. It also says ordinary application code doesn't get the opt-out unless it defines the macro itself."
+}

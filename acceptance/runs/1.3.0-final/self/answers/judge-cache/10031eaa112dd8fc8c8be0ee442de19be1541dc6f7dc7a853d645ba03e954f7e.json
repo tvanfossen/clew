@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Schema axis, older index: call `index(action='refresh', force=True)`.\" and \"Code axis, or schema axis with a newer index: restart the MCP client so it loads current code.\"\nVERDICT: MISS\nWHY: The answer says which action clears each axis, but never explains that the differing remedies are why a single flag would not have sufficed."
+}

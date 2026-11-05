@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`createPost` in `app/actions/remote/post.ts:74` writes the post to the local database before calling the server\" and \"Rebuilds the post with `props.failed: true`... Saves it to the database\"\nVERDICT: HIT\nWHY: The answer states the post is saved locally before the send and, on failure, is kept in the database with `props.failed: true`."
+}

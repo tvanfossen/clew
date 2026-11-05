@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Matching is `fnmatch` (no `FNM_PATHNAME`)... **No colon** (`filesystem.*`, `git.commit`): only the tool name is matched. ... **With a colon** (`bash.execute:python*`): the tool part must match the tool name, and the whole `tool:arg` string must match the pattern.\"\nVERDICT: HIT\nWHY: The answer says matching uses fnmatch, separates a tool part from an argument part at the colon, and says a pattern with no colon matches on the tool name alone. It never says \"first\" colon, which is a minor omission."
+}

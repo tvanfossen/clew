@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is a two-step sized read with no retry, no loop, and no backoff.\nVERDICT: HIT\nWHY: The answer identifies a size probe (null buffer, negative of required count) followed by a fill, and says there is no retry, loop, or backoff. It also says the second call runs once."
+}

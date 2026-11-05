@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that the staleness measurement is non-raising or that a failed measurement degrades to no annotation. It says only that a failed refresh falls back to the old index with a notice attached, which is a different fact."
+}

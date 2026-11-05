@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says `createPost` returns success (`{data: true}`) to its caller on failure; it only describes the post being saved as failed."
+}

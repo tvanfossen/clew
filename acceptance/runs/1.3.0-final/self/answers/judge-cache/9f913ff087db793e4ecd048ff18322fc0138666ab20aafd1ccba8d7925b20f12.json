@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the winning tier for each option is stamped into `build_meta` as `options.<name>.tier`, so two indexes of one commit that differ in policy show it in their metadata.\nVERDICT: MISS\nWHY: The answer says the winning tier is recorded in build_meta but never says the record is derived from stored rows rather than stamped as a separate summary; it says \"stamped,\" which is the opposite."
+}

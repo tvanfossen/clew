@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says rows are deduplicated across layers and never states that call_edges stores one row per extraction layer, so the same edge found by two detectors is stored twice."
+}

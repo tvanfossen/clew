@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each notice is a `{axis, message}` pair... | `data` | ... | `schema` | ... | `code` | ... \"clew measures staleness on three independent axes every time it answers a query\"\nVERDICT: HIT\nWHY: The answer explicitly states staleness is measured on three independent axes and names them as data, schema, and code."
+}

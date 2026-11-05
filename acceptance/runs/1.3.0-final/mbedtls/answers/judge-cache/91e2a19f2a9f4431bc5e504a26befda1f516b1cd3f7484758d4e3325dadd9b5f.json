@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With assembly (`MBEDTLS_CT_ASM`), it is `asm volatile(\"\" : [x] \"+r\"(x))`. The empty asm claims to read and write the register, so the compiler cannot fold or prove anything about it.\nVERDICT: HIT\nWHY: The answer names the empty asm volatile with a \"+r\" input-output register operand and explains it exists to stop the optimiser reasoning about the value."
+}

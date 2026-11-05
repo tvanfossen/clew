@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Deny (`is_denied`, in `ServerManager::execute`): checked on every call that reaches execution, after approval. It is the one place deny is enforced... Only the deny list and the `auto_approve_tools`/allow logic gate calls.\"\nVERDICT: MISS\nWHY: The answer says the deny check happens in ServerManager::execute. It does not conclude that the deny list is the only list blocking execution, because it says the allow list and approval gate calls too. It does not say that execute consults is_denied and nothing else."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Verification is a test-time check with Valgrind or MemorySanitizer, and it only covers paths the tests exercise.\nVERDICT: MISS\nWHY: The answer names Valgrind/MemSan test verification, but it doesn't say the facility is off-by-default or that it is explicitly not part of the library API. It says only `mbedtls_ct_memcmp` is public."
+}

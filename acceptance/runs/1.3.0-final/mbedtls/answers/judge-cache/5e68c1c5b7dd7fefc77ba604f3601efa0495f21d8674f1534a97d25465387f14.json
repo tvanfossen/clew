@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the default build uses a function-pointer path through platform.c wrappers, which contradicts the item's claim that the default build has no indirection and expands directly to calloc/free macros."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A malformed `.clew.yaml` section is refused by name (fail closed).\nVERDICT: MISS\nWHY: The answer says a malformed section is refused by name, but it never says an unknown section is refused against the allowed set. It also doesn't give the reason that an ignored section would build with defaults while claiming the declaration was honoured."
+}

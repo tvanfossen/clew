@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: External bridge accept loop | `src/facade/external_bridge.cpp:796` ... Per-client MCP serve threads | `external_bridge.cpp:945`, reaped in `reap_finished_clients_locked()`\nVERDICT: HIT\nWHY: The answer lists an accept-loop thread plus separate per-client serve threads spawned for connected clients, with the client list joined in stop(), which conveys the two-level structure."
+}

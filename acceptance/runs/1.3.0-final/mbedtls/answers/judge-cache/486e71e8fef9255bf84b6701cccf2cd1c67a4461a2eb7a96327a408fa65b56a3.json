@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With asm it is an empty `asm volatile (\"\" : \"+r\"(x))`. Without asm it is `x ^ mbedtls_ct_zero`\nVERDICT: HIT\nWHY: The answer states the asm path is an empty `asm volatile` with x as an input-output (\"+r\") operand, and describes it as an opacity barrier that stops the compiler from folding the value."
+}

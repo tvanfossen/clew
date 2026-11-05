@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `DocsDbServer.staleness_notices()` in `clew/mcp_server/server.py` attaches a list of `{axis, message}` to query replies. The list is empty when the index is current, and the `staleness` key is absent in that case.\nVERDICT: HIT\nWHY: The answer says staleness notices are attached to query replies and are empty/absent when the index is current. Both halves of the item are stated."
+}

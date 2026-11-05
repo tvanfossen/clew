@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With the grammars absent, `compiled_languages()` returns an empty set and logs an error. It does not crash. ... `_grammar_available` checks them before routing a file to a grammar. ... An empty answer then names the file types the build did not read\nVERDICT: HIT\nWHY: The answer says that missing grammars don't crash, that a grammar-availability check runs before routing, and that a not-indexed report names the unread file types."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer gives only a few example sites in public headers and never states the many-hundreds scale or that usage is overwhelmingly in public headers rather than library implementation."
+}

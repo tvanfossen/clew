@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Saves that pending state, then calls `client.createPost` once more. ... On failure, either removes the post (for the same three errors) or sets `props.failed` again so the user can retry. Each retry is a single manual attempt.\"\nVERDICT: HIT\nWHY: The answer says `retryFailedPost` makes one new `createPost` call, with no loop or HTTP retries. On failure it removes the post for the same three errors or marks it failed again."
+}

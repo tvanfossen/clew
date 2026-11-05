@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Buffers the engine will free must come from the engine's allocator.** Any consumer-provided buffer that the engine later frees, such as a hook's `modified_json`, must be allocated with `entropic_alloc()`. In `hooks.py`, `_alloc_c_string` and the trampoline use `entropic_alloc` for this reason.\"\nVERDICT: HIT\nWHY: The answer states that engine-freed buffers must be allocated with entropic_alloc and identifies the Python location (hooks.py `_alloc_c_string` and the trampoline)."
+}

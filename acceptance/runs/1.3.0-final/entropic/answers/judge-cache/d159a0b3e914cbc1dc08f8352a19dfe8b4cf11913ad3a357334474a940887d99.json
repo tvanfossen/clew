@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::start` (`external_bridge.cpp:796`) | `accept_loop` ... Each client gets its own `ClientThread`, held in `client_threads_` ... `ExternalBridge::accept_loop` (`:945`) | per-client `serve_client`\nVERDICT: HIT\nWHY: The answer says start spawns the accept_loop thread, and accept_loop spawns a per-client serve_client thread for each accepted connection. That is the two-level structure."
+}

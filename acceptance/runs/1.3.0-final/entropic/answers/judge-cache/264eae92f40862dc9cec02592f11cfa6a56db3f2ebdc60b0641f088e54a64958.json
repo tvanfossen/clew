@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Both pairs are in `src/inference/llama_cpp_tokenizer.cpp`... **Tokenize (lines 55 and 61).** ... Call with a null buffer and size 0 to learn the token count... Allocate a `std::vector` of that size and call again to fill it.\"\nVERDICT: HIT\nWHY: The answer names the file and explains the two-call size-query/fill pattern for both tokenize and detokenize, with line numbers."
+}

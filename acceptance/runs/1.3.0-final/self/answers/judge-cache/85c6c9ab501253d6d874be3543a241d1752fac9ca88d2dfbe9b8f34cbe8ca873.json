@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Nested trees: they are indexed, not excluded (gh#333). `external.py` tags their rows afterwards so their files can be told apart.\nVERDICT: HIT\nWHY: The answer explicitly says nested git trees are indexed rather than excluded and that their rows are tagged afterwards."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists tier 3 and tier 4 as separate entries and shows the formula `\u222a tier3 \u222a tier4`, but it never says they combine identically or that the distinction between them is inert. It also never calls the fact-versus-guess line the load-bearing one."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nclew/query/symbols.py\nclew/dispatch_edges.py\ntests/test_unresolved_inbound.py\ntests/test_self_edges.py\nEND"
+}

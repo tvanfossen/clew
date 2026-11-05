@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `'key'` means a function that writes a shared key the target reads. A `'key'` row does not call the target and may run on another thread.\nVERDICT: MISS\nWHY: The answer says \"key\" callers are writers of a key the target reads, but it never states that polarity is inverted between the two halves, so the specific point is absent."
+}

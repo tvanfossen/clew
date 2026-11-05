@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The asm is gated on `MBEDTLS_CT_ASM`, which is defined only when `MBEDTLS_HAVE_ASM` is on and the compiler is GNU-compatible (`__GNUC__`) or ARM Compiler (`__ARMCC_VERSION`) (`constant_time_impl.h:40-52`).\nVERDICT: HIT\nWHY: The answer says MBEDTLS_CT_ASM is defined from MBEDTLS_HAVE_ASM plus compiler predefined macros, which conveys it is derived. It never says \"not set in mbedtls_config.h\", but the mechanism is stated."
+}

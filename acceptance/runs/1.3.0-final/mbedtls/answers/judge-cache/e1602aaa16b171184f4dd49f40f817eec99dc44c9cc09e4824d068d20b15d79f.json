@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the setter isn't involved on the macro path (\"No runtime setter is involved\") but never states that mbedtls_platform_set_calloc_free is neither declared nor compiled there."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library spawns nothing, so under default settings it runs on whatever threads the caller provides. ... `library/threading.c` ... `mbedtls_threading_key_slot_mutex` ... PSA key slots.\nVERDICT: HIT\nWHY: The answer states the library spawns no threads (all spawn sites are in programs/) and that library/threading.c supplies the mutexes (PSA key slot, heap, etc.) used by threaded callers."
+}

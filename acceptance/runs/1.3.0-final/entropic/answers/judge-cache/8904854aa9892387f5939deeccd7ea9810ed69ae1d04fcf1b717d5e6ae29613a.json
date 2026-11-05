@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these files as taking part in the decision:\n\nITEMS:\ntool_executor.cpp\nserver_manager.cpp\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp is a **vendored git submodule**, built from source in-tree. ... `.gitmodules` maps `extern/llama.cpp` to `ggml-org/llama.cpp`.\nVERDICT: HIT\nWHY: The answer states llama.cpp is a git submodule at extern/llama.cpp (via .gitmodules) and not a FetchContent dependency, so the item's substance is present."
+}

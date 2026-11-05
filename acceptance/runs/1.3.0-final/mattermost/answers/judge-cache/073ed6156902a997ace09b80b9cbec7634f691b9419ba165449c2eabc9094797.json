@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Any other value, including the setting being absent, turns it on. When the server doesn't send it, the app behaves as if the feature is enabled.\" and \"`const archivedChannelsViewable = (value?: string) => value !== 'false';`\"\nVERDICT: HIT\nWHY: The answer states that an absent setting means archived channels are viewable and only explicit 'false' disables them."
+}

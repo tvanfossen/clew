@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Matching is `fnmatch` (shell globs, `*` also matches `/`), in `PermissionManager::pattern_matches`: ... **`tool`** (no colon): matches every call to that tool. ... **`tool:argpattern`** (has a colon): the part before the first colon is glob-matched against the tool name. The whole pattern is then glob-matched against `tool:argvalue`.\"\nVERDICT: HIT\nWHY: The answer states fnmatch matching, a split at the first colon into a tool part and an argument part, and that a pattern with no colon matches on the tool name alone."
+}

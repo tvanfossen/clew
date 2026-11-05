@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `DocsDbServer.staleness_notices()` (`server.py:1548`) is attached to every query reply as a `{axis, message}` list. The list is empty when nothing is stale, so a current index adds no noise.\nVERDICT: HIT\nWHY: The answer states the notices are attached to every query reply and that the list is empty when the index is current."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A tokenizer failure is indistinguishable from empty input. Generation and completion then run with no prompt, and counting reports zero. Only the speculative and MTP paths check for it.\nVERDICT: HIT\nWHY: The answer says failure is indistinguishable from empty input and that only the speculative/MTP callers check for it. The item's \"no caller checks\" is slightly overstated, but the substance is stated."
+}

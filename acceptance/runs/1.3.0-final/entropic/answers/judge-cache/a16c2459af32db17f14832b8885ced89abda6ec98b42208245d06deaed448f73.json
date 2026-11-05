@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::accept_loop` | ... | Polls the listen socket, rejects other UIDs via `SO_PEERCRED`, spawns a serve thread per client\nVERDICT: HIT\nWHY: The answer names the accept thread and states that it spawns a serve thread per client (with a per-client serve thread row)."
+}

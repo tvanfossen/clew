@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes five tiers but names them as CLI flags, .clew.yaml, facts, ecosystem signatures, and heuristics. It also says \"four ways to state\" plus two built-in layers, which does not match the item's five named precedence tiers for layered build options."
+}

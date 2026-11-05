@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The facility is used across bignum, RSA, ciphers, MACs/AEAD, and SSL/PSA, but I could not verify every caller from the index.\nVERDICT: MISS\nWHY: The answer lists broad areas of use but never conveys a scale of about twenty modules, and it explicitly hedges that the caller lists are not exhaustive."
+}

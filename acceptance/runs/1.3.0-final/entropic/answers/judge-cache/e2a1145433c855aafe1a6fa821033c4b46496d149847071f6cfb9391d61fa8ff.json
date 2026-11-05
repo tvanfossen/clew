@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"src/inference/ \u2500\u2500 concrete llama.h / common / mtmd usage llama_cpp_backend, _sampler, _tokenizer, orchestrator, adapter_manager, speculative_compat, grammar_registry, inference_c_api, interface_factory\"\nVERDICT: MISS\nWHY: The answer lists about nine files in src/inference/ plus the facade, but it stresses that the usage is \"confined to src/inference/\" and never says the dependency reaches roughly a dozen files rather than one wrapper."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If that define is set, the default is `platform_calloc_uninit` (`platform.c:25-33`), which always returns NULL. The same applies to free (`platform.c:36-45`).\nVERDICT: MISS\nWHY: The answer says the uninit calloc always returns NULL and that the default \"will fail every allocation\", but it never says the uninit free does nothing; it only says \"the same applies\" without stating that behaviour."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Public structs are declared as `int MBEDTLS_PRIVATE(foo);`, which means the field is named `private_foo` for anyone who doesn't opt out. Code that writes `ctx->foo` fails to compile, and `ctx->private_foo` is the only spelling left... The header is a rename, not an access control.\nVERDICT: HIT\nWHY: The answer says opacity is enforced at compile time by renaming the member (`private_foo`) and not by access control. It does not say outright that the layout stays visible and sized, but \"rename, not an access control\" carries that substance."
+}

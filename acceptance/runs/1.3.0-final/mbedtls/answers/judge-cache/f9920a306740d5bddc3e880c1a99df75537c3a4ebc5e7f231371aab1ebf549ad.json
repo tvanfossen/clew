@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The index lists a second `mbedtls_strerror` definition at `library/error.c:867`, most likely the `MBEDTLS_ERROR_STRERROR_DUMMY` variant. I did not read it.\"\nVERDICT: MISS\nWHY: The answer only speculates a second definition might be the DUMMY variant; it doesn't state that it keeps the function linkable with the string table compiled out, nor that it's enabled by default."
+}

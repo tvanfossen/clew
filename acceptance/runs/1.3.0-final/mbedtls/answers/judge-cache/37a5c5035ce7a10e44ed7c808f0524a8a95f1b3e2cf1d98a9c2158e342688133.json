@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Compile-time override (`MBEDTLS_PLATFORM_MEMORY` plus both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`)** ... **Runtime override (`MBEDTLS_PLATFORM_MEMORY` on, macros not defined)** ... Precedence: the compile-time macros win. `platform.c:16-19` says so, and it compiles out the runtime setter entirely in that case.\"\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer pair. It also says the runtime setter is compiled out when the macros are defined, which makes the two mechanisms mutually exclusive."
+}

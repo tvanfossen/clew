@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`freshness.notices(status, identity)` turns that into named axes, in this order: | `data` | ... | `schema` | ... | `code` |\"\nVERDICT: HIT\nWHY: The answer opens with \"the index can tell it is stale on three separate axes\" and names them as data, schema and code."
+}

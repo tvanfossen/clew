@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Unknown input is refused, not ignored. An unknown section in `.clew.yaml` raises `DeclarationError`... Refusing is deliberate: an ignored key would let the build report success under defaults.\"\nVERDICT: HIT\nWHY: The answer says an unknown section is refused rather than ignored, and gives the reason: ignoring it would let the build report success under defaults. It does not say the error names the section or lists the allowed set, but the core mechanism and rationale are both stated."
+}

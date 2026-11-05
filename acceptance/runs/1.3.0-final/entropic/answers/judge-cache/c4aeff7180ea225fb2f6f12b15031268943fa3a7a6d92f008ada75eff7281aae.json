@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The table lists threads in inference (`src/inference/inference_c_api.cpp:385`, `interface_factory.cpp:246`), core (`response_generator.cpp:413`), `src/mcp/health_monitor.cpp:92`, MCP transports (`transport_stdio.cpp:164`, `transport_sse.cpp:107`), and the external bridge (`src/facade/external_bridge.cpp:796`, `:945`, `:1158`).\nVERDICT: HIT\nWHY: The answer's table places thread creation in the external bridge, the MCP transports, the health monitor and the inference path. It does not say outright that creation is decentralised, but it names all four subsystems with their locations."
+}

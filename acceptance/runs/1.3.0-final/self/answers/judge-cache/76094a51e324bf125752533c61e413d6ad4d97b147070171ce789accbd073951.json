@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \".yaml`, `.yml`, `.json` | `path` row only | Registered so the file is findable by name. Never harvested.\" and \"No symbols for YAML or JSON, so no keys, values or structure are queryable.\"\nVERDICT: HIT\nWHY: The answer states YAML/JSON are registered (path row) but carry no symbols, and contrasts them with shell/CMake, which get function symbols."
+}

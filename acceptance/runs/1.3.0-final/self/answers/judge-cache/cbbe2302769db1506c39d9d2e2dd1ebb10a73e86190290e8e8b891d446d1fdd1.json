@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `edge_class='key'` rows are writers of a shared key that the function reads. They don't call it and may run on another thread.\nVERDICT: HIT\nWHY: The answer says that callers of a reader include the writers of a shared key it reads, with no call relationship. That is the inverted causal polarity the item describes."
+}

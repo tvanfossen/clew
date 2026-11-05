@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Python may not let an exception reach C.** The hook trampoline wraps the user function in a `try` block, prints the traceback and returns \"pass through\" on any exception.\nVERDICT: HIT\nWHY: The answer states the trampoline catches any exception and returns pass-through, so no exception unwinds into C."
+}

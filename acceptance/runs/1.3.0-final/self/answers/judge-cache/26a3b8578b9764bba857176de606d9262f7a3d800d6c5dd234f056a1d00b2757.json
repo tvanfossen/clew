@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If no usable root survives, the declaration is rejected and the build falls back to the whole repo, with the rejection reason written into the log. ... The reason string says \"no `index_scope` is declared\", names the file it looked in, and says the Doxyfile supplies aliases and predefines but not INPUT.\n\nVERDICT: HIT\nWHY: The answer states that the whole-repo fallback carries a reason string explaining why that scope was used (no index_scope declared, rejection reason recorded), rather than guessing silently."
+}

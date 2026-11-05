@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h` | 132 | The library's own internal sources ... \"If it is unconditional, every library source that includes `common.h` gets direct access.\"\nVERDICT: HIT\nWHY: The answer says the library's `common.h` defines the opt-out, so library sources including it see real member names. It hedges on whether the define is conditional, but it still states the mechanism."
+}

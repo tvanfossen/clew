@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says threads are only in programs/ and that threading.c holds mutex abstractions, but it never states the contrast that nothing in library/ creates a thread while library/ supplies the mutex abstraction for threaded callers. It frames the mutex code as optional and compiled out by default."
+}

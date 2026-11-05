@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The C ABI deliberately uses `int*` to avoid crossing atomics at the `.so` boundary.\nVERDICT: MISS\nWHY: The answer lists cancel pollers (`int*` \u2192 atomic) and notes the C ABI uses `int*` to avoid atomics. It never says the observer thread exists to bridge an atomic into a plain int, so the specific mechanism is not stated."
+}

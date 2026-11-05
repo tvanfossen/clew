@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is wired to the \"Try Again\" item (`post.failed.retry`) in the failed-post bottom sheet (`app/components/post_list/post/body/failed/index.tsx:46-49`).\nVERDICT: HIT\nWHY: The answer says the send is never retried automatically and that \"Try Again\" in the failed-post sheet triggers `retryFailedPost`, which covers both parts of the item."
+}

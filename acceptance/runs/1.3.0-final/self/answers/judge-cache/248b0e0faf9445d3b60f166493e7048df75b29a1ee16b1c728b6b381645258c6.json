@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If any of the remaining kinds (typedefs, macros, variables, and so on) hold a row matching the query, the reply says \"NOT DEFINITIVE \u2014 this index HOLDS matching rows that search does not read\"... The check is derived by subtraction, so a new kind downgrades the verdict without an edit to the emptiness code.\"\nVERDICT: HIT\nWHY: The answer says the verdict is computed per query by checking which kinds the index holds that search did not read (`unsearched_corpora`), and the strong \"definitive\" wording is granted only when that check finds nothing, instead of being tied to the shape of the result."
+}

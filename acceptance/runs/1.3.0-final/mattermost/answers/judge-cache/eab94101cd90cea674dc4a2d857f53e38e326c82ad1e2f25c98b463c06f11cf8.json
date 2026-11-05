@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each handler is a mixin of the form `<TBase>(superclass) => class extends superclass`, paired with an interface (`XHandlerMix`) so TypeScript sees the methods.\nVERDICT: HIT\nWHY: The answer says each handler is paired with an interface (`XHandlerMix`) so TypeScript sees the methods. That covers the declaration-merging mechanism, though the answer doesn't say the interface has the same name as the class or that it extends the Mix type."
+}

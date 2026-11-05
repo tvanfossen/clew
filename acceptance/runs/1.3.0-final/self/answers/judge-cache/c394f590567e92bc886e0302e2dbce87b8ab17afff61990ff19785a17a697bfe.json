@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Name is taken from the first argument\nVERDICT: HIT\nWHY: The answer's CMake row says the definition name comes from the first argument, which is the substance of \"name is an argument of the command, not a named field of the node.\""
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`run_async_ask` detaches its worker** (`external_bridge.cpp:1222`, `}).detach();`). The lambda captures `this`, and `stop()` does not track or join it.\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as the detached thread, notes that `stop()` neither tracks nor joins it, and says it can outlive the bridge."
+}

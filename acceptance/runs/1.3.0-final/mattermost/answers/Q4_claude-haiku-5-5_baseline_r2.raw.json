@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 31881,
+  "stop_reason": "end_turn",
+  "session_id": "9cd6953a-fa02-48ed-883d-564dffcf6561",
+  "total_cost_usd": 0.009203510000000002,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 15182,
+    "cache_read_input_tokens": 327871,
+    "output_tokens": 5774,
+    "output_tokens_details": {
+      "thinking_tokens": 2335
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 15182,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2763,
+        "cache_read_input_tokens": 54322,
+        "cache_creation_input_tokens": 1520,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1520
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 5774,
+      "cacheReadInputTokens": 327871,
+      "cacheCreationInputTokens": 15182,
+      "webSearchRequests": 0,
+      "costUSD": 0.009203510000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2335,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 15182,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The app treats `ExperimentalViewArchivedChannels` as a single on/off gate for archived channels, and it fails open: if the server doesn't send the key, archived channels are treated as enabled. Only an explicit `\"false\"` turns the feature off. `\"true\"` and an absent key behave the same.\n\n**Where the value is read**\n\nAll gating goes through one helper in `app/queries/servers/system.ts:297-315`. The `archivedChannelsViewable` function returns `value !== 'false'`. `canViewArchivedChannels` (async) and `observeCanViewArchivedChannels` (observable, with `distinctUntilChanged`) both wrap it. The config row is looked up with `getConfigValue` / `observeConfigValue`, which return `undefined` when no row exists.\n\n**Every place the behaviour depends on it**\n\n| Area | File:line | What changes when viewable is true (false is the opposite) |\n|---|---|---|\n| Category header | `app/screens/home/channel_list/categories_list/categories/header/index.ts:15` \u2192 `app/database/models/server/category.ts:107` | `observeHasChannels` counts archived channels as channels when deciding whether a category has content. When false, only active channels count, plus the current channel. |\n| Browse Channels dropdown | `app/screens/browse_channels/index.ts:21,49` \u2192 `browse_channels.tsx:190-195` \u2192 `channel_dropdown.tsx:67-74` \u2192 `dropdown_slideup.tsx:74` | The \"archived\" entry is offered in the Show dropdown. The dropdown is rendered if archived or shared channels are enabled, and the sheet height counts the archived entry. |\n| Archive screen copy | `app/screens/channel_settings/archive/index.ts:21` \u2192 `archive.tsx:109` | The confirm message uses the \"can view archived\" text or the \"cannot view archived\" text. |\n| Archive screen navigation | `archive.tsx:121` | After a successful archive, `close(!canViewArchivedChannels)` is called, so the flag is passed as the `pop` argument. |\n| Archive action | `app/actions/remote/channel.ts:1397-1401` | If viewable, the channel is kept locally with a `delete_at` timestamp (`setChannelDeleteAt`). If not, the current user is removed from the channel locally. |\n| Archived-channel websocket event | `app/actions/websocket/channel.ts:463-470` | If not viewable, the app kicks the user out if it is the current channel and removes their membership. If viewable, the channel stays in the DB as archived. |\n| Post search | `app/actions/remote/search.ts:62-68` | Sent to the server as `include_deleted_channels`, so search results include archived channels only when viewable. |\n\nTwo things I noticed while tracing:\n- `app/screens/browse_channels/search_handler.tsx:27` declares a `canShowArchivedChannels` prop, but nothing in that file reads it. It looks dead.\n- `browse_channels.tsx` has a branch that handles `channel.delete_at > 0` (archived) by calling `fetchMyChannel`. That branch does not check the flag. The comment above it assumes archived channels are only visible when the flag is on.\n\n**When the server does not send the setting**\n\nThe value is `undefined`, so `archivedChannelsViewable` returns `true`. Every row above behaves as if the feature is enabled. The code comment in `system.ts:297-303` explains why: servers newer than v10.11 stopped sending the key because the feature is always on. Servers from v5.26.2 up to v10.11 still send it, and an explicit `false` there is honoured.\n\nThe test-side code agrees with this. `app/queries/servers/system.test.ts:692-717` covers absent (true), `\"true\"` (true), and `\"false\"` (false). The Detox harness treats absence as enabled (`detox/e2e/support/server_api/system.ts:139`), and `detox/shared/server-baseline.ts:80` marks the key with `absentIsBaseline: true`.\n\nThe helpers carry a TODO to delete them once servers \u2264 v10.11 are no longer supported. At that point archived channels would be treated as always viewable.\n\nI did not run the test suite; this answer is from reading the code.",
+  "ttft_ms": 3043,
+  "type": "result",
+  "duration_ms": 32263,
+  "uuid": "9ac99014-e607-4e00-9f30-185b3fc5e7ce",
+  "ttft_stream_ms": 2878,
+  "time_to_request_ms": 113,
+  "first_content_frame_ms": 2878,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

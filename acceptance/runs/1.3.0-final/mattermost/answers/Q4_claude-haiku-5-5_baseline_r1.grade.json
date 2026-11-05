@@ -1,0 +1,113 @@
+{
+  "cell": "Q4_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.8571428571428571,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "concludes that a missing setting means archived channels ARE viewable \u2014 only an explicit 'false' turns them off",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"Any other value, including the setting being absent, turns it on. When the server doesn't send it, the app behaves as if the feature is enabled.\" and \"`const archivedChannelsViewable = (value?: string) => value !== 'false';`\" | WHY: The answer states that an absent setting means archived channels are viewable and only explicit 'false' disables them. || QUOTE: Any other value, including the setting being absent, turns it on. When the server doesn't send it, the app behaves as if the feature is enabled. | WHY: The answer states that an absent setting means archived channels are viewable and only an explicit 'false' disables them. || QUOTE: \"Any other value, including the setting being absent, turns it on. When the server doesn't send it, the app behaves as if the feature is enabled.\" | WHY: The answer states that only an explicit 'false' disables archived-channel viewing and that an absent setting leaves it enabled.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 app/actions/websocket/channel.ts",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 app/actions/remote/channel.ts",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 app/actions/remote/search.ts",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 app/screens/browse_channels/index.ts",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 app/screens/channel_settings/archive/index.ts",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 app/screens/home/channel_list/categories_list/categories/header/index.ts",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "states that when a channel is archived while archived channels are NOT viewable, the user is removed from it (and kicked out if it is the current channel); when viewable, the channel is kept and marked deleted",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: Removes the current user from the channel instead | WHY: The answer covers the removal when not viewable (archiveChannel row, and websocket kick), but it never says the channel is kept and marked deleted when viewable, and the \"kicked out if current channel\" is tied to the websocket event, not clearly this described behavior; partially stated at best. || QUOTE: Removes the current user from the channel instead | Sets `delete_at` locally, so the channel stays in the list as archived | WHY: The answer covers the local archiveChannel path (delete_at set vs. user removed) and a websocket kick, but it doesn't state that the channel is \"marked deleted\" when viewable or \"kicked out if it is the current channel\" when not viewable. It puts the kick under the websocket event with a different condition (\"If the user is in the archived channel\").",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that post search sends the setting to the server as `include_deleted_channels`",
+      "kind": "retrieval",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: Sends `include_deleted_channels: true` with post search | WHY: The answer states that post search (`app/actions/remote/search.ts`) sends `include_deleted_channels` to the server, with `true` or `false` set from the setting. || QUOTE: Sends `include_deleted_channels: true` with post search | WHY: The answer's table row 6 states that post search sends `include_deleted_channels` to the server, true when viewable and false otherwise. || QUOTE: Sends `include_deleted_channels: true` with post search | WHY: The answer's table row 6 states that post search sends `include_deleted_channels` to the server, true or false depending on the setting.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

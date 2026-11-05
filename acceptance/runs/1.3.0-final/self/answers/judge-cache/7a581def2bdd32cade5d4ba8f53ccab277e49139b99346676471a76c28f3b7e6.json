@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `--declare FILE`, the `options` argument of `build_index` / `index(action='refresh')`, or a single flag such as `--entry-patterns`, `--scope`, `--exclude`\nVERDICT: HIT\nWHY: Tier 1 is stated as reachable via CLI flags (`--declare`, `--entry-patterns`, etc.) and via the structured `options` argument of `build_index` / `index(action='refresh')`, which is the embedding entry point."
+}

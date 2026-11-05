@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is a source-level compatibility boundary, not a security one. The struct layout is unchanged, and `ctx->private_state` still compiles for anyone who types it.\"\nVERDICT: HIT\nWHY: The answer says that renaming the member to `private_*` causes the compile error and that the struct layout is unchanged, so the fields stay visible."
+}

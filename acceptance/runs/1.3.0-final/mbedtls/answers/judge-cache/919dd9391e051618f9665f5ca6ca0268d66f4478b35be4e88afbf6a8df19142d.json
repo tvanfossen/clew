@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It needs `MBEDTLS_PLATFORM_C` and `MBEDTLS_PLATFORM_MEMORY`, and it replaces the `calloc`/`free` calls rather than adding to them.\nVERDICT: HIT\nWHY: The answer states the buffer allocator (memory_buffer_alloc) requires MBEDTLS_PLATFORM_MEMORY, and elsewhere it says the substitution routes through the platform hook, which is only compiled under that option."
+}

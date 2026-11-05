@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The user retries by tapping the failed-post control, which calls `retryFailedPost`.\nVERDICT: HIT\nWHY: The answer says no automatic retry occurs and that user action on the failed post triggers `retryFailedPost`, which covers the item's substance. It doesn't use the \"Try Again\" label."
+}

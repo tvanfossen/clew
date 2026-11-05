@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**`tool:argpattern`** (has a colon): the part before the first colon is glob-matched against the tool name. The whole pattern is then glob-matched against `tool:argvalue`.\" and \"**`tool`** (no colon): matches every call to that tool.\"\nVERDICT: HIT\nWHY: The answer states fnmatch matching, a split at the first colon into tool and argument parts, and that a colon-less pattern matches on the tool name alone."
+}

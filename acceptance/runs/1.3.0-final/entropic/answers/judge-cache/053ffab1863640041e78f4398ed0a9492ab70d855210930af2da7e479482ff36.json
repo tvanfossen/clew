@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions detokenize or a fixed 256-byte stack buffer; it only describes tokenize's size-probe."
+}

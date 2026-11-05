@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ServerDataOperator` (`app/database/operator/server_data_operator/index.ts:40`) is a mixin stack built with the `mix()` helper (`app/utils/mix.ts`). It starts from `ServerDataOperatorBase` and applies 13 handler mixins in order\nVERDICT: HIT\nWHY: The answer states ServerDataOperator is built with the `mix()` helper starting from ServerDataOperatorBase and applying handler mixins, which matches the item."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ClientPosts.createPost` (`app/client/rest/posts.ts:46`) passes `noRetry: true`. In `buildRequestOptions` ... that sets `retryPolicyConfiguration = {retryLimit: 0}`, so the network layer does not retry the POST.\nVERDICT: HIT\nWHY: The answer explicitly states the create-post request has no automatic retries (noRetry: true, retryLimit 0), so it is sent once."
+}

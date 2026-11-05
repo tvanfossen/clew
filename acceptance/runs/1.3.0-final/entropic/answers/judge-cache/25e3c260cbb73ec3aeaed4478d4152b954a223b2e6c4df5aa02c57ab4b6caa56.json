@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Exceptions | Never cross `.so` | Trampolines wrap calls in `try/except` and `traceback.print_exc()`\nVERDICT: MISS\nWHY: The answer says exceptions are caught and printed in trampolines, but never says a failed hook is treated as a pass-through, so the item's second half is absent."
+}

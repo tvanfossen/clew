@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: So a failure is indistinguishable from legitimately empty input, and the only signal is one log line from the tokenizer.\nVERDICT: HIT\nWHY: The answer states failure is indistinguishable from empty, and that the generation entry points never check for it: counts return 0 silently, and generate paths carry on with no tokenization error reaching the caller."
+}

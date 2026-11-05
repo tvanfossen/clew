@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"CLI flag (`--shared-key-patterns`, `--thread-patterns`, `--mqtt-dispatch`, `--data-model`, `--doxyfile`, `--entry-patterns`, `--extra-input`, \u2026) or the `options` argument for embedding callers\"\nVERDICT: HIT\nWHY: The tier 1 row states it is reachable via both a CLI flag and the `options` argument for embedding callers."
+}

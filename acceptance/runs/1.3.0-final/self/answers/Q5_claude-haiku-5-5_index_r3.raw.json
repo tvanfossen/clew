@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 23439,
+  "stop_reason": "end_turn",
+  "session_id": "9c8a9276-695e-42d9-b473-4f561da4cc64",
+  "total_cost_usd": 0.010282410000000002,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 23505,
+    "cache_read_input_tokens": 353401,
+    "output_tokens": 4092,
+    "output_tokens_details": {
+      "thinking_tokens": 1689
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 23505,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1971,
+        "cache_read_input_tokens": 62899,
+        "cache_creation_input_tokens": 448,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 448
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 4092,
+      "cacheReadInputTokens": 353401,
+      "cacheCreationInputTokens": 23505,
+      "webSearchRequests": 0,
+      "costUSD": 0.010282410000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1689,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 23505,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "There are four ways to say so, ordered by precedence, plus one piece of side input. When two disagree, the rule depends on the tier: a stated value replaces the layer below it, but facts are never removed.\n\n**The ways to say so**\n\n| Tier | Source | How it combines |\n|---|---|---|\n| 1 | CLI flag, or the `options` argument for embedding callers | Replaces the stated layer for that run |\n| 2 | `.clew.yaml` at the repo root | Replaces the stated layer |\n| 3 | Facts someone already wrote: Doxyfile `ALIASES`/`PREDEFINED`, generator manifests, language or platform entry points | Accumulates |\n| 4 | Known-ecosystem signatures (UDM, ingot) | Accumulates |\n| 5 | Name-pattern heuristics, the floor | Replaced by any stated tier |\n\n- **`.clew.yaml`** holds one section per option, and the section name is the option name. The format is the same as the standalone manifest files, so an existing file can be moved in verbatim. The `guard:` section belongs to the doxygen gate and is ignored by the index. The old `.doxygen-guard.yaml` is no longer read.\n- **Doxyfile** is not a scope decision. Its `INPUT`, `EXCLUDE*` and `FILE_PATTERNS` are replaced by the index's own scope (gh#333). Its `ALIASES` and `PREDEFINED` are still used. Only the `index_scope:` section decides what gets indexed. The `doxyfile:` section points clew at a Doxyfile in a non-standard location, and that path must exist.\n\n**When two disagree**\n\n- **Flag vs. declaration:** the flag wins for that run. The declaration's values for that layer are replaced, not merged. Only a tier-1 statement is recorded for replay, so a one-off flag does not persist into later builds.\n- **Empty explicit list:** `[]` is a withdrawal, not a statement. It falls through to the declaration, then to the heuristics. This is how you undo a recorded flag without deleting the database.\n- **Declaration vs. built-in default:** the declaration wins. A bug once inverted this for shared-key patterns, where the default's accessor class was stamped on the edge. That is now fixed and tested.\n- **Declaration vs. facts:** facts always survive. Stating `entry_patterns` displaces only the name-pattern guesses, so `main` stays reachable whatever you declare.\n- **Malformed or partial declarations:**\n  - An unknown section name is refused by name with `DeclarationError`.\n  - A file that is unreadable or not a mapping is ignored, and the build uses defaults.\n  - A comments-only file states nothing, and the build uses defaults.\n  - Each of these is reported in the refusal message, so the owner can see why.\n\n**Caveat:** the index flagged `clew/tiers.py` as possibly out of date (anchor mismatch), so the line numbers I cite are from the source, not the index. I checked the stated-layer logic against the file by grep, and it matches. The source tests I relied on are `tests/test_tiers.py` and `tests/test_declaration.py`.",
+  "ttft_ms": 1618,
+  "type": "result",
+  "duration_ms": 24429,
+  "uuid": "6d4bccc9-843c-436c-8b0f-2bba4428c0bd",
+  "ttft_stream_ms": 1119,
+  "time_to_request_ms": 69,
+  "first_content_frame_ms": 1119,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

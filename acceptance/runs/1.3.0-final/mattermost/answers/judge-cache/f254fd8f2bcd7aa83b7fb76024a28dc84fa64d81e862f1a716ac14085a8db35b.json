@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `app/client/rest/posts.ts:46` sends the create request with `noRetry: true`.\nVERDICT: HIT\nWHY: The answer states the create-post request is not retried automatically, citing `noRetry: true` and `retryLimit: 0`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (the shipped default) | libc `calloc`, by macro | `include/mbedtls/platform.h:163-167`\nVERDICT: HIT\nWHY: The answer states that in the default build (PLATFORM_MEMORY off) mbedtls_calloc resolves to libc calloc by macro. The same row implies mbedtls_free does too, and the answer describes function-pointer indirection only for the other configs."
+}

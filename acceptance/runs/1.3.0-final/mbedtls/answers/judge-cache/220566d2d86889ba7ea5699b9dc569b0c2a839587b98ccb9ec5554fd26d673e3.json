@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: defines it as `private_##member` when `MBEDTLS_ALLOW_PRIVATE_ACCESS` is not defined, and as plain `member` when it is.\nVERDICT: HIT\nWHY: The answer states the default renaming to private_##member and the plain member expansion when MBEDTLS_ALLOW_PRIVATE_ACCESS is defined."
+}

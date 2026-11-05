@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Staleness rides in the payload. `QueryTools._staleness` (`tools_query.py:1886`) attaches the notices to query replies, sized to the remaining budget. A current index gets no block at all; the notice list is empty, and the tests assert this.\nVERDICT: HIT\nWHY: The answer says staleness notices are attached to query replies and that a current index gets an empty notice list/no block."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Routing is by extension and, for `CMakeLists.txt`, by whole filename, so `oldCMakeLists.txt` is not claimed\"\nVERDICT: HIT\nWHY: The answer names `.sh`, `.bash` and `.cmake`, and says `CMakeLists.txt` is matched by whole filename rather than by extension."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: One row is stored per layer per pair, but the reply collapses them to the strongest evidence per endpoint (`CallEdge` docstring). Clew's own index has 520 rows for 260 distinct pairs, so a row count is not a relationship count.\nVERDICT: HIT\nWHY: The answer states that one row is stored per layer per pair, and that 520 rows cover 260 distinct pairs, so the same logical edge appears more than once."
+}

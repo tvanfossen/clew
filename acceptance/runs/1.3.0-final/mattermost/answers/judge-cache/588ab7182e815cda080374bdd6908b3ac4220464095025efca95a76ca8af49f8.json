@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `app/actions/remote/search.ts:62` and `:73` | Sends `include_deleted_channels: true` with post search | Sends `false`, so deleted-channel posts are excluded\nVERDICT: HIT\nWHY: The answer states that post search sends the setting to the server as `include_deleted_channels`."
+}

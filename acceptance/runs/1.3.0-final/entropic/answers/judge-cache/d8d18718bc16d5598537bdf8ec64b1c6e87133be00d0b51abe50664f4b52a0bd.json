@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python reaches the engine through **ctypes**, not a compiled extension. `librentropic.so` is loaded at runtime with `ctypes.CDLL`\nVERDICT: HIT\nWHY: The answer explicitly names ctypes loading librentropic.so via CDLL and states it is not a compiled extension."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the build compares the scanned file set against `path` rows and stamps `not_indexed` (e.g. `.sh=3, .yml=1`)... `not_indexed` present means specific file types had no rows in this build.\"\nVERDICT: HIT\nWHY: The answer says the reply names scanned file types that produced no rows (`not_indexed`), which separates \"not indexed here\" from \"not present\"."
+}

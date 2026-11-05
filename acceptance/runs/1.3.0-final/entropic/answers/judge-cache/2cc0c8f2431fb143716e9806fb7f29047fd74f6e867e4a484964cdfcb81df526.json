@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Nothing distinguishes failure from a legitimately empty result, and no error code reaches the caller.\"\nVERDICT: MISS\nWHY: The answer says failure is indistinguishable from an empty result, but it doesn't say that no caller checks for it. It says the opposite for some callers: the speculative/MTP paths check `tokens.size() < 2`, and most callers are said to have no empty check. That is a different claim from \"no caller checks\"."
+}

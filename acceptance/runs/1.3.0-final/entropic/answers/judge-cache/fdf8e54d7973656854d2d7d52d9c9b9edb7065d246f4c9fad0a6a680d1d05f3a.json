@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: checks `$ENTROPIC_LIB`, then `$ENTROPIC_HOME` in nested and flat layouts, then `~/.entropic/...`, then `ctypes.util.find_library`\nVERDICT: HIT\nWHY: The answer gives the order of env overrides, then the default user directory, then the system library lookup, and it names nested and flat layouts."
+}

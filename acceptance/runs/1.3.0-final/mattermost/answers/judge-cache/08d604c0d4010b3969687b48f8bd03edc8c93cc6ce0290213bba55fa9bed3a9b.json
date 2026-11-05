@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Any other value, including the setting being absent, turns it on. When the server doesn't send it, the app behaves as if the feature is enabled.\"\nVERDICT: HIT\nWHY: The answer states that only an explicit 'false' disables archived-channel viewing and that an absent setting leaves it enabled."
+}

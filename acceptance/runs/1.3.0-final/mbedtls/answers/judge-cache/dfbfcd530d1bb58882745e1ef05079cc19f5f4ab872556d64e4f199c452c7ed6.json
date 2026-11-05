@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A combined code like `-0x40A0` carries both.\" and the diagram showing buf = \"RSA - Bad input parameters to function : AES - Invalid key length\"\nVERDICT: HIT\nWHY: The answer explains the high-level (module) and low-level parts split by mask, and that mbedtls_strerror outputs both joined with \" : \" when both are present."
+}

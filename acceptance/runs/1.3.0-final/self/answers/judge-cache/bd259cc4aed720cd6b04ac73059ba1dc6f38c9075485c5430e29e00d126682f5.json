@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.clew.yaml` is discovered from the repo root that both entry points already receive.\nVERDICT: HIT\nWHY: The answer identifies `<repo>/.clew.yaml` as tier 2 \"declared\" and says it is discovered from the repo root that both entry points receive. It also contrasts this with the CLI flags, which the MCP server doesn't pass."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 28032,
+  "stop_reason": "end_turn",
+  "session_id": "831934c8-ea9d-4d6e-b00d-256613ee1025",
+  "total_cost_usd": 0.014181440000000003,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 43642,
+    "cache_read_input_tokens": 312464,
+    "output_tokens": 4654,
+    "output_tokens_details": {
+      "thinking_tokens": 1876
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 43642,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2308,
+        "cache_read_input_tokens": 59121,
+        "cache_creation_input_tokens": 3203,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3203
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 4654,
+      "cacheReadInputTokens": 312464,
+      "cacheCreationInputTokens": 43642,
+      "webSearchRequests": 0,
+      "costUSD": 0.014181440000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1876,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 43642,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How a negative code becomes a string**\n\n1. **Caller passes the code.** `mbedtls_strerror(int ret, char *buf, size_t buflen)` (`library/error.c:792`) is the entry point. It returns nothing and writes into `buf`. If `buflen` is 0 it returns immediately, and it zeroes the buffer first.\n2. **Sign is dropped.** `ret` is negated if negative, so the lookup works on the positive magnitude.\n3. **Code is split into two bands.** Mbed TLS packs each error as a module (high-level) part and a specific (low-level) part:\n   - High-level: `ret & 0xFF80` (the module identity, e.g. CIPHER, DHM, ECP).\n   - Low-level: `ret & ~0xFF80` (the specific reason within the module).\n4. **High-level lookup.** If the high band is non-zero, `mbedtls_high_level_strerr` (`error.c:174`) runs a `switch` over the masked value and returns a module string. Unknown values fall back to `\"UNKNOWN ERROR CODE (%04X)\"`. For SSL fatal alerts (`MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE`) it returns early and skips the low-level part.\n5. **Concatenate.** If both parts exist, it writes `\" : \"` and appends the low-level text. It bails out if fewer than 5 bytes remain.\n6. **Low-level lookup.** `mbedtls_low_level_strerr` (`error.c:537`) switches on the low band and returns the specific reason, e.g. `\"CIPHER - Authentication failed (for AEAD modes)\"` style strings. Unknown values get the same `UNKNOWN ERROR CODE` fallback.\n\nExample shape: `-0x6080` (`MBEDTLS_ERR_CIPHER_FEATURE_UNAVAILABLE`, from `include/mbedtls/cipher.h`) resolves through the CIPHER module case in the high-level switch and the specific case in the low-level switch. The exact output string for a combined code is built by the two functions above, so read them rather than trusting my paraphrase.\n\nBoth switch tables are generated. `library/error.c` is the output of `scripts/generate_errors.pl`, run by a CMake custom command in `library/CMakeLists.txt:134`. That command takes `include/mbedtls` and `scripts/data_files`, and depends on the error headers and `scripts/data_files/error.fmt`. Each generated `case` is wrapped in its module's `#if defined(MBEDTLS_xxx_C)`, so a disabled module drops out of the table.\n\nTwo things I could not settle from the index:\n- The generator's body and `error.fmt` are not indexed (`scripts/generate_errors.pl` shows zero symbols, and `.fmt` files are excluded). So I cannot say exactly which header comment becomes the description text, or how the `\"CIPHER - \"` prefix is derived.\n- `mbedtls_strerror` has a second definition at `error.c:867`, gated on `MBEDTLS_ERROR_STRERROR_DUMMY`. I did not trace which build selects which one.\n\n**Adding a new one**\n\n1. Add the `#define MBEDTLS_ERR_<MODULE>_<REASON> -0xNNNN` in the module's public header (e.g. `include/mbedtls/<module>.h`). Pick a value in that module's high band, and do not collide with an existing code.\n2. Document the code's meaning in the header comment. The generator reads it, so the comment is the description source. Confirm the exact format in `scripts/generate_errors.pl` before relying on it.\n3. Do not edit `library/error.c`. It is regenerated at build time. Rebuild and check that the new `case` appears in both switches under the right `#if`.\n4. Add a RED test first: call `mbedtls_strerror` on the new code and assert the expected string, then make it pass by building. Also check the module's gate, since a module-only build must still compile.\n5. Check whether the repo's ChangeLog convention expects an entry (there is a `ChangeLog.d` directory). I did not verify the convention from the index.",
+  "ttft_ms": 1955,
+  "type": "result",
+  "duration_ms": 28983,
+  "uuid": "97e38e62-e166-49da-b857-d165faf5d5c1",
+  "ttft_stream_ms": 1608,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1608,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

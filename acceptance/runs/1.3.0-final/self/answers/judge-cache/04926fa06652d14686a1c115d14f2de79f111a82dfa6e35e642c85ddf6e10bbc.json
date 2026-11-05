@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tier 1 is explicit; Tier 2 declared; \"Tier 3 is facts the target already wrote down... Tier 4 is known-ecosystem signatures. Tier 5 is name-pattern heuristics, the built-in default floor.\"\nVERDICT: HIT\nWHY: The answer names five precedence tiers (explicit, declared, facts, ecosystem signatures, heuristics) and explains that they resolve in layers rather than by a single override."
+}

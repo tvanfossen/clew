@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PRIVATE(m)` is a rename, not an access check... by default `ctx->grp` does not exist and `ctx->private_grp` does. A consumer who writes `ctx->grp` gets a compile error... It is not a security boundary; the field is still there and can be read by its `private_` name.\nVERDICT: HIT\nWHY: The answer says the macro renames members so the old name fails at compile time, while the field stays present and readable. That matches breaking the member name rather than hiding the struct layout."
+}

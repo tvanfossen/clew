@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | External bridge accept loop | `src/facade/external_bridge.cpp:796` | Lifetime is tied to `running_` (atomic) and joined in `stop()`. | and | Per-client MCP serve threads | `external_bridge.cpp:945`, reaped in `reap_finished_clients_locked()` (`:880`)\nVERDICT: HIT\nWHY: The answer lists the external bridge's accept loop thread and separate per-client serve threads, which covers the two-level structure, though it never says outright that the accept thread spawns the client threads."
+}

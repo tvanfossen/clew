@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The part before the first `:` is matched against the tool name. If there is a colon, the whole string is matched against `tool:<argvalue>`.\nVERDICT: HIT\nWHY: The answer states fnmatch matching, splitting at the first colon into a tool part and an argument part, and that a pattern with no colon matches on the tool name alone (\"no colon means tool-only match\")."
+}

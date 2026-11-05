@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Accumulates; no stated tier removes it ... Accumulates, same as tier 3 ... \"you can correct our guesses; you cannot un-discover a fact.\"\nVERDICT: MISS\nWHY: The answer says tiers 3 and 4 accumulate the same way, but it never says the distinction between them is deliberately inert. It also never names fact-versus-guess as the load-bearing line. It only gives the \"un-discover a fact\" slogan."
+}

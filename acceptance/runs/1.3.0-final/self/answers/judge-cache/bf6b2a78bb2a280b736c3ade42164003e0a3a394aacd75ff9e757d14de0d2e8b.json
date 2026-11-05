@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions that a Doxyfile's own INPUT is deliberately ignored for scope, nor the subset-versus-whole-tree rationale. It only says FILE_PATTERNS is forced so the Doxyfile can't veto files."
+}

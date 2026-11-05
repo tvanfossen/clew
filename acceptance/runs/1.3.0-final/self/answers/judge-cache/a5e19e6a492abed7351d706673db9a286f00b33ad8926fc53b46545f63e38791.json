@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The root is the repository itself. Nested git trees are included, not cut out (gh#333). `external.py` tags their rows afterwards so two codebases stay distinguishable in answers.\"\nVERDICT: HIT\nWHY: The answer states nested git trees are included in scope and that external.py tags their rows afterward."
+}

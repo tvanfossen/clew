@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 30529,
+  "stop_reason": "end_turn",
+  "session_id": "12bea690-06f4-4cbd-81fb-8b2eac77863e",
+  "total_cost_usd": 0.01573941,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 45327,
+    "cache_read_input_tokens": 338141,
+    "output_tokens": 6582,
+    "output_tokens_details": {
+      "thinking_tokens": 2090
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 45327,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2192,
+        "cache_read_input_tokens": 57557,
+        "cache_creation_input_tokens": 715,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 715
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 6582,
+      "cacheReadInputTokens": 338141,
+      "cacheCreationInputTokens": 45327,
+      "webSearchRequests": 0,
+      "costUSD": 0.01573941,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2090,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 45327,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 20,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Several parts of entropic run off the caller's thread. Most of them are guarded by mutexes and atomics, but the detached async-ask worker has a lifetime gap on handle destruction.\n\n**Background threads found**\n\n| Thread | Where | What keeps it safe |\n|---|---|---|\n| External bridge accept loop | `src/facade/external_bridge.cpp:796` | Lifetime is tied to `running_` (atomic) and joined in `stop()`. |\n| Per-client MCP serve threads | `external_bridge.cpp:945`, reaped in `reap_finished_clients_locked()` (`:880`) | Each has its own `finished` atomic. `stop()` (`:826`) moves the list out under `client_threads_mutex_`, `shutdown()`s each fd to unblock reads, then joins. |\n| Async `entropic.ask` worker | `external_bridge.cpp:1158`, `.detach()` at `:1222` | Task map and sentinel writes under `tasks_mutex_`; notifications go through `subscribers_mutex_`. **Gap below.** |\n| Phase observer callback | `external_bridge.cpp:1072`, fired from the engine | `observer_gen_` (atomic, bumped under `tasks_mutex_`) discards stale callbacks after detach. |\n| Cancel pollers (`int*` \u2192 atomic) | `src/inference/inference_c_api.cpp:385`, `src/inference/interface_factory.cpp:246`, `src/core/response_generator.cpp:413` | Joined by RAII or explicitly before the enclosing scope ends. Captured references stay valid because of that join. |\n| Health monitor | `src/mcp/health_monitor.cpp:92` | Checks run on the monitor thread under `watched_mutex_`. Events go into `event_queue_` under `event_mutex_`, and callbacks run on the engine thread via `process_events()` (`:118`, called from `server_manager.cpp:710`). `stop()` uses `wake_cv_` to wake and join. |\n| MCP transports | `transport_stdio.cpp:164` (stderr), `transport_sse.cpp:107` (SSE reader) | Use `io_mutex_`, `pending_mutex_`/`pending_cv_`, and atomics (`connected_`, `running_`). I did not read these in depth. |\n\n**The gap: detached async worker vs. handle destruction**\n\n- `entropic_destroy()` (`src/facade/entropic.cpp:1885`) calls `external_bridge->stop()` and then frees the handle.\n- `stop()` (`external_bridge.cpp:826`) joins the accept thread and client threads. It does not track or join the detached async-ask threads, and it does not interrupt them.\n- The only cancel path is `cancel_inflight_async_tasks()` (`:434`), which runs on `entropy.context_clear`, not on destroy.\n- So if an async ask is still inside `entropic_run(handle_, ...)` when the caller destroys the handle, the detached thread can keep using `handle_` and `this` after they are freed. The worker then calls `update_task_phase`, `write_sentinel`, and `broadcast_notification` on a dead bridge.\n\nI inferred this from reading the code. I did not reproduce it. The fix would be a counter or condition variable for in-flight async workers, with `stop()` interrupting and waiting for them to drain before the bridge and handle are torn down. Replacing the detach with a tracked `std::thread` (the P2-20260429-001 backlog proposal) would do the same.\n\n**Smaller caveat**\n\nThe `int` cancel flag is written by one thread and read by another without `std::atomic` (`response_generator.cpp:416`, and the poller in `interface_factory.cpp:248`). This is a technical data race. The C ABI deliberately uses `int*` to avoid crossing atomics at the `.so` boundary. The practical risk is low, but a `std::atomic_ref` or a relaxed atomic on the shared int would make it well-defined.\n\n**Bottom line:** the design is mostly sound. Joined helper threads, mutex-guarded registries, generation-counted observers, and the engine-thread drain of health events are all solid. The async-ask detached worker is not covered by the destroy path, and that is the main safety concern to fix.",
+  "ttft_ms": 904,
+  "type": "result",
+  "duration_ms": 30878,
+  "uuid": "e695fe64-166f-4a96-aa2a-1c13dd8e7085",
+  "ttft_stream_ms": 698,
+  "time_to_request_ms": 104,
+  "first_content_frame_ms": 698,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The server's \"definitive\" wording is accurate relative to the scope the reply enumerates, not to the repository as a whole.\nVERDICT: MISS\nWHY: The answer says \"definitive\" wording is scoped to the covered shape and names the unread corpora in the note. But it never states that the strong wording is computed per call, by querying which corpora the search did not read, as opposed to being attached to a result shape. It even lays out shape-based tiers."
+}

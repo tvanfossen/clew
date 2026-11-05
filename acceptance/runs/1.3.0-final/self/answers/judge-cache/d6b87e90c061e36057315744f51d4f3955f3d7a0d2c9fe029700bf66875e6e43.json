@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Nested git trees are included, not cut out** (gh#333). They are indexed, and `external.py` tags their rows afterwards so two codebases can be told apart in an answer.\nVERDICT: HIT\nWHY: The answer explicitly states nested git trees are indexed (not excluded) and that their rows are tagged afterward."
+}

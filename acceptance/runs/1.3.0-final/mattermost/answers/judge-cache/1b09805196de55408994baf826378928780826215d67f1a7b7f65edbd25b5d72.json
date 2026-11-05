@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Try Again\" calls `retryFailedPost` (`app/actions/remote/post.ts:228`)\nVERDICT: HIT\nWHY: The answer states the retry is manual via the \"Try Again\" option on the failed post, which calls `retryFailedPost`, and that there is no automatic retry."
+}

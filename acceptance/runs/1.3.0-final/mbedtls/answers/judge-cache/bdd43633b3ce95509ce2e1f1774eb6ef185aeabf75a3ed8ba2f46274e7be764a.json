@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `debug_mutex` and `my_mutexed_debug` in `ssl_pthread_server.c` appear to serialize debug output; the name is the only evidence.\nVERDICT: HIT\nWHY: The answer names debug_mutex as serialising debug output in the pthread server, though it hedges and doesn't mention connections interleaving."
+}

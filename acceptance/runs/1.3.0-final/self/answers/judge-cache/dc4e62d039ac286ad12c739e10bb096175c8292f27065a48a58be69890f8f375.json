@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The reply does not use one sentence for every empty result. `clew/mcp_server/emptiness.py` grades each empty `search` against what the index actually holds\"; \"`search_emptiness` calls `q.unsearched_corpora`... If any of the remaining kinds... hold a row matching the query, the reply says 'NOT DEFINITIVE'\"\nVERDICT: HIT\nWHY: The answer says the definitive wording is decided per call by querying the corpora that `search` did not read, and not by the empty-result shape."
+}

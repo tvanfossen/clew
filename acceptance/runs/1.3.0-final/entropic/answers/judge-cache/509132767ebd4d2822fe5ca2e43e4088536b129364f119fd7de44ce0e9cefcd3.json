@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the seam is llama.cpp's C API of free `llama_`-prefixed functions; it only mentions including `llama.h`, llama types, and a `dynamic_cast` to `LlamaCppBackend`, which is entropic's own class."
+}

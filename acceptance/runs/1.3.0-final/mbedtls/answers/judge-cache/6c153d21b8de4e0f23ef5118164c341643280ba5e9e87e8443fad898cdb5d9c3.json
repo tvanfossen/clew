@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The placeholder calloc returns `NULL`, so allocation fails cleanly. The placeholder free does nothing. Without a set call, a runtime-configured build therefore cannot allocate.\nVERDICT: HIT\nWHY: The answer states that uninitialised default pointers fail (calloc returns NULL, free does nothing) rather than falling back to libc."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When `hasSearch` is true, it renders `<NavigationSearch {...searchProps} hideHeader theme topStyle ref={ref} />`. The `Header` and `NavigationHeaderLargeTitle` children do not receive the ref.\nVERDICT: HIT\nWHY: The answer says NavigationHeader forwards its ref to NavigationSearch, rendered only when hasSearch is true. It also says the ref isn't attached to its own View. It never says outright that the ref points to nothing when hasSearch is false, but that follows from the conditional rendering."
+}

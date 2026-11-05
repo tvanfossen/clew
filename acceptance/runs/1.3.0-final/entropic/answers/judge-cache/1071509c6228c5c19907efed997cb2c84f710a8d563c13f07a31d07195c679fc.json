@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer shows the allow list making a call \"approved\" in check_approval but never says it merely suppresses the approval step rather than granting execution, nor that it's consulted only from there."
+}

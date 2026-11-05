@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`freshness.notices(status, identity)` turns that into named axes\" with table rows `data`, `schema`, `code`, and the opening \"the index can tell it is stale on three separate axes.\"\nVERDICT: HIT\nWHY: The answer says staleness has three separate axes and names them: data, schema, code."
+}

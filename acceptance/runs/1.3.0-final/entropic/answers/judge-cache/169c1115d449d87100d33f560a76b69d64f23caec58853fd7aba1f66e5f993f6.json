@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: starts an observer thread that mirrors the engine's `interrupt_flag_` (atomic) into an `int` cancel flag for the duration of one call... The `int` keeps atomics out of the C ABI.\nVERDICT: HIT\nWHY: The answer states the observer thread bridges an atomic into a plain int and that the int keeps atomics out of the C ABI."
+}

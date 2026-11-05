@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"bad keys / no usable roots \u2192 _Rejected \u2192 whole-repo, with the reason logged\" and \"If there isn't one, the scope is the whole repository\"\nVERDICT: HIT\nWHY: The answer states that a declared index_scope is used when present, and that when it is absent or unusable (bad keys, no usable roots) the scope falls back to the whole repository."
+}

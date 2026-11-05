@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Always Allow/Deny\" calls `add_permission` (`server_manager.cpp:361`) and persists through `PermissionPersister`, which writes `config.local.yaml`.\nVERDICT: HIT\nWHY: The answer states that the \"Always Allow/Deny\" decision calls `add_permission` and is also persisted through `PermissionPersister`, which writes `config.local.yaml`."
+}

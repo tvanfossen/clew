@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`.clew.yaml` at the repo root, found from `--repo-root`\" (Tier 2 declared); also \"The repo's standing declaration.\"\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as tier 2 and the standing declaration, but says it is found from `--repo-root`. It never says both entry points (CLI and options/embedding) discover it from the repo root rather than plumbing it per section."
+}

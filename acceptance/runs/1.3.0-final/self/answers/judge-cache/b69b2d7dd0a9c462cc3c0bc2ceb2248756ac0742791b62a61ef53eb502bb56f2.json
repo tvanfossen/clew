@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says YAML and JSON get path rows only, and its only markdown mention is in an aside about `_OPTIONAL_KEYS`. It never says markdown is deliberately left without a path row because it is prose, or that a path row would count it as indexed source in coverage figures."
+}

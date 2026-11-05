@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`not_indexed` with counts for everything skipped (`.rs=2`, `.toml=2`, `.sql=1`, extensionless files=3, and so on). This is the main \"did we look there?\" signal.\"\nVERDICT: MISS\nWHY: The answer lists file types that were NOT indexed (skipped), but never says the reply names file types that were in scope and produced zero rows, which is the opposite set the item requires."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Most of the reach is inside the inference layer, not the public surface\nVERDICT: MISS\nWHY: The answer says the reach is concentrated in the inference layer. It never concludes that a minority of the reaching files sit outside src/inference. It names `facade/entropic.cpp` and the tests only as indirect or incidental reach, and says the public API is \"Not leaked\"."
+}

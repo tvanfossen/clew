@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the repository's own `index_scope:` declaration in `.clew.yaml` decides. If there isn't a usable one, the whole repository is the scope\n\nVERDICT: HIT\n\nWHY: The answer states that a declared index_scope is preferred and that failures (missing section, non-mapping, unknown keys, no existing roots) all fall through to the whole-repository scope."
+}

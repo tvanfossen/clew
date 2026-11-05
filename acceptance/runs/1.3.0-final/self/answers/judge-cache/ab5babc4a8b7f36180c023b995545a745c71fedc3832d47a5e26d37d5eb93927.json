@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers scope derivation (declared roots, git-ignored paths, dot/cache dirs) but never says a file must also be readable to reach the index. It names neither the parse-built front end for types doxygen can't read nor binary classification of files with misleading extensions."
+}

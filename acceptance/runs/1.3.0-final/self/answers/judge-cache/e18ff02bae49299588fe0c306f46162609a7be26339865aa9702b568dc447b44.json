@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `reason` names the file it was read from, or the caller for a stated scope.\nVERDICT: HIT\nWHY: The answer says the scope carries a reason naming its source, and that the whole-repo fallback logs its reason at WARNING and rejected declarations say why. So the choice is explained and not silently guessed."
+}

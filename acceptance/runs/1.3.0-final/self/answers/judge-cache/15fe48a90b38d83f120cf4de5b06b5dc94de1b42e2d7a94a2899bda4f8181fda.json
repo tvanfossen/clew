@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `dossier` picks the focal function by identity, but the neighbours are not.\nVERDICT: MISS\nWHY: The answer says dossier picks the focal function by identity but the neighbours are matched by name. It never says the traversal surface matches the focal side by bare name, and it never contrasts two surfaces on the focal side."
+}

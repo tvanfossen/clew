@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these top-level directories as containing MBEDTLS_PRIVATE uses or the opt-out:\n\n- `include` is where public structs declare their fields through the macro.\n- `library` has `ecdh.c` using it, and `common.h` and `ssl_debug_helpers_generated.c` carry the opt-out.\n- `programs` has `ssl_client2.c`, `ssl_server2.c` and `ssl_context_info.c`.\n- `docs` is cited only for the migration guide, so it is not clearly a location of uses. I've listed it because the answer names it.\n\nITEMS:\ninclude\nlibrary\nprograms\ndocs\nEND"
+}

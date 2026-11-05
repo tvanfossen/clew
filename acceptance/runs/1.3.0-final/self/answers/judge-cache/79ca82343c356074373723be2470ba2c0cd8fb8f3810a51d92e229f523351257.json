@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"a Doxyfile does not decide the file set.\" and \"says the Doxyfile supplies aliases and predefines but not INPUT.\"\nVERDICT: MISS\nWHY: The answer says the Doxyfile doesn't decide the file set and doesn't supply INPUT, but never explains why: it omits the point that using it would give a repo that ships one only its documented subset and a repo that ships none its whole tree."
+}

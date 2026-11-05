@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tiers 3 and 4 accumulate and survive every stated tier. A stated `entry_patterns` list cannot remove the built-in `main` entry, because the facts layer always stays in the resolved set. Tier 5 is the only layer a stated value displaces.\nVERDICT: MISS\nWHY: The answer says tiers 3 and 4 both survive stated tiers, but never says they combine identically, that the 3/4 distinction is inert, or that the fact-versus-guess line is what matters."
+}

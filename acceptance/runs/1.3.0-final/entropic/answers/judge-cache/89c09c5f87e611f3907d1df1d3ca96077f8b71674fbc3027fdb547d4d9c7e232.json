@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`scripts/gen_bindings.py` parses `include/entropic/entropic.h` and `types/*.h` and emits `_bindings.py` and `_bindings_manifest.py`. The pre-commit `--check` fails on drift.\"\nVERDICT: HIT\nWHY: The answer states that the generator script is run in a pre-commit `--check` mode that fails on drift between the header and the generated bindings."
+}

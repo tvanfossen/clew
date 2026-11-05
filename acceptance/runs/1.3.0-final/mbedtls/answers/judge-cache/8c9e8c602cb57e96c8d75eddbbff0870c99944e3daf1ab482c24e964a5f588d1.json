@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque()` wraps values in an empty `asm volatile(\"\" : [x] \"+r\"(x))` on GNU-asm targets. The compiler cannot prove a condition's value, so it cannot turn a mask into a branch.\nVERDICT: HIT\nWHY: The answer names `mbedtls_ct_compiler_opaque` as the primitive that hides values from the compiler, and it places the facility in `library/constant_time_impl.h`."
+}

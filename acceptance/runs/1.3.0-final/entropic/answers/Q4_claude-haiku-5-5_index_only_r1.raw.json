@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 19551,
+  "stop_reason": "end_turn",
+  "session_id": "216a7b6b-5b3f-4112-8373-6f98560e32b2",
+  "total_cost_usd": 0.01609889,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 60720,
+    "cache_read_input_tokens": 195389,
+    "output_tokens": 4000,
+    "output_tokens_details": {
+      "thinking_tokens": 1616
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 60720,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2659,
+        "cache_read_input_tokens": 58199,
+        "cache_creation_input_tokens": 2521,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2521
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4000,
+      "cacheReadInputTokens": 195389,
+      "cacheCreationInputTokens": 60720,
+      "webSearchRequests": 0,
+      "costUSD": 0.01609889,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1616,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 60720,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The index shows 10 first-party thread spawn sites and 45 lock identities. It does not show the bodies of the stdio and SSE reader loops or the producer side of the health-event queue, so those parts are only partly covered below.\n\n**Threads that run off the caller's thread**\n\n| Spawn site | Thread | What keeps it safe (per the index) |\n|---|---|---|\n| `ExternalBridge::start` (`external_bridge.cpp:796`) | `accept_loop` | Polls the listen fd with a 500 ms timeout and checks `running_`, an atomic, so shutdown is observed. Every accepted fd is checked with `peer_uid_matches` (SO_PEERCRED) before a thread is made for it. Each client gets its own `ClientThread`, held in `client_threads_` under `client_threads_mutex_`. Finished clients are reaped under that lock. `stop()` calls `shutdown(fd, SHUT_RDWR)` to wake blocked reads. |\n| `ExternalBridge::accept_loop` (`:945`) | per-client `serve_client` | Owns its fd and closes it on exit. Sets an atomic `finished` flag for the reaper. `serve_client` unsubscribes via an RAII guard. The handle log scope is propagated, so logs route to the owning session. |\n| `ExternalBridge::run_async_ask` (`:1158`) | detached async-ask worker | Task state is in `tasks_` under `tasks_mutex_`. The terminal status and the sentinel file are written under that lock, before the progress notification goes out. Log scope is propagated. |\n| `HealthMonitor::start` (`health_monitor.cpp:92`) | `monitor_loop` | `watched_` is held under `watched_mutex_` while checks run. The wait is on `wake_cv_` with a `!running_` predicate. The loop does not hold `event_mutex_` while it runs. |\n| `StdioTransport::open` (`:164`) | `stderr_reader_loop` | Body not in the index. The class owns `io_mutex_`. |\n| `SSETransport::open` (`:107`) | `sse_reader_loop` | Body not in the index. The class owns `pending_mutex_`. |\n| `CancelFlagBridge` ctor (`inference_c_api.cpp:385`) | poller | Starts only when the cancel pointer is non-null. Stops on an atomic `done_`. The `CancelFlagBridge` class joins it in its destructor. |\n| `iface_generate_with_cancel` (`interface_factory.cpp:246`) | poller | `done` and `cancel_flag` are atomics. The thread is joined before the function returns. |\n| `ResponseGenerator::dispatch_batch_generate` (`response_generator.cpp:413`) | `observer` | Mirrors the engine's atomic `interrupt_flag_` into the int cancel flag. Stops on `observer_done`. It is joined before return. |\n| Test-only spawns | `listen_after_bind`, `MockSSEServer` | Test code, not production. |\n\nThe main pattern is that each background thread either owns its resources (fds, the `ClientThread` record) or is stopped and joined by its owner. Shared state sits behind a named mutex, and the health monitor runs its user callbacks on the engine thread via `process_events`, not on the monitor thread.\n\n**Concerns the index raises**\n\n- **Data race on the cancel int.** The C-ABI `int* cancel` is read by the poller threads with plain loads (`*cancel != 0`), and the observer thread writes `cancel_int = 1` with a plain store. Only the atomics around them are synchronized. The `int` is what crosses the `.so` boundary by design, but in C++ terms this is an unsynchronized write and read. The fix would be an atomic or a volatile-free wrapper on the engine side.\n- **Detached async worker.** `run_async_ask` uses a detached `std::thread` that captures `this`. The index shows no join or ownership record for it. Whether the bridge outlives it in shutdown is not shown. I'd check this one first.\n- **File I/O under `tasks_mutex_`.** `write_sentinel` runs while `tasks_mutex_` is held, so a slow filesystem stalls every task query.\n- **Lock nestings.** The index lists three two-lock pairs. None has a confirmed resolved call site (`resolved_sites=0` on all three). One, `event_mutex_` \u2192 `adapter_mutex_` in `process_events`, looks like a name collision: `events.swap(event_queue_)` seems to have resolved to an `AdapterManager` swap. I would not cite it as a real nesting or as a deadlock risk. The index found no opposite-order pair, so no deadlock is reported.\n\nIf you want the stdio and SSE reader bodies, or the event producer, those need a source read. The index doesn't have them.",
+  "ttft_ms": 863,
+  "type": "result",
+  "duration_ms": 20498,
+  "uuid": "fca402d1-32af-4305-b648-e761e8918d72",
+  "ttft_stream_ms": 527,
+  "time_to_request_ms": 62,
+  "first_content_frame_ms": 528,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: tests/unit, tests/model \u2500\u2500 #include <llama.h> directly (8+ files)\nVERDICT: MISS\nWHY: The answer lists several src/inference files plus the facade and says \"confined to `src/inference/`\", framing the reach as localized. It never conveys that the dependency spans roughly a dozen of entropic's own source files."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes only `_bindings.py` as generated and loading the library; it never mentions a separate names-only manifest that imports no ctypes."
+}

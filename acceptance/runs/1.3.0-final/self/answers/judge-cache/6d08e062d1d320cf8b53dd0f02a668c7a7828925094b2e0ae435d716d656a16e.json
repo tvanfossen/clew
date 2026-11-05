@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that measuring staleness never raises or that a failed measurement degrades to no annotation; the closest, `code_identity()` returning True when the tree can't be read, is only a partial gesture at this."
+}

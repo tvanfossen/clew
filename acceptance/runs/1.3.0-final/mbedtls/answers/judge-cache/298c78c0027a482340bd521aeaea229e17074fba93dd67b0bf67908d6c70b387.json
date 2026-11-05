@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: About 25 library files call `mbedtls_ct_` functions.\nVERDICT: HIT\nWHY: The answer states roughly 25 library modules use the primitives, and its table lists them across bignum, RSA, cipher, TLS, AEAD, PSA and encoding. That conveys broad use, not confinement to one or two modules."
+}

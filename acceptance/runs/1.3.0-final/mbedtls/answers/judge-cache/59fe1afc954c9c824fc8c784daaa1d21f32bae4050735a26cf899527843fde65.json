@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(member)` expands to `private_##member`, so `ctx->MBEDTLS_PRIVATE(state)` becomes `ctx->private_state`. Ordinary code that writes `ctx->state` no longer compiles. ... Library sources | `library/common.h:132` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` ... Internal code uses real field names.\nVERDICT: HIT\nWHY: The answer explains that code defining the macro sees real field names while ordinary public-header consumers see the renamed `private_` names."
+}

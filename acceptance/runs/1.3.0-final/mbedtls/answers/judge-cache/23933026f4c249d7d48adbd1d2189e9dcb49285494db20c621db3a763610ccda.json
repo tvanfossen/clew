@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (the shipped default) | libc `calloc`, by macro | `include/mbedtls/platform.h:163-167`\nVERDICT: HIT\nWHY: The answer states that in the default build (PLATFORM_MEMORY off) mbedtls_calloc resolves to libc calloc by macro, which is a direct expansion with no indirection. It does not name free explicitly in the table, but the \"calloc/free\" pair is implied."
+}

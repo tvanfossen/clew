@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR` or `PLUGIN_DISMISSED_POST_ERROR`: the local post is removed with `removePost`.\nVERDICT: HIT\nWHY: The answer names all three server errors for which the failed post is removed rather than kept as failed."
+}

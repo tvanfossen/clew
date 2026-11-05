@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The post is written locally first as an optimistic record, with the pending ID `${currentUserId}:${timestamp}`.\" and \"The post is saved with `props.failed = true` and kept in the local database\"\nVERDICT: HIT\nWHY: The answer states the post is written locally before sending, and on failure it is kept in the local database with `failed = true`."
+}

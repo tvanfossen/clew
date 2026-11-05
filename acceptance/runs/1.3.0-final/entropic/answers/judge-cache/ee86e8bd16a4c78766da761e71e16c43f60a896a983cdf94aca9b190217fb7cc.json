@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`on_tool_call` is `void(*)(const char*, void*)` (`engine_types.h:370`). Once it is set, `check_approval` marks the call approved without reading any result (`tool_executor.cpp:168-172`).\"\nVERDICT: HIT\nWHY: The answer states the callback returns void and that approval is set to true unconditionally (\"callback return is ignored\"), so it cannot refuse."
+}

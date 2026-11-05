@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If it is present but rejected, `derive_scope` logs a WARNING and falls through to the whole-repo tier, with the rejection reason carried into that tier's reason string.\"\nVERDICT: MISS\nWHY: The answer says that a rejection reason is carried into the whole-repo tier's reason string, and that a test checks the reason names `index_scope` and `.clew.yaml`. It never says the fallback's reason explains which scope was used and why, or that an unstated scope is never silently guessed."
+}

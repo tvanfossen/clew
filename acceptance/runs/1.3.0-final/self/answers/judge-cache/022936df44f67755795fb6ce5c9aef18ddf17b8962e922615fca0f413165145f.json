@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: One row is stored per layer per pair, but the reply collapses them to the strongest evidence per endpoint (`CallEdge` docstring).\nVERDICT: HIT\nWHY: The answer states that the reply returns one entry per endpoint, collapsing the per-layer rows to the strongest evidence."
+}

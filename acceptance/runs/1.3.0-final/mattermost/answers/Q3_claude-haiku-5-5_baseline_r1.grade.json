@@ -1,0 +1,133 @@
+{
+  "cell": "Q3_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.8333333333333334,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "every file that renders NavigationHeader \u2014 app/products/agents/screens/agent_chat/header.tsx",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that renders NavigationHeader \u2014 app/products/playbooks/screens/participant_playbooks/participant_playbooks.tsx",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that renders NavigationHeader \u2014 app/screens/channel/header/header.tsx",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that renders NavigationHeader \u2014 app/screens/global_threads/global_threads.tsx",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that renders NavigationHeader \u2014 app/screens/global_drafts/global_drafts.tsx",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that renders NavigationHeader \u2014 app/screens/home/recent_mentions/recent_mentions.tsx",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that renders NavigationHeader \u2014 app/screens/home/search/search.tsx",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that renders NavigationHeader \u2014 app/screens/home/saved_messages/saved_messages.tsx",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that renders NavigationHeader \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the search screen (`screens/home/search/search.tsx`) as the only renderer that enables the search field",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `app/screens/home/search/search.tsx`, with `hasSearch={true}` | WHY: The answer states that the Home Search screen (`search.tsx`) is the only one that turns search on among NavigationHeader renderers. || QUOTE: `app/screens/home/search/search.tsx`, with `hasSearch={true}` | WHY: The answer states that the Home Search screen is the only one among the NavigationHeader renderers that turns search on, and it names the file path. || QUOTE: Only one screen renders a search field through NavigationHeader: the Home Search screen. Eight files render `<NavigationHeader>`, and the Search screen is the only one that turns search on. | WHY: The answer names `app/screens/home/search/search.tsx` (with `hasSearch={true}`) as the only renderer that enables search.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that NavigationHeader forwards its ref to the NavigationSearch input, which is rendered only when `hasSearch` is true \u2014 otherwise the ref is attached to nothing",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: It forwards it only to `<NavigationSearch ref={ref}>` when `hasSearch` is true (line 134). | WHY: The answer states NavigationHeader forwards the ref only to NavigationSearch when `hasSearch` is true. The \"otherwise attached to nothing\" part follows from \"only\", so the mechanism is covered. || QUOTE: It forwards it only to `<NavigationSearch ref={ref}>` when `hasSearch` is true (line 134). | WHY: The answer states NavigationHeader forwards the ref only to NavigationSearch when `hasSearch` is true, and that the other usages default to false, so the ref is not attached to anything else. || QUOTE: It forwards it only to `<NavigationSearch ref={ref}>` when `hasSearch` is true (line 134). | WHY: The answer states NavigationHeader forwards its ref only to NavigationSearch when hasSearch is true, and notes hasSearch defaults to false elsewhere, which conveys the ref being unattached otherwise.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "does not count renderers of `Header` from `navigation_header/header.tsx` \u2014 a different component in the same directory, rendered directly by a navigation hook and the thread route \u2014 as renderers of NavigationHeader",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer lists the files that render `<NavigationHeader>` but never says that renderers of `Header` from `navigation_header/header.tsx` are excluded or are a different component. || QUOTE: NONE | WHY: The answer lists eight files rendering `<NavigationHeader>` but never mentions `Header` from `navigation_header/header.tsx` or says that it is excluded from the count. || QUOTE: NONE | WHY: The answer lists the files that render `<NavigationHeader>`, but it never mentions `Header` from `navigation_header/header.tsx` or says that those renderers are excluded.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

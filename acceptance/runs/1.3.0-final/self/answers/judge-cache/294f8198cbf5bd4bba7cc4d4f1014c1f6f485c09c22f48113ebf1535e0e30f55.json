@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is \"everything that causally precedes `fn`\": direct call edges (`edge_class='call'`) plus writers of shared keys whose values `fn` reads (`edge_class='key'`). A `'key'` row does not call `fn` and may run on another thread.\"\nVERDICT: HIT\nWHY: The answer says \"callers\" includes writers of shared keys that `fn` reads, and that those rows are not calls. That is the causal-polarity point the item asks for."
+}

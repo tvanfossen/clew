@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only the Search screen passes `hasSearch`. The others either set it to false or leave it at its default of false.\nVERDICT: HIT\nWHY: The answer names `app/screens/home/search/search.tsx` as the only screen with `hasSearch={true}`, which is the item's claim."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Generation** (`scripts/gen_bindings.py`): parses `entropic.h` and `types/*.h` by hand, with no pycparser, and emits `_bindings.py` and `_bindings_manifest.py`.\nVERDICT: HIT\nWHY: The answer says the bindings are generated from the C header by scripts/gen_bindings.py (\"GENERATED ctypes shim (do not edit)\"), not hand-written."
+}

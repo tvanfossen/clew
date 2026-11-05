@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`check_approval` (`tool_executor.cpp:161-188`) sets `approved = true` after calling `on_tool_call`. That callback is typed `void` (`engine_types.h:370`), so the engine never receives a yes or no from the consumer.\"\nVERDICT: HIT\nWHY: The answer states the callback returns void and approved is set to true after it fires, so the callback cannot refuse."
+}

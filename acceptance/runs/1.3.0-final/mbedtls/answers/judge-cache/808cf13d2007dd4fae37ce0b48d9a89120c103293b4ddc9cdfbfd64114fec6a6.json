@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Adding a new string means adding a header `#define` and regenerating `error.c`, not editing it by hand.\"\nVERDICT: HIT\nWHY: The answer states that a new error string is added by a documented `#define` in the module header under `include/mbedtls/`, followed by regenerating `error.c` with the generator rather than editing it by hand."
+}

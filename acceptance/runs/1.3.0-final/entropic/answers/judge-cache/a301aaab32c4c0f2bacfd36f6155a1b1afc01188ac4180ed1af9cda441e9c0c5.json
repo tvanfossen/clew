@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `PermissionPersister::save_permission` writes YAML, but nothing in `src/` calls it, and `PermissionPersistFn` is declared but never invoked. \"Always allow\" does not persist in this tree.\nVERDICT: MISS\nWHY: The answer mentions a persister that writes YAML but never mentions config.local.yaml or says a decision can be persisted by appending to it, separately from add_permission; it says persistence doesn't happen."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the macro is used at many hundreds of sites, mostly in the public headers; it only describes the mechanism and the places that define the opt-out."
+}

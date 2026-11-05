@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 29971,
+  "stop_reason": "end_turn",
+  "session_id": "437ceffa-ee3b-4923-9ab6-be6267b03d14",
+  "total_cost_usd": 0.010721750000000002,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 21385,
+    "cache_read_input_tokens": 398515,
+    "output_tokens": 4916,
+    "output_tokens_details": {
+      "thinking_tokens": 2100
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 21385,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2373,
+        "cache_read_input_tokens": 60436,
+        "cache_creation_input_tokens": 805,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 805
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 4916,
+      "cacheReadInputTokens": 398515,
+      "cacheCreationInputTokens": 21385,
+      "webSearchRequests": 0,
+      "costUSD": 0.010721750000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2100,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 21385,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the string comes from a generated `switch` in `library/error.c`. A contributor adds a `#define MBEDTLS_ERR_*` with a doc comment in the module header, then regenerates `error.c` with `scripts/generate_errors.pl`. Don't hand-edit `error.c`.\n\n## Caller to string\n\n```\ncaller: ret = mbedtls_foo(...)           // ret < 0, e.g. -0x4E80\n   \u2502\n   \u25bc\nmbedtls_strerror(ret, buf, buflen)       library/error.c:792\n   \u2502  buflen==0 \u2192 return; zero buf; ret = -ret\n   \u2502\n   \u251c\u2500 ret & 0xFF80 ?  (high-level part: module ID bits)\n   \u2502     \u2514\u2500 mbedtls_high_level_strerr(ret)   error.c:174  \u2192 \"SSL - ...\"  (or \"UNKNOWN ERROR CODE (xxxx)\")\n   \u2502        \u2514\u2500 if SSL fatal alert: return here (no low-level part)\n   \u2502\n   \u251c\u2500 use_ret = ret & ~0xFF80  (low-level part: 7 bits)\n   \u2502     \u2514\u2500 if 0 \u2192 done\n   \u2502\n   \u2514\u2500 if high-level text exists, append \" : \" then\n         mbedtls_low_level_strerr(ret)      error.c:537  \u2192 \"MPI - ...\" (or UNKNOWN)\n```\n\nPoints to know:\n\n- **Sign is stripped first.** Callers pass negative values, and the tables are keyed on the negated constants.\n- **The code is split in two.** `error.h` documents the layout: the high bits name a module (`0xFF80`), and the low 7 bits are a low-level error (`0x007F`). An error can carry both, so the output is `HIGH : LOW`.\n- **Both lookups are generated `switch` statements** between `/* Begin Auto-Generated Code. */` and `/* End Auto-Generated Code. */`. Each case is wrapped in `#if defined(MBEDTLS_<MOD>_C)`, so a disabled module has no string and falls through to `UNKNOWN ERROR CODE (%04X)`.\n- **Gating.** The whole file is compiled only when `MBEDTLS_ERROR_C` or `MBEDTLS_ERROR_STRERROR_DUMMY` is set. With `MBEDTLS_ERROR_C` off, the dummy `mbedtls_strerror` just writes an empty string.\n\n## Adding a new error code\n\n1. **Define the code** in `include/mbedtls/<module>.h`, following the existing pattern:\n   ```c\n   /** Invalid key length. */\n   #define MBEDTLS_ERR_AES_INVALID_KEY_LENGTH   -0x0020\n   ```\n   - The value must be a negative hex literal (`-0x....`). The generator's regex only matches that form, so a decimal value is skipped without any error and simply gets no string.\n   - Put the description in exactly one place: a `/** ... */` before the define or a `/*!< ... */` after it. Neither or both is a hard failure.\n   - Pick an unused number from the module's range. The table in `error.h` (around lines 37\u201354) lists what's assigned. A duplicate value is a hard failure.\n\n2. **If the module is new**, add its name to `@low_level_modules` or `@high_level_modules` in `scripts/generate_errors.pl`. An unknown module makes the script exit with `Do not know how to handle`. The header must be named after the lowercase module (`net_sockets` is the one special case). Add a row for the module in the `error.h` table as well, since that table is maintained by hand.\n\n3. **Regenerate.** `library/Makefile` has a rule that rebuilds `error.c` whenever a header in `include/mbedtls/` changes, so a normal build does it. You can also run `perl scripts/generate_errors.pl` from the repo root. The generator fails if any header defines codes but isn't included.\n\n4. **Check the output.** `tests/scripts/check-generated-files.sh` re-runs the generator and diffs the result against the committed `error.c`, so the committed file has to match what the script produces.\n\nI read this from source and did not build or run the generator, so the regex and table claims are from reading the code, not from a test run.",
+  "ttft_ms": 1370,
+  "type": "result",
+  "duration_ms": 30668,
+  "uuid": "5b6fcd4f-e845-441e-8163-1da2cb8d988d",
+  "ttft_stream_ms": 1038,
+  "time_to_request_ms": 69,
+  "first_content_frame_ms": 1038,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

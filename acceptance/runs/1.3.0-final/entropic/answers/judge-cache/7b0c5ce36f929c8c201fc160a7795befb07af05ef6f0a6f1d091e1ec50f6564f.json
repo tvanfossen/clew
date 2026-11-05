@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions `_loader.py` with `load()` and `find()` but says nothing about the resolution order (env overrides, user directory, system library cache) or the two directory layouts per root."
+}
