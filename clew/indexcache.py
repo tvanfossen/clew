@@ -89,6 +89,12 @@ CREATE TABLE IF NOT EXISTS extract_cache (
 )
 
 
+## A successful build VACUUMs the cache when more than this share of its pages is free. Measured
+## 2026-11-07: entropic's cache had reached 9,856 MB at 97% free (231 MB live), because payload
+## churn and build-version invalidation free pages and nothing reclaimed them.
+VACUUM_FREE_RATIO = 0.25
+
+
 ## @brief Sidecar SQLite cache backing incremental rebuilds.
 ## @version 1
 class IndexCache:
@@ -668,8 +674,10 @@ class IndexCache:
         """
         self.conn.commit()
 
+    ## Version 3: a mostly-free cache is VACUUMed after the commit (`_reclaim_free_pages`).
+    ##
     ## @brief Persist this run's file identities and commit; then close.
-    ## @version 2
+    ## @version 3
     ## @req REQ-DDB-INDEX-002
     def commit(self) -> None:
         """Replace `source_files` with this run's scan — rows for files that
@@ -698,6 +706,44 @@ class IndexCache:
             self.hits,
             self.misses,
             self.cache_path.name,
+        )
+        self._reclaim_free_pages()
+
+    ## @brief VACUUM the cache when more than `VACUUM_FREE_RATIO` of its pages are free.
+    ## @version 1
+    ## @req REQ-DDB-INDEX-002
+    def _reclaim_free_pages(self) -> None:
+        """ON THE SUCCESS PATH ONLY, under the build lock that already serialises builds of one
+        target. `flush` never vacuums: an aborted build that paid for a whole-file rewrite would
+        pay it again on every retry. The threshold keeps an ordinary warm build from rewriting a
+        multi-GB file to recover a few pages.
+
+        A failure is logged and swallowed: the cache is already committed and correct, and a
+        file that stays large is a disk cost, not a wrong answer.
+
+        @brief Reclaim free pages after a successful build.
+        @version 1
+        """
+        pages = self.conn.execute("PRAGMA page_count").fetchone()[0]
+        free = self.conn.execute("PRAGMA freelist_count").fetchone()[0]
+        if not pages or free / pages <= VACUUM_FREE_RATIO:
+            return
+        try:
+            self.conn.execute("VACUUM")
+        except sqlite3.Error as exc:
+            logger.warning(
+                "index cache: VACUUM of %s failed (%s); %d of %d pages stay free",
+                self.cache_path,
+                exc,
+                free,
+                pages,
+            )
+            return
+        logger.info(
+            "index cache: vacuumed %s — %d of %d pages were free",
+            self.cache_path.name,
+            free,
+            pages,
         )
 
     ## @brief Close the sidecar connection without committing.
