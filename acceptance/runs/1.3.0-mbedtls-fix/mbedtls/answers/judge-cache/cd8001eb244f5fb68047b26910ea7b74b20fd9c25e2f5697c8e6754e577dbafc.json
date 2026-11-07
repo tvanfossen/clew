@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Without the opt-out, `ctx->MBEDTLS_PRIVATE(state)` becomes `ctx->private_state`, so the real name `state` no longer exists. Plain `ctx->state` then fails to compile.\" and \"Library sources that include `common.h` see the real field names.\"\nVERDICT: HIT\nWHY: The answer shows both branches of the `#ifndef`. Code that defines the opt-out sees plain member names, and ordinary consumers without it see the `private_` renamed ones."
+}

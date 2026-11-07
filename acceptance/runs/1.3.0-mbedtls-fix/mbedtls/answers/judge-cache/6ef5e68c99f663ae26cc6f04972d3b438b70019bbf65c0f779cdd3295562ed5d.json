@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says calloc/free dispatch through function pointers and explicitly declines to say which macro expansion applies; it never concludes that a default build has direct macros to calloc/free."
+}

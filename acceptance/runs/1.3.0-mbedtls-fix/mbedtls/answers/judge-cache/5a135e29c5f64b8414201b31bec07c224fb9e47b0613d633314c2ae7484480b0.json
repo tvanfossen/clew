@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, it expands to `private_##member`... Code that writes `ctx->foo` compiles only when the define is set. The result is a compile-time barrier: an application that reads `ctx->foo` gets \"no member named foo\"... It is a naming barrier, not access control. Anyone can write `ctx->private_foo`\"\nVERDICT: HIT\nWHY: The answer says opacity is enforced at compile time by mangling the member name (a naming barrier) and that `ctx->private_foo` stays accessible, so the fields are not hidden."
+}

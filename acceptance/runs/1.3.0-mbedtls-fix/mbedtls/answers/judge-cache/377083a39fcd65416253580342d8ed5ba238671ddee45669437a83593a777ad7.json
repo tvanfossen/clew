@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It then calls `mbedtls_platform_set_calloc_free()` to install its own calloc and free as the global pointers (`memory_buffer_alloc.c:566-576`). When `MBEDTLS_THREADING_C` is enabled, it wraps both in a mutex.\"\nVERDICT: MISS\nWHY: The answer says the allocator wraps both functions in a mutex when THREADING_C is on, but never states the plain-pair alternative otherwise or that the choice is made at compile time inside the init function."
+}

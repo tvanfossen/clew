@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The threading layer itself (`library/threading.c`) only supplies the pthread or user-supplied implementation behind `mbedtls_mutex_lock/unlock`. ... \"the library starts no threads\"\n\nVERDICT: HIT\nWHY: The answer says the library starts no threads and that library/threading.c supplies the mutex abstraction (lock/unlock via pthread or user-supplied implementation) for threaded callers."
+}

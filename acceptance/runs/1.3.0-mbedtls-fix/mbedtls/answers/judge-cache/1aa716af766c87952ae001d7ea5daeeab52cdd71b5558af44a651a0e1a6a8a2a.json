@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these top-level directories as containing `MBEDTLS_PRIVATE` uses:\n\n- `library` has 14 remaining occurrences.\n- `include` has the definition in `private_access.h` and the struct declarations in `ssl.h`.\n- `programs` has `fuzz_dtlsserver.c` and `ssl_context_info.c` using the explicit spelling.\n\nThe answer also mentions `docs` for the migration guide, but only as a reference to the `bar.MBEDTLS_PRIVATE(foo)` escape hatch.\n\nITEMS:\nlibrary\ninclude\nprograms\ndocs\nEND"
+}

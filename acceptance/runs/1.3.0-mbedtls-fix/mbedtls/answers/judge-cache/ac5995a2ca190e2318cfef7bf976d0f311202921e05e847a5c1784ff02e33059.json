@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` undefined (the default, `mbedtls_config.h:208` is commented out) | `calloc`\nVERDICT: HIT\nWHY: The answer says that `MBEDTLS_PLATFORM_MEMORY` controls the allocator mechanism. It also says the option is commented out in the shipped `mbedtls_config.h` (line 208), so the default is plain `calloc`."
+}

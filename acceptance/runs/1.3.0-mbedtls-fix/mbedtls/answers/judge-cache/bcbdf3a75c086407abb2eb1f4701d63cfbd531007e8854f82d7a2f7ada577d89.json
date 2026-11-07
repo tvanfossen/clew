@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PRIVATE(member)` is a token-pasting macro in `include/mbedtls/private_access.h`.\nVERDICT: HIT\nWHY: The answer explicitly places the macro's definition in include/mbedtls/private_access.h."
+}

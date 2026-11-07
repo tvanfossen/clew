@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The library itself spawns no threads. The index's thread layer lists four spawn sites, all in `programs/`.\" and \"Locks are taken through global function pointers (`mbedtls_mutex_lock` at `library/threading.c:103`...). The backend is therefore swappable through `MBEDTLS_THREADING_ALT`.\"\nVERDICT: HIT\nWHY: The answer states that the library creates no threads (all spawns are in programs/) and that library/threading.c supplies the mutex abstraction (pthread backend, swappable function pointers) used when threading is enabled."
+}

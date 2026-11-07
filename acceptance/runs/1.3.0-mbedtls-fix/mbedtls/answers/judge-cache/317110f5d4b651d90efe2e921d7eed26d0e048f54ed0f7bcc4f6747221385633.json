@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these top-level directories as containing uses of `MBEDTLS_PRIVATE`:\n\n- `library` (14 remaining occurrences, mostly in internal headers)\n- `include` (the macro definition and the struct declarations in `ssl.h`)\n- `programs` (`fuzz_dtlsserver.c` and `ssl_context_info.c` use the explicit spelling)\n\nThe answer also cites `docs/3.0-migration-guide.md`, but only for what it says about the macro, not as a place that uses it. I left `docs` out.\n\nITEMS:\nlibrary\ninclude\nprograms\nEND"
+}

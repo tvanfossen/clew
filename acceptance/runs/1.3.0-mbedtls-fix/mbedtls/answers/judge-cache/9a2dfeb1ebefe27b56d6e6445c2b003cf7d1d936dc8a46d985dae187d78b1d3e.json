@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Windows timer thread | `programs/test/benchmark.c` (`mbedtls_set_alarm` \u2192 `TimerProc`) | Windows-only, test benchmark.\nVERDICT: MISS\nWHY: The answer says the timer thread is Windows-only, but it never says it is gated on a platform condition rather than the threading config. Its framing ties the other sources to the threading macros, so the platform-gating mechanism is missing."
+}

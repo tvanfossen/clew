@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The facility is used in about 25 library files, but several sensitive paths use separate mechanisms.\nVERDICT: HIT\nWHY: The answer states the primitives are used in about 25 library files (order of twenty) and lists many consuming modules, conveying broad consumption."
+}

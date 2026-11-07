@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists callers across several areas (RSA, TLS, AEAD, PSA, bignum) but never states a breadth like roughly twenty modules, and it explicitly leaves coverage unconfirmed."
+}

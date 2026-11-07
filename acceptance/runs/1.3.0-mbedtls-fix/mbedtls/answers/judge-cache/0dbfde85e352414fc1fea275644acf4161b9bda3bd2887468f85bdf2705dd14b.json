@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no top-level directories as containing uses of MBEDTLS_PRIVATE. It names directories only for the opt-out `MBEDTLS_ALLOW_PRIVATE_ACCESS`, and it mentions `library/` for specific call sites.\n\nThe call sites it cites are `library/ecdh.c:150` and `library/x509_crt.c:3306`, so `library` is the one directory it ties to uses of the macro.\n\nITEMS:\nlibrary\nEND"
+}

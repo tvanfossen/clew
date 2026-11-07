@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (default, `mbedtls_config.h:208` is commented out)\nVERDICT: HIT\nWHY: The answer says MBEDTLS_PLATFORM_MEMORY gates the indirection (platform.c only if it's defined) and that it's commented out in mbedtls_config.h by default."
+}

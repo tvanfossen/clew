@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS #define MBEDTLS_PRIVATE(member) private_##member #else #define MBEDTLS_PRIVATE(member) member\" and \"Inside them the macro expands to the plain name, so `ssl->state` compiles.\" and \"By default that field is named `private_state`. Application code that writes `ssl->state` fails to compile\"\nVERDICT: HIT\nWHY: The answer shows both branches and says opt-out code (library, ssl_server2) sees plain names while ordinary external consumers see the `private_`-prefixed names."
+}

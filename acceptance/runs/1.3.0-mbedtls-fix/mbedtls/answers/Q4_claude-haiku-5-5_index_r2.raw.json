@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 27150,
+  "stop_reason": "end_turn",
+  "session_id": "8d76d5c1-8b05-4d4c-826e-d58b9b4098a7",
+  "total_cost_usd": 0.00921781,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 20194,
+    "cache_read_input_tokens": 275931,
+    "output_tokens": 4837,
+    "output_tokens_details": {
+      "thinking_tokens": 1795
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 20194,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2517,
+        "cache_read_input_tokens": 58194,
+        "cache_creation_input_tokens": 1877,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1877
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4837,
+      "cacheReadInputTokens": 275931,
+      "cacheCreationInputTokens": 20194,
+      "webSearchRequests": 0,
+      "costUSD": 0.00921781,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1795,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 20194,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short version:** the string comes from a generated `switch` in `library/error.c`. That file is produced by `scripts/generate_errors.pl` from `MBEDTLS_ERR_*` macros in `include/mbedtls/*.h`, so a new string means adding a documented macro and regenerating, not hand-editing the switch.\n\n**Runtime path**\n\n```\ncaller: mbedtls_strerror(ret, buf, sizeof buf)            library/error.c:792\n  \u251c\u2500 buflen==0 \u2192 return; memset(buf, 0)\n  \u251c\u2500 ret = -ret                                  (sign dropped; codes are stored negative)\n  \u251c\u2500 ret & 0xFF80  \u2192 mbedtls_high_level_strerr(ret)    error.c:174  (module-level switch)\n  \u2502     \u2514\u2500 if SSL fatal-alert wrapper \u2192 return, skip low level\n  \u251c\u2500 ret & ~0xFF80 \u2192 mbedtls_low_level_strerr(ret)     error.c:537  (specific-code switch)\n  \u2514\u2500 joins as \"HIGH : LOW\"; unknown \u2192 \"UNKNOWN ERROR CODE (%04X)\"\n```\n\n- The high-level part (mask `0xFF80`) names the module, for example `CIPHER - ...`, `X509 - ...`. The low-level part names the specific failure, for example `AES - Invalid key length`, and each is looked up in its own switch.\n- Both switches are fully generated between `Begin Auto-Generated Code` and `End Auto-Generated Code`. Each case is `case -(MBEDTLS_ERR_X): return \"MODULE - description\";`, wrapped in `#if defined(MBEDTLS_<MOD>_C)`.\n- If `MBEDTLS_ERROR_C` is off, `mbedtls_strerror` is a dummy that writes an empty string. `MBEDTLS_ERROR_STRERROR_DUMMY` keeps the tables compiled in some configs. Both gates are in `configs/` and `include/mbedtls/mbedtls_config.h`.\n\n**What a contributor does to add one**\n\n1. **Define the macro** in the module's public header, for example `include/mbedtls/cipher.h`. Use the `-0x` form, because the generator's regex only matches `-0x\u2026`:\n   ```c\n   /** Description of the failure. */\n   #define MBEDTLS_ERR_CIPHER_FOO  -0x6310\n   ```\n   Give it exactly one description, either a `/** */` comment before it or a `/**< */` comment after it. The generator dies on both or neither. Don't reuse a value: duplicates are fatal.\n2. **If the module prefix is new**, add it to `@low_level_modules` or `@high_level_modules` in `scripts/generate_errors.pl`. An unknown module makes the script exit with an error. Also make sure the header's `MBEDTLS_<MOD>_C` gate exists. The generator derives the `#if` and `#include \"mbedtls/<module>.h\"` lines from the module name.\n3. **Regenerate `library/error.c`** through the build. The rule is at `library/Makefile:355-360` and the CMake rule is in `library/CMakeLists.txt:136-144`. Don't edit the generated block by hand.\n4. **Verify.** `tests/scripts/check-generated-files.sh` reruns the generator and fails if the committed `error.c` differs. `tests/suites/test_suite_error.data` is the existing test suite for the error API, and I didn't read it in detail. Add a case there, and check it fails before the change. Run the gate through pre-commit as the repo expects.\n\n**Caveats I did not verify**\n\n- I did not run the generator or the test suite.\n- The generator checks the module list, not the value. A new code must sit in the bit range its class uses, the `0xFF80` high-level bits versus the low bits, or `mbedtls_strerror` will never look it up. That is a judgement call and nothing enforces it.",
+  "ttft_ms": 1791,
+  "type": "result",
+  "duration_ms": 27760,
+  "uuid": "1ca147f5-66cc-4c39-81e7-a22e93e1cf65",
+  "ttft_stream_ms": 1390,
+  "time_to_request_ms": 69,
+  "first_content_frame_ms": 1391,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132`. This is the library's own build-wide opt-out, so library `.c` files see the real member names.\nVERDICT: HIT\nWHY: The answer states that the library's shared header common.h defines the opt-out so all library .c files see real member names."
+}

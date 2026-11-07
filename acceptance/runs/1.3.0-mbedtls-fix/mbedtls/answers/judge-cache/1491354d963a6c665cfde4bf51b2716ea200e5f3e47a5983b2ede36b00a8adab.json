@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_PRIVATE(member)` is a rename, not access control... when `MBEDTLS_ALLOW_PRIVATE_ACCESS` is not defined, `MBEDTLS_PRIVATE(foo)` expands to `private_foo`... Code outside the library that writes `s->foo` then fails to compile.\"\nVERDICT: HIT\nWHY: The answer says the mechanism is a member rename that causes a compile error, and that \"C has no member-level access control, so this is a convention enforced by the name\". It never says outright that the fields stay visible and sized, but it does say the members are still declared as `private_*`, which implies it."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On GCC/Clang-style compilers, `MBEDTLS_CT_ASM` is defined when `MBEDTLS_HAVE_ASM` is on (it is by default, `include/mbedtls/mbedtls_config.h:52`).\nVERDICT: HIT\nWHY: The answer says MBEDTLS_CT_ASM is defined from MBEDTLS_HAVE_ASM plus compiler conditions (`__GNUC__`/`__ARMCC_VERSION` gate), i.e. derived rather than configured directly."
+}

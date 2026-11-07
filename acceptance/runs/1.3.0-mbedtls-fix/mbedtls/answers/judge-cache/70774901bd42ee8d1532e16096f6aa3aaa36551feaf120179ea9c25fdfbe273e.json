@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` forced on, and it has no config header, so the shipped default comes only from the `default_state: off` entries it reports (`mbedtls_config.h:2196` and `:3787`). Confirm those lines before relying on this.\nVERDICT: MISS\nWHY: The answer hedges and tells the reader to confirm the lines. It never plainly states that the shipped config leaves both macros undefined, so a default build defines neither."
+}

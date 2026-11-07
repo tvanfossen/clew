@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no top-level directories as containing uses of MBEDTLS_PRIVATE. It names header files (`ssl.h`, `bignum.h` and others) and paths such as `include/mbedtls/private_access.h`, `library/common.h` and `programs/ssl/...`. Those paths are for the header and the gate definitions, not stated as directories where MBEDTLS_PRIVATE is used.\n\nITEMS:\nNONE\nEND"
+}

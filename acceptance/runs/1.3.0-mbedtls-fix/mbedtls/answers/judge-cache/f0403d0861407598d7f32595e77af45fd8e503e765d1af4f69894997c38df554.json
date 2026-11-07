@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque` returns `x ^ mbedtls_ct_zero`. The `volatile` load is a barrier the compiler must honour... `mbedtls_ct_zero` is a `volatile` global set to 0 (`constant_time.c:29`).\nVERDICT: HIT\nWHY: The answer says the fallback of the same opaque function XORs with the volatile global `mbedtls_ct_zero`, which holds 0. It does not use the word \"extern\", but the mechanism and the global's name are both given."
+}

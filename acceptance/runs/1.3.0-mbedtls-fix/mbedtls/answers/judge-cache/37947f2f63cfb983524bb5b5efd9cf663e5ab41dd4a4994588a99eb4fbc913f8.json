@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` stated as flags, so its lock and spawn results describe a threaded build\nVERDICT: HIT\nWHY: The answer names both macros as the threading gating configuration (`MBEDTLS_THREADING_C` guards the mutex code, and the \"Threaded build\" section pairs it with `PTHREAD`)."
+}

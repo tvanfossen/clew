@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, it expands to `private_##member`. With the define, it expands to plain `member`.\nVERDICT: MISS\nWHY: The answer describes the macro's two expansions and the opt-out's use, but never states that code defining the macro sees plain names while ordinary public-header consumers see the renamed ones."
+}

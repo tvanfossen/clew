@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library itself creates no threads. Concurrency comes only from the caller... Every mutex call site in the library sits behind `#if defined(MBEDTLS_THREADING_C)`... `library/threading.c`... the function-pointer table (`mbedtls_mutex_lock` and friends, line 103)\n\nVERDICT: HIT\nWHY: The answer states that library/ creates no threads and that library/threading.c with the mutex wrappers and call sites exists for threaded callers when enabled. That covers both halves of the contrast."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(member)` expands to `private_##member`... With the define set, it expands to `member` and the name is the bare field.\nVERDICT: HIT\nWHY: The answer explains both branches: without the define the renamed `private_` names are seen, and with it the bare names. It also ties the define to library and in-tree code versus outside application consumers."
+}

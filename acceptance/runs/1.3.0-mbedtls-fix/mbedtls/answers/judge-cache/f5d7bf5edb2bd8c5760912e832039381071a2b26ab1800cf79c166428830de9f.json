@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_client2.c:8` and `programs/ssl/ssl_server2.c:8`. These sample/test programs opt out too.\nVERDICT: HIT\nWHY: The answer says the example programs (ssl_client2/ssl_server2) define the opt-out themselves and reach into library internals, and it says they shouldn't be copied as examples for application code."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Two halves.** The top bits (mask `0xFF80`) identify the module; the low 7 bits identify the specific error within it.\" and \"A two-part code reads as `MODULE - high text : MODULE - low text`.\"\nVERDICT: HIT\nWHY: The answer states a code has a high-level module part and a low-level part, and that mbedtls_strerror outputs both joined with \" : \" when both are present."
+}

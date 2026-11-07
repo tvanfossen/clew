@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A project can substitute its own allocator at compile time with two macros, or at runtime with `mbedtls_platform_set_calloc_free()`. ... `platform.c:16-22` says the compile-time macros take precedence. When both macros are set, the runtime setter and its pointers are compiled out entirely.\n\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer setter. It also says that with both macros defined, the runtime setter and its pointers are compiled out, which is mutual exclusion."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_PLATFORM_MEMORY` undefined (the default, `mbedtls_config.h:208` is commented out)\"\nVERDICT: HIT\nWHY: The answer says MBEDTLS_PLATFORM_MEMORY is off by default and commented out at mbedtls_config.h:208, and its table and routes show that option choosing how allocation resolves."
+}

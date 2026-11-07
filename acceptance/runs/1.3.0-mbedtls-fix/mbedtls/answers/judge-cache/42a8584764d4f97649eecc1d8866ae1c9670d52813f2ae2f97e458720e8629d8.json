@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: ret & 0xFF80 (high-level part, module) \u2500\u2500\u25ba mbedtls_high_level_strerr(ret) ... ret & ~0xFF80 (low-level part) \u2500\u2500\u25ba mbedtls_low_level_strerr(ret) ... both present \u2192 join with \" : \" (only if \u22655 bytes remain), then append low-level text\nVERDICT: HIT\nWHY: The answer states that a code splits into a high-level module part and a low-level part, and that mbedtls_strerror joins both texts when both are present."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Opacity.** `mbedtls_ct_compiler_opaque()` (`constant_time_impl.h:85-93`) stops the optimiser from knowing a value.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the primitive that stops the optimiser knowing a value and locates it in constant_time_impl.h."
+}

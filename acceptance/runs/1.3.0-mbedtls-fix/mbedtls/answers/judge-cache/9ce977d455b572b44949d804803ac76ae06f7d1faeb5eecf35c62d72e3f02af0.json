@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The whole function and both tables sit under `MBEDTLS_ERROR_C`.\nVERDICT: MISS\nWHY: The answer says the function is gated by MBEDTLS_ERROR_C but never states it is enabled in the shipped default config, so the string table being present in a default build is absent."
+}

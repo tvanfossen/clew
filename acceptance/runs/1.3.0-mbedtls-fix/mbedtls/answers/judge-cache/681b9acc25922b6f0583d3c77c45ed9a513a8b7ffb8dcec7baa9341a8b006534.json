@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: joins as \"HIGH : LOW\"; unknown \u2192 \"UNKNOWN ERROR CODE (%04X)\"\nVERDICT: HIT\nWHY: The answer explains that the high-level (module) and low-level (specific) parts are looked up separately and joined as \"HIGH : LOW\" by mbedtls_strerror."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The opt-out is switched on in `library/common.h:132`: ... `#define MBEDTLS_ALLOW_PRIVATE_ACCESS` ... About 107 library `.c` files include `common.h` directly... Inside them the macro expands to the plain name\n\nVERDICT: HIT\nWHY: The answer states that library/common.h, a shared header, defines the opt-out, so library TUs including it see plain member names."
+}

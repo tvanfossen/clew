@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The asm path is selected by `MBEDTLS_CT_ASM` (`constant_time_impl.h:42`), which is gated on `MBEDTLS_HAVE_ASM` and on `__GNUC__` or `__ARMCC_VERSION`.\nVERDICT: HIT\nWHY: The answer says MBEDTLS_CT_ASM is defined in constant_time_impl.h from MBEDTLS_HAVE_ASM plus compiler predefined macros (`__GNUC__`/`__ARMCC_VERSION`), which conveys that it is derived. It never says it is not set in mbedtls_config.h, but the derivation is stated."
+}

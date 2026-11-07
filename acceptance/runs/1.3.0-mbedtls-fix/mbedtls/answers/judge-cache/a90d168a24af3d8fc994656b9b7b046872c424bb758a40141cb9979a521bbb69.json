@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `include/mbedtls/private_access.h` defines `MBEDTLS_PRIVATE(member)` and wraps struct members in it.\nVERDICT: HIT\nWHY: The answer states that the macro is defined in include/mbedtls/private_access.h and describes its expansion."
+}

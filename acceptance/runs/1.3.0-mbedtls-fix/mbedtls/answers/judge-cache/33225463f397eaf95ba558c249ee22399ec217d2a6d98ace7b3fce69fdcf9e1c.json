@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The opt-out is switched on in `library/common.h:132`: `#define MBEDTLS_ALLOW_PRIVATE_ACCESS` ... Inside them the macro expands to the plain name, so `ssl->state` compiles.\nVERDICT: HIT\nWHY: The answer says library code turns on the opt-out in the shared header common.h, which the library .c files include, so the macro expands to plain member names."
+}

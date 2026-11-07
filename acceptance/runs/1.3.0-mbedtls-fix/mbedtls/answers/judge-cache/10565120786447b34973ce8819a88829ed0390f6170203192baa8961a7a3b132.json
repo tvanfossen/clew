@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Set `MBEDTLS_PLATFORM_MEMORY` in the project's config header ... The index's `MBEDTLS_PLATFORM_STD_CALLOC` config default reads \"off\" ... not as verified from the shipped config.\nVERDICT: MISS\nWHY: The answer names MBEDTLS_PLATFORM_MEMORY as the build-time selector. It never says the macro is commented out in the shipped mbedtls_config.h, and it explicitly says it did not verify the shipped config."
+}

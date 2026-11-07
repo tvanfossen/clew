@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (default, `mbedtls_config.h:208` is commented out)\nVERDICT: HIT\nWHY: The answer says the platform-memory option gates the allocator hooks (platform.c \"only if MBEDTLS_PLATFORM_MEMORY\") and that it is commented out in the shipped mbedtls_config.h at line 208."
+}

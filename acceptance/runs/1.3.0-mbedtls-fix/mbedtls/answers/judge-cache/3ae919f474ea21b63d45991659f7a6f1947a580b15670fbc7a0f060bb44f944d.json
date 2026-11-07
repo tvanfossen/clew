@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `platform.c:20-22` drops its own pointer machinery entirely\nVERDICT: MISS\nWHY: The answer says platform.c drops its pointer machinery on the macro path, but it never says `mbedtls_platform_set_calloc_free` is neither declared nor compiled there."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Its own allocator is a client of it. `mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566`) does not call libc. It calls `mbedtls_platform_set_calloc_free` with its own `buffer_alloc_calloc_mutexed`\"\nVERDICT: MISS\nWHY: The answer says the buffer allocator calls the setter from its init function, but never says it is the only in-tree user of the setter, and the item requires that claim."
+}

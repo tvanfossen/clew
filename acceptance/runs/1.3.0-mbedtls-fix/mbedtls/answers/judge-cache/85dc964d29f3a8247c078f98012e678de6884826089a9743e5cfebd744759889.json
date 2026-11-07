@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Define before include, plain `c->extensions`: compiles. No define, plain `c->extensions`: error.\"\nVERDICT: HIT\nWHY: The answer shows both branches of the macro. A consumer that defines the opt-out sees plain member names, and one that doesn't sees the renamed `private_` ones."
+}

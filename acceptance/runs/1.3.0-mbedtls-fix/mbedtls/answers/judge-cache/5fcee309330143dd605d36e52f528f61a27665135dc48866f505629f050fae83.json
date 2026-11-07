@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without assembly it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` zero (`constant_time.c:23-30`).\nVERDICT: HIT\nWHY: The answer says the no-assembly path XORs with the volatile zero global `mbedtls_ct_zero`, in the same function `mbedtls_ct_compiler_opaque()`."
+}

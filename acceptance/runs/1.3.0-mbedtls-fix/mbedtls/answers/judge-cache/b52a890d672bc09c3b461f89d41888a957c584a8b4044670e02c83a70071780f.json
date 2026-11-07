@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The high-level part is `ret & 0xFF80`. It goes to `mbedtls_high_level_strerr()`... The low-level part is `ret & ~0xFF80`. If non-zero, it is appended after `\" : \"` with `mbedtls_low_level_strerr()`... `\"X509 - ... : ASN1 - ...\"` for a combined code.\nVERDICT: HIT\nWHY: The answer says a code splits into high-level and low-level parts and that both are rendered, joined with \" : \", when both are present."
+}

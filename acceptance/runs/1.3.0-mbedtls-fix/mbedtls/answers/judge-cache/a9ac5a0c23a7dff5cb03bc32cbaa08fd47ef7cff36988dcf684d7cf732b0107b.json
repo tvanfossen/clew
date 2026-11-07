@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS\n#define MBEDTLS_PRIVATE(member) private_##member\n#else\n#define MBEDTLS_PRIVATE(member) member\n#endif` and \"Without the opt-out, `ctx->MBEDTLS_PRIVATE(state)` becomes `ctx->private_state`\"\nVERDICT: HIT\nWHY: The answer shows the macro definition and explains that by default it renames to private_<member>, while defining the opt-out leaves the member name unchanged."
+}

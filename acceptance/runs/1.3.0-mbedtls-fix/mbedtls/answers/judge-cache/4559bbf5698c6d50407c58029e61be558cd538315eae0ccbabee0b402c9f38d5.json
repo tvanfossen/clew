@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Components in `tests/scripts/components-sanitizers.sh` run MemSan (`:33`, `:53`) and release Valgrind (`:72`, `:105`, `:131`). ... Test suites are instrumented with `TEST_CF_SECRET` / `TEST_CF_PUBLIC`.\nVERDICT: MISS\nWHY: The answer describes a MemSan/Valgrind verification test facility, but it never says the facility is off by default or that it is explicitly not part of the library API."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: sets up a heap over a caller-supplied buffer, with a mutex when `MBEDTLS_THREADING_C` is on; calls `mbedtls_platform_set_calloc_free(buffer_alloc_calloc_mutexed, buffer_alloc_free_mutexed)` (or the non-mutexed pair)\nVERDICT: HIT\nWHY: The answer says the init function installs the mutexed pair, or the non-mutexed pair, with the mutex tied to MBEDTLS_THREADING_C. It doesn't say the choice is made at compile time, but the preprocessor gating is implied."
+}

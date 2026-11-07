@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Constant-flow testing marks secret inputs with `TEST_CF_SECRET` and public outputs with `TEST_CF_PUBLIC`. Valgrind memcheck then reports any branch or address that depends on a secret. This is `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` (`include/mbedtls/mbedtls_config.h:2126`), run by `component_release_test_valgrind_constant_flow`... The MemorySanitizer variant (`MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN`) requires building with clang MSan\n\nVERDICT: MISS\n\nWHY: The answer describes valgrind/MSan constant-flow testing, but never says it is off-by-default or that it is explicitly not part of the library API."
+}

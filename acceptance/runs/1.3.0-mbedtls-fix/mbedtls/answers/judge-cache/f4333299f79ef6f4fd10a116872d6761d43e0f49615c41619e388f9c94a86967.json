@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says to \"Enable MBEDTLS_PLATFORM_MEMORY in its mbedtls_config.h\" but never states that it is commented out in the shipped config."
+}

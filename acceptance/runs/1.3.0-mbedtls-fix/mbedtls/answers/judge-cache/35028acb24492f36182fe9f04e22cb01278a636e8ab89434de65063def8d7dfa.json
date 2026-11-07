@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On the C path it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global set to 0 (`library/constant_time.c:16-22`).\nVERDICT: HIT\nWHY: The answer says that without asm, the same barrier function (`mbedtls_ct_compiler_opaque`) XORs with the volatile global `mbedtls_ct_zero`, which holds 0. It doesn't use the word \"extern\", but the item's substance is there."
+}

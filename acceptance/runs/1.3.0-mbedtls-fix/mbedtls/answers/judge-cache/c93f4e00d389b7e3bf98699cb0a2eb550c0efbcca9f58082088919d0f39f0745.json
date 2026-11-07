@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (default) | `calloc` / `free`, macro-mapped in `platform.h:166`\nVERDICT: HIT\nWHY: The answer states that in the default build (PLATFORM_MEMORY off) mbedtls_calloc/free are macro-mapped directly to calloc/free, which is the no-indirection fact, though the call-chain diagram above it muddies this."
+}

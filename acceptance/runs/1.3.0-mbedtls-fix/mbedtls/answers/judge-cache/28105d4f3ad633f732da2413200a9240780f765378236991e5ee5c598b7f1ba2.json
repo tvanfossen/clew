@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Index thread inventory: 4 spawn sites, all first-party, all in `programs/` ... None are in `library/`.\"\nVERDICT: MISS\nWHY: The answer states that no thread spawns exist in library/, but it frames library/'s mutex code as inert by default, not as the mutex abstraction supplied for threaded callers. It never states that library/ supplies the abstraction, so the second half of the contrast is missing."
+}

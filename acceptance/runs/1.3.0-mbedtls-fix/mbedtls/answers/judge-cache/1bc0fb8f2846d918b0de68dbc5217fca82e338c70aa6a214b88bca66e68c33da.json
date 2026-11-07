@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the opt-out is defined in library/common.h and the ssl programs, but it never states that code defining MBEDTLS_ALLOW_PRIVATE_ACCESS sees plain names while an ordinary consumer of the public headers sees the private_ names. It describes the two branches and who defines the macro separately, and it gives no per-consumer contrast."
+}

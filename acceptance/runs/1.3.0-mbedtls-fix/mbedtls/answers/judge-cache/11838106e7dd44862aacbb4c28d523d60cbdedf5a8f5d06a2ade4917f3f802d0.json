@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` (`include/mbedtls/mbedtls_config.h:3787`), `MBEDTLS_THREADING_PTHREAD` (`:2196`) and `MBEDTLS_THREADING_ALT` (`:2185`) all default to off. ... `library/threading.c` is gated on `MBEDTLS_THREADING_C`\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the config macros that gate the threading/locking support."
+}

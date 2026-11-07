@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Default target is `MBEDTLS_PLATFORM_STD_CALLOC`/`STD_FREE` if you define them, else an \"uninit\" stub. Calloc returns NULL and free does nothing until you call `mbedtls_platform_set_calloc_free()`.\nVERDICT: HIT\nWHY: The answer states that uninitialised pointer defaults are stubs where calloc returns NULL and free does nothing until the setter is called."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says `library/platform.c` compiles out entirely when both macros are set, but it never says `mbedtls_platform_set_calloc_free` is neither declared nor compiled on the macro path."
+}

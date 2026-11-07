@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Define it in the module's public header.** Use the negative hex form with a value that is not already taken. Put a `/** ... */` or `/**< ... */` description on the define.\" and \"**Regenerate.** Run it through the build (`make` in `library/` or the CMake target), or run `scripts/generate_errors.pl` directly from the repo root. Commit the regenerated `library/error.c` alongside the header change.\"\nVERDICT: HIT\nWHY: The answer says to add the Doxygen-documented define to the public header and regenerate. It also says the tables are generated, not hand-written, so `library/error.c` isn't edited by hand."
+}

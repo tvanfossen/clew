@@ -1,0 +1,13 @@
+**What it does.** `include/mbedtls/private_access.h` is a two-branch macro. Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(member)` expands to `private_##member`, so a struct declared as `ssl->MBEDTLS_PRIVATE(state)` is really `ssl->private_state`. Code that names `ssl->state` fails to compile. With the define set, it expands to `member` and the name is the bare field.
+
+**Who it is for.** It is for application code outside the library. Mbed TLS wants its struct internals to change between minor releases without breaking callers, and renaming the fields turns "you touched a private member" into a compile error instead of a silent ABI or behaviour dependency. The header itself says this (`include/mbedtls/ssl.h:5163`): reaching `ssl->state` is "deprecated and could be broken in any future release." `docs/3.0-migration-guide.md:74` says the same thing and presents `bar.MBEDTLS_PRIVATE(foo)` as a last resort, at the user's own risk.
+
+**Where the opt-out is turned on in this tree:**
+
+1. **The library itself.** `library/common.h:132` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` unconditionally, and 107 `library/*.c` files include `common.h`. Because the define comes before the public headers, every library translation unit sees the real field names. For library code the `MBEDTLS_PRIVATE(...)` wrapper is a no-op. The three library files that use it (`ecdh.c:150`, `md.c:915`, `x509_crt.c:3306`) compile to the bare names. The library is the main "for whom" here, and it is not the audience the wrapper was built for.
+
+2. **Two SSL test programs.** `programs/ssl/ssl_server2.c:8` and `programs/ssl/ssl_client2.c:8` define the opt-out before including `ssl_test_lib.h`. They can therefore read and write internals directly. Those programs are the only places outside `library/` that switch it on. The define must come before the first public header include, which is why it sits at the top of each file. Consequence: these programs are coupled to the struct layout and will break when internals change. CI catches that because they are in-tree, but they are not a usable example of supported API use.
+
+3. **Not in `tests/` or `framework/`.** A grep for the define found nothing in either directory. Any test code that reaches a private field has to write the `MBEDTLS_PRIVATE(...)` form explicitly, and I did not check which test files do that. The define's placement matters too. If it is defined after a public header is already included, the struct was declared with the renamed fields and the opt-out does nothing for that translation unit.
+
+**Practical reading:** outside callers should use the public accessors. The opt-out exists for the library and for two in-tree test programs, and inside those it is a deliberate coupling to internals.

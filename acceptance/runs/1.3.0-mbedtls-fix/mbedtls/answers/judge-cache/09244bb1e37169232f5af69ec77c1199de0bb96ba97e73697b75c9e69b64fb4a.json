@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_HAVE_ASM` must be defined (it is on by default, `mbedtls_config.h:52`). The compiler must define `__GNUC__`... If any of these fails, `MBEDTLS_CT_ASM` stays undefined and the C path is used.\"\nVERDICT: HIT\nWHY: The answer says MBEDTLS_CT_ASM is defined only when MBEDTLS_HAVE_ASM and compiler predefined macros (`__GNUC__`) hold, and stays undefined otherwise, so it is derived and not set by a config entry. It never says outright that it is \"derived\", but the mechanism is clearly stated."
+}

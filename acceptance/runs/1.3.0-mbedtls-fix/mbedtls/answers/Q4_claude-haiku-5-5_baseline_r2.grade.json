@@ -1,0 +1,123 @@
+{
+  "cell": "Q4_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "rubric_version": "3.1.0",
+  "rubric_digest": "bbf6195f605be452",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.56,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names mbedtls_strerror as the entry point and locates it in library/error.c",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: The string comes from `mbedtls_strerror()` in `library/error.c`, a file the build generates from the public headers. | WHY: The answer names mbedtls_strerror as the entry point and places it in library/error.c.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a code carries TWO layers \u2014 a high-level module part and a low-level part \u2014 and that mbedtls_strerror renders both, joined, when both are present",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"The two parts are joined with `\" : \"`, giving `\"RSA - Bad input parameters to function : AES - Invalid key length\"`.\" | WHY: The answer describes a high-level (module) part and a low-level part, and says both are rendered and joined with \" : \" when the low-level remainder is nonzero. || QUOTE: \"The mask `0xFF80` selects the module bits. `mbedtls_high_level_strerr()`... `ret & ~0xFF80` gives the remainder... `mbedtls_low_level_strerr()`... The two parts are joined with `\" : \"`, giving `\"RSA - Bad input parameters to function : AES - Invalid key length\"`.\" | WHY: The answer explains the high-level module part and low-level part, and says both are rendered joined with \" : \" when both are present. || QUOTE: \"The two parts are joined with `\" : \"`, giving `\"RSA - Bad input parameters to function : AES - Invalid key length\"`.\" | WHY: The answer describes the high-level (module) and low-level parts and that both are rendered joined with \" : \" when the low part is nonzero.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that library/error.c is GENERATED from the public headers by scripts/generate_errors.pl using scripts/data_files/error.fmt as its template",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The lookup tables are not hand-written. `scripts/generate_errors.pl` scans every `include/mbedtls/*.h` for `#define MBEDTLS_ERR_xxx -0x....` lines. ... It then emits one `case` per code into `library/error.c`, using `scripts/data_files/error.fmt` as the template. | WHY: The answer states that library/error.c is generated from the public headers by scripts/generate_errors.pl using error.fmt as the template. || QUOTE: `scripts/generate_errors.pl` scans every `include/mbedtls/*.h` for `#define MBEDTLS_ERR_xxx -0x....` lines. ... It then emits one `case` per code into `library/error.c`, using `scripts/data_files/error.fmt` as the template. | WHY: The answer states that library/error.c is generated from the public headers by generate_errors.pl using error.fmt as the template.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that adding a new error string means adding the /** */-documented #define to the module's public header and re-running the generator, NOT editing library/error.c",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"**Define it in the module's public header.** Use the negative hex form with a value that is not already taken. Put a `/** ... */` or `/**< ... */` description on the define.\" and \"**Regenerate.** Run it through the build (`make` in `library/` or the CMake target), or run `scripts/generate_errors.pl` directly from the repo root. Commit the regenerated `library/error.c` alongside the header change.\" | WHY: The answer says to add the Doxygen-documented define to the public header and re-run the generator, and it explains that `error.c` is generated from the headers. It never says \"don't edit `error.c`\" in so many words, but that follows from the stated mechanism. || QUOTE: \"**Define it in the module's public header.** Use the negative hex form with a value that is not already taken. Put a `/** ... */` or `/**< ... */` description on the define.\" and \"**Regenerate.** Run it through the build (`make` in `library/` or the CMake target), or run `scripts/generate_errors.pl` directly from the repo root. Commit the regenerated `library/error.c` alongside the header change.\" | WHY: The answer says to add the Doxygen-documented define to the public header and regenerate. It also says the tables are generated, not hand-written, so `library/error.c` isn't edited by hand. || QUOTE: \"**Define it in the module's public header.** Use the negative hex form with a value that is not already taken. Put a `/** ... */` or `/**< ... */` description on the define.\" and \"**Regenerate.** Run it through the build (`make` in `library/` or the CMake target), or run `scripts/generate_errors.pl` directly from the repo root. Commit the regenerated `library/error.c` alongside the header change.\" | WHY: The answer says to add the documented #define to the public header and re-run the generator, and it describes `library/error.c` as generated rather than hand-written. It does not say outright \"don't edit error.c\", but that follows from \"The lookup tables are not hand-written.\"",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that MBEDTLS_ERROR_C is ENABLED in the shipped mbedtls_config.h, so the string table is present in a default build",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions MBEDTLS_ERROR_C or says it is enabled in the default mbedtls_config.h. || QUOTE: NONE | WHY: The answer never mentions MBEDTLS_ERROR_C or states that it is enabled in the shipped mbedtls_config.h, so a default build having the string table is not stated. || QUOTE: NONE | WHY: The answer never mentions MBEDTLS_ERROR_C or states that it is enabled in the shipped mbedtls_config.h.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies MBEDTLS_ERROR_STRERROR_DUMMY as a separate switch that keeps mbedtls_strerror LINKABLE while the string table is compiled out, and states that it too is enabled by default",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions MBEDTLS_ERROR_STRERROR_DUMMY or the option that keeps mbedtls_strerror linkable with the string table compiled out. || QUOTE: NONE | WHY: The answer never mentions MBEDTLS_ERROR_STRERROR_DUMMY or a switch keeping mbedtls_strerror linkable with the string table compiled out.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies MBEDTLS_ERROR_ADD / mbedtls_error_add as the way a high-level and a low-level code are combined, and notes that it captures __FILE__ and __LINE__",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions MBEDTLS_ERROR_ADD / mbedtls_error_add or that it captures __FILE__ and __LINE__. || QUOTE: NONE | WHY: The answer never mentions MBEDTLS_ERROR_ADD / mbedtls_error_add or that it captures __FILE__ and __LINE__; it only covers the strerror decoding and the generator. || QUOTE: NONE | WHY: The answer never mentions MBEDTLS_ERROR_ADD / mbedtls_error_add or that it captures __FILE__ and __LINE__; it only describes mbedtls_strerror decoding.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the inputs the generated error.c is built from \u2014 scripts/generate_errors.pl",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the inputs the generated error.c is built from \u2014 scripts/data_files/error.fmt",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the inputs the generated error.c is built from \u2014 include/mbedtls",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the inputs the generated error.c is built from \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": false,
+      "detail": "named 1 not in the set: ['include/mbedtls/*.h']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

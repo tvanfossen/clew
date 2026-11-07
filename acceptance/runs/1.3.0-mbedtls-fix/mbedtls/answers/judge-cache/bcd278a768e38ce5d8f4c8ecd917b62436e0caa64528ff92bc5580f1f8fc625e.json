@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Define the new `MBEDTLS_ERR_<MODULE>_<NAME>` in the module's public header... Add its name and description to the generator's data input in the data directory, then regenerate `library/error.c` through the generator. Do not edit the `case` lines by hand\nVERDICT: MISS\nWHY: The answer says error.c is generated and not to edit it by hand, but it says to add the name and description to the generator's data files. It does not say the `/** */`-documented #define in the public header is the source the generator reads."
+}

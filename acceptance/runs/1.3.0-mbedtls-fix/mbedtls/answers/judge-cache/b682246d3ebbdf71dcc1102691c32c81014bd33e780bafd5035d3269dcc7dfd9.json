@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Option A, compile time (no runtime pointer, no setter): ... `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` ... \"The runtime setter is not compiled.\" ... \"In this mode `mbedtls_platform_set_calloc_free` is not declared, so calling it is a compile error.\"\nVERDICT: HIT\nWHY: The answer distinguishes the compile-time macro pair from the runtime function-pointer setter. It also says the setter is not compiled when the macros are defined, which states that the two are mutually exclusive."
+}

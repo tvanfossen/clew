@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the define makes the wrapper a no-op for library and sample programs, while by default it renames members. It never says that code defining the macro sees plain names while an ordinary consumer of the public headers sees the renamed ones. It frames the split as library versus external code and doesn't state the per-consumer view directly."
+}

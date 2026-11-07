@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these top-level directories as containing `MBEDTLS_PRIVATE` uses:\n\n- `library`: \"Only 14 occurrences remain in `library/`\".\n- `include`: it defines the macro and uses it in `include/mbedtls/ssl.h`.\n- `programs`: `fuzz_dtlsserver.c` and `ssl_context_info.c` use the explicit `MBEDTLS_PRIVATE(...)` spelling.\n\nI left out `docs`. The answer cites `docs/3.0-migration-guide.md` only for the escape hatch, `bar.MBEDTLS_PRIVATE(foo)`, and doesn't say that directory contains uses.\n\nITEMS:\nlibrary\ninclude\nprograms\nEND"
+}

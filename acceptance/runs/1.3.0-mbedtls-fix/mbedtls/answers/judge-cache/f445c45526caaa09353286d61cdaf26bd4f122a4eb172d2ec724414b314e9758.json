@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In this mode `mbedtls_platform_set_calloc_free` is not declared, so calling it is a compile error.\nVERDICT: MISS\nWHY: The answer says the setter is not declared (and \"not compiled\" in the table), but it never says outright that the function does not exist at all, and \"not declared\" alone doesn't cover \"not compiled\", so this is only partial."
+}

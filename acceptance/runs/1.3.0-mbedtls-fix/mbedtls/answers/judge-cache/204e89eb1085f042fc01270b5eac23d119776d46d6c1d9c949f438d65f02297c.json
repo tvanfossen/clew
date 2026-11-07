@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (default) | Plain `calloc` / `free` (`platform.h:163-167`). No indirection.\nVERDICT: HIT\nWHY: The answer states that in the default config (PLATFORM_MEMORY off) the wrappers resolve to plain calloc/free with no indirection; it doesn't say \"macros\" explicitly, but the substance (direct mapping, no indirection) is stated."
+}

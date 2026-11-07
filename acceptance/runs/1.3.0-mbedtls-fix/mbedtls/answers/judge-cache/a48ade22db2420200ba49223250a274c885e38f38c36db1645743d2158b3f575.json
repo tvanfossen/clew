@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Add the `MBEDTLS_ERR_<MODULE>_<NAME>` define in the module's header... Do not hand-edit the auto-generated cases in `library/error.c`. Regenerate them with `scripts/generate_errors.pl`\nVERDICT: MISS\nWHY: The answer says to add the define to the module header and regenerate, but never says the define must be `/** */`-documented, and it says the description text's source is unverified. The item names that documentation comment as the mechanism, so the item isn't fully stated."
+}

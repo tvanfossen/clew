@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With inline asm (`asm volatile(\"\" : [x] \"+r\"(x))`) it pins the value in a register.\nVERDICT: HIT\nWHY: The answer shows the empty asm volatile with a \"+r\" input-output operand for mbedtls_ct_compiler_opaque, stating it pins the value so the compiler can't reason about it. That is the optimisation-barrier role, though \"emits no instruction\" is not stated explicitly."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never conveys that the macro is used at a scale of many hundreds of sites mostly in public headers; it only says \"Every struct member in the public headers\" and notes a capped 50-hit search with no scale or distribution claim."
+}

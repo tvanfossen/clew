@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If the embedder defines `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS` without providing those names, the defaults are stubs: calloc returns NULL and free does nothing (`platform.c:25-42`). Per `mbedtls_config.h:4113-4134`, an uninitialised calloc always fails.\nVERDICT: HIT\nWHY: The answer states that the default stubs fail (calloc returns NULL, free does nothing) instead of falling back to libc, and that an uninitialised calloc always fails."
+}

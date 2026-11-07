@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `error.c` has a second `mbedtls_strerror` definition at line 867, gated by `MBEDTLS_ERROR_STRERROR_DUMMY`. I did not read it, so I can't say which build uses it.\nVERDICT: MISS\nWHY: The answer mentions the macro only in passing and says it didn't read it. It never says the macro keeps `mbedtls_strerror` linkable with the string table compiled out, and never says it is enabled by default."
+}

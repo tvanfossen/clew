@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` forced on\nVERDICT: HIT\nWHY: The answer names both macros as the threading-layer gates (also \"Only when the threading macros are on\")."
+}

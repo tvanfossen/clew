@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library itself creates no threads. The only spawn sites the index finds are in `programs/`\nVERDICT: MISS\nWHY: The answer states that the library creates no threads. But it describes library/threading.c as compiling out by default and as an optional layer, so it never says that library/ supplies the mutex abstraction for threaded callers. It does note that the mutex operations are function pointers (`threading.c:101-104`) that can be swapped with THREADING_ALT, but it doesn't present that as the abstraction threaded callers use."
+}

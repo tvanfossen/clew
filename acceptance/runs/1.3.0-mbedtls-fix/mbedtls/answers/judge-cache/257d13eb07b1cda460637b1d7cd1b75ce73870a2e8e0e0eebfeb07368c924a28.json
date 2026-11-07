@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On GCC-compatible builds it is an empty `asm volatile` with a read-write constraint.\nVERDICT: HIT\nWHY: The answer states the asm path is an empty `asm volatile` with a read-write operand that hides the value from the optimizer, which covers the empty-asm, input-output operand and optimisation-barrier points."
+}

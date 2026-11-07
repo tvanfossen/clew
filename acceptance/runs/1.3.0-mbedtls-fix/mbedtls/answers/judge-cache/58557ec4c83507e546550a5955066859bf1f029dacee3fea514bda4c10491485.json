@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A second definition at `error.c:867` covers the `MBEDTLS_ERROR_STRERROR_DUMMY` case, which is used when `MBEDTLS_ERROR_C` is off.\nVERDICT: MISS\nWHY: The answer names the DUMMY switch as a fallback when MBEDTLS_ERROR_C is off, but it never says it keeps the function linkable while the string table is compiled out, and it never says it is enabled by default."
+}

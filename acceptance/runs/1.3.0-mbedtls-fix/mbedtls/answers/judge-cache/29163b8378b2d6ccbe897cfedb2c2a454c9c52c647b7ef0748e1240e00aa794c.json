@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is opaque in the same way: it XORs with `volatile mbedtls_ct_zero`, which the compiler cannot prove is 0.\nVERDICT: HIT\nWHY: The answer says the plain-C fallback XORs with the volatile global `mbedtls_ct_zero`, which holds zero. It also says asm-less builds take this path. It never says \"extern\", and it describes the opacity helper rather than naming the function outright. That is enough for the mechanism and the global."
+}

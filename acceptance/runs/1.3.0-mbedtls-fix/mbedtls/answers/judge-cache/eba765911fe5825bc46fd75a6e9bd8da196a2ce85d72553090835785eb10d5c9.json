@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without asm it returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a global `volatile` zero, so the compiler cannot prove the value.\nVERDICT: HIT\nWHY: The answer says that without asm, mbedtls_ct_compiler_opaque XORs with the global volatile zero `mbedtls_ct_zero`, which names both the fallback mechanism and the global."
+}

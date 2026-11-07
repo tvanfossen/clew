@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In the fallback, `compiler_opaque` is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global holding 0.\nVERDICT: HIT\nWHY: The answer states the fallback XORs with a volatile global holding zero and names it `mbedtls_ct_zero`; it also says this is the `compiler_opaque` function used when asm is unavailable."
+}

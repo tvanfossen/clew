@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `error.c` has a second `mbedtls_strerror` definition at line 867, gated by `MBEDTLS_ERROR_STRERROR_DUMMY`. I did not read it, so I can't say which build uses it.\nVERDICT: MISS\nWHY: The answer only mentions the DUMMY gate and explicitly admits it didn't read it. It never says the switch keeps the function linkable while the string table is compiled out, and it never says the switch is enabled by default."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 29895,
+  "stop_reason": "end_turn",
+  "session_id": "322ff0b5-e0b3-4cd0-9ec0-1378a5331633",
+  "total_cost_usd": 0.007993710000000001,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 13707,
+    "cache_read_input_tokens": 237461,
+    "output_tokens": 5753,
+    "output_tokens_details": {
+      "thinking_tokens": 2535
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 13707,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2339,
+        "cache_read_input_tokens": 46699,
+        "cache_creation_input_tokens": 1174,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1174
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5753,
+      "cacheReadInputTokens": 237461,
+      "cacheCreationInputTokens": 13707,
+      "webSearchRequests": 0,
+      "costUSD": 0.007993710000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2535,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 13707,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** by default, nothing in mbedtls runs concurrently on its own, and nothing protects shared state. The mutex code is compiled out, so the library is single-threaded by contract. Any concurrency comes from the application, and the application has to serialize access itself.\n\n**What is configured by default**\n\n- `MBEDTLS_THREADING_C` is commented out (`include/mbedtls/mbedtls_config.h:3787`). `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` are also commented out (lines 2185, 2196). So no mutex implementation is built in.\n- Every mutex use is guarded by `#if defined(MBEDTLS_THREADING_C)`. That covers the lock fields in `entropy.h:113`, `ctr_drbg.h:228`, `ssl_cache.h:72`, and the locks in `ssl_ticket.c`, `entropy.c`, `ctr_drbg.c`, and `psa_crypto*.c`. With the flag off, these compile to nothing.\n- The library creates no threads. A grep of `library/` and `include/` finds no `pthread_create`, `CreateThread`, or `_beginthread`.\n- Enabled by default: `MBEDTLS_ENTROPY_C`, `MBEDTLS_CTR_DRBG_C`, `MBEDTLS_SSL_CACHE_C`, `MBEDTLS_SSL_SESSION_TICKETS`, `MBEDTLS_PSA_CRYPTO_C`, and `MBEDTLS_PSA_CRYPTO_STORAGE_C`. So the shared-state modules are present.\n- Not enabled by default: `MBEDTLS_USE_PSA_CRYPTO` (line 2230), so TLS and X.509 use the legacy per-context crypto paths by default.\n\n**What \"concurrent\" means in practice**\n\nConcurrency exists only when the application calls the library from more than one thread. The library does not run anything in parallel itself.\n\n**What is protected, and by what**\n\n| State | Protection with default config |\n|---|---|\n| Per-object state (`mbedtls_ssl_context`, `ctr_drbg`, `entropy`, `ssl_cache`) | None. The object must not be used from two threads at once. The mutex fields that would have protected them are compiled out. |\n| PSA global state (`global_data` in `library/psa_crypto.c`: `initialized`, `rng_state`, the RNG context) | None. The lock calls at `psa_crypto.c:130\u2013166` are compiled out. |\n| PSA key-slot table (`psa_crypto_slot_management.c`) | None, for the same reason. |\n| Kernel entropy sources | Not library state. The OS handles its own synchronization. |\n\n**What the config documents as needing the flag**\n\nThe comment block above `MBEDTLS_THREADING_C` (`mbedtls_config.h:3740\u20133787`) says to enable it if more than one thread does any of these:\n\n- call any `psa_xxx()` function, since PSA has implicit shared state;\n- call `mbedtls_ssl_*`, `mbedtls_x509_*`, or `mbedtls_pk_*` when `MBEDTLS_USE_PSA_CRYPTO` is on;\n- run a TLS 1.3 connection, \"regardless of the compile-time configuration\";\n- share any crypto context between threads.\n\nSo a default build used from multiple threads is outside what the library supports. The main risk is the PSA global state, which is touched by any PSA call or `psa_crypto_init()`.\n\n**Caveat:** This is from reading the source at HEAD `068ff08`. I did not build the library or run a concurrency test.",
+  "ttft_ms": 2232,
+  "type": "result",
+  "duration_ms": 30241,
+  "uuid": "bf2867da-dc8d-4a2f-bf32-46f6dd877c29",
+  "ttft_stream_ms": 1142,
+  "time_to_request_ms": 128,
+  "first_content_frame_ms": 1142,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

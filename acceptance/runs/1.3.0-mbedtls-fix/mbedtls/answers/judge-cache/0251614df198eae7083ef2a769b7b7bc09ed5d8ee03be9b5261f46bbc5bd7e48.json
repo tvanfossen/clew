@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only `mbedtls_ct_memcmp` is public, in `include/mbedtls/constant_time.h`.\nVERDICT: HIT\nWHY: The answer states that mbedtls_ct_memcmp is the only public function and that the other primitives live in library-internal headers."
+}

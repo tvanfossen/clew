@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Valgrind constant-flow** (`component_release_test_valgrind_constant_flow`). Secrets are marked with `TEST_CF_*` annotations... **MemSan constant-flow** (`component_test_memsan_constant_flow`).\"\nVERDICT: MISS\nWHY: The answer names Valgrind and MemSan test builds, but never says the facility is off-by-default or explicitly not part of the library API, which the item requires."
+}

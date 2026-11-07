@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Everywhere else (applications and integrators), the default applies and direct member access is a compile error unless they define the macro themselves before including the headers.\" and \"**Opt-out defined:** it expands to `member`\"\nVERDICT: HIT\nWHY: The answer contrasts consumers that define MBEDTLS_ALLOW_PRIVATE_ACCESS (plain member names, e.g. the library and the two programs) with ordinary consumers who see the `private_` renamed members."
+}

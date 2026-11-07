@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the setter is neither declared nor compiled on the macro path. It describes the setter only on the platform-memory path and never contrasts it with the macro path."
+}

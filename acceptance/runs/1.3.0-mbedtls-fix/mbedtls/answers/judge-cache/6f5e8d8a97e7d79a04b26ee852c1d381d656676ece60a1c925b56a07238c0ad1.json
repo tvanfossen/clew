@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer says the opt-out `MBEDTLS_ALLOW_PRIVATE_ACCESS` is turned on (defined) in these files:\n\nITEMS:\nlibrary/common.h\nprograms/ssl/ssl_server2.c\nprograms/ssl/ssl_client2.c\nEND"
+}

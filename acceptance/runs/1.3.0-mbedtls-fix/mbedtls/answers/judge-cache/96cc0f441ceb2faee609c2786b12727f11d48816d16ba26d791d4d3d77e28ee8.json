@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The mask `0xFF80` selects the module bits. `mbedtls_high_level_strerr()`... `ret & ~0xFF80` gives the remainder... `mbedtls_low_level_strerr()`... The two parts are joined with `\" : \"`, giving `\"RSA - Bad input parameters to function : AES - Invalid key length\"`.\"\nVERDICT: HIT\nWHY: The answer explains the high-level module part and low-level part, and says both are rendered joined with \" : \" when both are present."
+}

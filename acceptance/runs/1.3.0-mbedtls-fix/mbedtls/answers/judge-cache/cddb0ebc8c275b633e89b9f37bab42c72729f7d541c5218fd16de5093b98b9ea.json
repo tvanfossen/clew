@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The whole function is gated by `MBEDTLS_ERROR_C`. A second definition at `error.c:867` covers the `MBEDTLS_ERROR_STRERROR_DUMMY` case, which is used when `MBEDTLS_ERROR_C` is off.\nVERDICT: MISS\nWHY: The answer only says the function is gated by MBEDTLS_ERROR_C; it never says the option is enabled in the shipped mbedtls_config.h or that the string table is present in a default build."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In C it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global set to 0 (`constant_time.c:29`).\nVERDICT: HIT\nWHY: The answer says that in C (no assembly) the opaque barrier XORs with the volatile global `mbedtls_ct_zero`, which is 0. The table's \"`volatile` XOR\" row also covers the no-assembly case. The item asks for the same function falling back this way. The answer states it for `mbedtls_ct_compiler_opaque`."
+}

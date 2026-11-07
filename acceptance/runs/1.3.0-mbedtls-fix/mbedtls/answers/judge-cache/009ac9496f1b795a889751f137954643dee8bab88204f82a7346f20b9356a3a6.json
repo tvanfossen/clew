@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global set to 0 in `library/constant_time.c`.\nVERDICT: HIT\nWHY: The answer says the plain-C fallback XORs with the volatile global `mbedtls_ct_zero`, which holds 0, and it names that global. It also says this fallback is used where asm isn't available. It doesn't say outright that the \"same function\" has both paths, but it presents the asm and C paths for the same primitives."
+}

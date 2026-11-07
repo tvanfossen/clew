@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If `MBEDTLS_THREADING_C` is on, inits a mutex and calls `mbedtls_platform_set_calloc_free(buffer_alloc_calloc_mutexed, buffer_alloc_free_mutexed)`. Otherwise it installs the unlocked variants.\"\nVERDICT: HIT\nWHY: The answer says that `mbedtls_memory_buffer_alloc_init` installs the mutexed pair when `MBEDTLS_THREADING_C` is on and the unlocked pair otherwise. The `#if`-style conditional implies the choice is made at compile time."
+}

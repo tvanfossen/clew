@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions MBEDTLS_ERROR_STRERROR_DUMMY or says a separate switch keeps mbedtls_strerror linkable with the table compiled out; it mentions only a dummy version when MBEDTLS_ERROR_C is disabled."
+}

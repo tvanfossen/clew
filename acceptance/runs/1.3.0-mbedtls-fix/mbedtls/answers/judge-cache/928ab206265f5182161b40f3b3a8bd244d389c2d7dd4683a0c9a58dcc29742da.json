@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` undefined (the default, `mbedtls_config.h:208` is commented out) | `calloc` | `platform.h:166-167`\nVERDICT: HIT\nWHY: The answer states that in the default build (MBEDTLS_PLATFORM_MEMORY undefined) mbedtls_calloc/free are macros expanding directly to calloc/free, with no function indirection."
+}

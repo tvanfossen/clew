@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PRIVATE(x)` is defined in `include/mbedtls/private_access.h`:\nVERDICT: HIT\nWHY: The answer explicitly states the macro is defined in include/mbedtls/private_access.h and shows the definition."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library creates no threads.\nVERDICT: MISS\nWHY: The answer says the library creates no threads in the default config, but it never says the pthread example compiles to a stub main under that condition."
+}

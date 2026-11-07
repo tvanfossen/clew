@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It installs its own calloc and free through `mbedtls_platform_set_calloc_free`, using mutex-guarded variants when `MBEDTLS_THREADING_C` is on.\"\nVERDICT: HIT\nWHY: The answer says memory_buffer_alloc's init function installs its own calloc/free via the runtime setter. It never says \"only in-tree user,\" but it names the user and the mechanism, and for an atomic fact that counts as stated."
+}

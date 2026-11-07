@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no top-level directories as containing uses of MBEDTLS_PRIVATE. It names only specific files and paths (`library/common.h`, `programs/ssl/...`, `programs/fuzz/...`, `include/mbedtls/...`, `docs/...`), and none of these is stated as a directory containing uses of the macro. Of those paths, `programs` is the one closest to a claim: it holds `ssl_context_info.c` and the fuzzer, which use `MBEDTLS_PRIVATE(...)` explicitly. The answer also says `library/common.h` and the library `.c` files see the real member names. I am treating those as file-level mentions, though, since the answer never says a directory \"contains uses\".\n\nReading it as the directories the answer ties to uses of the macro, the list would be:\n\nITEMS:\nprograms\nlibrary\nEND"
+}

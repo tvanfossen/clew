@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says MBEDTLS_PLATFORM_MEMORY is commented out in the shipped mbedtls_config.h. It only says \"By default they are plain libc\" and tells the user to enable the option."
+}

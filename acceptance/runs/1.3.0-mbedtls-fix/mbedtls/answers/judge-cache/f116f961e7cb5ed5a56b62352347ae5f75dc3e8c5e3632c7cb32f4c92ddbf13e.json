@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When both macros are set, the runtime setter and its pointers are compiled out entirely.\nVERDICT: HIT\nWHY: The answer states that on the macro path the setter is compiled out entirely, so it is neither declared nor compiled, rather than present and ignored."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_memory_buffer_alloc_init(buf, len)` ... inits a mutex and calls `mbedtls_platform_set_calloc_free(buffer_alloc_calloc_mutexed, buffer_alloc_free_mutexed)`\" and \"this module is the only in-tree caller of `mbedtls_platform_set_calloc_free` according to the index.\"\nVERDICT: HIT\nWHY: The answer names memory_buffer_alloc as the sole in-tree caller of the runtime setter and says it installs itself over the pointers from its init function."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It installs its own calloc and free through `mbedtls_platform_set_calloc_free`, using mutex-guarded variants when `MBEDTLS_THREADING_C` is on.\nVERDICT: HIT\nWHY: The answer states the buffer allocator's init installs mutex-guarded calloc/free variants when MBEDTLS_THREADING_C is on. It doesn't say the plain pair is used otherwise, or that the choice is made at compile time inside the init function. The \"when ... is on\" wording and the macro name imply both, so I count the substance as stated."
+}

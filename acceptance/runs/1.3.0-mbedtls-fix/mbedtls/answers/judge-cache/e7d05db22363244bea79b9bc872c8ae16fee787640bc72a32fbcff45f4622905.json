@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Inside them the macro expands to the plain name, so `ssl->state` compiles. ... By default that field is named `private_state`. Application code that writes `ssl->state` fails to compile\n\nVERDICT: HIT\nWHY: The answer explains that code defining the opt-out (library, test programs) sees plain member names, while default external consumers see the `private_`-renamed ones."
+}

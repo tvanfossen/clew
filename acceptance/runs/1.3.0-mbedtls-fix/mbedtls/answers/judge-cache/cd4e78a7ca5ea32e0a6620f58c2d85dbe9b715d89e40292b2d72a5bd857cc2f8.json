@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library creates no threads. A grep of `library/` and `include/` finds no `pthread_create`, `CreateThread`, or `_beginthread`.\nVERDICT: MISS\nWHY: The answer states that the library creates no threads. But it says the mutex code is compiled out by default and never says that library/ supplies the mutex abstraction (threading.c) for threaded callers."
+}

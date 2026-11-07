@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the library starts no threads\nVERDICT: MISS\nWHY: The answer says that the library starts no threads, but it never says the pthread example compiles to a stub main under that condition. It only says the example \"shows the opt-in path\"."
+}

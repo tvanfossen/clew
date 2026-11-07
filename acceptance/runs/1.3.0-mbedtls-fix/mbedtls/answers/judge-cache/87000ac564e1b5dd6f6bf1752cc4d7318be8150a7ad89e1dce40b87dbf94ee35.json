@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The Valgrind and MemorySanitizer modes are controlled by `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` and `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN` (`mbedtls_config.h:2109-2142`). They are commented out by default\nVERDICT: MISS\nWHY: The answer names the off-by-default Valgrind/MemSan test options but never says the facility is a separate testing facility that is explicitly not part of the library API."
+}

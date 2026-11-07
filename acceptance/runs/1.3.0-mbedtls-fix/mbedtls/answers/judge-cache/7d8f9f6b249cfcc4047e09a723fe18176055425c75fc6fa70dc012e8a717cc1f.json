@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `platform_calloc_uninit` (`platform.c:25`) is the fallback that always returns NULL. It is selected when `MBEDTLS_PLATFORM_STD_CALLOC` is not defined.\nVERDICT: MISS\nWHY: The answer says the calloc uninit fallback returns NULL but never says the free default does nothing, and it states the pointers default to the standard functions. It doesn't make the point that the defaults fail instead of falling back."
+}

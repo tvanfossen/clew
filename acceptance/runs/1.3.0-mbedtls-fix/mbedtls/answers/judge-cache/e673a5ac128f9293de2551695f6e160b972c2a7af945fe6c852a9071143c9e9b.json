@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the pointers are initialised to MBEDTLS_PLATFORM_STD_CALLOC/FREE and that the index doesn't show the expansion. It never says that the defaults fail, with an uninitialised calloc returning NULL and an uninitialised free doing nothing. It mentions NULL only for the setter and the no-heap test config."
+}

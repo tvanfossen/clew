@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"calls `mbedtls_platform_set_calloc_free(buffer_alloc_calloc_mutexed, buffer_alloc_free_mutexed)` (or the non-mutexed pair)\" and \"sets up a heap over a caller-supplied buffer, with a mutex when `MBEDTLS_THREADING_C` is on\"\nVERDICT: MISS\nWHY: The answer mentions a mutexed pair and a non-mutexed alternative, but it never says the choice is made at compile time inside the init function. It also doesn't tie the pair selection explicitly to `MBEDTLS_THREADING_C`. The mutex setup is the only part it ties to that macro."
+}

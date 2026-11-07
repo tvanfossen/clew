@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_PRIVATE(member)` is a rename, not access control... `MBEDTLS_PRIVATE(foo)` expands to `private_foo`... Code outside the library that writes `s->foo` then fails to compile\"\nVERDICT: HIT\nWHY: The answer says opacity comes from renaming the member so outside code fails to compile, and that the struct declarations still carry the members. It never says outright that the fields stay visible and sized, but a rename can only do that."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the constant-flow check is a Valgrind/MemSan test facility (`TEST_CF_SECRET`/`TEST_CF_PUBLIC`). It never says the facility is off by default or that it is explicitly not part of the library API."
+}

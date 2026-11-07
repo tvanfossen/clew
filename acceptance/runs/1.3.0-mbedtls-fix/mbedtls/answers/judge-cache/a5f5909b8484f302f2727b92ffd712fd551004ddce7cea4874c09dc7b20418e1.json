@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Define the `MBEDTLS_ERR_<MODULE>_<NAME>` macro in the module's public header under `include/mbedtls/`\" and \"Regenerate `library/error.c` with `scripts/generate_errors.pl` ... Do not edit the generated arms directly.\"\nVERDICT: MISS\nWHY: The answer gets \"header define, then regenerate, don't hand-edit error.c\". But it never says the string comes from the `/** */` doc comment on the `#define`. It adds a separate step to put the description text in the generator's data input and says it doesn't know where that text lives. That contradicts the item's mechanism."
+}

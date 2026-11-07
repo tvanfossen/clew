@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque` returns `x ^ mbedtls_ct_zero`. The `volatile` load is a barrier the compiler must honour... `mbedtls_ct_zero` is a `volatile` global set to 0 (`constant_time.c:29`).\n\nVERDICT: HIT\nWHY: The answer says the same function, `mbedtls_ct_compiler_opaque`, falls back to `x ^ mbedtls_ct_zero` when asm is unavailable, and it names `mbedtls_ct_zero` as the volatile global set to 0."
+}

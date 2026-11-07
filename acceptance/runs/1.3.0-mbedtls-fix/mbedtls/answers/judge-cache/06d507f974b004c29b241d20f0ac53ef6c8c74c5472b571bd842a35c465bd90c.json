@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Opaque barrier.** `mbedtls_ct_compiler_opaque` (`impl.h:85`) is `asm volatile(\"\" : \"+r\"(x))` under assembly. ... The compiler cannot prove a value, so it cannot fold a branch on it.\nVERDICT: HIT\nWHY: Names mbedtls_ct_compiler_opaque as the barrier that prevents compiler knowledge of the value, located in constant_time_impl.h (impl.h:85, with the full path given earlier for that header)."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 26884,
+  "stop_reason": "end_turn",
+  "session_id": "117ca326-b241-4c93-8f80-626a57936c15",
+  "total_cost_usd": 0.011883590000000001,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 34637,
+    "cache_read_input_tokens": 252749,
+    "output_tokens": 4855,
+    "output_tokens_details": {
+      "thinking_tokens": 2169
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 34637,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2878,
+        "cache_read_input_tokens": 53432,
+        "cache_creation_input_tokens": 1456,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1456
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4855,
+      "cacheReadInputTokens": 252749,
+      "cacheCreationInputTokens": 34637,
+      "webSearchRequests": 0,
+      "costUSD": 0.011883590000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2169,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 34637,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A negative code becomes a string in three layers: a runtime lookup in `library/error.c`, a generated switch table, and a Perl script that builds that table from the public headers. To add one, you edit the header and regenerate the committed `library/error.c`.\n\n**Runtime path**\n\n```\ncaller: mbedtls_strerror(ret, buf, buflen)            library/error.c:792\n  \u251c\u2500 buflen == 0 \u2192 return; else memset(buf, 0)\n  \u251c\u2500 ret = -ret if negative (positive input also works)\n  \u251c\u2500 high = ret & 0xFF80 \u2192 mbedtls_high_level_strerr(ret)   :174\n  \u2502     NULL \u2192 \"UNKNOWN ERROR CODE (%04X)\"\n  \u2502     SSL fatal alert (-MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE) \u2192 return, skip low level\n  \u251c\u2500 low = ret & ~0xFF80; low == 0 \u2192 return\n  \u251c\u2500 if high already written: append \" : \" and shift buf\n  \u2514\u2500 mbedtls_low_level_strerr(ret)                   :537\n        NULL \u2192 \"UNKNOWN ERROR CODE (%04X)\"\n```\n\nEach lookup is a `switch` on the masked value. The `case` labels and strings are generated, so nothing hand-written holds the mapping. An example result is `-0x40A0` \u2192 `\"RSA - Bad input parameters to function : AES - Invalid key length\"`, from the test data.\n\nIf `MBEDTLS_ERROR_C` is off, the `#else` branch writes an empty string. The `MBEDTLS_ERROR_STRERROR_DUMMY` gate keeps the code compiled but still returns no text.\n\n**How the table gets generated**\n\n- `library/CMakeLists.txt:133-145` runs `perl scripts/generate_errors.pl include/mbedtls scripts/data_files library/error.c` whenever any `include/mbedtls/*.h` changes.\n- The script scans every header with a regex for `#define MBEDTLS_ERR_<X> -0x....` plus its Doxygen description. The description is either a `/** */` comment before it or a `/*!< */` comment after it. Having both, or neither, is a fatal error.\n- `scripts/data_files/error.fmt` is the template. The script fills `HEADER_INCLUDED`, `LOW_LEVEL_CODE_CHECKS` and `HIGH_LEVEL_CODE_CHECKS` into it.\n- The module prefix (the `X` in `MBEDTLS_ERR_X_`) decides high versus low level, using the two lists at the top of `generate_errors.pl`. It also sets the `#if defined(MBEDTLS_X_C)` guard and the header to include.\n\n**What a contributor has to do to add one**\n\n1. **Add the define** in the module's header under `include/mbedtls/`, with a Doxygen description on the line before or after it. Use the `-0x` hex form. The regex skips decimal values silently, so the code would compile but never appear in `strerror` output. Pick an unused value; duplicates abort the generator.\n2. **If the module is new**, add its prefix to `low_level_modules` or `high_level_modules` in `generate_errors.pl`, or the script exits with \"Do not know how to handle\". Its header name must be the lowercase module name, or the \"has not been included\" check fails. Its `MBEDTLS_<MOD>_C` config symbol must also exist.\n3. **Regenerate `library/error.c`** with `perl scripts/generate_errors.pl` from the repo root, or just build with CMake. `library/error.c` is tracked in git, and `tests/scripts/check-generated-files.sh:135` diffs it against the generator output. So the regenerated file must be committed in the same change.\n4. **Add a test row** to `tests/suites/test_suite_error.data` in the form `error_strerror:-0x....:\"MODULE - description\"`, with a `depends_on:` line for the module's config. That file is the specification for the output string.\n5. **Run the tests** through the project's test task. I did not build or run anything here, so the generator run, the diff check and the test suite are unverified. I read the source and the index rather than executing them.",
+  "ttft_ms": 2128,
+  "type": "result",
+  "duration_ms": 27498,
+  "uuid": "cafa3e6d-38bf-41a9-9122-4c806aed8199",
+  "ttft_stream_ms": 1735,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1735,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

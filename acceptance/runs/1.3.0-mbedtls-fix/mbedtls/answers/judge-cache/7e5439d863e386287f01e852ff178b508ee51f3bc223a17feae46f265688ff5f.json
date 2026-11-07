@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | `#define MBEDTLS_ALLOW_PRIVATE_ACCESS`, unconditionally | Every library `.c` that includes `common.h` before a public header gets real member names.\nVERDICT: HIT\nWHY: The answer states that a shared header (common.h) defines the opt-out unconditionally, so library translation units see real member names."
+}

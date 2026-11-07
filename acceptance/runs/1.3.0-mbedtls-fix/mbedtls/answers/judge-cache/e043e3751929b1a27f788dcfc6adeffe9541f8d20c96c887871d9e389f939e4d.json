@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_ct_compiler_opaque()` ... With assembly it is `asm volatile(\"\" : \"+r\"(x))`, an empty barrier. Without assembly it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` zero (`constant_time.c:23-30`).\"\nVERDICT: HIT\nWHY: The answer says the same function, `mbedtls_ct_compiler_opaque`, falls back to XOR with the volatile zero global `mbedtls_ct_zero` when assembly is unavailable. It doesn't use the word \"extern\", but the mechanism and the global's name are both stated."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The string comes from `mbedtls_strerror()` in `library/error.c`, a file the build generates from the public headers.\nVERDICT: HIT\nWHY: The answer names mbedtls_strerror as the entry point and places it in library/error.c."
+}

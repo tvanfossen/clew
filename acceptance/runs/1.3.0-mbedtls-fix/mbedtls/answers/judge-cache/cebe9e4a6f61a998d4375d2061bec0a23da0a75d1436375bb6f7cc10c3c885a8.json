@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Compile time: enable `MBEDTLS_PLATFORM_MEMORY` and supply `MBEDTLS_PLATFORM_CALLOC_MACRO` / `MBEDTLS_PLATFORM_FREE_MACRO` in the user config.\nVERDICT: MISS\nWHY: The answer says to enable MBEDTLS_PLATFORM_MEMORY for compile-time substitution, but it never says it's commented out in the shipped mbedtls_config.h."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions debug_mutex or that a mutex serialises debug output across concurrent connections; it only lists \"buffer allocator and debug output\" among the call sites wrapped in `#if defined(MBEDTLS_THREADING_C)`."
+}

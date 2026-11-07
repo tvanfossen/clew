@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Callers are in the bignum core, RSA, ciphers, AEADs, PSA, TLS, and base64. The `mbedtls_ct_` helpers appear in these places:\nVERDICT: HIT\nWHY: The answer conveys broad consumption across many areas (bignum, RSA, ciphers, AEAD, PSA, TLS, base64) with a long table of users, though it doesn't state \"twenty\"; the breadth rather than confinement is clearly conveyed."
+}

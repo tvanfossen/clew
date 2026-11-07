@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index also shows a second `mbedtls_strerror` at `error.c:867` under `MBEDTLS_ERROR_STRERROR_DUMMY`, which I take to be the no-strings fallback, but I did not read that body.\nVERDICT: MISS\nWHY: The answer names the macro and guesses it's a fallback, but it doesn't say it keeps the function linkable while the table is compiled out, and it doesn't say it is enabled by default."
+}

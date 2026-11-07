@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When `MBEDTLS_THREADING_C` is enabled, it wraps both in a mutex.\nVERDICT: MISS\nWHY: The answer says init installs its own calloc/free and wraps them in a mutex when threading is enabled. It doesn't state that a mutexed pair versus a plain pair is chosen at compile time inside the init function."
+}

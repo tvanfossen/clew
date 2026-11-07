@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Add the define** in the module's header under `include/mbedtls/`, with a Doxygen description on the line before or after it... **Regenerate `library/error.c`** with `perl scripts/generate_errors.pl`\nVERDICT: HIT\nWHY: The answer says to add the documented #define to the module header and regenerate error.c with the generator, and it notes the switch is generated rather than hand-written."
+}

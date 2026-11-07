@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that mbedtls_platform_set_calloc_free is absent (not declared/compiled) on the macro path; it only says platform.c compiles without the standard fallback."
+}

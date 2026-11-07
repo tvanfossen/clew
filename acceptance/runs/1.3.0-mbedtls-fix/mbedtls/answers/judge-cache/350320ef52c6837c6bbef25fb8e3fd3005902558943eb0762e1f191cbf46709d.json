@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (default) | Plain `calloc` / `free` (`platform.h:163-167`). No indirection.\nVERDICT: HIT\nWHY: The answer states that in the default build (PLATFORM_MEMORY off) the allocation wrappers resolve to plain calloc/free with no indirection. It doesn't say the word \"macros\" for that case, but \"become plain calloc/free\" in the platform.h section conveys the direct expansion."
+}

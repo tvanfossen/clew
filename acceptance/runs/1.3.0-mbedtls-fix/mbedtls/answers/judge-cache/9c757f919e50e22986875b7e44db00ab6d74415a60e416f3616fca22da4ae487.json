@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"so a new string means adding a documented macro and regenerating, not hand-editing the switch.\" and \"Define the macro in the module's public header... Give it exactly one description, either a `/** */` comment before it... Regenerate `library/error.c` through the build... Don't edit the generated block by hand.\"\nVERDICT: HIT\nWHY: The answer says to add a documented #define to the public header and regenerate error.c rather than hand-editing it."
+}

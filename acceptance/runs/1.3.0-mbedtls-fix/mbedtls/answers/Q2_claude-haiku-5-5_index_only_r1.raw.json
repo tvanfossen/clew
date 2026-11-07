@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 33252,
+  "stop_reason": "end_turn",
+  "session_id": "9185e1ce-3c89-4886-9ab9-878ee2ab30d2",
+  "total_cost_usd": 0.015746370000000003,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 58705,
+    "cache_read_input_tokens": 178987,
+    "output_tokens": 4429,
+    "output_tokens_details": {
+      "thinking_tokens": 2316
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 58705,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2922,
+        "cache_read_input_tokens": 50983,
+        "cache_creation_input_tokens": 7722,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7722
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4429,
+      "cacheReadInputTokens": 178987,
+      "cacheCreationInputTokens": 58705,
+      "webSearchRequests": 0,
+      "costUSD": 0.015746370000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2316,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 58705,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does.** `MBEDTLS_PRIVATE(member)` is a macro in `include/mbedtls/private_access.h`. Its definition is gated on `MBEDTLS_ALLOW_PRIVATE_ACCESS` (line 14):\n\n- **Default (macro not defined):** `MBEDTLS_PRIVATE(member)` expands to `private_##member` (line 15). The struct member is really named `private_member`, so `ctx->member` fails to compile in application code.\n- **Opt-out defined:** it expands to `member` (line 17), so the name is public again.\n\nDeclarations and uses both go through the macro, so the library's own code stays consistent either way. For example, `mbedtls_cipher_get_iv_size` in `include/mbedtls/cipher.h:724` reads `ctx->MBEDTLS_PRIVATE(cipher_info)`.\n\nThe purpose is to stop applications from coupling to internals. A user who writes `ctx->iv_size` gets a compile error instead of silently depending on a field that can be renamed or rearranged in a later release. This is API hygiene, not a security boundary. The struct definitions remain in the public headers, so `sizeof`, stack allocation and layout are still visible. The migration guide describes it the same way: \"as a last resort\" you can write `bar.MBEDTLS_PRIVATE(foo)` (`docs/3.0-migration-guide.md`).\n\n**Who the opt-out is for.** The define is turned on in three places in this tree:\n\n| Location | Line | Who it covers |\n|---|---|---|\n| `library/common.h` | 132 | The library itself. This is the internal header it uses, so library code gets direct member access. |\n| `programs/ssl/ssl_client2.c` | 8 | The SSL client test/example program. |\n| `programs/ssl/ssl_server2.c` | 8 | The SSL server test/example program. |\n\nConsequences:\n\n- **Inside the library**, member access is unrestricted. Changing a member name is a refactor, and nothing outside the library is expected to depend on the member.\n- **In the two `programs/ssl` tools**, which are outside the library, the rule is off. They can read and write internals directly, which is what a test harness usually needs. Those two files are therefore coupled to the struct layout, so changes to those members will break them.\n- **Everywhere else** (applications and integrators), the default applies and direct member access is a compile error unless they define the macro themselves before including the headers.\n\n**Limits of what I could confirm.** The index shows `library/common.h:132` as a plain `#define` with an empty expansion, but not the surrounding condition. I also could not confirm that every library source includes `common.h` before the public headers, so I can't say whether every library translation unit gets the opt-out. The `ssl_client2.c`/`ssl_server2.c` lines are present, but I could not read the bodies to see which members they actually touch.",
+  "ttft_ms": 1985,
+  "type": "result",
+  "duration_ms": 34445,
+  "uuid": "d1b01f30-d62d-40b3-9240-b0c0e796dd23",
+  "ttft_stream_ms": 1610,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1610,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

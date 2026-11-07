@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Call counts from `grep -c mbedtls_ct_` on the library sources: ... table listing Bignum, RSA, Cipher/MAC, TLS, PSA, Other across many files\nVERDICT: HIT\nWHY: The answer shows the primitives used across bignum, RSA, cipher/MAC, TLS, PSA and base64 files (roughly twenty-plus modules listed), conveying broad consumption rather than confinement."
+}

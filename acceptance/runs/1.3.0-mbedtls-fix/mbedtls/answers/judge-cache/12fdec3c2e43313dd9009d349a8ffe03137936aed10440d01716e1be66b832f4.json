@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque` (`constant_time_impl.h:85`) passes a value through an empty `asm volatile` with a `+r` constraint, so the compiler cannot prove what the value is.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the primitive that stops the compiler from knowing a value, and locates it in constant_time_impl.h (library/constant_time_impl.h is named earlier)."
+}

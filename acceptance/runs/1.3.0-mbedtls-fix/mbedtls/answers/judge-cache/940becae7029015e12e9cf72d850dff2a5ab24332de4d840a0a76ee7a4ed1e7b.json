@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library itself creates no threads. The only spawn sites the index finds are in `programs/`\nVERDICT: HIT\nWHY: The answer states that no library code creates threads (spawn sites only in programs/). It also says the library supplies the mutex abstraction: `threading.c` has mutex function pointers that callers can swap via `MBEDTLS_THREADING_ALT`, and library files use `mbedtls_mutex_lock/unlock`."
+}

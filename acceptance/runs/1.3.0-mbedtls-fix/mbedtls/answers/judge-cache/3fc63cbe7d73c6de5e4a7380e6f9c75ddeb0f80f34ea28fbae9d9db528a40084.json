@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Those default to `calloc` and `free` unless `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS` is set, in which case they are stubs: calloc returns NULL and free does nothing (`platform.c:25-42`).\nVERDICT: HIT\nWHY: The answer states that, when std functions are disabled, the default pointers are stubs where calloc returns NULL and free does nothing."
+}

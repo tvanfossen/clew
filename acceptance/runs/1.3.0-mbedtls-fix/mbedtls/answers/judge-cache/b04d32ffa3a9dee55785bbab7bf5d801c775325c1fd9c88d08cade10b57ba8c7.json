@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise it XORs with `mbedtls_ct_zero`, a `volatile` zero defined in `constant_time.c`.\nVERDICT: HIT\nWHY: The answer says that without the asm path, `mbedtls_ct_compiler_opaque()` XORs with the volatile zero global `mbedtls_ct_zero`. The diagram's \"pure C + volatile mbedtls_ct_zero\" line repeats this."
+}

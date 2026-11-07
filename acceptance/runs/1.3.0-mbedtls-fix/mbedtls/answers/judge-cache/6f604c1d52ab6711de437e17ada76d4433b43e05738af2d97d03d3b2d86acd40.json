@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` is commented out in `include/mbedtls/mbedtls_config.h:3787`\nVERDICT: MISS\nWHY: The answer says only THREADING_C is commented out in the shipped header; it never says that MBEDTLS_THREADING_PTHREAD is also undefined, so it does not state that both macros are left undefined."
+}

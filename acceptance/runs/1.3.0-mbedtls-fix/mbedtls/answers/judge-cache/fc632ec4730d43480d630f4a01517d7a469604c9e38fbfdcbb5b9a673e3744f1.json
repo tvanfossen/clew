@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In the fallback, `compiler_opaque` is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global holding 0.\nVERDICT: HIT\nWHY: The answer states the fallback XORs with the volatile global `mbedtls_ct_zero` that holds 0, and it names that global. It does not say \"extern\", but the global and the mechanism are stated."
+}

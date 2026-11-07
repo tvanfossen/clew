@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The mutex-wrapped variants are used when `MBEDTLS_THREADING_C` is on.\"\nVERDICT: MISS\nWHY: The answer says mutex-wrapped variants are used with THREADING_C but doesn't state that a plain pair is installed otherwise, nor that the choice is made at compile time inside the init function."
+}

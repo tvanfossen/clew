@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It changes identifier spelling only, not layout, so it is not an ABI mechanism.\nVERDICT: HIT\nWHY: The answer says the macro renames members (`private_##member`) so external code fails to compile, and that layout is unchanged. That covers compile-time enforcement by breaking the name, with the fields still present and sized."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library itself creates no threads. The only spawn sites the index finds are in `programs/`\nVERDICT: MISS\nWHY: The answer says the library creates no threads but never states that the pthread example compiles to a stub main in a default build. It actually lists ssl_pthread_server.c as spawning a thread per connection."
+}

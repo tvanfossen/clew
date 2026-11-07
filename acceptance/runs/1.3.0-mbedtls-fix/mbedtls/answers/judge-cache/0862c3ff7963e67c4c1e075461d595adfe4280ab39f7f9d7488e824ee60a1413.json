@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `bignum_core.c` (32 call sites), `bignum.c`, `bignum_mod_raw.c`, and `bignum_core.h` comparison and zero-check helpers; `rsa.c` (37) ... `ssl_msg.c` (24) ... `cipher.c` (30) ... `base64.c` (21), `psa_crypto.c`, ... `ccm.c`, `gcm.c`, `cmac.c`, `chachapoly.c`, `nist_kw.c` ... `ecp.c`\nVERDICT: HIT\nWHY: The answer lists roughly twenty distinct library modules consuming the constant-time primitives, which conveys broad use rather than confinement to one or two."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_CT_ASM` is gated on `MBEDTLS_HAVE_ASM` plus `__GNUC__` or `__ARMCC_VERSION`.\nVERDICT: HIT\nWHY: The answer says MBEDTLS_CT_ASM is gated on MBEDTLS_HAVE_ASM plus compiler predefined macros (`__GNUC__`, `__ARMCC_VERSION`). That is the derivation mechanism. It never says outright that this is not a config.h entry, but the gating description carries the substance."
+}

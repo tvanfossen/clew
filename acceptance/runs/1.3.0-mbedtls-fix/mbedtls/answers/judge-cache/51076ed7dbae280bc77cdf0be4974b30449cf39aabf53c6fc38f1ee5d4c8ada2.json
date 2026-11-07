@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Callers are in the bignum core, RSA, ciphers, AEADs, PSA, TLS, and base64. The `mbedtls_ct_` helpers appear in these places:\nVERDICT: MISS\nWHY: The answer lists many areas and example callers, but it never states a breadth of roughly twenty modules, so the specific \"on the order of twenty\" fact is not conveyed."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says no library threads are spawned (spawn sites only in programs/) and that threading.c provides mutex code, but it frames the mutexes as inert and not compiled by default. It never states the contrast that library/ supplies the mutex abstraction for threaded callers."
+}

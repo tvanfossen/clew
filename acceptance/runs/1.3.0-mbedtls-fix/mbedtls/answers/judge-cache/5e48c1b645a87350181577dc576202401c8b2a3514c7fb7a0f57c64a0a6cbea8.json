@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, it expands to `private_##member`. With the define, it expands to plain `member`.\nVERDICT: HIT\nWHY: The answer says that defining the macro gives plain member names and that an ordinary consumer without it sees `private_` names. It also says library and test code defines it while other code does not."
+}

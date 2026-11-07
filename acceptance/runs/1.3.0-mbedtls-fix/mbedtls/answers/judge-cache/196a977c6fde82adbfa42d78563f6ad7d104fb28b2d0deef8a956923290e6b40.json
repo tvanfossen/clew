@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: MBEDTLS_HAVE_ASM && __GNUC__ && !armcc5 \u2500\u2500\u25ba MBEDTLS_CT_ASM\nVERDICT: HIT\nWHY: The answer says MBEDTLS_CT_ASM is gated by MBEDTLS_HAVE_ASM plus compiler macros (`__GNUC__`, ARMCC version), which shows it is derived from those. It never says explicitly that it is not set in mbedtls_config.h, but the derivation is clear from the diagram."
+}

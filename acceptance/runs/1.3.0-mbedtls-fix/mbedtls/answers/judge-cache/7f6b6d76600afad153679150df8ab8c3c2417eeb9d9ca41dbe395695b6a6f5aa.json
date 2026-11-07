@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: All primitives live in `library/constant_time_impl.h`, with a public memcmp in `include/mbedtls/constant_time.h` and `library/constant_time.c`.\nVERDICT: MISS\nWHY: The answer mentions a public memcmp header but never concludes that the public API is a single function, mbedtls_ct_memcmp, with the other primitives internal."
+}

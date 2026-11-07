@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"it is used by roughly 40 call sites across bignum, cipher padding, MAC/AEAD tag checks, RSA, PSA and TLS\"\nVERDICT: MISS\nWHY: The answer says \"roughly 40 call sites\" across several areas, which isn't the \"on the order of twenty modules\" breadth the item requires. It also lists callers by area without giving a module count, so the specific fact is absent."
+}

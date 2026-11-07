@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says nothing about the function being undeclared and uncompiled on the macro path. It describes `mbedtls_platform_set_calloc_free` as always present at `platform.c:57`, and it explicitly declines to say which expansion wins in each configuration."
+}

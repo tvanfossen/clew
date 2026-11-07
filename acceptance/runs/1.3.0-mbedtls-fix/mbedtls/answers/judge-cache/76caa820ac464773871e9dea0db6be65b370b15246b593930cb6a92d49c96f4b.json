@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS` is set, they become stubs instead: calloc returns NULL and free does nothing (`platform.c:25-42`).\nVERDICT: HIT\nWHY: The answer states that with no standard functions, the default pointers are stubs where calloc returns NULL and free does nothing, i.e. they fail rather than fall back."
+}

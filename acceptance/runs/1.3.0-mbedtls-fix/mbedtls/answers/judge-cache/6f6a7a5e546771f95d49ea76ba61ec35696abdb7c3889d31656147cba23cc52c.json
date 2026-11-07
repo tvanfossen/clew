@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_PRIVATE(member)` is a rename, not access control... `MBEDTLS_PRIVATE(foo)` expands to `private_foo`... Code outside the library that writes `s->foo` then fails to compile... C has no member-level access control, so this is a convention enforced by the name.\"\nVERDICT: HIT\nWHY: The answer says opacity is enforced at compile time by renaming the member to `private_*`, with the fields still declared in the public struct. It never says the layout is hidden. It does say the purpose is to keep the layout out of the public ABI, so \"visible and sized\" is implied rather than stated."
+}

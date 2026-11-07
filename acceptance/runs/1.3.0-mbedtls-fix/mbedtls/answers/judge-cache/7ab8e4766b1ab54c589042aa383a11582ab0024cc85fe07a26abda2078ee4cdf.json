@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It carves allocations out of a caller-supplied static buffer, with a mutex if `MBEDTLS_THREADING_C` is on.\nVERDICT: MISS\nWHY: The answer says only that the allocator uses a mutex when threading is on. It never says the init function installs a mutexed pair of calloc/free versus a plain pair, chosen at compile time."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `bignum_core.c` (32 call sites), `bignum.c`, `bignum_mod_raw.c`, and `bignum_core.h` comparison and zero-check helpers; `rsa.c` (37) ... `ssl_msg.c` (24) ... `cipher.c` (30) ... `base64.c` (21), `psa_crypto.c`, ... `ccm.c`, `gcm.c`, `cmac.c`, `chachapoly.c`, `nist_kw.c`, `ecp.c`\nVERDICT: MISS\nWHY: The answer lists many consumer files but never states the breadth (about twenty modules) or contrasts it with being confined to one or two; the reader would have to count the list themselves."
+}

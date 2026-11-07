@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"There are two routes, and they can be combined: 1. **Compile-time macros.** ... 2. **Runtime function pointers.**\"\nVERDICT: MISS\nWHY: The answer distinguishes compile-time macros from runtime function pointers, but it says they \"can be combined\", which contradicts the required claim that they are mutually exclusive."
+}

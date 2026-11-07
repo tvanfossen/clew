@@ -91,3 +91,39 @@ Summed `duration_ms` per arm: held 16 `index_only` −40.2%, `index` −19.3%; m
 `../1.3.0-pending/KNOWN-DEFECTS.md` — split rate counts an errored sample as disagreement (moot
 here at 0 errors); grading spans usage windows; wall-time method; judge calls persist a session
 each (pruned after every pass with `scripts/prune_judge_sessions.py`).
+
+## Addendum, 2026-11-07 — an mbedtls re-measure after `cacf3058` (EXPLORATORY)
+
+Not pre-registered; it does not re-score this run, and the gate above stands as computed. The
+owner asked why mbedtls got costlier; the transcripts showed 17 of 23 index-only code searches
+returning nothing, because the code corpus was built before AST recovery (1,052 of 4,127 bodies)
+and a word matched only whole. `cacf3058` fixed both. mbedtls was re-run at `cacf3058` (45 cells,
+same flags) in `../1.3.0-mbedtls-fix/`; its grading hit a usage outage (668 of 945 samples
+errored) and one repair pass brought it to 0 errors, split rate 5.7%.
+
+| mbedtls | `index_only` out / cache / wall | `index` out / cache / wall | empty code searches (`index_only`) |
+|---|---|---|---|
+| 1.2.0 | −29.8 / −42.8 / −33.0 | −11.5 / +6.1 / −16.9 | — |
+| this run | −21.3 / −20.3 / −21.5 | +6.8 / +29.3 / −0.3 | 17 / 23 |
+| `cacf3058` | **−29.3 / −43.8 / −31.1** | **−2.5 / −3.3 / −4.5** | 9 / 23 |
+
+| mbedtls absolute, baseline / `index_only` / `index` | this run | `cacf3058` |
+|---|---|---|
+| mean | 58.1 / 60.6 / 60.7 | 61.1 / **51.6** / 61.6 |
+| separation | +2.55 / +2.60 | −9.54 / +0.51 |
+
+**Cost recovered; `index_only` quality fell.** Diagnosed from the transcripts: the lost Q4 marks
+(error.c is generated; its `error.fmt` input) were lost in a cell with no code search at all —
+they turn on whether the agent opened `library/error.c`'s dossier — and Q3's lost marks follow the
+same pattern. Swings of this size occurred between grids before the code corpus existed (mbedtls
+Q4 `index_only` 66.7 → 48.0, comparator → first 1.3.0 grid). At 3 replicates the drop is not
+attributable to `cacf3058`, and is not shown harmless either. The owner kept it in 1.3.0.
+
+Spliced into this run's held 16 (mbedtls cells from the re-measure): separation `index_only`
+−7.39, `index` −3.35; cost `index_only` −44.0% output, −55.8% cache.
+
+**Where the gate's shortfall sits.** Per target, separation change from the comparator against
+that target's baseline drift: mbedtls −7.8 / +6.3, self −7.2 / +6.4, entropic +5.1 / −0.5. The
+two targets whose baseline arm rose about six points lost about seven points of separation; the
+one that did not, gained. Absolute held-16 arm scores: `index_only` 50.4 → 51.1, `index`
+53.0 → 52.0. This is arithmetic on the tables above, not a measured cause.

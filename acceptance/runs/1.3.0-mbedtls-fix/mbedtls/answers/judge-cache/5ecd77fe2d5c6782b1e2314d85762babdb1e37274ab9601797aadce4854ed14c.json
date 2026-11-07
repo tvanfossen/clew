@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Add `#define MBEDTLS_ERR_<MODULE>_<NAME> -0x....` in the module's public header, with one Doxygen comment and a value that doesn't collide... Regenerate with `make -C library error.c` or the CMake `GEN_FILES` target. Don't hand-edit `error.c`.\"\nVERDICT: HIT\nWHY: The answer says a new error code means adding a Doxygen-commented #define to the public header and regenerating, and says not to hand-edit error.c."
+}

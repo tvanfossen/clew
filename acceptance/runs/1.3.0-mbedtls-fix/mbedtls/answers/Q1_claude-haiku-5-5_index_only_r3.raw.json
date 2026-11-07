@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 30733,
+  "stop_reason": "end_turn",
+  "session_id": "7af426c9-12c1-4d31-9ab6-d91dc0861321",
+  "total_cost_usd": 0.010142930000000001,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 27367,
+    "cache_read_input_tokens": 169373,
+    "output_tokens": 5950,
+    "output_tokens_details": {
+      "thinking_tokens": 3682
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 27367,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4309,
+        "cache_read_input_tokens": 52041,
+        "cache_creation_input_tokens": 13577,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 13577
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 5950,
+      "cacheReadInputTokens": 169373,
+      "cacheCreationInputTokens": 27367,
+      "webSearchRequests": 0,
+      "costUSD": 0.010142930000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3682,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 27367,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** by default, the mbedtls library starts no threads and takes no locks. Its only concurrency is what the embedding application adds, and the mutexes exist only when the threading layer is enabled. Caveat: the index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` forced on, and it has no config header, so the shipped default comes only from the `default_state: off` entries it reports (`mbedtls_config.h:2196` and `:3787`). Confirm those lines before relying on this.\n\n**What runs concurrently**\n\n| Source | Where | When it exists |\n|---|---|---|\n| Library code | `library/` | Never spawns threads. All four spawn sites the index found are in `programs/`. |\n| Per-connection pthread | `programs/ssl/ssl_pthread_server.c` (`thread_create` \u2192 `handle_ssl_connection`) | Only when the threading macros are on (file gate at line 30). Example program, not library. |\n| Windows timer thread | `programs/test/benchmark.c` (`mbedtls_set_alarm` \u2192 `TimerProc`) | Windows-only, test benchmark. |\n| Signal handlers | `sighandler` (`benchmark.c`), `term_handler` (`ssl_server2.c`) | Asynchronous, not threads. The index labels them `isr`. |\n\nSo with defaults, concurrency is entirely the application's. The library's own job is to be re-entrant across separate `mbedtls_*_context` objects and to take its shared-state locks when the threading layer is compiled in.\n\n**What the mutexes protect (pthread backend)**\n\n- `threading.c` provides function pointers `mbedtls_mutex_init/free/lock/unlock`, defaulting to the pthread implementations. `mbedtls_threading_set_alt` (also gated off by default) swaps them out.\n- File-scope mutexes, initialised in `mbedtls_threading_set_alt`:\n  - `mbedtls_threading_readdir_mutex` (with `MBEDTLS_FS_IO`)\n  - `mbedtls_threading_gmtime_mutex` (with `THREADING_USE_GMTIME`)\n  - PSA: `key_slot_mutex`, `psa_globaldata_mutex`, `psa_rngdata_mutex`\n- Going by the names and the call graph, these guard readdir, gmtime's shared buffer, the PSA key-slot table, PSA global state, and PSA RNG state.\n- Through the lock function pointer, the index shows these callers: the memory buffer allocator (`buffer_alloc_calloc/free_mutexed`), the entropy and CTR/HMAC-DRBG RNG paths, the SSL session cache, ticket and cookie code, RSA, many PSA key-slot and random functions, `x509_crt_parse_path`, and `platform_gmtime_r`.\n\n**Limits of that mapping**\n\n- The lock layer reports one lock identity, `mutex->mutex`, scope unknown, confidence low. It cannot tell the five global mutexes apart or say which one a given caller holds. Treat the protection mapping as \"this call path is under a mutex\", not \"this mutex guards this object\".\n- Zero nested critical sections were found. That is an index result, not a proof of deadlock freedom.\n- `threading_mutex_init_pthread` notes that locking an uninitialised pthread mutex is undefined behaviour and is not checked at runtime.\n\n**Unprotected shared state (example server)**\n\n- `threads[]` is shared between the main thread and workers. The worker sets `thread_info->thread_complete = 1` (`ssl_pthread_server.c:241`). The main thread reads `threads[i].data.thread_complete == 1` (`:258`) and then joins, memsets and reuses the slot. The index shows no lock here, and the flag is a plain `int`, so the cross-thread read has no synchronisation.\n- `term_handler` runs asynchronously in `ssl_server2.c` and calls `mbedtls_net_free` on `listen_fd` and `client_fd`, which the main loop is using. No lock is involved. Whether this is safe depends on signal-safety and volatile semantics, which the index cannot settle.\n\nThese examples are test and demo programs, not the library, but they are the only places in the index where two real execution contexts touch shared state without a lock.",
+  "ttft_ms": 1714,
+  "type": "result",
+  "duration_ms": 31856,
+  "uuid": "00d7ce67-53fc-4003-bd7d-af33b6877b91",
+  "ttft_stream_ms": 1338,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1338,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

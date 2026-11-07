@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these top-level directories as containing uses of MBEDTLS_PRIVATE (it cites no use in `tests/` or `framework/`):\n\n- `library` (the three files `ecdh.c`, `md.c`, `x509_crt.c`)\n- `include` (the header and `ssl.h` example)\n\nITEMS:\nlibrary\ninclude\nEND"
+}

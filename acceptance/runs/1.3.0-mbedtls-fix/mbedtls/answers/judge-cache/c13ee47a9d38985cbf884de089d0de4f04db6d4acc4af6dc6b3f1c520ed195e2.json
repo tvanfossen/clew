@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says mbedtls_platform_set_calloc_free exists at platform.c:57 and never says it is undeclared or uncompiled on the macro path. It states only that the index doesn't clearly show which expansion applies."
+}

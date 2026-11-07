@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Components in `tests/scripts/components-sanitizers.sh` run MemSan (`:33`, `:53`) and release Valgrind (`:72`, `:105`, `:131`). ... The mechanism behind `TEST_CF_*` lives in `framework/tests/include/test/constant_flow.h`.\nVERDICT: MISS\nWHY: The answer describes the MemSan/Valgrind verification and TEST_CF_* macros, but never states the facility is off-by-default or explicitly not part of the library API."
+}

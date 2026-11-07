@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Add the define** in the module's header under `include/mbedtls/`, with a Doxygen description on the line before or after it. ... **Regenerate `library/error.c`** with `perl scripts/generate_errors.pl` from the repo root\n\nVERDICT: HIT\nWHY: The answer says to add the documented #define to the module's public header and regenerate error.c via the generator. It also says the case labels and strings are generated, so error.c is not hand-edited."
+}
