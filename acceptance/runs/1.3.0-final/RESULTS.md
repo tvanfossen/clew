@@ -127,3 +127,16 @@ that target's baseline drift: mbedtls −7.8 / +6.3, self −7.2 / +6.4, entropi
 two targets whose baseline arm rose about six points lost about seven points of separation; the
 one that did not, gained. Absolute held-16 arm scores: `index_only` 50.4 → 51.1, `index`
 53.0 → 52.0. This is arithmetic on the tables above, not a measured cause.
+
+## Release decision, 2026-11-07 — the owner shipped 1.3.0 over the gate
+
+**The pre-registered gate was not met, and 1.3.0 was released anyway, by the owner's explicit
+decision** after reviewing every criterion above against its measurement. The falsifier "the
+1.3.0 tag waits" was honoured: the tag waited for the owner, who then overrode it. Nothing above
+was re-scored, re-weighted or excluded to make that decision easier, and the gate's figure
+(−3.62 against −0.05) is the one this release is published with.
+
+What the decision rested on, each stated above with its method: the held-16 clew arms are flat in
+absolute score while the baseline arm rose 4.23 pt; the per-target shortfall tracks that drift;
+cost held or improved on every axis; and mattermost-mobile, the TypeScript target this release
+was rescoped for, moved from −10.26 to +1.37 `index_only`.
